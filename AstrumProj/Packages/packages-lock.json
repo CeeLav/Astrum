@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.justinpbarnett.unity-mcp": {
+      "version": "https://github.com/justinpbarnett/unity-mcp.git?path=/UnityMcpBridge",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.0.2"
+      },
+      "hash": "6906c24290c7a981b39e9cd09cff937d3414ac7c"
+    },
     "com.unity.ai.assistant": {
       "version": "1.0.0-pre.8",
       "depth": 0,
