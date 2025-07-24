@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AstrumServer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7284f5b2164a8d1d3fd03de75a74b32587141573")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a84b823f247b41045cb1d011a7eaf506e149fce2")]
 [assembly: System.Reflection.AssemblyProductAttribute("AstrumServer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AstrumServer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

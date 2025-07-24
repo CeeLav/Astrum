@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyTitle>LogicCore</AssemblyTitle>
+    <AssemblyDescription>Astrum Game Logic Core Library</AssemblyDescription>
+    <AssemblyCompany>Astrum Team</AssemblyCompany>
+    <AssemblyProduct>Astrum</AssemblyProduct>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <!-- 生成后事件：拷贝DLL到服务器和客户端目录 -->
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="echo 正在拷贝 LogicCore.dll 到目标目录..." />
+    
+    <!-- 创建服务器目录并拷贝 -->
+    <MakeDir Directories="d:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\$(ConfigurationName)\net8.0\" 
+             ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetPath)" 
+          DestinationFolder="d:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\$(ConfigurationName)\net8.0\" 
+          ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" 
+          DestinationFolder="d:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\$(ConfigurationName)\net8.0\" 
+          ContinueOnError="true" />
+    
+    <!-- 创建Unity客户端目录并拷贝 -->
+    <MakeDir Directories="d:\Develop\Projects\Astrum\AstrumProj\Assets\Plugins\" 
+             ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetPath)" 
+          DestinationFolder="d:\Develop\Projects\Astrum\AstrumProj\Assets\Plugins\" 
+          ContinueOnError="true" />
+    
+    <Exec Command="echo LogicCore.dll 拷贝完成" />
+  </Target>
+
+</Project>

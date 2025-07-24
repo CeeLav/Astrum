@@ -1,0 +1,206 @@
+using System.Collections.Generic;
+using Astrum.LogicCore.Core;
+
+namespace Astrum.LogicCore.Core
+{
+    /// <summary>
+    /// 逻辑更新器，负责更新游戏逻辑
+    /// </summary>
+    public class LSUpdater
+    {
+        /// <summary>
+        /// 所属房间
+        /// </summary>
+        public Room? Room { get; set; }
+
+        /// <summary>
+        /// 固定时间步长
+        /// </summary>
+        public float FixedDeltaTime { get; set; } = 1f / 60f; // 默认60FPS
+
+        /// <summary>
+        /// 更新房间内所有实体
+        /// </summary>
+        /// <param name="deltaTime">时间差</param>
+        public void UpdateAllEntities(float deltaTime)
+        {
+            if (Room == null) return;
+
+            // 更新所有世界
+            foreach (var world in Room.Worlds)
+            {
+                UpdateWorld(world, deltaTime);
+            }
+        }
+
+        /// <summary>
+        /// 更新单个世界
+        /// </summary>
+        /// <param name="world">世界对象</param>
+        /// <param name="deltaTime">时间差</param>
+        public void UpdateWorld(World world, float deltaTime)
+        {
+            if (world == null) return;
+
+            // 获取需要更新的实体
+            var entities = GetEntitiesForUpdate(world);
+
+            // 更新所有实体的能力
+            foreach (var entity in entities)
+            {
+                UpdateEntityCapabilities(entity, deltaTime);
+            }
+
+            // 更新世界状态
+            world.Update(deltaTime);
+        }
+
+        /// <summary>
+        /// 获取需要更新的实体
+        /// </summary>
+        /// <returns>需要更新的实体列表</returns>
+        public List<Entity> GetEntitiesForUpdate()
+        {
+            var entities = new List<Entity>();
+
+            if (Room == null) return entities;
+
+            foreach (var world in Room.Worlds)
+            {
+                entities.AddRange(GetEntitiesForUpdate(world));
+            }
+
+            return entities;
+        }
+
+        /// <summary>
+        /// 获取指定世界中需要更新的实体
+        /// </summary>
+        /// <param name="world">世界对象</param>
+        /// <returns>需要更新的实体列表</returns>
+        public List<Entity> GetEntitiesForUpdate(World world)
+        {
+            var entities = new List<Entity>();
+
+            if (world == null) return entities;
+
+            foreach (var entity in world.Entities.Values)
+            {
+                if (entity.IsActive && !entity.IsDestroyed)
+                {
+                    entities.Add(entity);
+                }
+            }
+
+            // 按优先级排序（如果实体有优先级系统的话）
+            // entities.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+
+            return entities;
+        }
+
+        /// <summary>
+        /// 更新实体的能力
+        /// </summary>
+        /// <param name="entity">实体对象</param>
+        /// <param name="deltaTime">时间差</param>
+        private void UpdateEntityCapabilities(Entity entity, float deltaTime)
+        {
+            if (entity == null || !entity.IsActive || entity.IsDestroyed) return;
+
+            // 按优先级排序能力
+            var sortedCapabilities = entity.Capabilities
+                .Where(c => c.IsActive && c.CanExecute())
+                .OrderByDescending(c => c.Priority)
+                .ToList();
+
+            // 执行所有能力的Tick方法
+            foreach (var capability in sortedCapabilities)
+            {
+                try
+                {
+                    capability.Tick(deltaTime);
+                }
+                catch (Exception ex)
+                {
+                    // 记录错误但不中断其他能力的执行
+                    Console.WriteLine($"Error updating capability {capability.Name} for entity {entity.Name}: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 设置更新频率
+        /// </summary>
+        /// <param name="fps">帧率</param>
+        public void SetUpdateRate(int fps)
+        {
+            if (fps > 0)
+            {
+                FixedDeltaTime = 1f / fps;
+            }
+        }
+
+        /// <summary>
+        /// 获取当前更新频率
+        /// </summary>
+        /// <returns>当前FPS</returns>
+        public int GetUpdateRate()
+        {
+            return FixedDeltaTime > 0 ? (int)(1f / FixedDeltaTime) : 0;
+        }
+
+        /// <summary>
+        /// 更新指定类型的实体
+        /// </summary>
+        /// <typeparam name="T">组件类型</typeparam>
+        /// <param name="deltaTime">时间差</param>
+        public void UpdateEntitiesWithComponent<T>(float deltaTime) where T : LogicCore.Components.BaseComponent
+        {
+            if (Room == null) return;
+
+            foreach (var world in Room.Worlds)
+            {
+                var entities = world.Entities.Values
+                    .Where(e => e.IsActive && !e.IsDestroyed && e.HasComponent<T>())
+                    .ToList();
+
+                foreach (var entity in entities)
+                {
+                    UpdateEntityCapabilities(entity, deltaTime);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 批量更新实体列表
+        /// </summary>
+        /// <param name="entities">实体列表</param>
+        /// <param name="deltaTime">时间差</param>
+        public void UpdateEntities(IEnumerable<Entity> entities, float deltaTime)
+        {
+            foreach (var entity in entities)
+            {
+                if (entity.IsActive && !entity.IsDestroyed)
+                {
+                    UpdateEntityCapabilities(entity, deltaTime);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 暂停更新
+        /// </summary>
+        public void Pause()
+        {
+            // 可以添加暂停逻辑
+        }
+
+        /// <summary>
+        /// 恢复更新
+        /// </summary>
+        public void Resume()
+        {
+            // 可以添加恢复逻辑
+        }
+    }
+}
