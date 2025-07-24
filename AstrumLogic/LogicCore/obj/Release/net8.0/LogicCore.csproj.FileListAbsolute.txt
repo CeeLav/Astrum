@@ -1,0 +1,12 @@
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Release\net8.0\LogicCore.deps.json
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Release\net8.0\LogicCore.dll
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Release\net8.0\LogicCore.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\LogicCore.GeneratedMSBuildEditorConfig.editorconfig
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\LogicCore.AssemblyInfoInputs.cache
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\LogicCore.AssemblyInfo.cs
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\LogicCore.csproj.CoreCompileInputs.cache
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\LogicCore.sourcelink.json
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\LogicCore.dll
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\refint\LogicCore.dll
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\LogicCore.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Release\net8.0\ref\LogicCore.dll

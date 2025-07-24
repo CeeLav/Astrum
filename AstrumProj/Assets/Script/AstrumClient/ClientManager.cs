@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Astrum.LogicCore;
+using Astrum.LogicCore.Core;
 using Astrum.Network;
 using Astrum.CommonBase;
 
@@ -27,8 +27,9 @@ namespace Astrum.Client
     public class ClientManager : LazySingleton<ClientManager>, IInitializable
     {
         private NetworkManager _networkManager;
-        private GameStateManager _gameStateManager;
-        private PlayerManager _playerManager;
+        private World _gameWorld;
+        private Room _gameRoom;
+        private Entity _playerEntity;
         private ClientState _currentState = ClientState.Disconnected;
         private string _serverAddress = "127.0.0.1";
         private int _serverPort = 8888;
@@ -113,14 +114,19 @@ namespace Astrum.Client
         public NetworkManager NetworkManager => _networkManager;
 
         /// <summary>
-        /// 游戏状态管理器
+        /// 游戏世界
         /// </summary>
-        public GameStateManager GameStateManager => _gameStateManager;
+        public World GameWorld => _gameWorld;
 
         /// <summary>
-        /// 玩家管理器
+        /// 游戏房间
         /// </summary>
-        public PlayerManager PlayerManager => _playerManager;
+        public Room GameRoom => _gameRoom;
+
+        /// <summary>
+        /// 玩家实体
+        /// </summary>
+        public Entity PlayerEntity => _playerEntity;
 
         /// <summary>
         /// 状态变更事件
@@ -166,14 +172,9 @@ namespace Astrum.Client
                 _networkManager.OnConnectionStateChanged += OnNetworkConnectionStateChanged;
                 _networkManager.OnMessageReceived += OnMessageReceived;
 
-                // 初始化游戏状态管理器
-                _gameStateManager = GameStateManager.Instance;
-
-                // 初始化玩家管理器
-                _playerManager = new PlayerManager();
-
-                // 注册事件监听
-                EventSystem.Instance.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
+                // 初始化游戏世界和房间
+                _gameWorld = new World();
+                _gameRoom = new Room();
 
                 _isInitialized = true;
                 Logger.Instance.Info("客户端管理器初始化完成");
@@ -442,10 +443,7 @@ namespace Astrum.Client
         private void HandleGameStateUpdate(object data)
         {
             // 更新游戏状态
-            if (data is string stateString && Enum.TryParse<GameState>(stateString, out var gameState))
-            {
-                _gameStateManager.SetGameState(gameState);
-            }
+            Logger.Instance.Info($"收到游戏状态更新: {data}");
         }
 
         /// <summary>
@@ -478,14 +476,6 @@ namespace Astrum.Client
         }
 
         /// <summary>
-        /// 游戏状态变更回调
-        /// </summary>
-        private void OnGameStateChanged(GameStateChangedEvent evt)
-        {
-            Logger.Instance.Info($"游戏状态变更: {evt.OldState} -> {evt.NewState}");
-        }
-
-        /// <summary>
         /// 销毁客户端管理器
         /// </summary>
         public void Destroy()
@@ -494,12 +484,6 @@ namespace Astrum.Client
 
             try
             {
-                // 取消事件订阅
-                if (EventSystem.Instance != null)
-                {
-                    EventSystem.Instance.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
-                }
-
                 // 断开网络连接
                 if (_networkManager != null)
                 {
