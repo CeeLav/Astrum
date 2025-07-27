@@ -18,20 +18,20 @@
     <Exec Command="echo 正在拷贝 LogicCore.dll 到目标目录..." />
     
     <!-- 创建服务器目录并拷贝 -->
-    <MakeDir Directories="d:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\$(ConfigurationName)\net8.0\" 
+    <MakeDir Directories="$(SolutionDir)\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
              ContinueOnError="true" />
     <Copy SourceFiles="$(TargetPath)" 
-          DestinationFolder="d:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\$(ConfigurationName)\net8.0\" 
+          DestinationFolder="$(SolutionDir)\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
           ContinueOnError="true" />
     <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" 
-          DestinationFolder="d:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\$(ConfigurationName)\net8.0\" 
+          DestinationFolder="$(SolutionDir)\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
           ContinueOnError="true" />
     
     <!-- 创建Unity客户端目录并拷贝 -->
-    <MakeDir Directories="d:\Develop\Projects\Astrum\AstrumProj\Assets\Plugins\" 
+    <MakeDir Directories="$(SolutionDir)\..\AstrumProj\Assets\Plugins\" 
              ContinueOnError="true" />
     <Copy SourceFiles="$(TargetPath)" 
-          DestinationFolder="d:\Develop\Projects\Astrum\AstrumProj\Assets\Plugins\" 
+          DestinationFolder="$(SolutionDir)\..\AstrumProj\Assets\Plugins\" 
           ContinueOnError="true" />
     
     <Exec Command="echo LogicCore.dll 拷贝完成" />

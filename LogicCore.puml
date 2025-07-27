@@ -18,88 +18,44 @@ class World {
     +Cleanup(): void                         ' 清理世界资源
 }
 
-class Entity{
-    +UniqueId: long              ' 实体的全局唯一标识符
-    +Name: string                ' 实体名称，便于调试和识别
-    +IsActive: bool              ' 实体是否激活，控制逻辑执行
-    +IsDestroyed: bool           ' 实体是否已销毁，用于生命周期管理
-    +CreationTime: DateTime      ' 实体创建时间
-    +ComponentMask: long             ' 组件掩码，用于快速查询和筛选
-    +Components: List<BaseComponent>   ' 挂载的组件列表
-    +ParentId: long                  ' 父实体ID，-1表示无父实体
-    +ChildrenIds: List<long>     ' 子实体ID列表
+package "ECC (Entity-Component-Capability)" {
+    class Entity{
+        +UniqueId: long              ' 实体的全局唯一标识符
+        +Name: string                ' 实体名称，便于调试和识别
+        +IsActive: bool              ' 实体是否激活，控制逻辑执行
+        +IsDestroyed: bool           ' 实体是否已销毁，用于生命周期管理
+        +CreationTime: DateTime      ' 实体创建时间
+        +ComponentMask: long         ' 组件掩码，用于快速查询和筛选
+        +Components: List<BaseComponent>   ' 挂载的组件列表
+        +ParentId: long              ' 父实体ID，-1表示无父实体
+        +ChildrenIds: List<long>     ' 子实体ID列表
+        
+        +AddComponent<T>(component: T): void     ' 添加组件
+        +RemoveComponent<T>(): void              ' 移除组件
+        +GetComponent<T>(): T                    ' 获取组件
+        +HasComponent<T>(): bool                 ' 检查是否有指定组件
+        +ApplyInput(input: LSInput): void        ' 应用输入到实体
+        +SetActive(active: bool): void           ' 设置激活状态
+        +Destroy(): void                         ' 销毁实体
+        +GetChildren(): List<Entity>             ' 获取所有子实体
+        +SetParent(parent: Entity): void         ' 设置父实体
+    }
     
-    +AddComponent<T>(component: T): void     ' 添加组件
-    +RemoveComponent<T>(): void              ' 移除组件
-    +GetComponent<T>(): T                    ' 获取组件
-    +HBaseComponent<T>(): bool                 ' 检查是否有指定组件
-    +ApplyInput(input: LSInput): void        ' 应用输入到实体
-    +SetActive(active: bool): void           ' 设置激活状态
-    +Destroy(): void                         ' 销毁实体
-    +GetChildren(): List<Entity>             ' 获取所有子实体
-    +SetParent(parent: Entity): void         ' 设置父实体
-}
-
-class BaseComponent{
-    +ComponentId: int            ' 组件的唯一标识符  
-    +EntityId: long              ' 所属实体的ID
-}
-
-' 具体的组件数据结构示例
-class PositionComponent extends BaseComponent {
-    +X: float                    ' X坐标
-    +Y: float                    ' Y坐标
-    +Z: float                    ' Z坐标
-}
-
-class VelocityComponent extends BaseComponent {
-    +VX: float                   ' X方向速度
-    +VY: float                   ' Y方向速度
-    +VZ: float                   ' Z方向速度
-}
-
-class HealthComponent extends BaseComponent {
-    +CurrentHealth: int          ' 当前生命值
-    +MaxHealth: int              ' 最大生命值
-}
-
-abstract class Capability {
-    +CapabilityId: int           ' 能力的唯一标识符
-    +OwnerEntity: Entity         ' 拥有此能力的实体
-    +IsActive: bool              ' 能力是否激活
-    +Priority: int               ' 执行优先级
+    class LSInputComponent {
+        +PlayerId: int               ' 玩家ID
+        +CurrentInput: LSInput       ' 当前帧输入
+        +PreviousInput: LSInput      ' 上一帧输入
+        +InputHistory: List<LSInput> ' 输入历史
+        
+        +SetInput(input: LSInput): void              ' 设置输入
+        +GetInputDelta(): LSInput    ' 获取输入变化
+    }
     
-    +Initialize(): void          ' 初始化能力
-    +Tick(deltaTime: float): void ' 每帧更新（抽象方法）
-    +CanExecute(): bool          ' 检查是否可以执行
-    +OnActivate(): void          ' 激活时调用
-    +OnDeactivate(): void        ' 停用时调用
+    ' ECC关联关系
+    Entity ||--o{ LSInputComponent : "拥有"
+    Entity ||--o{ Entity : "父子关系"
 }
 
-' 具体的Capability实现示例
-class MovementCapability extends Capability {
-    +Tick(deltaTime: float): void ' 读取InputComponent和MovementComponent，处理移动逻辑
-}
-
-' 示例Component用于存储数据
-class MovementComponent extends BaseComponent {
-    +MaxSpeed: float             ' 最大移动速度
-    +Acceleration: float         ' 加速度
-    +CurrentSpeed: float         ' 当前速度,. 
-}
-
-class EntityFactory {
-    +World: World                ' 所属世界
-    +NextEntityId: long          ' 实体ID计数器
-    
-    +CreateEntity(name: string): Entity      ' 创建基础实体
-    +DestroyEntity(entity: Entity): void     ' 销毁实体
-}
-
-class ComponentFactory {
-    +CreateComponent<T>(): T                 ' 创建指定类型的组件
-    +CreateComponentFromType(type: Type): BaseComponent  ' 根据类型创建组件
-}
 
 ' 帧同步相关类
 class LSInput {
@@ -107,9 +63,7 @@ class LSInput {
     +Frame: int                  ' 帧号
     +MoveX: float                ' X轴移动输入
     +MoveY: float                ' Y轴移动输入
-    +Attack: bool                ' 攻击输入
-    +Skill1: bool                ' 技能1输入
-    +Skill2: bool                ' 技能2输入
+    +Command: string             ' 执行的命令（如攻击、跳跃等）
     +Timestamp: long             ' 时间戳
     
     +Clone(): LSInput            ' 克隆输入数据
@@ -140,43 +94,31 @@ class FrameBuffer {
     +HasFrame(frame: int): bool  ' 检查是否有指定帧
 }
 
+
 class LSInputSystem {
     -Instance: LSInputSystem     ' 单例实例（静态）
-    +FrameBuffer: FrameBuffer    ' 帧缓冲区
-    +InputDelay: int             ' 输入延迟帧数
-    +RollbackFrames: int         ' 回滚帧数
-    
+    +HasMainPlayer: bool         ' 是否有主玩家
+
     -LSInputSystem()             ' 私有构造函数
     +GetInstance(): LSInputSystem ' 获取单例实例（静态）
-    +CollectInput(playerId: int, input: LSInput): void   ' 收集玩家输入
-    +ProcessFrame(frame: int): void                      ' 处理单帧
+    +CollectInput(playerId: int, input: LSInput): void   ' 收集玩家输入,存放到ControllerSystem中，等待分发
     +CanExecuteFrame(frame: int): bool                   ' 检查是否可执行帧
-    +GetPredictedInput(playerId: int, frame: int): LSInput  ' 获取预测输入
     +Update(): void              ' 更新输入系统
 }
+note right of LSInputSystem : "有主玩家的情况下，把主玩家输入与其他玩家输入合并到LSControllerSystem中\n无主玩家时，直接收集输入到LSControllerSystem"
 
-class LSInputComponent extends BaseComponent {
-    +PlayerId: int               ' 玩家ID
-    +CurrentInput: LSInput       ' 当前帧输入
-    +PreviousInput: LSInput      ' 上一帧输入
-    +InputHistory: List<LSInput> ' 输入历史
-    
-    +SetInput(input: LSInput): void              ' 设置输入
-    +GetInputDelta(): LSInput    ' 获取输入变化
-}
-
-class LSController {
+class LSControllerSystem {
     +Room: Room                  ' 所属房间
     +CurrentFrame: int           ' 当前帧
     +TickRate: int               ' 帧率（如60FPS）
     +LastUpdateTime: long        ' 上次更新时间
     +IsPaused: bool              ' 是否暂停
+    +HasMainPlayer: bool         ' 是否有主玩家
     
     +Tick(): void                ' 执行一帧
-    +DistributeInputsToWorlds(): void            ' 将输入分发到各个World
-    +DistributeInputsToEntities(world: World): void  ' 将输入分发到实体
+    +DistributeInputsToRoom(): void            ' 将输入通过Room分发到各个World
+    +BroadCastInputToClients(): void           ' (服务器)广播输入到所有客户端
     +RollbackToFrame(frame: int): void           ' 回滚到指定帧
-    +PredictFrame(frame: int): void              ' 预测帧执行
     +SaveState(frame: int): void ' 保存状态
     +LoadState(frame: int): void ' 加载状态
     +Start(): void               ' 开始控制器
@@ -184,12 +126,12 @@ class LSController {
 }
 
 class LSUpdater {
-    +Room: Room                  ' 所属房间
+    +World: World                ' 所属世界
     +FixedDeltaTime: float       ' 固定时间步长
     
-    +UpdateAllEntities(deltaTime: float): void   ' 更新房间内所有实体
-    +UpdateWorld(world: World, deltaTime: float): void  ' 更新单个世界
+    +UpdateAllEntities(): void   ' 更新世界内所有实体
     +GetEntitiesForUpdate(): List<Entity>        ' 获取需要更新的实体
+    +ExecuteCapabilities(): void ' 执行实体能力
 }
 
 class Room {
@@ -199,7 +141,7 @@ class Room {
     +Worlds: List<World>         ' 管理的世界列表
     +Players: List<int>          ' 玩家列表
     +MaxPlayers: int             ' 最大玩家数
-    +LSController: LSController  ' 帧同步控制器
+    +LSControllerSystem: LSControllerSystem  ' 帧同步控制器
     
     +AddWorld(world: World): void                ' 添加世界
     +RemoveWorld(world: World): void             ' 移除世界
@@ -213,9 +155,9 @@ class Room {
 
 ' 关联关系
 Room ||--o{ World : "管理"
-Room ||--|| LSController : "使用"
-LSController ||--|| LSInputSystem : "获取输入"
-LSController ||--|| World : "传导输入"
+Room ||--|| LSControllerSystem : "使用"
+LSControllerSystem ||--|| LSInputSystem : "获取输入"
+LSControllerSystem ||--|| World : "传导输入"
 World ||--|| Entity : "分发输入"
 World ||--|| LSUpdater : "使用"
 LSInputSystem ||--|| FrameBuffer : "使用"
@@ -223,9 +165,4 @@ FrameBuffer ||--o{ OneFrameInputs : "缓存"
 OneFrameInputs ||--o{ LSInput : "包含"
 LSInputComponent ||--o{ LSInput : "持有"
 World ||--o{ Entity : "管理"
-World ||--|| EntityFactory : "使用"
-EntityFactory ||--|| ComponentFactory : "使用"
-Entity ||--o{ BaseComponent : "拥有"
-Entity ||--o{ Entity : "父子关系"
-Entity ||--o{ Capability : "具备"
 @enduml
