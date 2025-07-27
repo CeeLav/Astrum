@@ -1,0 +1,261 @@
+@startuml 游戏客户端启动和运行流程图
+
+title Astrum游戏客户端 - 启动和运行流程图
+
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam activity {
+    BackgroundColor #E1F5FE
+    BorderColor #0277BD
+    FontSize 12
+}
+skinparam activityDiamond {
+    BackgroundColor #FFF3E0
+    BorderColor #F57C00
+}
+skinparam note {
+    BackgroundColor #F3E5F5
+    BorderColor #7B1FA2
+}
+
+|主线程(Unity主线程)|
+start
+
+:游戏程序启动;
+:初始化游戏引擎;
+:加载基础配置;
+:初始化ViewManager;
+
+:切换到开始场景(MenuStage);
+note right
+  默认在开始界面场景
+  显示主菜单UI
+  - 开始游戏
+  - 设置
+  - 退出游戏
+end note
+
+:等待用户输入;
+
+if (用户选择?) then (开始游戏)
+  
+  if (游戏模式?) then (单机模式)
+    
+    |逻辑线程|
+    :实例化Room;
+    note right
+      Room实例化后处于静止状态
+      - 创建Room对象
+      - 初始化基础配置
+      - 准备接收指令
+    end note
+    
+    |主线程(Unity主线程)|
+    :实例化Stage;
+    note left
+      创建GameStage对象
+      - 设置舞台配置
+      - 准备场景加载
+    end note
+    
+    :Stage开始初始化;
+    :加载游戏场景资源;
+    note left
+      - 加载地形资源
+      - 加载模型资源
+      - 加载音效资源
+      - 加载UI资源
+      - 初始化渲染系统
+    end note
+    
+    :场景加载完成?;
+    if (加载完成) then (是)
+      :切换到游戏场景;
+      :ViewManager.SwitchStage(gameStage);
+      
+      |同步线程|
+      :同步Room当前全部数据;
+      :Stage.SyncWithRoom(roomData);
+      note right
+        - 同步实体数据
+        - 同步环境数据
+        - 创建EntityView
+        - 建立视觉表现
+      end note
+      
+      |逻辑线程|
+      :Room开始运行;
+      :启动游戏逻辑循环;
+      note right
+        Room进入运行状态
+        - 开始帧循环
+        - 处理游戏逻辑
+        - 生成帧数据
+      end note
+      
+      |游戏主循环(主线程)|
+      while (游戏进行中?) is (是)
+        
+        |逻辑线程|
+        :Room执行逻辑帧;
+        :生成帧数据;
+        
+        fork
+          :通过事件发送数据到Stage;
+          note left
+            Room -> Stage 事件推送
+            - 实体状态变化
+            - 游戏事件通知
+            - 特效触发等
+          end note
+        fork again
+          :Stage轮询获取Room数据;
+          note right
+            Stage主动拉取数据
+            - 查询实体位置
+            - 查询游戏状态
+            - 查询统计信息
+          end note
+        end fork
+        
+        |主线程(Unity主线程)|
+        :更新EntityView;
+        :渲染游戏画面;
+        :更新UI界面;
+        :播放音效;
+        note right
+          Unity相关操作必须在主线程
+          - GameObject操作
+          - 组件更新
+          - 渲染调用
+          - UI更新
+        end note
+        
+        |数据持久化线程|
+        :记录帧数据;
+        note left
+          实时记录帧数据
+          为游戏结束后落地做准备
+        end note
+        
+      endwhile (否)
+      
+      :一局游戏结束;
+      
+      |数据持久化线程|
+      :Room全部帧数据落地保存;
+      note right
+        - 保存回放数据
+        - 保存统计数据
+        - 保存玩家数据
+        - 清理临时数据
+      end note
+      
+      |清理线程|
+      fork
+        :销毁Room;
+        note left
+          - 清理逻辑数据
+          - 释放内存资源
+          - 停止逻辑循环
+        end note
+      fork again
+        :销毁Stage;
+        note right
+          - 清理EntityView
+          - 卸载场景资源
+          - 释放渲染资源
+        end note
+      end fork
+      
+      |主线程(Unity主线程)|
+      :场景切换回开始场景;
+      :ViewManager.SwitchStage(menuStage);
+      
+    else (否)
+      :显示加载失败提示;
+      :返回主菜单;
+    endif
+    
+  else (联机模式)
+    |网络线程|
+    :连接游戏服务器;
+    if (连接成功?) then (是)
+      :等待服务器创建Room;
+      :接收服务器Room数据;
+      
+      |主线程(Unity主线程)|
+      :实例化Stage;
+      :加载游戏场景;
+      :同步服务器Room数据;
+      
+      |联机游戏主循环(主线程)|
+      while (联机游戏进行中?) is (是)
+        
+        |网络线程|
+        fork
+          :接收服务器数据;
+          note left
+            - 接收帧数据
+            - 接收事件消息
+            - 处理网络延迟
+          end note
+        fork again
+          :发送玩家输入;
+          note right
+            - 发送操作指令
+            - 发送心跳包
+            - 上报客户端状态
+          end note
+        end fork
+        
+        |主线程(Unity主线程)|
+        :更新本地表现;
+        :渲染游戏画面;
+        :更新UI界面;
+        note right
+          联机模式下Unity操作仍在主线程
+          - 网络延迟补偿
+          - 预测和回滚
+          - 平滑插值处理
+        end note
+        
+      endwhile (否)
+      
+      note left
+        联机模式下Room在服务器端
+        客户端Stage同步服务器状态
+        - 接收服务器帧数据
+        - 预测和回滚机制
+        - 网络延迟补偿
+      end note
+      
+      |网络线程|
+      :联机游戏结束;
+      :断开服务器连接;
+      
+      |主线程(Unity主线程)|
+      :销毁Stage;
+      :返回主菜单;
+      
+    else (否)
+      :显示连接失败提示;
+      :返回主菜单;
+    endif
+  endif
+  
+else if (设置)
+  :显示设置界面;
+  :修改游戏配置;
+  :返回主菜单;
+else (退出游戏)
+  :保存用户配置;
+  :清理资源;
+  :退出程序;
+  stop
+endif
+
+:回到主菜单等待;
+:等待用户输入;
+
+@enduml

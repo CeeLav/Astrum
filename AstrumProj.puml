@@ -1,0 +1,311 @@
+@startuml AstrumProj客户端架构
+
+title Astrum项目 - 客户端主控制流程架构
+
+package "应用程序入口" {
+    class GameApplication {
+        +IsRunning: bool
+        +CurrentState: ApplicationState
+        +FrameRate: int
+        
+        +Initialize(): void
+        +Update(): void
+        +Shutdown(): void
+        +ChangeState(state: ApplicationState): void
+    }
+    
+    enum ApplicationState {
+        INITIALIZING
+        LOADING
+        MENU
+        GAME_PLAYING
+        PAUSED
+        SHUTDOWN
+    }
+}
+
+package "资源管理系统" {
+    class ResourceManager {
+        +LoadedResources: Dictionary<string, Resource>
+        +LoadingQueue: Queue<ResourceRequest>
+        +MaxConcurrentLoads: int
+        
+        +LoadResource<T>(path: string): T
+        +LoadResourceAsync<T>(path: string, callback: Action<T>): void
+        +UnloadResource(path: string): void
+        +PreloadResources(paths: List<string>): void
+        +GetLoadProgress(): float
+    }
+    
+    abstract class Resource {
+        +Path: string
+        +IsLoaded: bool
+        +LoadTime: DateTime
+        +RefCount: int
+        
+        +Load(): void
+        +Unload(): void
+        +AddRef(): void
+        +RemoveRef(): void
+    }
+    
+    class TextureResource extends Resource {
+        +Width: int
+        +Height: int
+        +Format: TextureFormat
+        +TextureData: byte[]
+    }
+    
+    class ModelResource extends Resource {
+        +Vertices: Vector3[]
+        +Indices: int[]
+        +Materials: List<MaterialResource>
+    }
+    
+    class AudioResource extends Resource {
+        +Duration: float
+        +SampleRate: int
+        +AudioData: byte[]
+    }
+    
+    class ConfigResource extends Resource {
+        +ConfigData: Dictionary<string, object>
+    }
+    
+    class ResourceRequest {
+        +ResourcePath: string
+        +Priority: int
+        +Callback: Action<Resource>
+        +IsCompleted: bool
+    }
+}
+
+package "场景管理系统" {
+    class SceneManager {
+        +CurrentScene: Scene
+        +LoadingScene: Scene
+        +SceneHistory: Stack<string>
+        
+        +LoadScene(sceneName: string): void
+        +LoadSceneAsync(sceneName: string, callback: Action): void
+        +UnloadScene(sceneName: string): void
+        +GetCurrentScene(): Scene
+        +GetLoadProgress(): float
+    }
+    
+    abstract class Scene {
+        +Name: string
+        +IsLoaded: bool
+        +RequiredResources: List<string>
+        +GameObjects: List<GameObject>
+        
+        +Initialize(): void
+        +Load(): void
+        +Unload(): void
+        +Update(deltaTime: float): void
+        +OnEnter(): void
+        +OnExit(): void
+    }
+    
+    class MenuScene extends Scene {
+        +UICanvas: Canvas
+        +BackgroundMusic: AudioSource
+        
+        +ShowMainMenu(): void
+        +ShowSettingsMenu(): void
+        +StartGame(): void
+    }
+    
+    class GameScene extends Scene {
+        +GameWorld: World
+        +Camera: Camera
+        +PlayerController: PlayerController
+        
+        +SpawnPlayer(): void
+        +UpdateGameLogic(deltaTime: float): void
+        +HandleInput(): void
+    }
+    
+    class LoadingScene extends Scene {
+        +ProgressBar: UIProgressBar
+        +LoadingText: UIText
+        +TotalProgress: float
+        
+        +UpdateProgress(progress: float): void
+        +ShowLoadingTips(): void
+    }
+}
+
+package "网络通讯系统" {
+    class NetworkManager {
+        +IsConnected: bool
+        +ServerAddress: string
+        +Port: int
+        +ClientId: string
+        +PingTime: float
+        
+        +Connect(address: string, port: int): void
+        +Disconnect(): void
+        +SendMessage(message: NetworkMessage): void
+        +RegisterHandler<T>(handler: Action<T>): void
+        +GetConnectionStatus(): ConnectionStatus
+    }
+    
+    enum ConnectionStatus {
+        DISCONNECTED
+        CONNECTING
+        CONNECTED
+        RECONNECTING
+        FAILED
+    }
+    
+    abstract class NetworkMessage {
+        +MessageType: MessageType
+        +Timestamp: long
+        +SenderId: string
+        
+        +Serialize(): byte[]
+        +Deserialize(data: byte[]): void
+    }
+    
+    class GameStateMessage extends NetworkMessage {
+        +GameState: GameStateData
+        +FrameNumber: int
+    }
+    
+    class PlayerInputMessage extends NetworkMessage {
+        +PlayerId: string
+        +InputData: InputData
+        +InputFrame: int
+    }
+    
+    class ServerEventMessage extends NetworkMessage {
+        +EventType: string
+        +EventData: Dictionary<string, object>
+    }
+    
+    class NetworkClient {
+        +Socket: Socket
+        +MessageQueue: Queue<NetworkMessage>
+        +HeartbeatInterval: float
+        
+        +SendHeartbeat(): void
+        +ProcessMessages(): void
+        +HandleReconnection(): void
+    }
+}
+
+package "输入系统" {
+    class InputManager {
+        +CurrentInput: InputState
+        +PreviousInput: InputState
+        +InputHistory: List<InputState>
+        
+        +Update(): void
+        +GetInputDelta(): InputState
+        +IsKeyPressed(key: KeyCode): bool
+        +IsKeyHeld(key: KeyCode): bool
+        +GetMousePosition(): Vector2
+    }
+    
+    class InputState {
+        +KeyStates: Dictionary<KeyCode, bool>
+        +MousePosition: Vector2
+        +MouseButtons: Dictionary<MouseButton, bool>
+        +Timestamp: long
+    }
+}
+
+package "UI系统" {
+    class UIManager {
+        +ActivePanels: List<UIPanel>
+        +UICanvas: Canvas
+        +EventSystem: EventSystem
+        
+        +ShowPanel(panelName: string): void
+        +HidePanel(panelName: string): void
+        +UpdateUI(): void
+        +HandleUIEvents(): void
+    }
+    
+    abstract class UIPanel {
+        +IsVisible: bool
+        +Priority: int
+        +PanelName: string
+        
+        +Show(): void
+        +Hide(): void
+        +Update(): void
+        +OnShow(): void
+        +OnHide(): void
+    }
+    
+    class MainMenuPanel extends UIPanel {
+        +StartButton: Button
+        +SettingsButton: Button
+        +ExitButton: Button
+    }
+    
+    class GameHUDPanel extends UIPanel {
+        +HealthBar: ProgressBar
+        +ScoreText: Text
+        +MinimapImage: Image
+    }
+    
+    class LoadingPanel extends UIPanel {
+        +ProgressBar: ProgressBar
+        +LoadingText: Text
+        +TipText: Text
+    }
+}
+
+package "音频系统" {
+    class AudioManager {
+        +MasterVolume: float
+        +MusicVolume: float
+        +SFXVolume: float
+        +ActiveSources: List<AudioSource>
+        
+        +PlayMusic(audioClip: AudioClip): void
+        +PlaySFX(audioClip: AudioClip, position: Vector3): void
+        +StopAllAudio(): void
+        +SetVolume(type: AudioType, volume: float): void
+    }
+    
+    enum AudioType {
+        MASTER
+        MUSIC
+        SFX
+        VOICE
+    }
+}
+
+' 系统间的关系
+GameApplication ||--|| SceneManager : "管理"
+GameApplication ||--|| ResourceManager : "使用"
+GameApplication ||--|| NetworkManager : "使用"
+GameApplication ||--|| InputManager : "使用"
+GameApplication ||--|| UIManager : "使用"
+GameApplication ||--|| AudioManager : "使用"
+
+SceneManager ..> ResourceManager : "依赖"
+Scene ..> ResourceManager : "加载资源"
+NetworkManager ..> InputManager : "发送输入"
+UIManager ..> SceneManager : "场景切换"
+AudioManager ..> ResourceManager : "加载音频"
+
+ResourceManager ||--o{ Resource : "管理"
+SceneManager ||--o{ Scene : "管理"
+NetworkManager ||--o{ NetworkMessage : "处理"
+UIManager ||--o{ UIPanel : "管理"
+
+' 主要流程说明
+note top of GameApplication : "应用程序主循环:\n1. 初始化各个管理器\n2. 加载初始场景\n3. 主更新循环\n4. 处理输入和网络\n5. 更新UI和音频"
+
+note top of ResourceManager : "资源管理流程:\n1. 异步加载资源\n2. 管理资源生命周期\n3. 内存优化和缓存\n4. 引用计数管理"
+
+note top of SceneManager : "场景切换流程:\n1. 卸载当前场景\n2. 显示加载界面\n3. 预加载资源\n4. 加载新场景\n5. 初始化场景对象"
+
+note top of NetworkManager : "网络通讯流程:\n1. 建立连接\n2. 心跳保持\n3. 消息序列化\n4. 断线重连\n5. 状态同步"
+
+@enduml
