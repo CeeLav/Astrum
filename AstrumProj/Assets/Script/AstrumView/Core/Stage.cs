@@ -6,9 +6,9 @@ using Astrum.CommonBase;
 namespace Astrum.View.Core
 {
     /// <summary>
-    /// Stage基类 - 游戏场景/阶段的抽象表示
+    /// Stage类 - 游戏场景/阶段的表现层映射，不执行游戏逻辑
     /// </summary>
-    public abstract class Stage
+    public class Stage
     {
         // Stage基本信息
         protected string _stageId;
@@ -22,10 +22,12 @@ namespace Astrum.View.Core
         
         // 视图组件
         protected Dictionary<long, EntityView> _entityViews;
+        protected Dictionary<long, GameObject> _unitViews;
         
         // Unity组件
         protected Camera _camera;
         protected Environment _environment;
+        protected GameObject _stageRoot;
         
         // 公共属性
         public string StageId => _stageId;
@@ -58,44 +60,139 @@ namespace Astrum.View.Core
             _isLoaded = false;
             _lastSyncTime = DateTime.MinValue;
             _entityViews = new Dictionary<long, EntityView>();
-            
-            Initialize();
+            _unitViews = new Dictionary<long, GameObject>();
         }
         
         /// <summary>
         /// 初始化Stage
         /// </summary>
-        protected virtual void Initialize()
+        public void Initialize()
         {
-            // 子类可以重写此方法进行特定初始化
+            if (_isLoaded) return;
+            
+            ASLogger.Instance.Info($"Stage: 初始化 {_stageName}");
+            
+            // 创建Stage根对象
+            CreateStageRoot();
+            
+            // 设置摄像机
+            SetupCamera();
+            
+            // 设置环境
+            SetupEnvironment();
+            
+            _isLoaded = true;
+            OnStageLoaded?.Invoke();
+        }
+        
+        /// <summary>
+        /// 创建Stage根对象
+        /// </summary>
+        private void CreateStageRoot()
+        {
+            _stageRoot = new GameObject($"Stage_{_stageId}");
+            ASLogger.Instance.Info($"Stage: 创建Stage根对象 {_stageRoot.name}");
+        }
+        
+        /// <summary>
+        /// 设置摄像机
+        /// </summary>
+        private void SetupCamera()
+        {
+            _camera = Camera.main;
+            if (_camera == null)
+            {
+                GameObject cameraObj = new GameObject("Stage Camera");
+                cameraObj.transform.SetParent(_stageRoot.transform);
+                _camera = cameraObj.AddComponent<Camera>();
+                _camera.tag = "MainCamera";
+                _camera.transform.position = new Vector3(0, 10, -10);
+                _camera.transform.rotation = Quaternion.Euler(30, 0, 0);
+            }
+            
+            ASLogger.Instance.Info("Stage: 摄像机设置完成");
+        }
+        
+        /// <summary>
+        /// 设置环境
+        /// </summary>
+        private void SetupEnvironment()
+        {
+            _environment = UnityEngine.Object.FindObjectOfType<Environment>();
+            if (_environment == null)
+            {
+                GameObject envObj = new GameObject("Environment");
+                envObj.transform.SetParent(_stageRoot.transform);
+                _environment = envObj.AddComponent<Environment>();
+            }
+            
+            ASLogger.Instance.Info("Stage: 环境设置完成");
         }
         
         /// <summary>
         /// 激活Stage
         /// </summary>
-        public virtual void SetActive(bool active)
+        public void SetActive(bool active)
         {
             if (_isActive == active) return;
             
             _isActive = active;
             
+            if (_stageRoot != null)
+            {
+                _stageRoot.SetActive(active);
+            }
+            
             if (_isActive)
             {
-                OnActivate();
                 OnStageActivated?.Invoke();
+                ASLogger.Instance.Info($"Stage: 激活 {_stageName}");
             }
             else
             {
-                OnDeactivate();
                 OnStageDeactivated?.Invoke();
+                ASLogger.Instance.Info($"Stage: 停用 {_stageName}");
             }
         }
         
         /// <summary>
-        /// 更新Stage
+        /// 进入Stage
         /// </summary>
-        /// <param name="deltaTime">帧时间</param>
-        public virtual void Update(float deltaTime)
+        public void OnEnter()
+        {
+            ASLogger.Instance.Info($"Stage: 进入 {_stageName}");
+            
+            // 激活所有实体视图
+            foreach (var entityView in _entityViews.Values)
+            {
+                if (entityView != null)
+                {
+                    entityView.SetActive(true);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 退出Stage
+        /// </summary>
+        public void OnExit()
+        {
+            ASLogger.Instance.Info($"Stage: 退出 {_stageName}");
+            
+            // 停用所有实体视图
+            foreach (var entityView in _entityViews.Values)
+            {
+                if (entityView != null)
+                {
+                    entityView.SetActive(false);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 更新Stage - 只更新表现层内容
+        /// </summary>
+        public void Update(float deltaTime)
         {
             if (!_isActive) return;
             
@@ -110,114 +207,120 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 渲染Stage
+        /// 创建单位视图 - 由逻辑层调用
         /// </summary>
-        public virtual void Render()
+        public GameObject CreateUnitView(long unitId, Vector3 position, string unitType = "default")
         {
-            if (!_isActive || !_isLoaded) return;
-            
-            // 子类特定的渲染逻辑
-            OnRender();
-        }
-        
-        /// <summary>
-        /// 进入Stage时调�?
-        /// </summary>
-        public virtual void OnEnter()
-        {
-            ASLogger.Instance.Info($"Stage {_stageName}: 进入Stage");
-            
-            // 激活所有实体视�?
-            foreach (var entityView in _entityViews.Values)
+            if (_unitViews.ContainsKey(unitId))
             {
-                entityView.SetActive(true);
+                ASLogger.Instance.Warning($"Stage: 单位视图已存在，ID: {unitId}");
+                return _unitViews[unitId];
             }
             
-            // 子类特定的进入逻辑
-            OnStageEnter();
+            GameObject unitView = CreateUnitGameObject(unitType);
+            unitView.transform.SetParent(_stageRoot.transform);
+            unitView.transform.position = position;
+            unitView.name = $"Unit_{unitId}_{unitType}";
+            
+            _unitViews[unitId] = unitView;
+            
+            ASLogger.Instance.Info($"Stage: 创建单位视图，ID: {unitId}, Type: {unitType}");
+            return unitView;
         }
         
         /// <summary>
-        /// 退出Stage时调�?
+        /// 移除单位视图 - 由逻辑层调用
         /// </summary>
-        public virtual void OnExit()
+        public void RemoveUnitView(long unitId)
         {
-            ASLogger.Instance.Info($"Stage {_stageName}: 退出Stage");
-            
-            // 停用所有实体视�?
-            foreach (var entityView in _entityViews.Values)
+            if (!_unitViews.ContainsKey(unitId))
             {
-                entityView.SetActive(false);
-            }
-            
-            // 子类特定的退出逻辑
-            OnStageExit();
-        }
-        
-        /// <summary>
-        /// 添加实体视图
-        /// </summary>
-        /// <param name="entityView">实体视图</param>
-        public virtual void AddEntityView(EntityView entityView)
-        {
-            if (entityView == null)
-            {
-                ASLogger.Instance.Warning($"Stage {_stageName}: 尝试添加空的实体视图");
+                ASLogger.Instance.Warning($"Stage: 单位视图不存在，ID: {unitId}");
                 return;
             }
             
-            if (_entityViews.ContainsKey(entityView.EntityId))
+            GameObject unitView = _unitViews[unitId];
+            _unitViews.Remove(unitId);
+            
+            if (unitView != null)
             {
-                ASLogger.Instance.Warning($"Stage {_stageName}: 实体视图已存在，ID: {entityView.EntityId}");
-                return;
+                UnityEngine.Object.Destroy(unitView);
             }
             
-            _entityViews[entityView.EntityId] = entityView;
-            
-            OnEntityViewAdded?.Invoke(entityView);
-            ASLogger.Instance.Info($"Stage {_stageName}: 添加实体视图，ID: {entityView.EntityId}");
+            ASLogger.Instance.Info($"Stage: 移除单位视图，ID: {unitId}");
         }
         
         /// <summary>
-        /// 移除实体视图
+        /// 更新单位位置 - 由逻辑层调用
         /// </summary>
-        /// <param name="entityId">实体ID</param>
-        public virtual void RemoveEntityView(long entityId)
+        public void UpdateUnitPosition(long unitId, Vector3 position)
         {
-            if (!_entityViews.ContainsKey(entityId))
+            if (_unitViews.TryGetValue(unitId, out GameObject unitView) && unitView != null)
             {
-                ASLogger.Instance.Warning($"Stage {_stageName}: 实体视图不存在，ID: {entityId}");
-                return;
+                unitView.transform.position = position;
             }
-            
-            EntityView entityView = _entityViews[entityId];
-            _entityViews.Remove(entityId);
-            
-            if (entityView != null)
-            {
-                entityView.Destroy();
-            }
-            
-            OnEntityViewRemoved?.Invoke(entityId);
-            ASLogger.Instance.Info($"Stage {_stageName}: 移除实体视图，ID: {entityId}");
         }
         
         /// <summary>
-        /// 获取实体视图
+        /// 设置Room ID - 由逻辑层调用
         /// </summary>
-        /// <param name="entityId">实体ID</param>
-        /// <returns>实体视图</returns>
-        public virtual EntityView GetEntityView(long entityId)
+        public void SetRoomId(long roomId)
         {
-            _entityViews.TryGetValue(entityId, out EntityView entityView);
-            return entityView;
+            _roomId = roomId;
+            _lastSyncTime = DateTime.Now;
+            ASLogger.Instance.Info($"Stage: 设置Room ID = {roomId}");
         }
         
         /// <summary>
-        /// 清空所有实体视�?
+        /// 创建单位游戏对象
         /// </summary>
-        public virtual void ClearEntityViews()
+        private GameObject CreateUnitGameObject(string unitType)
         {
+            GameObject unit;
+            
+            switch (unitType.ToLower())
+            {
+                case "player":
+                    unit = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    unit.GetComponent<Renderer>().material.color = Color.blue;
+                    break;
+                case "enemy":
+                    unit = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    unit.GetComponent<Renderer>().material.color = Color.red;
+                    break;
+                default:
+                    unit = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    unit.GetComponent<Renderer>().material.color = Color.gray;
+                    break;
+            }
+            
+            // 添加简单的碰撞器
+            if (unit.GetComponent<Collider>() == null)
+            {
+                unit.AddComponent<BoxCollider>();
+            }
+            
+            return unit;
+        }
+        
+        /// <summary>
+        /// 销毁Stage
+        /// </summary>
+        public void Destroy()
+        {
+            ASLogger.Instance.Info($"Stage: 销毁 {_stageName}");
+            
+            // 清理所有单位视图
+            foreach (var unitView in _unitViews.Values)
+            {
+                if (unitView != null)
+                {
+                    UnityEngine.Object.Destroy(unitView);
+                }
+            }
+            _unitViews.Clear();
+            
+            // 清理所有实体视图
             foreach (var entityView in _entityViews.Values)
             {
                 if (entityView != null)
@@ -225,180 +328,18 @@ namespace Astrum.View.Core
                     entityView.Destroy();
                 }
             }
-            
             _entityViews.Clear();
-            ASLogger.Instance.Info($"Stage {_stageName}: 清空所有实体视图");
+            
+            // 销毁Stage根对象
+            if (_stageRoot != null)
+            {
+                UnityEngine.Object.Destroy(_stageRoot);
+                _stageRoot = null;
+            }
+            
+            _isLoaded = false;
+            _isActive = false;
+            OnStageUnloaded?.Invoke();
         }
-        
-        /// <summary>
-        /// 与逻辑层Room同步
-        /// </summary>
-        /// <param name="roomData">房间数据</param>
-        public virtual void SyncWithRoom(RoomData roomData)
-        {
-            if (roomData == null)
-            {
-                ASLogger.Instance.Warning($"Stage {_stageName}: 房间数据为空，跳过同步");
-                return;
-            }
-            
-            // 更新Room ID
-            _roomId = roomData.RoomId;
-            
-            // 同步实体数据
-            SyncEntities(roomData.Entities);
-            
-            // 同步环境数据
-            SyncEnvironment(roomData.Environment);
-            
-            _lastSyncTime = DateTime.Now;
-            
-            // 子类特定的同步逻辑
-            OnSyncWithRoom(roomData);
-        }
-        
-        /// <summary>
-        /// 设置摄像�?
-        /// </summary>
-        protected virtual void SetupCamera()
-        {
-            // 查找场景中的主摄像机
-            _camera = Camera.main;
-            if (_camera == null)
-            {
-                // 如果没有主摄像机，创建一�?
-                GameObject cameraObj = new GameObject("StageCamera");
-                _camera = cameraObj.AddComponent<Camera>();
-                _camera.tag = "MainCamera";
-            }
-        }
-        
-        /// <summary>
-        /// 设置环境
-        /// </summary>
-        protected virtual void SetupEnvironment()
-        {
-            // 查找场景中的环境组件
-            _environment = UnityEngine.Object.FindObjectOfType<Environment>();
-            if (_environment == null)
-            {
-                // 如果没有环境组件，创建一个
-                GameObject envObj = new GameObject("Environment");
-                _environment = envObj.AddComponent<Environment>();
-            }
-        }
-        
-        /// <summary>
-        /// 同步实体数据
-        /// </summary>
-        /// <param name="entities">实体数据列表</param>
-        protected virtual void SyncEntities(List<EntityData> entities)
-        {
-            if (entities == null) return;
-            
-            // 移除不存在的实体
-            List<long> entitiesToRemove = new List<long>();
-            foreach (var kvp in _entityViews)
-            {
-                if (!entities.Exists(e => e.EntityId == kvp.Key))
-                {
-                    entitiesToRemove.Add(kvp.Key);
-                }
-            }
-            
-            foreach (long entityId in entitiesToRemove)
-            {
-                RemoveEntityView(entityId);
-            }
-            
-            // 添加或更新实�?
-            foreach (var entityData in entities)
-            {
-                EntityView entityView = GetEntityView(entityData.EntityId);
-                if (entityView == null)
-                {
-                    // 创建新的实体视图
-                    entityView = CreateEntityView(entityData);
-                    if (entityView != null)
-                    {
-                        AddEntityView(entityView);
-                    }
-                }
-                else
-                {
-                    // 同步现有实体视图
-                    entityView.SyncWithEntity(entityData);
-                }
-            }
-        }
-        
-        /// <summary>
-        /// 同步环境数据
-        /// </summary>
-        /// <param name="environmentData">环境数据</param>
-        protected virtual void SyncEnvironment(EnvironmentData environmentData)
-        {
-            if (_environment != null && environmentData != null)
-            {
-                _environment.SyncWithData(environmentData);
-            }
-        }
-        
-        /// <summary>
-        /// 创建实体视图
-        /// </summary>
-        /// <param name="entityData">实体数据</param>
-        /// <returns>实体视图</returns>
-        protected abstract EntityView CreateEntityView(EntityData entityData);
-        
-        // 抽象方法 - 子类必须实现
-        protected abstract void OnInitialize();
-        protected abstract void OnLoad();
-        protected abstract void OnUnload();
-        protected abstract void OnUpdate(float deltaTime);
-        protected abstract void OnRender();
-        protected abstract void OnStageEnter();
-        protected abstract void OnStageExit();
-        protected abstract void OnSyncWithRoom(RoomData roomData);
-        protected abstract void OnActivate();
-        protected abstract void OnDeactivate();
-    }
-    
-    /// <summary>
-    /// 房间数据（用于同步）
-    /// </summary>
-    [Serializable]
-    public class RoomData
-    {
-        public long RoomId { get; set; }
-        public List<EntityData> Entities { get; set; } = new List<EntityData>();
-        public EnvironmentData Environment { get; set; }
-    }
-    
-    /// <summary>
-    /// 实体数据（用于同步）
-    /// </summary>
-    [Serializable]
-    public class EntityData
-    {
-        public long EntityId { get; set; }
-        public Vector3 Position { get; set; }
-        public Quaternion Rotation { get; set; }
-        public Vector3 Scale { get; set; }
-        public string EntityType { get; set; }
-        public Dictionary<string, object> ComponentData { get; set; } = new Dictionary<string, object>();
-    }
-    
-    /// <summary>
-    /// 环境数据（用于同步）
-    /// </summary>
-    [Serializable]
-    public class EnvironmentData
-    {
-        public string EnvironmentType { get; set; }
-        public Vector3 Lighting { get; set; }
-        public float Weather { get; set; }
-        public Dictionary<string, object> Settings { get; set; } = new Dictionary<string, object>();
     }
 }
-

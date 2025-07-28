@@ -1,3 +1,4 @@
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.csproj.AssemblyReference.cache
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.GeneratedMSBuildEditorConfig.editorconfig
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.AssemblyInfoInputs.cache
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.AssemblyInfo.cs
@@ -6,11 +7,10 @@ D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.sour
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Debug\net8.0\LogicCore.deps.json
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Debug\net8.0\LogicCore.dll
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Debug\net8.0\LogicCore.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Debug\net8.0\CommonBase.dll
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Debug\net8.0\CommonBase.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.csproj.Up2Date
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.dll
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\refint\LogicCore.dll
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.pdb
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\ref\LogicCore.dll
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Debug\net8.0\CommonBase.dll
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\bin\Debug\net8.0\CommonBase.pdb
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.csproj.AssemblyReference.cache
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore\obj\Debug\net8.0\LogicCore.csproj.Up2Date
