@@ -235,5 +235,23 @@ namespace Astrum.LogicCore.Core
                 ComponentMask |= (1L << component.ComponentId);
             }
         }
+
+        /// <summary>
+        /// 获取实体需要的组件类型列表
+        /// </summary>
+        /// <returns>组件类型列表</returns>
+        public virtual Type[] GetRequiredComponentTypes()
+        {
+            return new Type[0];
+        }
+
+        /// <summary>
+        /// 获取实体需要的能力类型列表
+        /// </summary>
+        /// <returns>能力类型列表</returns>
+        public virtual Type[] GetRequiredCapabilityTypes()
+        {
+            return new Type[0];
+        }
     }
 }
