@@ -51,8 +51,9 @@ namespace Astrum.LogicCore.Core
                 UpdateEntityCapabilities(entity, deltaTime);
             }
 
-            // 更新世界状态
-            world.Update(deltaTime);
+            // 更新世界状态（不调用world.Update避免递归）
+            world.DeltaTime = deltaTime;
+            world.TotalTime += deltaTime;
         }
 
         /// <summary>

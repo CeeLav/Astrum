@@ -13,28 +13,45 @@
     <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CommonBase\CommonBase.csproj" />
+  </ItemGroup>
+
   <!-- 生成后事件：拷贝DLL到服务器和客户端目录 -->
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo 正在拷贝 LogicCore.dll 到目标目录..." />
+  <Target Name="PostBuild" AfterTargets="Build">
+    <Message Text="正在拷贝 LogicCore.dll 和 CommonBase.dll 到目标目录..." Importance="high" />
     
     <!-- 创建服务器目录并拷贝 -->
-    <MakeDir Directories="$(SolutionDir)\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
+    <MakeDir Directories="$(MSBuildProjectDirectory)\..\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
              ContinueOnError="true" />
+    <Message Text="拷贝 LogicCore.dll 到服务器目录: $(MSBuildProjectDirectory)\..\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" Importance="high" />
     <Copy SourceFiles="$(TargetPath)" 
-          DestinationFolder="$(SolutionDir)\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
           ContinueOnError="true" />
     <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" 
-          DestinationFolder="$(SolutionDir)\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
+          ContinueOnError="true" />
+    <Message Text="拷贝 CommonBase.dll 到服务器目录" Importance="high" />
+    <Copy SourceFiles="$(TargetDir)CommonBase.dll" 
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
+          ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetDir)CommonBase.pdb" 
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\AstrumServer\AstrumServer\bin\$(Configuration)\net8.0\" 
           ContinueOnError="true" />
     
-    <!-- 创建Unity客户端目录并拷贝 -->
-    <MakeDir Directories="$(SolutionDir)\..\AstrumProj\Assets\Plugins\" 
+    <!-- 创建Unity外部库目录并拷贝 -->
+    <MakeDir Directories="$(MSBuildProjectDirectory)\..\..\AstrumProj\Assets\Script\External\" 
              ContinueOnError="true" />
+    <Message Text="拷贝 LogicCore.dll 到Unity外部库目录: $(MSBuildProjectDirectory)\..\..\AstrumProj\Assets\Script\External\" Importance="high" />
     <Copy SourceFiles="$(TargetPath)" 
-          DestinationFolder="$(SolutionDir)\..\AstrumProj\Assets\Plugins\" 
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\AstrumProj\Assets\Script\External\" 
+          ContinueOnError="true" />
+    <Message Text="拷贝 CommonBase.dll 到Unity外部库目录" Importance="high" />
+    <Copy SourceFiles="$(TargetDir)CommonBase.dll" 
+          DestinationFolder="$(MSBuildProjectDirectory)\..\..\AstrumProj\Assets\Script\External\" 
           ContinueOnError="true" />
     
-    <Exec Command="echo LogicCore.dll 拷贝完成" />
+    <Message Text="LogicCore.dll 和 CommonBase.dll 拷贝完成" Importance="high" />
   </Target>
 
 </Project>

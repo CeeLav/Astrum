@@ -2,9 +2,8 @@
     "name": "AstrumClient",
     "rootNamespace": "Astrum.Client",
     "references": [
-        "LogicCore",
-        "Network",
-        "CommonBase"
+        "External",
+        "Network"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

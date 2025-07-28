@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LogicCore.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+687bd50c411d02c105dbc34bed16c65af2fb6534")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2550eddb87126dad5be0d30d84190a1c51830af4")]
 [assembly: System.Reflection.AssemblyProductAttribute("LogicCore.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LogicCore.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

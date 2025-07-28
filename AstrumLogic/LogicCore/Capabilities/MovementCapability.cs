@@ -30,12 +30,15 @@ namespace Astrum.LogicCore.Capabilities
             var inputComponent = GetOwnerComponent<LSInputComponent>();
             var movementComponent = GetOwnerComponent<MovementComponent>();
             var positionComponent = GetOwnerComponent<PositionComponent>();
-            var velocityComponent = GetOwnerComponent<VelocityComponent>();
 
             // 检查必需组件是否存在
-            if (inputComponent?.CurrentInput == null || movementComponent == null || 
-                positionComponent == null || velocityComponent == null)
+            if (inputComponent?.CurrentInput == null || movementComponent == null || positionComponent == null)
             {
+                var missingComponents = new List<string>();
+                if (inputComponent?.CurrentInput == null) missingComponents.Add("LSInputComponent/CurrentInput");
+                if (movementComponent == null) missingComponents.Add("MovementComponent");
+                if (positionComponent == null) missingComponents.Add("PositionComponent");
+                Console.WriteLine($"MovementCapability: 缺少组件: {string.Join(", ", missingComponents)}");
                 return;
             }
 
@@ -55,38 +58,19 @@ namespace Astrum.LogicCore.Capabilities
                 inputMagnitude = 1f;
             }
 
-            // 应用加速度
-            movementComponent.ApplyAcceleration(deltaTime, inputMagnitude);
-
-            // 计算移动速度
+            // 直接移动
             if (inputMagnitude > MovementThreshold && movementComponent.CanMove)
             {
-                // 根据输入方向和当前速度计算速度向量
-                float currentSpeed = movementComponent.CurrentSpeed;
-                velocityComponent.VX = moveX * currentSpeed;
-                velocityComponent.VY = moveY * currentSpeed;
-                velocityComponent.VZ = 0f; // 2D移动，Z轴速度为0
-            }
-            else
-            {
-                // 没有输入或输入过小，应用摩擦力减速
-                velocityComponent.VX *= movementComponent.Friction;
-                velocityComponent.VY *= movementComponent.Friction;
+                // 根据输入方向和速度计算移动距离
+                float speed = movementComponent.Speed;
+                float deltaX = moveX * speed * deltaTime;
+                float deltaY = moveY * speed * deltaTime;
                 
-                // 速度过小时停止移动
-                if (Math.Abs(velocityComponent.VX) < 0.01f)
-                    velocityComponent.VX = 0f;
-                if (Math.Abs(velocityComponent.VY) < 0.01f)
-                    velocityComponent.VY = 0f;
+                // 更新位置
+                positionComponent.X += deltaX;
+                positionComponent.Y += deltaY;
+                positionComponent.Z += 0f; // 2D移动，Z轴不移动
             }
-
-            // 更新位置
-            positionComponent.X += velocityComponent.VX * deltaTime;
-            positionComponent.Y += velocityComponent.VY * deltaTime;
-            positionComponent.Z += velocityComponent.VZ * deltaTime;
-
-            // 更新移动组件的当前速度
-            movementComponent.CurrentSpeed = velocityComponent.GetMagnitude();
         }
 
         /// <summary>
@@ -100,8 +84,7 @@ namespace Astrum.LogicCore.Capabilities
             // 检查必需的组件是否存在
             return OwnerHasComponent<LSInputComponent>() && 
                    OwnerHasComponent<MovementComponent>() && 
-                   OwnerHasComponent<PositionComponent>() && 
-                   OwnerHasComponent<VelocityComponent>();
+                   OwnerHasComponent<PositionComponent>();
         }
 
         /// <summary>
@@ -110,27 +93,17 @@ namespace Astrum.LogicCore.Capabilities
         public void StopMovement()
         {
             var movementComponent = GetOwnerComponent<MovementComponent>();
-            var velocityComponent = GetOwnerComponent<VelocityComponent>();
-
             movementComponent?.Stop();
-            if (velocityComponent != null)
-            {
-                velocityComponent.VX = 0f;
-                velocityComponent.VY = 0f;
-                velocityComponent.VZ = 0f;
-            }
         }
 
         /// <summary>
-        /// 设置移动参数
+        /// 设置移动速度
         /// </summary>
-        /// <param name="maxSpeed">最大速度</param>
-        /// <param name="acceleration">加速度</param>
-        /// <param name="friction">摩擦力</param>
-        public void SetMovementParams(float maxSpeed, float acceleration, float friction)
+        /// <param name="speed">速度值</param>
+        public void SetSpeed(float speed)
         {
             var movementComponent = GetOwnerComponent<MovementComponent>();
-            movementComponent?.SetMovementParams(maxSpeed, acceleration, friction);
+            movementComponent?.SetSpeed(speed);
         }
 
         /// <summary>
@@ -139,8 +112,8 @@ namespace Astrum.LogicCore.Capabilities
         /// <returns>当前移动速度</returns>
         public float GetCurrentSpeed()
         {
-            var velocityComponent = GetOwnerComponent<VelocityComponent>();
-            return velocityComponent?.GetMagnitude() ?? 0f;
+            var movementComponent = GetOwnerComponent<MovementComponent>();
+            return movementComponent?.Speed ?? 0f;
         }
 
         /// <summary>
