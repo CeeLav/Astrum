@@ -236,7 +236,7 @@ namespace Astrum.CommonBase
     /// <summary>
     /// 日志管理器
     /// </summary>
-    public class Logger : Singleton<Logger>, ILogger
+    public class ASLogger : Singleton<ASLogger>, ILogger
     {
         private readonly List<ILogHandler> _handlers = new List<ILogHandler>();
         private LogLevel _minLevel = LogLevel.Debug;
