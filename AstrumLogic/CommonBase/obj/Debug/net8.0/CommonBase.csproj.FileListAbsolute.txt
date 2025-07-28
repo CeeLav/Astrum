@@ -1,0 +1,12 @@
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\bin\Debug\net8.0\CommonBase.deps.json
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\bin\Debug\net8.0\CommonBase.dll
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\bin\Debug\net8.0\CommonBase.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\CommonBase.GeneratedMSBuildEditorConfig.editorconfig
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\CommonBase.AssemblyInfoInputs.cache
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\CommonBase.AssemblyInfo.cs
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\CommonBase.csproj.CoreCompileInputs.cache
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\CommonBase.sourcelink.json
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\CommonBase.dll
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\refint\CommonBase.dll
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\CommonBase.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\CommonBase\obj\Debug\net8.0\ref\CommonBase.dll

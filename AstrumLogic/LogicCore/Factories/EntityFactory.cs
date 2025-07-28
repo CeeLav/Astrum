@@ -1,11 +1,12 @@
 using Astrum.LogicCore.Core;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.Factories
 {
     /// <summary>
     /// 实体工厂，负责创建和销毁实体
     /// </summary>
-    public class EntityFactory
+    public class EntityFactory : Singleton<EntityFactory>
     {
         /// <summary>
         /// 所属世界
@@ -17,7 +18,16 @@ namespace Astrum.LogicCore.Factories
         /// </summary>
         private static long _nextEntityId = 1;
 
-        public EntityFactory(World world)
+        public EntityFactory()
+        {
+            // 默认构造函数，World 需要在初始化后设置
+        }
+
+        /// <summary>
+        /// 初始化工厂
+        /// </summary>
+        /// <param name="world">所属世界</param>
+        public void Initialize(World world)
         {
             World = world ?? throw new ArgumentNullException(nameof(world));
         }
@@ -37,10 +47,83 @@ namespace Astrum.LogicCore.Factories
                 IsDestroyed = false
             };
 
+            // 根据实体类型自动构建和挂载组件
+            BuildComponentsForEntity(entity);
+
             // 将实体添加到世界中
             World.Entities[entity.UniqueId] = entity;
 
             return entity;
+        }
+
+        /// <summary>
+        /// 创建指定类型的实体
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="name">实体名称</param>
+        /// <returns>创建的实体</returns>
+        public T CreateEntity<T>(string name) where T : Entity, new()
+        {
+            var entity = new T
+            {
+                Name = name,
+                CreationTime = DateTime.Now,
+                IsActive = true,
+                IsDestroyed = false
+            };
+
+            // 根据实体类型自动构建和挂载组件
+            BuildComponentsForEntity(entity);
+
+            // 将实体添加到世界中
+            World.Entities[entity.UniqueId] = entity;
+
+            return entity;
+        }
+
+        /// <summary>
+        /// 根据实体类型构建和挂载组件与能力
+        /// </summary>
+        /// <param name="entity">实体实例</param>
+        private void BuildComponentsForEntity(Entity entity)
+        {
+            // 构建组件
+            var componentTypes = entity.GetRequiredComponentTypes();
+            var componentFactory = ComponentFactory.Instance;
+
+            foreach (var componentType in componentTypes)
+            {
+                if (componentType.IsSubclassOf(typeof(LogicCore.Components.BaseComponent)))
+                {
+                    var component = componentFactory.CreateComponentFromType(componentType);
+                    if (component != null)
+                    {
+                        entity.AddComponent(component);
+                    }
+                }
+            }
+
+            // 构建能力
+            var capabilityTypes = entity.GetRequiredCapabilityTypes();
+
+            foreach (var capabilityType in capabilityTypes)
+            {
+                if (capabilityType.IsSubclassOf(typeof(LogicCore.Capabilities.Capability)))
+                {
+                    try
+                    {
+                        var capability = Activator.CreateInstance(capabilityType) as LogicCore.Capabilities.Capability;
+                        if (capability != null)
+                        {
+                            entity.AddCapability(capability);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"创建能力 {capabilityType.Name} 失败: {ex.Message}");
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -53,11 +136,13 @@ namespace Astrum.LogicCore.Factories
         {
             var entity = CreateEntity(name);
 
+            var componentFactory = ComponentFactory.Instance;
+
             foreach (var componentType in componentTypes)
             {
                 if (componentType.IsSubclassOf(typeof(LogicCore.Components.BaseComponent)))
                 {
-                    var component = Activator.CreateInstance(componentType) as LogicCore.Components.BaseComponent;
+                    var component = componentFactory.CreateComponentFromType(componentType);
                     if (component != null)
                     {
                         component.EntityId = entity.UniqueId;
@@ -65,29 +150,6 @@ namespace Astrum.LogicCore.Factories
                     }
                 }
             }
-
-            return entity;
-        }
-
-        /// <summary>
-        /// 创建玩家实体
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <param name="playerName">玩家名称</param>
-        /// <returns>玩家实体</returns>
-        public Entity CreatePlayerEntity(int playerId, string playerName = "")
-        {
-            var entity = CreateEntity(string.IsNullOrEmpty(playerName) ? $"Player_{playerId}" : playerName);
-
-            // 添加玩家基础组件
-            entity.AddComponent(new LogicCore.Components.PositionComponent(0, 0, 0));
-            entity.AddComponent(new LogicCore.Components.VelocityComponent(0, 0, 0));
-            entity.AddComponent(new LogicCore.Components.MovementComponent(5f, 10f)); // 默认速度和加速度
-            entity.AddComponent(new LogicCore.Components.HealthComponent(100)); // 默认100血量
-            entity.AddComponent(new LogicCore.FrameSync.LSInputComponent(playerId));
-
-            // 添加移动能力
-            entity.AddCapability(new LogicCore.Capabilities.MovementCapability());
 
             return entity;
         }

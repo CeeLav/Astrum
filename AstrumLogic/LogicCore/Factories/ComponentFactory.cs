@@ -1,12 +1,13 @@
 using System;
 using Astrum.LogicCore.Components;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.Factories
 {
     /// <summary>
     /// 组件工厂，负责创建各种组件
     /// </summary>
-    public class ComponentFactory
+    public class ComponentFactory : Singleton<ComponentFactory>
     {
         /// <summary>
         /// 创建指定类型的组件
@@ -17,6 +18,7 @@ namespace Astrum.LogicCore.Factories
         {
             return new T();
         }
+        
 
         /// <summary>
         /// 根据类型创建组件
@@ -38,99 +40,6 @@ namespace Astrum.LogicCore.Factories
                 Console.WriteLine($"Failed to create component of type {type.Name}: {ex.Message}");
                 return null;
             }
-        }
-
-        /// <summary>
-        /// 创建位置组件
-        /// </summary>
-        /// <param name="x">X坐标</param>
-        /// <param name="y">Y坐标</param>
-        /// <param name="z">Z坐标</param>
-        /// <returns>位置组件</returns>
-        public PositionComponent CreatePositionComponent(float x = 0f, float y = 0f, float z = 0f)
-        {
-            return new PositionComponent(x, y, z);
-        }
-
-        /// <summary>
-        /// 创建速度组件
-        /// </summary>
-        /// <param name="vx">X方向速度</param>
-        /// <param name="vy">Y方向速度</param>
-        /// <param name="vz">Z方向速度</param>
-        /// <returns>速度组件</returns>
-        public VelocityComponent CreateVelocityComponent(float vx = 0f, float vy = 0f, float vz = 0f)
-        {
-            return new VelocityComponent(vx, vy, vz);
-        }
-
-        /// <summary>
-        /// 创建移动组件
-        /// </summary>
-        /// <param name="maxSpeed">最大速度</param>
-        /// <param name="acceleration">加速度</param>
-        /// <returns>移动组件</returns>
-        public MovementComponent CreateMovementComponent(float maxSpeed = 5f, float acceleration = 10f)
-        {
-            return new MovementComponent(maxSpeed, acceleration);
-        }
-
-        /// <summary>
-        /// 创建生命值组件
-        /// </summary>
-        /// <param name="maxHealth">最大生命值</param>
-        /// <returns>生命值组件</returns>
-        public HealthComponent CreateHealthComponent(int maxHealth = 100)
-        {
-            return new HealthComponent(maxHealth);
-        }
-
-        /// <summary>
-        /// 创建输入组件
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <returns>输入组件</returns>
-        public LogicCore.FrameSync.LSInputComponent CreateInputComponent(int playerId)
-        {
-            return new LogicCore.FrameSync.LSInputComponent(playerId);
-        }
-
-        /// <summary>
-        /// 批量创建组件
-        /// </summary>
-        /// <param name="componentTypes">组件类型数组</param>
-        /// <returns>创建的组件列表</returns>
-        public List<BaseComponent> CreateComponents(params Type[] componentTypes)
-        {
-            var components = new List<BaseComponent>();
-
-            foreach (var type in componentTypes)
-            {
-                var component = CreateComponentFromType(type);
-                if (component != null)
-                {
-                    components.Add(component);
-                }
-            }
-
-            return components;
-        }
-
-        /// <summary>
-        /// 创建默认玩家组件集合
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <returns>玩家组件列表</returns>
-        public List<BaseComponent> CreatePlayerComponents(int playerId)
-        {
-            return new List<BaseComponent>
-            {
-                CreatePositionComponent(),
-                CreateVelocityComponent(),
-                CreateMovementComponent(),
-                CreateHealthComponent(),
-                CreateInputComponent(playerId)
-            };
         }
 
         /// <summary>

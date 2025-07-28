@@ -101,3 +101,6 @@ D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\refint\L
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.pdb
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.genruntimeconfig.cache
 D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\ref\LogicCore.Tests.dll
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\bin\Debug\net8.0\LogicCore.Tests.exe
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\bin\Debug\net8.0\CommonBase.dll
+D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\bin\Debug\net8.0\CommonBase.pdb

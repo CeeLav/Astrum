@@ -22,10 +22,12 @@ namespace Astrum.LogicCore.Tests
         static async Task Main(string[] args)
         {
             Console.WriteLine("=== Astrum 战斗逻辑模拟器 ===");
+            Console.WriteLine("程序开始执行...");
             Console.WriteLine();
             
             try 
             {
+                Console.WriteLine("准备运行战斗模拟...");
                 await RunBattleSimulation();
             }
             catch (Exception ex)
@@ -63,7 +65,8 @@ namespace Astrum.LogicCore.Tests
             // 创建房间和世界
             gameRoom = new Room(1, "战斗房间");
             gameWorld = new World { WorldId = 1, Name = "战斗世界" };
-            entityFactory = new EntityFactory(gameWorld);
+            entityFactory = EntityFactory.Instance;
+            entityFactory.Initialize(gameWorld);
             
             // 设置房间
             gameRoom.AddWorld(gameWorld);
@@ -82,8 +85,8 @@ namespace Astrum.LogicCore.Tests
         {
             Console.WriteLine("创建玩家实体...");
             
-            var player1 = entityFactory!.CreatePlayerEntity(1, "勇士阿尔法");
-            var player2 = entityFactory!.CreatePlayerEntity(2, "法师贝塔");
+            var player1 = entityFactory!.CreateEntity<Unit>("勇士阿尔法");
+            var player2 = entityFactory!.CreateEntity<Unit>("法师贝塔");
             
             // 设置初始位置
             player1.GetComponent<PositionComponent>()?.SetPosition(-5, 0, 0);

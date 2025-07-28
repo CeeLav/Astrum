@@ -1021,7 +1021,18 @@
         }
       },
       "xunit.runner.visualstudio/2.5.3": {},
+      "CommonBase/1.0.0": {
+        "runtime": {
+          "CommonBase.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
       "LogicCore/1.0.0": {
+        "dependencies": {
+          "CommonBase": "1.0.0"
+        },
         "runtime": {
           "LogicCore.dll": {
             "assemblyVersion": "1.0.0",
@@ -1659,6 +1670,11 @@
       "sha512": "sha512-HFFL6O+QLEOfs555SqHii48ovVa4CqGYanY+B32BjLpPptdE+wEJmCFNXlLHdEOD5LYeayb9EroaUpydGpcybg==",
       "path": "xunit.runner.visualstudio/2.5.3",
       "hashPath": "xunit.runner.visualstudio.2.5.3.nupkg.sha512"
+    },
+    "CommonBase/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
     },
     "LogicCore/1.0.0": {
       "type": "project",
