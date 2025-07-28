@@ -18,14 +18,15 @@ namespace Astrum.LogicCore.Tests
             // Arrange - 创建完整的游戏环境
             var room = new Room(1, "TestRoom");
             var world = new World { WorldId = 1, Name = "TestWorld" };
-            var entityFactory = new EntityFactory(world);
+            var entityFactory = EntityFactory.Instance;
+            entityFactory.Initialize(world);
             
             // 添加世界到房间
             room.AddWorld(world);
             
             // 创建玩家实体
-            var player1 = entityFactory.CreatePlayerEntity(1, "Player1");
-            var player2 = entityFactory.CreatePlayerEntity(2, "Player2");
+            var player1 = entityFactory.CreateEntity<Unit>("Player1");
+            var player2 = entityFactory.CreateEntity<Unit>("Player2");
             
             // 设置初始位置
             player1.GetComponent<PositionComponent>()?.SetPosition(0, 0, 0);
@@ -117,10 +118,11 @@ namespace Astrum.LogicCore.Tests
         {
             // Arrange
             var world = new World { WorldId = 1, Name = "TestWorld" };
-            var factory = new EntityFactory(world);
+            var factory = EntityFactory.Instance;
+            factory.Initialize(world);
             
             // Act
-            var player = factory.CreatePlayerEntity(1, "TestPlayer");
+            var player = factory.CreateEntity<Unit>("TestPlayer");
             
             // Assert
             Assert.NotNull(player);

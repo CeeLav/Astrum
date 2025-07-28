@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LogicCore")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+687bd50c411d02c105dbc34bed16c65af2fb6534")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b648ba60e7aae6aa7b3c3c2d979f9af81e00b01b")]
 [assembly: System.Reflection.AssemblyProductAttribute("LogicCore")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LogicCore")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
