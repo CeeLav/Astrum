@@ -17,7 +17,6 @@ package "应用程序入口" {
     enum ApplicationState {
         INITIALIZING
         LOADING
-        MENU
         GAME_PLAYING
         PAUSED
         SHUTDOWN
@@ -83,56 +82,37 @@ package "资源管理系统" {
 package "场景管理系统" {
     class SceneManager {
         +CurrentScene: Scene
-        +LoadingScene: Scene
-        +SceneHistory: Stack<string>
+        +SceneHistory: Stack<Scene>
+        +IsLoading: bool
+        +LoadingProgress: float
         
-        +LoadScene(sceneName: string): void
-        +LoadSceneAsync(sceneName: string, callback: Action): void
+        +LoadScene(sceneName: string, mode: LoadSceneMode): void
+        +LoadSceneAsync(sceneName: string, mode: LoadSceneMode, callback: Action): void
         +UnloadScene(sceneName: string): void
         +GetCurrentScene(): Scene
+        +IsSceneLoaded(sceneName: string): bool
         +GetLoadProgress(): float
     }
     
-    abstract class Scene {
-        +Name: string
-        +IsLoaded: bool
-        +RequiredResources: List<string>
-        +GameObjects: List<GameObject>
+    class Scene {
+        +SceneName: string           ' Unity场景名称
+        +ScenePath: string           ' 场景文件路径
+        +IsLoaded: bool              ' 是否已加载
+        +IsActive: bool              ' 是否激活
+        +LoadMode: LoadSceneMode     ' 加载模式
+        +SceneObjects: List<GameObject>  ' 场景中的对象
         
-        +Initialize(): void
-        +Load(): void
-        +Unload(): void
-        +Update(deltaTime: float): void
-        +OnEnter(): void
-        +OnExit(): void
+        +Load(): void                ' 加载场景
+        +Unload(): void              ' 卸载场景
+        +Activate(): void            ' 激活场景
+        +Deactivate(): void          ' 停用场景
+        +GetRootObjects(): GameObject[]  ' 获取根对象
     }
     
-    class MenuScene extends Scene {
-        +UICanvas: Canvas
-        +BackgroundMusic: AudioSource
-        
-        +ShowMainMenu(): void
-        +ShowSettingsMenu(): void
-        +StartGame(): void
-    }
-    
-    class GameScene extends Scene {
-        +GameWorld: World
-        +Camera: Camera
-        +PlayerController: PlayerController
-        
-        +SpawnPlayer(): void
-        +UpdateGameLogic(deltaTime: float): void
-        +HandleInput(): void
-    }
-    
-    class LoadingScene extends Scene {
-        +ProgressBar: UIProgressBar
-        +LoadingText: UIText
-        +TotalProgress: float
-        
-        +UpdateProgress(progress: float): void
-        +ShowLoadingTips(): void
+    enum LoadSceneMode {
+        SINGLE      ' 单场景模式，卸载其他场景
+        ADDITIVE    ' 叠加模式，保留其他场景
+        ASYNC       ' 异步加载
     }
 }
 
@@ -240,22 +220,16 @@ package "UI系统" {
         +OnHide(): void
     }
     
-    class MainMenuPanel extends UIPanel {
-        +StartButton: Button
-        +SettingsButton: Button
-        +ExitButton: Button
-    }
-    
     class GameHUDPanel extends UIPanel {
         +HealthBar: ProgressBar
         +ScoreText: Text
         +MinimapImage: Image
     }
     
-    class LoadingPanel extends UIPanel {
-        +ProgressBar: ProgressBar
-        +LoadingText: Text
-        +TipText: Text
+    class SettingsPanel extends UIPanel {
+        +VolumeSlider: Slider
+        +QualityDropdown: Dropdown
+        +ResolutionDropdown: Dropdown
     }
 }
 
@@ -304,8 +278,10 @@ note top of GameApplication : "应用程序主循环:\n1. 初始化各个管理�
 
 note top of ResourceManager : "资源管理流程:\n1. 异步加载资源\n2. 管理资源生命周期\n3. 内存优化和缓存\n4. 引用计数管理"
 
-note top of SceneManager : "场景切换流程:\n1. 卸载当前场景\n2. 显示加载界面\n3. 预加载资源\n4. 加载新场景\n5. 初始化场景对象"
+note top of SceneManager : "场景管理职责:\n- 加载/卸载Unity场景文件\n- 管理场景生命周期\n- 提供场景状态查询\n- 支持场景切换和叠加\n- 与游戏逻辑完全解耦"
 
 note top of NetworkManager : "网络通讯流程:\n1. 建立连接\n2. 心跳保持\n3. 消息序列化\n4. 断线重连\n5. 状态同步"
+
+note bottom of SceneManager : "场景管理系统特点:\n- 专注于Unity场景的加载和卸载\n- 与游戏逻辑完全解耦\n- 支持单场景、叠加场景、异步加载\n- 提供场景状态管理\n- 不包含游戏逻辑相关的场景类型"
 
 @enduml
