@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using System.Numerics;
-
 using Newtonsoft.Json;
 
 namespace Astrum.Network
@@ -44,7 +43,7 @@ namespace Astrum.Network
         public string SenderId { get; set; }
         
         /// <summary>
-        /// 时间戳
+        /// 时间�?
         /// </summary>
         public DateTime Timestamp { get; set; }
         
@@ -74,7 +73,7 @@ namespace Astrum.Network
             }
             catch (Exception ex)
             {
-                throw new Exception($"序列化消息失败: {ex.Message}");
+                throw new Exception($"序列化消息失�? {ex.Message}");
             }
         }
 
@@ -196,4 +195,4 @@ namespace Astrum.Network
 
         public string Info { get; set; }
     }
-} 
+}

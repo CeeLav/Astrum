@@ -3,7 +3,8 @@
     "rootNamespace": "Astrum.Client",
     "references": [
         "External",
-        "Network"
+        "Network",
+        "AstrumView"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -14,4 +15,4 @@
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
-} 
+}
