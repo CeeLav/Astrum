@@ -15,26 +15,6 @@ namespace Astrum.LogicCore.Core
         private static long _nextId = 1;
 
         /// <summary>
-        /// 获取此实体类型需要的组件类型列表
-        /// 子类可以重写此方法来定义自己需要的组件
-        /// </summary>
-        /// <returns>组件类型列表</returns>
-        public virtual Type[] GetRequiredComponentTypes()
-        {
-            return Array.Empty<Type>();
-        }
-
-        /// <summary>
-        /// 获取此实体类型需要的默认能力类型列表
-        /// 子类可以重写此方法来定义自己需要的默认能力
-        /// </summary>
-        /// <returns>能力类型列表</returns>
-        public virtual Type[] GetRequiredCapabilityTypes()
-        {
-            return Array.Empty<Type>();
-        }
-
-        /// <summary>
         /// 实体的全局唯一标识符
         /// </summary>
         public long UniqueId { get; private set; }

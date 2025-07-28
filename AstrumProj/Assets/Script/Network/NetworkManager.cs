@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Astrum.Network
 {
     /// <summary>
-    /// 网络连接状态
+    /// 网络连接状�?
     /// </summary>
     public enum ConnectionState
     {
@@ -17,7 +17,7 @@ namespace Astrum.Network
     }
 
     /// <summary>
-    /// 网络管理器 - 与Unity解耦
+    /// 网络管理�?- 与Unity解�?
     /// </summary>
     public class NetworkManager
     {
@@ -40,7 +40,7 @@ namespace Astrum.Network
         private readonly object _queueLock = new();
 
         /// <summary>
-        /// 连接状态
+        /// 连接状�?
         /// </summary>
         public ConnectionState ConnectionState
         {
@@ -57,12 +57,12 @@ namespace Astrum.Network
         }
 
         /// <summary>
-        /// 是否已连接
+        /// 是否已连�?
         /// </summary>
         public bool IsConnected => ConnectionState == ConnectionState.Connected;
 
         /// <summary>
-        /// 连接状态改变事件
+        /// 连接状态改变事�?
         /// </summary>
         public event Action<ConnectionState, ConnectionState> OnConnectionStateChanged;
 
@@ -72,7 +72,7 @@ namespace Astrum.Network
         public event Action<NetworkMessage> OnMessageReceived;
 
         /// <summary>
-        /// 消息发送事件
+        /// 消息发送事�?
         /// </summary>
         public event Action<NetworkMessage> OnMessageSent;
 
@@ -105,12 +105,12 @@ namespace Astrum.Network
                 ConnectionState = ConnectionState.Connecting;
                 
                 // 这里应该实现实际的网络连接逻辑
-                // 为了演示，我们模拟连接过程
+                // 为了演示，我们模拟连接过�?
                 await Task.Delay(1000);
                 
                 ConnectionState = ConnectionState.Connected;
                 
-                // 发送连接消息
+                // 发送连接消�?
                 var connectMessage = new ConnectMessage
                 {
                     PlayerName = "Player",
@@ -148,7 +148,7 @@ namespace Astrum.Network
         }
 
         /// <summary>
-        /// 发送消息
+        /// 发送消�?
         /// </summary>
         public async Task<bool> SendMessageAsync(NetworkMessage message)
         {
@@ -179,7 +179,7 @@ namespace Astrum.Network
             }
             catch (Exception ex)
             {
-                OnError?.Invoke($"发送消息失败: {ex.Message}");
+                OnError?.Invoke($"发送消息失�? {ex.Message}");
                 return false;
             }
         }
@@ -243,7 +243,7 @@ namespace Astrum.Network
         private void HandleConnectMessage(ConnectMessage message)
         {
             // 处理连接消息
-            Console.WriteLine($"客户端 {message.PlayerName} 连接到服务器");
+            Console.WriteLine($"客户�?{message.PlayerName} 连接到服务器");
         }
 
         private void HandleDisconnectMessage(DisconnectMessage message)
@@ -255,7 +255,10 @@ namespace Astrum.Network
         private void HandleHeartbeatMessage(HeartbeatMessage message)
         {
             // 处理心跳消息
-            // 可以发送心跳响应
+            if (message != null)
+            {
+                // 处理心跳逻辑
+            }
         }
 
         private void HandleDataMessage(DataMessage message)
@@ -268,17 +271,17 @@ namespace Astrum.Network
         private void HandleErrorMessage(ErrorMessage message)
         {
             // 处理错误消息
-            OnError?.Invoke($"服务器错误: {message.ErrorText}");
+            OnError?.Invoke($"服务器错�? {message.ErrorText}");
         }
 
         private void HandleInfoMessage(InfoMessage message)
         {
             // 处理信息消息
-            Console.WriteLine($"服务器信息: {message.Info}");
+            Console.WriteLine($"服务器信�? {message.Info}");
         }
 
         /// <summary>
-        /// 更新网络管理器
+        /// 更新网络管理�?
         /// </summary>
         public void Update()
         {
@@ -288,7 +291,7 @@ namespace Astrum.Network
                 while (_messageQueue.Count > 0)
                 {
                     var message = _messageQueue.Dequeue();
-                    // 这里应该实现实际的网络发送
+                    ProcessMessage(message);
                 }
             }
 
@@ -311,7 +314,7 @@ namespace Astrum.Network
         }
 
         /// <summary>
-        /// 发送心跳
+        /// 发送心�?
         /// </summary>
         public async Task SendHeartbeatAsync()
         {
@@ -322,4 +325,4 @@ namespace Astrum.Network
             }
         }
     }
-} 
+}

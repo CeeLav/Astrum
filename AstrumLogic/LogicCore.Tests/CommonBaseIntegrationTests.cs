@@ -40,7 +40,7 @@ namespace Astrum.LogicCore.Tests
         public void LogicCore_ShouldUseCommonBase_Logger()
         {
             // Arrange
-            var logger = Logger.Instance;
+            var logger = ASLogger.Instance;
             var world = new World();
             var factory = EntityFactory.Instance;
             factory.Initialize(world);
