@@ -4,7 +4,8 @@
     "references": [
         "External",
         "Network",
-        "AstrumView"
+        "AstrumView",
+        "AstrumLogic"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
