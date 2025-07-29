@@ -7,6 +7,14 @@ using Astrum.CommonBase;
 namespace Astrum.Client.Managers
 {
     /// <summary>
+    /// 协程运行器组件
+    /// </summary>
+    public class CoroutineRunner : MonoBehaviour
+    {
+        // 这个类专门用于运行协程
+    }
+
+    /// <summary>
     /// 场景管理器 - 简化版本
     /// </summary>
     public class SceneManager : Singleton<SceneManager>
@@ -53,7 +61,7 @@ namespace Astrum.Client.Managers
         private void CreateCoroutineRunner()
         {
             GameObject runnerGO = new GameObject("SceneManager Coroutine Runner");
-            coroutineRunner = runnerGO.AddComponent<MonoBehaviour>();
+            coroutineRunner = runnerGO.AddComponent<CoroutineRunner>();
             UnityEngine.Object.DontDestroyOnLoad(runnerGO);
         }
         
