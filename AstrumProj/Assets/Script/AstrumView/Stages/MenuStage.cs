@@ -2,6 +2,7 @@
 using System;
 using Astrum.CommonBase;
 using Astrum.View.Core;
+using Astrum.View.Managers;
 
 namespace Astrum.View.Stages
 {
@@ -83,10 +84,10 @@ namespace Astrum.View.Stages
             // 但可以在这里处理一些菜单状态更�?
         }
         
-        protected override EntityView CreateEntityView(EntityData entityData)
+        protected override EntityView CreateEntityView(long entityId)
         {
-            // 菜单Stage通常不包含游戏实�?
-            // 返回null表示不创建实体视�?
+            // 菜单Stage通常不包含游戏实体
+            // 返回null表示不创建实体视图
             return null;
         }
         

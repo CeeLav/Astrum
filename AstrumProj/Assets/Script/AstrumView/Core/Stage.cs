@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Astrum.CommonBase;
+using Astrum.View.Managers;
 
 namespace Astrum.View.Core
 {
@@ -81,8 +82,92 @@ namespace Astrum.View.Core
             // 设置环境
             SetupEnvironment();
             
+            // 调用子类的初始化方法
+            OnInitialize();
+            
             _isLoaded = true;
             OnStageLoaded?.Invoke();
+        }
+        
+        /// <summary>
+        /// 子类可重写的初始化方法
+        /// </summary>
+        protected virtual void OnInitialize()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的加载方法
+        /// </summary>
+        protected virtual void OnLoad()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的卸载方法
+        /// </summary>
+        protected virtual void OnUnload()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的更新方法
+        /// </summary>
+        protected virtual void OnUpdate(float deltaTime)
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的渲染方法
+        /// </summary>
+        protected virtual void OnRender()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的Stage进入方法
+        /// </summary>
+        protected virtual void OnStageEnter()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的Stage退出方法
+        /// </summary>
+        protected virtual void OnStageExit()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的激活方法
+        /// </summary>
+        protected virtual void OnActivate()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的停用方法
+        /// </summary>
+        protected virtual void OnDeactivate()
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的房间同步方法
+        /// </summary>
+        /// <param name="roomData">房间数据</param>
+        protected virtual void OnSyncWithRoom(RoomData roomData)
+        {
+        }
+        
+        /// <summary>
+        /// 子类可重写的实体视图创建方法
+        /// </summary>
+        /// <param name="entityId">实体UniqueId</param>
+        /// <returns>创建的实体视图</returns>
+        protected virtual EntityView CreateEntityView(long entityId)
+        {
+            return null;
         }
         
         /// <summary>
@@ -145,11 +230,13 @@ namespace Astrum.View.Core
             
             if (_isActive)
             {
+                OnActivate();
                 OnStageActivated?.Invoke();
                 ASLogger.Instance.Info($"Stage: 激活 {_stageName}");
             }
             else
             {
+                OnDeactivate();
                 OnStageDeactivated?.Invoke();
                 ASLogger.Instance.Info($"Stage: 停用 {_stageName}");
             }
@@ -161,6 +248,9 @@ namespace Astrum.View.Core
         public void OnEnter()
         {
             ASLogger.Instance.Info($"Stage: 进入 {_stageName}");
+            
+            // 调用子类的进入方法
+            OnStageEnter();
             
             // 激活所有实体视图
             foreach (var entityView in _entityViews.Values)
@@ -179,6 +269,9 @@ namespace Astrum.View.Core
         {
             ASLogger.Instance.Info($"Stage: 退出 {_stageName}");
             
+            // 调用子类的退出方法
+            OnStageExit();
+            
             // 停用所有实体视图
             foreach (var entityView in _entityViews.Values)
             {
@@ -195,6 +288,9 @@ namespace Astrum.View.Core
         public void Update(float deltaTime)
         {
             if (!_isActive) return;
+            
+            // 调用子类的更新方法
+            OnUpdate(deltaTime);
             
             // 更新所有EntityView
             foreach (var entityView in _entityViews.Values)

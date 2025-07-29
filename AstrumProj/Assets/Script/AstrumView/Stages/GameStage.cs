@@ -3,6 +3,7 @@ using System;
 using Astrum.CommonBase;
 using Astrum.View.EntityViews;
 using Astrum.View.Core;
+using Astrum.View.Managers;
 
 namespace Astrum.View.Stages
 {
@@ -86,26 +87,38 @@ namespace Astrum.View.Stages
             SyncGameData(roomData);
         }
         
-        protected override EntityView CreateEntityView(EntityData entityData)
+        protected override EntityView CreateEntityView(long entityId)
         {
-            if (entityData == null) return null;
+            if (entityId <= 0) return null;
             
-            // 根据实体类型创建对应的视�?
-            switch (entityData.EntityType.ToLower())
+            // TODO: 通过逻辑层接口获取实体类型
+            // 示例代码：
+            /*
+            var entity = LogicCore.EntityManager.GetEntity(entityId);
+            if (entity == null) return null;
+            
+            string entityType = entity.GetEntityType(); // 或者通过某个Component获取类型信息
+            */
+            
+            // 暂时使用默认实现，根据需要可以扩展
+            string entityType = "unit"; // 默认为单位类型
+            
+            // 根据实体类型创建对应的视图
+            switch (entityType.ToLower())
             {
                 case "unit":
                 case "player":
                 case "enemy":
-                    return CreateUnitView(entityData);
+                    return CreateUnitView(entityId);
                 case "building":
-                    return CreateBuildingView(entityData);
+                    return CreateBuildingView(entityId);
                 case "projectile":
-                    return CreateProjectileView(entityData);
+                    return CreateProjectileView(entityId);
                 case "environment":
-                    return CreateEnvironmentView(entityData);
+                    return CreateEnvironmentView(entityId);
                 default:
-                    ASLogger.Instance.Warning($"GameStage: 未知的实体类�?- {entityData.EntityType}");
-                    return CreateDefaultView(entityData);
+                    ASLogger.Instance.Warning($"GameStage: 未知的实体类型 - {entityType}");
+                    return CreateDefaultView(entityId);
             }
         }
         
@@ -231,29 +244,32 @@ namespace Astrum.View.Stages
         {
             if (roomData == null) return;
             
-            // 同步游戏特定的数�?
+            // 同步游戏特定的数据
             // 如天气、时间、事件等
-            ASLogger.Instance.Debug($"GameStage: 同步游戏数据 - 实体数量: {roomData.Entities?.Count ?? 0}");
+            ASLogger.Instance.Debug($"GameStage: 同步游戏数据 - 实体数量: {roomData.EntityIds?.Count ?? 0}");
         }
         
         /// <summary>
         /// 创建单位视图
         /// </summary>
-        /// <param name="entityData">实体数据</param>
+        /// <param name="entityId">实体UniqueId</param>
         /// <returns>单位视图</returns>
-        private EntityView CreateUnitView(EntityData entityData)
+        private EntityView CreateUnitView(long entityId)
         {
-            UnitView unitView = new UnitView(entityData.EntityType);
-            unitView.Initialize(entityData.EntityId);
+            // TODO: 通过逻辑层接口获取实体类型
+            string entityType = "unit"; // 默认类型，实际应该从逻辑层获取
+            
+            UnitView unitView = new UnitView(entityType);
+            unitView.Initialize(entityId);
             return unitView;
         }
         
         /// <summary>
         /// 创建建筑视图
         /// </summary>
-        /// <param name="entityData">实体数据</param>
+        /// <param name="entityId">实体UniqueId</param>
         /// <returns>建筑视图</returns>
-        private EntityView CreateBuildingView(EntityData entityData)
+        private EntityView CreateBuildingView(long entityId)
         {
             // 这里可以创建BuildingView
             // 暂时返回null
@@ -262,11 +278,11 @@ namespace Astrum.View.Stages
         }
         
         /// <summary>
-        /// 创建弹射物视�?
+        /// 创建弹射物视图
         /// </summary>
-        /// <param name="entityData">实体数据</param>
-        /// <returns>弹射物视�?/returns>
-        private EntityView CreateProjectileView(EntityData entityData)
+        /// <param name="entityId">实体UniqueId</param>
+        /// <returns>弹射物视图</returns>
+        private EntityView CreateProjectileView(long entityId)
         {
             // 这里可以创建ProjectileView
             // 暂时返回null
@@ -277,9 +293,9 @@ namespace Astrum.View.Stages
         /// <summary>
         /// 创建环境视图
         /// </summary>
-        /// <param name="entityData">实体数据</param>
+        /// <param name="entityId">实体UniqueId</param>
         /// <returns>环境视图</returns>
-        private EntityView CreateEnvironmentView(EntityData entityData)
+        private EntityView CreateEnvironmentView(long entityId)
         {
             // 这里可以创建EnvironmentView
             // 暂时返回null
@@ -290,13 +306,13 @@ namespace Astrum.View.Stages
         /// <summary>
         /// 创建默认视图
         /// </summary>
-        /// <param name="entityData">实体数据</param>
+        /// <param name="entityId">实体UniqueId</param>
         /// <returns>默认视图</returns>
-        private EntityView CreateDefaultView(EntityData entityData)
+        private EntityView CreateDefaultView(long entityId)
         {
             // 创建一个简单的默认视图
             UnitView defaultView = new UnitView("Default");
-            defaultView.Initialize(entityData.EntityId);
+            defaultView.Initialize(entityId);
             return defaultView;
         }
         
