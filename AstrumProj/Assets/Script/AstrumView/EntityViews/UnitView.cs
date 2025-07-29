@@ -43,11 +43,11 @@ namespace Astrum.View.EntityViews
             // 更新单位特定的视觉效�?
             UpdateUnitVisuals(deltaTime);
         }
-        
-        protected override void OnSyncWithEntity(EntityData entityData)
+
+        protected override void OnSyncWithEntity(long entityId)
         {
-            // 同步单位特定的数�?
-            SyncUnitData(entityData);
+            // 同步单位特定的数据
+            SyncUnitData(entityId);
         }
         
         /// <summary>
@@ -100,19 +100,36 @@ namespace Astrum.View.EntityViews
         /// <summary>
         /// 同步单位数据
         /// </summary>
-        /// <param name="entityData">实体数据</param>
-        private void SyncUnitData(EntityData entityData)
+        /// <param name="entityId">实体UniqueId</param>
+        private void SyncUnitData(long entityId)
         {
-            if (entityData == null) return;
+            if (entityId <= 0) return;
             
-            // 同步单位类型
-            if (!string.IsNullOrEmpty(entityData.EntityType))
+            // TODO: 通过逻辑层的Entity Manager获取Component数据
+            // 示例代码：
+            /*
+            // 获取实体的各种Component来同步数据
+            var positionComponent = LogicCore.EntityManager.GetComponent<PositionComponent>(entityId);
+            if (positionComponent != null && _transform != null)
             {
-                _unitType = entityData.EntityType;
+                _transform.position = new Vector3(positionComponent.X, positionComponent.Y, positionComponent.Z);
             }
             
-            // 同步组件数据
-            SyncComponentData(entityData.ComponentData);
+            var healthComponent = LogicCore.EntityManager.GetComponent<HealthComponent>(entityId);
+            if (healthComponent != null)
+            {
+                UpdateHealthDisplay(healthComponent.CurrentHealth, healthComponent.MaxHealth);
+            }
+            
+            var movementComponent = LogicCore.EntityManager.GetComponent<MovementComponent>(entityId);
+            if (movementComponent != null)
+            {
+                // 更新移动相关的视觉效果
+                UpdateMovementEffects(movementComponent.Speed, movementComponent.Direction);
+            }
+            */
+            
+            ASLogger.Instance.Debug($"UnitView: 同步单位数据，实体ID: {entityId}");
         }
         
         /// <summary>
