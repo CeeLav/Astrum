@@ -48,58 +48,6 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 与环境数据同�?
-        /// </summary>
-        /// <param name="environmentData">环境数据</param>
-        public void SyncWithData(EnvironmentData environmentData)
-        {
-            if (environmentData == null) return;
-            
-            bool changed = false;
-            
-            // 更新环境类型
-            if (environmentType != environmentData.EnvironmentType)
-            {
-                environmentType = environmentData.EnvironmentType;
-                changed = true;
-            }
-            
-            // 更新光照
-            if (lighting != environmentData.Lighting)
-            {
-                lighting = environmentData.Lighting;
-                changed = true;
-            }
-            
-            // 更新天气
-            if (weather != environmentData.Weather)
-            {
-                weather = environmentData.Weather;
-                changed = true;
-            }
-            
-            // 更新设置
-            if (environmentData.Settings != null)
-            {
-                foreach (var kvp in environmentData.Settings)
-                {
-                    if (!_settings.ContainsKey(kvp.Key) || !_settings[kvp.Key].Equals(kvp.Value))
-                    {
-                        _settings[kvp.Key] = kvp.Value;
-                        changed = true;
-                    }
-                }
-            }
-            
-            // 应用环境设置
-            if (changed)
-            {
-                ApplyEnvironmentSettings();
-                OnEnvironmentChanged?.Invoke(this);
-            }
-        }
-        
-        /// <summary>
         /// 应用环境设置
         /// </summary>
         private void ApplyEnvironmentSettings()
