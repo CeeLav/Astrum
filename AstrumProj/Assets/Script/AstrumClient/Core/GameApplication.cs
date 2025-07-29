@@ -64,7 +64,7 @@ namespace Astrum.Client.Core
             // 设置目标帧率
             Application.targetFrameRate = targetFrameRate;
             gameLauncher = new GameLauncher();
-            gameLauncher.StartSinglePlayerGame("SinglgePlayerRoom");
+            gameLauncher.StartSinglePlayerGame("Game");
             
         }
         
