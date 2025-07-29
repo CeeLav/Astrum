@@ -265,7 +265,7 @@ namespace Astrum.View.Managers
             if (_cameraTransform == null) return;
             
             // 处理鼠标输入
-            if (Input.GetMouseButton(1)) // 右键按下时才能旋�?
+            if (Input.GetMouseButton(1)) // 右键按下时才能旋转
             {
                 float mouseX = Input.GetAxis("Mouse X") * _mouseSensitivity;
                 float mouseY = Input.GetAxis("Mouse Y") * _mouseSensitivity;

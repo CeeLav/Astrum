@@ -8,7 +8,7 @@ namespace Astrum.View.EntityViews
 {
     /// <summary>
     /// 单位视图
-    /// 负责单位实体的视觉表�?
+    /// 负责单位实体的视觉表现
     /// </summary>
     public class UnitView : EntityView
     {
@@ -22,7 +22,7 @@ namespace Astrum.View.EntityViews
         private GameObject _selectionIndicator;
         
         /// <summary>
-        /// 构造函�?
+        /// 构造函数
         /// </summary>
         /// <param name="unitType">单位类型</param>
         public UnitView(string unitType = "") : base("Unit")
@@ -32,15 +32,14 @@ namespace Astrum.View.EntityViews
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Info($"UnitView: 初始化单位视图，ID: {EntityId}，类�? {_unitType}");
-            
-            // 设置单位特定的组�?
+            ASLogger.Instance.Info($"UnitView: 初始化单位视图，ID: {EntityId}，类型: {_unitType}");
+            // 设置单位特定的组件
             SetupUnitComponents();
         }
         
         protected override void OnUpdateView(float deltaTime)
         {
-            // 更新单位特定的视觉效�?
+            // 更新单位特定的视觉效果
             UpdateUnitVisuals(deltaTime);
         }
 
@@ -61,7 +60,7 @@ namespace Astrum.View.EntityViews
             _modelRenderer = _gameObject.GetComponent<Renderer>();
             if (_modelRenderer == null)
             {
-                // 创建一个简单的立方体作为默认模�?
+                // 创建一个简单的立方体作为默认模型
                 GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 cube.transform.SetParent(_gameObject.transform);
                 cube.transform.localPosition = Vector3.zero;
@@ -75,10 +74,10 @@ namespace Astrum.View.EntityViews
                 _animator = _gameObject.AddComponent<Animator>();
             }
             
-            // 创建血条UI
+            // 创建血条组件
             CreateHealthBarUI();
             
-            // 创建选择指示�?
+            // 创建选择指示器
             CreateSelectionIndicator();
             
             ASLogger.Instance.Info($"UnitView: 设置单位组件完成，ID: {EntityId}");
@@ -144,7 +143,7 @@ namespace Astrum.View.EntityViews
             _healthBarUI.transform.SetParent(_gameObject.transform);
             _healthBarUI.transform.localPosition = new Vector3(0, 2, 0);
             
-            // 添加血条组�?
+            // 添加血条组件
             var healthBarComponent = new HealthBarComponent();
             AddViewComponent(healthBarComponent);
             
@@ -163,7 +162,7 @@ namespace Astrum.View.EntityViews
             _selectionIndicator.transform.SetParent(_gameObject.transform);
             _selectionIndicator.transform.localPosition = new Vector3(0, 0.1f, 0);
             
-            // 添加选择指示器组�?
+            // 添加选择指示器组件
             var selectionComponent = new SelectionIndicatorComponent();
             AddViewComponent(selectionComponent);
             
@@ -205,7 +204,7 @@ namespace Astrum.View.EntityViews
             if (_animator != null)
             {
                 _animator.Play(animName);
-                ASLogger.Instance.Info($"UnitView: 播放动画，ID: {EntityId}，动�? {animName}");
+                ASLogger.Instance.Info($"UnitView: 播放动画，ID: {EntityId}，动画: {animName}");
             }
         }
         
@@ -299,22 +298,22 @@ namespace Astrum.View.EntityViews
         
         protected override void OnInitialize()
         {
-            // 初始化血�?
+            // 初始化血条
         }
         
         protected override void OnUpdate(float deltaTime)
         {
-            // 更新血条动�?
+            // 更新血条动画
         }
         
         protected override void OnDestroy()
         {
-            // 清理血�?
+            // 清理血条
         }
         
         protected override void OnSyncData(object data)
         {
-            // 同步血条数�?
+            // 同步血条数据
         }
         
         public void UpdateHealth(float health, float maxHealth)
@@ -333,22 +332,22 @@ namespace Astrum.View.EntityViews
         
         protected override void OnInitialize()
         {
-            // 初始化选择指示�?
+            // 初始化选择指示器
         }
         
         protected override void OnUpdate(float deltaTime)
         {
-            // 更新选择指示器动�?
+            // 更新选择指示器动画
         }
         
         protected override void OnDestroy()
         {
-            // 清理选择指示�?
+            // 清理选择指示器
         }
         
         protected override void OnSyncData(object data)
         {
-            // 同步选择指示器数�?
+            // 同步选择指示器数据
         }
         
         public void Show()

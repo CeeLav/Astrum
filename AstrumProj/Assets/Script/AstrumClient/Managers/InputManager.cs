@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-// using UnityEngine.InputSystem;
 using System;
 using System.Collections.Generic;
 using Astrum.CommonBase;
@@ -21,12 +20,6 @@ namespace Astrum.Client.Managers
         private InputState previousInput;
         private List<InputState> inputHistory = new List<InputState>();
         
-        // 输入动作资源 (注释掉InputSystem相关代码)
-        // private InputActionAsset inputActions;
-        // private InputAction moveAction;
-        // private InputAction actionAction;
-        // private InputAction pauseAction;
-        
         // 公共属性
         public InputState CurrentInput => currentInput;
         public InputState PreviousInput => previousInput;
@@ -38,94 +31,19 @@ namespace Astrum.Client.Managers
         public event Action<KeyCode> OnKeyReleased;
         public event Action<Vector2> OnMouseMoved;
         
-        protected void Start()
-        {
-            // 初始化输入状态
-            currentInput = new InputState();
-            previousInput = new InputState();
-        }
-        
         /// <summary>
         /// 初始化输入管理器
         /// </summary>
         public void Initialize()
         {
+            // 初始化输入状态
+            currentInput = new InputState();
+            previousInput = new InputState();
             if (enableLogging)
                 Debug.Log("InputManager: 初始化输入管理器");
             
-            // 加载输入动作资源
-            LoadInputActions();
-            
-            // 设置输入动作回调
-            SetupInputCallbacks();
-            
             if (enableLogging)
                 Debug.Log("InputManager: 输入管理器初始化完成");
-        }
-        
-        /// <summary>
-        /// 加载输入动作资源
-        /// </summary>
-        private void LoadInputActions()
-        {
-            try
-            {
-                // InputSystem相关代码已注释，使用传统输入方式
-                // inputActions = Resources.Load<InputActionAsset>("InputSystem_Actions");
-                
-                // if (inputActions != null)
-                // {
-                //     moveAction = inputActions.FindAction("Player/Move");
-                //     actionAction = inputActions.FindAction("Player/Action");
-                //     pauseAction = inputActions.FindAction("UI/Pause");
-                //     
-                //     if (enableLogging)
-                //         Debug.Log("InputManager: 输入动作资源加载成功");
-                // }
-                // else
-                // {
-                //     Debug.LogWarning("InputManager: 未找到输入动作资源，使用默认输入处理");
-                // }
-                
-                if (enableLogging)
-                    Debug.Log("InputManager: 使用传统输入处理方式");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"InputManager: 初始化输入处理失败 - {ex.Message}");
-            }
-        }
-        
-        /// <summary>
-        /// 设置输入回调
-        /// </summary>
-        private void SetupInputCallbacks()
-        {
-            // InputSystem相关代码已注释
-            // if (inputActions != null)
-            // {
-            //     inputActions.Enable();
-            //     
-            //     if (moveAction != null)
-            //     {
-            //         moveAction.performed += OnMovePerformed;
-            //         moveAction.canceled += OnMoveCanceled;
-            //     }
-            //     
-            //     if (actionAction != null)
-            //     {
-            //         actionAction.performed += OnActionPerformed;
-            //         actionAction.canceled += OnActionCanceled;
-            //     }
-            //     
-            //     if (pauseAction != null)
-            //     {
-            //         pauseAction.performed += OnPausePerformed;
-            //     }
-            // }
-            
-            if (enableLogging)
-                Debug.Log("InputManager: 传统输入回调设置完成");
         }
         
         /// <summary>
@@ -150,7 +68,7 @@ namespace Astrum.Client.Managers
                 OnInputChanged?.Invoke(currentInput);
             }
             
-            // 处理传统输入（作为备用）
+            // 处理传统输入
             ProcessLegacyInput();
         }
         
@@ -159,7 +77,7 @@ namespace Astrum.Client.Managers
         /// </summary>
         private void UpdateInputState()
         {
-            // 更新鼠标位置
+            // 更新鼠标位置 - 使用传统 Input 系统
             currentInput.MousePosition = Input.mousePosition;
             currentInput.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             
@@ -167,6 +85,66 @@ namespace Astrum.Client.Managers
             currentInput.MouseButtons[MouseButton.Left] = Input.GetMouseButton(0);
             currentInput.MouseButtons[MouseButton.Right] = Input.GetMouseButton(1);
             currentInput.MouseButtons[MouseButton.Middle] = Input.GetMouseButton(2);
+            
+            // 更新键盘状态
+            UpdateKeyboardState();
+            
+            // 更新移动输入
+            UpdateMoveInput();
+        }
+        
+        /// <summary>
+        /// 更新键盘状态 - 使用传统 Input 系统
+        /// </summary>
+        private void UpdateKeyboardState()
+        {
+            // 处理常用按键
+            var keysToCheck = new[] { KeyCode.W, KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.Space, KeyCode.Escape };
+            
+            foreach (var keyCode in keysToCheck)
+            {
+                bool currentState = Input.GetKey(keyCode);
+                bool previousState = previousInput.KeyStates.ContainsKey(keyCode) ? previousInput.KeyStates[keyCode] : false;
+                
+                if (currentState != previousState)
+                {
+                    currentInput.KeyStates[keyCode] = currentState;
+                    
+                    if (currentState)
+                    {
+                        OnKeyPressed?.Invoke(keyCode);
+                    }
+                    else
+                    {
+                        OnKeyReleased?.Invoke(keyCode);
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 更新移动输入
+        /// </summary>
+        private void UpdateMoveInput()
+        {
+            Vector2 moveInput = Vector2.zero;
+            
+            // 使用 WASD 键进行移动
+            if (Input.GetKey(KeyCode.W)) moveInput.y += 1f;
+            if (Input.GetKey(KeyCode.S)) moveInput.y -= 1f;
+            if (Input.GetKey(KeyCode.A)) moveInput.x -= 1f;
+            if (Input.GetKey(KeyCode.D)) moveInput.x += 1f;
+            
+            // 标准化向量
+            if (moveInput.magnitude > 1f)
+            {
+                moveInput.Normalize();
+            }
+            
+            currentInput.MoveInput = moveInput;
+            
+            // 更新动作输入
+            currentInput.IsActionPressed = Input.GetKey(KeyCode.Space);
         }
         
         /// <summary>
