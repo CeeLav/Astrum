@@ -57,13 +57,15 @@ namespace Astrum.Client.Core
             }
         }
         
-        private void Start()
+        public GameLauncher gameLauncher;
+        
+        public void StartGame()
         {
             // 设置目标帧率
             Application.targetFrameRate = targetFrameRate;
+            gameLauncher = new GameLauncher();
+            gameLauncher.StartSinglePlayerGame("SinglgePlayerRoom");
             
-            // 切换到加载状�?
-            ChangeState(ApplicationState.LOADING);
         }
         
         private void Update()
@@ -73,8 +75,6 @@ namespace Astrum.Client.Core
             // 更新各个管理�?
             UpdateManagers();
             
-            // 处理应用程序状�?
-            UpdateApplicationState();
         }
         
         private void OnDestroy()
@@ -99,7 +99,7 @@ namespace Astrum.Client.Core
             catch (Exception ex)
             {
                 Debug.LogError($"GameApplication: 初始化失败 - {ex.Message}");
-                ChangeState(ApplicationState.SHUTDOWN);
+                Shutdown();
             }
         }
         
@@ -108,41 +108,29 @@ namespace Astrum.Client.Core
         /// </summary>
         private void InitializeManagers()
         {
-            // 初始化资源管理器
-            if (resourceManager != null)
-            {
-                resourceManager.Initialize();
-            }
-            
-            // 初始化场景管理器
-            if (sceneManager != null)
-            {
-                sceneManager.Initialize();
-            }
-            
-            // 初始化网络管理器
-            if (networkManager != null)
-            {
-                networkManager.Initialize();
-            }
-            
-            // 初始化输入管理器
-            if (inputManager != null)
-            {
-                inputManager.Initialize();
-            }
-            
-            // 初始化UI管理�?
-            if (uiManager != null)
-            {
-                uiManager.Initialize();
-            }
-            
-            // 初始化音频管理器
-            if (audioManager != null)
-            {
-                audioManager.Initialize();
-            }
+            // 初始化资源管理器（单例赋值）
+            resourceManager = ResourceManager.Instance;
+            resourceManager.Initialize();
+
+            // 初始化场景管理器（单例赋值）
+            sceneManager = SceneManager.Instance;
+            sceneManager.Initialize();
+
+            // 初始化网络管理器（单例赋值）
+            networkManager = NetworkManager.Instance;
+            networkManager.Initialize();
+
+            // 初始化输入管理器（单例赋值）
+            inputManager = InputManager.Instance;
+            inputManager.Initialize();
+
+            // 初始化UI管理器（单例赋值）
+            uiManager = UIManager.Instance;
+            uiManager.Initialize();
+
+            // 初始化音频管理器（单例赋值）
+            audioManager = AudioManager.Instance;
+            audioManager.Initialize();
         }
         
         /// <summary>
@@ -163,43 +151,7 @@ namespace Astrum.Client.Core
             //audioManager?.Update();
         }
         
-        /// <summary>
-        /// 更新应用程序状�?
-        /// </summary>
-        private void UpdateApplicationState()
-        {
-            switch (currentState)
-            {
-                case ApplicationState.LOADING:
-                    UpdateLoadingState();
-                    break;
-                    
-                case ApplicationState.GAME_PLAYING:
-                    UpdateGamePlayingState();
-                    break;
-                    
-                case ApplicationState.PAUSED:
-                    UpdatePausedState();
-                    break;
-                    
-                case ApplicationState.SHUTDOWN:
-                    UpdateShutdownState();
-                    break;
-            }
-        }
-        
-        /// <summary>
-        /// 更新加载状�?
-        /// </summary>
-        private void UpdateLoadingState()
-        {
-            // 检查资源加载进�?
-            if (resourceManager != null && resourceManager.GetLoadProgress() >= 1.0f)
-            {
-                // 资源加载完成，切换到游戏状�?
-                ChangeState(ApplicationState.GAME_PLAYING);
-            }
-        }
+
         
         /// <summary>
         /// 更新游戏进行状�?
@@ -229,130 +181,12 @@ namespace Astrum.Client.Core
             Application.Quit();
         }
         
-        /// <summary>
-        /// 切换应用程序状�?
-        /// </summary>
-        /// <param name="newState">新状�?/param>
-        public void ChangeState(ApplicationState newState)
-        {
-            if (currentState == newState) return;
-            
-            Debug.Log($"GameApplication: 状态切�?{currentState} -> {newState}");
-            
-            // 退出当前状�?
-            OnExitState(currentState);
-            
-            // 更新状�?
-            currentState = newState;
-            
-            // 进入新状�?
-            OnEnterState(newState);
-        }
+
         
-        /// <summary>
-        /// 退出状态时的处�?
-        /// </summary>
-        /// <param name="state">要退出的状�?/param>
-        private void OnExitState(ApplicationState state)
-        {
-            switch (state)
-            {
-                case ApplicationState.LOADING:
-                    // 加载完成后的清理
-                    break;
-                    
-                case ApplicationState.GAME_PLAYING:
-                    // 游戏结束时的处理
-                    break;
-                    
-                case ApplicationState.PAUSED:
-                    // 恢复游戏时的处理
-                    break;
-            }
-        }
+
         
-        /// <summary>
-        /// 进入状态时的处�?
-        /// </summary>
-        /// <param name="state">要进入的状�?/param>
-        private void OnEnterState(ApplicationState state)
-        {
-            switch (state)
-            {
-                case ApplicationState.LOADING:
-                    // 开始加载资�?
-                    StartLoading();
-                    break;
-                    
-                case ApplicationState.GAME_PLAYING:
-                    // 开始游�?
-                    StartGame();
-                    break;
-                    
-                case ApplicationState.PAUSED:
-                    // 暂停游戏
-                    PauseGame();
-                    break;
-                    
-                case ApplicationState.SHUTDOWN:
-                    // 关闭应用程序
-                    Shutdown();
-                    break;
-            }
-        }
-        
-        /// <summary>
-        /// 开始加�?
-        /// </summary>
-        private void StartLoading()
-        {
-            Debug.Log("GameApplication: 开始加载资�?..");
-            
-            // 预加载必要的资源
-            if (resourceManager != null)
-            {
-                // 这里可以添加需要预加载的资源路�?
-                // resourceManager.PreloadResources(resourcePaths);
-            }
-        }
-        
-        /// <summary>
-        /// 开始游�?
-        /// </summary>
-        private void StartGame()
-        {
-            Debug.Log("GameApplication: 开始游�?..");
-            
-            // 加载游戏场景
-            if (sceneManager != null)
-            {
-                sceneManager.LoadScene("GameScene", LoadSceneMode.SINGLE);
-            }
-        }
-        
-        /// <summary>
-        /// 暂停游戏
-        /// </summary>
-        private void PauseGame()
-        {
-            Debug.Log("GameApplication: 游戏暂停");
-            
-            // 暂停游戏逻辑
-            Time.timeScale = 0f;
-        }
-        
-        /// <summary>
-        /// 恢复游戏
-        /// </summary>
-        public void ResumeGame()
-        {
-            Debug.Log("GameApplication: 游戏恢复");
-            
-            // 恢复游戏逻辑
-            Time.timeScale = 1f;
-            ChangeState(ApplicationState.GAME_PLAYING);
-        }
-        
+
+
         /// <summary>
         /// 关闭应用程序
         /// </summary>
@@ -370,14 +204,7 @@ namespace Astrum.Client.Core
             
             isRunning = false;
         }
-        
-        /// <summary>
-        /// 退出游�?
-        /// </summary>
-        public void QuitGame()
-        {
-            ChangeState(ApplicationState.SHUTDOWN);
-        }
+
     }
     
     /// <summary>

@@ -134,7 +134,8 @@ namespace Astrum.Client.Managers
         public void Update()
         {
             // 保存上一帧的输入状�?
-            previousInput = currentInput.Clone();
+            if(currentInput != null)
+                previousInput = currentInput.Clone();
             
             // 更新当前输入状�?
             UpdateInputState();
