@@ -118,43 +118,66 @@ namespace Astrum.View.Core
         /// <summary>
         /// 与逻辑实体同步
         /// </summary>
-        /// <param name="entityData">实体数据</param>
-        public virtual void SyncWithEntity(EntityData entityData)
+        /// <param name="entityId">实体UniqueId</param>
+        public virtual void SyncWithEntity(long entityId)
         {
-            if (entityData == null)
+            if (entityId != _entityId)
             {
-                ASLogger.Instance.Warning($"EntityView: 实体数据为空，ID: {_entityId}");
+                ASLogger.Instance.Warning($"EntityView: 实体ID不匹配，期望: {_entityId}，实际: {entityId}");
                 return;
             }
             
-            // 更新基础属�?
-            if (entityData.EntityId != _entityId)
-            {
-                ASLogger.Instance.Warning($"EntityView: 实体ID不匹配，期望: {_entityId}，实�? {entityData.EntityId}");
-                return;
-            }
-            
-            // 更新变换
-            if (_transform != null)
-            {
-                _transform.position = entityData.Position;
-                _transform.rotation = entityData.Rotation;
-                _transform.localScale = entityData.Scale;
-            }
-            
-            // 更新实体类型
-            if (!string.IsNullOrEmpty(entityData.EntityType))
-            {
-                _entityType = entityData.EntityType;
-            }
-            
-            // 同步组件数据
-            SyncComponentData(entityData.ComponentData);
+            // 通过逻辑层的Component获取数据并同步
+            SyncTransformFromLogic(entityId);
+            SyncComponentsFromLogic(entityId);
             
             _lastSyncTime = DateTime.Now;
             
             // 子类特定的同步逻辑
-            OnSyncWithEntity(entityData);
+            OnSyncWithEntity(entityId);
+        }
+        
+        /// <summary>
+        /// 从逻辑层同步Transform数据
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
+        protected virtual void SyncTransformFromLogic(long entityId)
+        {
+            // TODO: 这里需要通过逻辑层的接口获取Transform Component数据
+            // 示例：假设有一个LogicCore的接口来获取Transform数据
+            /*
+            var transformComponent = LogicCore.EntityManager.GetComponent<TransformComponent>(entityId);
+            if (transformComponent != null && _transform != null)
+            {
+                _transform.position = transformComponent.Position;
+                _transform.rotation = transformComponent.Rotation;
+                _transform.localScale = transformComponent.Scale;
+            }
+            */
+            
+            ASLogger.Instance.Debug($"EntityView: 同步Transform数据，ID: {entityId}");
+        }
+        
+        /// <summary>
+        /// 从逻辑层同步Component数据
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
+        protected virtual void SyncComponentsFromLogic(long entityId)
+        {
+            // TODO: 这里需要通过逻辑层的接口获取各种Component数据
+            // 示例：遍历所有需要同步的Component类型
+            /*
+            foreach (var viewComponent in _viewComponents)
+            {
+                var logicComponent = LogicCore.EntityManager.GetComponent(entityId, viewComponent.LogicComponentType);
+                if (logicComponent != null)
+                {
+                    viewComponent.SyncWithLogicComponent(logicComponent);
+                }
+            }
+            */
+            
+            ASLogger.Instance.Debug($"EntityView: 同步Component数据，ID: {entityId}");
         }
         
         /// <summary>
@@ -401,6 +424,6 @@ namespace Astrum.View.Core
         // 抽象方法 - 子类必须实现
         protected abstract void OnInitialize();
         protected abstract void OnUpdateView(float deltaTime);
-        protected abstract void OnSyncWithEntity(EntityData entityData);
+        protected abstract void OnSyncWithEntity(long entityId); // 修改为只接收entityId
     }
 }
