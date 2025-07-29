@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.FrameSync;
 
 namespace Astrum.LogicCore.Core
@@ -49,17 +50,10 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         /// <param name="name">实体名称</param>
         /// <returns>创建的实体</returns>
-        public Entity CreateEntity(string name)
+        public T CreateEntity<T>(string name) where T : Entity, new()
         {
-            var entity = new Entity
-            {
-                Name = name,
-                CreationTime = DateTime.Now,
-                IsActive = true,
-                IsDestroyed = false
-            };
-
-            Entities[entity.UniqueId] = entity;
+            var entity = EntityFactory.Instance.CreateEntity<T>(name);
+            Entities.Add(entity.UniqueId, entity);
             return entity;
         }
 

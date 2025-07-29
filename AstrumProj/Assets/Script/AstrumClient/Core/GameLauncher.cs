@@ -1,7 +1,8 @@
-﻿using UnityEngine;
-using Astrum.Client.Core;
+﻿using Astrum.Client.Core;
 using Astrum.View.Core;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Core;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Astrum.Client.Core
 {
@@ -21,13 +22,15 @@ namespace Astrum.Client.Core
             try
             {
                 // 1. 创建Room (这里模拟逻辑层的Room)
-                long roomId = CreateRoom();
-                
+                var room = CreateRoom();
+                var world = new World();
+                room.AddWorld(world);
+                room.Initialize();
                 // 2. 创建Stage
-                Stage gameStage = CreateStage(roomId);
+                Stage gameStage = CreateStage(room);
                 
                 // 3. 创建Player并加入
-                CreatePlayerAndJoin(gameStage);
+                CreatePlayerAndJoin(gameStage, room);
                 
                 // 4. 切换场景
                 SwitchToGameScene(gameSceneName, gameStage);
@@ -44,18 +47,18 @@ namespace Astrum.Client.Core
         /// <summary>
         /// 创建Room - 模拟逻辑层的Room创建
         /// </summary>
-        private long CreateRoom()
+        private Room CreateRoom()
         {
             // 这里只是模拟创建Room，实际的Room逻辑在逻辑层
-            long roomId = System.DateTimeOffset.Now.ToUnixTimeMilliseconds();
-            ASLogger.Instance.Info($"GameLauncher: 创建Room，ID: {roomId}");
-            return roomId;
+            var room = new Room(1, "SinglePlayerRoom");
+            ASLogger.Instance.Info($"GameLauncher: 创建Room，ID: {room.RoomId}");
+            return room;
         }
         
         /// <summary>
         /// 创建Stage
         /// </summary>
-        private Stage CreateStage(long roomId)
+        private Stage CreateStage(Room room)
         {
             ASLogger.Instance.Info("GameLauncher: 创建Stage");
             
@@ -66,7 +69,7 @@ namespace Astrum.Client.Core
             gameStage.Initialize();
             
             // 设置Room ID
-            gameStage.SetRoomId(roomId);
+            gameStage.SetRoom(room);
             
             return gameStage;
         }
@@ -74,17 +77,15 @@ namespace Astrum.Client.Core
         /// <summary>
         /// 创建Player并加入Stage
         /// </summary>
-        private void CreatePlayerAndJoin(Stage gameStage)
+        private void CreatePlayerAndJoin(Stage gameStage, Room room)
         {
             ASLogger.Instance.Info("GameLauncher: 创建Player并加入Stage");
             
-            // 创建Player (这里只是创建表现层的Player视图)
-            long playerId = 1001; // 模拟Player ID
+            
+            int playerId = 1001; // 模拟Player ID
             Vector3 playerPosition = new Vector3(-5f, 0.5f, 0f);
-            
-            // 在Stage中创建Player视图
-            gameStage.CreateUnitView(playerId, playerPosition, "player");
-            
+
+            room.AddPlayer(playerId);
             ASLogger.Instance.Info($"GameLauncher: Player创建完成，ID: {playerId}");
         }
         

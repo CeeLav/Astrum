@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Core;
 using Astrum.View.Managers;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Astrum.View.Core
 {
@@ -15,6 +18,7 @@ namespace Astrum.View.Core
         protected string _stageId;
         protected string _stageName;
         protected long _roomId;
+        protected Room _room;
         
         // Stage状态
         protected bool _isActive;
@@ -360,11 +364,11 @@ namespace Astrum.View.Core
         /// <summary>
         /// 设置Room ID - 由逻辑层调用
         /// </summary>
-        public void SetRoomId(long roomId)
+        public void SetRoom(Room room)
         {
-            _roomId = roomId;
+            _room = room;
             _lastSyncTime = DateTime.Now;
-            ASLogger.Instance.Info($"Stage: 设置Room ID = {roomId}");
+            ASLogger.Instance.Info($"Stage: 设置Room ID = {room}");
         }
         
         /// <summary>
