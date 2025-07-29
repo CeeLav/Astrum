@@ -166,12 +166,15 @@ namespace Astrum.View.UI
         {
             ASLogger.Instance.Info("StartMenuPanel: 开始游戏按钮被点击");
             
+            // TODO: 实现 GameApplication 和 GameLauncher
+            /*
             // 检查GameApplication是否存在
             if (GameApplication.Instance == null)
             {
                 ASLogger.Instance.Error("StartMenuPanel: GameApplication实例不存在");
                 return;
             }
+            */
             
             // 开始单机游戏
             StartSinglePlayerGame();
@@ -186,9 +189,14 @@ namespace Astrum.View.UI
             
             try
             {
+                // TODO: 实现 GameLauncher
+                /*
                 // 创建游戏启动器并启动单机模式
                 GameLauncher launcher = new GameLauncher();
                 launcher.StartSinglePlayerGame(GAME_SCENE_NAME);
+                */
+                
+                ASLogger.Instance.Info("StartMenuPanel: 游戏启动器未实现，跳过启动");
                 
                 // 隐藏当前面板
                 Hide();
