@@ -29,6 +29,7 @@ namespace Astrum.LogicCore.Core
         /// 管理的世界列表
         /// </summary>
         public List<World> Worlds { get; private set; } = new List<World>();
+        public World MainWorld => Worlds.FirstOrDefault(); // 默认返回第一个世界，如果没有则返回一个新的空世界
 
         /// <summary>
         /// 玩家列表
@@ -103,7 +104,7 @@ namespace Astrum.LogicCore.Core
             {
                 return false;
             }
-
+            
             Players.Add(playerId);
             return true;
         }
