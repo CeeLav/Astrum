@@ -1,14 +1,14 @@
 {
-    "name": "External",
+    "name": "AstrumLogic",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "GUID:aa20cd0dfc1659a42976f9df0f7a8cab"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": true,
-    "precompiledReferences": [
-        "CommonBase.dll"
-    ],
+    "overrideReferences": false,
+    "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
