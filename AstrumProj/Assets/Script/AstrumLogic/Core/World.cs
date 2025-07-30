@@ -58,8 +58,7 @@ namespace Astrum.LogicCore.Core
         /// <returns>创建的实体</returns>
         public T CreateEntity<T>(string name) where T : Entity, new()
         {
-            var entity = EntityFactory.Instance.CreateEntity<T>(name);
-            Entities.Add(entity.UniqueId, entity);
+            var entity = EntityFactory.Instance.CreateEntity<T>(name, this);
             
             // 发布实体创建事件
             PublishEntityCreatedEvent(entity);

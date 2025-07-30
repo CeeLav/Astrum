@@ -63,11 +63,9 @@ namespace Astrum.Client.Managers
                 // 2. 创建Stage
                 Stage gameStage = CreateStage(room);
                 
-                // 3. 创建Player并加入
+                SwitchToGameScene(gameSceneName, gameStage);
                 CreatePlayerAndJoin(gameStage, room);
                 
-                // 4. 切换场景
-                SwitchToGameScene(gameSceneName, gameStage);
                 
                 ASLogger.Instance.Info("GameLauncher: 游戏启动成功");
             }

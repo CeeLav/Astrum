@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using System;
+﻿using System;
+using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.View.Components;
 using Astrum.View.Core;
@@ -7,45 +7,65 @@ using Astrum.View.Core;
 namespace Astrum.View.EntityViews
 {
     /// <summary>
-    /// 单位视图
-    /// 负责单位实体的视觉表现
+    /// 单位视图类，继承自EntityView，代表游戏中可移动单位的视觉表现
     /// </summary>
     public class UnitView : EntityView
     {
-        // 单位类型
-        private string _unitType = "";
+        private static readonly Type[] _requiredViewComponents = new Type[]
+        {
+            typeof(TransViewComponent),
+            typeof(HealthViewComponent),
+            typeof(ModelViewComponent),
+        };
         
-        // Unity组件引用
-        private Renderer _modelRenderer;
+        // 单位特定属性
+        private string _unitType = "default";
+        private float _moveSpeed = 5f;
+        private float _rotationSpeed = 180f;
+        
+        // 渲染组件
+        private Renderer _renderer;
         private Animator _animator;
-        private GameObject _healthBarUI;
-        private GameObject _selectionIndicator;
+        private Collider _collider;
         
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="unitType">单位类型</param>
-        public UnitView(string unitType = "") : base("Unit")
+        public UnitView() : base("unit")
         {
-            _unitType = unitType;
+        }
+        
+        /// <summary>
+        /// 获取UnitView需要的视图组件类型列表（静态缓存，避免重复分配）
+        /// </summary>
+        /// <returns>视图组件类型列表</returns>
+        public override Type[] GetRequiredViewComponentTypes()
+        {
+            return _requiredViewComponents;
         }
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Info($"UnitView: 初始化单位视图，ID: {EntityId}，类型: {_unitType}");
-            // 设置单位特定的组件
+            ASLogger.Instance.Info($"UnitView: 初始化单位视图，ID: {_entityId}");
+            
+            // 设置单位特定的初始化
             SetupUnitComponents();
+            
+            // 设置初始位置
+            SetInitialPosition(Vector3.zero);
+            
+            ASLogger.Instance.Info($"UnitView: 单位视图初始化完成，ID: {_entityId}");
         }
         
         protected override void OnUpdateView(float deltaTime)
         {
-            // 更新单位特定的视觉效果
+            // 单位特定的更新逻辑
             UpdateUnitVisuals(deltaTime);
         }
-
+        
         protected override void OnSyncWithEntity(long entityId)
         {
-            // 同步单位特定的数据
+            // 与逻辑层Unit同步数据
             SyncUnitData(entityId);
         }
         
@@ -56,208 +76,160 @@ namespace Astrum.View.EntityViews
         {
             if (_gameObject == null) return;
             
-            // 查找或创建模型渲染器
-            _modelRenderer = _gameObject.GetComponent<Renderer>();
-            if (_modelRenderer == null)
+            // 获取或添加渲染器
+            _renderer = _gameObject.GetComponent<Renderer>();
+            if (_renderer == null)
             {
-                // 创建一个简单的立方体作为默认模型
-                GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cube.transform.SetParent(_gameObject.transform);
-                cube.transform.localPosition = Vector3.zero;
-                _modelRenderer = cube.GetComponent<Renderer>();
+                _renderer = _gameObject.AddComponent<MeshRenderer>();
             }
             
-            // 查找或创建动画控制器
+            // 获取或添加动画器
             _animator = _gameObject.GetComponent<Animator>();
             if (_animator == null)
             {
                 _animator = _gameObject.AddComponent<Animator>();
             }
             
-            // 创建血条组件
-            CreateHealthBarUI();
+            // 获取或添加碰撞器
+            _collider = _gameObject.GetComponent<Collider>();
+            if (_collider == null)
+            {
+                _collider = _gameObject.AddComponent<CapsuleCollider>();
+            }
             
-            // 创建选择指示器
-            CreateSelectionIndicator();
-            
-            ASLogger.Instance.Info($"UnitView: 设置单位组件完成，ID: {EntityId}");
+            // 设置默认材质
+            SetupDefaultMaterial();
+        }
+        
+        /// <summary>
+        /// 设置默认材质
+        /// </summary>
+        private void SetupDefaultMaterial()
+        {
+            if (_renderer != null)
+            {
+                // 创建默认材质
+                Material defaultMaterial = new Material(Shader.Find("Standard"));
+                defaultMaterial.color = Color.blue; // 默认蓝色
+                _renderer.material = defaultMaterial;
+            }
+        }
+        
+        /// <summary>
+        /// 设置单位初始位置
+        /// </summary>
+        /// <param name="position">初始位置</param>
+        public void SetInitialPosition(Vector3 position)
+        {
+            if (_transform != null)
+            {
+                _transform.position = position;
+                ASLogger.Instance.Info($"UnitView: 设置初始位置 {position}");
+            }
         }
         
         /// <summary>
         /// 更新单位视觉效果
         /// </summary>
-        /// <param name="deltaTime">帧时�?/param>
+        /// <param name="deltaTime">帧时间</param>
         private void UpdateUnitVisuals(float deltaTime)
         {
-            // 更新血条位�?
-            UpdateHealthBarPosition();
+            // 更新动画
+            UpdateAnimations(deltaTime);
             
-            // 更新选择指示�?
-            UpdateSelectionIndicator();
+            // 更新特效
+            UpdateEffects(deltaTime);
         }
         
         /// <summary>
-        /// 同步单位数据
+        /// 更新动画
         /// </summary>
-        /// <param name="entityId">实体UniqueId</param>
+        /// <param name="deltaTime">帧时间</param>
+        private void UpdateAnimations(float deltaTime)
+        {
+            if (_animator == null) return;
+            
+            // 获取移动组件
+            var movementComponent = GetViewComponent<TransViewComponent>();
+            if (movementComponent != null)
+            {
+                // 根据移动状态更新动画
+                bool isMoving = movementComponent.IsMoving();
+                float moveSpeed = movementComponent.GetCurrentSpeed();
+                
+                // 设置动画参数
+                _animator.SetBool("IsMoving", isMoving);
+                _animator.SetFloat("MoveSpeed", moveSpeed);
+            }
+        }
+        
+        /// <summary>
+        /// 更新特效
+        /// </summary>
+        /// <param name="deltaTime">帧时间</param>
+        private void UpdateEffects(float deltaTime)
+        {
+            // TODO: 实现特效更新逻辑
+        }
+        
+        /// <summary>
+        /// 与逻辑层Unit同步数据
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
         private void SyncUnitData(long entityId)
         {
-            if (entityId <= 0) return;
+            // TODO: 从逻辑层获取Unit数据并同步
+            // 这里需要实现与逻辑层的通信接口
             
-            // TODO: 通过逻辑层的Entity Manager获取Component数据
+            // 示例：同步位置数据
+            SyncPositionData(entityId);
+            
+            // 示例：同步血量数据
+            SyncHealthData(entityId);
+        }
+        
+        /// <summary>
+        /// 同步位置数据
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
+        private void SyncPositionData(long entityId)
+        {
+            // TODO: 从逻辑层获取位置数据
             // 示例代码：
             /*
-            // 获取实体的各种Component来同步数据
             var positionComponent = LogicCore.EntityManager.GetComponent<PositionComponent>(entityId);
-            if (positionComponent != null && _transform != null)
+            if (positionComponent != null)
             {
-                _transform.position = new Vector3(positionComponent.X, positionComponent.Y, positionComponent.Z);
+                var movementComponent = GetViewComponent<MovementViewComponent>();
+                if (movementComponent != null)
+                {
+                    Vector3 position = new Vector3(positionComponent.X, positionComponent.Y, positionComponent.Z);
+                    movementComponent.SetTargetPosition(position);
+                }
             }
-            
+            */
+        }
+        
+        /// <summary>
+        /// 同步血量数据
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
+        private void SyncHealthData(long entityId)
+        {
+            // TODO: 从逻辑层获取血量数据
+            // 示例代码：
+            /*
             var healthComponent = LogicCore.EntityManager.GetComponent<HealthComponent>(entityId);
             if (healthComponent != null)
             {
-                UpdateHealthDisplay(healthComponent.CurrentHealth, healthComponent.MaxHealth);
-            }
-            
-            var movementComponent = LogicCore.EntityManager.GetComponent<MovementComponent>(entityId);
-            if (movementComponent != null)
-            {
-                // 更新移动相关的视觉效果
-                UpdateMovementEffects(movementComponent.Speed, movementComponent.Direction);
-            }
-            */
-            
-            ASLogger.Instance.Debug($"UnitView: 同步单位数据，实体ID: {entityId}");
-        }
-        
-        /// <summary>
-        /// 创建血条UI
-        /// </summary>
-        private void CreateHealthBarUI()
-        {
-            if (_gameObject == null) return;
-            
-            // 创建血条GameObject
-            _healthBarUI = new GameObject("HealthBar");
-            _healthBarUI.transform.SetParent(_gameObject.transform);
-            _healthBarUI.transform.localPosition = new Vector3(0, 2, 0);
-            
-            // 添加血条组件
-            var healthBarComponent = new HealthBarComponent();
-            AddViewComponent(healthBarComponent);
-            
-            ASLogger.Instance.Info($"UnitView: 创建血条UI，ID: {EntityId}");
-        }
-        
-        /// <summary>
-        /// 创建选择指示�?
-        /// </summary>
-        private void CreateSelectionIndicator()
-        {
-            if (_gameObject == null) return;
-            
-            // 创建选择指示器GameObject
-            _selectionIndicator = new GameObject("SelectionIndicator");
-            _selectionIndicator.transform.SetParent(_gameObject.transform);
-            _selectionIndicator.transform.localPosition = new Vector3(0, 0.1f, 0);
-            
-            // 添加选择指示器组件
-            var selectionComponent = new SelectionIndicatorComponent();
-            AddViewComponent(selectionComponent);
-            
-            ASLogger.Instance.Info($"UnitView: 创建选择指示器，ID: {EntityId}");
-        }
-        
-        /// <summary>
-        /// 更新血条位�?
-        /// </summary>
-        private void UpdateHealthBarPosition()
-        {
-            if (_healthBarUI != null && _transform != null)
-            {
-                // 让血条始终面向摄像机
-                Camera mainCamera = Camera.main;
-                if (mainCamera != null)
+                var healthViewComponent = GetViewComponent<HealthViewComponent>();
+                if (healthViewComponent != null)
                 {
-                    _healthBarUI.transform.LookAt(mainCamera.transform);
-                    _healthBarUI.transform.Rotate(0, 180, 0);
+                    var healthData = new HealthData(healthComponent.CurrentHealth, healthComponent.MaxHealth, healthComponent.IsAlive);
+                    healthViewComponent.SyncData(healthData);
                 }
             }
-        }
-        
-        /// <summary>
-        /// 更新选择指示�?
-        /// </summary>
-        private void UpdateSelectionIndicator()
-        {
-            // 这里可以更新选择指示器的视觉效果
-            // 如旋转、缩放等动画效果
-        }
-        
-        /// <summary>
-        /// 播放动画
-        /// </summary>
-        /// <param name="animName">动画名称</param>
-        public void PlayAnimation(string animName)
-        {
-            if (_animator != null)
-            {
-                _animator.Play(animName);
-                ASLogger.Instance.Info($"UnitView: 播放动画，ID: {EntityId}，动画: {animName}");
-            }
-        }
-        
-        /// <summary>
-        /// 更新血�?
-        /// </summary>
-        /// <param name="health">当前血�?/param>
-        /// <param name="maxHealth">最大血�?/param>
-        public void UpdateHealthBar(float health, float maxHealth)
-        {
-            var healthBarComponent = GetViewComponent<HealthBarComponent>();
-            if (healthBarComponent != null)
-            {
-                healthBarComponent.UpdateHealth(health, maxHealth);
-            }
-        }
-        
-        /// <summary>
-        /// 显示选择指示�?
-        /// </summary>
-        public void ShowSelectionIndicator()
-        {
-            var selectionComponent = GetViewComponent<SelectionIndicatorComponent>();
-            if (selectionComponent != null)
-            {
-                selectionComponent.Show();
-            }
-        }
-        
-        /// <summary>
-        /// 隐藏选择指示�?
-        /// </summary>
-        public void HideSelectionIndicator()
-        {
-            var selectionComponent = GetViewComponent<SelectionIndicatorComponent>();
-            if (selectionComponent != null)
-            {
-                selectionComponent.Hide();
-            }
-        }
-        
-        /// <summary>
-        /// 更新移动
-        /// </summary>
-        /// <param name="position">目标位置</param>
-        /// <param name="rotation">目标旋转</param>
-        public void UpdateMovement(Vector3 position, Quaternion rotation)
-        {
-            if (_transform != null)
-            {
-                _transform.position = position;
-                _transform.rotation = rotation;
-            }
+            */
         }
         
         /// <summary>
@@ -267,6 +239,81 @@ namespace Astrum.View.EntityViews
         public void SetUnitType(string unitType)
         {
             _unitType = unitType;
+            
+            // 根据单位类型设置不同的外观
+            SetupUnitAppearance(unitType);
+        }
+        
+        /// <summary>
+        /// 设置单位外观
+        /// </summary>
+        /// <param name="unitType">单位类型</param>
+        private void SetupUnitAppearance(string unitType)
+        {
+            if (_renderer == null) return;
+            
+            Color unitColor = Color.blue; // 默认蓝色
+            
+            switch (unitType.ToLower())
+            {
+                case "player":
+                    unitColor = Color.blue;
+                    break;
+                case "enemy":
+                    unitColor = Color.red;
+                    break;
+                case "ally":
+                    unitColor = Color.green;
+                    break;
+                case "neutral":
+                    unitColor = Color.yellow;
+                    break;
+                default:
+                    unitColor = Color.gray;
+                    break;
+            }
+            
+            _renderer.material.color = unitColor;
+            ASLogger.Instance.Info($"UnitView: 设置单位外观，类型: {unitType}，颜色: {unitColor}");
+        }
+        
+        /// <summary>
+        /// 播放动画
+        /// </summary>
+        /// <param name="animationName">动画名称</param>
+        public void PlayAnimation(string animationName)
+        {
+            if (_animator != null)
+            {
+                _animator.Play(animationName);
+                ASLogger.Instance.Info($"UnitView: 播放动画 {animationName}");
+            }
+        }
+        
+        /// <summary>
+        /// 设置动画参数
+        /// </summary>
+        /// <param name="parameterName">参数名称</param>
+        /// <param name="value">参数值</param>
+        public void SetAnimationParameter(string parameterName, float value)
+        {
+            if (_animator != null)
+            {
+                _animator.SetFloat(parameterName, value);
+            }
+        }
+        
+        /// <summary>
+        /// 设置动画参数
+        /// </summary>
+        /// <param name="parameterName">参数名称</param>
+        /// <param name="value">参数值</param>
+        public void SetAnimationParameter(string parameterName, bool value)
+        {
+            if (_animator != null)
+            {
+                _animator.SetBool(parameterName, value);
+            }
         }
         
         /// <summary>
@@ -279,108 +326,46 @@ namespace Astrum.View.EntityViews
         }
         
         /// <summary>
-        /// 获取单位状态信�?
+        /// 获取移动速度
         /// </summary>
-        /// <returns>状态信�?/returns>
-        public string GetUnitStatus()
+        /// <returns>移动速度</returns>
+        public float GetMoveSpeed()
         {
-            return $"单位视图: ID={EntityId}, 类型={_unitType}, 位置={GetWorldPosition()}";
-        }
-    }
-    
-    public class ModelComponent : ViewComponent
-    {
-        protected override void OnInitialize()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnUpdate(float deltaTime)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnDestroy()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnSyncData(object data)
-        {
-            throw new NotImplementedException();
-        }
-    }
-    
-    /// <summary>
-    /// 血条组件（简化实现）
-    /// </summary>
-    public class HealthBarComponent : ViewComponent
-    {
-        private float _currentHealth = 100f;
-        private float _maxHealth = 100f;
-        
-        protected override void OnInitialize()
-        {
-            // 初始化血条
+            return _moveSpeed;
         }
         
-        protected override void OnUpdate(float deltaTime)
+        /// <summary>
+        /// 设置移动速度
+        /// </summary>
+        /// <param name="speed">移动速度</param>
+        public void SetMoveSpeed(float speed)
         {
-            // 更新血条动画
+            _moveSpeed = speed;
+            
+            // 更新移动组件
+            var movementComponent = GetViewComponent<TransViewComponent>();
+            if (movementComponent != null)
+            {
+                // 这里可以通过反射或其他方式设置移动组件的速度
+            }
         }
         
-        protected override void OnDestroy()
+        /// <summary>
+        /// 获取旋转速度
+        /// </summary>
+        /// <returns>旋转速度</returns>
+        public float GetRotationSpeed()
         {
-            // 清理血条
+            return _rotationSpeed;
         }
         
-        protected override void OnSyncData(object data)
+        /// <summary>
+        /// 设置旋转速度
+        /// </summary>
+        /// <param name="speed">旋转速度</param>
+        public void SetRotationSpeed(float speed)
         {
-            // 同步血条数据
-        }
-        
-        public void UpdateHealth(float health, float maxHealth)
-        {
-            _currentHealth = health;
-            _maxHealth = maxHealth;
-        }
-    }
-    
-    /// <summary>
-    /// 选择指示器组件（简化实现）
-    /// </summary>
-    public class SelectionIndicatorComponent : ViewComponent
-    {
-        private bool _isVisible = false;
-        
-        protected override void OnInitialize()
-        {
-            // 初始化选择指示器
-        }
-        
-        protected override void OnUpdate(float deltaTime)
-        {
-            // 更新选择指示器动画
-        }
-        
-        protected override void OnDestroy()
-        {
-            // 清理选择指示器
-        }
-        
-        protected override void OnSyncData(object data)
-        {
-            // 同步选择指示器数据
-        }
-        
-        public void Show()
-        {
-            _isVisible = true;
-        }
-        
-        public void Hide()
-        {
-            _isVisible = false;
+            _rotationSpeed = speed;
         }
     }
 }

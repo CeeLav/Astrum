@@ -255,7 +255,7 @@ namespace Astrum.View.Stages
             // TODO: 通过逻辑层接口获取实体类型
             string entityType = "unit"; // 默认类型，实际应该从逻辑层获取
             
-            UnitView unitView = new UnitView(entityType);
+            UnitView unitView = new UnitView();
             unitView.Initialize(entityId);
             return unitView;
         }
@@ -307,7 +307,7 @@ namespace Astrum.View.Stages
         private EntityView CreateDefaultView(long entityId)
         {
             // 创建一个简单的默认视图
-            UnitView defaultView = new UnitView("Default");
+            UnitView defaultView = new UnitView();
             defaultView.Initialize(entityId);
             return defaultView;
         }
