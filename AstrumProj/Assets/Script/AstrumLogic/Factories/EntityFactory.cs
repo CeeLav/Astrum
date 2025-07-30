@@ -101,6 +101,7 @@ namespace Astrum.LogicCore.Factories
                     if (component != null)
                     {
                         entity.AddComponent(component);
+                        component.OnAttachToEntity(entity);
                     }
                 }
             }

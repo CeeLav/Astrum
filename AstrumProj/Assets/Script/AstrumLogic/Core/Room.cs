@@ -154,6 +154,7 @@ namespace Astrum.LogicCore.Core
                 {
                     Room = this
                 };
+                LSController.Start();
             }
 
             // 初始化所有世界

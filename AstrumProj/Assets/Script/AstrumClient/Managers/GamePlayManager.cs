@@ -20,7 +20,7 @@ namespace Astrum.Client.Managers
         public Stage MainStage { get; private set; }
         public Room MainRoom { get; private set; }
         
-        
+        public long PlayerId { get; private set; } = -1;
         public void Initialize()
         {
             //throw new NotImplementedException();
@@ -66,7 +66,8 @@ namespace Astrum.Client.Managers
                 SwitchToGameScene(gameSceneName, gameStage);
                 CreatePlayerAndJoin(gameStage, room);
                 
-                
+                MainRoom = room;
+                MainStage = gameStage;
                 ASLogger.Instance.Info("GameLauncher: 游戏启动成功");
             }
             catch (System.Exception ex)
@@ -114,11 +115,11 @@ namespace Astrum.Client.Managers
             ASLogger.Instance.Info("GameLauncher: 创建Player并加入Stage");
             
             
-            long playerId = room.AddPlayer();
+            PlayerId = room.AddPlayer();
             Vector3 playerPosition = new Vector3(-5f, 0.5f, 0f);
 
             
-            ASLogger.Instance.Info($"GameLauncher: Player创建完成，ID: {playerId}");
+            ASLogger.Instance.Info($"GameLauncher: Player创建完成，ID: {PlayerId}");
         }
         
         /// <summary>

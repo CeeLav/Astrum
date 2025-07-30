@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 
 namespace Astrum.LogicCore.Components
 {
@@ -42,6 +43,11 @@ namespace Astrum.LogicCore.Components
             X = x;
             Y = y;
             Z = z;
+        }
+
+        public Vector3 GetPosition()
+        {
+            return new Vector3(X, Y, Z);
         }
 
         /// <summary>

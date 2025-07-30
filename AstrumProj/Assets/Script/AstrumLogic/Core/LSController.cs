@@ -250,7 +250,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         /// <param name="playerId">玩家ID</param>
         /// <param name="input">输入数据</param>
-        public void AddPlayerInput(int playerId, LSInput input)
+        public void AddPlayerInput(long playerId, LSInput input)
         {
             _inputSystem.CollectInput(playerId, input);
         }

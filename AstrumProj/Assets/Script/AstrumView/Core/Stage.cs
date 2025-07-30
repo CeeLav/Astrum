@@ -40,6 +40,7 @@ namespace Astrum.View.Core
         public string StageId => _stageId;
         public string StageName => _stageName;
         public long RoomId => _roomId;
+        public Room Room => _room;
         public bool IsActive => _isActive;
         public bool IsLoaded => _isLoaded;
         public DateTime LastSyncTime => _lastSyncTime;
@@ -230,7 +231,7 @@ namespace Astrum.View.Core
             string entityType = GetEntityType(entityId);
             
             // 使用EntityViewFactory创建EntityView
-            var entityView = EntityViewFactory.Instance.CreateEntityView(entityType, entityId);
+            var entityView = EntityViewFactory.Instance.CreateEntityView(entityType, entityId, this);
             
             if (entityView == null)
             {
