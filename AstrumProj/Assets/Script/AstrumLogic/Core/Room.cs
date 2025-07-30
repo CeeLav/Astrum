@@ -34,7 +34,7 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 玩家列表
         /// </summary>
-        public List<int> Players { get; private set; } = new List<int>();
+        public List<long> Players { get; private set; } = new List<long>();
 
         /// <summary>
         /// 最大玩家数
@@ -98,15 +98,15 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         /// <param name="playerId">玩家ID</param>
         /// <returns>是否添加成功</returns>
-        public bool AddPlayer(int playerId)
+        public long AddPlayer()
         {
-            if (Players.Count >= MaxPlayers || Players.Contains(playerId))
+            if (Players.Count >= MaxPlayers)
             {
-                return false;
+                return -1;
             }
-            
-            Players.Add(playerId);
-            return true;
+            var player = MainWorld.CreateEntity<Unit>("Player"); // 创建玩家实体
+            Players.Add(player.UniqueId);
+            return player.UniqueId;
         }
 
         /// <summary>
