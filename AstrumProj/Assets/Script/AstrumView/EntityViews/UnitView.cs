@@ -288,6 +288,29 @@ namespace Astrum.View.EntityViews
         }
     }
     
+    public class ModelComponent : ViewComponent
+    {
+        protected override void OnInitialize()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnUpdate(float deltaTime)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnDestroy()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnSyncData(object data)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    
     /// <summary>
     /// 血条组件（简化实现）
     /// </summary>

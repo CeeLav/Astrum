@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.FrameSync;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.Core
 {
@@ -44,6 +45,11 @@ namespace Astrum.LogicCore.Core
         /// 世界更新器
         /// </summary>
         public LSUpdater? Updater { get; set; }
+        
+        /// <summary>
+        /// 所属房间ID
+        /// </summary>
+        public long RoomId { get; set; }
 
         /// <summary>
         /// 创建新实体
@@ -54,6 +60,10 @@ namespace Astrum.LogicCore.Core
         {
             var entity = EntityFactory.Instance.CreateEntity<T>(name);
             Entities.Add(entity.UniqueId, entity);
+            
+            // 发布实体创建事件
+            PublishEntityCreatedEvent(entity);
+            
             return entity;
         }
 
@@ -65,6 +75,9 @@ namespace Astrum.LogicCore.Core
         {
             if (Entities.TryGetValue(entityId, out var entity))
             {
+                // 发布实体销毁事件
+                PublishEntityDestroyedEvent(entity);
+                
                 entity.Destroy();
                 Entities.Remove(entityId);
             }
@@ -135,6 +148,49 @@ namespace Astrum.LogicCore.Core
                 entity.Destroy();
             }
             Entities.Clear();
+        }
+        
+        /// <summary>
+        /// 发布实体创建事件
+        /// </summary>
+        /// <param name="entity">创建的实体</param>
+        private void PublishEntityCreatedEvent(Entity entity)
+        {
+            var eventData = new EntityCreatedEventData(entity, WorldId, RoomId);
+            EventSystem.Instance.Publish(eventData);
+        }
+        
+        /// <summary>
+        /// 发布实体销毁事件
+        /// </summary>
+        /// <param name="entity">销毁的实体</param>
+        private void PublishEntityDestroyedEvent(Entity entity)
+        {
+            var eventData = new EntityDestroyedEventData(entity, WorldId, RoomId);
+            EventSystem.Instance.Publish(eventData);
+        }
+        
+        /// <summary>
+        /// 发布实体更新事件
+        /// </summary>
+        /// <param name="entity">更新的实体</param>
+        /// <param name="updateType">更新类型</param>
+        /// <param name="updateData">更新数据</param>
+        public void PublishEntityUpdatedEvent(Entity entity, string updateType, object updateData)
+        {
+            var eventData = new EntityUpdatedEventData(entity, WorldId, RoomId, updateType, updateData);
+            EventSystem.Instance.Publish(eventData);
+        }
+        
+        /// <summary>
+        /// 发布实体激活状态变化事件
+        /// </summary>
+        /// <param name="entity">状态变化的实体</param>
+        /// <param name="isActive">是否激活</param>
+        public void PublishEntityActiveStateChangedEvent(Entity entity, bool isActive)
+        {
+            var eventData = new EntityActiveStateChangedEventData(entity, WorldId, RoomId, isActive);
+            EventSystem.Instance.Publish(eventData);
         }
     }
 }

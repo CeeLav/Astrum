@@ -91,35 +91,31 @@ namespace Astrum.View.Stages
         {
             if (entityId <= 0) return null;
             
-            // TODO: 通过逻辑层接口获取实体类型
-            // 示例代码：
-            /*
-            var entity = LogicCore.EntityManager.GetEntity(entityId);
-            if (entity == null) return null;
+            // 通过逻辑层接口获取实体类型
+            // 这里可以通过GamePlayManager或其他方式获取实体信息
+            string entityType = GetEntityType(entityId);
             
-            string entityType = entity.GetEntityType(); // 或者通过某个Component获取类型信息
-            */
+            // 使用EntityViewFactory创建EntityView
+            var entityView = EntityViewFactory.Instance.CreateEntityView(entityType, entityId);
             
-            // 暂时使用默认实现，根据需要可以扩展
-            string entityType = "unit"; // 默认为单位类型
-            
-            // 根据实体类型创建对应的视图
-            switch (entityType.ToLower())
+            if (entityView == null)
             {
-                case "unit":
-                case "player":
-                case "enemy":
-                    return CreateUnitView(entityId);
-                case "building":
-                    return CreateBuildingView(entityId);
-                case "projectile":
-                    return CreateProjectileView(entityId);
-                case "environment":
-                    return CreateEnvironmentView(entityId);
-                default:
-                    ASLogger.Instance.Warning($"GameStage: 未知的实体类型 - {entityType}");
-                    return CreateDefaultView(entityId);
+                ASLogger.Instance.Warning($"GameStage: 无法创建EntityView - ID:{entityId}, 类型:{entityType}");
             }
+            
+            return entityView;
+        }
+        
+        /// <summary>
+        /// 获取实体类型
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
+        /// <returns>实体类型</returns>
+        private string GetEntityType(long entityId)
+        {
+            // 这里可以通过GamePlayManager获取实体信息
+            // 暂时返回默认类型，实际使用时需要从逻辑层获取
+            return "unit";
         }
         
         /// <summary>

@@ -46,7 +46,7 @@ namespace Astrum.View.Core
         /// 构造函�?
         /// </summary>
         /// <param name="entityType">实体类型</param>
-        protected EntityView(string entityType = "")
+        public EntityView(string entityType = "")
         {
             _entityType = entityType;
         }

@@ -86,6 +86,9 @@ namespace Astrum.View.Core
             // 设置环境
             SetupEnvironment();
             
+            // 订阅实体事件
+            SubscribeToEntityEvents();
+            
             // 调用子类的初始化方法
             OnInitialize();
             
@@ -172,6 +175,185 @@ namespace Astrum.View.Core
         protected virtual EntityView CreateEntityView(long entityId)
         {
             return null;
+        }
+        
+        /// <summary>
+        /// 订阅实体事件
+        /// </summary>
+        private void SubscribeToEntityEvents()
+        {
+            EventSystem.Instance.Subscribe<EntityCreatedEventData>(OnEntityCreated);
+            EventSystem.Instance.Subscribe<EntityDestroyedEventData>(OnEntityDestroyed);
+            EventSystem.Instance.Subscribe<EntityUpdatedEventData>(OnEntityUpdated);
+            EventSystem.Instance.Subscribe<EntityActiveStateChangedEventData>(OnEntityActiveStateChanged);
+            EventSystem.Instance.Subscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
+            
+            ASLogger.Instance.Info($"Stage: 订阅实体事件 - {_stageName}");
+        }
+        
+        /// <summary>
+        /// 取消订阅实体事件
+        /// </summary>
+        private void UnsubscribeFromEntityEvents()
+        {
+            EventSystem.Instance.Unsubscribe<EntityCreatedEventData>(OnEntityCreated);
+            EventSystem.Instance.Unsubscribe<EntityDestroyedEventData>(OnEntityDestroyed);
+            EventSystem.Instance.Unsubscribe<EntityUpdatedEventData>(OnEntityUpdated);
+            EventSystem.Instance.Unsubscribe<EntityActiveStateChangedEventData>(OnEntityActiveStateChanged);
+            EventSystem.Instance.Unsubscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
+            
+            ASLogger.Instance.Info($"Stage: 取消订阅实体事件 - {_stageName}");
+        }
+        
+        /// <summary>
+        /// 实体创建事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        private void OnEntityCreated(EntityCreatedEventData eventData)
+        {
+            // 检查是否属于当前Stage的Room
+            if (eventData.RoomId != _roomId)
+            {
+                return;
+            }
+            
+            ASLogger.Instance.Info($"Stage: 收到实体创建事件 - {eventData.EntityName} (ID: {eventData.EntityId})");
+            
+            // 创建对应的EntityView
+            var entityView = CreateEntityView(eventData.EntityId);
+            if (entityView != null)
+            {
+                // 添加到实体视图字典
+                _entityViews[eventData.EntityId] = entityView;
+                
+                // 触发事件
+                OnEntityViewAdded?.Invoke(entityView);
+                
+                ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {eventData.EntityName} (ID: {eventData.EntityId})");
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"Stage: 无法创建实体视图 - {eventData.EntityName} (ID: {eventData.EntityId})");
+            }
+        }
+        
+        /// <summary>
+        /// 实体销毁事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        private void OnEntityDestroyed(EntityDestroyedEventData eventData)
+        {
+            // 检查是否属于当前Stage的Room
+            if (eventData.RoomId != _roomId)
+            {
+                return;
+            }
+            
+            ASLogger.Instance.Info($"Stage: 收到实体销毁事件 - {eventData.EntityName} (ID: {eventData.EntityId})");
+            
+            // 移除对应的EntityView
+            if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
+            {
+                // 销毁实体视图
+                entityView.Destroy();
+                
+                // 从字典中移除
+                _entityViews.Remove(eventData.EntityId);
+                
+                // 触发事件
+                OnEntityViewRemoved?.Invoke(eventData.EntityId);
+                
+                ASLogger.Instance.Info($"Stage: 销毁实体视图成功 - {eventData.EntityName} (ID: {eventData.EntityId})");
+            }
+        }
+        
+        /// <summary>
+        /// 实体更新事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        private void OnEntityUpdated(EntityUpdatedEventData eventData)
+        {
+            // 检查是否属于当前Stage的Room
+            if (eventData.RoomId != _roomId)
+            {
+                return;
+            }
+            
+            // 获取对应的EntityView并同步数据
+            if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
+            {
+                entityView.SyncWithEntity(eventData.EntityId);
+                
+                // 可以根据更新类型进行特殊处理
+                switch (eventData.UpdateType.ToLower())
+                {
+                    case "position":
+                        // 处理位置更新
+                        break;
+                    case "rotation":
+                        // 处理旋转更新
+                        break;
+                    case "scale":
+                        // 处理缩放更新
+                        break;
+                    case "health":
+                        // 处理血量更新
+                        break;
+                    default:
+                        // 处理其他更新
+                        break;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 实体激活状态变化事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        private void OnEntityActiveStateChanged(EntityActiveStateChangedEventData eventData)
+        {
+            // 检查是否属于当前Stage的Room
+            if (eventData.RoomId != _roomId)
+            {
+                return;
+            }
+            
+            // 获取对应的EntityView并设置激活状态
+            if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
+            {
+                entityView.SetActive(eventData.IsActive);
+            }
+        }
+        
+        /// <summary>
+        /// 实体组件变化事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        private void OnEntityComponentChanged(EntityComponentChangedEventData eventData)
+        {
+            // 检查是否属于当前Stage的Room
+            if (eventData.RoomId != _roomId)
+            {
+                return;
+            }
+            
+            // 获取对应的EntityView并处理组件变化
+            if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
+            {
+                // 可以根据组件类型和变化类型进行特殊处理
+                switch (eventData.ChangeType.ToLower())
+                {
+                    case "add":
+                        // 处理组件添加
+                        break;
+                    case "remove":
+                        // 处理组件移除
+                        break;
+                    case "update":
+                        // 处理组件更新
+                        break;
+                }
+            }
         }
         
         /// <summary>
@@ -402,6 +584,9 @@ namespace Astrum.View.Core
         public void Destroy()
         {
             ASLogger.Instance.Info($"Stage: 销毁 {_stageName}");
+            
+            // 取消订阅实体事件
+            UnsubscribeFromEntityEvents();
             
             // 清理所有单位视图
             foreach (var unitView in _unitViews.Values)
