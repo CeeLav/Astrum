@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj": {}
+    "d:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj": {}
   },
   "projects": {
-    "D:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj": {
+    "d:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj",
+        "projectUniqueName": "d:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj",
         "projectName": "CommonBase",
-        "projectPath": "D:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj",
+        "projectPath": "d:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\CommonBase.csproj",
         "packagesPath": "C:\\Users\\Lavender\\.nuget\\packages\\",
-        "outputPath": "D:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\obj\\",
+        "outputPath": "d:\\Develop\\Projects\\Astrum\\AstrumLogic\\CommonBase\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

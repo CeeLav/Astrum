@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Core;
 using Astrum.View.Core;
 
 namespace Astrum.View.Components
@@ -29,6 +30,12 @@ namespace Astrum.View.Components
             get => _ownerEntityView;
             set => _ownerEntityView = value;
         }
+
+        public Entity OwnerEntity
+        {
+            get => _ownerEntityView.OwnerEntity;
+        }
+        
         public GameObject GameObject => _gameObject;
         public Transform Transform => _transform;
         
@@ -118,26 +125,7 @@ namespace Astrum.View.Components
             OnEnabledChanged?.Invoke(this, enabled);
             Debug.Log($"ViewComponent: 设置启用状态，ID: {_componentId}，启用: {enabled}");
         }
-        
-        /// <summary>
-        /// 同步数据
-        /// </summary>
-        /// <param name="data">同步数据</param>
-        public virtual void SyncData(object data)
-        {
-            if (!_isEnabled) return;
-            
-            try
-            {
-                // 子类特定的数据同步逻辑
-                OnSyncData(data);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"ViewComponent: 数据同步失败，ID: {_componentId} - {ex.Message}");
-            }
-        }
-        
+
         /// <summary>
         /// 获取组件类型名称
         /// </summary>

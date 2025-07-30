@@ -49,7 +49,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         /// <param name="playerId">玩家ID</param>
         /// <param name="input">输入数据</param>
-        public void CollectInput(int playerId, LSInput input)
+        public void CollectInput(long playerId, LSInput input)
         {
             if (input == null) return;
 

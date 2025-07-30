@@ -2,7 +2,10 @@
 using System;
 using System.Collections.Generic;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Core;
 using Astrum.View.Components;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Astrum.View.Core
 {
@@ -14,6 +17,8 @@ namespace Astrum.View.Core
     {
         // 实体视图设置
         protected long _entityId = 0;
+        protected Entity _ownerEntity = null;
+        protected Stage _stage = null; // Stage引用，用于管理实体所在的场景或阶段
         protected string _entityType = "";
         protected bool _isVisible = true;
         protected bool _isActive = true;
@@ -28,6 +33,8 @@ namespace Astrum.View.Core
         
         // 公共属�?
         public long EntityId => _entityId;
+
+        public Entity OwnerEntity => _ownerEntity;
         public string EntityType => _entityType;
         public bool IsVisible => _isVisible;
         public bool IsActive => _isActive;
@@ -55,7 +62,7 @@ namespace Astrum.View.Core
         /// 初始化实体视�?
         /// </summary>
         /// <param name="entityId">实体ID</param>
-        public virtual void Initialize(long entityId)
+        public virtual void Initialize(long entityId, Stage stage)
         {
             if (_entityId != 0)
             {
@@ -64,7 +71,8 @@ namespace Astrum.View.Core
             }
             
             _entityId = entityId;
-            
+            _stage = stage;
+            _ownerEntity = stage.Room.MainWorld.GetEntity(entityId);
             ASLogger.Instance.Info($"EntityView: 初始化实体视图，ID: {entityId}");
             
             try
@@ -316,32 +324,7 @@ namespace Astrum.View.Core
             
             OnEntityViewDestroyed?.Invoke(this);
         }
-        
-        /// <summary>
-        /// 同步组件数据
-        /// </summary>
-        /// <param name="componentData">组件数据</param>
-        protected virtual void SyncComponentData(Dictionary<string, object> componentData)
-        {
-            if (componentData == null) return;
-            
-            foreach (var kvp in componentData)
-            {
-                string componentName = kvp.Key;
-                object data = kvp.Value;
-                
-                // 查找对应的视图组件并同步数据
-                foreach (var component in _viewComponents)
-                {
-                    if (component.GetType().Name == componentName)
-                    {
-                        component.SyncData(data);
-                        break;
-                    }
-                }
-            }
-        }
-        
+
         /// <summary>
         /// 获取实体视图的根变换
         /// </summary>

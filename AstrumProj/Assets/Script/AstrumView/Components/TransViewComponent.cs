@@ -1,5 +1,6 @@
 using UnityEngine;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Components;
 
 namespace Astrum.View.Components
 {
@@ -51,6 +52,12 @@ namespace Astrum.View.Components
         protected override void OnUpdate(float deltaTime)
         {
             if (!_isEnabled || _ownerEntityView == null) return;
+
+            var pos = _ownerEntityView.OwnerEntity.GetComponent<PositionComponent>().GetPosition();
+            _targetPosition.x = pos.X;
+            _targetPosition.y = pos.Y;
+            _targetPosition.z = pos.Z;
+            ASLogger.Instance.Debug($"MovementViewComponent: 更新目标位置，位置: {_targetPosition}");
             
             // 更新移动
             UpdateMovement(deltaTime);
@@ -87,6 +94,8 @@ namespace Astrum.View.Components
             
             Vector3 currentPosition = _ownerEntityView.GetWorldPosition();
             Quaternion currentRotation = _ownerEntityView.GetWorldRotation();
+        
+            
             
             // 平滑移动
             if (smoothMovement)
