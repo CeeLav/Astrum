@@ -110,6 +110,9 @@ namespace Astrum.Client.Core
         /// </summary>
         private void InitializeManagers()
         {
+            // 初始化日志管理器（必须在其他管理器之前初始化）
+            InitializeLogManager();
+            
             // 初始化资源管理器（单例赋值）
             resourceManager = ResourceManager.Instance;
             resourceManager.Initialize();
@@ -137,6 +140,16 @@ namespace Astrum.Client.Core
             // 初始化游戏玩法管理器（单例赋值）
             gamePlayManager = GamePlayManager.Instance;
             gamePlayManager.Initialize();
+        }
+        
+        /// <summary>
+        /// 初始化日志管理器
+        /// </summary>
+        private void InitializeLogManager()
+        {
+            Debug.Log("GameApplication: 初始化日志管理器");
+            
+            ASLogger.Instance.AddHandler(new UnityLogHandler());
         }
         
         /// <summary>
