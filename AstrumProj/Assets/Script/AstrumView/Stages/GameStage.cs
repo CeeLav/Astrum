@@ -86,25 +86,7 @@ namespace Astrum.View.Stages
             // 同步游戏Stage与Room数据
             SyncGameData(roomData);
         }
-        
-        protected override EntityView CreateEntityView(long entityId)
-        {
-            if (entityId <= 0) return null;
-            
-            // 通过逻辑层接口获取实体类型
-            // 这里可以通过GamePlayManager或其他方式获取实体信息
-            string entityType = GetEntityType(entityId);
-            
-            // 使用EntityViewFactory创建EntityView
-            var entityView = EntityViewFactory.Instance.CreateEntityView(entityType, entityId);
-            
-            if (entityView == null)
-            {
-                ASLogger.Instance.Warning($"GameStage: 无法创建EntityView - ID:{entityId}, 类型:{entityType}");
-            }
-            
-            return entityView;
-        }
+
         
         /// <summary>
         /// 获取实体类型
@@ -256,7 +238,7 @@ namespace Astrum.View.Stages
             string entityType = "unit"; // 默认类型，实际应该从逻辑层获取
             
             UnitView unitView = new UnitView();
-            unitView.Initialize(entityId);
+            unitView.Initialize(entityId, this);
             return unitView;
         }
         
@@ -299,18 +281,7 @@ namespace Astrum.View.Stages
             return null;
         }
         
-        /// <summary>
-        /// 创建默认视图
-        /// </summary>
-        /// <param name="entityId">实体UniqueId</param>
-        /// <returns>默认视图</returns>
-        private EntityView CreateDefaultView(long entityId)
-        {
-            // 创建一个简单的默认视图
-            UnitView defaultView = new UnitView();
-            defaultView.Initialize(entityId);
-            return defaultView;
-        }
+
         
         /// <summary>
         /// 设置地形

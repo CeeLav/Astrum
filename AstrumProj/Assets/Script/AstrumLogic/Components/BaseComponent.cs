@@ -1,3 +1,5 @@
+using Astrum.LogicCore.Core;
+
 namespace Astrum.LogicCore.Components
 {
     /// <summary>
@@ -18,6 +20,11 @@ namespace Astrum.LogicCore.Components
         protected BaseComponent()
         {
             ComponentId = GetHashCode();
+        }
+        
+        public virtual void OnAttachToEntity(Entity entity)
+        {
+            
         }
     }
 }

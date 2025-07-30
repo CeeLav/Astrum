@@ -10,7 +10,7 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 移动速度
         /// </summary>
-        public float Speed { get; set; }
+        public float Speed { get; set; } = 1;
 
         /// <summary>
         /// 是否可以移动

@@ -19,22 +19,7 @@ namespace Astrum.LogicCore.Core
         /// 固定时间步长
         /// </summary>
         public float FixedDeltaTime { get; set; } = 1f / 60f; // 默认60FPS
-
-        /// <summary>
-        /// 更新房间内所有实体
-        /// </summary>
-        /// <param name="deltaTime">时间差</param>
-        public void UpdateAllEntities(float deltaTime)
-        {
-            if (Room == null) return;
-
-            // 更新所有世界
-            foreach (var world in Room.Worlds)
-            {
-                UpdateWorld(world, deltaTime);
-            }
-        }
-
+        
         /// <summary>
         /// 更新单个世界
         /// </summary>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Core;
 
 namespace Astrum.LogicCore.FrameSync
 {
@@ -11,7 +12,7 @@ namespace Astrum.LogicCore.FrameSync
         /// <summary>
         /// 玩家ID
         /// </summary>
-        public int PlayerId { get; set; }
+        public long PlayerId { get; set; }
 
         /// <summary>
         /// 当前帧输入
@@ -40,6 +41,12 @@ namespace Astrum.LogicCore.FrameSync
             PlayerId = playerId;
         }
 
+        public override void OnAttachToEntity(Entity entity)
+        {
+            PlayerId = entity.UniqueId;
+            base.OnAttachToEntity(entity);    
+        }
+
         /// <summary>
         /// 设置输入
         /// </summary>
@@ -53,7 +60,6 @@ namespace Astrum.LogicCore.FrameSync
             
             // 设置当前输入
             CurrentInput = input.Clone();
-            CurrentInput.PlayerId = PlayerId;
 
             // 添加到历史记录
             AddToHistory(CurrentInput);

@@ -70,8 +70,8 @@ namespace Astrum.LogicCore.Capabilities
                 
                 // 更新位置
                 positionComponent.X += deltaX;
-                positionComponent.Y += deltaY;
-                positionComponent.Z += 0f; // 2D移动，Z轴不移动
+                positionComponent.Y += 0f;
+                positionComponent.Z += deltaY; // 2D移动，Z轴不移动
             }
         }
 

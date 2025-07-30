@@ -135,6 +135,7 @@ namespace Astrum.LogicCore.Core
         {
             CreationTime = DateTime.Now;
             TotalTime = 0f;
+            Updater = new LSUpdater();
         }
 
         /// <summary>

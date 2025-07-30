@@ -51,6 +51,13 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Update()
         {
+            if (GamePlayManager.Instance.MainRoom == null)
+            {
+                return;
+            }
+            var input = CollectLSInput(GamePlayManager.Instance.PlayerId);
+            GamePlayManager.Instance.MainRoom.LSController.AddPlayerInput(GamePlayManager.Instance.PlayerId, input);
+            /*
             // 保存上一帧的输入状态
             if(currentInput != null)
                 previousInput = currentInput.Clone();
@@ -69,7 +76,8 @@ namespace Astrum.Client.Managers
             }
             
             // 处理传统输入
-            ProcessLegacyInput();
+            ProcessLegacyInput();*/
+            
         }
         
         /// <summary>
@@ -387,6 +395,32 @@ namespace Astrum.Client.Managers
             OnKeyPressed = null;
             OnKeyReleased = null;
             OnMouseMoved = null;
+        }
+        
+        /// <summary>
+        /// 收集并转化为帧同步输入（LSInput）
+        /// </summary>
+        public Astrum.LogicCore.FrameSync.LSInput CollectLSInput(long playerId)
+        {
+            var input = new Astrum.LogicCore.FrameSync.LSInput();
+            input.PlayerId = playerId;
+            //input.Frame = frame;
+            input.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            // 移动输入
+            input.MoveX = 0f;
+            input.MoveY = 0f;
+            if (UnityEngine.Input.GetKey(KeyCode.W)) input.MoveY += 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.S)) input.MoveY -= 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.A)) input.MoveX -= 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.D)) input.MoveX += 1f;
+            // 攻击输入
+            input.Attack = UnityEngine.Input.GetKey(KeyCode.Space) || UnityEngine.Input.GetMouseButton(0);
+            // 技能1输入
+            input.Skill1 = UnityEngine.Input.GetKey(KeyCode.Q);
+            // 技能2输入
+            input.Skill2 = UnityEngine.Input.GetKey(KeyCode.E);
+            //ASLogger.Instance.Debug(input.MoveX + ", " + input.MoveY + ", Attack: " + input.Attack + ", Skill1: " + input.Skill1 + ", Skill2: " + input.Skill2);
+            return input;
         }
     }
     
