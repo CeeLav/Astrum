@@ -57,7 +57,7 @@ namespace Astrum.Client.Managers
             
             // 更新当前输入状态
             UpdateInputState();
-            
+            ASLogger.Instance.Info($"Current Input: {currentInput.MoveInput}, Mouse Position: {currentInput.MousePosition}");
             // 检查输入变化
             if (HasInputChanged())
             {

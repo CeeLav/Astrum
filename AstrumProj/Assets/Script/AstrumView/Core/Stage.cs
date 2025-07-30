@@ -33,6 +33,8 @@ namespace Astrum.View.Core
         protected Camera _camera;
         protected Environment _environment;
         protected GameObject _stageRoot;
+        // Stage根节点不应在切场景时销毁，需持久化
+        public GameObject StageRoot => _stageRoot;
         
         // 公共属性
         public string StageId => _stageId;
@@ -239,7 +241,7 @@ namespace Astrum.View.Core
             {
                 // 添加到实体视图字典
                 _entityViews[eventData.EntityId] = entityView;
-                
+                entityView.Transform.SetParent(StageRoot.transform);
                 // 触发事件
                 OnEntityViewAdded?.Invoke(entityView);
                 
@@ -386,6 +388,7 @@ namespace Astrum.View.Core
         private void CreateStageRoot()
         {
             _stageRoot = new GameObject($"Stage_{_stageId}");
+            UnityEngine.Object.DontDestroyOnLoad(_stageRoot);
             ASLogger.Instance.Info($"Stage: 创建Stage根对象 {_stageRoot.name}");
         }
         
