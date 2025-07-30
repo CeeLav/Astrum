@@ -132,7 +132,7 @@ namespace Astrum.View.Managers
             try
             {
                 // 设置Room ID
-                stage.SetRoom(roomData.RoomId);
+                //stage.SetRoom(roomData.RoomId);
                 
                 // 同步实体ID列表
                 SyncEntitiesWithStage(stage, roomData.EntityIds);

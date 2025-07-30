@@ -10,7 +10,7 @@ namespace Astrum.LogicCore.FrameSync
         /// <summary>
         /// 玩家ID
         /// </summary>
-        public int PlayerId { get; set; }
+        public long PlayerId { get; set; }
 
         /// <summary>
         /// 帧号

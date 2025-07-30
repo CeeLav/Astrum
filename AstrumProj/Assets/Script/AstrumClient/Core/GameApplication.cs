@@ -22,6 +22,7 @@ namespace Astrum.Client.Core
         [SerializeField] private InputManager inputManager;
         [SerializeField] private UIManager uiManager;
         [SerializeField] private AudioManager audioManager;
+        [SerializeField] private GamePlayManager gamePlayManager;
         
         // 应用程序状�?
         private ApplicationState currentState = ApplicationState.INITIALIZING;
@@ -41,6 +42,7 @@ namespace Astrum.Client.Core
         public InputManager InputManager => inputManager;
         public UIManager UIManager => uiManager;
         public AudioManager AudioManager => audioManager;
+        public GamePlayManager GamePlayManager => gamePlayManager;
         
         private void Awake()
         {
@@ -63,17 +65,17 @@ namespace Astrum.Client.Core
         {
             // 设置目标帧率
             Application.targetFrameRate = targetFrameRate;
-            gameLauncher = new GameLauncher();
-            gameLauncher.StartSinglePlayerGame("Game");
+            
+            gamePlayManager.StartSinglePlayerGame("Game");
             
         }
         
-        private void Update()
+        private void Update(float deltaTime)
         {
             if (!isRunning) return;
             
             // 更新各个管理�?
-            UpdateManagers();
+            UpdateManagers(deltaTime);
             
         }
         
@@ -131,12 +133,16 @@ namespace Astrum.Client.Core
             // 初始化音频管理器（单例赋值）
             audioManager = AudioManager.Instance;
             audioManager.Initialize();
+
+            // 初始化游戏玩法管理器（单例赋值）
+            gamePlayManager = GamePlayManager.Instance;
+            gamePlayManager.Initialize();
         }
         
         /// <summary>
         /// 更新各个管理�?
         /// </summary>
-        private void UpdateManagers()
+        private void UpdateManagers(float deltaTime)
         {
             // 更新输入管理�?
             inputManager?.Update();
@@ -149,6 +155,9 @@ namespace Astrum.Client.Core
             
             // 更新音频管理�?
             //audioManager?.Update();
+            
+            // 更新游戏玩法管理?
+            gamePlayManager?.Update(deltaTime);
         }
         
 
@@ -201,6 +210,7 @@ namespace Astrum.Client.Core
             inputManager?.Shutdown();
             uiManager?.Shutdown();
             //audioManager?.Shutdown();
+            gamePlayManager?.Shutdown();
             
             isRunning = false;
         }

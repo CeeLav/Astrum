@@ -1,16 +1,50 @@
-﻿using Astrum.Client.Core;
-using Astrum.View.Core;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using Astrum.CommonBase;
+using Astrum.Client.Core;
 using Astrum.LogicCore.Core;
+using Astrum.View.Core;
+using Astrum.View.Stages;
 using Vector3 = UnityEngine.Vector3;
 
-namespace Astrum.Client.Core
+namespace Astrum.Client.Managers
 {
+
     /// <summary>
-    /// 游戏启动器 - 负责启动游戏，创建Room、Stage和Player
+    /// 游戏玩法管理器 - 负责管理一局游戏的内容
     /// </summary>
-    public class GameLauncher
+    public class GamePlayManager : Singleton<GamePlayManager>
     {
+        
+        public Stage MainStage { get; private set; }
+        public Room MainRoom { get; private set; }
+        
+        
+        public void Initialize()
+        {
+            //throw new NotImplementedException();
+        }
+
+        public void Update(float deltaTime)
+        {
+            if (MainRoom != null)
+            {
+                MainRoom.Update(deltaTime);
+            }
+
+            if (MainStage != null)
+            {
+                MainStage.Update(deltaTime);
+            }
+            
+            //throw new NotImplementedException();
+        }
+        
+        public void Shutdown()
+        {
+            throw new NotImplementedException();
+        }
         /// <summary>
         /// 启动单机游戏
         /// </summary>
@@ -126,4 +160,4 @@ namespace Astrum.Client.Core
             ASLogger.Instance.Info("GameLauncher: 游戏准备完成");
         }
     }
-}
+} 

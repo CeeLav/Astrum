@@ -57,7 +57,7 @@ namespace Astrum.LogicCore.Core
 
         public LSController()
         {
-            _inputSystem = LSInputSystem.GetInstance();
+            _inputSystem = new LSInputSystem();
             LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
 
