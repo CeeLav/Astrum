@@ -4,6 +4,7 @@ using System.Linq;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.FrameSync;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.Core
 {
@@ -84,6 +85,9 @@ namespace Astrum.LogicCore.Core
             
             // 更新组件掩码
             UpdateComponentMask();
+            
+            // 发布组件添加事件
+            PublishComponentChangedEvent(component, "Add");
         }
 
         /// <summary>
@@ -97,6 +101,9 @@ namespace Astrum.LogicCore.Core
             {
                 Components.Remove(component);
                 UpdateComponentMask();
+                
+                // 发布组件移除事件
+                PublishComponentChangedEvent(component, "Remove");
             }
         }
 
@@ -136,7 +143,13 @@ namespace Astrum.LogicCore.Core
         /// <param name="active">是否激活</param>
         public void SetActive(bool active)
         {
-            IsActive = active;
+            if (IsActive != active)
+            {
+                IsActive = active;
+                
+                // 发布激活状态变化事件
+                PublishActiveStateChangedEvent(active);
+            }
         }
 
         /// <summary>
@@ -252,6 +265,31 @@ namespace Astrum.LogicCore.Core
         public virtual Type[] GetRequiredCapabilityTypes()
         {
             return new Type[0];
+        }
+        
+        /// <summary>
+        /// 发布激活状态变化事件
+        /// </summary>
+        /// <param name="isActive">是否激活</param>
+        private void PublishActiveStateChangedEvent(bool isActive)
+        {
+            // 注意：这里需要获取World和Room信息，暂时通过静态方法获取
+            // 在实际使用中，可能需要通过其他方式获取这些信息
+            var eventData = new EntityActiveStateChangedEventData(this, 0, 0, isActive);
+            EventSystem.Instance.Publish(eventData);
+        }
+        
+        /// <summary>
+        /// 发布组件变化事件
+        /// </summary>
+        /// <param name="component">组件</param>
+        /// <param name="changeType">变化类型</param>
+        private void PublishComponentChangedEvent(BaseComponent component, string changeType)
+        {
+            // 注意：这里需要获取World和Room信息，暂时通过静态方法获取
+            // 在实际使用中，可能需要通过其他方式获取这些信息
+            var eventData = new EntityComponentChangedEventData(this, 0, 0, component.GetType().Name, changeType, component);
+            EventSystem.Instance.Publish(eventData);
         }
     }
 }
