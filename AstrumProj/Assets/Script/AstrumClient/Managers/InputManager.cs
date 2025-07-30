@@ -47,21 +47,21 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
-        /// 更新输入管理�?
+        /// 更新输入管理器
         /// </summary>
         public void Update()
         {
-            // 保存上一帧的输入状�?
+            // 保存上一帧的输入状态
             if(currentInput != null)
                 previousInput = currentInput.Clone();
             
-            // 更新当前输入状�?
+            // 更新当前输入状态
             UpdateInputState();
             
-            // 检查输入变�?
+            // 检查输入变化
             if (HasInputChanged())
             {
-                // 添加到历史记�?
+                // 添加到历史记录
                 AddToHistory(currentInput.Clone());
                 
                 // 触发输入变化事件
@@ -73,7 +73,7 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
-        /// 更新输入状�?
+        /// 更新输入状态
         /// </summary>
         private void UpdateInputState()
         {
@@ -438,4 +438,4 @@ namespace Astrum.Client.Managers
         Right,
         Middle
     }
-} 
+}

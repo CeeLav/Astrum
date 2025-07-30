@@ -276,14 +276,7 @@ namespace Astrum.View.Core
             // 调用子类的退出方法
             OnStageExit();
             
-            // 停用所有实体视图
-            foreach (var entityView in _entityViews.Values)
-            {
-                if (entityView != null)
-                {
-                    entityView.SetActive(false);
-                }
-            }
+
         }
         
         /// <summary>

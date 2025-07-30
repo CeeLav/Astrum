@@ -5,11 +5,10 @@ using Astrum.LogicCore.FrameSync;
 namespace Astrum.LogicCore.Core
 {
     /// <summary>
-    /// 帧同步输入系统，单例模式
+    /// 帧同步输入系统
     /// </summary>
     public class LSInputSystem
     {
-        private static LSInputSystem? _instance;
         private static readonly object _lock = new object();
 
         /// <summary>
@@ -35,33 +34,14 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 预测输入缓存
         /// </summary>
-        private Dictionary<int, Dictionary<int, LSInput>> _predictedInputs = new();
+        private Dictionary<int, Dictionary<long, LSInput>> _predictedInputs = new();
 
         /// <summary>
         /// 私有构造函数
         /// </summary>
-        private LSInputSystem()
+        public LSInputSystem()
         {
             FrameBuffer = new FrameBuffer(RollbackFrames * 2);
-        }
-
-        /// <summary>
-        /// 获取单例实例
-        /// </summary>
-        /// <returns>输入系统实例</returns>
-        public static LSInputSystem GetInstance()
-        {
-            if (_instance == null)
-            {
-                lock (_lock)
-                {
-                    if (_instance == null)
-                    {
-                        _instance = new LSInputSystem();
-                    }
-                }
-            }
-            return _instance;
         }
 
         /// <summary>
@@ -114,7 +94,7 @@ namespace Astrum.LogicCore.Core
         /// <param name="playerId">玩家ID</param>
         /// <param name="frame">帧号</param>
         /// <returns>预测的输入数据</returns>
-        public LSInput GetPredictedInput(int playerId, int frame)
+        public LSInput GetPredictedInput(long playerId, int frame)
         {
             // 首先尝试从帧缓冲区获取真实输入
             var frameInputs = FrameBuffer.GetFrame(frame);
@@ -137,7 +117,7 @@ namespace Astrum.LogicCore.Core
             // 缓存预测输入
             if (!_predictedInputs.ContainsKey(frame))
             {
-                _predictedInputs[frame] = new Dictionary<int, LSInput>();
+                _predictedInputs[frame] = new Dictionary<long, LSInput>();
             }
             _predictedInputs[frame][playerId] = prediction;
 
@@ -197,7 +177,7 @@ namespace Astrum.LogicCore.Core
         /// <param name="playerId">玩家ID</param>
         /// <param name="frame">帧号</param>
         /// <returns>预测的输入</returns>
-        private LSInput GeneratePredictedInput(int playerId, int frame)
+        private LSInput GeneratePredictedInput(long playerId, int frame)
         {
             // 简单的预测策略：使用最近的输入作为预测
             LSInput? lastInput = null;

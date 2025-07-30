@@ -15,7 +15,7 @@ namespace Astrum.LogicCore.FrameSync
         /// <summary>
         /// 玩家ID -> 输入数据的字典
         /// </summary>
-        public Dictionary<int, LSInput> Inputs { get; private set; } = new Dictionary<int, LSInput>();
+        public Dictionary<long, LSInput> Inputs { get; private set; } = new Dictionary<long, LSInput>();
 
         /// <summary>
         /// 是否收集齐所有玩家输入
@@ -34,7 +34,7 @@ namespace Astrum.LogicCore.FrameSync
         /// </summary>
         /// <param name="playerId">玩家ID</param>
         /// <param name="input">输入数据</param>
-        public void AddInput(int playerId, LSInput input)
+        public void AddInput(long playerId, LSInput input)
         {
             if (input != null)
             {
@@ -49,7 +49,7 @@ namespace Astrum.LogicCore.FrameSync
         /// </summary>
         /// <param name="playerId">玩家ID</param>
         /// <returns>输入数据，如果不存在返回null</returns>
-        public LSInput? GetInput(int playerId)
+        public LSInput? GetInput(long playerId)
         {
             return Inputs.TryGetValue(playerId, out var input) ? input : null;
         }
@@ -78,9 +78,9 @@ namespace Astrum.LogicCore.FrameSync
         /// 获取所有玩家ID
         /// </summary>
         /// <returns>玩家ID列表</returns>
-        public List<int> GetPlayerIds()
+        public List<long> GetPlayerIds()
         {
-            return new List<int>(Inputs.Keys);
+            return new List<long>(Inputs.Keys);
         }
 
         /// <summary>
