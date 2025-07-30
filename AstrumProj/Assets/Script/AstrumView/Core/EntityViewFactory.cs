@@ -113,30 +113,36 @@ namespace Astrum.View.Core
                 
                 switch (componentType.ToLower())
                 {
-                    /*
                     case "movement":
-                        viewComponent = new MovementViewComponent();
+                        viewComponent = new TransViewComponent();
                         break;
                     case "health":
                         viewComponent = new HealthViewComponent();
                         break;
                     case "animation":
-                        viewComponent = new AnimationViewComponent();
+                        // viewComponent = new AnimationViewComponent();
+                        if (enableLogging)
+                            ASLogger.Instance.Warning($"EntityViewFactory: 动画组件暂未实现 - {componentType}");
                         break;
-
                     case "particle":
-                        viewComponent = new ParticleViewComponent();
+                        // viewComponent = new ParticleViewComponent();
+                        if (enableLogging)
+                            ASLogger.Instance.Warning($"EntityViewFactory: 粒子组件暂未实现 - {componentType}");
                         break;
                     case "sound":
-                        viewComponent = new SoundViewComponent();
+                        // viewComponent = new SoundViewComponent();
+                        if (enableLogging)
+                            ASLogger.Instance.Warning($"EntityViewFactory: 音效组件暂未实现 - {componentType}");
                         break;
                     case "ui":
-                        viewComponent = new UIViewComponent();
+                        // viewComponent = new UIViewComponent();
+                        if (enableLogging)
+                            ASLogger.Instance.Warning($"EntityViewFactory: UI组件暂未实现 - {componentType}");
                         break;
                     default:
                         if (enableLogging)
                             ASLogger.Instance.Warning($"EntityViewFactory: 未知的组件类型 - {componentType}");
-                        break;*/
+                        break;
                 }
                 
                 if (viewComponent != null)

@@ -70,10 +70,10 @@ namespace Astrum.Client.Core
             
         }
         
-        private void Update(float deltaTime)
+        private void Update()
         {
             if (!isRunning) return;
-            
+            float deltaTime = Time.deltaTime;
             // 更新各个管理�?
             UpdateManagers(deltaTime);
             

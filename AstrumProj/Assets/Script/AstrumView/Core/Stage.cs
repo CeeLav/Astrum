@@ -219,8 +219,22 @@ namespace Astrum.View.Core
             
             ASLogger.Instance.Info($"Stage: 收到实体创建事件 - {eventData.EntityName} (ID: {eventData.EntityId})");
             
+            var entityId = eventData.EntityId;
             // 创建对应的EntityView
-            var entityView = CreateEntityView(eventData.EntityId);
+            if (eventData.EntityId <= 0) return;
+            
+            // 通过逻辑层接口获取实体类型
+            // 这里可以通过GamePlayManager或其他方式获取实体信息
+            string entityType = GetEntityType(entityId);
+            
+            // 使用EntityViewFactory创建EntityView
+            var entityView = EntityViewFactory.Instance.CreateEntityView(entityType, entityId);
+            
+            if (entityView == null)
+            {
+                ASLogger.Instance.Warning($"GameStage: 无法创建EntityView - ID:{entityId}, 类型:{entityType}");
+            }
+            
             if (entityView != null)
             {
                 // 添加到实体视图字典
@@ -236,7 +250,17 @@ namespace Astrum.View.Core
                 ASLogger.Instance.Warning($"Stage: 无法创建实体视图 - {eventData.EntityName} (ID: {eventData.EntityId})");
             }
         }
-        
+        /// <summary>
+        /// 获取实体类型
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
+        /// <returns>实体类型</returns>
+        private string GetEntityType(long entityId)
+        {
+            // 这里可以通过GamePlayManager获取实体信息
+            // 暂时返回默认类型，实际使用时需要从逻辑层获取
+            return "unit";
+        }
         /// <summary>
         /// 实体销毁事件处理
         /// </summary>
@@ -482,100 +506,13 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 创建单位视图 - 由逻辑层调用
-        /// </summary>
-        public GameObject CreateUnitView(long unitId, Vector3 position, string unitType = "default")
-        {
-            if (_unitViews.ContainsKey(unitId))
-            {
-                ASLogger.Instance.Warning($"Stage: 单位视图已存在，ID: {unitId}");
-                return _unitViews[unitId];
-            }
-            
-            GameObject unitView = CreateUnitGameObject(unitType);
-            unitView.transform.SetParent(_stageRoot.transform);
-            unitView.transform.position = position;
-            unitView.name = $"Unit_{unitId}_{unitType}";
-            
-            _unitViews[unitId] = unitView;
-            
-            ASLogger.Instance.Info($"Stage: 创建单位视图，ID: {unitId}, Type: {unitType}");
-            return unitView;
-        }
-        
-        /// <summary>
-        /// 移除单位视图 - 由逻辑层调用
-        /// </summary>
-        public void RemoveUnitView(long unitId)
-        {
-            if (!_unitViews.ContainsKey(unitId))
-            {
-                ASLogger.Instance.Warning($"Stage: 单位视图不存在，ID: {unitId}");
-                return;
-            }
-            
-            GameObject unitView = _unitViews[unitId];
-            _unitViews.Remove(unitId);
-            
-            if (unitView != null)
-            {
-                UnityEngine.Object.Destroy(unitView);
-            }
-            
-            ASLogger.Instance.Info($"Stage: 移除单位视图，ID: {unitId}");
-        }
-        
-        /// <summary>
-        /// 更新单位位置 - 由逻辑层调用
-        /// </summary>
-        public void UpdateUnitPosition(long unitId, Vector3 position)
-        {
-            if (_unitViews.TryGetValue(unitId, out GameObject unitView) && unitView != null)
-            {
-                unitView.transform.position = position;
-            }
-        }
-        
-        /// <summary>
-        /// 设置Room ID - 由逻辑层调用
+        /// 设置Room
         /// </summary>
         public void SetRoom(Room room)
         {
             _room = room;
             _lastSyncTime = DateTime.Now;
             ASLogger.Instance.Info($"Stage: 设置Room ID = {room}");
-        }
-        
-        /// <summary>
-        /// 创建单位游戏对象
-        /// </summary>
-        private GameObject CreateUnitGameObject(string unitType)
-        {
-            GameObject unit;
-            
-            switch (unitType.ToLower())
-            {
-                case "player":
-                    unit = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    unit.GetComponent<Renderer>().material.color = Color.blue;
-                    break;
-                case "enemy":
-                    unit = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    unit.GetComponent<Renderer>().material.color = Color.red;
-                    break;
-                default:
-                    unit = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                    unit.GetComponent<Renderer>().material.color = Color.gray;
-                    break;
-            }
-            
-            // 添加简单的碰撞器
-            if (unit.GetComponent<Collider>() == null)
-            {
-                unit.AddComponent<BoxCollider>();
-            }
-            
-            return unit;
         }
         
         /// <summary>
