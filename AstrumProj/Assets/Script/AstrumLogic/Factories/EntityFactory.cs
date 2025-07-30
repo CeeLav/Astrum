@@ -64,7 +64,7 @@ namespace Astrum.LogicCore.Factories
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="name">实体名称</param>
         /// <returns>创建的实体</returns>
-        public T CreateEntity<T>(string name) where T : Entity, new()
+        public T CreateEntity<T>(string name, World world) where T : Entity, new()
         {
             var entity = new T
             {
@@ -78,7 +78,7 @@ namespace Astrum.LogicCore.Factories
             BuildComponentsForEntity(entity);
 
             // 将实体添加到世界中
-            World.Entities[entity.UniqueId] = entity;
+            world.Entities[entity.UniqueId] = entity;
 
             return entity;
         }

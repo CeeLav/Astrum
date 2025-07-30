@@ -71,6 +71,8 @@ namespace Astrum.View.Core
             {
                 // 创建Unity GameObject
                 CreateGameObject();
+                // 根据EntityView类型自动构建和挂载视图组件
+                BuildViewComponents();
                 
                 // 子类特定的初始化
                 OnInitialize();
@@ -425,5 +427,41 @@ namespace Astrum.View.Core
         protected abstract void OnInitialize();
         protected abstract void OnUpdateView(float deltaTime);
         protected abstract void OnSyncWithEntity(long entityId); // 修改为只接收entityId
+        
+        /// <summary>
+        /// 获取EntityView需要的视图组件类型列表
+        /// </summary>
+        /// <returns>视图组件类型列表</returns>
+        public virtual Type[] GetRequiredViewComponentTypes()
+        {
+            return new Type[0];
+        }
+        
+        /// <summary>
+        /// 根据EntityView类型自动构建和挂载视图组件
+        /// </summary>
+        protected virtual void BuildViewComponents()
+        {
+            var componentTypes = GetRequiredViewComponentTypes();
+            
+            foreach (var componentType in componentTypes)
+            {
+                if (componentType.IsSubclassOf(typeof(ViewComponent)))
+                {
+                    try
+                    {
+                        var component = Activator.CreateInstance(componentType) as ViewComponent;
+                        if (component != null)
+                        {
+                            AddViewComponent(component);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ASLogger.Instance.Error($"EntityView: 创建视图组件 {componentType.Name} 失败 - {ex.Message}");
+                    }
+                }
+            }
+        }
     }
 }
