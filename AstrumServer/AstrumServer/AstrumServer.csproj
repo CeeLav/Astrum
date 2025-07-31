@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <Reference Include="LogicCore">
-      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\LogicCore.dll</HintPath>
+      <HintPath>..\..\AstrumLogic\LogicCore\bin\Debug\net8.0\LogicCore.dll</HintPath>
     </Reference>
   </ItemGroup>
 
