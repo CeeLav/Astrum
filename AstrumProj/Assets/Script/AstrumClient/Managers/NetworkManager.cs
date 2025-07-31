@@ -18,7 +18,7 @@ namespace Astrum.Client.Managers
         [Header("网络设置")]
         private bool enableLogging = true;
         private string defaultServerAddress = "127.0.0.1";
-        private int defaultPort = 8080;
+        private int defaultPort = 8888;
         private float heartbeatInterval = 5f;
         private float reconnectInterval = 3f;
         private int maxReconnectAttempts = 5;
