@@ -12,7 +12,7 @@
           "Microsoft.Extensions.Hosting": "9.0.0",
           "Microsoft.Extensions.Logging": "9.0.0",
           "Microsoft.Extensions.Logging.Console": "9.0.0",
-          "LogicCore": "0.0.0.0"
+          "LogicCore": "1.0.0.0"
         },
         "runtime": {
           "AstrumServer.dll": {}
@@ -399,11 +399,19 @@
           }
         }
       },
-      "LogicCore/0.0.0.0": {
+      "LogicCore/1.0.0.0": {
         "runtime": {
           "LogicCore.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "CommonBase/1.0.0.0": {
+        "runtime": {
+          "CommonBase.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
           }
         }
       }
@@ -611,7 +619,12 @@
       "path": "system.diagnostics.eventlog/9.0.0",
       "hashPath": "system.diagnostics.eventlog.9.0.0.nupkg.sha512"
     },
-    "LogicCore/0.0.0.0": {
+    "LogicCore/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CommonBase/1.0.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

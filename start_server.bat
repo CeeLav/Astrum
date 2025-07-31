@@ -1,0 +1,27 @@
+@echo off
+chcp 65001 >nul
+echo Starting Astrum Game Server...
+echo Logs will be output to server.log file
+echo.
+
+cd /d "%~dp0AstrumServer\AstrumServer"
+
+echo Current directory: %CD%
+echo Building project...
+dotnet build
+
+if %ERRORLEVEL% NEQ 0 (
+    echo Build failed!
+    pause
+    exit /b 1
+)
+
+echo Build successful, starting server...
+echo Server logs will be output to: %CD%\server.log
+echo Press Ctrl+C to stop server
+echo.
+
+dotnet run > server.log 2>&1
+
+echo Server stopped
+pause 

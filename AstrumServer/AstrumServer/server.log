@@ -1,0 +1,84 @@
+]9;4;3;\]9;4;0;\info: AstrumServer.GameServer[0]
+      Astrum网络服务器正在启动
+info: AstrumServer.GameServer[0]
+      服务器配置: 最大玩家数=16, 端口=8888
+info: AstrumServer.GameServer[0]
+      Astrum游戏服务器已启动，监听端口: 8888
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\Develop\Projects\Astrum\AstrumServer\AstrumServer
+info: AstrumServer.GameServer[0]
+      客户端 9277061f 已连接
+info: AstrumServer.GameServer[0]
+      来自客户端 9277061f 的消息: {"type":"login","data":{"displayName":""},"error":null,"success":true,"timestamp":"2025-07-31T18:12:30.4974598+08:00"}
+info: AstrumServer.GameServer[0]
+      收到JSON消息: {"type":"login","data":{"displayName":""},"error":null,"success":true,"timestamp":"2025-07-31T18:12:30.4974598+08:00"}
+info: AstrumServer.GameServer[0]
+      消息类型: 'login', 数据: {"displayName":""}
+info: AstrumServer.GameServer[0]
+      开始处理登录请求，客户端ID: 9277061f
+info: AstrumServer.GameServer[0]
+      解析登录请求: DisplayName='null'
+info: AstrumServer.GameServer[0]
+      创建新用户: Player_64a11451, ID: 64a11451-9e09-4a62-bebd-fab785895a0c
+info: AstrumServer.GameServer[0]
+      用户创建成功: Player_64a11451, ID: 64a11451-9e09-4a62-bebd-fab785895a0c
+info: AstrumServer.GameServer[0]
+      客户端 9277061f 登录用户: Player_64a11451
+info: AstrumServer.GameServer[0]
+      登录成功，返回用户信息
+info: AstrumServer.GameServer[0]
+      来自客户端 9277061f 的消息: {"type":"create_room","data":{"roomName":"\u623F\u95F4_181233","maxPlayers":4},"error":null,"success":true,"timestamp":"2025-07-31T18:12:33.870741+08:00"}
+info: AstrumServer.GameServer[0]
+      收到JSON消息: {"type":"create_room","data":{"roomName":"\u623F\u95F4_181233","maxPlayers":4},"error":null,"success":true,"timestamp":"2025-07-31T18:12:33.870741+08:00"}
+info: AstrumServer.GameServer[0]
+      消息类型: 'create_room', 数据: {"roomName":"\u623F\u95F4_181233","maxPlayers":4}
+info: AstrumServer.GameServer[0]
+      房间创建成功: 房间_181233 (ID: 96620ec1-5b8a-4107-8fdb-cdbc07cccd23) 创建者: 64a11451-9e09-4a62-bebd-fab785895a0c
+info: AstrumServer.GameServer[0]
+      来自客户端 9277061f 的消息: {"type":"get_rooms","data":null,"error":null,"success":true,"timestamp":"2025-07-31T18:12:38.0834419+08:00"}
+info: AstrumServer.GameServer[0]
+      收到JSON消息: {"type":"get_rooms","data":null,"error":null,"success":true,"timestamp":"2025-07-31T18:12:38.0834419+08:00"}
+info: AstrumServer.GameServer[0]
+      消息类型: 'get_rooms', 数据: (null)
+info: AstrumServer.GameServer[0]
+      来自客户端 9277061f 的消息: {"type":"leave_room","data":{"roomId":""},"error":null,"success":true,"timestamp":"2025-07-31T18:12:47.9692747+08:00"}
+info: AstrumServer.GameServer[0]
+      收到JSON消息: {"type":"leave_room","data":{"roomId":""},"error":null,"success":true,"timestamp":"2025-07-31T18:12:47.9692747+08:00"}
+info: AstrumServer.GameServer[0]
+      消息类型: 'leave_room', 数据: {"roomId":""}
+info: AstrumServer.GameServer[0]
+      用户 64a11451-9e09-4a62-bebd-fab785895a0c 离开房间 96620ec1-5b8a-4107-8fdb-cdbc07cccd23
+info: AstrumServer.GameServer[0]
+      房间 96620ec1-5b8a-4107-8fdb-cdbc07cccd23 已删除（无玩家）
+info: AstrumServer.GameServer[0]
+      来自客户端 9277061f 的消息: {"type":"get_rooms","data":null,"error":null,"success":true,"timestamp":"2025-07-31T18:12:51.2218061+08:00"}
+info: AstrumServer.GameServer[0]
+      收到JSON消息: {"type":"get_rooms","data":null,"error":null,"success":true,"timestamp":"2025-07-31T18:12:51.2218061+08:00"}
+info: AstrumServer.GameServer[0]
+      消息类型: 'get_rooms', 数据: (null)
+info: AstrumServer.GameServer[0]
+      来自客户端 9277061f 的消息: {"type":"create_room","data":{"roomName":"\u623F\u95F4_181255","maxPlayers":4},"error":null,"success":true,"timestamp":"2025-07-31T18:12:55.5658778+08:00"}
+info: AstrumServer.GameServer[0]
+      收到JSON消息: {"type":"create_room","data":{"roomName":"\u623F\u95F4_181255","maxPlayers":4},"error":null,"success":true,"timestamp":"2025-07-31T18:12:55.5658778+08:00"}
+info: AstrumServer.GameServer[0]
+      消息类型: 'create_room', 数据: {"roomName":"\u623F\u95F4_181255","maxPlayers":4}
+info: AstrumServer.GameServer[0]
+      房间创建成功: 房间_181255 (ID: 9ed86210-61f6-4d3d-8ef1-441ddf865257) 创建者: 64a11451-9e09-4a62-bebd-fab785895a0c
+fail: AstrumServer.GameServer[0]
+      处理客户端 9277061f 时出错
+      System.IO.IOException: Unable to read data from the transport connection: 远程主机强迫关闭了一个现有的连接。.
+       ---> System.Net.Sockets.SocketException (10054): 远程主机强迫关闭了一个现有的连接。
+         --- End of inner exception stack trace ---
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource<System.Int32>.GetResult(Int16 token)
+         at System.Threading.Tasks.ValueTask`1.ValueTaskSourceAsTask.<>c.<.cctor>b__4_0(Object state)
+      --- End of stack trace from previous location ---
+         at AstrumServer.GameServer.HandleClientAsync(TcpClient client, String clientId, CancellationToken cancellationToken) in D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\Program.cs:line 109
+info: AstrumServer.GameServer[0]
+      客户端 9277061f 登出
+info: AstrumServer.GameServer[0]
+      客户端 9277061f 已断开连接
