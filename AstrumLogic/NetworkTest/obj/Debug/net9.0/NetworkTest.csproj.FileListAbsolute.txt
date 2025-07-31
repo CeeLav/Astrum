@@ -1,0 +1,15 @@
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.GeneratedMSBuildEditorConfig.editorconfig
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.AssemblyInfoInputs.cache
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.AssemblyInfo.cs
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.csproj.CoreCompileInputs.cache
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.sourcelink.json
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\bin\Debug\net9.0\NetworkTest.exe
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\bin\Debug\net9.0\NetworkTest.deps.json
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\bin\Debug\net9.0\NetworkTest.runtimeconfig.json
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\bin\Debug\net9.0\NetworkTest.dll
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\bin\Debug\net9.0\NetworkTest.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.dll
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\refint\NetworkTest.dll
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.pdb
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\NetworkTest.genruntimeconfig.cache
+D:\Develop\Projects\Astrum\AstrumLogic\NetworkTest\obj\Debug\net9.0\ref\NetworkTest.dll
