@@ -30,5 +30,13 @@
     "LastLoginAt": "2025-07-31T18:12:30.5295719+08:00",
     "IsOnline": false,
     "CurrentRoomId": "9ed86210-61f6-4d3d-8ef1-441ddf865257"
+  },
+  "2bcd8e70-b5ef-4ecb-81cf-1300e24a6c24": {
+    "Id": "2bcd8e70-b5ef-4ecb-81cf-1300e24a6c24",
+    "DisplayName": "Player_2bcd8e70",
+    "CreatedAt": "2025-08-01T11:27:58.988306+08:00",
+    "LastLoginAt": "2025-08-01T11:27:58.9883076+08:00",
+    "IsOnline": false,
+    "CurrentRoomId": null
   }
 }

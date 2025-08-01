@@ -5,11 +5,55 @@ namespace NetworkTest
 {
     class Program
     {
+        static async Task Main(string[] args)
+        {
+            Console.WriteLine("=== Astrum 网络测试客户端 ===");
+            Console.WriteLine("请选择测试模式:");
+            Console.WriteLine("1. 原始NetworkClient测试");
+            Console.WriteLine("2. NetworkManager测试");
+            Console.WriteLine("0. 退出");
+
+            Console.Write("请选择: ");
+            var choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    await RunOriginalTest();
+                    break;
+                case "2":
+                    await RunNetworkManagerTest();
+                    break;
+                case "0":
+                    Console.WriteLine("退出程序");
+                    break;
+                default:
+                    Console.WriteLine("无效选择");
+                    break;
+            }
+        }
+
+        private static async Task RunOriginalTest()
+        {
+            Console.WriteLine("\n=== 运行原始NetworkClient测试 ===");
+            await NetworkTest.RunOriginalTest(new string[0]);
+        }
+
+        private static async Task RunNetworkManagerTest()
+        {
+            Console.WriteLine("\n=== 运行NetworkManager测试 ===");
+            await NetworkManagerTest.RunTest(new string[0]);
+        }
+    }
+
+    // 原始测试代码保持不变
+    public class NetworkTest
+    {
         private static NetworkClient? _client;
         private static UserInfo? _currentUser;
         private static bool _isRunning = true;
 
-        static async Task Main(string[] args)
+        public static async Task RunOriginalTest(string[] args)
         {
             Console.WriteLine("=== Astrum 网络测试客户端 ===");
             Console.WriteLine("正在连接到服务器...");
@@ -103,8 +147,6 @@ namespace NetworkTest
                 }
             }
         }
-
-
 
         private static async Task AutoLogin()
         {
