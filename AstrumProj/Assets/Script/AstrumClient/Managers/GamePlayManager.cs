@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.Client.Core;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
 using Astrum.View.Stages;
 using Unity.Plastic.Newtonsoft.Json;
@@ -582,6 +583,18 @@ namespace Astrum.Client.Managers
                 ASLogger.Instance.Error($"GameLauncher: 启动游戏失败 - {ex.Message}");
                 throw;
             }
+        }
+        
+        public void DealNetFrameInputs(OneFrameInputs frameInputs)
+        {
+            if (MainRoom == null)
+            {
+                ASLogger.Instance.Warning("GamePlayManager: 当前没有Room");
+                return;
+            }
+            MainRoom?.LSController?.DealNetFrameInputs(frameInputs);
+            
+            ASLogger.Instance.Info("GamePlayManager: 处理网络帧输入");
         }
         
         
