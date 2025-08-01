@@ -24,6 +24,7 @@ namespace Astrum.Client
 
         public void Login()
         {
+            
             GamePlayManager.Instance.Login("Player");
             First.SetActive(false);
         }

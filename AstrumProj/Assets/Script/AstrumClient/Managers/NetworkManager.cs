@@ -4,11 +4,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Astrum.CommonBase;
-using System.Text.Json.Serialization;
 using IDisposable = System.IDisposable;
 
 namespace Astrum.Client.Managers
@@ -16,7 +14,7 @@ namespace Astrum.Client.Managers
     /// <summary>
     /// 网络管理器 - 负责客户端与服务器的网络通信
     /// </summary>
-        public class NetworkManager : Singleton<NetworkManager>
+    public class NetworkManager : Singleton<NetworkManager>
     {
         private bool enableLogging = true;
         private string defaultServerAddress = "127.0.0.1";
@@ -67,7 +65,7 @@ namespace Astrum.Client.Managers
         public void Initialize()
         {
             if (enableLogging)
-                Console.WriteLine("NetworkManager: 初始化网络管理器");
+                Debug.Log("NetworkManager: 初始化网络管理器");
             
             // 设置默认连接参数
             serverAddress = defaultServerAddress;
@@ -83,7 +81,7 @@ namespace Astrum.Client.Managers
             networkClient.OnDisconnected += OnClientDisconnected;
             
             if (enableLogging)
-                Console.WriteLine($"NetworkManager: 客户端ID - {clientId}");
+                Debug.Log($"NetworkManager: 客户端ID - {clientId}");
         }
         
         /// <summary>
@@ -95,7 +93,7 @@ namespace Astrum.Client.Managers
         {
             if (isConnected)
             {
-                Console.WriteLine("NetworkManager: 已经连接到服务器");
+                Debug.LogWarning("NetworkManager: 已经连接到服务器");
                 return true;
             }
             
@@ -104,7 +102,7 @@ namespace Astrum.Client.Managers
             this.port = port > 0 ? port : defaultPort;
             
             if (enableLogging)
-                Console.WriteLine($"NetworkManager: 开始连接到服务器 {serverAddress}:{this.port}");
+                Debug.Log($"NetworkManager: 开始连接到服务器 {serverAddress}:{this.port}");
             
             // 更新连接状态
             UpdateConnectionStatus(ConnectionStatus.CONNECTING);
@@ -126,7 +124,7 @@ namespace Astrum.Client.Managers
                 _ = Task.Run(ProcessMessagesAsync);
                 
                 if (enableLogging)
-                    Console.WriteLine("NetworkManager: 连接成功");
+                    Debug.Log("NetworkManager: 连接成功");
                 
                 // 触发连接事件
                 OnConnected?.Invoke();
@@ -138,7 +136,7 @@ namespace Astrum.Client.Managers
                 UpdateConnectionStatus(ConnectionStatus.FAILED);
                 
                 if (enableLogging)
-                    Console.WriteLine("NetworkManager: 连接失败");
+                    Debug.LogError("NetworkManager: 连接失败");
                 
                 // 尝试重连
                 StartReconnect();
@@ -157,7 +155,7 @@ namespace Astrum.Client.Managers
             }
             
             if (enableLogging)
-                Console.WriteLine("NetworkManager: 断开连接");
+                Debug.Log("NetworkManager: 断开连接");
             
             // 停止心跳和重连
             StopHeartbeat();
@@ -188,13 +186,13 @@ namespace Astrum.Client.Managers
         {
             if (!isConnected)
             {
-                Console.WriteLine("NetworkManager: 未连接到服务器，无法发送消息");
+                Debug.LogWarning("NetworkManager: 未连接到服务器，无法发送消息");
                 return false;
             }
             
             if (message == null)
             {
-                Console.WriteLine("NetworkManager: 消息为空");
+                Debug.LogError("NetworkManager: 消息为空");
                 return false;
             }
             
@@ -207,13 +205,13 @@ namespace Astrum.Client.Managers
                 bool success = await networkClient.SendMessageAsync(message);
                 
                 if (success && enableLogging)
-                    Console.WriteLine($"NetworkManager: 发送消息 {message.Type}");
+                    Debug.Log($"NetworkManager: 发送消息 {message.Type}");
                 
                 return success;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"NetworkManager: 发送消息失败 - {ex.Message}");
+                Debug.LogError($"NetworkManager: 发送消息失败 - {ex.Message}");
                 return false;
             }
         }
@@ -235,7 +233,7 @@ namespace Astrum.Client.Managers
             }
             
             if (enableLogging)
-                Console.WriteLine($"NetworkManager: 注册消息处理器 {messageType}");
+                Debug.Log($"NetworkManager: 注册消息处理器 {messageType}");
         }
         
         /// <summary>
@@ -293,7 +291,7 @@ namespace Astrum.Client.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"NetworkManager: 发送心跳失败 - {ex.Message}");
+                Debug.LogError($"NetworkManager: 发送心跳失败 - {ex.Message}");
             }
         }
         
@@ -304,14 +302,14 @@ namespace Astrum.Client.Managers
         {
             if (reconnectAttempts >= maxReconnectAttempts)
             {
-                Console.WriteLine($"NetworkManager: 重连次数已达上限 {maxReconnectAttempts}");
+                Debug.LogError($"NetworkManager: 重连次数已达上限 {maxReconnectAttempts}");
                 return;
             }
             
             reconnectAttempts++;
             
             if (enableLogging)
-                Console.WriteLine($"NetworkManager: 开始第 {reconnectAttempts} 次重连");
+                Debug.Log($"NetworkManager: 开始第 {reconnectAttempts} 次重连");
             
             UpdateConnectionStatus(ConnectionStatus.RECONNECTING);
             
@@ -348,7 +346,7 @@ namespace Astrum.Client.Managers
         {
             while (isConnected)
             {
-                NetworkMessage message = null;
+                NetworkMessage? message = null;
                 
                 lock (messageQueueLock)
                 {
@@ -364,7 +362,7 @@ namespace Astrum.Client.Managers
                     OnMessageReceived?.Invoke(message);
                     
                     // 调用注册的处理器
-                    if (messageHandlers.TryGetValue(message.Type, out Action<NetworkMessage> handler))
+                    if (messageHandlers.TryGetValue(message.Type, out Action<NetworkMessage?> handler))
                     {
                         try
                         {
@@ -372,13 +370,13 @@ namespace Astrum.Client.Managers
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"NetworkManager: 处理消息 {message.Type} 时发生异常 - {ex.Message}");
+                            Debug.LogError($"NetworkManager: 处理消息 {message.Type} 时发生异常 - {ex.Message}");
                         }
                     }
                     else
                     {
                         if (enableLogging)
-                            Console.WriteLine($"NetworkManager: 未找到消息处理器 {message.Type}");
+                            Debug.LogWarning($"NetworkManager: 未找到消息处理器 {message.Type}");
                     }
                 }
                 
@@ -405,7 +403,7 @@ namespace Astrum.Client.Managers
         /// </summary>
         private void OnClientError(string? error)
         {
-            Console.WriteLine($"NetworkManager: 客户端错误 - {error}");
+            Debug.LogError($"NetworkManager: 客户端错误 - {error}");
         }
         
         /// <summary>
@@ -413,7 +411,7 @@ namespace Astrum.Client.Managers
         /// </summary>
         private void OnClientDisconnected()
         {
-            Console.WriteLine("NetworkManager: 客户端断开连接");
+            Debug.Log("NetworkManager: 客户端断开连接");
             isConnected = false;
             UpdateConnectionStatus(ConnectionStatus.DISCONNECTED);
             OnDisconnected?.Invoke();
@@ -438,7 +436,7 @@ namespace Astrum.Client.Managers
         /// <returns>客户端ID</returns>
         private string GenerateClientId()
         {
-            return $"Client_{Guid.NewGuid():N}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            return $"Client_{SystemInfo.deviceUniqueIdentifier}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
         }
         
         /// <summary>
@@ -447,7 +445,7 @@ namespace Astrum.Client.Managers
         public void Shutdown()
         {
             if (enableLogging)
-                Console.WriteLine("NetworkManager: 关闭网络管理器");
+                Debug.Log("NetworkManager: 关闭网络管理器");
             
             // 断开连接
             Disconnect();
@@ -472,7 +470,6 @@ namespace Astrum.Client.Managers
         }
     }
     
-    
     /// <summary>
     /// 连接状态枚举
     /// </summary>
@@ -496,21 +493,17 @@ namespace Astrum.Client.Managers
         SERVER_EVENT,
         HEARTBEAT
     }
-        public class NetworkMessage
+    
+    /// <summary>
+    /// 网络消息类
+    /// </summary>
+    [Serializable]
+    public class NetworkMessage
     {
-        [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
-        
-        [JsonPropertyName("data")]
         public object? Data { get; set; }
-        
-        [JsonPropertyName("error")]
         public string? Error { get; set; }
-        
-        [JsonPropertyName("success")]
         public bool Success { get; set; } = true;
-        
-        [JsonPropertyName("timestamp")]
         public DateTime Timestamp { get; set; } = DateTime.Now;
 
         public NetworkMessage()
@@ -534,35 +527,32 @@ namespace Astrum.Client.Managers
         }
     }
 
+    [Serializable]
     public class LoginRequest
     {
-        [JsonPropertyName("displayName")]
         public string? DisplayName { get; set; }
     }
 
-
-
+    [Serializable]
     public class CreateRoomRequest
     {
-        [JsonPropertyName("roomName")]
         public string RoomName { get; set; } = string.Empty;
-        
-        [JsonPropertyName("maxPlayers")]
         public int MaxPlayers { get; set; } = 4;
     }
 
+    [Serializable]
     public class JoinRoomRequest
     {
-        [JsonPropertyName("roomId")]
         public string RoomId { get; set; } = string.Empty;
     }
 
+    [Serializable]
     public class LeaveRoomRequest
     {
-        [JsonPropertyName("roomId")]
         public string RoomId { get; set; } = string.Empty;
     }
 
+    [Serializable]
     public class RoomInfo
     {
         public string Id { get; set; } = string.Empty;
@@ -574,6 +564,7 @@ namespace Astrum.Client.Managers
         public List<string> PlayerNames { get; set; } = new();
     }
 
+    [Serializable]
     public class UserInfo
     {
         public string Id { get; set; } = string.Empty;
@@ -583,29 +574,9 @@ namespace Astrum.Client.Managers
     }
     
     /// <summary>
-    /// 游戏状态数据
-    /// </summary>
-    [Serializable]
-    public class GameStateData
-    {
-        public Dictionary<string, object> StateData { get; set; } = new();
-    }
-    
-    /// <summary>
-    /// 输入数据
-    /// </summary>
-    [Serializable]
-    public class InputData
-    {
-        public float MoveX { get; set; }
-        public float MoveY { get; set; }
-        public bool IsActionPressed { get; set; }
-    }
-    
-    /// <summary>
     /// 网络客户端
     /// </summary>
-        public class NetworkClient : IDisposable
+    public class NetworkClient : IDisposable
     {
         private TcpClient? _client;
         private NetworkStream? _stream;
@@ -638,12 +609,12 @@ namespace Astrum.Client.Managers
                 // 启动接收消息的任务
                 _ = Task.Run(ReceiveMessagesAsync);
 
-                Console.WriteLine($"已连接到服务器 {_serverAddress}:{_serverPort}");
+                Debug.Log($"已连接到服务器 {_serverAddress}:{_serverPort}");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"连接服务器失败: {ex.Message}");
+                Debug.LogError($"连接服务器失败: {ex.Message}");
                 OnError?.Invoke($"连接失败: {ex.Message}");
                 return false;
             }
@@ -659,7 +630,25 @@ namespace Astrum.Client.Managers
 
             try
             {
-                var json = JsonSerializer.Serialize(message);
+                // 创建简化的JSON对象，避免Unity JsonUtility的限制
+                var jsonObj = new Dictionary<string, object>
+                {
+                    ["type"] = message.Type,
+                    ["success"] = message.Success,
+                    ["timestamp"] = message.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                };
+                
+                if (message.Data != null)
+                {
+                    jsonObj["data"] = message.Data;
+                }
+                
+                if (!string.IsNullOrEmpty(message.Error))
+                {
+                    jsonObj["error"] = message.Error;
+                }
+                
+                var json = JsonUtility.ToJson(new { jsonObj });
                 var bytes = Encoding.UTF8.GetBytes(json + "\n");
                 
                 lock (_lock)
@@ -667,12 +656,12 @@ namespace Astrum.Client.Managers
                     _stream?.WriteAsync(bytes, 0, bytes.Length);
                 }
 
-                Console.WriteLine($"发送消息: {json}");
+                Debug.Log($"发送消息: {message.Type}");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"发送消息失败: {ex.Message}");
+                Debug.LogError($"发送消息失败: {ex.Message}");
                 OnError?.Invoke($"发送失败: {ex.Message}");
                 return false;
             }
@@ -762,21 +751,22 @@ namespace Astrum.Client.Managers
                             // 跳过非JSON消息（如欢迎消息）
                             if (!messageJson.Trim().StartsWith("{"))
                             {
-                                Console.WriteLine($"收到非JSON消息: {messageJson.Trim()}");
+                                Debug.Log($"收到非JSON消息: {messageJson.Trim()}");
                                 continue;
                             }
 
-                            var message = JsonSerializer.Deserialize<NetworkMessage>(messageJson);
+                            // 使用简单的字符串解析，避免Unity JsonUtility的限制
+                            var message = ParseNetworkMessage(messageJson);
                             if (message != null)
                             {
-                                Console.WriteLine($"收到消息: {messageJson}");
+                                Debug.Log($"收到消息: {message.Type}");
                                 OnMessageReceived?.Invoke(message);
                             }
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"解析消息失败: {ex.Message}");
-                            Console.WriteLine($"问题消息内容: {messageJson}");
+                            Debug.LogError($"解析消息失败: {ex.Message}");
+                            Debug.LogError($"问题消息内容: {messageJson}");
                             OnError?.Invoke($"解析消息失败: {ex.Message}");
                         }
                     }
@@ -784,7 +774,7 @@ namespace Astrum.Client.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"接收消息时出错: {ex.Message}");
+                Debug.LogError($"接收消息时出错: {ex.Message}");
                 OnError?.Invoke($"接收消息失败: {ex.Message}");
             }
             finally
@@ -799,9 +789,57 @@ namespace Astrum.Client.Managers
             _isConnected = false;
             _stream?.Close();
             _client?.Close();
-            Console.WriteLine("已断开连接");
+            Debug.Log("已断开连接");
         }
 
+        private NetworkMessage? ParseNetworkMessage(string json)
+        {
+            try
+            {
+                // 简单的JSON解析，适用于Unity
+                var message = new NetworkMessage();
+                
+                // 提取基本字段
+                if (json.Contains("\"type\":"))
+                {
+                    var typeStart = json.IndexOf("\"type\":") + 7;
+                    var typeEnd = json.IndexOf("\"", typeStart + 1);
+                    if (typeEnd > typeStart)
+                    {
+                        message.Type = json.Substring(typeStart, typeEnd - typeStart).Trim('"');
+                    }
+                }
+                
+                if (json.Contains("\"success\":"))
+                {
+                    var successStart = json.IndexOf("\"success\":") + 10;
+                    var successEnd = json.IndexOf(",", successStart);
+                    if (successEnd == -1) successEnd = json.IndexOf("}", successStart);
+                    if (successEnd > successStart)
+                    {
+                        var successStr = json.Substring(successStart, successEnd - successStart).Trim();
+                        message.Success = successStr == "true";
+                    }
+                }
+                
+                if (json.Contains("\"error\":"))
+                {
+                    var errorStart = json.IndexOf("\"error\":") + 8;
+                    var errorEnd = json.IndexOf("\"", errorStart + 1);
+                    if (errorEnd > errorStart)
+                    {
+                        message.Error = json.Substring(errorStart, errorEnd - errorStart).Trim('"');
+                    }
+                }
+                
+                return message;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
         public void Dispose()
         {
             Disconnect();
