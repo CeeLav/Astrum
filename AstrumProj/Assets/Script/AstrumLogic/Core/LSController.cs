@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Astrum.CommonBase;
 using Astrum.LogicCore.FrameSync;
 
 namespace Astrum.LogicCore.Core
@@ -18,7 +19,9 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 当前帧
         /// </summary>
-        public int CurrentFrame { get; private set; } = 0;
+        public int AuthorityFrame { get; set; } = -1;
+        
+        public int PredictionFrame { get; set; } = -1;
 
         /// <summary>
         /// 帧率（如60FPS）
@@ -76,24 +79,43 @@ namespace Astrum.LogicCore.Core
             if (deltaTime < frameTime) return;
 
             // 保存当前状态
-            SaveState(CurrentFrame);
+            SaveState(AuthorityFrame);
 
             // 分发输入到各个世界
             DistributeInputsToWorlds();
 
             // 更新输入系统
-            _inputSystem.ProcessFrame(CurrentFrame);
-            _inputSystem.Update();
+            _inputSystem.ProcessFrame(AuthorityFrame);
+            //_inputSystem.Update();
 
             // 执行帧逻辑
-            ExecuteFrame(CurrentFrame);
+            ExecuteFrame(AuthorityFrame);
 
             // 更新帧计数
-            CurrentFrame++;
+            //CurrentFrame++;
             LastUpdateTime = currentTime;
 
             // 清理过旧的状态
             CleanupOldStates();
+        }
+        
+        public void DealNetFrameInputs(OneFrameInputs frameInputs)
+        {
+            
+            ASLogger.Instance.Info($"OneFrameInputs: {AuthorityFrame + 1} {frameInputs.ToString()}");
+            
+            ++AuthorityFrame;
+            // 服务端返回的消息比预测的还早
+            if (AuthorityFrame >= PredictionFrame)
+            {
+                //OneFrameInputs authorityFrame = LSInputSystem.FrameBuffer.FrameInputs(room.AuthorityFrame);
+                //input.CopyTo(authorityFrame);
+            }
+            else
+            {
+                
+            }
+            
         }
 
         /// <summary>
@@ -102,32 +124,24 @@ namespace Astrum.LogicCore.Core
         public void DistributeInputsToWorlds()
         {
             if (Room == null) return;
-
+/*
             // 获取当前帧的输入
-            var frameInputs = _inputSystem.GetFrameInputs(CurrentFrame);
+            var frameInputs = _inputSystem.GetFrameInputs(AuthorityFrame);
             
             // 如果没有输入，生成预测输入
             if (frameInputs == null)
             {
-                frameInputs = GeneratePredictedFrameInputs(CurrentFrame);
+                frameInputs = GeneratePredictedFrameInputs(AuthorityFrame);
             }
 
             // 分发输入到所有世界
             foreach (var world in Room.Worlds)
             {
                 DistributeInputsToEntities(world, frameInputs);
-            }
+            }*/
         }
 
-        /// <summary>
-        /// 将输入分发到实体
-        /// </summary>
-        /// <param name="world">世界对象</param>
-        public void DistributeInputsToEntities(World world)
-        {
-            var frameInputs = _inputSystem.GetFrameInputs(CurrentFrame);
-            DistributeInputsToEntities(world, frameInputs);
-        }
+
 
         /// <summary>
         /// 将输入分发到实体
@@ -147,37 +161,19 @@ namespace Astrum.LogicCore.Core
         /// <param name="frame">目标帧号</param>
         public void RollbackToFrame(int frame)
         {
-            if (frame < 0 || frame >= CurrentFrame) return;
+            if (frame < 0 || frame >= AuthorityFrame) return;
 
             // 加载指定帧的状态
             LoadState(frame);
 
             // 重新执行从目标帧到当前帧的所有逻辑
-            for (int f = frame; f < CurrentFrame; f++)
+            for (int f = frame; f < AuthorityFrame; f++)
             {
                 ExecuteFrame(f);
             }
         }
 
-        /// <summary>
-        /// 预测帧执行
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        public void PredictFrame(int frame)
-        {
-            // 生成预测输入并执行
-            var predictedInputs = GeneratePredictedFrameInputs(frame);
-            
-            if (Room != null)
-            {
-                foreach (var world in Room.Worlds)
-                {
-                    DistributeInputsToEntities(world, predictedInputs);
-                }
-            }
 
-            ExecuteFrame(frame);
-        }
 
         /// <summary>
         /// 保存状态
@@ -200,7 +196,7 @@ namespace Astrum.LogicCore.Core
             {
                 // 这里应该反序列化游戏状态
                 DeserializeGameState(stateData);
-                CurrentFrame = frame;
+                AuthorityFrame = frame;
             }
         }
 
@@ -211,7 +207,7 @@ namespace Astrum.LogicCore.Core
         {
             IsRunning = true;
             IsPaused = false;
-            CurrentFrame = 0;
+            AuthorityFrame = 0;
             LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             
             _inputSystem.Reset();
@@ -252,7 +248,7 @@ namespace Astrum.LogicCore.Core
         /// <param name="input">输入数据</param>
         public void AddPlayerInput(long playerId, LSInput input)
         {
-            _inputSystem.CollectInput(playerId, input);
+            //_inputSystem.CollectInput(playerId, input);
         }
 
         /// <summary>
@@ -272,26 +268,6 @@ namespace Astrum.LogicCore.Core
             }
         }
 
-        /// <summary>
-        /// 生成预测帧输入
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        /// <returns>预测的帧输入</returns>
-        private OneFrameInputs GeneratePredictedFrameInputs(int frame)
-        {
-            var frameInputs = new OneFrameInputs(frame);
-            
-            if (Room != null)
-            {
-                foreach (var playerId in Room.Players)
-                {
-                    var predictedInput = _inputSystem.GetPredictedInput(playerId, frame);
-                    frameInputs.AddInput(playerId, predictedInput);
-                }
-            }
-
-            return frameInputs;
-        }
 
         /// <summary>
         /// 序列化游戏状态
@@ -320,7 +296,7 @@ namespace Astrum.LogicCore.Core
         {
             if (_stateHistory.Count <= MaxStateHistory) return;
 
-            int keepFrame = CurrentFrame - MaxStateHistory;
+            int keepFrame = AuthorityFrame - MaxStateHistory;
             var framesToRemove = _stateHistory.Keys.Where(f => f < keepFrame).ToList();
             
             foreach (var frame in framesToRemove)

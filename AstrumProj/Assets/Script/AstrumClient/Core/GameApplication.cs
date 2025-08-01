@@ -237,7 +237,10 @@ namespace Astrum.Client.Core
             {
                 GamePlayManager.Instance.StartMultiPlayerGame("Room");
             });
-
+            networkManager.RegisterHandler("lock_step", (NetworkMessage? message) =>
+            {
+                GamePlayManager.Instance.StartMultiPlayerGame("Room");
+            });
         }
         
         private void OnPongReceived(NetworkMessage? message)

@@ -1,182 +1,106 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Astrum.LogicCore.FrameSync
 {
+    public static class LSConstValue
+    {
+        public const int MatchCount = 1;
+        public const int UpdateInterval = 50;
+        public const int FrameCountPerSecond = 1000 / UpdateInterval;
+        public const int SaveLSWorldFrameCount = 60 * FrameCountPerSecond;
+    }
+    
     /// <summary>
     /// 帧缓冲区，用于存储和管理帧数据
     /// </summary>
-    public class FrameBuffer
+    public class FrameBuffer : Object
     {
-        /// <summary>
-        /// 最大缓存帧数
-        /// </summary>
-        public int MaxSize { get; set; } = 60;
+        public int MaxFrame { get; private set; }
+        private readonly List<OneFrameInputs> frameInputs;
+        private readonly List<MemoryBuffer> snapshots;
+        private readonly List<long> hashs;
 
-        /// <summary>
-        /// 帧号 -> 单帧输入的字典
-        /// </summary>
-        public Dictionary<int, OneFrameInputs> Frames { get; private set; } = new Dictionary<int, OneFrameInputs>();
-
-        /// <summary>
-        /// 当前帧
-        /// </summary>
-        public int CurrentFrame { get; set; } = 0;
-
-        /// <summary>
-        /// 已确认帧
-        /// </summary>
-        public int ConfirmedFrame { get; set; } = -1;
-
-        public FrameBuffer() { }
-
-        public FrameBuffer(int maxSize)
+        public FrameBuffer(int frame = 0, int capacity = LSConstValue.FrameCountPerSecond * 60)
         {
-            MaxSize = maxSize;
-        }
+            this.MaxFrame = frame + LSConstValue.FrameCountPerSecond * 30;
+            this.frameInputs = new List<OneFrameInputs>(capacity);
+            this.snapshots = new List<MemoryBuffer>(capacity);
+            this.hashs = new List<long>(capacity);
 
-        /// <summary>
-        /// 添加帧数据
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        /// <param name="inputs">单帧输入</param>
-        public void AddFrame(int frame, OneFrameInputs inputs)
-        {
-            if (inputs != null)
+            for (int i = 0; i < this.snapshots.Capacity; ++i)
             {
-                inputs.Frame = frame;
-                Frames[frame] = inputs;
-                
-                // 清理过旧的帧数据
-                CleanupOldFrames();
+                this.hashs.Add(0);
+                this.frameInputs.Add(OneFrameInputs.Create());
+                MemoryBuffer memoryBuffer = new(10240);
+                memoryBuffer.SetLength(0);
+                memoryBuffer.Seek(0, SeekOrigin.Begin);
+                this.snapshots.Add(memoryBuffer);
             }
         }
 
-        /// <summary>
-        /// 获取帧数据
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        /// <returns>单帧输入，如果不存在返回null</returns>
-        public OneFrameInputs? GetFrame(int frame)
+        public void SetHash(int frame, long hash)
         {
-            return Frames.TryGetValue(frame, out var inputs) ? inputs : null;
+            EnsureFrame(frame);
+            this.hashs[frame % this.frameInputs.Capacity] = hash;
         }
 
-        /// <summary>
-        /// 获取帧范围
-        /// </summary>
-        /// <param name="start">起始帧号</param>
-        /// <param name="end">结束帧号</param>
-        /// <returns>帧数据列表</returns>
-        public List<OneFrameInputs> GetFrameRange(int start, int end)
+        public long GetHash(int frame)
         {
-            var result = new List<OneFrameInputs>();
-            
-            for (int frame = start; frame <= end; frame++)
-            {
-                var frameInputs = GetFrame(frame);
-                if (frameInputs != null)
-                {
-                    result.Add(frameInputs);
-                }
-            }
-            
-            return result;
+            EnsureFrame(frame);
+            return this.hashs[frame % this.frameInputs.Capacity];
         }
 
-        /// <summary>
-        /// 清理旧帧数据
-        /// </summary>
-        /// <param name="keepFrame">保留到此帧号</param>
-        public void RemoveOldFrames(int keepFrame)
+        public bool CheckFrame(int frame)
         {
-            var framesToRemove = new List<int>();
-            
-            foreach (var frame in Frames.Keys)
+            if (frame < 0)
             {
-                if (frame < keepFrame)
-                {
-                    framesToRemove.Add(frame);
-                }
+                return false;
             }
-            
-            foreach (var frame in framesToRemove)
+
+            if (frame > this.MaxFrame)
             {
-                Frames.Remove(frame);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void EnsureFrame(int frame)
+        {
+            if (!CheckFrame(frame))
+            {
+                throw new Exception($"frame out: {frame}, maxframe: {this.MaxFrame}");
             }
         }
 
-        /// <summary>
-        /// 检查是否有指定帧
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        /// <returns>是否存在该帧</returns>
-        public bool HasFrame(int frame)
+        public OneFrameInputs FrameInputs(int frame)
         {
-            return Frames.ContainsKey(frame);
+            EnsureFrame(frame);
+            OneFrameInputs oneFrameInputs = this.frameInputs[frame % this.frameInputs.Capacity];
+            return oneFrameInputs;
         }
 
-        /// <summary>
-        /// 获取最早的帧号
-        /// </summary>
-        /// <returns>最早的帧号，如果没有帧则返回-1</returns>
-        public int GetEarliestFrame()
+        public void MoveForward(int frame)
         {
-            if (Frames.Count == 0) return -1;
-            
-            int earliest = int.MaxValue;
-            foreach (var frame in Frames.Keys)
+            /*
+            if (this.MaxFrame - frame > LSConstValue.FrameCountPerSecond) // 至少留出1秒的空间
             {
-                if (frame < earliest)
-                    earliest = frame;
+                return;
             }
-            return earliest;
+
+            ++this.MaxFrame;
+
+            OneFrameInputs oneFrameInputs = this.FrameInputs(this.MaxFrame);
+            oneFrameInputs.Inputs.Clear();*/
         }
 
-        /// <summary>
-        /// 获取最晚的帧号
-        /// </summary>
-        /// <returns>最晚的帧号，如果没有帧则返回-1</returns>
-        public int GetLatestFrame()
+        public MemoryBuffer Snapshot(int frame)
         {
-            if (Frames.Count == 0) return -1;
-            
-            int latest = int.MinValue;
-            foreach (var frame in Frames.Keys)
-            {
-                if (frame > latest)
-                    latest = frame;
-            }
-            return latest;
-        }
-
-        /// <summary>
-        /// 获取缓存的帧数量
-        /// </summary>
-        /// <returns>帧数量</returns>
-        public int GetFrameCount()
-        {
-            return Frames.Count;
-        }
-
-        /// <summary>
-        /// 清空所有帧
-        /// </summary>
-        public void Clear()
-        {
-            Frames.Clear();
-            CurrentFrame = 0;
-            ConfirmedFrame = -1;
-        }
-
-        /// <summary>
-        /// 自动清理过旧的帧数据
-        /// </summary>
-        private void CleanupOldFrames()
-        {
-            if (Frames.Count <= MaxSize) return;
-            
-            int keepFrame = CurrentFrame - MaxSize;
-            RemoveOldFrames(keepFrame);
+            EnsureFrame(frame);
+            MemoryBuffer memoryBuffer = this.snapshots[frame % this.snapshots.Capacity];
+            return memoryBuffer;
         }
     }
 }

@@ -41,29 +41,10 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public LSInputSystem()
         {
-            FrameBuffer = new FrameBuffer(RollbackFrames * 2);
+            FrameBuffer = new FrameBuffer();
         }
 
-        /// <summary>
-        /// 收集玩家输入
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <param name="input">输入数据</param>
-        public void CollectInput(long playerId, LSInput input)
-        {
-            if (input == null) return;
 
-            int targetFrame = CurrentProcessingFrame + InputDelay;
-            input.Frame = targetFrame;
-            input.PlayerId = playerId;
-
-            // 获取或创建目标帧的输入集合
-            var frameInputs = FrameBuffer.GetFrame(targetFrame) ?? new OneFrameInputs(targetFrame);
-            frameInputs.AddInput(playerId, input);
-
-            // 更新帧缓冲区
-            FrameBuffer.AddFrame(targetFrame, frameInputs);
-        }
 
         /// <summary>
         /// 处理单帧
@@ -77,143 +58,24 @@ namespace Astrum.LogicCore.Core
             CleanupOldPredictedInputs(frame);
         }
 
-        /// <summary>
-        /// 检查是否可执行帧
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        /// <returns>是否可执行</returns>
-        public bool CanExecuteFrame(int frame)
-        {
-            var frameInputs = FrameBuffer.GetFrame(frame);
-            return frameInputs != null && frameInputs.IsComplete;
-        }
 
-        /// <summary>
-        /// 获取预测输入
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <param name="frame">帧号</param>
-        /// <returns>预测的输入数据</returns>
-        public LSInput GetPredictedInput(long playerId, int frame)
-        {
-            // 首先尝试从帧缓冲区获取真实输入
-            var frameInputs = FrameBuffer.GetFrame(frame);
-            var realInput = frameInputs?.GetInput(playerId);
-            if (realInput != null)
-            {
-                return realInput;
-            }
 
-            // 检查是否有预测输入
-            if (_predictedInputs.TryGetValue(frame, out var framePredictions) &&
-                framePredictions.TryGetValue(playerId, out var predictedInput))
-            {
-                return predictedInput;
-            }
 
-            // 生成预测输入（基于历史输入）
-            var prediction = GeneratePredictedInput(playerId, frame);
-            
-            // 缓存预测输入
-            if (!_predictedInputs.ContainsKey(frame))
-            {
-                _predictedInputs[frame] = new Dictionary<long, LSInput>();
-            }
-            _predictedInputs[frame][playerId] = prediction;
 
-            return prediction;
-        }
 
-        /// <summary>
-        /// 更新输入系统
-        /// </summary>
-        public void Update()
-        {
-            // 更新帧缓冲区的当前帧
-            FrameBuffer.CurrentFrame = CurrentProcessingFrame;
-            
-            // 清理过旧的帧数据
-            int keepFrame = CurrentProcessingFrame - RollbackFrames;
-            FrameBuffer.RemoveOldFrames(keepFrame);
-        }
 
-        /// <summary>
-        /// 获取指定帧的输入
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        /// <returns>单帧输入数据</returns>
-        public OneFrameInputs? GetFrameInputs(int frame)
-        {
-            return FrameBuffer.GetFrame(frame);
-        }
-
-        /// <summary>
-        /// 设置帧为完成状态
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        /// <param name="playerCount">预期玩家数量</param>
-        public void MarkFrameComplete(int frame, int playerCount)
-        {
-            var frameInputs = FrameBuffer.GetFrame(frame);
-            if (frameInputs != null)
-            {
-                frameInputs.IsComplete = frameInputs.HasAllInputs(playerCount);
-            }
-        }
 
         /// <summary>
         /// 重置输入系统
         /// </summary>
         public void Reset()
         {
-            FrameBuffer.Clear();
+            //FrameBuffer.Clear();
             _predictedInputs.Clear();
             CurrentProcessingFrame = 0;
         }
 
-        /// <summary>
-        /// 生成预测输入
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <param name="frame">帧号</param>
-        /// <returns>预测的输入</returns>
-        private LSInput GeneratePredictedInput(long playerId, int frame)
-        {
-            // 简单的预测策略：使用最近的输入作为预测
-            LSInput? lastInput = null;
-            
-            // 向前查找最近的真实输入
-            for (int i = 1; i <= 5; i++)
-            {
-                int searchFrame = frame - i;
-                var searchFrameInputs = FrameBuffer.GetFrame(searchFrame);
-                lastInput = searchFrameInputs?.GetInput(playerId);
-                if (lastInput != null) break;
-            }
 
-            // 如果找不到历史输入，返回空输入
-            if (lastInput == null)
-            {
-                return new LSInput
-                {
-                    PlayerId = playerId,
-                    Frame = frame,
-                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-                };
-            }
-
-            // 克隆最后的输入作为预测（可以添加更复杂的预测逻辑）
-            var prediction = lastInput.Clone();
-            prediction.Frame = frame;
-            prediction.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-            // 简单的预测：如果是移动输入，可以保持；如果是技能输入，则清零
-            prediction.Attack = false;
-            prediction.Skill1 = false;
-            prediction.Skill2 = false;
-
-            return prediction;
-        }
 
         /// <summary>
         /// 清理过旧的预测输入
