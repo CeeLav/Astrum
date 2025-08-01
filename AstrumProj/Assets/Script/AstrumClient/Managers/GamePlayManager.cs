@@ -286,7 +286,7 @@ namespace Astrum.Client.Managers
         /// 发送网络消息
         /// </summary>
         /// <param name="message">网络消息</param>
-        private void SendNetworkMessage(GameNetworkMessage message)
+        private async void SendNetworkMessage(GameNetworkMessage message)
         {
             var networkManager = GameApplication.Instance?.NetworkManager;
             if (networkManager == null)
@@ -303,10 +303,30 @@ namespace Astrum.Client.Managers
                 return;
             }
             
-            // 这里需要根据NetworkManager的实际接口来发送消息
-            // 暂时先记录日志，等NetworkManager接口完善后再实现
-            ASLogger.Instance.Info($"GamePlayManager: 发送消息 - {message.Type}");
-            // networkManager.SendMessage(message);
+            try
+            {
+                // 将GameNetworkMessage转换为NetworkMessage
+                var networkMessage = new NetworkMessage(message.Type, message.Data)
+                {
+                    Success = message.Success,
+                    Error = message.Error,
+                    Timestamp = message.Timestamp
+                };
+                
+                ASLogger.Instance.Info($"GamePlayManager: 发送消息 - {message.Type}");
+                bool success = await networkManager.SendMessageAsync(networkMessage);
+                
+                if (!success)
+                {
+                    ASLogger.Instance.Error("GamePlayManager: 发送消息失败");
+                    OnNetworkError?.Invoke("发送消息失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"GamePlayManager: 发送消息异常 - {ex.Message}");
+                OnNetworkError?.Invoke($"发送消息异常: {ex.Message}");
+            }
         }
         
         /// <summary>
@@ -535,6 +555,35 @@ namespace Astrum.Client.Managers
                 throw;
             }
         }
+        
+        public void StartMultiPlayerGame(string gameSceneName)
+        {
+            ASLogger.Instance.Info("GameLauncher: 启动多人游戏");
+            
+            try
+            {
+                // 1. 创建Room
+                var room = CreateRoom();
+                var world = new World();
+                room.AddWorld(world);
+                room.Initialize();
+                // 2. 创建Stage
+                Stage gameStage = CreateStage(room);
+                
+                SwitchToGameScene(gameSceneName, gameStage);
+                CreatePlayerAndJoin(gameStage, room);
+                
+                MainRoom = room;
+                MainStage = gameStage;
+                ASLogger.Instance.Info("GameLauncher: 游戏启动成功");
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Error($"GameLauncher: 启动游戏失败 - {ex.Message}");
+                throw;
+            }
+        }
+        
         
         /// <summary>
         /// 创建Room - 模拟逻辑层的Room创建

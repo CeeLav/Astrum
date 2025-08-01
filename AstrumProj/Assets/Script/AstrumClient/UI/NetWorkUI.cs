@@ -27,11 +27,15 @@ namespace Astrum.Client
             
             GamePlayManager.Instance.Login("Player");
             First.SetActive(false);
+            Second.SetActive(true);
+            
         }
 
         public void CraeteRoom()
         {
             GamePlayManager.Instance.CreateRoom();
+            
+            
         }
         
         public void JoinRoom()
