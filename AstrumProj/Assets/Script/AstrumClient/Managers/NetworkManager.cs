@@ -630,26 +630,49 @@ namespace Astrum.Client.Managers
 
             try
             {
-                // 创建简化的JSON对象，避免Unity JsonUtility的限制
-                var jsonObj = new Dictionary<string, object>
-                {
-                    ["type"] = message.Type,
-                    ["success"] = message.Success,
-                    ["timestamp"] = message.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                };
+                // 手动构建JSON字符串，避免Unity JsonUtility对object?的限制
+                var jsonBuilder = new StringBuilder();
+                jsonBuilder.Append("{");
+                jsonBuilder.Append($"\"type\":\"{message.Type}\",");
+                jsonBuilder.Append($"\"success\":{message.Success.ToString().ToLower()},");
+                jsonBuilder.Append($"\"timestamp\":\"{message.Timestamp:yyyy-MM-ddTHH:mm:ss.fffZ}\"");
                 
                 if (message.Data != null)
                 {
-                    jsonObj["data"] = message.Data;
+                    // 尝试序列化Data字段
+                    string dataJson = "";
+                    try
+                    {
+                        dataJson = JsonUtility.ToJson(message.Data);
+                    }
+                    catch
+                    {
+                        // 如果序列化失败，使用字符串表示
+                        dataJson = $"\"{message.Data}\"";
+                    }
+                    jsonBuilder.Append($",\"data\":{dataJson}");
+                }
+                else
+                {
+                    jsonBuilder.Append(",\"data\":null");
                 }
                 
                 if (!string.IsNullOrEmpty(message.Error))
                 {
-                    jsonObj["error"] = message.Error;
+                    jsonBuilder.Append($",\"error\":\"{message.Error}\"");
+                }
+                else
+                {
+                    jsonBuilder.Append(",\"error\":null");
                 }
                 
-                var json = JsonUtility.ToJson(new { jsonObj });
+                jsonBuilder.Append("}");
+                
+                var json = jsonBuilder.ToString();
                 var bytes = Encoding.UTF8.GetBytes(json + "\n");
+                
+                // 调试：输出实际发送的JSON
+                Debug.Log($"发送JSON: {json}");
                 
                 lock (_lock)
                 {

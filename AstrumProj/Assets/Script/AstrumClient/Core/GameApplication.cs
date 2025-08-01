@@ -124,6 +124,7 @@ namespace Astrum.Client.Core
             // 初始化网络管理器（单例赋值）
             networkManager = NetworkManager.Instance;
             networkManager.Initialize();
+            RegisterMessageHandlers();
             networkManager.ConnectAsync();
             // 初始化输入管理器（单例赋值）
             inputManager = InputManager.Instance;
@@ -140,6 +141,24 @@ namespace Astrum.Client.Core
             // 初始化游戏玩法管理器（单例赋值）
             gamePlayManager = GamePlayManager.Instance;
             gamePlayManager.Initialize();
+        }
+        
+        private void OnMessageReceived(NetworkMessage? message)
+        {
+            if (message != null)
+            {
+                switch (message.Type)
+                {
+                    case "Login":
+                        break;
+                    case "create_room":
+                        GamePlayManager.Instance.StartMultiPlayerGame("Room");
+                        break;
+                }
+                
+                
+                Debug.Log($"[消息接收] 类型: {message.Type}");
+            }
         }
         
         /// <summary>
@@ -203,9 +222,28 @@ namespace Astrum.Client.Core
             Application.Quit();
         }
         
+        /// <summary>
+        /// 注册消息处理器
+        /// </summary>
+        private void RegisterMessageHandlers()
+        {
+            networkManager.RegisterHandler("pong", OnPongReceived);
+            
+            networkManager.RegisterHandler("login", (NetworkMessage? message) =>
+            {
+                //GamePlayManager.Instance.StartSinglePlayerGame("Room");
+            });
+            networkManager.RegisterHandler("create_room", (NetworkMessage? message) =>
+            {
+                GamePlayManager.Instance.StartMultiPlayerGame("Room");
+            });
 
+        }
         
-
+        private void OnPongReceived(NetworkMessage? message)
+        {
+            Debug.Log("收到pong响应");
+        }
         
 
 

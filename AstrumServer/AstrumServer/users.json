@@ -38,5 +38,29 @@
     "LastLoginAt": "2025-08-01T11:27:58.9883076+08:00",
     "IsOnline": false,
     "CurrentRoomId": null
+  },
+  "e8773c0d-2940-428e-9a4c-c8c754388cdb": {
+    "Id": "e8773c0d-2940-428e-9a4c-c8c754388cdb",
+    "DisplayName": "Player_e8773c0d",
+    "CreatedAt": "2025-08-01T12:28:16.3891441+08:00",
+    "LastLoginAt": "2025-08-01T12:28:16.389148+08:00",
+    "IsOnline": false,
+    "CurrentRoomId": null
+  },
+  "e003d97e-dd15-46c8-9bef-0421bdff823c": {
+    "Id": "e003d97e-dd15-46c8-9bef-0421bdff823c",
+    "DisplayName": "Player_e003d97e",
+    "CreatedAt": "2025-08-01T14:38:26.8175619+08:00",
+    "LastLoginAt": "2025-08-01T14:38:26.8175645+08:00",
+    "IsOnline": false,
+    "CurrentRoomId": null
+  },
+  "bc24f43d-8983-49dc-b41a-a02428171129": {
+    "Id": "bc24f43d-8983-49dc-b41a-a02428171129",
+    "DisplayName": "Player_bc24f43d",
+    "CreatedAt": "2025-08-01T14:47:54.5105791+08:00",
+    "LastLoginAt": "2025-08-01T14:47:54.5105867+08:00",
+    "IsOnline": false,
+    "CurrentRoomId": null
   }
 }
