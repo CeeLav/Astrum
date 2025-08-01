@@ -14,8 +14,8 @@ namespace NetworkTest
         private bool _isConnected = false;
         private readonly object _lock = new();
 
-        public event Action<NetworkMessage>? OnMessageReceived;
-        public event Action<string>? OnError;
+        public event Action<NetworkMessage?>? OnMessageReceived;
+        public event Action<string?>? OnError;
         public event Action? OnDisconnected;
 
         public bool IsConnected => _isConnected && _client?.Connected == true;
