@@ -642,60 +642,8 @@ namespace Astrum.Client.Managers
         }
     }
     
-    /// <summary>
-    /// 用户信息
-    /// </summary>
-    [Serializable]
-    public class UserInfo
-    {
-        public string Id { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-        public DateTime LastLoginAt { get; set; }
-        public string CurrentRoomId { get; set; }
-    }
-    
-    /// <summary>
-    /// 房间信息
-    /// </summary>
-    [Serializable]
-    public class RoomInfo
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string CreatorName { get; set; } = string.Empty;
-        public int CurrentPlayers { get; set; }
-        public int MaxPlayers { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public List<string> PlayerNames { get; set; } = new List<string>();
-    }
+
     
 
     
-    /// <summary>
-    /// 登录请求
-    /// </summary>
-    [Serializable]
-    public class LoginRequest
-    {
-        public string DisplayName { get; set; }
-    }
-    
-    /// <summary>
-    /// 创建房间请求
-    /// </summary>
-    [Serializable]
-    public class CreateRoomRequest
-    {
-        public string RoomName { get; set; } = string.Empty;
-        public int MaxPlayers { get; set; } = 4;
-    }
-    
-    /// <summary>
-    /// 加入房间请求
-    /// </summary>
-    [Serializable]
-    public class JoinRoomRequest
-    {
-        public string RoomId { get; set; } = string.Empty;
-    }
 } 

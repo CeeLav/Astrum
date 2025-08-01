@@ -124,7 +124,7 @@ namespace Astrum.Client.Core
             // 初始化网络管理器（单例赋值）
             networkManager = NetworkManager.Instance;
             networkManager.Initialize();
-            networkManager.Connect();
+            //networkManager.Connect();
             // 初始化输入管理器（单例赋值）
             inputManager = InputManager.Instance;
             inputManager.Initialize();
@@ -161,7 +161,7 @@ namespace Astrum.Client.Core
             inputManager?.Update();
             
             // 更新网络管理�?
-            networkManager?.Update();
+            //networkManager?.Update();
             
             // 更新UI管理�?
             uiManager?.Update();

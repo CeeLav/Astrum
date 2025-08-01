@@ -45,7 +45,3 @@ D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\obj\Debug\net9.0\refint\Ast
 D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\obj\Debug\net9.0\AstrumServer.pdb
 D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\obj\Debug\net9.0\AstrumServer.genruntimeconfig.cache
 D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\obj\Debug\net9.0\ref\AstrumServer.dll
-D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\Debug\net9.0\LogicCore.dll
-D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\Debug\net9.0\LogicCore.pdb
-D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\Debug\net9.0\CommonBase.dll
-D:\Develop\Projects\Astrum\AstrumServer\AstrumServer\bin\Debug\net9.0\CommonBase.pdb

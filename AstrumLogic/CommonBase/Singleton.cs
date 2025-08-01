@@ -212,14 +212,5 @@ namespace Astrum.CommonBase
         void Destroy();
     }
 
-    /// <summary>
-    /// 可释放接口
-    /// </summary>
-    public interface IDisposable
-    {
-        /// <summary>
-        /// 释放资源
-        /// </summary>
-        void Dispose();
-    }
+
 } 
