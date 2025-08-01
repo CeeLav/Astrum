@@ -28,6 +28,10 @@ namespace Astrum.LogicCore.FrameSync
         {
             Frame = frame;
         }
+        public static OneFrameInputs Create(bool isFromPool = false)
+        {
+            return new  OneFrameInputs();
+        }
 
         /// <summary>
         /// 添加玩家输入
