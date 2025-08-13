@@ -49,7 +49,7 @@ namespace Astrum.LogicCore.Capabilities
         /// 每帧更新（抽象方法，子类必须实现）
         /// </summary>
         /// <param name="deltaTime">时间差</param>
-        public abstract void Tick(float deltaTime);
+        public abstract void Tick();
 
         /// <summary>
         /// 检查是否可以执行

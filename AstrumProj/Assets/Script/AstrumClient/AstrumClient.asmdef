@@ -2,7 +2,7 @@
     "name": "AstrumClient",
     "rootNamespace": "Astrum.Client",
     "references": [
-        "External",
+        "CommonBase",
         "Network",
         "AstrumView",
         "AstrumLogic"

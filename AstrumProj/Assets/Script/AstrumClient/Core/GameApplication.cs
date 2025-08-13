@@ -143,24 +143,6 @@ namespace Astrum.Client.Core
             gamePlayManager.Initialize();
         }
         
-        private void OnMessageReceived(NetworkMessage? message)
-        {
-            if (message != null)
-            {
-                switch (message.Type)
-                {
-                    case "Login":
-                        break;
-                    case "create_room":
-                        GamePlayManager.Instance.StartMultiPlayerGame("Room");
-                        break;
-                }
-                
-                
-                Debug.Log($"[消息接收] 类型: {message.Type}");
-            }
-        }
-        
         /// <summary>
         /// 初始化日志管理器
         /// </summary>

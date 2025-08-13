@@ -32,6 +32,15 @@ namespace Astrum.LogicCore.FrameSync
         {
             return new  OneFrameInputs();
         }
+        
+        public void CopyTo(OneFrameInputs to)
+        {
+            to.Inputs.Clear();
+            foreach (var kv in this.Inputs)
+            {
+                to.Inputs.Add(kv.Key, kv.Value);
+            }
+        }
 
         /// <summary>
         /// 添加玩家输入
