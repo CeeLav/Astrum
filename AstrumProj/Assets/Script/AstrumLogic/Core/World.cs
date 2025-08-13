@@ -120,12 +120,9 @@ namespace Astrum.LogicCore.Core
         /// 更新世界状态
         /// </summary>
         /// <param name="deltaTime">时间差</param>
-        public void Update(float deltaTime)
+        public void Update()
         {
-            DeltaTime = deltaTime;
-            TotalTime += deltaTime;
-
-            Updater?.UpdateWorld(this, deltaTime);
+            Updater?.UpdateWorld(this);
         }
 
         /// <summary>

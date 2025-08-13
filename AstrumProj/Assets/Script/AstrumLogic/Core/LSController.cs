@@ -27,6 +27,8 @@ namespace Astrum.LogicCore.Core
         /// 帧率（如60FPS）
         /// </summary>
         public int TickRate { get; set; } = 60;
+        
+        public long CreationTime { get; set; }
 
         /// <summary>
         /// 上次更新时间
@@ -61,7 +63,8 @@ namespace Astrum.LogicCore.Core
         public LSController()
         {
             _inputSystem = new LSInputSystem();
-            LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _inputSystem.LSController = this;
+            LastUpdateTime = TimeInfo.Instance.ServerNow();
         }
 
         /// <summary>
@@ -71,109 +74,32 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsRunning || IsPaused || Room == null) return;
 
-            long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            long deltaTime = currentTime - LastUpdateTime;
-            
-            // 控制帧率
-            long frameTime = 1000 / TickRate;
-            if (deltaTime < frameTime) return;
+            long currentTime = TimeInfo.Instance.ServerNow();
 
-            // 保存当前状态
-            SaveState(AuthorityFrame);
-
-            // 分发输入到各个世界
-            DistributeInputsToWorlds();
-
-            // 更新输入系统
-            _inputSystem.ProcessFrame(AuthorityFrame);
-            //_inputSystem.Update();
-
-            // 执行帧逻辑
-            ExecuteFrame(AuthorityFrame);
-
-            // 更新帧计数
-            //CurrentFrame++;
-            LastUpdateTime = currentTime;
-
-            // 清理过旧的状态
-            CleanupOldStates();
-        }
-        
-        public void DealNetFrameInputs(OneFrameInputs frameInputs)
-        {
-            
-            ASLogger.Instance.Info($"OneFrameInputs: {AuthorityFrame + 1} {frameInputs.ToString()}");
-            
-            ++AuthorityFrame;
-            // 服务端返回的消息比预测的还早
-            if (AuthorityFrame >= PredictionFrame)
+            while (true)
             {
-                //OneFrameInputs authorityFrame = LSInputSystem.FrameBuffer.FrameInputs(room.AuthorityFrame);
-                //input.CopyTo(authorityFrame);
-            }
-            else
-            {
+                if (currentTime < CreationTime + (PredictionFrame + 1) * LSConstValue.UpdateInterval)
+                {
+                    return;
+                }
+
+                if (PredictionFrame - AuthorityFrame > 5)
+                {
+                    return;
+                }
                 
+                ++PredictionFrame;
+
+                OneFrameInputs oneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
+                
+                Room.FrameTick(oneFrameInputs);
+                if (TimeInfo.Instance.ServerNow() - currentTime > 5)
+                {
+                    return;
+                }
             }
             
         }
-
-        /// <summary>
-        /// 将输入分发到各个World
-        /// </summary>
-        public void DistributeInputsToWorlds()
-        {
-            if (Room == null) return;
-/*
-            // 获取当前帧的输入
-            var frameInputs = _inputSystem.GetFrameInputs(AuthorityFrame);
-            
-            // 如果没有输入，生成预测输入
-            if (frameInputs == null)
-            {
-                frameInputs = GeneratePredictedFrameInputs(AuthorityFrame);
-            }
-
-            // 分发输入到所有世界
-            foreach (var world in Room.Worlds)
-            {
-                DistributeInputsToEntities(world, frameInputs);
-            }*/
-        }
-
-
-
-        /// <summary>
-        /// 将输入分发到实体
-        /// </summary>
-        /// <param name="world">世界对象</param>
-        /// <param name="frameInputs">帧输入数据</param>
-        private void DistributeInputsToEntities(World world, OneFrameInputs? frameInputs)
-        {
-            if (world == null || frameInputs == null) return;
-
-            world.ApplyInputsToEntities(frameInputs);
-        }
-
-        /// <summary>
-        /// 回滚到指定帧
-        /// </summary>
-        /// <param name="frame">目标帧号</param>
-        public void RollbackToFrame(int frame)
-        {
-            if (frame < 0 || frame >= AuthorityFrame) return;
-
-            // 加载指定帧的状态
-            LoadState(frame);
-
-            // 重新执行从目标帧到当前帧的所有逻辑
-            for (int f = frame; f < AuthorityFrame; f++)
-            {
-                ExecuteFrame(f);
-            }
-        }
-
-
 
         /// <summary>
         /// 保存状态
@@ -210,7 +136,6 @@ namespace Astrum.LogicCore.Core
             AuthorityFrame = 0;
             LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             
-            _inputSystem.Reset();
         }
 
         /// <summary>
@@ -231,16 +156,7 @@ namespace Astrum.LogicCore.Core
         {
             IsPaused = true;
         }
-
-        /// <summary>
-        /// 恢复控制器
-        /// </summary>
-        public void Resume()
-        {
-            IsPaused = false;
-            LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        }
-
+        
         /// <summary>
         /// 添加玩家输入
         /// </summary>
@@ -250,24 +166,6 @@ namespace Astrum.LogicCore.Core
         {
             //_inputSystem.CollectInput(playerId, input);
         }
-
-        /// <summary>
-        /// 执行单帧逻辑
-        /// </summary>
-        /// <param name="frame">帧号</param>
-        private void ExecuteFrame(int frame)
-        {
-            if (Room == null) return;
-
-            float deltaTime = 1f / TickRate;
-
-            // 更新所有世界
-            foreach (var world in Room.Worlds)
-            {
-                world.Update(deltaTime);
-            }
-        }
-
 
         /// <summary>
         /// 序列化游戏状态
@@ -289,20 +187,5 @@ namespace Astrum.LogicCore.Core
             // 这里应该实现实际的反序列化逻辑
         }
 
-        /// <summary>
-        /// 清理过旧的状态
-        /// </summary>
-        private void CleanupOldStates()
-        {
-            if (_stateHistory.Count <= MaxStateHistory) return;
-
-            int keepFrame = AuthorityFrame - MaxStateHistory;
-            var framesToRemove = _stateHistory.Keys.Where(f => f < keepFrame).ToList();
-            
-            foreach (var frame in framesToRemove)
-            {
-                _stateHistory.Remove(frame);
-            }
-        }
     }
 }

@@ -49,16 +49,18 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 房间创建时间
         /// </summary>
-        public DateTime CreationTime { get; private set; }
+        public long CreationTime { get; private set; }
 
         /// <summary>
         /// 房间总运行时间
         /// </summary>
         public float TotalTime { get; private set; } = 0f;
 
+        public long MainPlayerId { get; set; } = -1; // 默认返回第一个玩家ID，如果没有则返回0
+
         public Room()
         {
-            CreationTime = DateTime.Now;
+            CreationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
 
         public Room(int roomId, string name) : this()
@@ -131,12 +133,33 @@ namespace Astrum.LogicCore.Core
 
             // 更新帧同步控制器
             LSController?.Tick();
+            
+        }
+        
+        public void FrameTick(OneFrameInputs oneFrameInputs)
+        {
 
+            for (var i = 0; i < oneFrameInputs.Inputs.Count; i++)
+            {
+                var input = oneFrameInputs.Inputs[i];
+                var entity = MainWorld.GetEntity(input.PlayerId);
+                if (entity != null)
+                {
+                    // 更新实体输入组件
+                    var inputComponent = entity.GetComponent<LSInputComponent>();
+                    if (inputComponent != null)
+                    {
+                        inputComponent.SetInput(input);
+                    }
+                }
+            }
+            
             // 更新所有世界
             foreach (var world in Worlds)
             {
-                world.Update(deltaTime);
+                world.Update();
             }
+            
         }
 
         /// <summary>
@@ -144,7 +167,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public virtual void Initialize()
         {
-            CreationTime = DateTime.Now;
+            CreationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             TotalTime = 0f;
 
             // 初始化帧同步控制器
@@ -154,6 +177,7 @@ namespace Astrum.LogicCore.Core
                 {
                     Room = this
                 };
+                LSController.CreationTime = CreationTime;
                 LSController.Start();
             }
 

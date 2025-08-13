@@ -25,7 +25,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         /// <param name="world">世界对象</param>
         /// <param name="deltaTime">时间差</param>
-        public void UpdateWorld(World world, float deltaTime)
+        public void UpdateWorld(World world)
         {
             if (world == null) return;
 
@@ -35,12 +35,12 @@ namespace Astrum.LogicCore.Core
             // 更新所有实体的能力
             foreach (var entity in entities)
             {
-                UpdateEntityCapabilities(entity, deltaTime);
+                UpdateEntityCapabilities(entity);
             }
 
             // 更新世界状态（不调用world.Update避免递归）
-            world.DeltaTime = deltaTime;
-            world.TotalTime += deltaTime;
+            //world.DeltaTime = deltaTime;
+            //world.TotalTime += deltaTime;
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         /// <param name="entity">实体对象</param>
         /// <param name="deltaTime">时间差</param>
-        private void UpdateEntityCapabilities(Entity entity, float deltaTime)
+        private void UpdateEntityCapabilities(Entity entity)
         {
             if (entity == null || !entity.IsActive || entity.IsDestroyed) return;
 
@@ -106,7 +106,7 @@ namespace Astrum.LogicCore.Core
             {
                 try
                 {
-                    capability.Tick(deltaTime);
+                    capability.Tick();
                 }
                 catch (Exception ex)
                 {
@@ -135,44 +135,6 @@ namespace Astrum.LogicCore.Core
         public int GetUpdateRate()
         {
             return FixedDeltaTime > 0 ? (int)(1f / FixedDeltaTime) : 0;
-        }
-
-        /// <summary>
-        /// 更新指定类型的实体
-        /// </summary>
-        /// <typeparam name="T">组件类型</typeparam>
-        /// <param name="deltaTime">时间差</param>
-        public void UpdateEntitiesWithComponent<T>(float deltaTime) where T : LogicCore.Components.BaseComponent
-        {
-            if (Room == null) return;
-
-            foreach (var world in Room.Worlds)
-            {
-                var entities = world.Entities.Values
-                    .Where(e => e.IsActive && !e.IsDestroyed && e.HasComponent<T>())
-                    .ToList();
-
-                foreach (var entity in entities)
-                {
-                    UpdateEntityCapabilities(entity, deltaTime);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 批量更新实体列表
-        /// </summary>
-        /// <param name="entities">实体列表</param>
-        /// <param name="deltaTime">时间差</param>
-        public void UpdateEntities(IEnumerable<Entity> entities, float deltaTime)
-        {
-            foreach (var entity in entities)
-            {
-                if (entity.IsActive && !entity.IsDestroyed)
-                {
-                    UpdateEntityCapabilities(entity, deltaTime);
-                }
-            }
         }
 
         /// <summary>
