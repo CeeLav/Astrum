@@ -592,7 +592,7 @@ namespace Astrum.Client.Managers
                 ASLogger.Instance.Warning("GamePlayManager: 当前没有Room");
                 return;
             }
-            MainRoom?.LSController?.DealNetFrameInputs(frameInputs);
+            //MainRoom?.LSController?.DealNetFrameInputs(frameInputs);
             
             ASLogger.Instance.Info("GamePlayManager: 处理网络帧输入");
         }
@@ -637,7 +637,8 @@ namespace Astrum.Client.Managers
             
             
             PlayerId = room.AddPlayer();
-            Vector3 playerPosition = new Vector3(-5f, 0.5f, 0f);
+            room.MainPlayerId = PlayerId;
+            //Vector3 playerPosition = new Vector3(-5f, 0.5f, 0f);
 
             
             ASLogger.Instance.Info($"GameLauncher: Player创建完成，ID: {PlayerId}");

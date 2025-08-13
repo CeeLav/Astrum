@@ -24,7 +24,7 @@ namespace Astrum.LogicCore.Capabilities
         /// 每帧更新移动逻辑
         /// </summary>
         /// <param name="deltaTime">时间差</param>
-        public override void Tick(float deltaTime)
+        public override void Tick()
         {
             if (!CanExecute()) return;
 
@@ -60,6 +60,7 @@ namespace Astrum.LogicCore.Capabilities
                 inputMagnitude = 1f;
             }
 
+            var deltaTime = LSConstValue.UpdateInterval;
             // 直接移动
             if (inputMagnitude > MovementThreshold && movementComponent.CanMove)
             {
