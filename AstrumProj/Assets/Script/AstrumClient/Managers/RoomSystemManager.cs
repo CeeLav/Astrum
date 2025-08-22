@@ -424,22 +424,22 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void HandleRoomUpdateNotification(RoomUpdateNotification notification)
         {
-                    try
-        {
-            ASLogger.Instance.Info($"RoomSystemManager: 收到房间更新通知 - 房间ID: {notification.Room?.Id}, 更新类型: {notification.UpdateType}");
-            
-            // 更新房间信息
-            if (CurrentRoom != null && notification.Room != null && CurrentRoom.Id == notification.Room.Id)
+            try
             {
-                CurrentRoom.CurrentPlayers = notification.Room.CurrentPlayers;
-                CurrentRoom.PlayerNames = notification.Room.PlayerNames ?? new List<string>();
+                ASLogger.Instance.Info($"RoomSystemManager: 收到房间更新通知 - 房间ID: {notification.Room?.Id}, 更新类型: {notification.UpdateType}");
                 
-                ASLogger.Instance.Info($"RoomSystemManager: 当前房间信息已更新 - 玩家数量: {CurrentRoom.CurrentPlayers}");
+                // 更新房间信息
+                if (CurrentRoom != null && notification.Room != null && CurrentRoom.Id == notification.Room.Id)
+                {
+                    CurrentRoom.CurrentPlayers = notification.Room.CurrentPlayers;
+                    CurrentRoom.PlayerNames = notification.Room.PlayerNames ?? new List<string>();
+                    
+                    ASLogger.Instance.Info($"RoomSystemManager: 当前房间信息已更新 - 玩家数量: {CurrentRoom.CurrentPlayers}");
+                }
+                
+                // 刷新房间列表
+                _ = GetRoomListAsync();
             }
-            
-            // 刷新房间列表
-            _ = GetRoomListAsync();
-        }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"RoomSystemManager: 处理房间更新通知时出错 - {ex.Message}");
@@ -458,6 +458,34 @@ namespace Astrum.Client.Managers
             OnRoomJoined = null;
             OnRoomLeft = null;
             OnRoomError = null;
+        }
+        
+        /// <summary>
+        /// 关闭管理器
+        /// </summary>
+        public void Shutdown()
+        {
+            try
+            {
+                ASLogger.Instance.Info("RoomSystemManager: 开始关闭");
+                
+                // 如果用户在房间中，先离开房间
+                if (IsInRoom)
+                {
+                    ASLogger.Instance.Info($"RoomSystemManager: 用户离开房间 {CurrentRoom?.Id}");
+                    // 这里可以发送离开房间请求
+                }
+                
+                // 清理房间数据
+                AvailableRooms.Clear();
+                CurrentRoom = null;
+                
+                ASLogger.Instance.Info("RoomSystemManager: 关闭完成");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"RoomSystemManager: 关闭失败 - {ex.Message}");
+            }
         }
     }
 }
