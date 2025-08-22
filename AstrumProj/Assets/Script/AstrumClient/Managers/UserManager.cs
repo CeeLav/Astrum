@@ -98,6 +98,65 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
+        /// 连接并登录
+        /// </summary>
+        public async Task<bool> ConnectAndLoginAsync()
+        {
+            if (IsLoggedIn)
+            {
+                ASLogger.Instance.Warning("UserManager: 用户已登录");
+                return true;
+            }
+            
+            if (isLoggingIn)
+            {
+                ASLogger.Instance.Warning("UserManager: 正在登录中，请稍候");
+                return false;
+            }
+            
+            try
+            {
+                isLoggingIn = true;
+                ASLogger.Instance.Info("UserManager: 开始连接并登录...");
+                
+                // 获取网络管理器
+                var networkManager = GameApplication.Instance?.NetworkManager;
+                if (networkManager == null)
+                {
+                    ASLogger.Instance.Error("UserManager: NetworkManager不存在");
+                    OnLoginError?.Invoke("网络管理器不存在");
+                    return false;
+                }
+                
+                // 尝试连接服务器
+                if (!networkManager.IsConnected())
+                {
+                    ASLogger.Instance.Info("UserManager: 尝试连接服务器...");
+                    var result = await networkManager.ConnectAsync("127.0.0.1", 8888);
+                    if (result != 0) // 0表示成功，非0表示错误
+                    {
+                        ASLogger.Instance.Error($"UserManager: 连接服务器失败，错误码: {result}");
+                        OnLoginError?.Invoke("连接服务器失败");
+                        return false;
+                    }
+                }
+                
+                // 连接成功后自动登录
+                return await AutoLoginAsync();
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"UserManager: 连接并登录失败 - {ex.Message}");
+                OnLoginError?.Invoke($"连接并登录失败: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                isLoggingIn = false;
+            }
+        }
+        
+        /// <summary>
         /// 处理登录响应
         /// </summary>
         public void HandleLoginResponse(LoginResponse response)
@@ -172,6 +231,33 @@ namespace Astrum.Client.Managers
             OnUserLoggedIn = null;
             OnUserLoggedOut = null;
             OnLoginError = null;
+        }
+        
+        /// <summary>
+        /// 关闭管理器
+        /// </summary>
+        public void Shutdown()
+        {
+            try
+            {
+                ASLogger.Instance.Info("UserManager: 开始关闭");
+                
+                // 如果用户在房间中，先离开房间
+                if (IsLoggedIn && !string.IsNullOrEmpty(CurrentUser?.CurrentRoomId))
+                {
+                    // 这里可以发送离开房间请求
+                    ASLogger.Instance.Info($"UserManager: 用户离开房间 {CurrentUser.CurrentRoomId}");
+                }
+                
+                // 清理用户状态
+                CurrentUser = null;
+                
+                ASLogger.Instance.Info("UserManager: 关闭完成");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"UserManager: 关闭失败 - {ex.Message}");
+            }
         }
     }
 }
