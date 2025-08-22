@@ -2,7 +2,10 @@
 using System;
 using Astrum.Client.Managers;
 using Astrum.CommonBase;
+using Astrum.Generated;
 using Astrum.View.Managers;
+using Astrum.Network.Generated;
+using Astrum.Network;
 
 namespace Astrum.Client.Core
 {
@@ -59,7 +62,7 @@ namespace Astrum.Client.Core
             }
         }
         
-        public GameLauncher gameLauncher;
+        //public GameLauncher gameLauncher;
         
         public void StartGame()
         {
@@ -113,6 +116,9 @@ namespace Astrum.Client.Core
             // 初始化日志管理器（必须在其他管理器之前初始化）
             InitializeLogManager();
             
+            // 初始化网络系统基础组件（必须在网络管理器之前初始化）
+            InitializeNetworkSystem();
+            
             // 初始化资源管理器（单例赋值）
             resourceManager = ResourceManager.Instance;
             resourceManager.Initialize();
@@ -125,7 +131,8 @@ namespace Astrum.Client.Core
             networkManager = NetworkManager.Instance;
             networkManager.Initialize();
             RegisterMessageHandlers();
-            networkManager.ConnectAsync();
+            // 暂时注释掉自动连接，需要指定服务器地址和端口
+            // networkManager.ConnectAsync("127.0.0.1", 8888);
             // 初始化输入管理器（单例赋值）
             inputManager = InputManager.Instance;
             inputManager.Initialize();
@@ -154,6 +161,34 @@ namespace Astrum.Client.Core
         }
         
         /// <summary>
+        /// 初始化网络系统基础组件
+        /// </summary>
+        private void InitializeNetworkSystem()
+        {
+            Debug.Log("GameApplication: 初始化网络系统基础组件 - 强制重新编译测试");
+            
+            try
+            {
+                // 初始化ObjectPool（对象池，网络系统的基础组件）
+                ObjectPool.Instance.Awake();
+                Debug.Log("GameApplication: ObjectPool初始化完成 - 测试日志");
+                
+                // 初始化CodeTypes（加载所有类型信息）
+                CodeTypes.Instance.Awake();
+                Debug.Log("GameApplication: CodeTypes初始化完成 - 测试日志");
+                
+                // 初始化OpcodeType（注册消息类型和opcode映射）
+                OpcodeType.Instance.Awake();
+                Debug.Log("GameApplication: OpcodeType初始化完成 - 测试日志");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"GameApplication: 网络系统基础组件初始化失败 - {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
         /// 更新各个管理�?
         /// </summary>
         private void UpdateManagers(float deltaTime)
@@ -161,8 +196,8 @@ namespace Astrum.Client.Core
             // 更新输入管理�?
             inputManager?.Update();
             
-            // 更新网络管理�?
-            //networkManager?.Update();
+            // 更新网络管理器
+            networkManager?.Update();
             
             // 更新UI管理�?
             uiManager?.Update();
@@ -209,25 +244,8 @@ namespace Astrum.Client.Core
         /// </summary>
         private void RegisterMessageHandlers()
         {
-            networkManager.RegisterHandler("pong", OnPongReceived);
-            
-            networkManager.RegisterHandler("login", (NetworkMessage? message) =>
-            {
-                //GamePlayManager.Instance.StartSinglePlayerGame("Room");
-            });
-            networkManager.RegisterHandler("create_room", (NetworkMessage? message) =>
-            {
-                GamePlayManager.Instance.StartMultiPlayerGame("Room");
-            });
-            networkManager.RegisterHandler("lock_step", (NetworkMessage? message) =>
-            {
-                GamePlayManager.Instance.StartMultiPlayerGame("Room");
-            });
-        }
-        
-        private void OnPongReceived(NetworkMessage? message)
-        {
-            Debug.Log("收到pong响应");
+            // 网络消息处理已移至 GamePlayManager
+            ASLogger.Instance.Info("GameApplication: 网络消息处理器注册完成");
         }
         
 

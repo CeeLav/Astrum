@@ -1,0 +1,6 @@
+@echo off
+echo 开始生成Proto2CS...
+dotnet run
+echo.
+echo 按任意键退出...
+pause >nul

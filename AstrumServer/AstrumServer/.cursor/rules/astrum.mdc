@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+协议数据的生成应当通过修改 proto 文件再通过工具生成，不能直接修改 Generated/Message 下的文件

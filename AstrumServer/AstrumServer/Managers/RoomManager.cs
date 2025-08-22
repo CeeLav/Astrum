@@ -1,193 +1,302 @@
-using AstrumServer.Models;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Logging;
+using Astrum.Generated;
+using Astrum.CommonBase;
 
 namespace AstrumServer.Managers
 {
+    /// <summary>
+    /// 房间管理器 - 管理所有房间
+    /// </summary>
     public class RoomManager
     {
-        private static RoomManager? _instance;
-        private static readonly object _lock = new();
-        
-        public static RoomManager Instance
+        private readonly ILogger<RoomManager> _logger;
+        private readonly ConcurrentDictionary<string, RoomInfo> _rooms = new();
+        private readonly ConcurrentDictionary<string, List<string>> _roomPlayers = new(); // roomId -> List<userId>
+
+        public RoomManager(ILogger<RoomManager> logger)
         {
-            get
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 创建房间
+        /// </summary>
+        public RoomInfo CreateRoom(string creatorId, string roomName, int maxPlayers)
+        {
+            try
             {
-                if (_instance == null)
-                {
-                    lock (_lock)
-                    {
-                        _instance ??= new RoomManager();
-                    }
-                }
-                return _instance;
+                // 生成唯一房间ID
+                var roomId = GenerateRoomId();
+                
+                var roomInfo = RoomInfo.Create();
+                roomInfo.Id = roomId;
+                roomInfo.Name = roomName;
+                roomInfo.CreatorName = creatorId;
+                roomInfo.CurrentPlayers = 1;
+                roomInfo.MaxPlayers = maxPlayers;
+                roomInfo.CreatedAt = TimeInfo.Instance.ClientNow();
+                roomInfo.PlayerNames = new List<string> { creatorId };
+
+                // 添加到管理器中
+                _rooms[roomId] = roomInfo;
+                _roomPlayers[roomId] = new List<string> { creatorId };
+
+                _logger.LogInformation("创建房间: {RoomId} (Name: {RoomName}, Creator: {CreatorId}, MaxPlayers: {MaxPlayers})", 
+                    roomId, roomName, creatorId, maxPlayers);
+
+                return roomInfo;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "创建房间时出错");
+                throw;
             }
         }
 
-        private readonly Dictionary<string, Room> _rooms = new();
-        private readonly ILogger? _logger;
-
-        private RoomManager()
-        {
-        }
-
-        public void SetLogger(ILogger logger)
-        {
-            var loggerField = typeof(RoomManager).GetField("_logger", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            loggerField?.SetValue(this, logger);
-        }
-
-        public Room? CreateRoom(string name, string creatorId, int maxPlayers = 4)
-        {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(creatorId))
-                return null;
-
-            if (maxPlayers < 1 || maxPlayers > 16)
-                maxPlayers = 4;
-
-            var room = new Room(name, creatorId, maxPlayers);
-            _rooms[room.Id] = room;
-            
-            // 更新用户当前房间
-            UserManager.Instance.UpdateUserRoom(creatorId, room.Id);
-            
-            _logger?.LogInformation("房间创建成功: {RoomName} (ID: {RoomId}) 创建者: {CreatorId}", 
-                name, room.Id, creatorId);
-            
-            return room;
-        }
-
+        /// <summary>
+        /// 加入房间
+        /// </summary>
         public bool JoinRoom(string roomId, string userId)
         {
-            if (!_rooms.TryGetValue(roomId, out var room))
+            try
             {
-                _logger?.LogWarning("尝试加入不存在的房间: {RoomId}", roomId);
-                return false;
-            }
+                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                {
+                    _logger.LogWarning("房间不存在: {RoomId}", roomId);
+                    return false;
+                }
 
-            if (!room.CanJoin())
-            {
-                _logger?.LogWarning("房间 {RoomId} 已满或不可加入", roomId);
-                return false;
-            }
+                if (roomInfo.CurrentPlayers >= roomInfo.MaxPlayers)
+                {
+                    _logger.LogWarning("房间已满: {RoomId} (Current: {Current}, Max: {Max})", 
+                        roomId, roomInfo.CurrentPlayers, roomInfo.MaxPlayers);
+                    return false;
+                }
 
-            if (room.PlayerIds.Contains(userId))
-            {
-                _logger?.LogWarning("用户 {UserId} 已在房间 {RoomId} 中", userId, roomId);
-                return false;
-            }
+                if (roomInfo.PlayerNames.Contains(userId))
+                {
+                    _logger.LogWarning("用户已在房间中: {UserId} in {RoomId}", userId, roomId);
+                    return false;
+                }
 
-            if (room.AddPlayer(userId))
-            {
-                UserManager.Instance.UpdateUserRoom(userId, roomId);
-                _logger?.LogInformation("用户 {UserId} 加入房间 {RoomId}", userId, roomId);
-                
-                // 通知房间内其他玩家
-                NotifyRoomUpdate(room);
+                // 添加用户到房间
+                roomInfo.CurrentPlayers++;
+                roomInfo.PlayerNames.Add(userId);
+
+                if (_roomPlayers.TryGetValue(roomId, out var players))
+                {
+                    players.Add(userId);
+                }
+
+                _logger.LogInformation("用户加入房间: {UserId} -> {RoomId} (Current: {Current}/{Max})", 
+                    userId, roomId, roomInfo.CurrentPlayers, roomInfo.MaxPlayers);
+
                 return true;
             }
-
-            return false;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "加入房间时出错");
+                return false;
+            }
         }
 
+        /// <summary>
+        /// 离开房间
+        /// </summary>
         public bool LeaveRoom(string roomId, string userId)
         {
-            if (!_rooms.TryGetValue(roomId, out var room))
-                return false;
-
-            if (room.RemovePlayer(userId))
+            try
             {
-                UserManager.Instance.UpdateUserRoom(userId, null);
-                _logger?.LogInformation("用户 {UserId} 离开房间 {RoomId}", userId, roomId);
+                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                {
+                    _logger.LogWarning("房间不存在: {RoomId}", roomId);
+                    return false;
+                }
+
+                if (!roomInfo.PlayerNames.Contains(userId))
+                {
+                    _logger.LogWarning("用户不在房间中: {UserId} in {RoomId}", userId, roomId);
+                    return false;
+                }
+
+                // 从房间移除用户
+                roomInfo.CurrentPlayers--;
+                roomInfo.PlayerNames.Remove(userId);
+
+                if (_roomPlayers.TryGetValue(roomId, out var players))
+                {
+                    players.Remove(userId);
+                }
+
+                _logger.LogInformation("用户离开房间: {UserId} <- {RoomId} (Current: {Current}/{Max})", 
+                    userId, roomId, roomInfo.CurrentPlayers, roomInfo.MaxPlayers);
 
                 // 如果房间空了，删除房间
-                if (room.PlayerIds.Count == 0)
+                if (roomInfo.CurrentPlayers == 0)
                 {
-                    _rooms.Remove(roomId);
-                    _logger?.LogInformation("房间 {RoomId} 已删除（无玩家）", roomId);
+                    DeleteRoom(roomId);
                 }
-                else
-                {
-                    // 通知房间内其他玩家
-                    NotifyRoomUpdate(room);
-                }
+
                 return true;
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "离开房间时出错");
+                return false;
+            }
+        }
 
+        /// <summary>
+        /// 删除房间
+        /// </summary>
+        public bool DeleteRoom(string roomId)
+        {
+            try
+            {
+                if (_rooms.TryRemove(roomId, out var roomInfo))
+                {
+                    _roomPlayers.TryRemove(roomId, out _);
+                    
+                    _logger.LogInformation("删除房间: {RoomId} (Name: {RoomName})", roomId, roomInfo.Name);
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "删除房间时出错");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 获取房间信息
+        /// </summary>
+        public RoomInfo? GetRoom(string roomId)
+        {
+            _rooms.TryGetValue(roomId, out var roomInfo);
+            return roomInfo;
+        }
+
+        /// <summary>
+        /// 获取所有房间列表
+        /// </summary>
+        public List<RoomInfo> GetAllRooms()
+        {
+            return _rooms.Values.ToList();
+        }
+
+        /// <summary>
+        /// 获取房间数量
+        /// </summary>
+        public int GetRoomCount()
+        {
+            return _rooms.Count;
+        }
+
+        /// <summary>
+        /// 检查房间是否存在
+        /// </summary>
+        public bool RoomExists(string roomId)
+        {
+            return _rooms.ContainsKey(roomId);
+        }
+
+        /// <summary>
+        /// 检查用户是否在房间中
+        /// </summary>
+        public bool IsUserInRoom(string userId, string roomId)
+        {
+            if (_rooms.TryGetValue(roomId, out var roomInfo))
+            {
+                return roomInfo.PlayerNames.Contains(userId);
+            }
             return false;
         }
 
-        public Room? GetRoom(string roomId)
+        /// <summary>
+        /// 获取用户在的房间ID
+        /// </summary>
+        public string? GetUserRoomId(string userId)
         {
-            return _rooms.TryGetValue(roomId, out var room) ? room : null;
-        }
-
-        public List<Room> GetAllRooms()
-        {
-            return _rooms.Values.Where(r => r.IsActive).ToList();
-        }
-
-        public List<Room> GetAvailableRooms()
-        {
-            return _rooms.Values.Where(r => r.IsActive && r.CanJoin()).ToList();
-        }
-
-        public List<RoomInfo> GetRoomInfoList()
-        {
-            var roomInfos = new List<RoomInfo>();
-            foreach (var room in _rooms.Values.Where(r => r.IsActive))
+            foreach (var kvp in _rooms)
             {
-                var creator = UserManager.Instance.GetUser(room.CreatorId);
-                var roomInfo = new RoomInfo
+                var roomId = kvp.Key;
+                var roomInfo = kvp.Value;
+                if (roomInfo.PlayerNames.Contains(userId))
                 {
-                    Id = room.Id,
-                    Name = room.Name,
-                    CreatorName = creator?.DisplayName ?? "未知",
-                    CurrentPlayers = room.PlayerIds.Count,
-                    MaxPlayers = room.MaxPlayers,
-                    CreatedAt = room.CreatedAt,
-                    PlayerNames = room.PlayerIds
-                        .Select(id => UserManager.Instance.GetUser(id)?.DisplayName ?? "未知")
-                        .ToList()
-                };
-                roomInfos.Add(roomInfo);
-            }
-            return roomInfos;
-        }
-
-        public void RemoveUserFromAllRooms(string userId)
-        {
-            var roomsToLeave = _rooms.Values.Where(r => r.PlayerIds.Contains(userId)).ToList();
-            foreach (var room in roomsToLeave)
-            {
-                LeaveRoom(room.Id, userId);
-            }
-        }
-
-        private void NotifyRoomUpdate(Room room)
-        {
-            var roomInfo = GetRoomInfoList().FirstOrDefault(r => r.Id == room.Id);
-            if (roomInfo == null) return;
-
-            var message = NetworkMessage.CreateSuccess("room_update", roomInfo);
-            var json = System.Text.Json.JsonSerializer.Serialize(message);
-            var bytes = System.Text.Encoding.UTF8.GetBytes(json + "\n");
-
-            foreach (var playerId in room.PlayerIds)
-            {
-                var user = UserManager.Instance.GetUser(playerId);
-                if (user?.Client?.Connected == true)
-                {
-                    try
-                    {
-                        user.Client.GetStream().WriteAsync(bytes, 0, bytes.Length);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogError(ex, "向用户 {UserId} 发送房间更新失败", playerId);
-                    }
+                    return roomId;
                 }
             }
+            return null;
+        }
+
+        /// <summary>
+        /// 获取房间内的所有用户ID
+        /// </summary>
+        public List<string> GetRoomPlayers(string roomId)
+        {
+            if (_roomPlayers.TryGetValue(roomId, out var players))
+            {
+                return new List<string>(players);
+            }
+            return new List<string>();
+        }
+
+        /// <summary>
+        /// 生成唯一房间ID
+        /// </summary>
+        private string GenerateRoomId()
+        {
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var random = new Random().Next(1000, 9999);
+            return $"room_{timestamp}_{random}";
+        }
+
+        /// <summary>
+        /// 清理空房间
+        /// </summary>
+        public void CleanupEmptyRooms()
+        {
+            var emptyRooms = new List<string>();
+            
+            foreach (var kvp in _rooms)
+            {
+                var roomId = kvp.Key;
+                var roomInfo = kvp.Value;
+                
+                if (roomInfo.CurrentPlayers == 0)
+                {
+                    emptyRooms.Add(roomId);
+                }
+            }
+
+            foreach (var roomId in emptyRooms)
+            {
+                DeleteRoom(roomId);
+            }
+
+            if (emptyRooms.Count > 0)
+            {
+                _logger.LogInformation("清理了 {Count} 个空房间", emptyRooms.Count);
+            }
+        }
+
+        /// <summary>
+        /// 获取房间统计信息
+        /// </summary>
+        public (int totalRooms, int totalPlayers, int emptyRooms) GetRoomStatistics()
+        {
+            var totalRooms = _rooms.Count;
+            var totalPlayers = _rooms.Values.Sum(r => r.CurrentPlayers);
+            var emptyRooms = _rooms.Values.Count(r => r.CurrentPlayers == 0);
+
+            return (totalRooms, totalPlayers, emptyRooms);
         }
     }
 } 

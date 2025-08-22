@@ -1,0 +1,75 @@
+// 游戏消息定义
+// 用于游戏逻辑相关的网络通信
+// ResponseType: GameMessageResponse
+
+// 游戏网络消息
+message GameNetworkMessage
+{
+    string type = 1;           // 消息类型
+    bytes data = 2;            // 消息数据
+    string error = 3;          // 错误信息
+    bool success = 4;          // 是否成功
+    int64 timestamp = 5;       // 时间戳
+}
+
+// 游戏消息响应
+message GameMessageResponse
+{
+    bool success = 1;          // 是否成功
+    string message = 2;        // 响应消息
+    int64 timestamp = 3;       // 时间戳
+}
+
+// 游戏房间状态
+message GameRoomState
+{
+    string roomId = 1;         // 房间ID
+    int32 currentRound = 3;    // 当前回合
+    int32 maxRounds = 4;       // 最大回合数
+    int64 roundStartTime = 5;  // 回合开始时间
+    repeated string activePlayers = 6; // 活跃玩家列表
+}
+
+// 游戏输入
+message GameInput
+{
+    string playerId = 1;       // 玩家ID
+    int32 frameNumber = 2;     // 帧号
+    bytes inputData = 3;       // 输入数据
+    int64 timestamp = 4;       // 时间戳
+}
+
+// 游戏帧同步
+message GameFrameSync
+{
+    int32 frameNumber = 1;     // 帧号
+    repeated GameInput inputs = 2; // 输入列表
+    int64 timestamp = 3;       // 时间戳
+}
+
+// 游戏结果
+message GameResult
+{
+    string roomId = 1;         // 房间ID
+    repeated PlayerResult playerResults = 2; // 玩家结果列表
+    int64 endTime = 3;         // 结束时间
+}
+
+// 玩家结果
+message PlayerResult
+{
+    string playerId = 1;       // 玩家ID
+    int32 score = 2;           // 分数
+    int32 rank = 3;            // 排名
+    bool isWinner = 4;         // 是否获胜
+}
+
+// 游戏配置
+message GameConfig
+{
+    int32 maxPlayers = 1;      // 最大玩家数
+    int32 roundTime = 2;       // 回合时间（秒）
+    int32 maxRounds = 3;       // 最大回合数
+    bool allowSpectators = 4;  // 是否允许观战
+    repeated string gameModes = 5; // 游戏模式列表
+}
