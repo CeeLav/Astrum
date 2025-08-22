@@ -699,7 +699,6 @@ GameObject:
   - component: {fileID: 647654599}
   - component: {fileID: 647654598}
   - component: {fileID: 647654597}
-  - component: {fileID: 647654596}
   m_Layer: 5
   m_Name: Join
   m_TagString: Untagged
@@ -727,21 +726,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -108.64}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &647654596
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 647654594}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67bc111649ea640428bbb1bb695c55af, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  First: {fileID: 0}
-  Second: {fileID: 0}
-  SelectRoom: {fileID: 0}
 --- !u!114 &647654597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -785,7 +769,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 647654598}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 877965524}
+        m_TargetAssemblyTypeName: Astrum.Client.NetWorkUI, AstrumClient
+        m_MethodName: JoinRoom
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &647654598
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -966,6 +962,17 @@ MonoBehaviour:
   First: {fileID: 1696562325}
   Second: {fileID: 1655712039}
   SelectRoom: {fileID: 78106410}
+  RoomNameInput: {fileID: 0}
+  MaxPlayersInput: {fileID: 0}
+  CreateRoomButton: {fileID: 0}
+  GetRoomsButton: {fileID: 0}
+  LeaveRoomButton: {fileID: 0}
+  RoomListText: {fileID: 0}
+  CurrentRoomText: {fileID: 0}
+  ConnectionStatus: {fileID: 0}
+  LoginStatus: {fileID: 0}
+  LoginButton: {fileID: 0}
+  ReconnectButton: {fileID: 0}
 --- !u!1 &938674962
 GameObject:
   m_ObjectHideFlags: 0
@@ -1394,9 +1401,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2084981280}
-        m_TargetAssemblyTypeName: Astrum.Client.Core.GameApplication, AstrumClient
-        m_MethodName: StartGame
+      - m_Target: {fileID: 877965524}
+        m_TargetAssemblyTypeName: Astrum.Client.NetWorkUI, AstrumClient
+        m_MethodName: CreateRoom
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1539,7 +1546,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1655712040
 RectTransform:
   m_ObjectHideFlags: 0
