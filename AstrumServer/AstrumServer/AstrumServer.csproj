@@ -12,12 +12,18 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="MemoryPack" Version="1.21.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="LogicCore">
-      <HintPath>..\..\AstrumLogic\LogicCore\bin\Debug\net8.0\LogicCore.dll</HintPath>
+    <Reference Include="CommonBase">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\CommonBase.dll</HintPath>
+    </Reference>
+    <Reference Include="Network">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Network.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+
 
 </Project>

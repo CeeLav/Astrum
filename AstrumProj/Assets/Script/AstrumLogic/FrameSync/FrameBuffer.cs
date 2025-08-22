@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.FrameSync
 {
@@ -15,7 +16,7 @@ namespace Astrum.LogicCore.FrameSync
     /// <summary>
     /// 帧缓冲区，用于存储和管理帧数据
     /// </summary>
-    public class FrameBuffer : Object
+    public class FrameBuffer : Astrum.CommonBase.Object
     {
         public int MaxFrame { get; private set; }
         private readonly List<OneFrameInputs> frameInputs;

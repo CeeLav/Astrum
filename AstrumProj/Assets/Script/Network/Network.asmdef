@@ -1,17 +1,18 @@
 {
     "name": "Network",
     "rootNamespace": "Astrum.Network",
-    "references": [],
+    "references": ["GUID:4212b4cac5beb1f4d91caa4511699f6b","GUID:331f1bca129ff5649960ca8e270b50e0"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
         "System.Numerics.Vectors.dll",
-        "Newtonsoft.Json.dll"
+        "Newtonsoft.Json.dll",
+        "MemoryPack.Core.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": true
-} 
+}

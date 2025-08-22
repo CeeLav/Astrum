@@ -1,0 +1,27 @@
+// 游戏服务端协议
+// ResponseType: GameResponse
+
+message PlayerInfo
+{
+    int64 playerId = 1; // 玩家ID
+    string playerName = 2; // 玩家名称
+    int32 level = 3; // 玩家等级
+    repeated int32 skills = 4; // 技能列表
+    map<string, int32> attributes = 5; // 属性字典
+}
+
+message GameRequest
+{
+    int64 requestId = 1; // 请求ID
+    string action = 2; // 动作类型
+    PlayerInfo player = 3; // 玩家信息
+    repeated string param = 4; // 参数列表
+}
+
+message GameResponse
+{
+    bool success = 1; // 是否成功
+    string message = 2; // 响应消息
+    int64 requestId = 3; // 对应的请求ID
+    PlayerInfo updatedPlayer = 4; // 更新后的玩家信息
+}

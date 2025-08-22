@@ -1,181 +1,187 @@
-using AstrumServer.Models;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Net.Sockets;
+using Astrum.Generated;
+using Astrum.CommonBase;
 
 namespace AstrumServer.Managers
 {
+    /// <summary>
+    /// 用户管理器 - 管理所有在线用户
+    /// </summary>
     public class UserManager
     {
-        private static UserManager? _instance;
-        private static readonly object _lock = new();
-        
-        public static UserManager Instance
+        private readonly ILogger<UserManager> _logger;
+        private readonly ConcurrentDictionary<string, UserInfo> _users = new();
+        private readonly ConcurrentDictionary<string, string> _sessionToUser = new(); // sessionId -> userId
+        private readonly ConcurrentDictionary<string, string> _userToSession = new(); // userId -> sessionId
+
+        public UserManager(ILogger<UserManager> logger)
         {
-            get
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// 用户连接时分配ID
+        /// </summary>
+        public UserInfo AssignUserId(string sessionId, string displayName)
+        {
+            try
             {
-                if (_instance == null)
+                // 生成唯一用户ID
+                var userId = GenerateUserId();
+                
+                var userInfo = UserInfo.Create();
+                userInfo.Id = userId;
+                userInfo.DisplayName = displayName;
+                userInfo.LastLoginAt = TimeInfo.Instance.ClientNow();
+                userInfo.CurrentRoomId = "";
+
+                // 添加到管理器中
+                _users[userId] = userInfo;
+                _sessionToUser[sessionId] = userId;
+                _userToSession[userId] = sessionId;
+
+                _logger.LogInformation("为用户分配ID: {UserId} (DisplayName: {DisplayName}, Session: {SessionId})", 
+                    userId, displayName, sessionId);
+
+                return userInfo;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "为用户分配ID时出错");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 用户断开连接
+        /// </summary>
+        public void RemoveUser(string sessionId)
+        {
+            try
+            {
+                if (_sessionToUser.TryRemove(sessionId, out var userId))
                 {
-                    lock (_lock)
+                    if (_users.TryRemove(userId, out var userInfo))
                     {
-                        _instance ??= new UserManager();
+                        _userToSession.TryRemove(userId, out _);
+                        
+                        // 如果用户在房间中，需要离开房间
+                        if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                        {
+                            _logger.LogInformation("用户 {UserId} 断开连接，当前在房间 {RoomId}", userId, userInfo.CurrentRoomId);
+                        }
+
+                        _logger.LogInformation("用户断开连接: {UserId} (DisplayName: {DisplayName})", 
+                            userId, userInfo.DisplayName);
                     }
                 }
-                return _instance;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "移除用户时出错");
             }
         }
 
-        private readonly Dictionary<string, User> _users = new();
-        private readonly Dictionary<string, string> _clientToUser = new(); // clientId -> userId
-        private readonly ILogger? _logger;
-        private readonly string _usersFile = "users.json";
-
-        private UserManager()
+        /// <summary>
+        /// 根据Session ID获取用户信息
+        /// </summary>
+        public UserInfo? GetUserBySessionId(string sessionId)
         {
-            LoadUsers();
-        }
-
-        public void SetLogger(ILogger logger)
-        {
-            // 使用反射设置私有字段，因为构造函数中无法注入ILogger
-            var loggerField = typeof(UserManager).GetField("_logger", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            loggerField?.SetValue(this, logger);
-        }
-
-        public User CreateUser(string? displayName = null)
-        {
-            var user = new User(displayName ?? "");
-            _users[user.Id] = user;
-            user.LastLoginAt = DateTime.Now;
-            user.IsOnline = true;
-            SaveUsers();
-            
-            _logger?.LogInformation("创建新用户: {DisplayName}, ID: {UserId}", user.DisplayName, user.Id);
-            return user;
-        }
-
-        public User? GetUserById(string userId)
-        {
-            return _users.TryGetValue(userId, out var user) ? user : null;
-        }
-
-        public bool LoginClient(string clientId, User user, TcpClient client)
-        {
-            if (user == null) return false;
-
-            user.Client = client;
-            user.ClientId = clientId;
-            user.IsOnline = true;
-            _clientToUser[clientId] = user.Id;
-            
-            _logger?.LogInformation("客户端 {ClientId} 登录用户: {DisplayName}", clientId, user.DisplayName);
-            return true;
-        }
-
-        public void LogoutClient(string clientId)
-        {
-            if (_clientToUser.TryGetValue(clientId, out var userId))
+            if (_sessionToUser.TryGetValue(sessionId, out var userId))
             {
-                if (_users.TryGetValue(userId, out var user))
-                {
-                    user.IsOnline = false;
-                    user.Client = null;
-                    user.ClientId = null;
-                    user.CurrentRoomId = null;
-                }
-                _clientToUser.Remove(clientId);
-                _logger?.LogInformation("客户端 {ClientId} 登出", clientId);
-            }
-        }
-
-        public User? GetUser(string userId)
-        {
-            return _users.TryGetValue(userId, out var user) ? user : null;
-        }
-
-        public User? GetUserByClientId(string clientId)
-        {
-            if (_clientToUser.TryGetValue(clientId, out var userId))
-            {
-                return GetUser(userId);
+                _users.TryGetValue(userId, out var userInfo);
+                return userInfo;
             }
             return null;
         }
 
-
-
-        public List<User> GetOnlineUsers()
+        /// <summary>
+        /// 根据用户ID获取用户信息
+        /// </summary>
+        public UserInfo? GetUserById(string userId)
         {
-            return _users.Values.Where(u => u.IsOnline).ToList();
+            _users.TryGetValue(userId, out var userInfo);
+            return userInfo;
         }
 
-        public void UpdateUserRoom(string userId, string? roomId)
+        /// <summary>
+        /// 获取所有在线用户
+        /// </summary>
+        public List<UserInfo> GetAllUsers()
         {
-            if (_users.TryGetValue(userId, out var user))
-            {
-                user.CurrentRoomId = roomId;
-                SaveUsers();
-            }
+            return _users.Values.ToList();
         }
 
-        private void LoadUsers()
+        /// <summary>
+        /// 获取在线用户数量
+        /// </summary>
+        public int GetOnlineUserCount()
         {
-            try
+            return _users.Count;
+        }
+
+        /// <summary>
+        /// 更新用户房间信息
+        /// </summary>
+        public void UpdateUserRoom(string userId, string roomId)
+        {
+            if (_users.TryGetValue(userId, out var userInfo))
             {
-                if (File.Exists(_usersFile))
-                {
-                    var json = File.ReadAllText(_usersFile);
-                    var users = JsonSerializer.Deserialize<Dictionary<string, User>>(json);
-                    if (users != null)
-                    {
-                        foreach (var user in users.Values)
-                        {
-                            user.IsOnline = false;
-                            user.Client = null;
-                            user.ClientId = null;
-                        }
-                        _users.Clear();
-                        foreach (var kvp in users)
-                        {
-                            _users[kvp.Key] = kvp.Value;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "加载用户数据失败");
+                userInfo.CurrentRoomId = roomId;
+                _logger.LogDebug("更新用户 {UserId} 的房间信息: {RoomId}", userId, roomId);
             }
         }
 
-        private void SaveUsers()
+        /// <summary>
+        /// 检查用户是否在线
+        /// </summary>
+        public bool IsUserOnline(string userId)
         {
-            try
-            {
-                var usersToSave = new Dictionary<string, User>();
-                foreach (var kvp in _users)
-                {
-                    var user = kvp.Value;
-                    var userToSave = new User(user.DisplayName)
-                    {
-                        Id = user.Id,
-                        CreatedAt = user.CreatedAt,
-                        LastLoginAt = user.LastLoginAt,
-                        CurrentRoomId = user.CurrentRoomId
-                    };
-                    usersToSave[kvp.Key] = userToSave;
-                }
+            return _users.ContainsKey(userId);
+        }
 
-                var json = JsonSerializer.Serialize(usersToSave, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                });
-                File.WriteAllText(_usersFile, json);
-            }
-            catch (Exception ex)
+        /// <summary>
+        /// 获取用户的Session ID
+        /// </summary>
+        public string? GetSessionIdByUserId(string userId)
+        {
+            _userToSession.TryGetValue(userId, out var sessionId);
+            return sessionId;
+        }
+
+        /// <summary>
+        /// 生成唯一用户ID
+        /// </summary>
+        private string GenerateUserId()
+        {
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var random = new Random().Next(1000, 9999);
+            return $"user_{timestamp}_{random}";
+        }
+
+        /// <summary>
+        /// 清理断开的用户
+        /// </summary>
+        public void CleanupDisconnectedUsers()
+        {
+            var disconnectedSessions = new List<string>();
+            
+            foreach (var kvp in _sessionToUser)
             {
-                _logger?.LogError(ex, "保存用户数据失败");
+                var sessionId = kvp.Key;
+                var userId = kvp.Value;
+                
+                // 这里可以添加心跳检测逻辑
+                // 暂时简单处理，实际项目中应该有更复杂的断线检测
+            }
+
+            foreach (var sessionId in disconnectedSessions)
+            {
+                RemoveUser(sessionId);
             }
         }
     }

@@ -1,442 +1,295 @@
-﻿using UnityEngine;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Astrum.CommonBase;
-using IDisposable = System.IDisposable;
+using Astrum.Generated;
+using Astrum.Network;
+using Astrum.Network.Generated;
+using Astrum.LogicCore;
+using MemoryPack;
 
 namespace Astrum.Client.Managers
 {
-    /// <summary>
-    /// 网络管理器 - 负责客户端与服务器的网络通信
+        /// <summary>
+    /// 网络管理器，基于ET框架的TCP服务实现
     /// </summary>
     public class NetworkManager : Singleton<NetworkManager>
     {
-        private bool enableLogging = true;
-        private string defaultServerAddress = "127.0.0.1";
-        private int defaultPort = 8888;
-        private int heartbeatInterval = 5000; // 5秒
-        private int reconnectInterval = 3000; // 3秒
-        private int maxReconnectAttempts = 5;
+        private TService tcpService;
+        private Session currentSession;
+        private bool isInitialized = false;
         
-        // 网络连接状态
+        // 客户端代码期望的事件接口
+        public event Action OnConnected;
+        public event Action OnDisconnected;
+        public event Action<ConnectionStatus> OnConnectionStatusChanged;
+        
+        // 具体消息类型的事件
+        public event Action<LoginResponse> OnLoginResponse;
+        public event Action<CreateRoomResponse> OnCreateRoomResponse;
+        public event Action<JoinRoomResponse> OnJoinRoomResponse;
+        public event Action<LeaveRoomResponse> OnLeaveRoomResponse;
+        public event Action<GetRoomListResponse> OnGetRoomListResponse;
+        public event Action<RoomUpdateNotification> OnRoomUpdateNotification;
+        public event Action<HeartbeatResponse> OnHeartbeatResponse;
+        
+        // 客户端代码期望的属性
+        public ConnectionStatus ConnectionStatus => GetConnectionStatus();
+        public string ClientId => currentSession?.Id.ToString() ?? "-1";
+        
+        // 客户端连接状态
         private bool isConnected = false;
-        private string serverAddress = string.Empty;
-        private int port;
-        private string clientId = string.Empty;
-        private ConnectionStatus connectionStatus = ConnectionStatus.DISCONNECTED;
-        
-        // 网络客户端
-        private NetworkClient networkClient = null!;
-        private CancellationTokenSource? heartbeatCancellation;
-        private CancellationTokenSource? reconnectCancellation;
-        private int reconnectAttempts = 0;
-        
-        // 消息处理
-        private Dictionary<string, Action<NetworkMessage?>> messageHandlers = new Dictionary<string, Action<NetworkMessage?>>();
-        private Queue<NetworkMessage> messageQueue = new Queue<NetworkMessage>();
-        private readonly object messageQueueLock = new object();
-        
-        // 公共属性
-        public bool IsConnected => isConnected;
-        public string ServerAddress => serverAddress;
-        public int Port => port;
-        public string ClientId => clientId;
-        public ConnectionStatus ConnectionStatus => connectionStatus;
-        
-        // 事件
-        public event Action? OnConnected;
-        public event Action? OnDisconnected;
-        public event Action<ConnectionStatus>? OnConnectionStatusChanged;
-        public event Action<NetworkMessage?>? OnMessageReceived;
-        
-        public NetworkManager()
-        {
-            Initialize();
-        }
         
         /// <summary>
-        /// 初始化网络管理器
+        /// 初始化网络管理器（客户端模式）
         /// </summary>
         public void Initialize()
         {
-            if (enableLogging)
-                Debug.Log("NetworkManager: 初始化网络管理器");
+            if (isInitialized)
+            {
+                ASLogger.Instance.Warning("NetworkManager already initialized");
+                return;
+            }
             
-            // 设置默认连接参数
-            serverAddress = defaultServerAddress;
-            port = defaultPort;
-            
-            // 生成客户端ID
-            clientId = GenerateClientId();
-            
-            // 初始化网络客户端
-            networkClient = new NetworkClient();
-            networkClient.OnMessageReceived += OnClientMessageReceived;
-            networkClient.OnError += OnClientError;
-            networkClient.OnDisconnected += OnClientDisconnected;
-            
-            if (enableLogging)
-                Debug.Log($"NetworkManager: 客户端ID - {clientId}");
+            try
+            {
+                // 初始化TCP服务（客户端模式）
+                tcpService = new TService(AddressFamily.InterNetwork, ServiceType.Outer);
+                tcpService.AcceptCallback = OnTcpAccept;
+                tcpService.ReadCallback = OnTcpRead;
+                tcpService.ErrorCallback = OnTcpError;
+                
+                isInitialized = true;
+                ASLogger.Instance.Info("NetworkManager initialized successfully (client mode)");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"Failed to initialize NetworkManager: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// 连接到服务器（兼容客户端代码）
+        /// </summary>
+        /// <param name="serverAddress">服务器地址</param>
+        /// <param name="serverPort">服务器端口</param>
+        /// <returns>连接ID</returns>
+        public async Task<long> ConnectAsync(string serverAddress, int serverPort)
+        {
+            var endPoint = new IPEndPoint(IPAddress.Parse(serverAddress), serverPort);
+            return await ConnectAsync(endPoint);
         }
         
         /// <summary>
         /// 连接到服务器
         /// </summary>
-        /// <param name="address">服务器地址</param>
-        /// <param name="port">服务器端口</param>
-        public async Task<bool> ConnectAsync(string? address = null, int port = 0)
+        /// <param name="endPoint">服务器端点</param>
+        /// <returns>连接ID</returns>
+        public Task<long> ConnectAsync(IPEndPoint endPoint)
         {
-            if (isConnected)
+            if (!isInitialized)
             {
-                Debug.LogWarning("NetworkManager: 已经连接到服务器");
-                return true;
+                throw new InvalidOperationException("NetworkManager not initialized");
             }
             
-            // 使用参数或默认值
-            serverAddress = address ?? defaultServerAddress;
-            this.port = port > 0 ? port : defaultPort;
-            
-            if (enableLogging)
-                Debug.Log($"NetworkManager: 开始连接到服务器 {serverAddress}:{this.port}");
-            
-            // 更新连接状态
-            UpdateConnectionStatus(ConnectionStatus.CONNECTING);
-            
-            // 开始连接
-            bool connected = await networkClient.ConnectAsync();
-            
-            if (connected)
+            try
             {
-                // 连接成功
-                isConnected = true;
-                reconnectAttempts = 0;
-                UpdateConnectionStatus(ConnectionStatus.CONNECTED);
+                long channelId = NetServices.Instance.CreateConnectChannelId();
                 
-                // 启动心跳
-                StartHeartbeat();
+                if (tcpService != null)
+                {
+                    tcpService.Create(channelId, endPoint);
+                    ASLogger.Instance.Info($"TCP connection initiated to {endPoint}, ChannelId: {channelId}");
+                    
+                    // 创建 Session
+                    currentSession = new Session();
+                    currentSession.Initialize(tcpService, channelId, endPoint);
+                    
+                    // 客户端模式：TCP连接建立后立即认为连接成功
+                    // 因为TCP连接建立意味着网络层连接已成功
+                    isConnected = true;
+                    ASLogger.Instance.Info($"客户端TCP连接建立成功，ChannelId: {channelId}");
+                    
+                    // 触发连接成功事件
+                    OnConnected?.Invoke();
+                    OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
+                }
+                else
+                {
+                    throw new InvalidOperationException("TCP service not initialized");
+                }
                 
-                // 启动消息处理
-                _ = Task.Run(ProcessMessagesAsync);
-                
-                if (enableLogging)
-                    Debug.Log("NetworkManager: 连接成功");
-                
-                // 触发连接事件
-                OnConnected?.Invoke();
-                return true;
+                return Task.FromResult(channelId);
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"Failed to connect to {endPoint}: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// 发送消息（兼容客户端代码）
+        /// </summary>
+        /// <param name="message">网络消息</param>
+        /// <returns>发送任务</returns>
+        public async Task SendMessageAsync(object message)
+        {
+            if (IsConnected() && currentSession != null)
+            {
+                try
+                {
+                    if (message is MessageObject messageObject)
+                    {
+                        currentSession.Send(messageObject);
+                        ASLogger.Instance.Info($"Message sent via Session: {messageObject.GetType().Name}");
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Error($"Invalid message type: {message.GetType().Name}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"Failed to send message via Session: {ex.Message}");
+                }
+                await Task.CompletedTask;
             }
             else
             {
-                // 连接失败
-                UpdateConnectionStatus(ConnectionStatus.FAILED);
-                
-                if (enableLogging)
-                    Debug.LogError("NetworkManager: 连接失败");
-                
-                // 尝试重连
-                StartReconnect();
-                return false;
+                ASLogger.Instance.Warning("Cannot send message: not connected to server or session is null");
+            }
+        }
+        
+        /// <summary>
+        /// 发送消息
+        /// </summary>
+        /// <param name="message">消息对象</param>
+        public void Send(IMessage message)
+        {
+            if (currentSession == null)
+            {
+                ASLogger.Instance.Error("No active session");
+                return;
+            }
+            
+            if (!IsConnected())
+            {
+                ASLogger.Instance.Warning("Cannot send message: not connected to server");
+                return;
+            }
+            
+            try
+            {
+                currentSession.Send(message);
+                ASLogger.Instance.Debug($"Message sent via Session: {message.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"Failed to send message via Session: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 关闭当前连接
+        /// </summary>
+        /// <param name="error">错误码</param>
+        private void CloseCurrentConnection(int error = 0)
+        {
+            if (currentSession != null && tcpService != null)
+            {
+                tcpService.Remove(currentSession.Id, error);
+                ASLogger.Instance.Info($"Connection closed, error: {error}");
             }
         }
         
         /// <summary>
         /// 断开连接
         /// </summary>
-        public void Disconnect()
+        /// <param name="error">错误码</param>
+        public void Disconnect(int error = 0)
         {
-            if (!isConnected)
+            if (IsConnected())
             {
-                return;
+                CloseCurrentConnection(error);
+                currentSession = null;
+                isConnected = false;
+                ASLogger.Instance.Info("Current connection disconnected");
             }
-            
-            if (enableLogging)
-                Debug.Log("NetworkManager: 断开连接");
-            
-            // 停止心跳和重连
-            StopHeartbeat();
-            StopReconnect();
-            
-            // 断开网络连接
-            networkClient?.Disconnect();
-            
-            // 更新状态
-            isConnected = false;
-            UpdateConnectionStatus(ConnectionStatus.DISCONNECTED);
-            
-            // 清理消息队列
-            lock (messageQueueLock)
-            {
-                messageQueue.Clear();
-            }
-            
-            // 触发断开事件
-            OnDisconnected?.Invoke();
         }
         
         /// <summary>
-        /// 发送消息
+        /// 更新网络服务
         /// </summary>
-        /// <param name="message">网络消息</param>
-        public async Task<bool> SendMessageAsync(NetworkMessage? message)
+        public void Update()
         {
-            if (!isConnected)
-            {
-                Debug.LogWarning("NetworkManager: 未连接到服务器，无法发送消息");
-                return false;
-            }
-            
-            if (message == null)
-            {
-                Debug.LogError("NetworkManager: 消息为空");
-                return false;
-            }
+            if (!isInitialized || tcpService == null) return;
             
             try
             {
-                // 设置消息属性
-                message.Timestamp = DateTime.Now;
-                
-                // 发送消息
-                bool success = await networkClient.SendMessageAsync(message);
-                
-                if (success && enableLogging)
-                    Debug.Log($"NetworkManager: 发送消息 {message.Type}");
-                
-                return success;
+                tcpService.Update();
             }
             catch (Exception ex)
             {
-                Debug.LogError($"NetworkManager: 发送消息失败 - {ex.Message}");
-                return false;
+                ASLogger.Instance.Error($"Error in NetworkManager.Update: {ex.Message}");
             }
         }
         
         /// <summary>
-        /// 注册消息处理器
+        /// 检查是否已连接到服务器
         /// </summary>
-        /// <param name="messageType">消息类型</param>
-        /// <param name="handler">处理器</param>
-        public void RegisterHandler(string messageType, Action<NetworkMessage?> handler)
+        /// <returns>是否已连接</returns>
+        public bool IsConnected()
         {
-            if (messageHandlers.ContainsKey(messageType))
-            {
-                messageHandlers[messageType] = handler;
-            }
-            else
-            {
-                messageHandlers.Add(messageType, handler);
-            }
-            
-            if (enableLogging)
-                Debug.Log($"NetworkManager: 注册消息处理器 {messageType}");
+            return isConnected && currentSession != null;
         }
         
         /// <summary>
         /// 获取连接状态
         /// </summary>
         /// <returns>连接状态</returns>
-        public ConnectionStatus GetConnectionStatus()
+        private ConnectionStatus GetConnectionStatus()
         {
-            return connectionStatus;
-        }
-        
-        /// <summary>
-        /// 开始心跳
-        /// </summary>
-        private void StartHeartbeat()
-        {
-            heartbeatCancellation?.Cancel();
-            heartbeatCancellation = new CancellationTokenSource();
+            if (!isInitialized)
+                return ConnectionStatus.Disconnected;
             
-            _ = Task.Run(async () =>
-            {
-                while (!heartbeatCancellation.Token.IsCancellationRequested && isConnected)
-                {
-                    await Task.Delay(heartbeatInterval, heartbeatCancellation.Token);
-                    
-                    if (isConnected && !heartbeatCancellation.Token.IsCancellationRequested)
-                    {
-                        await SendHeartbeatAsync();
-                    }
-                }
-            }, heartbeatCancellation.Token);
-        }
-        
-        /// <summary>
-        /// 停止心跳
-        /// </summary>
-        private void StopHeartbeat()
-        {
-            heartbeatCancellation?.Cancel();
-            heartbeatCancellation?.Dispose();
-            heartbeatCancellation = null;
-        }
-        
-        /// <summary>
-        /// 发送心跳
-        /// </summary>
-        private async Task SendHeartbeatAsync()
-        {
-            try
-            {
-                // 创建心跳消息
-                var heartbeatMessage = NetworkMessage.CreateSuccess("ping", new { clientId = clientId });
-                
-                await SendMessageAsync(heartbeatMessage);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"NetworkManager: 发送心跳失败 - {ex.Message}");
-            }
-        }
-        
-        /// <summary>
-        /// 开始重连
-        /// </summary>
-        private void StartReconnect()
-        {
-            if (reconnectAttempts >= maxReconnectAttempts)
-            {
-                Debug.LogError($"NetworkManager: 重连次数已达上限 {maxReconnectAttempts}");
-                return;
-            }
+            if (isConnected && currentSession != null)
+                return ConnectionStatus.Connected;
             
-            reconnectAttempts++;
+            if (currentSession != null && !isConnected)
+                return ConnectionStatus.Connecting;
             
-            if (enableLogging)
-                Debug.Log($"NetworkManager: 开始第 {reconnectAttempts} 次重连");
-            
-            UpdateConnectionStatus(ConnectionStatus.RECONNECTING);
-            
-            reconnectCancellation?.Cancel();
-            reconnectCancellation = new CancellationTokenSource();
-            
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(reconnectInterval, reconnectCancellation.Token);
-                
-                if (!reconnectCancellation.Token.IsCancellationRequested)
-                {
-                    // 尝试重新连接
-                    await ConnectAsync(serverAddress, port);
-                }
-            }, reconnectCancellation.Token);
+            return ConnectionStatus.Disconnected;
         }
         
         /// <summary>
-        /// 停止重连
+        /// 获取当前连接的通道ID
         /// </summary>
-        private void StopReconnect()
+        /// <returns>通道ID</returns>
+        public long GetCurrentChannelId()
         {
-            reconnectCancellation?.Cancel();
-            reconnectCancellation?.Dispose();
-            reconnectCancellation = null;
-            reconnectAttempts = 0;
+            return currentSession?.Id ?? -1;
         }
         
         /// <summary>
-        /// 处理消息异步
+        /// 获取当前服务器端点
         /// </summary>
-        private async Task ProcessMessagesAsync()
+        /// <returns>服务器端点</returns>
+        public IPEndPoint GetCurrentServerEndPoint()
         {
-            while (isConnected)
-            {
-                NetworkMessage? message = null;
-                
-                lock (messageQueueLock)
-                {
-                    if (messageQueue.Count > 0)
-                    {
-                        message = messageQueue.Dequeue();
-                    }
-                }
-                
-                if (message != null)
-                {
-                    // 触发消息接收事件
-                    OnMessageReceived?.Invoke(message);
-                    
-                    // 调用注册的处理器
-                    if (messageHandlers.TryGetValue(message.Type, out Action<NetworkMessage?> handler))
-                    {
-                        try
-                        {
-                            handler?.Invoke(message);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogError($"NetworkManager: 处理消息 {message.Type} 时发生异常 - {ex.Message}");
-                        }
-                    }
-                    else
-                    {
-                        if (enableLogging)
-                            Debug.LogWarning($"NetworkManager: 未找到消息处理器 {message.Type}");
-                    }
-                }
-                
-                await Task.Delay(10); // 短暂延迟避免CPU占用过高
-            }
+            return currentSession?.RemoteAddress;
         }
         
         /// <summary>
-        /// 客户端消息接收回调
+        /// 获取当前 Session
         /// </summary>
-        private void OnClientMessageReceived(NetworkMessage? message)
+        /// <returns>当前 Session</returns>
+        public Session GetCurrentSession()
         {
-            if (message != null)
-            {
-                lock (messageQueueLock)
-                {
-                    messageQueue.Enqueue(message);
-                }
-            }
-        }
-        
-        /// <summary>
-        /// 客户端错误回调
-        /// </summary>
-        private void OnClientError(string? error)
-        {
-            Debug.LogError($"NetworkManager: 客户端错误 - {error}");
-        }
-        
-        /// <summary>
-        /// 客户端断开回调
-        /// </summary>
-        private void OnClientDisconnected()
-        {
-            Debug.Log("NetworkManager: 客户端断开连接");
-            isConnected = false;
-            UpdateConnectionStatus(ConnectionStatus.DISCONNECTED);
-            OnDisconnected?.Invoke();
-        }
-        
-        /// <summary>
-        /// 更新连接状态
-        /// </summary>
-        /// <param name="status">新状态</param>
-        private void UpdateConnectionStatus(ConnectionStatus status)
-        {
-            if (connectionStatus != status)
-            {
-                connectionStatus = status;
-                OnConnectionStatusChanged?.Invoke(status);
-            }
-        }
-        
-        /// <summary>
-        /// 生成客户端ID
-        /// </summary>
-        /// <returns>客户端ID</returns>
-        private string GenerateClientId()
-        {
-            return $"Client_{SystemInfo.deviceUniqueIdentifier}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            return currentSession;
         }
         
         /// <summary>
@@ -444,430 +297,170 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Shutdown()
         {
-            if (enableLogging)
-                Debug.Log("NetworkManager: 关闭网络管理器");
+            if (!isInitialized) return;
             
-            // 断开连接
-            Disconnect();
-            
-            // 清理处理器
-            messageHandlers.Clear();
-            lock (messageQueueLock)
+            try
             {
-                messageQueue.Clear();
+                // 断开当前连接
+                if (IsConnected())
+                {
+                    Disconnect();
+                }
+                
+                // 关闭TCP服务
+                tcpService?.Dispose();
+                
+                tcpService = null;
+                currentSession = null;
+                isConnected = false;
+                isInitialized = false;
+                
+                ASLogger.Instance.Info("NetworkManager shutdown completed");
             }
-            
-            // 清理网络客户端
-            networkClient?.Dispose();
-            networkClient = null;
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"Error during NetworkManager shutdown: {ex.Message}");
+            }
         }
         
-        public void Dispose()
+        #region Private Methods
+        
+        private void OnTcpAccept(long channelId, IPEndPoint remoteEndPoint)
         {
-            Shutdown();
-            heartbeatCancellation?.Dispose();
-            reconnectCancellation?.Dispose();
-        }
-    }
-    
-    /// <summary>
-    /// 连接状态枚举
-    /// </summary>
-    public enum ConnectionStatus
-    {
-        DISCONNECTED,   // 未连接
-        CONNECTING,     // 连接中
-        CONNECTED,      // 已连接
-        RECONNECTING,   // 重连中
-        FAILED          // 连接失败
-    }
-    
-    /// <summary>
-    /// 消息类型枚举
-    /// </summary>
-    public enum MessageType
-    {
-        UNKNOWN,
-        GAME_STATE,
-        PLAYER_INPUT,
-        SERVER_EVENT,
-        HEARTBEAT
-    }
-    
-    /// <summary>
-    /// 网络消息类
-    /// </summary>
-    [Serializable]
-    public class NetworkMessage
-    {
-        public string Type { get; set; } = string.Empty;
-        public object? Data { get; set; }
-        public string? Error { get; set; }
-        public bool Success { get; set; } = true;
-        public DateTime Timestamp { get; set; } = DateTime.Now;
-
-        public NetworkMessage()
-        {
-        }
-
-        public NetworkMessage(string type, object? data = null)
-        {
-            Type = type;
-            Data = data;
-        }
-
-        public static NetworkMessage CreateSuccess(string type, object? data = null)
-        {
-            return new NetworkMessage(type, data) { Success = true };
-        }
-
-        public static NetworkMessage CreateError(string type, string error)
-        {
-            return new NetworkMessage(type) { Success = false, Error = error };
-        }
-    }
-
-    [Serializable]
-    public class LoginRequest
-    {
-        public string? DisplayName { get; set; }
-    }
-
-    [Serializable]
-    public class CreateRoomRequest
-    {
-        public string RoomName { get; set; } = string.Empty;
-        public int MaxPlayers { get; set; } = 4;
-    }
-
-    [Serializable]
-    public class JoinRoomRequest
-    {
-        public string RoomId { get; set; } = string.Empty;
-    }
-
-    [Serializable]
-    public class LeaveRoomRequest
-    {
-        public string RoomId { get; set; } = string.Empty;
-    }
-
-    [Serializable]
-    public class RoomInfo
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string CreatorName { get; set; } = string.Empty;
-        public int CurrentPlayers { get; set; }
-        public int MaxPlayers { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public List<string> PlayerNames { get; set; } = new();
-    }
-
-    [Serializable]
-    public class UserInfo
-    {
-        public string Id { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-        public DateTime LastLoginAt { get; set; }
-        public string? CurrentRoomId { get; set; }
-    }
-    
-    /// <summary>
-    /// 网络客户端
-    /// </summary>
-    public class NetworkClient : IDisposable
-    {
-        private TcpClient? _client;
-        private NetworkStream? _stream;
-        private readonly string _serverAddress;
-        private readonly int _serverPort;
-        private bool _isConnected = false;
-        private readonly object _lock = new();
-
-        public event Action<NetworkMessage?>? OnMessageReceived;
-        public event Action<string?>? OnError;
-        public event Action? OnDisconnected;
-
-        public bool IsConnected => _isConnected && _client?.Connected == true;
-
-        public NetworkClient(string serverAddress = "127.0.0.1", int serverPort = 8888)
-        {
-            _serverAddress = serverAddress;
-            _serverPort = serverPort;
-        }
-
-        public async Task<bool> ConnectAsync()
-        {
-            try
+            // 注意：在客户端模式下，这个回调通常不会被调用
+            // 客户端连接成功应该通过其他方式检测
+            ASLogger.Instance.Info($"TCP connection accepted from {remoteEndPoint}, ChannelId: {channelId}");
+            
+            // 更新连接状态
+            if (currentSession != null && channelId == currentSession.Id)
             {
-                _client = new TcpClient();
-                await _client.ConnectAsync(_serverAddress, _serverPort);
-                _stream = _client.GetStream();
-                _isConnected = true;
-
-                // 启动接收消息的任务
-                _ = Task.Run(ReceiveMessagesAsync);
-
-                Debug.Log($"已连接到服务器 {_serverAddress}:{_serverPort}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"连接服务器失败: {ex.Message}");
-                OnError?.Invoke($"连接失败: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<bool> SendMessageAsync(NetworkMessage message)
-        {
-            if (!IsConnected)
-            {
-                OnError?.Invoke("未连接到服务器");
-                return false;
-            }
-
-            try
-            {
-                // 手动构建JSON字符串，避免Unity JsonUtility对object?的限制
-                var jsonBuilder = new StringBuilder();
-                jsonBuilder.Append("{");
-                jsonBuilder.Append($"\"type\":\"{message.Type}\",");
-                jsonBuilder.Append($"\"success\":{message.Success.ToString().ToLower()},");
-                jsonBuilder.Append($"\"timestamp\":\"{message.Timestamp:yyyy-MM-ddTHH:mm:ss.fffZ}\"");
+                isConnected = true;
                 
-                if (message.Data != null)
-                {
-                    // 尝试序列化Data字段
-                    string dataJson = "";
-                    try
-                    {
-                        dataJson = JsonUtility.ToJson(message.Data);
-                    }
-                    catch
-                    {
-                        // 如果序列化失败，使用字符串表示
-                        dataJson = $"\"{message.Data}\"";
-                    }
-                    jsonBuilder.Append($",\"data\":{dataJson}");
-                }
-                else
-                {
-                    jsonBuilder.Append(",\"data\":null");
-                }
-                
-                if (!string.IsNullOrEmpty(message.Error))
-                {
-                    jsonBuilder.Append($",\"error\":\"{message.Error}\"");
-                }
-                else
-                {
-                    jsonBuilder.Append(",\"error\":null");
-                }
-                
-                jsonBuilder.Append("}");
-                
-                var json = jsonBuilder.ToString();
-                var bytes = Encoding.UTF8.GetBytes(json + "\n");
-                
-                // 调试：输出实际发送的JSON
-                Debug.Log($"发送JSON: {json}");
-                
-                lock (_lock)
-                {
-                    _stream?.WriteAsync(bytes, 0, bytes.Length);
-                }
-
-                Debug.Log($"发送消息: {message.Type}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"发送消息失败: {ex.Message}");
-                OnError?.Invoke($"发送失败: {ex.Message}");
-                return false;
+                // 触发客户端代码期望的事件
+                OnConnected?.Invoke();
+                OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
             }
         }
-
-        public async Task<bool> LoginAsync(string displayName, string password)
+        
+        private void OnTcpRead(long channelId, MemoryBuffer buffer)
         {
-            var request = new LoginRequest { DisplayName = displayName };
-            var message = NetworkMessage.CreateSuccess("login", request);
-            return await SendMessageAsync(message);
-        }
-
-        public async Task<bool> CreateRoomAsync(string roomName, int maxPlayers = 4)
-        {
-            var request = new CreateRoomRequest { RoomName = roomName, MaxPlayers = maxPlayers };
-            var message = NetworkMessage.CreateSuccess("create_room", request);
-            return await SendMessageAsync(message);
-        }
-
-        public async Task<bool> JoinRoomAsync(string roomId)
-        {
-            var request = new JoinRoomRequest { RoomId = roomId };
-            var message = NetworkMessage.CreateSuccess("join_room", request);
-            return await SendMessageAsync(message);
-        }
-
-        public async Task<bool> LeaveRoomAsync(string roomId)
-        {
-            var request = new LeaveRoomRequest { RoomId = roomId };
-            var message = NetworkMessage.CreateSuccess("leave_room", request);
-            return await SendMessageAsync(message);
-        }
-
-        public async Task<bool> GetRoomsAsync()
-        {
-            var message = NetworkMessage.CreateSuccess("get_rooms", null);
-            return await SendMessageAsync(message);
-        }
-
-        public async Task<bool> GetOnlineUsersAsync()
-        {
-            var message = NetworkMessage.CreateSuccess("get_online_users", null);
-            return await SendMessageAsync(message);
-        }
-
-        public async Task<bool> PingAsync()
-        {
-            var message = NetworkMessage.CreateSuccess("ping", null);
-            return await SendMessageAsync(message);
-        }
-
-        private async Task ReceiveMessagesAsync()
-        {
-            var buffer = new byte[4096];
-            var messageBuffer = new StringBuilder();
-
-            try
+            // 更新 Session 接收时间
+            if (currentSession != null && channelId == currentSession.Id)
             {
-                while (IsConnected)
-                {
-                    var bytesRead = await _stream!.ReadAsync(buffer, 0, buffer.Length);
-                    if (bytesRead == 0) break; // 服务器断开连接
-
-                    var receivedData = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    messageBuffer.Append(receivedData);
-
-                    // 处理完整的消息（以换行符分隔）
-                    var messages = messageBuffer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                    messageBuffer.Clear();
-
-                    // 保留最后一个不完整的消息
-                    if (receivedData.EndsWith('\n'))
-                    {
-                        // 所有消息都是完整的
-                    }
-                    else if (messages.Length > 0)
-                    {
-                        // 最后一个消息可能不完整，保留在buffer中
-                        messageBuffer.Append(messages[^1]);
-                        messages = messages[..^1];
-                    }
-
-                    foreach (var messageJson in messages)
-                    {
-                        try
-                        {
-                            // 跳过非JSON消息（如欢迎消息）
-                            if (!messageJson.Trim().StartsWith("{"))
-                            {
-                                Debug.Log($"收到非JSON消息: {messageJson.Trim()}");
-                                continue;
-                            }
-
-                            // 使用简单的字符串解析，避免Unity JsonUtility的限制
-                            var message = ParseNetworkMessage(messageJson);
-                            if (message != null)
-                            {
-                                Debug.Log($"收到消息: {message.Type}");
-                                OnMessageReceived?.Invoke(message);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogError($"解析消息失败: {ex.Message}");
-                            Debug.LogError($"问题消息内容: {messageJson}");
-                            OnError?.Invoke($"解析消息失败: {ex.Message}");
-                        }
-                    }
-                }
+                currentSession.LastRecvTime = TimeInfo.Instance.ClientNow();
+                
+                // 客户端模式：连接已在ConnectAsync中建立，这里只处理消息
+                ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}");
             }
-            catch (Exception ex)
+            
+            ProcessMessage(channelId, buffer);
+        }
+        
+        private void OnTcpError(long channelId, int error)
+        {
+            ASLogger.Instance.Error($"TCP error on channel {channelId}: {error}");
+            
+            // 更新连接状态
+            if (currentSession != null && channelId == currentSession.Id)
             {
-                Debug.LogError($"接收消息时出错: {ex.Message}");
-                OnError?.Invoke($"接收消息失败: {ex.Message}");
-            }
-            finally
-            {
-                _isConnected = false;
+                isConnected = false;
+                
+                // 清理 Session
+                currentSession.Error = error;
+                currentSession = null;
+                
+                // 触发客户端代码期望的事件
                 OnDisconnected?.Invoke();
-            }
-        }
-
-        public void Disconnect()
-        {
-            _isConnected = false;
-            _stream?.Close();
-            _client?.Close();
-            Debug.Log("已断开连接");
-        }
-
-        private NetworkMessage? ParseNetworkMessage(string json)
-        {
-            try
-            {
-                // 简单的JSON解析，适用于Unity
-                var message = new NetworkMessage();
-                
-                // 提取基本字段
-                if (json.Contains("\"type\":"))
-                {
-                    var typeStart = json.IndexOf("\"type\":") + 7;
-                    var typeEnd = json.IndexOf("\"", typeStart + 1);
-                    if (typeEnd > typeStart)
-                    {
-                        message.Type = json.Substring(typeStart, typeEnd - typeStart).Trim('"');
-                    }
-                }
-                
-                if (json.Contains("\"success\":"))
-                {
-                    var successStart = json.IndexOf("\"success\":") + 10;
-                    var successEnd = json.IndexOf(",", successStart);
-                    if (successEnd == -1) successEnd = json.IndexOf("}", successStart);
-                    if (successEnd > successStart)
-                    {
-                        var successStr = json.Substring(successStart, successEnd - successStart).Trim();
-                        message.Success = successStr == "true";
-                    }
-                }
-                
-                if (json.Contains("\"error\":"))
-                {
-                    var errorStart = json.IndexOf("\"error\":") + 8;
-                    var errorEnd = json.IndexOf("\"", errorStart + 1);
-                    if (errorEnd > errorStart)
-                    {
-                        message.Error = json.Substring(errorStart, errorEnd - errorStart).Trim('"');
-                    }
-                }
-                
-                return message;
-            }
-            catch
-            {
-                return null;
+                OnConnectionStatusChanged?.Invoke(ConnectionStatus.Disconnected);
             }
         }
         
-        public void Dispose()
+        private void ProcessMessage(long channelId, MemoryBuffer buffer)
         {
-            Disconnect();
-            _stream?.Dispose();
-            _client?.Dispose();
+            try
+            {
+                if (currentSession != null && channelId == currentSession.Id)
+                {
+                    // 尝试反序列化服务器发送的具体消息对象
+                    ProcessReceivedMessage(buffer);
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"Error processing message on channel {channelId}: {ex.Message}");
+            }
         }
+        
+        /// <summary>
+        /// 处理接收到的消息
+        /// </summary>
+        private void ProcessReceivedMessage(MemoryBuffer buffer)
+        {
+            try
+            {
+                // 检查 tcpService 是否已初始化
+                if (tcpService == null)
+                {
+                    ASLogger.Instance.Error("TCP service not initialized, cannot process received message");
+                    return;
+                }
+                
+                // 使用 MessageSerializeHelper.ToMessage 直接序列化出 Message 对象
+                var messageObject = MessageSerializeHelper.ToMessage(tcpService, buffer);
+                if (messageObject != null)
+                {
+                    // 根据消息类型触发对应事件
+                    DispatchMessage(messageObject);
+                    ASLogger.Instance.Debug($"成功反序列化消息: {messageObject.GetType().Name}");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"无法反序列化消息，数据长度: {buffer.Length}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理接收消息时出错: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 分发消息到对应的事件处理器
+        /// </summary>
+        private void DispatchMessage(object messageObject)
+        {
+            switch (messageObject)
+            {
+                case LoginResponse loginResponse:
+                    OnLoginResponse?.Invoke(loginResponse);
+                    break;
+                case CreateRoomResponse createRoomResponse:
+                    OnCreateRoomResponse?.Invoke(createRoomResponse);
+                    break;
+                case JoinRoomResponse joinRoomResponse:
+                    OnJoinRoomResponse?.Invoke(joinRoomResponse);
+                    break;
+                case LeaveRoomResponse leaveRoomResponse:
+                    OnLeaveRoomResponse?.Invoke(leaveRoomResponse);
+                    break;
+                case GetRoomListResponse getRoomListResponse:
+                    OnGetRoomListResponse?.Invoke(getRoomListResponse);
+                    break;
+                case RoomUpdateNotification roomUpdateNotification:
+                    OnRoomUpdateNotification?.Invoke(roomUpdateNotification);
+                    break;
+                case HeartbeatResponse heartbeatResponse:
+                    OnHeartbeatResponse?.Invoke(heartbeatResponse);
+                    break;
+                default:
+                    ASLogger.Instance.Warning($"未处理的消息类型: {messageObject.GetType().Name}");
+                    break;
+            }
+        }
+        
+
+
+        
+        #endregion
     }
 } 

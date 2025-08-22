@@ -1,7 +1,0 @@
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\bin\Debug\net8.0\CoverletSourceRootsMapping_LogicCore.Tests
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.csproj.AssemblyReference.cache
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.GeneratedMSBuildEditorConfig.editorconfig
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.AssemblyInfoInputs.cache
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.AssemblyInfo.cs
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.csproj.CoreCompileInputs.cache
-D:\Develop\Projects\Astrum\AstrumLogic\LogicCore.Tests\obj\Debug\net8.0\LogicCore.Tests.sourcelink.json
