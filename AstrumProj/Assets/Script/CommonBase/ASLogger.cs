@@ -81,10 +81,14 @@ namespace Astrum.CommonBase
     public class ConsoleLogHandler : ILogHandler
     {
         private readonly bool _useColors;
+        private readonly bool _showTimestamp;
+        private readonly string _timestampFormat;
 
-        public ConsoleLogHandler(bool useColors = true)
+        public ConsoleLogHandler(bool useColors = true, bool showTimestamp = true, string timestampFormat = "yyyy-MM-dd HH:mm:ss.fff")
         {
             _useColors = useColors;
+            _showTimestamp = showTimestamp;
+            _timestampFormat = timestampFormat;
         }
 
         public void HandleLog(LogLevel level, string message, DateTime timestamp)
@@ -106,7 +110,14 @@ namespace Astrum.CommonBase
 
         private string FormatMessage(LogLevel level, string message, DateTime timestamp)
         {
-            return $"[{timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{level}] {message}";
+            if (_showTimestamp)
+            {
+                return $"[{timestamp.ToString(_timestampFormat)}] [{level}] {message}";
+            }
+            else
+            {
+                return $"[{level}] {message}";
+            }
         }
 
         private ConsoleColor GetColorForLevel(LogLevel level)
@@ -133,12 +144,16 @@ namespace Astrum.CommonBase
         private readonly object _lock = new object();
         private readonly int _maxFileSize; // MB
         private readonly int _maxFileCount;
+        private readonly bool _showTimestamp;
+        private readonly string _timestampFormat;
 
-        public FileLogHandler(string logFilePath, int maxFileSize = 10, int maxFileCount = 5)
+        public FileLogHandler(string logFilePath, int maxFileSize = 10, int maxFileCount = 5, bool showTimestamp = true, string timestampFormat = "yyyy-MM-dd HH:mm:ss.fff")
         {
             _logFilePath = logFilePath;
             _maxFileSize = maxFileSize;
             _maxFileCount = maxFileCount;
+            _showTimestamp = showTimestamp;
+            _timestampFormat = timestampFormat;
 
             // 确保日志目录存在
             var logDir = Path.GetDirectoryName(logFilePath);
@@ -158,7 +173,15 @@ namespace Astrum.CommonBase
                 try
                 {
                     CheckFileSize();
-                    var formattedMessage = $"[{timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{level}] {message}";
+                    string formattedMessage;
+                    if (_showTimestamp)
+                    {
+                        formattedMessage = $"[{timestamp.ToString(_timestampFormat)}] [{level}] {message}";
+                    }
+                    else
+                    {
+                        formattedMessage = $"[{level}] {message}";
+                    }
                     _writer.WriteLine(formattedMessage);
                 }
                 catch (Exception ex)
@@ -241,6 +264,16 @@ namespace Astrum.CommonBase
         private readonly List<ILogHandler> _handlers = new List<ILogHandler>();
         private LogLevel _minLevel = LogLevel.Debug;
         private readonly object _lock = new object();
+        
+        /// <summary>
+        /// 是否显示时间戳
+        /// </summary>
+        public bool ShowTimestamp { get; set; } = true;
+        
+        /// <summary>
+        /// 时间戳格式
+        /// </summary>
+        public string TimestampFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
 
         /// <summary>
         /// 最小日志级别
@@ -264,6 +297,28 @@ namespace Astrum.CommonBase
                     _handlers.Add(handler);
                 }
             }
+        }
+        
+        /// <summary>
+        /// 添加控制台日志处理器
+        /// </summary>
+        /// <param name="useColors">是否使用颜色</param>
+        public void AddConsoleHandler(bool useColors = true)
+        {
+            var handler = new ConsoleLogHandler(useColors, ShowTimestamp, TimestampFormat);
+            AddHandler(handler);
+        }
+        
+        /// <summary>
+        /// 添加文件日志处理器
+        /// </summary>
+        /// <param name="logFilePath">日志文件路径</param>
+        /// <param name="maxFileSize">最大文件大小(MB)</param>
+        /// <param name="maxFileCount">最大文件数量</param>
+        public void AddFileHandler(string logFilePath, int maxFileSize = 10, int maxFileCount = 5)
+        {
+            var handler = new FileLogHandler(logFilePath, maxFileSize, maxFileCount, ShowTimestamp, TimestampFormat);
+            AddHandler(handler);
         }
 
         /// <summary>

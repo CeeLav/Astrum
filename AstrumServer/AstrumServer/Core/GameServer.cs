@@ -44,6 +44,7 @@ namespace AstrumServer.Core
             try
             {
                 _logger.LogInformation("Astrum游戏服务器正在启动...");
+                ASLogger.Instance.Info("Astrum游戏服务器正在启动...");
                 
                 // 初始化网络系统基础组件
                 InitializeNetworkSystem();
@@ -63,6 +64,7 @@ namespace AstrumServer.Core
                 _networkManager.OnError += OnNetworkError;
                 
                 _logger.LogInformation("Astrum游戏服务器启动成功，监听端口: 8888");
+                ASLogger.Instance.Info("Astrum游戏服务器启动成功，监听端口: 8888");
                 
                 // 主循环
                 while (!stoppingToken.IsCancellationRequested)
@@ -109,6 +111,7 @@ namespace AstrumServer.Core
         {
             _logger.LogInformation("客户端已连接: {ClientId} from {RemoteEndpoint}", 
                 client.Id, client.RemoteAddress);
+            ASLogger.Instance.Info($"客户端已连接: {client.Id} from {client.RemoteAddress}");
             
             // 发送连接成功响应
             var response = ConnectResponse.Create();
@@ -122,6 +125,7 @@ namespace AstrumServer.Core
         private void OnClientDisconnected(Session client)
         {
             _logger.LogInformation("客户端已断开: {ClientId}", client.Id);
+            ASLogger.Instance.Info($"客户端已断开: {client.Id}");
             
             // 移除用户
             _userManager.RemoveUser(client.Id.ToString());
@@ -177,6 +181,7 @@ namespace AstrumServer.Core
             {
                 _logger.LogInformation("客户端 {ClientId} 请求登录，显示名称: {DisplayName}", 
                     client.Id, request.DisplayName);
+                ASLogger.Instance.Info($"客户端 {client.Id} 请求登录，显示名称: {request.DisplayName}");
                 
                 // 为用户分配ID
                 var userInfo = _userManager.AssignUserId(client.Id.ToString(), request.DisplayName);
@@ -489,20 +494,24 @@ namespace AstrumServer.Core
         private void InitializeNetworkSystem()
         {
             _logger.LogInformation("正在初始化服务器网络系统基础组件...");
+            ASLogger.Instance.Info("正在初始化服务器网络系统基础组件...");
             
             try
             {
                 // 初始化CodeTypes（加载所有类型信息）
                 CodeTypes.Instance.Awake();
                 _logger.LogInformation("CodeTypes初始化完成");
+                ASLogger.Instance.Info("CodeTypes初始化完成");
                 
                 // 初始化OpcodeType（注册消息类型和opcode映射）
                 OpcodeType.Instance.Awake();
                 _logger.LogInformation("OpcodeType初始化完成");
+                ASLogger.Instance.Info("OpcodeType初始化完成");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "网络系统基础组件初始化失败");
+                ASLogger.Instance.Error($"网络系统基础组件初始化失败: {ex.Message}");
                 throw;
             }
         }
