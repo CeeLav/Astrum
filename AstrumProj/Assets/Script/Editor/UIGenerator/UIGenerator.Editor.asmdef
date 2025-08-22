@@ -1,0 +1,19 @@
+{
+  "name": "UIGenerator.Editor",
+  "references": [
+    "UnityEditor",
+    "UnityEngine",
+    "UnityEngine.UI",
+    "AstrumView",
+    "AstrumClient"
+  ],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
