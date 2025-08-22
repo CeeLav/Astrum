@@ -27,6 +27,7 @@ namespace Astrum.Client.Managers
         public event Action<ConnectionStatus> OnConnectionStatusChanged;
         
         // 具体消息类型的事件
+        public event Action<ConnectResponse> OnConnectResponse;
         public event Action<LoginResponse> OnLoginResponse;
         public event Action<CreateRoomResponse> OnCreateRoomResponse;
         public event Action<JoinRoomResponse> OnJoinRoomResponse;
@@ -97,6 +98,9 @@ namespace Astrum.Client.Managers
             
             try
             {
+                // 注册连接响应事件处理
+                OnConnectResponse += OnConnectResponseReceived;
+                
                 long channelId = NetServices.Instance.CreateConnectChannelId();
                 
                 if (tcpService != null)
@@ -431,6 +435,9 @@ namespace Astrum.Client.Managers
         {
             switch (messageObject)
             {
+                case ConnectResponse connectResponse:
+                    OnConnectResponse?.Invoke(connectResponse);
+                    break;
                 case LoginResponse loginResponse:
                     OnLoginResponse?.Invoke(loginResponse);
                     break;
@@ -460,6 +467,41 @@ namespace Astrum.Client.Managers
         
 
 
+        
+        /// <summary>
+        /// 处理连接响应
+        /// </summary>
+        private void OnConnectResponseReceived(ConnectResponse response)
+        {
+            try
+            {
+                if (response.success)
+                {
+                    ASLogger.Instance.Info($"连接成功: {response.message}");
+                    
+                    // 更新连接状态
+                    isConnected = true;
+                    
+                    // 触发连接成功事件
+                    OnConnected?.Invoke();
+                    OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"连接失败: {response.message}");
+                    
+                    // 更新连接状态
+                    isConnected = false;
+                    
+                    // 触发连接失败事件
+                    OnConnectionStatusChanged?.Invoke(ConnectionStatus.Disconnected);
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理连接响应时出错: {ex.Message}");
+            }
+        }
         
         #endregion
     }
