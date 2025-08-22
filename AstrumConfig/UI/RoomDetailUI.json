@@ -1,0 +1,321 @@
+{
+  "uiName": "RoomDetailUI",
+  "root": {
+    "name": "RoomDetailUI",
+    "components": [
+      {
+        "type": "Canvas",
+        "properties": {
+          "renderMode": "ScreenSpaceOverlay",
+          "sortingOrder": 0
+        }
+      },
+      {
+        "type": "CanvasScaler",
+        "properties": {
+          "scaleMode": "ScaleWithScreenSize",
+          "referenceResolution": [1920, 1080],
+          "matchWidthOrHeight": 0.5
+        }
+      },
+      {
+        "type": "GraphicRaycaster"
+      }
+    ],
+    "children": [
+      {
+        "name": "Background",
+        "components": [
+          {
+            "type": "Image",
+            "properties": {
+              "color": [0.1, 0.1, 0.1, 1.0]
+            }
+          }
+        ],
+        "children": [
+          {
+            "name": "MainPanel",
+            "components": [
+              {
+                "type": "Image",
+                "properties": {
+                  "color": [0.2, 0.2, 0.2, 0.9]
+                }
+              }
+            ],
+            "children": [
+              {
+                "name": "Header",
+                "components": [
+                  {
+                    "type": "Image",
+                    "properties": {
+                      "color": [0.15, 0.15, 0.15, 0.8]
+                    }
+                  }
+                ],
+                "children": [
+                  {
+                    "name": "RoomInfo",
+                    "components": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "房间详情",
+                          "fontSize": 32,
+                          "color": [1.0, 1.0, 1.0, 1.0],
+                          "alignment": "MiddleLeft"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "RoomId",
+                    "components": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "房间ID: ABC123",
+                          "fontSize": 18,
+                          "color": [0.8, 0.8, 0.8, 1.0],
+                          "alignment": "MiddleLeft"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "PlayerCount",
+                    "components": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "人数: 2/4",
+                          "fontSize": 18,
+                          "color": [0.6, 0.8, 1.0, 1.0],
+                          "alignment": "MiddleRight"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "PlayerListPanel",
+                "components": [
+                  {
+                    "type": "Image",
+                    "properties": {
+                      "color": [0.15, 0.15, 0.15, 0.6]
+                    }
+                  }
+                ],
+                "children": [
+                  {
+                    "name": "PlayerListTitle",
+                    "components": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "玩家列表",
+                          "fontSize": 24,
+                          "color": [1.0, 1.0, 1.0, 1.0],
+                          "alignment": "MiddleCenter"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "PlayerList",
+                    "components": [
+                      {
+                        "type": "VerticalLayoutGroup",
+                        "properties": {
+                          "spacing": 10,
+                          "childControlWidth": true,
+                          "childControlHeight": false,
+                          "childForceExpandWidth": true,
+                          "childForceExpandHeight": false
+                        }
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "PlayerItemTemplate",
+                        "components": [
+                          {
+                            "type": "Image",
+                            "properties": {
+                              "color": [0.25, 0.25, 0.25, 0.9]
+                            }
+                          }
+                        ],
+                        "children": [
+                          {
+                            "name": "PlayerInfo",
+                            "components": [
+                              {
+                                "type": "HorizontalLayoutGroup",
+                                "properties": {
+                                  "spacing": 20,
+                                  "childControlWidth": false,
+                                  "childControlHeight": false,
+                                  "childForceExpandWidth": false,
+                                  "childForceExpandHeight": false
+                                }
+                              }
+                            ],
+                            "children": [
+                              {
+                                "name": "PlayerId",
+                                "components": [
+                                  {
+                                    "type": "Text",
+                                    "properties": {
+                                      "text": "Player001",
+                                      "fontSize": 18,
+                                      "color": [1.0, 1.0, 1.0, 1.0],
+                                      "alignment": "MiddleLeft"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "HostBadge",
+                                "components": [
+                                  {
+                                    "type": "Image",
+                                    "properties": {
+                                      "color": [1.0, 0.8, 0.0, 1.0]
+                                    }
+                                  }
+                                ],
+                                "children": [
+                                  {
+                                    "name": "Text",
+                                    "components": [
+                                      {
+                                        "type": "Text",
+                                        "properties": {
+                                          "text": "房主",
+                                          "fontSize": 14,
+                                          "color": [0.0, 0.0, 0.0, 1.0],
+                                          "alignment": "MiddleCenter"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "ButtonPanel",
+                "components": [
+                  {
+                    "type": "Image",
+                    "properties": {
+                      "color": [0.15, 0.15, 0.15, 0.8]
+                    }
+                  }
+                ],
+                "children": [
+                  {
+                    "name": "ButtonContainer",
+                    "components": [
+                      {
+                        "type": "HorizontalLayoutGroup",
+                        "properties": {
+                          "spacing": 30,
+                          "childControlWidth": false,
+                          "childControlHeight": false,
+                          "childForceExpandWidth": false,
+                          "childForceExpandHeight": false
+                        }
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "StartGameButton",
+                        "components": [
+                          {
+                            "type": "Button",
+                            "properties": {
+                              "interactable": true
+                            }
+                          },
+                          {
+                            "type": "Image",
+                            "properties": {
+                              "color": [0.2, 0.8, 0.2, 1.0]
+                            }
+                          }
+                        ],
+                        "children": [
+                          {
+                            "name": "Text",
+                            "components": [
+                              {
+                                "type": "Text",
+                                "properties": {
+                                  "text": "开始游戏",
+                                  "fontSize": 24,
+                                  "color": [1.0, 1.0, 1.0, 1.0],
+                                  "alignment": "MiddleCenter"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name": "LeaveRoomButton",
+                        "components": [
+                          {
+                            "type": "Button",
+                            "properties": {
+                              "interactable": true
+                            }
+                          },
+                          {
+                            "type": "Image",
+                            "properties": {
+                              "color": [0.8, 0.2, 0.2, 1.0]
+                            }
+                          }
+                        ],
+                        "children": [
+                          {
+                            "name": "Text",
+                            "components": [
+                              {
+                                "type": "Text",
+                                "properties": {
+                                  "text": "离开房间",
+                                  "fontSize": 24,
+                                  "color": [1.0, 1.0, 1.0, 1.0],
+                                  "alignment": "MiddleCenter"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+

@@ -2,3 +2,5 @@
 alwaysApply: true
 ---
 开始工作前，先阅读 QUICK_START_GUIDE.md 保证对项目的认知
+编译sln以处理报错时，先找到正确的 sln 位置 再使用 dotnet build AstrumProj.sln 来编译获取报错
+优先修改已有的 readme 而不是创建新的

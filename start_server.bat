@@ -21,7 +21,7 @@ echo Server logs will be output to: %CD%\server.log
 echo Press Ctrl+C to stop server
 echo.
 
-dotnet run > server.log 2>&1
+dotnet run --no-build > server.log 2>&1
 
 echo Server stopped
 pause 

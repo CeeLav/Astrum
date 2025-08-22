@@ -148,6 +148,25 @@ namespace Astrum.Client.Core
             // 初始化游戏玩法管理器（单例赋值）
             gamePlayManager = GamePlayManager.Instance;
             gamePlayManager.Initialize();
+            
+            // 显示登录UI
+            ShowLoginUI();
+        }
+        
+        /// <summary>
+        /// 显示登录UI
+        /// </summary>
+        private void ShowLoginUI()
+        {
+            try
+            {
+                Debug.Log("GameApplication: 显示登录UI");
+                uiManager.ShowUI("Login");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"GameApplication: 显示登录UI失败 - {ex.Message}");
+            }
         }
         
         /// <summary>

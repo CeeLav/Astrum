@@ -498,6 +498,11 @@ namespace AstrumServer.Core
             
             try
             {
+                // 初始化ObjectPool（对象池系统）
+                ObjectPool.Instance.Awake();
+                _logger.LogInformation("ObjectPool初始化完成");
+                ASLogger.Instance.Info("ObjectPool初始化完成");
+                
                 // 初始化CodeTypes（加载所有类型信息）
                 CodeTypes.Instance.Awake();
                 _logger.LogInformation("CodeTypes初始化完成");
