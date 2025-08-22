@@ -1,6 +1,0 @@
-D:\Develop\Projects\Astrum\AstrumLogic\obj\Debug\net8.0\LogicCoreDebug.csproj.AssemblyReference.cache
-D:\Develop\Projects\Astrum\AstrumLogic\obj\Debug\net8.0\LogicCoreDebug.GeneratedMSBuildEditorConfig.editorconfig
-D:\Develop\Projects\Astrum\AstrumLogic\obj\Debug\net8.0\LogicCoreDebug.AssemblyInfoInputs.cache
-D:\Develop\Projects\Astrum\AstrumLogic\obj\Debug\net8.0\LogicCoreDebug.AssemblyInfo.cs
-D:\Develop\Projects\Astrum\AstrumLogic\obj\Debug\net8.0\LogicCoreDebug.csproj.CoreCompileInputs.cache
-D:\Develop\Projects\Astrum\AstrumLogic\obj\Debug\net8.0\LogicCoreDebug.sourcelink.json

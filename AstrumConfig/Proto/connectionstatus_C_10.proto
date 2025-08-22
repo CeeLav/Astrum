@@ -1,0 +1,51 @@
+// 连接状态枚举定义
+// 用于表示网络连接的各种状态
+// ResponseType: ConnectionStatusResponse
+
+
+// 连接状态响应
+message ConnectionStatusResponse
+{
+    
+    string message = 2;             // 状态消息
+    int64 timestamp = 3;            // 时间戳
+}
+
+// 连接状态变化消息
+message ConnectionStatusChanged
+{
+
+    string reason = 3;                 // 状态变化原因
+    int64 timestamp = 4;               // 时间戳
+}
+
+// 连接请求
+message ConnectRequest
+{
+    string serverAddress = 1;          // 服务器地址
+    int32 serverPort = 2;              // 服务器端口
+    int32 timeout = 3;                 // 连接超时时间（毫秒）
+}
+
+// 连接响应
+message ConnectResponse
+{
+    bool success = 1;                  // 是否成功
+    string message = 2;                // 响应消息
+    int64 timestamp = 3;               // 时间戳
+}
+
+// 断开连接请求
+message DisconnectRequest
+{
+    string reason = 1;                 // 断开原因
+    bool force = 2;                    // 是否强制断开
+}
+
+// 断开连接响应
+message DisconnectResponse
+{
+    bool success = 1;                  // 是否成功
+    string message = 2;                // 响应消息
+    int64 timestamp = 3;               // 时间戳
+}

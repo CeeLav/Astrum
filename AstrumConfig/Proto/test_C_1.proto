@@ -1,0 +1,16 @@
+// 测试消息定义
+// ResponseType: TestResponse
+
+message TestMessage
+{
+    int32 id = 1; // 消息ID
+    string content = 2; // 消息内容
+    repeated int32 numbers = 3; // 数字列表
+    map<string, int32> data = 4; // 键值对数据
+}
+
+message TestResponse
+{
+    bool success = 1; // 是否成功
+    string message = 2; // 响应消息
+}

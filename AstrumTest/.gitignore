@@ -1,0 +1,97 @@
+# AstrumTest 项目 .gitignore
+
+# 编译输出
+bin/
+obj/
+build/
+dist/
+out/
+
+# 测试结果和覆盖率报告
+TestResults/
+test-results/
+coverage/
+*.TestResult.xml
+*.coverage
+*.coveragexml
+*.coverage.json
+*.coverage.info
+
+# 测试运行器临时文件
+NUnit/
+xUnit/
+MSTest/
+*.testlog
+*.trx
+
+# 日志文件
+*.log
+logs/
+log/
+test-logs/
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# IDE 和编辑器文件
+.vscode/
+.idea/
+.vs/
+*.suo
+*.user
+*.userprefs
+*.DotSettings.user
+
+# 系统文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 配置文件（如果包含敏感信息）
+config.local.json
+appsettings.local.json
+*.local.*
+test.config.local.json
+
+# 依赖包
+packages/
+node_modules/
+vendor/
+
+# 用户特定文件
+*.user
+*.suo
+*.cache
+
+# 备份文件
+backup/
+*.backup
+*.bak
+
+# 临时目录
+temp/
+tmp/
+cache/
+
+# 测试数据文件（如果包含敏感信息）
+test-data/
+test-files/
+*.testdata
+*.testdb
+
+# 性能测试结果
+benchmark-results/
+performance-logs/
+*.perf
+*.benchmark
+
+# 模拟和假数据
+mocks/
+fakes/
+stubs/
+test-doubles/

@@ -1,0 +1,125 @@
+// 网络通用消息定义
+// 用于客户端和服务器之间的通用通信
+
+// 用户信息
+message UserInfo
+{
+    string Id = 1;             // 用户ID
+    string DisplayName = 2;    // 显示名称
+    int64 LastLoginAt = 3;     // 最后登录时间
+    string CurrentRoomId = 4;  // 当前房间ID
+}
+
+// 房间信息
+message RoomInfo
+{
+    string Id = 1;             // 房间ID
+    string Name = 2;           // 房间名称
+    string CreatorName = 3;    // 创建者名称
+    int32 CurrentPlayers = 4;  // 当前玩家数量
+    int32 MaxPlayers = 5;      // 最大玩家数量
+    int64 CreatedAt = 6;       // 创建时间
+    repeated string PlayerNames = 7; // 玩家名称列表
+}
+
+// 登录请求
+message LoginRequest
+{
+    string DisplayName = 1;    // 显示名称
+}
+
+// 创建房间请求
+message CreateRoomRequest
+{
+    string RoomName = 1;       // 房间名称
+    int32 MaxPlayers = 2;      // 最大玩家数量
+    int64 Timestamp = 3;       // 时间戳
+}
+
+// 加入房间请求
+message JoinRoomRequest
+{
+    string RoomId = 1;         // 房间ID
+    int64 Timestamp = 2;       // 时间戳
+}
+
+// 离开房间请求
+message LeaveRoomRequest
+{
+    string RoomId = 1;         // 房间ID
+    int64 Timestamp = 2;       // 时间戳
+}
+
+// 获取房间列表请求
+message GetRoomListRequest
+{
+    int64 Timestamp = 1;       // 时间戳
+}
+
+// 获取房间列表响应
+message GetRoomListResponse
+{
+    bool Success = 1;          // 是否成功
+    string Message = 2;        // 响应消息
+    repeated RoomInfo Rooms = 3; // 房间列表
+    int64 Timestamp = 4;       // 时间戳
+}
+
+// 房间更新通知
+message RoomUpdateNotification
+{
+    RoomInfo Room = 1;         // 房间信息
+    string UpdateType = 2;     // 更新类型
+    string RelatedUserId = 3;  // 相关用户ID
+    int64 Timestamp = 4;       // 时间戳
+}
+
+// 创建房间响应
+message CreateRoomResponse
+{
+    bool Success = 1;          // 是否成功
+    string Message = 2;        // 响应消息
+    RoomInfo Room = 3;         // 房间信息
+    int64 Timestamp = 4;       // 时间戳
+}
+
+// 加入房间响应
+message JoinRoomResponse
+{
+    bool Success = 1;          // 是否成功
+    string Message = 2;        // 响应消息
+    RoomInfo Room = 3;         // 房间信息
+    int64 Timestamp = 4;       // 时间戳
+}
+
+// 离开房间响应
+message LeaveRoomResponse
+{
+    bool Success = 1;          // 是否成功
+    string Message = 2;        // 响应消息
+    string RoomId = 3;         // 房间ID
+    int64 Timestamp = 4;       // 时间戳
+}
+
+// 登录响应
+message LoginResponse
+{
+    bool Success = 1;          // 是否成功
+    string Message = 2;        // 响应消息
+    UserInfo User = 3;         // 用户信息
+    int64 Timestamp = 4;       // 时间戳
+}
+
+// 心跳消息
+message HeartbeatMessage
+{
+    string ClientId = 1;       // 客户端ID
+    int64 Timestamp = 2;       // 时间戳
+}
+
+// 心跳响应
+message HeartbeatResponse
+{
+    int64 Timestamp = 1;       // 响应时间戳
+    string Message = 2;        // 响应消息
+}
