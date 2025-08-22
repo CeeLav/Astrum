@@ -1,18 +1,18 @@
 {
-    "name": "AstrumView",
-    "rootNamespace": "",
-    "references": [
-        "GUID:110391ee61450ab49adef1b74a7d2271",
-        "GUID:331f1bca129ff5649960ca8e270b50e0",
-        "GUID:4212b4cac5beb1f4d91caa4511699f6b"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "AstrumView",
+  "references": [
+    "UnityEngine",
+    "UnityEngine.UI",
+    "CommonBase",
+    "AstrumLogic"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

@@ -1,3 +1,16 @@
 {
-	"name": "CommonBase"
+    "name": "CommonBase",
+    "rootNamespace": "Astrum.CommonBase",
+    "references": [
+        "UnityEngine"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

@@ -25,11 +25,14 @@ namespace Astrum.Client.Managers
         public event Action<RoomInfo> OnRoomJoined;
         public event Action OnRoomLeft;
         public event Action<string> OnRoomError;
+        public event Action OnGameStarted;
+        public event Action<string> OnGameStartError;
         
         // 操作状态
         private bool isCreatingRoom = false;
         private bool isJoiningRoom = false;
         private bool isLeavingRoom = false;
+        private bool isStartingGame = false;
         
         /// <summary>
         /// 初始化房间系统管理器
@@ -262,6 +265,71 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
+        /// 开始游戏
+        /// </summary>
+        public async Task<bool> StartGameAsync()
+        {
+            
+            if (!IsInRoom)
+            {
+                ASLogger.Instance.Warning("RoomSystemManager: 当前不在房间中，无法开始游戏");
+                OnGameStartError?.Invoke("当前不在房间中，无法开始游戏");
+                return false;
+            }
+            
+            if (isStartingGame)
+            {
+                ASLogger.Instance.Warning("RoomSystemManager: 正在开始游戏中，请稍候");
+                return false;
+            }
+            
+            try
+            {
+                
+                isStartingGame = true;
+                ASLogger.Instance.Info($"RoomSystemManager: 开始游戏 - 房间ID: {CurrentRoom?.Id}");
+                
+                var networkManager = GameApplication.Instance?.NetworkManager;
+                if (networkManager == null)
+                {
+                    ASLogger.Instance.Error("RoomSystemManager: NetworkManager不存在");
+                    OnGameStartError?.Invoke("网络管理器不存在");
+                    return false;
+                }
+                
+                if (!networkManager.IsConnected())
+                {
+                    ASLogger.Instance.Error("RoomSystemManager: 网络未连接");
+                    OnGameStartError?.Invoke("网络未连接");
+                    return false;
+                }
+                
+                // 使用GameRequest发送开始游戏请求
+                var request = GameRequest.Create();
+                request.requestId = TimeInfo.Instance.ClientNow();
+                request.action = "StartGame";
+                
+                // 添加房间ID作为参数
+                request.param.Add(CurrentRoom.Id);
+                
+                networkManager.Send(request);
+                ASLogger.Instance.Info("RoomSystemManager: 开始游戏请求已发送");
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"RoomSystemManager: 开始游戏失败 - {ex.Message}");
+                OnGameStartError?.Invoke($"开始游戏失败: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                isStartingGame = false;
+            }
+        }
+        
+        /// <summary>
         /// 处理房间列表响应
         /// </summary>
         public void HandleRoomListResponse(GetRoomListResponse response)
@@ -420,6 +488,33 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
+        /// 处理游戏开始响应
+        /// </summary>
+        public void HandleGameStartResponse(GameResponse response)
+        {
+            try
+            {
+                if (response.success)
+                {
+                    ASLogger.Instance.Info("RoomSystemManager: 游戏开始成功");
+                    
+                    // 触发游戏开始事件
+                    OnGameStarted?.Invoke();
+                }
+                else
+                {
+                    ASLogger.Instance.Error($"RoomSystemManager: 游戏开始失败 - {response.message}");
+                    OnGameStartError?.Invoke(response.message);
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"RoomSystemManager: 处理游戏开始响应时出错 - {ex.Message}");
+                OnGameStartError?.Invoke($"处理游戏开始响应失败: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
         /// 处理房间更新通知
         /// </summary>
         public void HandleRoomUpdateNotification(RoomUpdateNotification notification)
@@ -458,6 +553,8 @@ namespace Astrum.Client.Managers
             OnRoomJoined = null;
             OnRoomLeft = null;
             OnRoomError = null;
+            OnGameStarted = null;
+            OnGameStartError = null;
         }
         
         /// <summary>

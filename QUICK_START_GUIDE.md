@@ -73,18 +73,7 @@ GameServer (主服务)
 
 ## 协议定义
 
-### 核心消息类型
-- `LoginRequest/LoginResponse`: 用户登录
-- `CreateRoomRequest/CreateRoomResponse`: 创建房间
-- `JoinRoomRequest/JoinRoomResponse`: 加入房间
-- `LeaveRoomRequest/LeaveRoomResponse`: 离开房间
-- `GetRoomListRequest/GetRoomListResponse`: 获取房间列表
-- `RoomUpdateNotification`: 房间状态更新通知
 
-### 数据模型
-- `UserInfo`: 用户信息
-- `RoomInfo`: 房间信息
-- `NetworkMessage`: 网络消息包装器（已废弃）
 
 ## 开发工作流程
 
