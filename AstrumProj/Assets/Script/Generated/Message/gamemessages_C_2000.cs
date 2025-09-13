@@ -164,39 +164,69 @@ namespace Astrum.Generated
         }
     }
 
-    // 游戏输入
+    // 帧同步输入数据
     [MemoryPackable]
     [MessageAttribute(2004)]
-    public partial class GameInput : MessageObject
+    public partial class LSInput : MessageObject
     {
-        public static GameInput Create(bool isFromPool = false)
+        public static LSInput Create(bool isFromPool = false)
         {
-            return ObjectPool.Instance.Fetch(typeof(GameInput), isFromPool) as GameInput;
+            return ObjectPool.Instance.Fetch(typeof(LSInput), isFromPool) as LSInput;
         }
 
         /// <summary>
         /// 玩家ID
         /// </summary>
         [MemoryPackOrder(0)]
-        public string playerId { get; set; }
+        public long PlayerId { get; set; }
 
         /// <summary>
         /// 帧号
         /// </summary>
         [MemoryPackOrder(1)]
-        public int frameNumber { get; set; }
+        public int Frame { get; set; }
 
         /// <summary>
-        /// 输入数据
+        /// X轴移动输入
         /// </summary>
         [MemoryPackOrder(2)]
-        public byte[] inputData { get; set; }
+        public float MoveX { get; set; }
+
+        /// <summary>
+        /// Y轴移动输入
+        /// </summary>
+        [MemoryPackOrder(3)]
+        public float MoveY { get; set; }
+
+        /// <summary>
+        /// 攻击输入
+        /// </summary>
+        [MemoryPackOrder(4)]
+        public bool Attack { get; set; }
+
+        /// <summary>
+        /// 技能1输入
+        /// </summary>
+        [MemoryPackOrder(5)]
+        public bool Skill1 { get; set; }
+
+        /// <summary>
+        /// 技能2输入
+        /// </summary>
+        [MemoryPackOrder(6)]
+        public bool Skill2 { get; set; }
 
         /// <summary>
         /// 时间戳
         /// </summary>
-        [MemoryPackOrder(3)]
-        public long timestamp { get; set; }
+        [MemoryPackOrder(7)]
+        public long Timestamp { get; set; }
+
+        /// <summary>
+        /// 出生信息
+        /// </summary>
+        [MemoryPackOrder(8)]
+        public int BornInfo { get; set; }
 
         public override void Dispose()
         {
@@ -205,43 +235,34 @@ namespace Astrum.Generated
                 return;
             }
 
-            this.playerId = default;
-            this.frameNumber = default;
-            this.inputData = default;
-            this.timestamp = default;
+            this.PlayerId = default;
+            this.Frame = default;
+            this.MoveX = default;
+            this.MoveY = default;
+            this.Attack = default;
+            this.Skill1 = default;
+            this.Skill2 = default;
+            this.Timestamp = default;
+            this.BornInfo = default;
 
             ObjectPool.Instance.Recycle(this);
         }
     }
 
-    // 游戏帧同步
     [MemoryPackable]
     [MessageAttribute(2005)]
-    public partial class GameFrameSync : MessageObject
+    public partial class OneFrameInputs : MessageObject, IMessage
     {
-        public static GameFrameSync Create(bool isFromPool = false)
+        public static OneFrameInputs Create(bool isFromPool = false)
         {
-            return ObjectPool.Instance.Fetch(typeof(GameFrameSync), isFromPool) as GameFrameSync;
+            return ObjectPool.Instance.Fetch(typeof(OneFrameInputs), isFromPool) as OneFrameInputs;
         }
 
         /// <summary>
-        /// 帧号
+        /// 玩家ID -> 输入数据映射
         /// </summary>
         [MemoryPackOrder(0)]
-        public int frameNumber { get; set; }
-
-        /// <summary>
-        /// 输入列表
-        /// </summary>
-        [MemoryPackOrder(1)]
-        public List<GameInput> inputs { get; set; } = new();
-
-        /// <summary>
-        /// 时间戳
-        /// </summary>
-        [MemoryPackOrder(2)]
-        public long timestamp { get; set; }
-
+        public Dictionary<long, LSInput> Inputs { get; set; } = new();
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -249,9 +270,7 @@ namespace Astrum.Generated
                 return;
             }
 
-            this.frameNumber = default;
-            this.inputs.Clear();
-            this.timestamp = default;
+            this.Inputs.Clear();
 
             ObjectPool.Instance.Recycle(this);
         }
@@ -407,15 +426,372 @@ namespace Astrum.Generated
         }
     }
 
+    // 游戏开始通知
+    [MemoryPackable]
+    [MessageAttribute(2009)]
+    public partial class GameStartNotification : MessageObject
+    {
+        public static GameStartNotification Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(GameStartNotification), isFromPool) as GameStartNotification;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 游戏配置
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public GameConfig config { get; set; }
+
+        /// <summary>
+        /// 房间状态
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public GameRoomState roomState { get; set; }
+
+        /// <summary>
+        /// 开始时间
+        /// </summary>
+        [MemoryPackOrder(3)]
+        public long startTime { get; set; }
+
+        /// <summary>
+        /// 玩家ID列表
+        /// </summary>
+        [MemoryPackOrder(4)]
+        public List<string> playerIds { get; set; } = new();
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.config = default;
+            this.roomState = default;
+            this.startTime = default;
+            this.playerIds.Clear();
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 游戏结束通知
+    [MemoryPackable]
+    [MessageAttribute(2010)]
+    public partial class GameEndNotification : MessageObject
+    {
+        public static GameEndNotification Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(GameEndNotification), isFromPool) as GameEndNotification;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 游戏结果
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public GameResult result { get; set; }
+
+        /// <summary>
+        /// 结束时间
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public long endTime { get; set; }
+
+        /// <summary>
+        /// 结束原因
+        /// </summary>
+        [MemoryPackOrder(3)]
+        public string reason { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.result = default;
+            this.endTime = default;
+            this.reason = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 游戏状态更新
+    [MemoryPackable]
+    [MessageAttribute(2011)]
+    public partial class GameStateUpdate : MessageObject
+    {
+        public static GameStateUpdate Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(GameStateUpdate), isFromPool) as GameStateUpdate;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 房间状态
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public GameRoomState roomState { get; set; }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public long timestamp { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.roomState = default;
+            this.timestamp = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 帧同步开始通知
+    [MemoryPackable]
+    [MessageAttribute(2012)]
+    public partial class FrameSyncStartNotification : MessageObject
+    {
+        public static FrameSyncStartNotification Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(FrameSyncStartNotification), isFromPool) as FrameSyncStartNotification;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 帧率 (20FPS)
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public int frameRate { get; set; }
+
+        /// <summary>
+        /// 帧间隔 (50ms)
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public int frameInterval { get; set; }
+
+        /// <summary>
+        /// 开始时间
+        /// </summary>
+        [MemoryPackOrder(3)]
+        public long startTime { get; set; }
+
+        /// <summary>
+        /// 玩家ID列表
+        /// </summary>
+        [MemoryPackOrder(4)]
+        public List<string> playerIds { get; set; } = new();
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.frameRate = default;
+            this.frameInterval = default;
+            this.startTime = default;
+            this.playerIds.Clear();
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 帧同步结束通知
+    [MemoryPackable]
+    [MessageAttribute(2013)]
+    public partial class FrameSyncEndNotification : MessageObject
+    {
+        public static FrameSyncEndNotification Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(FrameSyncEndNotification), isFromPool) as FrameSyncEndNotification;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 最终帧号
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public int finalFrame { get; set; }
+
+        /// <summary>
+        /// 结束时间
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public long endTime { get; set; }
+
+        /// <summary>
+        /// 结束原因
+        /// </summary>
+        [MemoryPackOrder(3)]
+        public string reason { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.finalFrame = default;
+            this.endTime = default;
+            this.reason = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 帧同步数据消息
+    [MemoryPackable]
+    [MessageAttribute(2014)]
+    public partial class FrameSyncData : MessageObject
+    {
+        public static FrameSyncData Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(FrameSyncData), isFromPool) as FrameSyncData;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 权威帧号
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public int authorityFrame { get; set; }
+
+        /// <summary>
+        /// 帧输入数据
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public OneFrameInputs frameInputs { get; set; }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(3)]
+        public long timestamp { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.authorityFrame = default;
+            this.frameInputs = default;
+            this.timestamp = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 帧同步上传数据
+    [MemoryPackable]
+    [MessageAttribute(2015)]
+    public partial class SingleInput : MessageObject
+    {
+        public static SingleInput Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(SingleInput), isFromPool) as SingleInput;
+        }
+
+        /// <summary>
+        /// 帧号
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public int FrameID { get; set; }
+
+        /// <summary>
+        /// 玩家ID
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public long PlayerID { get; set; }
+
+        /// <summary>
+        /// 输入数据
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public LSInput Input { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.FrameID = default;
+            this.PlayerID = default;
+            this.Input = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
     public static class gamemessages
     {
         public const ushort GameNetworkMessage = 2001;
         public const ushort GameMessageResponse = 2002;
         public const ushort GameRoomState = 2003;
-        public const ushort GameInput = 2004;
-        public const ushort GameFrameSync = 2005;
+        public const ushort LSInput = 2004;
+        public const ushort OneFrameInputs = 2005;
         public const ushort GameResult = 2006;
         public const ushort PlayerResult = 2007;
         public const ushort GameConfig = 2008;
+        public const ushort GameStartNotification = 2009;
+        public const ushort GameEndNotification = 2010;
+        public const ushort GameStateUpdate = 2011;
+        public const ushort FrameSyncStartNotification = 2012;
+        public const ushort FrameSyncEndNotification = 2013;
+        public const ushort FrameSyncData = 2014;
+        public const ushort SingleInput = 2015;
     }
 }

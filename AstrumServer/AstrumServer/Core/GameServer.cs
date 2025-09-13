@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using AstrumServer.Network;
 using AstrumServer.Managers;
 using Astrum.Network;
@@ -17,33 +16,33 @@ namespace AstrumServer.Core
     /// </summary>
     public class GameServer : BackgroundService
     {
-        private readonly ILogger<GameServer> _logger;
         private readonly ServerNetworkManager _networkManager;
         private readonly UserManager _userManager;
         private readonly RoomManager _roomManager;
+        private readonly FrameSyncManager _frameSyncManager;
         
-        public GameServer(ILogger<GameServer> logger)
+        // 系统状态记录，用于检测变化
+        private int _lastUserCount = -1;
+        private int _lastTotalRooms = -1;
+        private int _lastTotalPlayers = -1;
+        private int _lastEmptyRooms = -1;
+        
+        public GameServer()
         {
-            _logger = logger;
             _networkManager = ServerNetworkManager.Instance;
             
-            // 创建LoggerFactory来创建其他Logger
-            var loggerFactory = LoggerFactory.Create(builder =>
-            {
-                builder.AddConsole().SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Debug);
-            });
+            // 使用ASLogger创建管理器
+            _userManager = new UserManager();
+            _roomManager = new RoomManager();
+            _frameSyncManager = new FrameSyncManager(_roomManager, _networkManager, _userManager);
             
-            _userManager = new UserManager(loggerFactory.CreateLogger<UserManager>());
-            _roomManager = new RoomManager(loggerFactory.CreateLogger<RoomManager>());
-            
-            _networkManager.SetLogger(logger);
+            _networkManager.SetLogger(ASLogger.Instance);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             try
             {
-                _logger.LogInformation("Astrum游戏服务器正在启动...");
                 ASLogger.Instance.Info("Astrum游戏服务器正在启动...");
                 
                 // 初始化网络系统基础组件
@@ -53,7 +52,7 @@ namespace AstrumServer.Core
                 var networkStarted = await _networkManager.InitializeAsync(8888);
                 if (!networkStarted)
                 {
-                    _logger.LogError("网络管理器启动失败");
+                    ASLogger.Instance.Error("网络管理器启动失败");
                     return;
                 }
                 
@@ -63,7 +62,9 @@ namespace AstrumServer.Core
                 _networkManager.OnMessageReceived += OnMessageReceived;
                 _networkManager.OnError += OnNetworkError;
                 
-                _logger.LogInformation("Astrum游戏服务器启动成功，监听端口: 8888");
+                // 启动帧同步管理器
+                _frameSyncManager.Start();
+                
                 ASLogger.Instance.Info("Astrum游戏服务器启动成功，监听端口: 8888");
                 
                 // 主循环
@@ -90,27 +91,27 @@ namespace AstrumServer.Core
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "服务器主循环出错");
+                        ASLogger.Instance.Error($"服务器主循环出错: {ex.Message}");
+                        ASLogger.Instance.LogException(ex, LogLevel.Error);
                         await Task.Delay(1000, stoppingToken); // 出错时等待1秒
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "服务器启动失败");
+                ASLogger.Instance.Error($"服务器启动失败: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Fatal);
             }
             finally
             {
-                _logger.LogInformation("正在关闭Astrum游戏服务器...");
+                ASLogger.Instance.Info("正在关闭Astrum游戏服务器...");
                 Shutdown();
-                _logger.LogInformation("Astrum游戏服务器已关闭");
+                ASLogger.Instance.Info("Astrum游戏服务器已关闭");
             }
         }
         
         private void OnClientConnected(Session client)
         {
-            _logger.LogInformation("客户端已连接: {ClientId} from {RemoteEndpoint}", 
-                client.Id, client.RemoteAddress);
             ASLogger.Instance.Info($"客户端已连接: {client.Id} from {client.RemoteAddress}");
             
             // 发送连接成功响应
@@ -124,7 +125,6 @@ namespace AstrumServer.Core
         
         private void OnClientDisconnected(Session client)
         {
-            _logger.LogInformation("客户端已断开: {ClientId}", client.Id);
             ASLogger.Instance.Info($"客户端已断开: {client.Id}");
             
             // 移除用户
@@ -135,8 +135,7 @@ namespace AstrumServer.Core
         {
             try
             {
-                _logger.LogDebug("收到来自客户端 {ClientId} 的消息: {MessageType}", 
-                    client.Id, message.GetType().Name);
+                ASLogger.Instance.Debug($"收到来自客户端 {client.Id} 的消息: {message.GetType().Name}");
                 
                 // 根据消息类型处理
                 switch (message)
@@ -159,28 +158,34 @@ namespace AstrumServer.Core
                     case HeartbeatMessage heartbeatMessage:
                         HandleHeartbeatMessage(client, heartbeatMessage);
                         break;
+                    case GameRequest gameRequest:
+                        HandleGameRequest(client, gameRequest);
+                        break;
+                    case SingleInput singleInput:
+                        HandleSingleInput(client, singleInput);
+                        break;
                     default:
-                        _logger.LogWarning("未处理的消息类型: {MessageType}", message.GetType().Name);
+                        ASLogger.Instance.Warning($"未处理的消息类型: {message.GetType().Name}");
                         break;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理客户端 {ClientId} 的消息时出错", client.Id);
+                ASLogger.Instance.Error($"处理客户端 {client.Id} 的消息时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
         private void OnNetworkError(Session client, Exception ex)
         {
-            _logger.LogError(ex, "客户端 {ClientId} 发生网络错误", client.Id);
+            ASLogger.Instance.Error($"客户端 {client.Id} 发生网络错误: {ex.Message}");
+            ASLogger.Instance.LogException(ex, LogLevel.Error);
         }
         
         private void HandleLoginRequest(Session client, LoginRequest request)
         {
             try
             {
-                _logger.LogInformation("客户端 {ClientId} 请求登录，显示名称: {DisplayName}", 
-                    client.Id, request.DisplayName);
                 ASLogger.Instance.Info($"客户端 {client.Id} 请求登录，显示名称: {request.DisplayName}");
                 
                 // 为用户分配ID
@@ -194,11 +199,12 @@ namespace AstrumServer.Core
                 response.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 
                 _networkManager.SendMessage(client.Id.ToString(), response);
-                _logger.LogInformation("客户端 {ClientId} 登录成功，用户ID: {UserId}", client.Id, userInfo.Id);
+                ASLogger.Instance.Info($"客户端 {client.Id} 登录成功，用户ID: {userInfo.Id}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理登录请求时出错");
+                ASLogger.Instance.Error($"处理登录请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 
                 // 发送登录失败响应
                 var response = LoginResponse.Create();
@@ -217,13 +223,12 @@ namespace AstrumServer.Core
                 var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
                 if (userInfo == null)
                 {
-                    _logger.LogWarning("客户端 {ClientId} 尝试创建房间但未登录", client.Id);
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试创建房间但未登录");
                     SendCreateRoomResponse(client.Id.ToString(), false, "请先登录", null);
                     return;
                 }
                 
-                _logger.LogInformation("用户 {UserId} 请求创建房间，房间名称: {RoomName}，最大玩家数: {MaxPlayers}", 
-                    userInfo.Id, request.RoomName, request.MaxPlayers);
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 请求创建房间，房间名称: {request.RoomName}，最大玩家数: {request.MaxPlayers}");
                 
                 // 如果用户已在房间中，先离开
                 if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
@@ -244,11 +249,12 @@ namespace AstrumServer.Core
                 // 通知房间内所有玩家房间更新
                 NotifyRoomUpdate(roomInfo, "created", userInfo.Id);
                 
-                _logger.LogInformation("用户 {UserId} 创建房间成功，房间ID: {RoomId}", userInfo.Id, roomInfo.Id);
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 创建房间成功，房间ID: {roomInfo.Id}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理创建房间请求时出错");
+                ASLogger.Instance.Error($"处理创建房间请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 SendCreateRoomResponse(client.Id.ToString(), false, "创建房间失败: " + ex.Message, null);
             }
         }
@@ -260,12 +266,12 @@ namespace AstrumServer.Core
                 var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
                 if (userInfo == null)
                 {
-                    _logger.LogWarning("客户端 {ClientId} 尝试加入房间但未登录", client.Id);
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试加入房间但未登录");
                     SendJoinRoomResponse(client.Id.ToString(), false, "请先登录", null);
                     return;
                 }
                 
-                _logger.LogInformation("用户 {UserId} 请求加入房间: {RoomId}", userInfo.Id, request.RoomId);
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 请求加入房间: {request.RoomId}");
                 
                 // 如果用户已在房间中，先离开
                 if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
@@ -287,7 +293,7 @@ namespace AstrumServer.Core
                     // 通知房间内所有玩家房间更新
                     NotifyRoomUpdate(roomInfo, "joined", userInfo.Id);
                     
-                    _logger.LogInformation("用户 {UserId} 加入房间成功: {RoomId}", userInfo.Id, request.RoomId);
+                    ASLogger.Instance.Info($"用户 {userInfo.Id} 加入房间成功: {request.RoomId}");
                 }
                 else
                 {
@@ -296,7 +302,8 @@ namespace AstrumServer.Core
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理加入房间请求时出错");
+                ASLogger.Instance.Error($"处理加入房间请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 SendJoinRoomResponse(client.Id.ToString(), false, "加入房间失败: " + ex.Message, null);
             }
         }
@@ -308,12 +315,12 @@ namespace AstrumServer.Core
                 var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
                 if (userInfo == null)
                 {
-                    _logger.LogWarning("客户端 {ClientId} 尝试离开房间但未登录", client.Id);
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试离开房间但未登录");
                     SendLeaveRoomResponse(client.Id.ToString(), false, "请先登录", "");
                     return;
                 }
                 
-                _logger.LogInformation("用户 {UserId} 请求离开房间: {RoomId}", userInfo.Id, request.RoomId);
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 请求离开房间: {request.RoomId}");
                 
                 // 离开房间
                 var success = _roomManager.LeaveRoom(request.RoomId, userInfo.Id);
@@ -330,8 +337,14 @@ namespace AstrumServer.Core
                     {
                         NotifyRoomUpdate(roomInfo, "left", userInfo.Id);
                     }
+                    else
+                    {
+                        // 房间已被删除（房间变空），停止帧同步
+                        _frameSyncManager.StopRoomFrameSync(request.RoomId, "房间内所有玩家已离开");
+                        ASLogger.Instance.Info($"房间 {request.RoomId} 已变空，停止帧同步");
+                    }
                     
-                    _logger.LogInformation("用户 {UserId} 离开房间成功: {RoomId}", userInfo.Id, request.RoomId);
+                    ASLogger.Instance.Info($"用户 {userInfo.Id} 离开房间成功: {request.RoomId}");
                 }
                 else
                 {
@@ -340,7 +353,8 @@ namespace AstrumServer.Core
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理离开房间请求时出错");
+                ASLogger.Instance.Error($"处理离开房间请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 SendLeaveRoomResponse(client.Id.ToString(), false, "离开房间失败: " + ex.Message, request.RoomId);
             }
         }
@@ -352,12 +366,12 @@ namespace AstrumServer.Core
                 var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
                 if (userInfo == null)
                 {
-                    _logger.LogWarning("客户端 {ClientId} 尝试获取房间列表但未登录", client.Id);
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试获取房间列表但未登录");
                     SendRoomListResponse(client.Id.ToString(), false, "请先登录", new List<RoomInfo>());
                     return;
                 }
                 
-                _logger.LogDebug("用户 {UserId} 请求获取房间列表", userInfo.Id);
+                ASLogger.Instance.Debug($"用户 {userInfo.Id} 请求获取房间列表");
                 
                 // 获取所有房间
                 var rooms = _roomManager.GetAllRooms();
@@ -365,11 +379,12 @@ namespace AstrumServer.Core
                 // 发送房间列表响应
                 SendRoomListResponse(client.Id.ToString(), true, "获取房间列表成功", rooms);
                 
-                _logger.LogDebug("向用户 {UserId} 发送房间列表，共 {Count} 个房间", userInfo.Id, rooms.Count);
+                ASLogger.Instance.Debug($"向用户 {userInfo.Id} 发送房间列表，共 {rooms.Count} 个房间");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "处理获取房间列表请求时出错");
+                ASLogger.Instance.Error($"处理获取房间列表请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 SendRoomListResponse(client.Id.ToString(), false, "获取房间列表失败: " + ex.Message, new List<RoomInfo>());
             }
         }
@@ -400,19 +415,31 @@ namespace AstrumServer.Core
                 // 清理断线用户
                 _userManager.CleanupDisconnectedUsers();
                 
-                // 每60秒输出一次统计信息
-                if (DateTime.Now.Second % 60 == 0)
+                // 检查系统状态变化，只在有变化时输出日志
+                var userCount = _userManager.GetOnlineUserCount();
+                var roomStats = _roomManager.GetRoomStatistics();
+                
+                // 检查是否有任何变化
+                bool hasChanged = userCount != _lastUserCount || 
+                                 roomStats.totalRooms != _lastTotalRooms || 
+                                 roomStats.totalPlayers != _lastTotalPlayers || 
+                                 roomStats.emptyRooms != _lastEmptyRooms;
+                
+                if (hasChanged)
                 {
-                    var userCount = _userManager.GetOnlineUserCount();
-                    var roomStats = _roomManager.GetRoomStatistics();
+                    ASLogger.Instance.Info($"系统状态 - 在线用户: {userCount}, 房间: {roomStats.totalRooms}, 房间内玩家: {roomStats.totalPlayers}, 空房间: {roomStats.emptyRooms}");
                     
-                    _logger.LogInformation("系统状态 - 在线用户: {UserCount}, 房间: {TotalRooms}, 房间内玩家: {TotalPlayers}, 空房间: {EmptyRooms}", 
-                        userCount, roomStats.totalRooms, roomStats.totalPlayers, roomStats.emptyRooms);
+                    // 更新记录的状态
+                    _lastUserCount = userCount;
+                    _lastTotalRooms = roomStats.totalRooms;
+                    _lastTotalPlayers = roomStats.totalPlayers;
+                    _lastEmptyRooms = roomStats.emptyRooms;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "系统清理时出错");
+                ASLogger.Instance.Error($"系统清理时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -436,11 +463,12 @@ namespace AstrumServer.Core
                     }
                 }
                 
-                _logger.LogDebug("向房间 {RoomId} 的所有玩家发送房间更新通知: {UpdateType}", roomInfo.Id, updateType);
+                ASLogger.Instance.Debug($"向房间 {roomInfo.Id} 的所有玩家发送房间更新通知: {updateType}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "发送房间更新通知时出错");
+                ASLogger.Instance.Error($"发送房间更新通知时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -488,36 +516,297 @@ namespace AstrumServer.Core
             _networkManager.SendMessage(sessionId, response);
         }
         
+        private void SendGameResponse(string sessionId, bool success, string message)
+        {
+            var response = GameResponse.Create();
+            response.success = success;
+            response.message = message;
+            response.requestId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            
+            _networkManager.SendMessage(sessionId, response);
+        }
+        
+        private void NotifyGameStart(RoomInfo roomInfo, string hostId)
+        {
+            try
+            {
+                // 创建游戏配置
+                var gameConfig = GameConfig.Create();
+                gameConfig.maxPlayers = roomInfo.MaxPlayers;
+                gameConfig.roundTime = 60; // 60秒一回合
+                gameConfig.maxRounds = 5; // 最多5回合
+                gameConfig.allowSpectators = true;
+                gameConfig.gameModes = new List<string> { "经典模式", "快速模式" };
+
+                // 创建游戏房间状态
+                var roomState = GameRoomState.Create();
+                roomState.roomId = roomInfo.Id;
+                roomState.currentRound = 1;
+                roomState.maxRounds = gameConfig.maxRounds;
+                roomState.roundStartTime = TimeInfo.Instance.ClientNow();
+                roomState.activePlayers = new List<string>(roomInfo.PlayerNames);
+
+                // 创建游戏开始通知
+                var notification = GameStartNotification.Create();
+                notification.roomId = roomInfo.Id;
+                notification.config = gameConfig;
+                notification.roomState = roomState;
+                notification.startTime = roomInfo.GameStartTime;
+                notification.playerIds = new List<string>(roomInfo.PlayerNames);
+
+                // 通知房间内所有玩家游戏开始
+                foreach (var playerId in roomInfo.PlayerNames)
+                {
+                    var sessionId = _userManager.GetSessionIdByUserId(playerId);
+                    if (!string.IsNullOrEmpty(sessionId))
+                    {
+                        _networkManager.SendMessage(sessionId, notification);
+                    }
+                }
+                
+                ASLogger.Instance.Info($"已通知房间 {roomInfo.Id} 的所有玩家游戏开始 (Players: {roomInfo.CurrentPlayers})");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"通知游戏开始时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        private void HandleGameRequest(Session client, GameRequest request)
+        {
+            try
+            {
+                var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
+                if (userInfo == null)
+                {
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试开始游戏但未登录");
+                    SendGameResponse(client.Id.ToString(), false, "请先登录");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试开始游戏但不在房间中");
+                    SendGameResponse(client.Id.ToString(), false, "请先加入房间");
+                    return;
+                }
+                
+                var roomInfo = _roomManager.GetRoom(userInfo.CurrentRoomId);
+                if (roomInfo == null)
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试开始游戏但房间不存在: {userInfo.CurrentRoomId}");
+                    SendGameResponse(client.Id.ToString(), false, "房间不存在");
+                    return;
+                }
+                
+                // 检查是否为房主
+                if (roomInfo.CreatorName != userInfo.Id)
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试开始游戏但不是房主");
+                    SendGameResponse(client.Id.ToString(), false, "只有房主才能开始游戏");
+                    return;
+                }
+                
+                // 使用房间管理器开始游戏
+                if (!_roomManager.StartGame(roomInfo.Id, userInfo.Id))
+                {
+                    ASLogger.Instance.Warning($"房间管理器开始游戏失败: {roomInfo.Id}");
+                    SendGameResponse(client.Id.ToString(), false, "开始游戏失败");
+                    return;
+                }
+                
+                // 开始房间帧同步
+                _frameSyncManager.StartRoomFrameSync(roomInfo.Id);
+                
+                // 发送开始游戏成功响应
+                SendGameResponse(client.Id.ToString(), true, "游戏开始成功");
+                
+                // 通知房间内所有玩家游戏开始
+                NotifyGameStart(roomInfo, userInfo.Id);
+                
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 开始游戏成功 - 房间: {roomInfo.Id}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理开始游戏请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                SendGameResponse(client.Id.ToString(), false, "开始游戏失败: " + ex.Message);
+            }
+        }
+        
+        /// <summary>
+        /// 处理游戏结束请求
+        /// </summary>
+        private void HandleGameEndRequest(Session client, GameRequest request)
+        {
+            try
+            {
+                var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
+                if (userInfo == null)
+                {
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试结束游戏但未登录");
+                    SendGameResponse(client.Id.ToString(), false, "请先登录");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试结束游戏但不在房间中");
+                    SendGameResponse(client.Id.ToString(), false, "请先加入房间");
+                    return;
+                }
+                
+                var roomInfo = _roomManager.GetRoom(userInfo.CurrentRoomId);
+                if (roomInfo == null)
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试结束游戏但房间不存在: {userInfo.CurrentRoomId}");
+                    SendGameResponse(client.Id.ToString(), false, "房间不存在");
+                    return;
+                }
+                
+                // 检查是否为房主
+                if (roomInfo.CreatorName != userInfo.Id)
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试结束游戏但不是房主");
+                    SendGameResponse(client.Id.ToString(), false, "只有房主才能结束游戏");
+                    return;
+                }
+                
+                // 使用房间管理器结束游戏
+                if (!_roomManager.EndGame(roomInfo.Id, "房主主动结束"))
+                {
+                    ASLogger.Instance.Warning($"房间管理器结束游戏失败: {roomInfo.Id}");
+                    SendGameResponse(client.Id.ToString(), false, "结束游戏失败");
+                    return;
+                }
+                
+                // 停止房间帧同步
+                _frameSyncManager.StopRoomFrameSync(roomInfo.Id, "房主主动结束");
+                
+                // 发送结束游戏成功响应
+                SendGameResponse(client.Id.ToString(), true, "游戏结束成功");
+                
+                // 通知房间内所有玩家游戏结束
+                NotifyGameEnd(roomInfo, "房主主动结束");
+                
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 结束游戏成功 - 房间: {roomInfo.Id}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理结束游戏请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                SendGameResponse(client.Id.ToString(), false, "结束游戏失败: " + ex.Message);
+            }
+        }
+        
+        /// <summary>
+        /// 通知游戏结束
+        /// </summary>
+        private void NotifyGameEnd(RoomInfo roomInfo, string reason)
+        {
+            try
+            {
+                // 创建游戏结果
+                var gameResult = GameResult.Create();
+                gameResult.roomId = roomInfo.Id;
+                gameResult.endTime = roomInfo.GameEndTime;
+                
+                // 为每个玩家创建结果
+                for (int i = 0; i < roomInfo.PlayerNames.Count; i++)
+                {
+                    var playerResult = PlayerResult.Create();
+                    playerResult.playerId = roomInfo.PlayerNames[i];
+                    playerResult.score = 100 - i * 10; // 简单的分数计算
+                    playerResult.rank = i + 1;
+                    playerResult.isWinner = i == 0; // 第一个玩家获胜
+                    gameResult.playerResults.Add(playerResult);
+                }
+                
+                // 创建游戏结束通知
+                var notification = GameEndNotification.Create();
+                notification.roomId = roomInfo.Id;
+                notification.result = gameResult;
+                notification.endTime = roomInfo.GameEndTime;
+                notification.reason = reason;
+                
+                // 通知房间内所有玩家游戏结束
+                foreach (var playerId in roomInfo.PlayerNames)
+                {
+                    var sessionId = _userManager.GetSessionIdByUserId(playerId);
+                    if (!string.IsNullOrEmpty(sessionId))
+                    {
+                        _networkManager.SendMessage(sessionId, notification);
+                    }
+                }
+                
+                ASLogger.Instance.Info($"已通知房间 {roomInfo.Id} 的所有玩家游戏结束 (Reason: {reason})");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"通知游戏结束时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
         /// <summary>
         /// 初始化网络系统基础组件
         /// </summary>
         private void InitializeNetworkSystem()
         {
-            _logger.LogInformation("正在初始化服务器网络系统基础组件...");
             ASLogger.Instance.Info("正在初始化服务器网络系统基础组件...");
             
             try
             {
                 // 初始化ObjectPool（对象池系统）
                 ObjectPool.Instance.Awake();
-                _logger.LogInformation("ObjectPool初始化完成");
                 ASLogger.Instance.Info("ObjectPool初始化完成");
                 
                 // 初始化CodeTypes（加载所有类型信息）
                 CodeTypes.Instance.Awake();
-                _logger.LogInformation("CodeTypes初始化完成");
                 ASLogger.Instance.Info("CodeTypes初始化完成");
                 
                 // 初始化OpcodeType（注册消息类型和opcode映射）
                 OpcodeType.Instance.Awake();
-                _logger.LogInformation("OpcodeType初始化完成");
                 ASLogger.Instance.Info("OpcodeType初始化完成");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "网络系统基础组件初始化失败");
                 ASLogger.Instance.Error($"网络系统基础组件初始化失败: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Fatal);
                 throw;
+            }
+        }
+        
+        /// <summary>
+        /// 处理客户端发送的单帧输入数据
+        /// </summary>
+        private void HandleSingleInput(Session client, SingleInput singleInput)
+        {
+            try
+            {
+                var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
+                if (userInfo == null)
+                {
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 发送单帧输入但未登录");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 发送单帧输入但不在房间中");
+                    return;
+                }
+                
+                // 将单帧输入数据传递给帧同步管理器
+                _frameSyncManager.HandleSingleInput(userInfo.CurrentRoomId, singleInput);
+                
+                ASLogger.Instance.Debug($"处理用户 {userInfo.Id} 的单帧输入，房间: {userInfo.CurrentRoomId}，帧: {singleInput.FrameID}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理单帧输入时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -525,12 +814,17 @@ namespace AstrumServer.Core
         {
             try
             {
+                // 停止帧同步管理器
+                _frameSyncManager.Stop();
+                ASLogger.Instance.Info("帧同步管理器已停止");
+                
                 _networkManager.Shutdown();
-                _logger.LogInformation("网络管理器已停止");
+                ASLogger.Instance.Info("网络管理器已停止");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "停止网络管理器时出错");
+                ASLogger.Instance.Error($"停止服务器时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
     }

@@ -207,9 +207,6 @@ MonoBehaviour:
     componentType: Button
     reference: {fileID: 3169140149722033982}
   - path: ConnectButton
-    componentType: PopupOpener
-    reference: {fileID: 0}
-  - path: ConnectButton
     componentType: GameObject
     reference: {fileID: 4547792922757483720}
   - path: ButtonBackground

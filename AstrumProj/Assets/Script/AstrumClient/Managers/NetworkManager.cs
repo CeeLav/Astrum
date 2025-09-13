@@ -35,6 +35,14 @@ namespace Astrum.Client.Managers
         public event Action<GetRoomListResponse> OnGetRoomListResponse;
         public event Action<RoomUpdateNotification> OnRoomUpdateNotification;
         public event Action<HeartbeatResponse> OnHeartbeatResponse;
+        public event Action<GameResponse> OnGameResponse;
+        public event Action<GameStartNotification> OnGameStartNotification;
+        public event Action<GameEndNotification> OnGameEndNotification;
+        public event Action<GameStateUpdate> OnGameStateUpdate;
+        public event Action<FrameSyncStartNotification> OnFrameSyncStartNotification;
+        public event Action<FrameSyncEndNotification> OnFrameSyncEndNotification;
+        public event Action<FrameSyncData> OnFrameSyncData;
+        public event Action<OneFrameInputs> OnFrameInputs;
         
         // 客户端代码期望的属性
         public ConnectionStatus ConnectionStatus => GetConnectionStatus();
@@ -189,7 +197,7 @@ namespace Astrum.Client.Managers
             try
             {
                 currentSession.Send(message);
-                ASLogger.Instance.Debug($"Message sent via Session: {message.GetType().Name}");
+                //ASLogger.Instance.Debug($"Message sent via Session: {message.GetType().Name}");
             }
             catch (Exception ex)
             {
@@ -354,7 +362,7 @@ namespace Astrum.Client.Managers
                 currentSession.LastRecvTime = TimeInfo.Instance.ClientNow();
                 
                 // 客户端模式：连接已在ConnectAsync中建立，这里只处理消息
-                ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}");
+                //ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}");
             }
             
             ProcessMessage(channelId, buffer);
@@ -415,7 +423,7 @@ namespace Astrum.Client.Managers
                 {
                     // 根据消息类型触发对应事件
                     DispatchMessage(messageObject);
-                    ASLogger.Instance.Debug($"成功反序列化消息: {messageObject.GetType().Name}");
+                    //ASLogger.Instance.Debug($"成功反序列化消息: {messageObject.GetType().Name}");
                 }
                 else
                 {
@@ -458,6 +466,30 @@ namespace Astrum.Client.Managers
                     break;
                 case HeartbeatResponse heartbeatResponse:
                     OnHeartbeatResponse?.Invoke(heartbeatResponse);
+                    break;
+                case GameResponse gameResponse:
+                    OnGameResponse?.Invoke(gameResponse);
+                    break;
+                case GameStartNotification gameStartNotification:
+                    OnGameStartNotification?.Invoke(gameStartNotification);
+                    break;
+                case GameEndNotification gameEndNotification:
+                    OnGameEndNotification?.Invoke(gameEndNotification);
+                    break;
+                case GameStateUpdate gameStateUpdate:
+                    OnGameStateUpdate?.Invoke(gameStateUpdate);
+                    break;
+                case FrameSyncStartNotification frameSyncStartNotification:
+                    OnFrameSyncStartNotification?.Invoke(frameSyncStartNotification);
+                    break;
+                case FrameSyncEndNotification frameSyncEndNotification:
+                    OnFrameSyncEndNotification?.Invoke(frameSyncEndNotification);
+                    break;
+                case FrameSyncData frameSyncData:
+                    OnFrameSyncData?.Invoke(frameSyncData);
+                    break;
+                case OneFrameInputs oneFrameInputs:
+                    OnFrameInputs?.Invoke(oneFrameInputs);
                     break;
                 default:
                     ASLogger.Instance.Warning($"未处理的消息类型: {messageObject.GetType().Name}");

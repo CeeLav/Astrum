@@ -2,10 +2,11 @@ using System.Collections.Generic;
 
 namespace Astrum.LogicCore.FrameSync
 {
+    /*
     /// <summary>
     /// 单帧输入数据集合
     /// </summary>
-    public class OneFrameInputs
+    public partial class OneFrameInputs
     {
         /// <summary>
         /// 帧号
@@ -132,5 +133,5 @@ namespace Astrum.LogicCore.FrameSync
         {
             return Inputs.Count;
         }
-    }
+    }*/
 }

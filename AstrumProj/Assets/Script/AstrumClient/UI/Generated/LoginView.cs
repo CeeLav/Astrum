@@ -81,6 +81,7 @@ namespace Astrum.Client.UI.Generated
                 networkManager.OnDisconnected += OnDisconnected;
                 networkManager.OnConnectionStatusChanged += OnConnectionStatusChanged;
                 networkManager.OnConnectResponse += OnConnectResponse;
+                networkManager.OnLoginResponse += OnLoginResponse;
             }
         }
 
@@ -96,6 +97,7 @@ namespace Astrum.Client.UI.Generated
                 networkManager.OnDisconnected -= OnDisconnected;
                 networkManager.OnConnectionStatusChanged -= OnConnectionStatusChanged;
                 networkManager.OnConnectResponse -= OnConnectResponse;
+                networkManager.OnLoginResponse -= OnLoginResponse;
             }
         }
 
@@ -156,6 +158,9 @@ namespace Astrum.Client.UI.Generated
                 UpdateConnectionStatus($"连接成功: {response.message}");
                 UpdateConnectButtonText("已连接");
                 SetConnectButtonInteractable(false);
+                
+                // 连接成功后自动发送登录请求
+                SendLoginRequest();
             }
             else
             {
@@ -164,6 +169,45 @@ namespace Astrum.Client.UI.Generated
                 SetConnectButtonInteractable(true);
             }
             isConnecting = false;
+        }
+
+        /// <summary>
+        /// 登录响应事件
+        /// </summary>
+        private void OnLoginResponse(LoginResponse response)
+        {
+            Debug.Log($"LoginView: 收到登录响应: {response.Success}, {response.Message}");
+            if (response.Success)
+            {
+                UpdateConnectionStatus($"登录成功: {response.Message}");
+                UpdateConnectButtonText("已登录");
+                SetConnectButtonInteractable(false);
+                
+                // 登录成功后切换到房间列表
+                try
+                {
+                    var uiManager = GameApplication.Instance?.UIManager;
+                    if (uiManager != null)
+                    {
+                        Debug.Log("LoginView: 切换到房间列表");
+                        uiManager.ShowUI("RoomList");
+                    }
+                    else
+                    {
+                        Debug.LogError("LoginView: 无法获取UIManager");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"LoginView: 切换到房间列表失败 - {ex.Message}");
+                }
+            }
+            else
+            {
+                UpdateConnectionStatus($"登录失败: {response.Message}");
+                UpdateConnectButtonText("重新登录");
+                SetConnectButtonInteractable(true);
+            }
         }
 
         #endregion
@@ -229,6 +273,34 @@ namespace Astrum.Client.UI.Generated
                 UpdateConnectButtonText("重新连接");
                 SetConnectButtonInteractable(true);
                 isConnecting = false;
+            }
+        }
+
+        /// <summary>
+        /// 发送登录请求
+        /// </summary>
+        private void SendLoginRequest()
+        {
+            try
+            {
+                var networkManager = GameApplication.Instance?.NetworkManager;
+                if (networkManager == null)
+                {
+                    Debug.LogError("LoginView: NetworkManager不存在，无法发送登录请求");
+                    return;
+                }
+
+                // 创建登录请求
+                var loginRequest = LoginRequest.Create();
+                loginRequest.DisplayName = "Player_" + UnityEngine.Random.Range(1000, 9999);
+                
+                // 发送登录请求
+                networkManager.Send(loginRequest);
+                Debug.Log($"LoginView: 登录请求已发送，显示名称: {loginRequest.DisplayName}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"LoginView: 发送登录请求失败: {ex.Message}");
             }
         }
 

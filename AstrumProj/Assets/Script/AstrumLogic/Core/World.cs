@@ -92,29 +92,6 @@ namespace Astrum.LogicCore.Core
             return Entities.TryGetValue(entityId, out var entity) ? entity : null;
         }
 
-        /// <summary>
-        /// 应用输入到实体
-        /// </summary>
-        /// <param name="frameInputs">单帧输入数据</param>
-        public void ApplyInputsToEntities(OneFrameInputs frameInputs)
-        {
-            foreach (var entity in Entities.Values)
-            {
-                if (entity.IsActive && !entity.IsDestroyed)
-                {
-                    // 查找实体的输入组件并应用输入
-                    var inputComponent = entity.GetComponent<LSInputComponent>();
-                    if (inputComponent != null)
-                    {
-                        var input = frameInputs.GetInput(inputComponent.PlayerId);
-                        if (input != null)
-                        {
-                            entity.ApplyInput(input);
-                        }
-                    }
-                }
-            }
-        }
 
         /// <summary>
         /// 更新世界状态

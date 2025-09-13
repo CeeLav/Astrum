@@ -3,7 +3,8 @@
     "rootNamespace": "Astrum.LogicCore",
     "references": [
         "UnityEngine",
-        "CommonBase"
+        "CommonBase",
+        "Generated"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

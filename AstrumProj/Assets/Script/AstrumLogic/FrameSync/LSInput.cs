@@ -1,7 +1,7 @@
 using System;
 
 namespace Astrum.LogicCore.FrameSync
-{
+{/*
     /// <summary>
     /// 帧同步输入数据
     /// </summary>
@@ -102,5 +102,14 @@ namespace Astrum.LogicCore.FrameSync
             }
             return (0, 0);
         }
-    }
+
+        /// <summary>
+        /// 转换为字符串表示
+        /// </summary>
+        /// <returns>输入数据的字符串表示</returns>
+        public override string ToString()
+        {
+            return $"LSInput[PlayerId={PlayerId}, Frame={Frame}, MoveX={MoveX:F2}, MoveY={MoveY:F2}, Attack={Attack}, Skill1={Skill1}, Skill2={Skill2}, Timestamp={Timestamp}]";
+        }
+    }*/
 }

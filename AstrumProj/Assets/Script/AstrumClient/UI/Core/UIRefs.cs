@@ -45,6 +45,7 @@ namespace Astrum.Client.UI.Core
                 gameObjectRefs.Clear();
                 componentCache.Clear();
                 
+                // 收集所有节点引用（包括根节点），使用完整路径
                 CollectReferencesRecursive(transform, "");
                 
                 Debug.Log($"[UIRefs] 引用收集完成，共收集 {componentRefs.Count} 个组件引用，{gameObjectRefs.Count} 个GameObject引用");
@@ -60,74 +61,88 @@ namespace Astrum.Client.UI.Core
         /// </summary>
         private void CollectReferencesRecursive(Transform parent, string path)
         {
+            // 收集当前节点（包括根节点）的引用
+            // 处理Unity自动添加的(Clone)后缀
+            string nodeName = parent.name;
+            if (nodeName.EndsWith("(Clone)"))
+            {
+                nodeName = nodeName.Substring(0, nodeName.Length - 7); // 去掉"(Clone)"
+            }
+            
+            string currentPath = string.IsNullOrEmpty(path) ? nodeName : $"{path}/{nodeName}";
+            
+            // 缓存GameObject引用
+            gameObjectRefs[currentPath] = parent.gameObject;
+            
+            // 缓存所有MonoBehaviour组件引用
+            var components = parent.GetComponents<MonoBehaviour>();
+            foreach (var component in components)
+            {
+                if (component != null && component != this)
+                {
+                    componentRefs[currentPath] = component;
+                    break; // 只取第一个MonoBehaviour组件
+                }
+            }
+            
+            // 缓存其他重要组件
+            var rectTransform = parent.GetComponent<RectTransform>();
+            if (rectTransform != null)
+            {
+                componentCache[$"{currentPath}/RectTransform"] = rectTransform;
+            }
+            
+            var image = parent.GetComponent<Image>();
+            if (image != null)
+            {
+                componentCache[$"{currentPath}/Image"] = image;
+            }
+            
+            var text = parent.GetComponent<Text>();
+            if (text != null)
+            {
+                componentCache[$"{currentPath}/Text"] = text;
+            }
+            
+            var button = parent.GetComponent<Button>();
+            if (button != null)
+            {
+                componentCache[$"{currentPath}/Button"] = button;
+            }
+            
+            var inputField = parent.GetComponent<InputField>();
+            if (inputField != null)
+            {
+                componentCache[$"{currentPath}/InputField"] = inputField;
+            }
+            
+            var scrollRect = parent.GetComponent<ScrollRect>();
+            if (scrollRect != null)
+            {
+                componentCache[$"{currentPath}/ScrollRect"] = scrollRect;
+            }
+            
+            var toggle = parent.GetComponent<Toggle>();
+            if (toggle != null)
+            {
+                componentCache[$"{currentPath}/Toggle"] = toggle;
+            }
+            
+            var slider = parent.GetComponent<Slider>();
+            if (slider != null)
+            {
+                componentCache[$"{currentPath}/Slider"] = slider;
+            }
+            
+            var dropdown = parent.GetComponent<Dropdown>();
+            if (dropdown != null)
+            {
+                componentCache[$"{currentPath}/Dropdown"] = dropdown;
+            }
+            
+            // 递归处理子节点
             foreach (Transform child in parent)
             {
-                string currentPath = string.IsNullOrEmpty(path) ? child.name : $"{path}/{child.name}";
-                
-                // 缓存GameObject引用
-                gameObjectRefs[currentPath] = child.gameObject;
-                
-                // 缓存所有MonoBehaviour组件引用
-                var components = child.GetComponents<MonoBehaviour>();
-                foreach (var component in components)
-                {
-                    if (component != null && component != this)
-                    {
-                        componentRefs[currentPath] = component;
-                        break; // 只取第一个MonoBehaviour组件
-                    }
-                }
-                
-                // 缓存其他重要组件
-                var rectTransform = child.GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    componentCache[$"{currentPath}/RectTransform"] = rectTransform;
-                }
-                
-                var image = child.GetComponent<Image>();
-                if (image != null)
-                {
-                    componentCache[$"{currentPath}/Image"] = image;
-                }
-                
-                var text = child.GetComponent<Text>();
-                if (text != null)
-                {
-                    componentCache[$"{currentPath}/Text"] = text;
-                }
-                
-                var button = child.GetComponent<Button>();
-                if (button != null)
-                {
-                    componentCache[$"{currentPath}/Button"] = button;
-                }
-                
-                var inputField = child.GetComponent<InputField>();
-                if (inputField != null)
-                {
-                    componentCache[$"{currentPath}/InputField"] = inputField;
-                }
-                
-                var scrollRect = child.GetComponent<ScrollRect>();
-                if (scrollRect != null)
-                {
-                    componentCache[$"{currentPath}/ScrollRect"] = scrollRect;
-                }
-                
-                var layoutGroup = child.GetComponent<LayoutGroup>();
-                if (layoutGroup != null)
-                {
-                    componentCache[$"{currentPath}/LayoutGroup"] = layoutGroup;
-                }
-                
-                var contentSizeFitter = child.GetComponent<ContentSizeFitter>();
-                if (contentSizeFitter != null)
-                {
-                    componentCache[$"{currentPath}/ContentSizeFitter"] = contentSizeFitter;
-                }
-                
-                // 递归处理子节点
                 CollectReferencesRecursive(child, currentPath);
             }
         }

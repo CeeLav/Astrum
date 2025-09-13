@@ -5,6 +5,7 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
+using Astrum.Generated;
 
 namespace Astrum.LogicCore.Core
 {

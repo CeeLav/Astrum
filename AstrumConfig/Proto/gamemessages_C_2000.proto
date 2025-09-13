@@ -30,22 +30,26 @@ message GameRoomState
     repeated string activePlayers = 6; // 活跃玩家列表
 }
 
-// 游戏输入
-message GameInput
+// 帧同步输入数据
+message LSInput
 {
-    string playerId = 1;       // 玩家ID
-    int32 frameNumber = 2;     // 帧号
-    bytes inputData = 3;       // 输入数据
-    int64 timestamp = 4;       // 时间戳
+    int64 PlayerId = 1;        // 玩家ID
+    int32 Frame = 2;           // 帧号
+    float MoveX = 3;           // X轴移动输入
+    float MoveY = 4;           // Y轴移动输入
+    bool Attack = 5;           // 攻击输入
+    bool Skill1 = 6;           // 技能1输入
+    bool Skill2 = 7;           // 技能2输入
+    int64 Timestamp = 8;       // 时间戳
+    int BornInfo = 9;          // 出生信息
 }
 
-// 游戏帧同步
-message GameFrameSync
+message OneFrameInputs // IMessage
 {
-    int32 frameNumber = 1;     // 帧号
-    repeated GameInput inputs = 2; // 输入列表
-    int64 timestamp = 3;       // 时间戳
+	map<int64, LSInput> Inputs = 1;  // 玩家ID -> 输入数据映射
 }
+
+
 
 // 游戏结果
 message GameResult
@@ -72,4 +76,67 @@ message GameConfig
     int32 maxRounds = 3;       // 最大回合数
     bool allowSpectators = 4;  // 是否允许观战
     repeated string gameModes = 5; // 游戏模式列表
+}
+
+// 游戏开始通知
+message GameStartNotification
+{
+    string roomId = 1;         // 房间ID
+    GameConfig config = 2;     // 游戏配置
+    GameRoomState roomState = 3; // 房间状态
+    int64 startTime = 4;       // 开始时间
+    repeated string playerIds = 5; // 玩家ID列表
+}
+
+// 游戏结束通知
+message GameEndNotification
+{
+    string roomId = 1;         // 房间ID
+    GameResult result = 2;     // 游戏结果
+    int64 endTime = 3;         // 结束时间
+    string reason = 4;         // 结束原因
+}
+
+// 游戏状态更新
+message GameStateUpdate
+{
+    string roomId = 1;         // 房间ID
+    GameRoomState roomState = 2; // 房间状态
+    int64 timestamp = 3;       // 时间戳
+}
+
+// 帧同步开始通知
+message FrameSyncStartNotification
+{
+    string roomId = 1;         // 房间ID
+    int32 frameRate = 2;       // 帧率 (20FPS)
+    int32 frameInterval = 3;   // 帧间隔 (50ms)
+    int64 startTime = 4;       // 开始时间
+    repeated string playerIds = 5; // 玩家ID列表
+}
+
+// 帧同步结束通知
+message FrameSyncEndNotification
+{
+    string roomId = 1;         // 房间ID
+    int32 finalFrame = 2;      // 最终帧号
+    int64 endTime = 3;         // 结束时间
+    string reason = 4;         // 结束原因
+}
+
+// 帧同步数据消息
+message FrameSyncData
+{
+    string roomId = 1;         // 房间ID
+    int32 authorityFrame = 2;  // 权威帧号
+    OneFrameInputs frameInputs = 3; // 帧输入数据
+    int64 timestamp = 4;       // 时间戳
+}
+
+//帧同步上传数据
+message SingleInput
+{
+    int32 FrameID = 1;         //帧号
+    int64 PlayerID = 2;        //玩家ID
+    LSInput Input = 3;         //输入数据 
 }

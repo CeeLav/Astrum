@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Astrum.CommonBase;
+using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
 
 namespace Astrum.LogicCore.Core
@@ -22,6 +23,8 @@ namespace Astrum.LogicCore.Core
         public int AuthorityFrame { get; set; } = -1;
         
         public int PredictionFrame { get; set; } = -1;
+        
+        public int MaxPredictionFrames { get; set; } = -1;
 
         /// <summary>
         /// 帧率（如60FPS）
@@ -83,16 +86,21 @@ namespace Astrum.LogicCore.Core
                     return;
                 }
 
-                if (PredictionFrame - AuthorityFrame > 5)
+                if (PredictionFrame - AuthorityFrame > MaxPredictionFrames)
                 {
                     return;
                 }
                 
                 ++PredictionFrame;
 
-                OneFrameInputs oneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
-                
-                Room.FrameTick(oneFrameInputs);
+                OneFrameInputs oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
+                ASLogger.Instance.Log(LogLevel.Debug, $"Tick Frame: {PredictionFrame}, Inputs Count: {oneOneFrameInputs.Inputs.Count}" );
+                Room.FrameTick(oneOneFrameInputs);
+                if (Room.MainPlayerId > 0)
+                {
+                    var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
+                    EventSystem.Instance.Publish(eventData);
+                }
                 if (TimeInfo.Instance.ServerNow() - currentTime > 5)
                 {
                     return;
@@ -162,9 +170,22 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         /// <param name="playerId">玩家ID</param>
         /// <param name="input">输入数据</param>
-        public void AddPlayerInput(long playerId, LSInput input)
+        public void SetPlayerInput(long playerId, LSInput input)
         {
-            //_inputSystem.CollectInput(playerId, input);
+            _inputSystem.ClientInput = input;
+/*
+            if (input != null)
+            {
+                ASLogger.Instance.Log(LogLevel.Debug, $"Input Details - Frame: {input.Frame}, Move: ({input.MoveX:F2}, {input.MoveY:F2}), " +
+                    $"Attack: {input.Attack}, Skill1: {input.Skill1}, Skill2: {input.Skill2}, Timestamp: {input.Timestamp}");
+            }*/
+        }
+        
+        public void SetOneFrameInputs(OneFrameInputs inputs)
+        {
+            _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
+            var af = _inputSystem.FrameBuffer.FrameInputs(AuthorityFrame);
+            inputs.CopyTo(af);
         }
 
         /// <summary>

@@ -60,7 +60,7 @@ namespace Astrum.LogicCore.Capabilities
                 inputMagnitude = 1f;
             }
 
-            var deltaTime = LSConstValue.UpdateInterval;
+            var deltaTime = LSConstValue.UpdateInterval / 1000f; // 将毫秒转换为秒;
             // 直接移动
             if (inputMagnitude > MovementThreshold && movementComponent.CanMove)
             {
@@ -74,6 +74,7 @@ namespace Astrum.LogicCore.Capabilities
                 positionComponent.Y += 0f;
                 positionComponent.Z += deltaY; // 2D移动，Z轴不移动
             }
+            
         }
 
         /// <summary>
