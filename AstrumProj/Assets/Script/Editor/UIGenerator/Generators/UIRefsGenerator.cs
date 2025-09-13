@@ -51,7 +51,7 @@ namespace Astrum.Editor.UIGenerator.Generators
                 }
                 
                 // 设置UIRefs属性
-                uiRefs.SetUIClassName($"{uiName}UI");
+                uiRefs.SetUIClassName($"{uiName}View");
                 uiRefs.SetUINamespace(config.CodeSettings.Namespace);
                 
                 // 收集所有引用

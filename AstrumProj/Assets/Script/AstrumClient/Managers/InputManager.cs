@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Astrum.CommonBase;
+using Astrum.Generated;
 
 namespace Astrum.Client.Managers
 {
@@ -55,8 +56,8 @@ namespace Astrum.Client.Managers
             {
                 return;
             }
-            var input = CollectLSInput(GamePlayManager.Instance.PlayerId);
-            GamePlayManager.Instance.MainRoom.LSController.AddPlayerInput(GamePlayManager.Instance.PlayerId, input);
+            var input = CollectLSInput(GamePlayManager.Instance.MainRoom.MainPlayerId);
+            GamePlayManager.Instance.MainRoom?.LSController.SetPlayerInput(GamePlayManager.Instance.PlayerId, input);
             /*
             // 保存上一帧的输入状态
             if(currentInput != null)
@@ -400,9 +401,9 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 收集并转化为帧同步输入（LSInput）
         /// </summary>
-        public Astrum.LogicCore.FrameSync.LSInput CollectLSInput(long playerId)
+        public LSInput CollectLSInput(long playerId)
         {
-            var input = new Astrum.LogicCore.FrameSync.LSInput();
+            var input = new LSInput();
             input.PlayerId = playerId;
             //input.Frame = frame;
             input.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

@@ -17,11 +17,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Build successful, starting server...
-echo Server logs will be output to: %CD%\server.log
+echo Server logs will be output to both console and file: %CD%\server.log
 echo Press Ctrl+C to stop server
 echo.
 
-dotnet run --no-build > server.log 2>&1
+dotnet run --no-build
 
 echo Server stopped
 pause 

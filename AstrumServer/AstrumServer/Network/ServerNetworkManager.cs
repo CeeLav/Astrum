@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Astrum.Network;
 using Astrum.Network.Generated;
 using Astrum.CommonBase;
@@ -15,7 +14,6 @@ namespace AstrumServer.Network
     /// </summary>
     public class ServerNetworkManager : Singleton<ServerNetworkManager>
     {
-        private Microsoft.Extensions.Logging.ILogger? _logger;
         private AService? _tcpService;
         private readonly Dictionary<long, Session> _sessions = new();
         private readonly object _sessionsLock = new();
@@ -29,11 +27,9 @@ namespace AstrumServer.Network
         {
         }
         
-        public void SetLogger(Microsoft.Extensions.Logging.ILogger logger)
+        public void SetLogger(ASLogger logger)
         {
-            var field = typeof(ServerNetworkManager).GetField("_logger", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            field?.SetValue(this, logger);
+            // ASLogger是单例，不需要存储引用
         }
         
         /// <summary>
@@ -44,7 +40,7 @@ namespace AstrumServer.Network
         {
             try
             {
-                _logger?.LogInformation("正在初始化服务器网络管理器，端口: {Port}", port);
+                ASLogger.Instance.Info($"正在初始化服务器网络管理器，端口: {port}");
                 
                 // 创建TCP服务
                 var endPoint = new IPEndPoint(IPAddress.Any, port);
@@ -55,12 +51,13 @@ namespace AstrumServer.Network
                 _tcpService.ReadCallback = OnRead;
                 _tcpService.ErrorCallback = OnNetworkError;
                 
-                _logger?.LogInformation("服务器网络管理器初始化成功，监听端口: {Port}", port);
+                ASLogger.Instance.Info($"服务器网络管理器初始化成功，监听端口: {port}");
                 return Task.FromResult(true);
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "服务器网络管理器初始化失败");
+                ASLogger.Instance.Error($"服务器网络管理器初始化失败: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 return Task.FromResult(false);
             }
         }
@@ -76,7 +73,8 @@ namespace AstrumServer.Network
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "网络服务更新时出错");
+                ASLogger.Instance.Error($"网络服务更新时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -93,17 +91,18 @@ namespace AstrumServer.Network
                     {
                         // 直接发送具体消息对象，不包装在 NetworkMessage 中
                         session.Send(message);
-                        _logger?.LogDebug("发送消息到会话 {SessionId}: {MessageType}", sessionId, message.GetType().Name);
+                        ASLogger.Instance.Debug($"发送消息到会话 {sessionId}: {message.GetType().Name}");
                     }
                     else
                     {
-                        _logger?.LogWarning("会话 {SessionId} 不存在，无法发送消息", sessionId);
+                        ASLogger.Instance.Warning($"会话 {sessionId} 不存在，无法发送消息");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "发送消息到会话 {SessionId} 时出错", sessionId);
+                ASLogger.Instance.Error($"发送消息到会话 {sessionId} 时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -121,12 +120,13 @@ namespace AstrumServer.Network
                         // 直接发送具体消息对象，不包装在 NetworkMessage 中
                         session.Send(message);
                     }
-                    _logger?.LogDebug("广播消息: {MessageType} 到 {SessionCount} 个会话", message.GetType().Name, _sessions.Count);
+                    ASLogger.Instance.Debug($"广播消息: {message.GetType().Name} 到 {_sessions.Count} 个会话");
                 }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "广播消息时出错");
+                ASLogger.Instance.Error($"广播消息时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
             }
         
@@ -143,13 +143,14 @@ namespace AstrumServer.Network
                     {
                         _tcpService?.Remove(sessionId);
                         _sessions.Remove(sessionId);
-                        _logger?.LogInformation("断开会话 {SessionId}", sessionId);
+                        ASLogger.Instance.Info($"断开会话 {sessionId}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "断开会话 {SessionId} 时出错", sessionId);
+                ASLogger.Instance.Error($"断开会话 {sessionId} 时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -182,7 +183,7 @@ namespace AstrumServer.Network
         {
             try
             {
-                _logger?.LogInformation("正在关闭服务器网络管理器");
+                ASLogger.Instance.Info("正在关闭服务器网络管理器");
                 
                 // 断开所有会话
                 lock (_sessionsLock)
@@ -198,11 +199,12 @@ namespace AstrumServer.Network
                 _tcpService?.Dispose();
                 _tcpService = null;
                 
-                _logger?.LogInformation("服务器网络管理器已关闭");
+                ASLogger.Instance.Info("服务器网络管理器已关闭");
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "关闭服务器网络管理器时出错");
+                ASLogger.Instance.Error($"关闭服务器网络管理器时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -211,7 +213,7 @@ namespace AstrumServer.Network
         {
             try
             {
-                _logger?.LogInformation("新客户端连接: {ChannelId} from {RemoteAddress}", channelId, remoteAddress);
+                ASLogger.Instance.Info($"新客户端连接: {channelId} from {remoteAddress}");
                 
                 // 创建会话
                 var session = new Session();
@@ -227,7 +229,8 @@ namespace AstrumServer.Network
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "处理客户端连接时出错");
+                ASLogger.Instance.Error($"处理客户端连接时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -255,14 +258,16 @@ namespace AstrumServer.Network
                         }
                         catch (Exception parseEx)
                         {
-                            _logger?.LogWarning(parseEx, "解析消息时出错");
+                            ASLogger.Instance.Warning($"解析消息时出错: {parseEx.Message}");
+                            ASLogger.Instance.LogException(parseEx, LogLevel.Warning);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "处理接收数据时出错");
+                ASLogger.Instance.Error($"处理接收数据时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
         
@@ -270,7 +275,7 @@ namespace AstrumServer.Network
         {
             try
             {
-                _logger?.LogError("会话 {ChannelId} 发生错误，错误码: {ErrorCode}", channelId, errorCode);
+                ASLogger.Instance.Error($"会话 {channelId} 发生错误，错误码: {errorCode}");
                 
                 lock (_sessionsLock)
                 {
@@ -287,7 +292,8 @@ namespace AstrumServer.Network
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "处理网络错误时出错");
+                ASLogger.Instance.Error($"处理网络错误时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
     }

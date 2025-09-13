@@ -1,4 +1,5 @@
 using System;
+using Astrum.Generated;
 using Astrum.LogicCore.Core;
 
 namespace Astrum.CommonBase
@@ -298,4 +299,42 @@ namespace Astrum.CommonBase
             ChangeTime = DateTime.Now;
         }
     }
-} 
+
+    /// <summary>
+    /// 帧输入上传事件数据
+    /// </summary>
+    public class FrameDataUploadEventData : EventData
+    {
+        /// <summary>
+        /// 实体ID
+        /// </summary>
+        public int FrameID { get; set; }
+
+        public LSInput Input { get; set; }
+        
+        public FrameDataUploadEventData(int frameID, LSInput lSInput)
+        {
+            FrameID = frameID;
+            Input = lSInput;
+        }
+    }
+    
+    /// <summary>
+    /// 新玩家创建事件数据
+    /// </summary>
+    public class NewPlayerEventData : EventData
+    {
+        /// <summary>
+        /// 实体ID
+        /// </summary>
+        public long PlayerID { get; set; }
+
+        public int BornInfo { get; set; }
+        
+        public NewPlayerEventData(long playerID, int bornInfo)
+        {
+            PlayerID = playerID;
+            BornInfo = bornInfo;
+        }
+    }
+}

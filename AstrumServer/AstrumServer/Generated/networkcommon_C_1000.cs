@@ -108,6 +108,24 @@ namespace Astrum.Generated
         [MemoryPackOrder(6)]
         public List<string> PlayerNames { get; set; } = new();
 
+        /// <summary>
+        /// 房间状态 (0=等待中, 1=游戏中, 2=已结束)
+        /// </summary>
+        [MemoryPackOrder(7)]
+        public int Status { get; set; }
+
+        /// <summary>
+        /// 游戏开始时间
+        /// </summary>
+        [MemoryPackOrder(8)]
+        public long GameStartTime { get; set; }
+
+        /// <summary>
+        /// 游戏结束时间
+        /// </summary>
+        [MemoryPackOrder(9)]
+        public long GameEndTime { get; set; }
+
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -122,6 +140,9 @@ namespace Astrum.Generated
             this.MaxPlayers = default;
             this.CreatedAt = default;
             this.PlayerNames.Clear();
+            this.Status = default;
+            this.GameStartTime = default;
+            this.GameEndTime = default;
 
             ObjectPool.Instance.Recycle(this);
         }

@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Astrum.CommonBase;
+using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
+using UnityEngine.EventSystems;
+using EventSystem = Astrum.CommonBase.EventSystem;
 
 namespace Astrum.LogicCore.Core
 {
@@ -56,7 +60,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public float TotalTime { get; private set; } = 0f;
 
-        public long MainPlayerId { get; set; } = -1; // 默认返回第一个玩家ID，如果没有则返回0
+        public long MainPlayerId { get; set; } = -1;
 
         public Room()
         {
@@ -138,11 +142,10 @@ namespace Astrum.LogicCore.Core
         
         public void FrameTick(OneFrameInputs oneFrameInputs)
         {
-
-            for (var i = 0; i < oneFrameInputs.Inputs.Count; i++)
+            foreach (var pairs in oneFrameInputs.Inputs)
             {
-                var input = oneFrameInputs.Inputs[i];
-                var entity = MainWorld.GetEntity(input.PlayerId);
+                var input = pairs.Value;
+                var entity = MainWorld.GetEntity(pairs.Key);
                 if (entity != null)
                 {
                     // 更新实体输入组件
@@ -151,6 +154,17 @@ namespace Astrum.LogicCore.Core
                     {
                         inputComponent.SetInput(input);
                     }
+                }
+                else if (pairs.Value.BornInfo != 0)
+                {
+                    ASLogger.Instance.Info($"新玩家创建 BornInfo: {pairs.Value.BornInfo} ");
+                    
+                    var playerId = AddPlayer();
+                    var newPlayerEventData = new NewPlayerEventData
+                    (
+                        playerId,pairs.Value.BornInfo
+                    );
+                    EventSystem.Instance.Publish(newPlayerEventData);
                 }
             }
             

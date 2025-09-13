@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Astrum.Generated;
 using Astrum.CommonBase;
 
@@ -13,13 +12,11 @@ namespace AstrumServer.Managers
     /// </summary>
     public class RoomManager
     {
-        private readonly ILogger<RoomManager> _logger;
         private readonly ConcurrentDictionary<string, RoomInfo> _rooms = new();
         private readonly ConcurrentDictionary<string, List<string>> _roomPlayers = new(); // roomId -> List<userId>
 
-        public RoomManager(ILogger<RoomManager> logger)
+        public RoomManager()
         {
-            _logger = logger;
         }
 
         /// <summary>
@@ -40,19 +37,22 @@ namespace AstrumServer.Managers
                 roomInfo.MaxPlayers = maxPlayers;
                 roomInfo.CreatedAt = TimeInfo.Instance.ClientNow();
                 roomInfo.PlayerNames = new List<string> { creatorId };
+                roomInfo.Status = 0; // 初始状态为等待中 (0=等待中)
+                roomInfo.GameStartTime = 0;
+                roomInfo.GameEndTime = 0;
 
                 // 添加到管理器中
                 _rooms[roomId] = roomInfo;
                 _roomPlayers[roomId] = new List<string> { creatorId };
 
-                _logger.LogInformation("创建房间: {RoomId} (Name: {RoomName}, Creator: {CreatorId}, MaxPlayers: {MaxPlayers})", 
-                    roomId, roomName, creatorId, maxPlayers);
+                ASLogger.Instance.Info($"创建房间: {roomId} (Name: {roomName}, Creator: {creatorId}, MaxPlayers: {maxPlayers})");
 
                 return roomInfo;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "创建房间时出错");
+                ASLogger.Instance.Error($"创建房间时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 throw;
             }
         }
@@ -66,20 +66,19 @@ namespace AstrumServer.Managers
             {
                 if (!_rooms.TryGetValue(roomId, out var roomInfo))
                 {
-                    _logger.LogWarning("房间不存在: {RoomId}", roomId);
+                    ASLogger.Instance.Warning($"房间不存在: {roomId}");
                     return false;
                 }
 
                 if (roomInfo.CurrentPlayers >= roomInfo.MaxPlayers)
                 {
-                    _logger.LogWarning("房间已满: {RoomId} (Current: {Current}, Max: {Max})", 
-                        roomId, roomInfo.CurrentPlayers, roomInfo.MaxPlayers);
+                    ASLogger.Instance.Warning($"房间已满: {roomId} (Current: {roomInfo.CurrentPlayers}, Max: {roomInfo.MaxPlayers})");
                     return false;
                 }
 
                 if (roomInfo.PlayerNames.Contains(userId))
                 {
-                    _logger.LogWarning("用户已在房间中: {UserId} in {RoomId}", userId, roomId);
+                    ASLogger.Instance.Warning($"用户已在房间中: {userId} in {roomId}");
                     return false;
                 }
 
@@ -92,14 +91,14 @@ namespace AstrumServer.Managers
                     players.Add(userId);
                 }
 
-                _logger.LogInformation("用户加入房间: {UserId} -> {RoomId} (Current: {Current}/{Max})", 
-                    userId, roomId, roomInfo.CurrentPlayers, roomInfo.MaxPlayers);
+                ASLogger.Instance.Info($"用户加入房间: {userId} -> {roomId} (Current: {roomInfo.CurrentPlayers}/{roomInfo.MaxPlayers})");
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "加入房间时出错");
+                ASLogger.Instance.Error($"加入房间时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 return false;
             }
         }
@@ -113,13 +112,13 @@ namespace AstrumServer.Managers
             {
                 if (!_rooms.TryGetValue(roomId, out var roomInfo))
                 {
-                    _logger.LogWarning("房间不存在: {RoomId}", roomId);
+                    ASLogger.Instance.Warning($"房间不存在: {roomId}");
                     return false;
                 }
 
                 if (!roomInfo.PlayerNames.Contains(userId))
                 {
-                    _logger.LogWarning("用户不在房间中: {UserId} in {RoomId}", userId, roomId);
+                    ASLogger.Instance.Warning($"用户不在房间中: {userId} in {roomId}");
                     return false;
                 }
 
@@ -132,12 +131,18 @@ namespace AstrumServer.Managers
                     players.Remove(userId);
                 }
 
-                _logger.LogInformation("用户离开房间: {UserId} <- {RoomId} (Current: {Current}/{Max})", 
-                    userId, roomId, roomInfo.CurrentPlayers, roomInfo.MaxPlayers);
+                ASLogger.Instance.Info($"用户离开房间: {userId} <- {roomId} (Current: {roomInfo.CurrentPlayers}/{roomInfo.MaxPlayers})");
 
-                // 如果房间空了，删除房间
+                // 如果房间空了，检查游戏状态并处理
                 if (roomInfo.CurrentPlayers == 0)
                 {
+                    // 如果游戏正在进行中，先结束游戏
+                    if (roomInfo.Status == 1) // 1=游戏中
+                    {
+                        EndGame(roomId, "房间内所有玩家已离开");
+                    }
+                    
+                    // 删除房间
                     DeleteRoom(roomId);
                 }
 
@@ -145,7 +150,8 @@ namespace AstrumServer.Managers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "离开房间时出错");
+                ASLogger.Instance.Error($"离开房间时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 return false;
             }
         }
@@ -161,7 +167,7 @@ namespace AstrumServer.Managers
                 {
                     _roomPlayers.TryRemove(roomId, out _);
                     
-                    _logger.LogInformation("删除房间: {RoomId} (Name: {RoomName})", roomId, roomInfo.Name);
+                    ASLogger.Instance.Info($"删除房间: {roomId} (Name: {roomInfo.Name})");
                     return true;
                 }
 
@@ -169,7 +175,8 @@ namespace AstrumServer.Managers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "删除房间时出错");
+                ASLogger.Instance.Error($"删除房间时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 return false;
             }
         }
@@ -283,20 +290,130 @@ namespace AstrumServer.Managers
 
             if (emptyRooms.Count > 0)
             {
-                _logger.LogInformation("清理了 {Count} 个空房间", emptyRooms.Count);
+                ASLogger.Instance.Info($"清理了 {emptyRooms.Count} 个空房间");
+            }
+        }
+
+        /// <summary>
+        /// 开始游戏
+        /// </summary>
+        public bool StartGame(string roomId, string hostId)
+        {
+            try
+            {
+                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                {
+                    ASLogger.Instance.Warning($"房间不存在: {roomId}");
+                    return false;
+                }
+
+                if (roomInfo.Status != 0) // 0=等待中
+                {
+                    ASLogger.Instance.Warning($"房间状态不是等待中，无法开始游戏: {roomId} (Status: {roomInfo.Status})");
+                    return false;
+                }
+
+                if (roomInfo.CreatorName != hostId)
+                {
+                    ASLogger.Instance.Warning($"只有房主才能开始游戏: {hostId} (Creator: {roomInfo.CreatorName})");
+                    return false;
+                }
+
+                // 更新房间状态
+                roomInfo.Status = 1; // 1=游戏中
+                roomInfo.GameStartTime = TimeInfo.Instance.ClientNow();
+                roomInfo.GameEndTime = 0;
+
+                ASLogger.Instance.Info($"房间开始游戏: {roomId} (Host: {hostId}, Players: {roomInfo.CurrentPlayers})");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"开始游戏时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 结束游戏
+        /// </summary>
+        public bool EndGame(string roomId, string reason = "游戏结束")
+        {
+            try
+            {
+                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                {
+                    ASLogger.Instance.Warning($"房间不存在: {roomId}");
+                    return false;
+                }
+
+                if (roomInfo.Status != 1) // 1=游戏中
+                {
+                    ASLogger.Instance.Warning($"房间不在游戏中，无法结束游戏: {roomId} (Status: {roomInfo.Status})");
+                    return false;
+                }
+
+                // 更新房间状态
+                roomInfo.Status = 2; // 2=已结束
+                roomInfo.GameEndTime = TimeInfo.Instance.ClientNow();
+
+                ASLogger.Instance.Info($"房间结束游戏: {roomId} (Reason: {reason}, Duration: {roomInfo.GameEndTime - roomInfo.GameStartTime}ms)");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"结束游戏时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 重置房间状态（用于重新开始游戏）
+        /// </summary>
+        public bool ResetRoom(string roomId)
+        {
+            try
+            {
+                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                {
+                    ASLogger.Instance.Warning($"房间不存在: {roomId}");
+                    return false;
+                }
+
+                // 重置房间状态
+                roomInfo.Status = 0; // 0=等待中
+                roomInfo.GameStartTime = 0;
+                roomInfo.GameEndTime = 0;
+
+                ASLogger.Instance.Info($"重置房间状态: {roomId}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"重置房间状态时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                return false;
             }
         }
 
         /// <summary>
         /// 获取房间统计信息
         /// </summary>
-        public (int totalRooms, int totalPlayers, int emptyRooms) GetRoomStatistics()
+        public (int totalRooms, int totalPlayers, int emptyRooms, int waitingRooms, int playingRooms, int finishedRooms) GetRoomStatistics()
         {
             var totalRooms = _rooms.Count;
             var totalPlayers = _rooms.Values.Sum(r => r.CurrentPlayers);
             var emptyRooms = _rooms.Values.Count(r => r.CurrentPlayers == 0);
+            var waitingRooms = _rooms.Values.Count(r => r.Status == 0); // 0=等待中
+            var playingRooms = _rooms.Values.Count(r => r.Status == 1); // 1=游戏中
+            var finishedRooms = _rooms.Values.Count(r => r.Status == 2); // 2=已结束
 
-            return (totalRooms, totalPlayers, emptyRooms);
+            return (totalRooms, totalPlayers, emptyRooms, waitingRooms, playingRooms, finishedRooms);
         }
     }
 } 

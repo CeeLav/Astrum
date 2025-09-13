@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Astrum.CommonBase;
+using Astrum.Generated;
 
 namespace Astrum.LogicCore.FrameSync
 {
@@ -85,7 +86,7 @@ namespace Astrum.LogicCore.FrameSync
 
         public void MoveForward(int frame)
         {
-            /*
+            
             if (this.MaxFrame - frame > LSConstValue.FrameCountPerSecond) // 至少留出1秒的空间
             {
                 return;
@@ -94,7 +95,7 @@ namespace Astrum.LogicCore.FrameSync
             ++this.MaxFrame;
 
             OneFrameInputs oneFrameInputs = this.FrameInputs(this.MaxFrame);
-            oneFrameInputs.Inputs.Clear();*/
+            oneFrameInputs.Inputs.Clear();
         }
 
         public MemoryBuffer Snapshot(int frame)
