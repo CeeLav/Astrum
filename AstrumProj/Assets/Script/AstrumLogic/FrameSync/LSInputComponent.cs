@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Astrum.Generated;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
 
@@ -17,12 +18,12 @@ namespace Astrum.LogicCore.FrameSync
         /// <summary>
         /// 当前帧输入
         /// </summary>
-        public LSInput? CurrentInput { get; private set; }
+        public LSInput CurrentInput { get; private set; }
 
         /// <summary>
         /// 上一帧输入
         /// </summary>
-        public LSInput? PreviousInput { get; private set; }
+        public LSInput PreviousInput { get; private set; }
 
         /// <summary>
         /// 输入历史
@@ -53,13 +54,13 @@ namespace Astrum.LogicCore.FrameSync
         /// <param name="input">输入数据</param>
         public void SetInput(LSInput input)
         {
-            if (input == null) return;
+
 
             // 保存上一帧输入
-            PreviousInput = CurrentInput?.Clone();
+            PreviousInput = CurrentInput;
             
             // 设置当前输入
-            CurrentInput = input.Clone();
+            CurrentInput = input;
 
             // 添加到历史记录
             AddToHistory(CurrentInput);
@@ -74,21 +75,9 @@ namespace Astrum.LogicCore.FrameSync
             var delta = new LSInput
             {
                 PlayerId = PlayerId,
-                Frame = CurrentInput?.Frame ?? 0
+                Frame = CurrentInput.Frame
             };
-
-            if (CurrentInput == null) return delta;
-
-            if (PreviousInput == null)
-            {
-                // 如果没有上一帧输入，当前输入就是变化
-                delta.MoveX = CurrentInput.MoveX;
-                delta.MoveY = CurrentInput.MoveY;
-                delta.Attack = CurrentInput.Attack;
-                delta.Skill1 = CurrentInput.Skill1;
-                delta.Skill2 = CurrentInput.Skill2;
-            }
-            else
+            
             {
                 // 计算变化
                 delta.MoveX = CurrentInput.MoveX - PreviousInput.MoveX;
@@ -108,10 +97,9 @@ namespace Astrum.LogicCore.FrameSync
         /// <returns>是否刚刚按下</returns>
         public bool IsInputJustPressed(InputType inputType)
         {
-            if (CurrentInput == null) return false;
 
             bool currentState = GetInputState(CurrentInput, inputType);
-            bool previousState = PreviousInput != null ? GetInputState(PreviousInput, inputType) : false;
+            bool previousState =  GetInputState(PreviousInput, inputType) ;
 
             return currentState && !previousState;
         }
@@ -123,9 +111,8 @@ namespace Astrum.LogicCore.FrameSync
         /// <returns>是否刚刚释放</returns>
         public bool IsInputJustReleased(InputType inputType)
         {
-            if (PreviousInput == null) return false;
 
-            bool currentState = CurrentInput != null ? GetInputState(CurrentInput, inputType) : false;
+            bool currentState = GetInputState(CurrentInput, inputType);
             bool previousState = GetInputState(PreviousInput, inputType);
 
             return !currentState && previousState;
@@ -138,7 +125,6 @@ namespace Astrum.LogicCore.FrameSync
         /// <returns>是否持续按住</returns>
         public bool IsInputHeld(InputType inputType)
         {
-            if (CurrentInput == null) return false;
             return GetInputState(CurrentInput, inputType);
         }
 
@@ -169,7 +155,7 @@ namespace Astrum.LogicCore.FrameSync
         /// <param name="input">输入数据</param>
         private void AddToHistory(LSInput input)
         {
-            InputHistory.Add(input.Clone());
+            InputHistory.Add(input);
             
             // 限制历史记录数量
             while (InputHistory.Count > MaxHistoryCount)

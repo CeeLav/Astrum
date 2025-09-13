@@ -118,6 +118,18 @@ namespace Astrum.Client.Managers
         }
 
         /// <summary>
+        /// 获取UI GameObject
+        /// </summary>
+        public GameObject GetUI(string uiName)
+        {
+            if (uiCache.TryGetValue(uiName, out var uiGO))
+            {
+                return uiGO;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// 销毁UI
         /// </summary>
         public void DestroyUI(string uiName)

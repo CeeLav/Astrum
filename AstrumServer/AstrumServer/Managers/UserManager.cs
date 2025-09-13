@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Astrum.Generated;
 using Astrum.CommonBase;
 
@@ -13,14 +12,12 @@ namespace AstrumServer.Managers
     /// </summary>
     public class UserManager
     {
-        private readonly ILogger<UserManager> _logger;
         private readonly ConcurrentDictionary<string, UserInfo> _users = new();
         private readonly ConcurrentDictionary<string, string> _sessionToUser = new(); // sessionId -> userId
         private readonly ConcurrentDictionary<string, string> _userToSession = new(); // userId -> sessionId
 
-        public UserManager(ILogger<UserManager> logger)
+        public UserManager()
         {
-            _logger = logger;
         }
 
         /// <summary>
@@ -44,14 +41,14 @@ namespace AstrumServer.Managers
                 _sessionToUser[sessionId] = userId;
                 _userToSession[userId] = sessionId;
 
-                _logger.LogInformation("为用户分配ID: {UserId} (DisplayName: {DisplayName}, Session: {SessionId})", 
-                    userId, displayName, sessionId);
+                ASLogger.Instance.Info($"为用户分配ID: {userId} (DisplayName: {displayName}, Session: {sessionId})");
 
                 return userInfo;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "为用户分配ID时出错");
+                ASLogger.Instance.Error($"为用户分配ID时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
                 throw;
             }
         }
@@ -72,17 +69,17 @@ namespace AstrumServer.Managers
                         // 如果用户在房间中，需要离开房间
                         if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
                         {
-                            _logger.LogInformation("用户 {UserId} 断开连接，当前在房间 {RoomId}", userId, userInfo.CurrentRoomId);
+                            ASLogger.Instance.Info($"用户 {userId} 断开连接，当前在房间 {userInfo.CurrentRoomId}");
                         }
-
-                        _logger.LogInformation("用户断开连接: {UserId} (DisplayName: {DisplayName})", 
-                            userId, userInfo.DisplayName);
+                        
+                        ASLogger.Instance.Info($"用户断开连接: {userId} (DisplayName: {userInfo.DisplayName})");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "移除用户时出错");
+                ASLogger.Instance.Error($"移除用户时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
 
@@ -132,7 +129,7 @@ namespace AstrumServer.Managers
             if (_users.TryGetValue(userId, out var userInfo))
             {
                 userInfo.CurrentRoomId = roomId;
-                _logger.LogDebug("更新用户 {UserId} 的房间信息: {RoomId}", userId, roomId);
+                ASLogger.Instance.Debug($"更新用户 {userId} 的房间信息: {roomId}");
             }
         }
 

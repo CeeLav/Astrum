@@ -337,8 +337,7 @@ namespace Astrum.Client.UI.Generated
         {
             if (startGameBtnButton != null)
             {
-                startGameBtnButton.interactable = isHost && currentRoom != null && 
-                                                 currentRoom.CurrentPlayers > 1;
+                startGameBtnButton.interactable = isHost && currentRoom != null;
             }
 
             if (startGameTextText != null)
@@ -347,9 +346,9 @@ namespace Astrum.Client.UI.Generated
                 {
                     startGameTextText.text = "仅房主可开始";
                 }
-                else if (currentRoom == null || currentRoom.CurrentPlayers <= 1)
+                else if (currentRoom == null)
                 {
-                    startGameTextText.text = "需要更多玩家";
+                    startGameTextText.text = "需要房间信息";
                 }
                 else
                 {
@@ -474,6 +473,7 @@ namespace Astrum.Client.UI.Generated
                 if (success)
                 {
                     Debug.Log("RoomDetailView: 离开房间请求已发送");
+                    // UI切换由RoomSystemManager统一处理
                     OnLeaveRoomRequested?.Invoke();
                 }
                 else

@@ -54,8 +54,7 @@ namespace AstrumServer
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-                    logging.AddConsole();
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Information);
+                    // 移除Microsoft.Extensions.Logging的控制台输出，只使用ASLogger
                 });
     }
 }

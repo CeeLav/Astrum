@@ -386,6 +386,21 @@ namespace Astrum.Client.Managers
                         
                         // 触发房间创建成功事件
                         OnRoomCreated?.Invoke(CurrentRoom);
+                        
+                        // 自动切换到房间详情界面
+                        var uiManager = GameApplication.Instance?.UIManager;
+                        if (uiManager != null)
+                        {
+                            ASLogger.Instance.Info("RoomSystemManager: 切换到房间详情界面");
+                            uiManager.ShowUI("RoomDetail");
+                            
+                            // 设置房间信息到RoomDetailView
+                            var roomDetailView = uiManager.GetUI("RoomDetail")?.GetComponent<Astrum.Client.UI.Core.UIRefs>()?.GetUIInstance() as Astrum.Client.UI.Generated.RoomDetailView;
+                            if (roomDetailView != null)
+                            {
+                                roomDetailView.SetRoomInfo(CurrentRoom);
+                            }
+                        }
                     }
                     else
                     {
@@ -430,6 +445,21 @@ namespace Astrum.Client.Managers
                         
                         // 触发房间加入成功事件
                         OnRoomJoined?.Invoke(CurrentRoom);
+                        
+                        // 自动切换到房间详情界面
+                        var uiManager = GameApplication.Instance?.UIManager;
+                        if (uiManager != null)
+                        {
+                            ASLogger.Instance.Info("RoomSystemManager: 切换到房间详情界面");
+                            uiManager.ShowUI("RoomDetail");
+                            
+                            // 设置房间信息到RoomDetailView
+                            var roomDetailView = uiManager.GetUI("RoomDetail")?.GetComponent<Astrum.Client.UI.Core.UIRefs>()?.GetUIInstance() as Astrum.Client.UI.Generated.RoomDetailView;
+                            if (roomDetailView != null)
+                            {
+                                roomDetailView.SetRoomInfo(CurrentRoom);
+                            }
+                        }
                     }
                     else
                     {
@@ -473,6 +503,15 @@ namespace Astrum.Client.Managers
                     
                     // 触发房间离开事件
                     OnRoomLeft?.Invoke();
+                    
+                    // 自动切换到房间列表界面
+                    var uiManager = GameApplication.Instance?.UIManager;
+                    if (uiManager != null)
+                    {
+                        ASLogger.Instance.Info("RoomSystemManager: 切换到房间列表界面");
+                        uiManager.HideUI("RoomDetail");
+                        uiManager.ShowUI("RoomList");
+                    }
                 }
                 else
                 {
@@ -484,33 +523,6 @@ namespace Astrum.Client.Managers
             {
                 ASLogger.Instance.Error($"RoomSystemManager: 处理离开房间响应时出错 - {ex.Message}");
                 OnRoomError?.Invoke($"处理离开房间响应失败: {ex.Message}");
-            }
-        }
-        
-        /// <summary>
-        /// 处理游戏开始响应
-        /// </summary>
-        public void HandleGameStartResponse(GameResponse response)
-        {
-            try
-            {
-                if (response.success)
-                {
-                    ASLogger.Instance.Info("RoomSystemManager: 游戏开始成功");
-                    
-                    // 触发游戏开始事件
-                    OnGameStarted?.Invoke();
-                }
-                else
-                {
-                    ASLogger.Instance.Error($"RoomSystemManager: 游戏开始失败 - {response.message}");
-                    OnGameStartError?.Invoke(response.message);
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"RoomSystemManager: 处理游戏开始响应时出错 - {ex.Message}");
-                OnGameStartError?.Invoke($"处理游戏开始响应失败: {ex.Message}");
             }
         }
         

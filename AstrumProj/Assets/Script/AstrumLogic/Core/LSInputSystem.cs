@@ -1,9 +1,22 @@
 using System;
 using System.Collections.Generic;
+using Astrum.CommonBase;
+using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
 
 namespace Astrum.LogicCore.Core
 {
+
+    public static class FrameUtils
+    {
+        public static void CopyTo(this OneFrameInputs from, OneFrameInputs to)
+        {
+            foreach (var input in from.Inputs)
+            {
+                to.Inputs[input.Key] = input.Value;
+            }
+        }
+    }
     /// <summary>
     /// 帧同步输入系统
     /// </summary>
@@ -34,8 +47,9 @@ namespace Astrum.LogicCore.Core
         {
             FrameBuffer = new FrameBuffer();
         }
-        
 
+
+        
         public OneFrameInputs GetOneFrameMessages( int frame)
         {
             
@@ -51,11 +65,17 @@ namespace Astrum.LogicCore.Core
             if (FrameBuffer.CheckFrame(AuthorityFrame))
             {
                 OneFrameInputs authorityFrame = FrameBuffer.FrameInputs(AuthorityFrame);
-                authorityFrame.CopyTo(predictionFrame);
+                foreach (var authorityFrameInput in authorityFrame.Inputs)
+                {
+                    predictionFrame.Inputs[authorityFrameInput.Key] = authorityFrameInput.Value;
+                }
             }
 
-            predictionFrame.Inputs[MainPlayerId] = ClientInput;
-            
+            if (MainPlayerId > 0)//客户端主玩家生成了才进行输入
+            {
+                predictionFrame.Inputs[MainPlayerId] = ClientInput;
+            }
+            //ASLogger.Instance.Log(LogLevel.Debug, $"Predict Frame: {frame}, {ClientInput.MoveX}, {ClientInput.MoveY}" );
             return predictionFrame;
         }
 

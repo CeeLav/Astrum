@@ -20,6 +20,9 @@ message RoomInfo
     int32 MaxPlayers = 5;      // 最大玩家数量
     int64 CreatedAt = 6;       // 创建时间
     repeated string PlayerNames = 7; // 玩家名称列表
+    int32 Status = 8;          // 房间状态 (0=等待中, 1=游戏中, 2=已结束)
+    int64 GameStartTime = 9;   // 游戏开始时间
+    int64 GameEndTime = 10;    // 游戏结束时间
 }
 
 // 登录请求

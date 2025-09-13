@@ -28,7 +28,7 @@ namespace Astrum.View.Components
             if (_modelObject != null)
                 UnityEngine.GameObject.Destroy(_modelObject);
 
-            _modelObject = UnityEngine.GameObject.Instantiate(modelPrefab);
+            _modelObject = modelPrefab;//UnityEngine.GameObject.Instantiate(modelPrefab);
             if (_ownerEntityView.GameObject != null)
                 _modelObject.transform.SetParent(_ownerEntityView.GameObject.transform, false);
             _transform = _modelObject.transform;

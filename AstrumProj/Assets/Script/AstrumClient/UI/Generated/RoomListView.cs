@@ -59,6 +59,17 @@ namespace Astrum.Client.UI.Generated
         {
             // 自动刷新房间列表
             RefreshRoomList();
+            
+            // 启动自动刷新
+            StartAutoRefresh();
+        }
+
+        /// <summary>
+        /// 更新方法 - 处理自动刷新
+        /// </summary>
+        private void Update()
+        {
+            UpdateAutoRefresh();
         }
 
         /// <summary>
@@ -66,6 +77,9 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         protected virtual void OnHide()
         {
+            // 停止自动刷新
+            StopAutoRefresh();
+            
             // 取消订阅事件
             UnsubscribeFromRoomSystemEvents();
         }
@@ -136,7 +150,7 @@ namespace Astrum.Client.UI.Generated
         private void OnCreateRoomButtonClicked()
         {
             Debug.Log("RoomListView: 创建房间按钮被点击");
-            OnCreateRoomRequested?.Invoke();
+            ShowCreateRoomDialog();
         }
 
         /// <summary>
@@ -160,6 +174,12 @@ namespace Astrum.Client.UI.Generated
         private void OnExitButtonClicked()
         {
             Debug.Log("RoomListView: 退出按钮被点击");
+            // 断开网络连接
+            GameApplication.Instance?.NetworkManager?.Disconnect();
+            // 切换回登录界面
+            GameApplication.Instance?.UIManager?.ShowUI("Login");
+            // 隐藏当前房间列表界面
+            GameApplication.Instance?.UIManager?.HideUI("RoomList");
             OnExitRequested?.Invoke();
         }
 
@@ -173,7 +193,11 @@ namespace Astrum.Client.UI.Generated
             // 由于UI结构限制，这里暂时使用第一个房间作为示例
             if (availableRooms.Count > 0)
             {
-                OnJoinRoomRequested?.Invoke(availableRooms[0].Id);
+                JoinRoom(availableRooms[0].Id);
+            }
+            else
+            {
+                Debug.LogWarning("RoomListView: 没有可加入的房间");
             }
         }
 
@@ -200,6 +224,135 @@ namespace Astrum.Client.UI.Generated
             Debug.LogError($"RoomListView: 房间系统错误: {errorMessage}");
             isRefreshing = false;
             // 可以在这里显示错误提示
+        }
+
+        #endregion
+
+        #region Create Room Dialog
+
+        /// <summary>
+        /// 显示创建房间对话框
+        /// </summary>
+        private void ShowCreateRoomDialog()
+        {
+            // 简单的创建房间对话框实现
+            // 在实际项目中，这里应该显示一个UI对话框
+            // 现在使用默认值进行演示
+            string roomName = "Room_" + UnityEngine.Random.Range(1000, 9999);
+            int maxPlayers = 4;
+            
+            Debug.Log($"RoomListView: 显示创建房间对话框 - 房间名: {roomName}, 最大玩家数: {maxPlayers}");
+            
+            // 直接创建房间
+            CreateRoom(roomName, maxPlayers);
+        }
+
+        /// <summary>
+        /// 创建房间
+        /// </summary>
+        private async void CreateRoom(string roomName, int maxPlayers)
+        {
+            try
+            {
+                Debug.Log($"RoomListView: 开始创建房间 - 房间名: {roomName}, 最大玩家数: {maxPlayers}");
+                
+                var roomSystemManager = RoomSystemManager.Instance;
+                if (roomSystemManager == null)
+                {
+                    Debug.LogError("RoomListView: RoomSystemManager不存在");
+                    return;
+                }
+
+                // 调用房间系统管理器创建房间
+                var success = await roomSystemManager.CreateRoomAsync(roomName, maxPlayers);
+                if (success)
+                {
+                    Debug.Log("RoomListView: 房间创建成功");
+                    // 创建成功后会自动切换到房间详情界面
+                }
+                else
+                {
+                    Debug.LogError("RoomListView: 房间创建失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"RoomListView: 创建房间时发生异常 - {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Join Room
+
+        /// <summary>
+        /// 加入房间
+        /// </summary>
+        private async void JoinRoom(string roomId)
+        {
+            try
+            {
+                Debug.Log($"RoomListView: 开始加入房间 - 房间ID: {roomId}");
+                
+                var roomSystemManager = RoomSystemManager.Instance;
+                if (roomSystemManager == null)
+                {
+                    Debug.LogError("RoomListView: RoomSystemManager不存在");
+                    return;
+                }
+
+                // 调用房间系统管理器加入房间
+                var success = await roomSystemManager.JoinRoomAsync(roomId);
+                if (success)
+                {
+                    Debug.Log("RoomListView: 加入房间成功");
+                    // 加入成功后会自动切换到房间详情界面
+                }
+                else
+                {
+                    Debug.LogError("RoomListView: 加入房间失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"RoomListView: 加入房间时发生异常 - {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Auto Refresh
+
+        private float autoRefreshInterval = 5.0f; // 5秒刷新一次
+        private float lastRefreshTime = 0f;
+
+        /// <summary>
+        /// 启动自动刷新
+        /// </summary>
+        private void StartAutoRefresh()
+        {
+            lastRefreshTime = Time.time;
+            Debug.Log("RoomListView: 启动自动刷新");
+        }
+
+        /// <summary>
+        /// 停止自动刷新
+        /// </summary>
+        private void StopAutoRefresh()
+        {
+            Debug.Log("RoomListView: 停止自动刷新");
+        }
+
+        /// <summary>
+        /// 更新自动刷新
+        /// </summary>
+        private void UpdateAutoRefresh()
+        {
+            if (Time.time - lastRefreshTime >= autoRefreshInterval)
+            {
+                lastRefreshTime = Time.time;
+                RefreshRoomList();
+            }
         }
 
         #endregion

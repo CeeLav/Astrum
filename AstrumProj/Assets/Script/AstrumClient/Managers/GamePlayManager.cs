@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Astrum.CommonBase;
 using Astrum.Client.Core;
@@ -8,6 +9,7 @@ using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
 using Unity.Plastic.Newtonsoft.Json;
+using UnityEngine;
 
 
 namespace Astrum.Client.Managers
@@ -18,45 +20,58 @@ namespace Astrum.Client.Managers
     /// </summary>
     public class GamePlayManager : Singleton<GamePlayManager>
     {
-        
+
         public Stage MainStage { get; private set; }
         public Room MainRoom { get; private set; }
-        
+
         public long PlayerId { get; private set; } = -1;
-        
+
         // 网络游戏相关 - 使用专门的管理器
         public UserInfo CurrentUser => UserManager.Instance?.CurrentUser;
         public List<RoomInfo> AvailableRooms => RoomSystemManager.Instance?.AvailableRooms ?? new List<RoomInfo>();
         public List<UserInfo> OnlineUsers { get; private set; } = new List<UserInfo>();
-        
+
         // 网络游戏状态
         public bool IsLoggedIn => UserManager.Instance?.IsLoggedIn ?? false;
         public bool IsInRoom => RoomSystemManager.Instance?.IsInRoom ?? false;
-        
-        // 网络游戏事件
-        public event Action<UserInfo> OnUserLoggedIn;
-        public event Action OnUserLoggedOut;
-        public event Action<RoomInfo> OnRoomCreated;
-        public event Action<RoomInfo> OnRoomJoined;
-        public event Action OnRoomLeft;
-        public event Action<List<RoomInfo>> OnRoomListUpdated;
-        public event Action<List<UserInfo>> OnOnlineUsersUpdated;
-        public event Action<string> OnNetworkError;
+
         public void Initialize()
         {
             // 初始化用户管理器和房间系统管理器
             UserManager.Instance?.Initialize();
             RoomSystemManager.Instance?.Initialize();
-            
+
             // 注册网络消息处理器
             RegisterNetworkMessageHandlers();
-            
-            // 注册管理器事件
-            RegisterManagerEvents();
+            EventSystem.Instance.Subscribe<FrameDataUploadEventData>(FrameDataUpload);
+            EventSystem.Instance.Subscribe<NewPlayerEventData>(OnPlayerCreated);
             
             ASLogger.Instance.Info("GamePlayManager: 初始化完成");
         }
-        
+
+        private void FrameDataUpload(FrameDataUploadEventData eventData)
+        {
+            var request = SingleInput.Create();
+            request.PlayerID = PlayerId;
+            request.FrameID = eventData.FrameID;
+            request.Input = eventData.Input;
+            NetworkManager.Instance.Send(request);
+            ASLogger.Instance.Debug($"GamePlayManager: 发送单帧输入，帧: {eventData.FrameID}，输入: {JsonConvert.SerializeObject(eventData.Input)}");
+
+        }
+
+        private void OnPlayerCreated(NewPlayerEventData eventData)
+        {
+            if (eventData.BornInfo == UserManager.Instance.UserId.GetHashCode())
+            {
+                PlayerId = eventData.PlayerID;
+                MainRoom.MainPlayerId = eventData.PlayerID;
+                MainRoom.LSController.MaxPredictionFrames = 5;
+                ASLogger.Instance.Info("GamePlayManager: 主玩家创建完成, ID: " + MainRoom.MainPlayerId);
+            }
+            ASLogger.Instance.Debug($"GamePlayManager: <OnPlayerCreated>: {eventData.PlayerID} , BornInfo: {eventData.BornInfo}");
+        }
+
         /// <summary>
         /// 注册网络消息处理器
         /// </summary>
@@ -73,7 +88,15 @@ namespace Astrum.Client.Managers
                 networkManager.OnGetRoomListResponse += OnGetRoomListResponse;
                 networkManager.OnRoomUpdateNotification += OnRoomUpdateNotification;
                 networkManager.OnHeartbeatResponse += OnHeartbeatResponse;
-                
+                networkManager.OnGameResponse += OnGameResponse;
+                networkManager.OnGameStartNotification += OnGameStartNotification;
+                networkManager.OnGameEndNotification += OnGameEndNotification;
+                networkManager.OnGameStateUpdate += OnGameStateUpdate;
+                networkManager.OnFrameSyncStartNotification += OnFrameSyncStartNotification;
+                networkManager.OnFrameSyncEndNotification += OnFrameSyncEndNotification;
+                networkManager.OnFrameSyncData += OnFrameSyncData;
+                networkManager.OnFrameInputs += OnFrameInputs;
+
                 ASLogger.Instance.Info("GamePlayManager: 网络消息处理器注册完成");
             }
             else
@@ -81,59 +104,7 @@ namespace Astrum.Client.Managers
                 ASLogger.Instance.Warning("GamePlayManager: NetworkManager 不存在，无法注册消息处理器");
             }
         }
-        
-        /// <summary>
-        /// 注册管理器事件
-        /// </summary>
-        private void RegisterManagerEvents()
-        {
-            // 注册用户管理器事件
-            if (UserManager.Instance != null)
-            {
-                UserManager.Instance.OnUserLoggedIn += OnUserLoggedIn;
-                UserManager.Instance.OnUserLoggedOut += OnUserLoggedOut;
-                UserManager.Instance.OnLoginError += OnNetworkError;
-            }
-            
-            // 注册房间系统管理器事件
-            if (RoomSystemManager.Instance != null)
-            {
-                RoomSystemManager.Instance.OnRoomCreated += OnRoomCreated;
-                RoomSystemManager.Instance.OnRoomJoined += OnRoomJoined;
-                RoomSystemManager.Instance.OnRoomLeft += OnRoomLeft;
-                RoomSystemManager.Instance.OnRoomListUpdated += OnRoomListUpdated;
-                RoomSystemManager.Instance.OnRoomError += OnNetworkError;
-            }
-            
-            ASLogger.Instance.Info("GamePlayManager: 管理器事件注册完成");
-        }
-        
-        /// <summary>
-        /// 取消注册管理器事件
-        /// </summary>
-        private void UnregisterManagerEvents()
-        {
-            // 取消注册用户管理器事件
-            if (UserManager.Instance != null)
-            {
-                UserManager.Instance.OnUserLoggedIn -= OnUserLoggedIn;
-                UserManager.Instance.OnUserLoggedOut -= OnUserLoggedOut;
-                UserManager.Instance.OnLoginError -= OnNetworkError;
-            }
-            
-            // 取消注册房间系统管理器事件
-            if (RoomSystemManager.Instance != null)
-            {
-                RoomSystemManager.Instance.OnRoomCreated -= OnRoomCreated;
-                RoomSystemManager.Instance.OnRoomJoined -= OnRoomJoined;
-                RoomSystemManager.Instance.OnRoomLeft -= OnRoomLeft;
-                RoomSystemManager.Instance.OnRoomListUpdated -= OnRoomListUpdated;
-                RoomSystemManager.Instance.OnRoomError -= OnNetworkError;
-            }
-            
-            ASLogger.Instance.Info("GamePlayManager: 管理器事件取消注册完成");
-        }
-        
+
         /// <summary>
         /// 取消注册网络消息处理器
         /// </summary>
@@ -150,7 +121,15 @@ namespace Astrum.Client.Managers
                 networkManager.OnGetRoomListResponse -= OnGetRoomListResponse;
                 networkManager.OnRoomUpdateNotification -= OnRoomUpdateNotification;
                 networkManager.OnHeartbeatResponse -= OnHeartbeatResponse;
-                
+                networkManager.OnGameResponse -= OnGameResponse;
+                networkManager.OnGameStartNotification -= OnGameStartNotification;
+                networkManager.OnGameEndNotification -= OnGameEndNotification;
+                networkManager.OnGameStateUpdate -= OnGameStateUpdate;
+                networkManager.OnFrameSyncStartNotification -= OnFrameSyncStartNotification;
+                networkManager.OnFrameSyncEndNotification -= OnFrameSyncEndNotification;
+                networkManager.OnFrameSyncData -= OnFrameSyncData;
+                networkManager.OnFrameInputs -= OnFrameInputs;
+
                 ASLogger.Instance.Info("GamePlayManager: 网络消息处理器取消注册完成");
             }
         }
@@ -166,284 +145,27 @@ namespace Astrum.Client.Managers
             {
                 MainStage.Update(deltaTime);
             }
-            
-            //throw new NotImplementedException();
+
         }
-        
+
         public void Shutdown()
         {
             // 取消注册网络消息处理器
             UnregisterNetworkMessageHandlers();
-            
+
             // 清理管理器事件
-            UnregisterManagerEvents();
-            
+            //UnregisterManagerEvents();
+
             // 清理网络游戏状态
             OnlineUsers.Clear();
-            
+
             ASLogger.Instance.Info("GamePlayManager: 已关闭");
         }
-        
-        //#region 网络游戏接口
-        
-        /// <summary>
-        /// 自动登录（连接成功后自动调用）
-        /// </summary>
-        public async Task<bool> AutoLoginAsync()
-        {
-            if (IsLoggedIn)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 用户已登录");
-                return true;
-            }
-            
-            ASLogger.Instance.Info("GamePlayManager: 开始自动登录");
-            
-            // 使用用户管理器进行自动登录
-            if (UserManager.Instance != null)
-            {
-                return await UserManager.Instance.AutoLoginAsync();
-            }
-            
-            ASLogger.Instance.Error("GamePlayManager: UserManager不存在");
-            return false;
-        }
-        
-        /// <summary>
-        /// 连接并自动登录
-        /// </summary>
-        public async Task<bool> ConnectAndLoginAsync()
-        {
-            try
-            {
-                // 1. 检查网络管理器是否初始化
-                var networkManager = GameApplication.Instance?.NetworkManager;
-                if (networkManager == null)
-                {
-                    ASLogger.Instance.Error("GamePlayManager: NetworkManager不存在");
-                    OnNetworkError?.Invoke("网络管理器不存在");
-                    return false;
-                }
 
-                // 2. 检查网络连接状态
-                if (!networkManager.IsConnected())
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 网络未连接，尝试连接服务器...");
-                    
-                    // 触发连接状态变更事件
-                    OnNetworkError?.Invoke("正在连接服务器...");
-                    
-                    try
-                    {
-                        // 尝试连接服务器
-                        var channelId = await networkManager.ConnectAsync("127.0.0.1", 8888);
-                        ASLogger.Instance.Info($"GamePlayManager: 连接请求已发送，ChannelId: {channelId}");
-                        
-                        // 等待连接完成或超时
-                        var connectionResult = await WaitForConnection(networkManager, 10000); // 10秒超时
-                        
-                        if (!connectionResult)
-                        {
-                            ASLogger.Instance.Error("GamePlayManager: 连接服务器超时");
-                            OnNetworkError?.Invoke("连接服务器超时，请检查服务器状态");
-                            return false;
-                        }
-                        
-                        ASLogger.Instance.Info("GamePlayManager: 成功连接到服务器");
-                    }
-                    catch (Exception connectEx)
-                    {
-                        ASLogger.Instance.Error($"GamePlayManager: 连接服务器失败 - {connectEx.Message}");
-                        OnNetworkError?.Invoke($"连接服务器失败: {connectEx.Message}");
-                        return false;
-                    }
-                }
-                else
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 网络已连接");
-                }
-
-                // 3. 验证连接状态
-                if (!networkManager.IsConnected())
-                {
-                    ASLogger.Instance.Error("GamePlayManager: 网络连接验证失败");
-                    OnNetworkError?.Invoke("网络连接验证失败");
-                    return false;
-                }
-
-                // 4. 自动登录
-                ASLogger.Instance.Info("GamePlayManager: 开始自动登录");
-                
-                // 使用用户管理器进行自动登录
-                if (UserManager.Instance != null)
-                {
-                    return await UserManager.Instance.AutoLoginAsync();
-                }
-                
-                ASLogger.Instance.Error("GamePlayManager: UserManager不存在");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"GamePlayManager: 登录过程发生异常 - {ex.Message}");
-                OnNetworkError?.Invoke($"登录失败: {ex.Message}");
-                return false;
-            }
-        }
         
-        /// <summary>
-        /// 登出
-        /// </summary>
-        public void Logout()
-        {
-            if (!IsLoggedIn)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 用户未登录");
-                return;
-            }
-            
-            ASLogger.Instance.Info("GamePlayManager: 开始登出");
-            
-            // 使用用户管理器进行登出
-            UserManager.Instance?.Logout();
-        }
-        
-        /// <summary>
-        /// 创建房间
-        /// </summary>
-        /// <param name="roomName">房间名称</param>
-        /// <param name="maxPlayers">最大玩家数</param>
-        public async Task<bool> CreateRoomAsync(string roomName = null, int maxPlayers = 4)
-        {
-            if (!IsLoggedIn)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 请先登录");
-                OnNetworkError?.Invoke("请先登录");
-                return false;
-            }
-            
-            if (IsInRoom)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 已在房间中");
-                OnNetworkError?.Invoke("已在房间中");
-                return false;
-            }
-            
-            if (string.IsNullOrEmpty(roomName))
-            {
-                roomName = $"房间_{DateTime.Now:HHmmss}";
-            }
-            
-            ASLogger.Instance.Info($"GamePlayManager: 创建房间，名称: {roomName}, 最大玩家: {maxPlayers}");
-            
-            // 使用房间系统管理器创建房间
-            if (RoomSystemManager.Instance != null)
-            {
-                return await RoomSystemManager.Instance.CreateRoomAsync(roomName, maxPlayers);
-            }
-            
-            ASLogger.Instance.Error("GamePlayManager: RoomSystemManager不存在");
-            return false;
-        }
-        
-        /// <summary>
-        /// 加入房间
-        /// </summary>
-        /// <param name="roomId">房间ID</param>
-        public async Task<bool> JoinRoomAsync(string roomId)
-        {
-            if (!IsLoggedIn)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 请先登录");
-                OnNetworkError?.Invoke("请先登录");
-                return false;
-            }
-            
-            if (IsInRoom)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 已在房间中");
-                OnNetworkError?.Invoke("已在房间中");
-                return false;
-            }
-            
-            if (string.IsNullOrEmpty(roomId))
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 房间ID不能为空");
-                OnNetworkError?.Invoke("房间ID不能为空");
-                return false;
-            }
-            
-            ASLogger.Instance.Info($"GamePlayManager: 加入房间，ID: {roomId}");
-            
-            // 使用房间系统管理器加入房间
-            if (RoomSystemManager.Instance != null)
-            {
-                return await RoomSystemManager.Instance.JoinRoomAsync(roomId);
-            }
-            
-            ASLogger.Instance.Error("GamePlayManager: RoomSystemManager不存在");
-            return false;
-        }
-        
-        /// <summary>
-        /// 离开房间
-        /// </summary>
-        public async Task<bool> LeaveRoomAsync()
-        {
-            if (!IsLoggedIn)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 请先登录");
-                OnNetworkError?.Invoke("请先登录");
-                return false;
-            }
-            
-            if (!IsInRoom)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 当前不在房间中");
-                OnNetworkError?.Invoke("当前不在房间中");
-                return false;
-            }
-            
-            ASLogger.Instance.Info("GamePlayManager: 离开房间");
-            
-            // 使用房间系统管理器离开房间
-            if (RoomSystemManager.Instance != null)
-            {
-                return await RoomSystemManager.Instance.LeaveRoomAsync();
-            }
-            
-            ASLogger.Instance.Error("GamePlayManager: RoomSystemManager不存在");
-            return false;
-        }
-        
-        /// <summary>
-        /// 获取房间列表
-        /// </summary>
-        public async Task<bool> GetRoomsAsync()
-        {
-            if (!IsLoggedIn)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 请先登录");
-                OnNetworkError?.Invoke("请先登录");
-                return false;
-            }
-            
-            ASLogger.Instance.Info("GamePlayManager: 获取房间列表");
-            
-            // 使用房间系统管理器获取房间列表
-            if (RoomSystemManager.Instance != null)
-            {
-                return await RoomSystemManager.Instance.GetRoomListAsync();
-            }
-            
-            ASLogger.Instance.Error("GamePlayManager: RoomSystemManager不存在");
-            return false;
-        }
-        
-
 
         #region 网络消息事件处理器
-        
+
         /// <summary>
         /// 处理登录响应
         /// </summary>
@@ -452,7 +174,7 @@ namespace Astrum.Client.Managers
             try
             {
                 ASLogger.Instance.Info("GamePlayManager: 收到登录响应");
-                
+
                 if (response.Success)
                 {
                     // 使用用户管理器处理登录响应
@@ -461,16 +183,16 @@ namespace Astrum.Client.Managers
                 else
                 {
                     ASLogger.Instance.Error($"GamePlayManager: 登录失败 - {response.Message}");
-                    OnNetworkError?.Invoke($"登录失败: {response.Message}");
+                    //OnNetworkError?.Invoke($"登录失败: {response.Message}");
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"GamePlayManager: 处理登录响应时发生异常 - {ex.Message}");
-                OnNetworkError?.Invoke($"处理登录响应失败: {ex.Message}");
+                //OnNetworkError?.Invoke($"处理登录响应失败: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 处理创建房间响应
         /// </summary>
@@ -479,7 +201,7 @@ namespace Astrum.Client.Managers
             try
             {
                 ASLogger.Instance.Info("GamePlayManager: 收到创建房间响应");
-                
+
                 if (response.Success)
                 {
                     // 使用房间系统管理器处理创建房间响应
@@ -488,16 +210,16 @@ namespace Astrum.Client.Managers
                 else
                 {
                     ASLogger.Instance.Error($"GamePlayManager: 创建房间失败 - {response.Message}");
-                    OnNetworkError?.Invoke($"创建房间失败: {response.Message}");
+                    //OnNetworkError?.Invoke($"创建房间失败: {response.Message}");
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"GamePlayManager: 处理创建房间响应时发生异常 - {ex.Message}");
-                OnNetworkError?.Invoke($"处理创建房间响应失败: {ex.Message}");
+                //OnNetworkError?.Invoke($"处理创建房间响应失败: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 处理加入房间响应
         /// </summary>
@@ -506,7 +228,7 @@ namespace Astrum.Client.Managers
             try
             {
                 ASLogger.Instance.Info("GamePlayManager: 收到加入房间响应");
-                
+
                 if (response.Success)
                 {
                     // 使用房间系统管理器处理加入房间响应
@@ -515,16 +237,16 @@ namespace Astrum.Client.Managers
                 else
                 {
                     ASLogger.Instance.Error($"GamePlayManager: 加入房间失败 - {response.Message}");
-                    OnNetworkError?.Invoke($"加入房间失败: {response.Message}");
+                    //OnNetworkError?.Invoke($"加入房间失败: {response.Message}");
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"GamePlayManager: 处理加入房间响应时发生异常 - {ex.Message}");
-                OnNetworkError?.Invoke($"处理加入房间响应失败: {ex.Message}");
+                //OnNetworkError?.Invoke($"处理加入房间响应失败: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 处理离开房间响应
         /// </summary>
@@ -533,7 +255,7 @@ namespace Astrum.Client.Managers
             try
             {
                 ASLogger.Instance.Info("GamePlayManager: 收到离开房间响应");
-                
+
                 if (response.Success)
                 {
                     // 使用房间系统管理器处理离开房间响应
@@ -542,16 +264,16 @@ namespace Astrum.Client.Managers
                 else
                 {
                     ASLogger.Instance.Error($"GamePlayManager: 离开房间失败 - {response.Message}");
-                    OnNetworkError?.Invoke($"离开房间失败: {response.Message}");
+                    //OnNetworkError?.Invoke($"离开房间失败: {response.Message}");
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"GamePlayManager: 处理离开房间响应时发生异常 - {ex.Message}");
-                OnNetworkError?.Invoke($"处理离开房间响应失败: {ex.Message}");
+                //OnNetworkError?.Invoke($"处理离开房间响应失败: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 处理获取房间列表响应
         /// </summary>
@@ -560,7 +282,7 @@ namespace Astrum.Client.Managers
             try
             {
                 ASLogger.Instance.Info("GamePlayManager: 收到获取房间列表响应");
-                
+
                 if (response.Success)
                 {
                     // 使用房间系统管理器处理获取房间列表响应
@@ -569,16 +291,16 @@ namespace Astrum.Client.Managers
                 else
                 {
                     ASLogger.Instance.Error($"GamePlayManager: 获取房间列表失败 - {response.Message}");
-                    OnNetworkError?.Invoke($"获取房间列表失败: {response.Message}");
+                    //OnNetworkError?.Invoke($"获取房间列表失败: {response.Message}");
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"GamePlayManager: 处理获取房间列表响应时发生异常 - {ex.Message}");
-                OnNetworkError?.Invoke($"获取房间列表失败: {ex.Message}");
+                //OnNetworkError?.Invoke($"获取房间列表失败: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 处理房间更新通知
         /// </summary>
@@ -587,7 +309,7 @@ namespace Astrum.Client.Managers
             try
             {
                 ASLogger.Instance.Info("GamePlayManager: 收到房间更新通知");
-                
+
                 // 使用房间系统管理器处理房间更新通知
                 RoomSystemManager.Instance?.HandleRoomUpdateNotification(notification);
             }
@@ -596,7 +318,7 @@ namespace Astrum.Client.Managers
                 ASLogger.Instance.Error($"GamePlayManager: 处理房间更新通知时发生异常 - {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 处理心跳响应
         /// </summary>
@@ -612,138 +334,14 @@ namespace Astrum.Client.Managers
                 ASLogger.Instance.Error($"GamePlayManager: 处理心跳响应时发生异常 - {ex.Message}");
             }
         }
-        
+
         #endregion
-        
-        #region 消息处理方法
-        
-        // 旧的 NetworkMessage 处理方法已移除
-        
-        #endregion
-        
+
+
         #region 网络消息响应处理
-        
-        /// <summary>
-        /// 处理登录响应 (兼容旧版本)
-        /// </summary>
-        /// <param name="message">网络消息</param>
-        private void HandleLoginResponse(GameNetworkMessage message)
-        {
-            try
-            {
-                if (message.Data != null)
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 收到旧版本登录响应，已弃用");
-                    // 旧版本登录响应已弃用，使用新的UserManager处理
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"GamePlayManager: 处理登录响应失败 - {ex.Message}");
-                OnNetworkError?.Invoke("处理登录响应失败");
-            }
-        }
-        
-        /// <summary>
-        /// 处理创建房间响应 (兼容旧版本)
-        /// </summary>
-        /// <param name="message">网络消息</param>
-        private void HandleCreateRoomResponse(GameNetworkMessage message)
-        {
-            try
-            {
-                if (message.Data != null)
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 收到旧版本创建房间响应，已弃用");
-                    // 旧版本创建房间响应已弃用，使用新的RoomSystemManager处理
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"GamePlayManager: 处理创建房间响应失败 - {ex.Message}");
-                OnNetworkError?.Invoke("处理创建房间响应失败");
-            }
-        }
-        
-        /// <summary>
-        /// 处理加入房间响应 (兼容旧版本)
-        /// </summary>
-        /// <param name="message">网络消息</param>
-        private void HandleJoinRoomResponse(GameNetworkMessage message)
-        {
-            try
-            {
-                if (message.Data != null)
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 收到旧版本加入房间响应，已弃用");
-                    // 旧版本加入房间响应已弃用，使用新的RoomSystemManager处理
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"GamePlayManager: 处理加入房间响应失败 - {ex.Message}");
-                OnNetworkError?.Invoke("处理加入房间响应失败");
-            }
-        }
-        
-        /// <summary>
-        /// 处理离开房间响应 (兼容旧版本)
-        /// </summary>
-        /// <param name="message">网络消息</param>
-        private void HandleLeaveRoomResponse(GameNetworkMessage message)
-        {
-            ASLogger.Instance.Info("GamePlayManager: 收到旧版本离开房间响应，已弃用");
-            // 旧版本离开房间响应已弃用，使用新的RoomSystemManager处理
-        }
-        
-        /// <summary>
-        /// 处理获取房间列表响应
-        /// </summary>
-        /// <param name="message">网络消息</param>
-        private void HandleGetRoomsResponse(GameNetworkMessage message)
-        {
-            try
-            {
-                if (message.Data != null)
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 获取房间列表成功");
-                    // 房间列表更新由RoomSystemManager处理
-                    OnRoomListUpdated?.Invoke(AvailableRooms);
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"GamePlayManager: 处理获取房间列表响应失败 - {ex.Message}");
-                OnNetworkError?.Invoke("处理获取房间列表响应失败");
-            }
-        }
-        
-        /// <summary>
-        /// 处理获取在线用户列表响应
-        /// </summary>
-        /// <param name="message">网络消息</param>
-        private void HandleGetOnlineUsersResponse(GameNetworkMessage message)
-        {
-            try
-            {
-                if (message.Data != null)
-                {
-                    var usersJson = JsonConvert.SerializeObject(message.Data);
-                    OnlineUsers = JsonConvert.DeserializeObject<List<UserInfo>>(usersJson) ?? new List<UserInfo>();
-                    
-                    ASLogger.Instance.Info($"GamePlayManager: 获取在线用户列表成功，用户数量: {OnlineUsers.Count}");
-                    OnOnlineUsersUpdated?.Invoke(OnlineUsers);
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"GamePlayManager: 处理获取在线用户列表响应失败 - {ex.Message}");
-                OnNetworkError?.Invoke("处理获取在线用户列表响应失败");
-            }
-        }
-        
+
         #endregion
-        
+
         /// <summary>
         /// 启动单机游戏
         /// </summary>
@@ -751,7 +349,7 @@ namespace Astrum.Client.Managers
         public void StartSinglePlayerGame(string gameSceneName)
         {
             ASLogger.Instance.Info("GameLauncher: 启动游戏");
-            
+
             try
             {
                 // 1. 创建Room (这里模拟逻辑层的Room)
@@ -761,10 +359,10 @@ namespace Astrum.Client.Managers
                 room.Initialize();
                 // 2. 创建Stage
                 Stage gameStage = CreateStage(room);
-                
+
                 SwitchToGameScene(gameSceneName, gameStage);
-                CreatePlayerAndJoin(gameStage, room);
-                
+                CreatePlayer(gameStage, room);
+
                 MainRoom = room;
                 MainStage = gameStage;
                 ASLogger.Instance.Info("GameLauncher: 游戏启动成功");
@@ -775,48 +373,50 @@ namespace Astrum.Client.Managers
                 throw;
             }
         }
-        
-        public void StartMultiPlayerGame(string gameSceneName)
-        {
-            ASLogger.Instance.Info("GameLauncher: 启动多人游戏");
-            
-            try
-            {
-                // 1. 创建Room
-                var room = CreateRoom();
-                var world = new World();
-                room.AddWorld(world);
-                room.Initialize();
-                // 2. 创建Stage
-                Stage gameStage = CreateStage(room);
-                
-                SwitchToGameScene(gameSceneName, gameStage);
-                CreatePlayerAndJoin(gameStage, room);
-                
-                MainRoom = room;
-                MainStage = gameStage;
-                ASLogger.Instance.Info("GameLauncher: 游戏启动成功");
-            }
-            catch (System.Exception ex)
-            {
-                ASLogger.Instance.Error($"GameLauncher: 启动游戏失败 - {ex.Message}");
-                throw;
-            }
-        }
-        
-        public void DealNetFrameInputs(OneFrameInputs frameInputs)
+
+        public void DealNetFrameInputs(OneFrameInputs frameInputs, int frame = -1)
         {
             if (MainRoom == null)
             {
                 ASLogger.Instance.Warning("GamePlayManager: 当前没有Room");
                 return;
             }
-            //MainRoom?.LSController?.DealNetFrameInputs(frameInputs);
             
-            ASLogger.Instance.Info("GamePlayManager: 处理网络帧输入");
+            try
+            {
+                // 将帧输入数据传递给房间的帧同步控制器
+                if (MainRoom.LSController != null)
+                {
+                    // 更新权威帧
+                    if (frame > 0)
+                    {
+                        MainRoom.LSController.AuthorityFrame = frame;
+                    }
+                    else
+                    {
+                        ++MainRoom.LSController.AuthorityFrame;
+                    }
+                    //MainRoom.LSController.FrameBuffer.MoveForward(frame);
+                    
+                    MainRoom.LSController.SetOneFrameInputs(frameInputs);
+                    // 处理帧输入
+                    //MainRoom.FrameTick(frameInputs);
+                    
+                    ASLogger.Instance.Debug($"GamePlayManager: 处理网络帧输入，帧: {MainRoom.LSController.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning("GamePlayManager: LSController 不存在，无法处理帧输入");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"GamePlayManager: 处理网络帧输入时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
         }
-        
-        
+
+
         /// <summary>
         /// 创建Room - 模拟逻辑层的Room创建
         /// </summary>
@@ -827,230 +427,360 @@ namespace Astrum.Client.Managers
             ASLogger.Instance.Info($"GameLauncher: 创建Room，ID: {room.RoomId}");
             return room;
         }
-        
+
         /// <summary>
         /// 创建Stage
         /// </summary>
         private Stage CreateStage(Room room)
         {
             ASLogger.Instance.Info("GameLauncher: 创建Stage");
-            
+
             // 创建游戏Stage
             Stage gameStage = new Stage("GameStage", "游戏场景");
-            
+
             // 初始化Stage
             gameStage.Initialize();
-            
+
             // 设置Room ID
             gameStage.SetRoom(room);
-            
+
             return gameStage;
+        }
+
+        private void RequestCreatePlayer()
+        {
+            var request = SingleInput.Create();
+            request.FrameID = MainRoom.LSController.PredictionFrame;
+            request.Input = new LSInput();//eventData.Input;
+            request.Input.BornInfo = UserManager.Instance.UserId.GetHashCode();
+            NetworkManager.Instance.Send(request);
+            ASLogger.Instance.Debug($"GamePlayManager: 发送生成玩家请求，输入: {JsonConvert.SerializeObject(request.Input)}");
         }
         
         /// <summary>
-        /// 创建Player并加入Stage
+        /// 创建Player
         /// </summary>
-        private void CreatePlayerAndJoin(Stage gameStage, Room room)
+        private void CreatePlayer(Stage gameStage, Room room,bool isMainPlayer = true)
         {
             ASLogger.Instance.Info("GameLauncher: 创建Player并加入Stage");
-            
-            
+
+
             PlayerId = room.AddPlayer();
-            room.MainPlayerId = PlayerId;
+            if (isMainPlayer)
+            {
+                room.MainPlayerId = PlayerId;
+            }
             //Vector3 playerPosition = new Vector3(-5f, 0.5f, 0f);
 
-            
+
             ASLogger.Instance.Info($"GameLauncher: Player创建完成，ID: {PlayerId}");
         }
-        
+
         /// <summary>
         /// 切换到游戏场景
         /// </summary>
         private void SwitchToGameScene(string gameSceneName, Stage gameStage)
         {
             ASLogger.Instance.Info($"GameLauncher: 切换到游戏场景 {gameSceneName}");
-            
+
             var sceneManager = GameApplication.Instance?.SceneManager;
             if (sceneManager == null)
             {
                 throw new System.Exception("SceneManager不存在");
             }
-            
+
             // 设置当前Stage
             StageManager.Instance.SetCurrentStage(gameStage);
-            
+
             // 异步加载游戏场景
-            sceneManager.LoadSceneAsync(gameSceneName, () =>
-            {
-                OnGameSceneLoaded(gameStage);
-            });
+            sceneManager.LoadSceneAsync(gameSceneName, () => { OnGameSceneLoaded(gameStage); });
         }
-        
+
         /// <summary>
         /// 游戏场景加载完成回调
         /// </summary>
         private void OnGameSceneLoaded(Stage gameStage)
         {
             ASLogger.Instance.Info("GameLauncher: 游戏场景加载完成");
-            
+
             // 激活Stage
             gameStage.SetActive(true);
             gameStage.OnEnter();
-            
+            RequestCreatePlayer();
             ASLogger.Instance.Info("GameLauncher: 游戏准备完成");
         }
-        
-        #region 登录流程辅助方法
-        
+
+        #region 游戏开始和结束事件处理器
+
         /// <summary>
-        /// 等待网络连接完成
+        /// 处理游戏响应
         /// </summary>
-        /// <param name="networkManager">网络管理器</param>
-        /// <param name="timeoutMs">超时时间（毫秒）</param>
-        /// <returns>是否连接成功</returns>
-        private async Task<bool> WaitForConnection(NetworkManager networkManager, int timeoutMs)
-        {
-            var startTime = DateTime.Now;
-            var checkInterval = 100; // 检查间隔100毫秒
-            
-            while (!networkManager.IsConnected() && 
-                   (DateTime.Now - startTime).TotalMilliseconds < timeoutMs)
-            {
-                await Task.Delay(checkInterval);
-            }
-            
-            return networkManager.IsConnected();
-        }
-        
-        /// <summary>
-        /// 登录超时检查异步方法
-        /// </summary>
-        /// <param name="displayName">显示名称</param>
-        private async Task LoginTimeoutCheckAsync(string displayName)
-        {
-            var startTime = DateTime.Now;
-            var timeoutSeconds = 15; // 15秒超时
-            
-            while ((DateTime.Now - startTime).TotalSeconds < timeoutSeconds)
-            {
-                // 检查是否已经登录成功
-                if (IsLoggedIn)
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 登录成功，停止超时检查");
-                    return;
-                }
-                
-                await Task.Delay(500); // 每0.5秒检查一次
-            }
-            
-            // 超时处理
-            if (!IsLoggedIn)
-            {
-                ASLogger.Instance.Warning("GamePlayManager: 登录超时，请重试");
-                OnNetworkError?.Invoke("登录超时，请重试");
-            }
-        }
-        
-        /// <summary>
-        /// 检查网络连接状态
-        /// </summary>
-        /// <returns>网络连接状态信息</returns>
-        public string GetNetworkStatus()
-        {
-            var networkManager = GameApplication.Instance?.NetworkManager;
-            if (networkManager == null)
-            {
-                return "网络管理器未初始化";
-            }
-            
-            if (networkManager.IsConnected())
-            {
-                var session = networkManager.GetCurrentSession();
-                if (session != null)
-                {
-                    return $"已连接 - 通道ID: {session.Id}";
-                }
-                return "已连接";
-            }
-            
-            return "未连接";
-        }
-        
-        /// <summary>
-        /// 强制重连网络
-        /// </summary>
-        /// <returns>重连是否成功</returns>
-        public async Task<bool> ForceReconnect()
+        private void OnGameResponse(GameResponse response)
         {
             try
             {
-                var networkManager = GameApplication.Instance?.NetworkManager;
-                if (networkManager == null)
+                ASLogger.Instance.Info(
+                    $"GamePlayManager: 收到游戏响应 - Success: {response.success}, Message: {response.message}");
+
+                if (response.success)
                 {
-                    ASLogger.Instance.Error("GamePlayManager: NetworkManager不存在，无法重连");
-                    return false;
-                }
-                
-                // 断开当前连接
-                if (networkManager.IsConnected())
-                {
-                    networkManager.Disconnect();
-                    await Task.Delay(1000); // 等待断开完成
-                }
-                
-                // 重新连接
-                var channelId = await networkManager.ConnectAsync("127.0.0.1", 8888);
-                ASLogger.Instance.Info($"GamePlayManager: 重连请求已发送，ChannelId: {channelId}");
-                
-                // 等待连接完成
-                var connectionResult = await WaitForConnection(networkManager, 10000);
-                
-                if (connectionResult)
-                {
-                    ASLogger.Instance.Info("GamePlayManager: 重连成功");
-                    return true;
+                    // 游戏操作成功
+                    ASLogger.Instance.Info($"游戏操作成功: {response.message}");
                 }
                 else
                 {
-                    ASLogger.Instance.Error("GamePlayManager: 重连失败");
-                    return false;
+                    // 游戏操作失败
+                    ASLogger.Instance.Warning($"游戏操作失败: {response.message}");
                 }
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"GamePlayManager: 重连过程发生异常 - {ex.Message}");
-                return false;
+                ASLogger.Instance.Error($"处理游戏响应时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
-        
+
+        /// <summary>
+        /// 处理游戏开始通知
+        /// </summary>
+        private void OnGameStartNotification(GameStartNotification notification)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"GamePlayManager: 收到游戏开始通知 - 房间: {notification.roomId}");
+
+                // 创建游戏Room和Stage
+                var room = CreateGameRoom(notification);
+                var world = new World();
+                room.AddWorld(world);
+                room.Initialize();
+                var stage = CreateGameStage(room);
+
+                // 设置当前游戏状态
+                MainRoom = room;
+                MainStage = stage;
+
+                // 切换到游戏场景
+                SwitchToGameScene("Game", stage);
+                //CreatePlayer(stage, room);
+                //RequestCreatePlayer();
+
+                ASLogger.Instance.Info($"游戏开始 - 房间: {notification.roomId}, 玩家数: {notification.playerIds.Count}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理游戏开始通知时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理游戏结束通知
+        /// </summary>
+        private void OnGameEndNotification(GameEndNotification notification)
+        {
+            try
+            {
+                ASLogger.Instance.Info(
+                    $"GamePlayManager: 收到游戏结束通知 - 房间: {notification.roomId}, 原因: {notification.reason}");
+
+                // 显示游戏结果
+                ShowGameResult(notification.result);
+
+                // 清理游戏状态
+                MainRoom = null;
+                MainStage = null;
+
+                // 返回房间列表
+                ReturnToRoomList();
+
+                ASLogger.Instance.Info($"游戏结束 - 房间: {notification.roomId}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理游戏结束通知时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理游戏状态更新
+        /// </summary>
+        private void OnGameStateUpdate(GameStateUpdate update)
+        {
+            try
+            {
+                ASLogger.Instance.Info(
+                    $"GamePlayManager: 收到游戏状态更新 - 房间: {update.roomId}, 回合: {update.roomState.currentRound}");
+
+                // 更新游戏状态
+                if (MainRoom != null)
+                {
+                    // 这里可以更新游戏状态，比如回合数、时间等
+                    ASLogger.Instance.Info(
+                        $"游戏状态更新 - 当前回合: {update.roomState.currentRound}/{update.roomState.maxRounds}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理游戏状态更新时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 创建游戏房间
+        /// </summary>
+        private Room CreateGameRoom(GameStartNotification notification)
+        {
+            var room = new Room(1, notification.roomId);
+            ASLogger.Instance.Info($"创建游戏房间: {room.RoomId}");
+            return room;
+        }
+
+        /// <summary>
+        /// 创建游戏舞台
+        /// </summary>
+        private Stage CreateGameStage(Room room)
+        {
+            var stage = new Stage("GameStage", "游戏场景");
+            stage.Initialize();
+            stage.SetRoom(room);
+            ASLogger.Instance.Info("创建游戏舞台");
+            return stage;
+        }
+
+        /// <summary>
+        /// 显示游戏结果
+        /// </summary>
+        private void ShowGameResult(GameResult result)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"游戏结果 - 房间: {result.roomId}");
+
+                foreach (var playerResult in result.playerResults)
+                {
+                    ASLogger.Instance.Info(
+                        $"玩家 {playerResult.playerId}: 分数 {playerResult.score}, 排名 {playerResult.rank}, 获胜: {playerResult.isWinner}");
+                }
+
+                // 这里可以显示游戏结果UI
+                // TODO: 实现游戏结果UI显示
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"显示游戏结果时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 返回房间列表
+        /// </summary>
+        private void ReturnToRoomList()
+        {
+            try
+            {
+                // 这里可以切换回房间列表UI
+                // TODO: 实现返回房间列表的UI切换
+                ASLogger.Instance.Info("返回房间列表");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"返回房间列表时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        #endregion
+
+        #region 帧同步消息处理器
+
+        /// <summary>
+        /// 处理帧同步开始通知
+        /// </summary>
+        private void OnFrameSyncStartNotification(FrameSyncStartNotification notification)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"GamePlayManager: 收到帧同步开始通知 - 房间: {notification.roomId}，帧率: {notification.frameRate}FPS");
+                
+                // 初始化帧同步相关状态
+                if (MainRoom?.LSController != null)
+                {
+                    MainRoom.LSController.Start();
+                    ASLogger.Instance.Info($"帧同步控制器已启动，房间: {notification.roomId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理帧同步开始通知时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理帧同步结束通知
+        /// </summary>
+        private void OnFrameSyncEndNotification(FrameSyncEndNotification notification)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"GamePlayManager: 收到帧同步结束通知 - 房间: {notification.roomId}，最终帧: {notification.finalFrame}，原因: {notification.reason}");
+                
+                // 停止帧同步相关状态
+                if (MainRoom?.LSController != null)
+                {
+                    MainRoom.LSController.Stop();
+                    ASLogger.Instance.Info($"帧同步控制器已停止，房间: {notification.roomId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理帧同步结束通知时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理帧同步数据
+        /// </summary>
+        private void OnFrameSyncData(FrameSyncData frameData)
+        {
+            try
+            {
+                ASLogger.Instance.Debug($"GamePlayManager: 收到帧同步数据 - 房间: {frameData.roomId}，权威帧: {frameData.authorityFrame}，输入数: {frameData.frameInputs.Inputs.Count}");
+                
+                // 处理帧同步数据
+                DealNetFrameInputs(frameData.frameInputs, frameData.authorityFrame);
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理帧同步数据时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理帧输入数据（兼容旧接口）
+        /// </summary>
+        private void OnFrameInputs(OneFrameInputs frameInputs)
+        {
+            try
+            {
+                ASLogger.Instance.Debug($"GamePlayManager: 收到帧输入数据，输入数: {frameInputs.Inputs.Count}");
+                
+                // 处理帧输入数据
+                DealNetFrameInputs(frameInputs);
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理帧输入数据时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
         #endregion
     }
-    
-    /// <summary>
-    /// 网络消息 - 用于与服务器通信
-    /// </summary>
-    [Serializable]
-    public class GameNetworkMessage
-    {
-        public string Type { get; set; } = string.Empty;
-        public object Data { get; set; }
-        public string Error { get; set; }
-        public bool Success { get; set; } = true;
-        public DateTime Timestamp { get; set; } = DateTime.Now;
-        
-        public static GameNetworkMessage CreateSuccess(string type, object data = null)
-        {
-            return new GameNetworkMessage { Type = type, Data = data, Success = true };
-        }
-        
-        public static GameNetworkMessage CreateError(string type, string error)
-        {
-            return new GameNetworkMessage { Type = type, Error = error, Success = false };
-        }
-    }
-    
-
-    
-
-    
-} 
+}
