@@ -117,7 +117,7 @@ namespace Astrum.CommonBase
             if (categoryObj != null)
             {
                 categoryObj.SetEnabled(enabled);
-                _config.UpdateStatistics();
+                // 统计信息由LogManagerConfigEditor维护
             }
         }
         
@@ -135,7 +135,7 @@ namespace Astrum.CommonBase
             if (logEntry != null)
             {
                 logEntry.enabled = enabled;
-                _config.UpdateStatistics();
+                // 统计信息由LogManagerConfigEditor维护
             }
         }
         
@@ -239,7 +239,7 @@ namespace Astrum.CommonBase
                 ResetCategoryFilters(category);
             }
             
-            _config.UpdateStatistics();
+            // 统计信息由LogManagerConfigEditor维护
         }
         
         /// <summary>

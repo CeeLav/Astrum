@@ -57,6 +57,25 @@ namespace Astrum.Editor.ASLogger
             Debug.Log("[ASLoggerManager] 手动刷新配置");
             _isInitialized = false;
             Initialize();
+            
+            // 确保配置推送到ASLogger
+            PushConfigToASLogger();
+        }
+        
+        /// <summary>
+        /// 推送配置到ASLogger（无论游戏是否运行）
+        /// </summary>
+        public void PushConfigToASLogger()
+        {
+            if (_config != null)
+            {
+                Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
+                Debug.Log($"[ASLoggerManager] 配置已推送到ASLogger，包含{_config.logEntries.Count}个日志条目");
+            }
+            else
+            {
+                Debug.LogWarning("[ASLoggerManager] 配置为空，无法推送到ASLogger");
+            }
         }
         
         private void OnEnable()
@@ -154,9 +173,8 @@ namespace Astrum.Editor.ASLogger
                 {
                     _config.Initialize();
                     
-                    // 通知ASLogger加载配置（无论是否在游戏运行时都设置）
-                    Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
-                    Debug.Log($"[ASLoggerManager] 配置已同步到ASLogger，包含{_config.logEntries.Count}个日志条目");
+                    // 推送配置到ASLogger
+                    PushConfigToASLogger();
                 }
                 else
                 {
@@ -254,6 +272,11 @@ namespace Astrum.Editor.ASLogger
             if (GUILayout.Button("刷新", GUILayout.Width(60)))
             {
                 RefreshData();
+            }
+            
+            if (GUILayout.Button("推送配置", GUILayout.Width(80)))
+            {
+                PushConfigToASLogger();
             }
             
             EditorGUILayout.EndHorizontal();
@@ -840,8 +863,8 @@ namespace Astrum.Editor.ASLogger
                 // 重新构建字典
                 _config.RebuildDictionaries();
                 
-                // 通知ASLogger更新配置
-                Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
+                // 推送配置到ASLogger
+                PushConfigToASLogger();
                 
                 // 保存配置
                 SaveConfig();
