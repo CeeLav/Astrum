@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
-using UnityEngine;
-using System.Linq;
 
 namespace Astrum.CommonBase
 {
@@ -547,6 +545,12 @@ namespace Astrum.CommonBase
                 LoadConfig();
             }
             
+            // 如果没有提供logId，尝试自动匹配
+            if (string.IsNullOrEmpty(logId) && _isConfigInitialized && _config != null)
+            {
+                logId = TryMatchLogId(message, category, level);
+            }
+            
             // 检查是否应该输出日志
             if (!LogFilter.ShouldLog(level, category, logId))
             {
@@ -654,45 +658,8 @@ namespace Astrum.CommonBase
         /// </summary>
         public static void LoadConfig()
         {
-            if (_config == null)
-            {
-                UnityEngine.Debug.Log("[ASLogger] 开始加载配置...");
-                
-                // 尝试从Resources文件夹加载
-                _config = Resources.Load<LogManagerConfig>("LogManagerConfig");
-                
-                if (_config == null)
-                {
-                    UnityEngine.Debug.Log("[ASLogger] 未找到LogManagerConfig，尝试搜索所有配置...");
-                    // 尝试从项目根目录加载
-                    var configs = Resources.LoadAll<LogManagerConfig>("");
-                    _config = configs.FirstOrDefault();
-                    
-                    if (_config != null)
-                    {
-                        UnityEngine.Debug.Log($"[ASLogger] 找到配置: {_config.name}");
-                    }
-                    else
-                    {
-                        UnityEngine.Debug.LogWarning("[ASLogger] 未找到任何LogManagerConfig配置文件");
-                        UnityEngine.Debug.LogWarning("[ASLogger] 请确保在Resources文件夹中创建了LogManagerConfig");
-                    }
-                }
-                else
-                {
-                    UnityEngine.Debug.Log($"[ASLogger] 成功加载配置: {_config.name}");
-                }
-            }
-            
-            if (_config != null)
-            {
-                SetConfig(_config);
-                UnityEngine.Debug.Log($"[ASLogger] 配置已设置，初始化状态: {_isConfigInitialized}");
-            }
-            else
-            {
-                UnityEngine.Debug.LogWarning("[ASLogger] 配置加载失败，将使用默认设置");
-            }
+            // 在非Unity环境中跳过配置加载
+            Console.WriteLine("[ASLogger] 非Unity环境，跳过配置加载");
         }
         
         /// <summary>
@@ -796,6 +763,16 @@ namespace Astrum.CommonBase
         {
             LoadConfig();
         }
+        
+        /// <summary>
+        /// 尝试自动匹配日志ID
+        /// </summary>
+        private string TryMatchLogId(string message, string category, LogLevel level)
+        {
+            // 在非Unity环境中不进行日志匹配
+            return null;
+        }
+        
         
         #endregion
     }
