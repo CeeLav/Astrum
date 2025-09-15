@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d96d3e4019d52bc4f9dedd2357ca87e3, type: 3}
+  m_Script: {fileID: 0}
   m_Name: LogManagerConfig
-  m_EditorClassIdentifier: CommonBase::Astrum.CommonBase.LogManagerConfig
+  m_EditorClassIdentifier: Assembly-CSharp-Editor:Astrum.Editor.ASLogger:LogManagerConfigEditor
   categories:
   - name: Root
     fullPath: Root
@@ -30,13 +30,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u8C03\u8BD5\u65E5\u5FD7"
-          fallbackId: RuntimeLogManager.cs:312:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:266:TestLogOutput
           category: Test.Debug
           level: 0
           message: "\u8FD9\u662F\u8C03\u8BD5\u65E5\u5FD7"
           cleanMessage: "\u8FD9\u662F\u8C03\u8BD5\u65E5\u5FD7"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 312
+          lineNumber: 266
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -50,13 +50,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u4FE1\u606F\u65E5\u5FD7"
-          fallbackId: RuntimeLogManager.cs:313:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:267:TestLogOutput
           category: Test.Info
           level: 1
           message: "\u8FD9\u662F\u4FE1\u606F\u65E5\u5FD7"
           cleanMessage: "\u8FD9\u662F\u4FE1\u606F\u65E5\u5FD7"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 313
+          lineNumber: 267
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -70,13 +70,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u8B66\u544A\u65E5\u5FD7"
-          fallbackId: RuntimeLogManager.cs:314:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:268:TestLogOutput
           category: Test.Warning
           level: 2
           message: "\u8FD9\u662F\u8B66\u544A\u65E5\u5FD7"
           cleanMessage: "\u8FD9\u662F\u8B66\u544A\u65E5\u5FD7"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 314
+          lineNumber: 268
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -90,13 +90,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u9519\u8BEF\u65E5\u5FD7"
-          fallbackId: RuntimeLogManager.cs:315:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:269:TestLogOutput
           category: Test.Error
           level: 3
           message: "\u8FD9\u662F\u9519\u8BEF\u65E5\u5FD7"
           cleanMessage: "\u8FD9\u662F\u9519\u8BEF\u65E5\u5FD7"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 315
+          lineNumber: 269
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -118,13 +118,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:\u7F51\u7EDC\u8FDE\u63A5\u6210\u529F"
-          fallbackId: RuntimeLogManager.cs:318:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:272:TestLogOutput
           category: Network.Connection
           level: 1
           message: "\u7F51\u7EDC\u8FDE\u63A5\u6210\u529F"
           cleanMessage: "\u7F51\u7EDC\u8FDE\u63A5\u6210\u529F"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 318
+          lineNumber: 272
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -138,13 +138,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:\u53D1\u9001\u6D88\u606F"
-          fallbackId: RuntimeLogManager.cs:319:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:273:TestLogOutput
           category: Network.Message
           level: 0
           message: "\u53D1\u9001\u6D88\u606F"
           cleanMessage: "\u53D1\u9001\u6D88\u606F"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 319
+          lineNumber: 273
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -166,13 +166,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:UI\u521D\u59CB\u5316\u5B8C\u6210"
-          fallbackId: RuntimeLogManager.cs:322:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:276:TestLogOutput
           category: UI.Initialization
           level: 1
           message: "UI\u521D\u59CB\u5316\u5B8C\u6210"
           cleanMessage: "UI\u521D\u59CB\u5316\u5B8C\u6210"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 322
+          lineNumber: 276
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -186,13 +186,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: "RuntimeLogManager.cs:TestLogOutput:\u6309\u94AE\u70B9\u51FB"
-          fallbackId: RuntimeLogManager.cs:323:TestLogOutput
+          fallbackId: RuntimeLogManager.cs:277:TestLogOutput
           category: UI.Interaction
           level: 0
           message: "\u6309\u94AE\u70B9\u51FB"
           cleanMessage: "\u6309\u94AE\u70B9\u51FB"
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-          lineNumber: 323
+          lineNumber: 277
           methodName: TestLogOutput
           className: RuntimeLogManager
           enabled: 1
@@ -5048,97 +5048,97 @@ MonoBehaviour:
     enabledLogCount: 377
   logEntries:
   - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u8C03\u8BD5\u65E5\u5FD7"
-    fallbackId: RuntimeLogManager.cs:312:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:266:TestLogOutput
     category: Test.Debug
     level: 0
     message: "\u8FD9\u662F\u8C03\u8BD5\u65E5\u5FD7"
     cleanMessage: "\u8FD9\u662F\u8C03\u8BD5\u65E5\u5FD7"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 312
+    lineNumber: 266
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
     isGenerated: 0
   - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u4FE1\u606F\u65E5\u5FD7"
-    fallbackId: RuntimeLogManager.cs:313:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:267:TestLogOutput
     category: Test.Info
     level: 1
     message: "\u8FD9\u662F\u4FE1\u606F\u65E5\u5FD7"
     cleanMessage: "\u8FD9\u662F\u4FE1\u606F\u65E5\u5FD7"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 313
+    lineNumber: 267
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
     isGenerated: 0
   - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u8B66\u544A\u65E5\u5FD7"
-    fallbackId: RuntimeLogManager.cs:314:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:268:TestLogOutput
     category: Test.Warning
     level: 2
     message: "\u8FD9\u662F\u8B66\u544A\u65E5\u5FD7"
     cleanMessage: "\u8FD9\u662F\u8B66\u544A\u65E5\u5FD7"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 314
+    lineNumber: 268
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
     isGenerated: 0
   - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u9519\u8BEF\u65E5\u5FD7"
-    fallbackId: RuntimeLogManager.cs:315:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:269:TestLogOutput
     category: Test.Error
     level: 3
     message: "\u8FD9\u662F\u9519\u8BEF\u65E5\u5FD7"
     cleanMessage: "\u8FD9\u662F\u9519\u8BEF\u65E5\u5FD7"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 315
+    lineNumber: 269
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
     isGenerated: 0
   - id: "RuntimeLogManager.cs:TestLogOutput:\u7F51\u7EDC\u8FDE\u63A5\u6210\u529F"
-    fallbackId: RuntimeLogManager.cs:318:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:272:TestLogOutput
     category: Network.Connection
     level: 1
     message: "\u7F51\u7EDC\u8FDE\u63A5\u6210\u529F"
     cleanMessage: "\u7F51\u7EDC\u8FDE\u63A5\u6210\u529F"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 318
+    lineNumber: 272
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
     isGenerated: 0
   - id: "RuntimeLogManager.cs:TestLogOutput:\u53D1\u9001\u6D88\u606F"
-    fallbackId: RuntimeLogManager.cs:319:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:273:TestLogOutput
     category: Network.Message
     level: 0
     message: "\u53D1\u9001\u6D88\u606F"
     cleanMessage: "\u53D1\u9001\u6D88\u606F"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 319
+    lineNumber: 273
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
     isGenerated: 0
   - id: "RuntimeLogManager.cs:TestLogOutput:UI\u521D\u59CB\u5316\u5B8C\u6210"
-    fallbackId: RuntimeLogManager.cs:322:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:276:TestLogOutput
     category: UI.Initialization
     level: 1
     message: "UI\u521D\u59CB\u5316\u5B8C\u6210"
     cleanMessage: "UI\u521D\u59CB\u5316\u5B8C\u6210"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 322
+    lineNumber: 276
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
     isGenerated: 0
   - id: "RuntimeLogManager.cs:TestLogOutput:\u6309\u94AE\u70B9\u51FB"
-    fallbackId: RuntimeLogManager.cs:323:TestLogOutput
+    fallbackId: RuntimeLogManager.cs:277:TestLogOutput
     category: UI.Interaction
     level: 0
     message: "\u6309\u94AE\u70B9\u51FB"
     cleanMessage: "\u6309\u94AE\u70B9\u51FB"
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\CommonBase\RuntimeLogManager.cs
-    lineNumber: 323
+    lineNumber: 277
     methodName: TestLogOutput
     className: RuntimeLogManager
     enabled: 1
