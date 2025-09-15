@@ -849,7 +849,25 @@ namespace Astrum.CommonBase
             var methodName = callingMethod.Name;
             var fileName = System.IO.Path.GetFileName(callingFile);
             
-            // 遍历所有日志条目，尝试匹配
+            // 计算相对位置（从方法开始到当前日志行的行数）
+            int relativePosition = CalculateRelativePosition(callingFile, callingLine, methodName);
+            
+            // 获取类名
+            string className = GetClassName(callingFile, callingLine);
+            
+            // 生成期望的ID格式：fileName:className:methodName:relativePosition
+            string expectedId = $"{fileName}:{className}:{methodName}:{relativePosition}";
+            
+            // 首先尝试精确匹配新的ID格式
+            foreach (var logEntry in _config.logEntries)
+            {
+                if (logEntry.id == expectedId)
+                {
+                    return logEntry.id;
+                }
+            }
+            
+            // 如果新格式匹配失败，尝试旧的匹配逻辑（向后兼容）
             foreach (var logEntry in _config.logEntries)
             {
                 var logFileName = System.IO.Path.GetFileName(logEntry.filePath);
@@ -887,10 +905,158 @@ namespace Astrum.CommonBase
             LogUnfiltered(LogLevel.Debug, 
                 $"TryMatchLogId: 匹配失败 - " +
                 $"category='{category}', level={level}, method='{methodName}', file='{fileName}', line={callingLine}, " +
+                $"relativePosition={relativePosition}, expectedId='{expectedId}', " +
                 $"message='{message}', 配置中总共有{_config.logEntries.Count}个日志条目", 
                 "ASLogger.Debug", null);
             
             return null;
+        }
+        
+        /// <summary>
+        /// 获取类名
+        /// </summary>
+        private string GetClassName(string filePath, int lineNumber)
+        {
+            try
+            {
+                var content = System.IO.File.ReadAllText(filePath);
+                var lines = content.Split('\n');
+                
+                // 从当前行向上查找类定义
+                for (int i = lineNumber - 1; i >= 0; i--)
+                {
+                    var line = lines[i].Trim();
+                    
+                    // 匹配类定义：public class ClassName
+                    var classMatch = System.Text.RegularExpressions.Regex.Match(line, @"(public|private|protected|internal)\s+(static\s+)?class\s+(\w+)");
+                    if (classMatch.Success)
+                    {
+                        return classMatch.Groups[3].Value;
+                    }
+                }
+                
+                return "Unknown";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+        
+        /// <summary>
+        /// 计算相对位置（从方法开始到指定行的行数）
+        /// </summary>
+        private int CalculateRelativePosition(string filePath, int lineNumber, string methodName)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return 0;
+                }
+                
+                var content = System.IO.File.ReadAllText(filePath);
+                var lines = content.Split('\n');
+                
+                // 从当前行向上查找方法定义
+                for (int i = lineNumber - 1; i >= 0; i--)
+                {
+                    var line = lines[i].Trim();
+                    
+                    // 扩展的方法定义模式，与LogScanner中的模式保持一致
+                    var methodPatterns = new[]
+                    {
+                        // 标准方法：public void MethodName()
+                        @"(public|private|protected|internal)\s+(static\s+)?(\w+)\s+(\w+)\s*\(",
+                        // 构造函数：public ClassName()
+                        @"(public|private|protected|internal)\s+(\w+)\s*\(\s*\)",
+                        // 析构函数：~ClassName()
+                        @"(public|private|protected|internal)\s+~(\w+)\s*\(\s*\)",
+                        // 属性：public string PropertyName { get; set; }
+                        @"(public|private|protected|internal)\s+(static\s+)?(\w+)\s+(\w+)\s*\{\s*get",
+                        // 索引器：public string this[int index]
+                        @"(public|private|protected|internal)\s+(\w+)\s+this\s*\[",
+                        // 事件：public event EventHandler EventName
+                        @"(public|private|protected|internal)\s+event\s+(\w+)\s+(\w+)",
+                        // 字段：private string _fieldName
+                        @"(public|private|protected|internal)\s+(static\s+readonly\s+)?(\w+)\s+(\w+)",
+                        // Unity生命周期方法：void Start()
+                        @"void\s+(Start|Update|Awake|OnEnable|OnDisable|OnDestroy)\s*\(",
+                        // Unity事件方法：void OnButtonClick()
+                        @"void\s+On(\w+)\s*\(",
+                        // 异步方法：async Task MethodName()
+                        @"async\s+(Task|void)\s+(\w+)\s*\(",
+                        // 泛型方法：public T MethodName<T>()
+                        @"(public|private|protected|internal)\s+(static\s+)?(\w+)\s+(\w+)\s*<",
+                        // Lambda表达式所在的方法（简化处理）
+                        @"=>\s*",
+                    };
+                    
+                    foreach (var pattern in methodPatterns)
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(line, pattern);
+                        if (match.Success)
+                        {
+                            string foundMethodName;
+                            if (pattern.Contains("this["))
+                            {
+                                foundMethodName = "Indexer";
+                            }
+                            else if (pattern.Contains("event"))
+                            {
+                                foundMethodName = $"Event_{match.Groups[3].Value}";
+                            }
+                            else if (pattern.Contains("=>"))
+                            {
+                                foundMethodName = "Lambda";
+                            }
+                            else if (match.Groups.Count >= 5)
+                            {
+                                foundMethodName = match.Groups[4].Value;
+                            }
+                            else if (match.Groups.Count >= 4)
+                            {
+                                foundMethodName = match.Groups[3].Value;
+                            }
+                            else if (match.Groups.Count >= 3)
+                            {
+                                foundMethodName = match.Groups[2].Value;
+                            }
+                            else
+                            {
+                                foundMethodName = match.Groups[1].Value;
+                            }
+                            
+                            // 如果找到的方法名匹配，计算相对位置
+                            if (foundMethodName == methodName)
+                            {
+                                return lineNumber - i;
+                            }
+                        }
+                    }
+                }
+                
+                // 如果没找到方法定义，尝试查找最近的类定义
+                for (int i = lineNumber - 1; i >= 0; i--)
+                {
+                    var line = lines[i].Trim();
+                    var classMatch = System.Text.RegularExpressions.Regex.Match(line, @"(public|private|protected|internal)?\s*(static\s+)?class\s+(\w+)");
+                    if (classMatch.Success)
+                    {
+                        var className = classMatch.Groups[3].Value;
+                        if ($"Class_{className}" == methodName)
+                        {
+                            return lineNumber - i;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略错误，返回0
+            }
+            
+            return 0;
         }
         
         
