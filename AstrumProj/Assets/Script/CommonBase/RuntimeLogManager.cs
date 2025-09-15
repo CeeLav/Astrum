@@ -90,8 +90,8 @@ namespace Astrum.CommonBase
         /// </summary>
         public void LoadConfig()
         {
-            // 在非Unity环境中跳过配置加载
-            Console.WriteLine("[RuntimeLogManager] 非Unity环境，跳过配置加载");
+            // 配置加载由上层负责，这里不做任何操作
+            Console.WriteLine("[RuntimeLogManager] 配置加载由上层负责");
         }
         
         /// <summary>

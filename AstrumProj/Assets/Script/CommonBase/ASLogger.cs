@@ -531,6 +531,42 @@ namespace Astrum.CommonBase
         }
 
         /// <summary>
+        /// 记录日志（不经过过滤）
+        /// </summary>
+        /// <param name="level">日志级别</param>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        /// <param name="logId">日志ID</param>
+        public void LogUnfiltered(LogLevel level, string message, string category, string logId)
+        {
+            // 检查最小级别
+            if (level < _minLevel) return;
+
+            var timestamp = DateTime.Now;
+            List<ILogHandler> handlers;
+
+            lock (_lock)
+            {
+                handlers = new List<ILogHandler>(_handlers);
+            }
+
+            // 格式化消息（添加分类信息）
+            string formattedMessage = FormatMessage(message, category);
+
+            foreach (var handler in handlers)
+            {
+                try
+                {
+                    handler.HandleLog(level, formattedMessage, timestamp);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"日志处理器执行失败: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
         /// 记录带分类和ID的指定级别日志
         /// </summary>
         /// <param name="level">日志级别</param>
@@ -539,20 +575,14 @@ namespace Astrum.CommonBase
         /// <param name="logId">日志ID</param>
         public void Log(LogLevel level, string message, string category, string logId)
         {
-            // 自动加载配置（如果未初始化）
-            if (!_isConfigInitialized)
-            {
-                LoadConfig();
-            }
-            
-            // 如果没有提供logId，尝试自动匹配
+            // 如果没有提供logId，尝试自动匹配（只有在有配置的情况下）
             if (string.IsNullOrEmpty(logId) && _isConfigInitialized && _config != null)
             {
                 logId = TryMatchLogId(message, category, level);
             }
             
-            // 检查是否应该输出日志
-            if (!LogFilter.ShouldLog(level, category, logId))
+            // 检查是否应该输出日志（只有在有配置的情况下才启用过滤）
+            if (_isConfigInitialized && _config != null && !LogFilter.ShouldLog(level, category, logId))
             {
                 return;
             }
@@ -658,8 +688,8 @@ namespace Astrum.CommonBase
         /// </summary>
         public static void LoadConfig()
         {
-            // 在非Unity环境中跳过配置加载
-            Console.WriteLine("[ASLogger] 非Unity环境，跳过配置加载");
+            // 配置加载由上层负责，这里不做任何操作
+            Console.WriteLine("[ASLogger] 配置加载由上层负责");
         }
         
         /// <summary>
@@ -769,7 +799,73 @@ namespace Astrum.CommonBase
         /// </summary>
         private string TryMatchLogId(string message, string category, LogLevel level)
         {
-            // 在非Unity环境中不进行日志匹配
+            if (_config == null) 
+            {
+                return null;
+            }
+            
+            // 获取调用栈信息
+            var stackTrace = new System.Diagnostics.StackTrace(true);
+            var callingFrame = stackTrace.GetFrame(4); // 跳过TryMatchLogId、Log(3个重载)和Info方法
+            
+            if (callingFrame == null) 
+            {
+                return null;
+            }
+            
+            var callingMethod = callingFrame.GetMethod();
+            var callingFile = callingFrame.GetFileName();
+            var callingLine = callingFrame.GetFileLineNumber();
+            
+            if (callingMethod == null || string.IsNullOrEmpty(callingFile)) 
+            {
+                return null;
+            }
+            
+            var methodName = callingMethod.Name;
+            var fileName = System.IO.Path.GetFileName(callingFile);
+            
+            // 遍历所有日志条目，尝试匹配
+            foreach (var logEntry in _config.logEntries)
+            {
+                var logFileName = System.IO.Path.GetFileName(logEntry.filePath);
+                var categoryMatch = logEntry.category == category;
+                var levelMatch = logEntry.level == level;
+                var methodMatch = logEntry.methodName == methodName;
+                var fileMatch = logFileName == fileName;
+                var lineMatch = logEntry.lineNumber == callingLine;
+                
+                // 匹配分类、级别、方法名和文件名
+                if (categoryMatch && levelMatch && methodMatch && fileMatch)
+                {
+                    // 如果行号也匹配，优先选择
+                    if (lineMatch)
+                    {
+                        return logEntry.id;
+                    }
+                }
+            }
+            
+            // 如果精确行号匹配失败，尝试只匹配方法名和文件名
+            foreach (var logEntry in _config.logEntries)
+            {
+                var logFileName = System.IO.Path.GetFileName(logEntry.filePath);
+                if (logEntry.category == category && 
+                    logEntry.level == level && 
+                    logEntry.methodName == methodName &&
+                    logFileName == fileName)
+                {
+                    return logEntry.id;
+                }
+            }
+            
+            // 匹配失败，输出详细的调试信息
+            LogUnfiltered(LogLevel.Debug, 
+                $"TryMatchLogId: 匹配失败 - " +
+                $"category='{category}', level={level}, method='{methodName}', file='{fileName}', line={callingLine}, " +
+                $"message='{message}', 配置中总共有{_config.logEntries.Count}个日志条目", 
+                "ASLogger.Debug", null);
+            
             return null;
         }
         

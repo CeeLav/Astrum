@@ -322,8 +322,17 @@ namespace Astrum.CommonBase
         /// </summary>
         public string ExportConfig()
         {
-            // 在非Unity环境中跳过配置导出
-            return "{}";
+            // 简单的JSON格式输出
+            var json = "{\n" +
+                      $"  \"totalCategories\": {totalCategories},\n" +
+                      $"  \"enabledCategories\": {enabledCategories},\n" +
+                      $"  \"totalLogs\": {totalLogs},\n" +
+                      $"  \"enabledLogs\": {enabledLogs},\n" +
+                      $"  \"globalMinLevel\": \"{globalMinLevel}\",\n" +
+                      $"  \"enableCategoryFilter\": {enableCategoryFilter.ToString().ToLower()},\n" +
+                      $"  \"enableLogFilter\": {enableLogFilter.ToString().ToLower()}\n" +
+                      "}";
+            return json;
         }
         
         /// <summary>
@@ -331,7 +340,8 @@ namespace Astrum.CommonBase
         /// </summary>
         public void ImportConfig(string json)
         {
-            // 在非Unity环境中跳过配置导入
+            // 简单的配置导入，这里只做基本处理
+            Console.WriteLine("配置导入功能需要在上层实现");
         }
         
         private void OnValidate()
