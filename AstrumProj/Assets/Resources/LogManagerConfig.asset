@@ -5294,7 +5294,7 @@ MonoBehaviour:
     lineNumber: 85
     methodName: ToMessage
     className: MessageSerializeHelper
-    enabled: 1
+    enabled: 0
     isGenerated: 0
   - id: MessageSerializeHelper.cs:ToMessage:MessageSerializeHelperToMessage OpcodeTypeInstanceGetType
       returned null

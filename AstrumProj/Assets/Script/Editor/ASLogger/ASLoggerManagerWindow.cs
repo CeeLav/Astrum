@@ -736,8 +736,8 @@ namespace Astrum.Editor.ASLogger
         {
             category.SetEnabled(enabled);
             
-            // 通知ASLogger更新配置
-            Astrum.CommonBase.ASLogger.SetCategoryEnabled(category.fullPath, enabled);
+            // 推送整个配置到ASLogger，确保同步
+            PushConfigToASLogger();
             
             UpdateStatistics();
             SaveConfig();
@@ -745,10 +745,36 @@ namespace Astrum.Editor.ASLogger
         
         private void OnLogToggle(LogEntry log, bool enabled)
         {
-            log.enabled = enabled;
+            //Debug.Log($"[OnLogToggle] 开始切换日志状态 - log.id='{log.id}', log.fallbackId='{log.fallbackId}', enabled={enabled}");
             
-            // 通知ASLogger更新配置
-            Astrum.CommonBase.ASLogger.SetLogEnabled(log.id, enabled);
+            // 直接修改传入的log对象（这应该是原始对象的引用）
+            log.enabled = enabled;
+            //Debug.Log($"[OnLogToggle] 直接修改log对象状态为{enabled}");
+            
+            // 同时确保配置中的对象也被修改（双重保险）
+            var originalLog = _config.FindLogEntry(log.id);
+            if (originalLog != null)
+            {
+                originalLog.enabled = enabled;
+                //Debug.Log($"[OnLogToggle] 同时修改配置中的原始日志状态为{enabled}");
+            }
+            else
+            {
+                // 如果找不到原始日志，尝试用fallbackId查找
+                originalLog = _config.FindLogEntry(log.fallbackId);
+                if (originalLog != null)
+                {
+                    originalLog.enabled = enabled;
+                    //Debug.Log($"[OnLogToggle] 通过fallbackId修改配置中的原始日志状态为{enabled}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[OnLogToggle] 找不到原始日志 - id='{log.id}', fallbackId='{log.fallbackId}', 配置中共有{_config.logEntries.Count}个日志条目");
+                }
+            }
+            
+            // 推送整个配置到ASLogger，确保同步
+            PushConfigToASLogger();
             
             // 注意：分类和日志的启用状态是隔离的，不自动修改分类状态
             
@@ -766,9 +792,11 @@ namespace Astrum.Editor.ASLogger
             foreach (var category in _config.categories)
             {
                 category.SetEnabled(true);
-                // 通知ASLogger更新分类状态
-                Astrum.CommonBase.ASLogger.SetCategoryEnabled(category.fullPath, true);
             }
+            
+            // 推送整个配置到ASLogger，确保同步
+            PushConfigToASLogger();
+            
             UpdateStatistics();
             SaveConfig();
         }
@@ -778,9 +806,11 @@ namespace Astrum.Editor.ASLogger
             foreach (var category in _config.categories)
             {
                 category.SetEnabled(false);
-                // 通知ASLogger更新分类状态
-                Astrum.CommonBase.ASLogger.SetCategoryEnabled(category.fullPath, false);
             }
+            
+            // 推送整个配置到ASLogger，确保同步
+            PushConfigToASLogger();
+            
             UpdateStatistics();
             SaveConfig();
         }
