@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
-using System.Linq;
 
 namespace Astrum.CommonBase
 {
@@ -83,27 +81,8 @@ namespace Astrum.CommonBase
         {
             if (_isInitialized) return;
             
-            // 尝试自动加载配置
-            if (_logConfig == null)
-            {
-                LoadConfig();
-            }
-            
-            // 设置到LogFilter
-            if (_logConfig != null)
-            {
-                LogFilter.SetConfig(_logConfig);
-                _isInitialized = true;
-                
-                if (_showDebugInfo)
-                {
-                    Debug.Log($"[RuntimeLogManager] 配置已加载: {_logConfig.name}");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[RuntimeLogManager] 未找到日志配置，将使用默认设置");
-            }
+            // 在非Unity环境中跳过配置加载
+            Console.WriteLine("[RuntimeLogManager] 非Unity环境，跳过配置加载");
         }
         
         /// <summary>
@@ -111,32 +90,8 @@ namespace Astrum.CommonBase
         /// </summary>
         public void LoadConfig()
         {
-            if (_logConfig == null)
-            {
-                // 尝试从Resources文件夹加载
-                _logConfig = Resources.Load<LogManagerConfig>("LogManagerConfig");
-                
-                if (_logConfig == null)
-                {
-                    // 尝试从项目根目录加载
-                    _logConfig = Resources.LoadAll<LogManagerConfig>("").FirstOrDefault();
-                }
-            }
-            
-            if (_logConfig != null)
-            {
-                LogFilter.SetConfig(_logConfig);
-                _isInitialized = true;
-                
-                if (_showDebugInfo)
-                {
-                    Debug.Log($"[RuntimeLogManager] 配置已加载: {_logConfig.name}");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[RuntimeLogManager] 未找到日志配置文件");
-            }
+            // 在非Unity环境中跳过配置加载
+            Console.WriteLine("[RuntimeLogManager] 非Unity环境，跳过配置加载");
         }
         
         /// <summary>
@@ -152,7 +107,7 @@ namespace Astrum.CommonBase
                 
                 if (_showDebugInfo)
                 {
-                    Debug.Log($"[RuntimeLogManager] 配置已设置: {config.name}");
+                    Console.WriteLine($"[RuntimeLogManager] 配置已设置");
                 }
             }
         }
@@ -164,7 +119,7 @@ namespace Astrum.CommonBase
         {
             if (!_enableRuntimeControl || !_isInitialized)
             {
-                Debug.LogWarning("[RuntimeLogManager] 运行时控制未启用或未初始化");
+                Console.WriteLine("[RuntimeLogManager] 运行时控制未启用或未初始化");
                 return;
             }
             
@@ -172,7 +127,7 @@ namespace Astrum.CommonBase
             
             if (_showDebugInfo)
             {
-                Debug.Log($"[RuntimeLogManager] 分类 '{category}' 已{(enabled ? "启用" : "禁用")}");
+                Console.WriteLine($"[RuntimeLogManager] 分类 '{category}' 已{(enabled ? "启用" : "禁用")}");
             }
         }
         
@@ -183,7 +138,7 @@ namespace Astrum.CommonBase
         {
             if (!_enableRuntimeControl || !_isInitialized)
             {
-                Debug.LogWarning("[RuntimeLogManager] 运行时控制未启用或未初始化");
+                Console.WriteLine("[RuntimeLogManager] 运行时控制未启用或未初始化");
                 return;
             }
             
@@ -191,7 +146,7 @@ namespace Astrum.CommonBase
             
             if (_showDebugInfo)
             {
-                Debug.Log($"[RuntimeLogManager] 日志 '{logId}' 已{(enabled ? "启用" : "禁用")}");
+                Console.WriteLine($"[RuntimeLogManager] 日志 '{logId}' 已{(enabled ? "启用" : "禁用")}");
             }
         }
         
@@ -202,7 +157,7 @@ namespace Astrum.CommonBase
         {
             if (!_enableRuntimeControl || !_isInitialized)
             {
-                Debug.LogWarning("[RuntimeLogManager] 运行时控制未启用或未初始化");
+                Console.WriteLine("[RuntimeLogManager] 运行时控制未启用或未初始化");
                 return;
             }
             
@@ -210,7 +165,7 @@ namespace Astrum.CommonBase
             
             if (_showDebugInfo)
             {
-                Debug.Log($"[RuntimeLogManager] 分类 '{category}' 最小级别设置为: {minLevel}");
+                Console.WriteLine($"[RuntimeLogManager] 分类 '{category}' 最小级别设置为: {minLevel}");
             }
         }
         
@@ -253,7 +208,7 @@ namespace Astrum.CommonBase
         {
             if (!_enableRuntimeControl || !_isInitialized)
             {
-                Debug.LogWarning("[RuntimeLogManager] 运行时控制未启用或未初始化");
+                Console.WriteLine("[RuntimeLogManager] 运行时控制未启用或未初始化");
                 return;
             }
             
@@ -261,7 +216,7 @@ namespace Astrum.CommonBase
             
             if (_showDebugInfo)
             {
-                Debug.Log("[RuntimeLogManager] 所有过滤器已重置");
+                Console.WriteLine("[RuntimeLogManager] 所有过滤器已重置");
             }
         }
         
@@ -274,7 +229,7 @@ namespace Astrum.CommonBase
             
             if (_showDebugInfo)
             {
-                Debug.Log($"[RuntimeLogManager] 运行时控制已{(enabled ? "启用" : "禁用")}");
+                Console.WriteLine($"[RuntimeLogManager] 运行时控制已{(enabled ? "启用" : "禁用")}");
             }
         }
         
@@ -297,16 +252,15 @@ namespace Astrum.CommonBase
         /// <summary>
         /// 测试日志输出
         /// </summary>
-        [ContextMenu("测试日志输出")]
         public void TestLogOutput()
         {
             if (!_isInitialized)
             {
-                Debug.LogWarning("[RuntimeLogManager] 未初始化，无法测试日志输出");
+                Console.WriteLine("[RuntimeLogManager] 未初始化，无法测试日志输出");
                 return;
             }
             
-            Debug.Log("=== 开始测试日志输出 ===");
+            Console.WriteLine("=== 开始测试日志输出 ===");
             
             // 测试不同分类的日志
             ASLogger.Instance.Debug("这是调试日志", "Test.Debug");
@@ -322,23 +276,22 @@ namespace Astrum.CommonBase
             ASLogger.Instance.Info("UI初始化完成", "UI.Initialization");
             ASLogger.Instance.Debug("按钮点击", "UI.Interaction");
             
-            Debug.Log("=== 日志输出测试完成 ===");
+            Console.WriteLine("=== 日志输出测试完成 ===");
         }
         
         /// <summary>
         /// 显示当前配置状态
         /// </summary>
-        [ContextMenu("显示配置状态")]
         public void ShowConfigStatus()
         {
             if (!_isInitialized)
             {
-                Debug.LogWarning("[RuntimeLogManager] 未初始化");
+                Console.WriteLine("[RuntimeLogManager] 未初始化");
                 return;
             }
             
             var stats = GetGlobalStatistics();
-            Debug.Log($"[RuntimeLogManager] 配置状态:\n" +
+            Console.WriteLine($"[RuntimeLogManager] 配置状态:\n" +
                      $"总分类: {stats.totalCategories}\n" +
                      $"启用分类: {stats.enabledCategories}\n" +
                      $"总日志: {stats.totalLogs}\n" +
@@ -350,10 +303,7 @@ namespace Astrum.CommonBase
         /// </summary>
         public void ValidateConfig()
         {
-            if (Application.isPlaying && _logConfig != null)
-            {
-                SetConfig(_logConfig);
-            }
+            // 在非Unity环境中跳过验证
         }
     }
 }

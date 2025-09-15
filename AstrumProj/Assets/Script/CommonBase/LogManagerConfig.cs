@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Astrum.CommonBase
 {
     /// <summary>
     /// 日志管理器配置
     /// </summary>
-    [CreateAssetMenu(fileName = "LogManagerConfig", menuName = "ASLogger/Log Manager Config")]
-    public class LogManagerConfig : ScriptableObject
+    public class LogManagerConfig
     {
         // 分类配置
         public List<LogCategory> categories = new List<LogCategory>();
@@ -324,7 +322,8 @@ namespace Astrum.CommonBase
         /// </summary>
         public string ExportConfig()
         {
-            return JsonUtility.ToJson(this, true);
+            // 在非Unity环境中跳过配置导出
+            return "{}";
         }
         
         /// <summary>
@@ -332,25 +331,12 @@ namespace Astrum.CommonBase
         /// </summary>
         public void ImportConfig(string json)
         {
-            try
-            {
-                JsonUtility.FromJsonOverwrite(json, this);
-                RebuildDictionaries();
-                UpdateStatistics();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"导入配置失败: {ex.Message}");
-            }
+            // 在非Unity环境中跳过配置导入
         }
         
         private void OnValidate()
         {
-            if (Application.isPlaying)
-            {
-                RebuildDictionaries();
-                UpdateStatistics();
-            }
+            // 在非Unity环境中跳过验证
         }
     }
 }
