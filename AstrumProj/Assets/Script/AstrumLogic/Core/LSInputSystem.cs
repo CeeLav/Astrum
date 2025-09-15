@@ -75,7 +75,7 @@ namespace Astrum.LogicCore.Core
             {
                 predictionFrame.Inputs[MainPlayerId] = ClientInput;
             }
-            //ASLogger.Instance.Log(LogLevel.Debug, $"Predict Frame: {frame}, {ClientInput.MoveX}, {ClientInput.MoveY}" );
+            ASLogger.Instance.Debug($"Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}", "FrameSync.Prediction");
             return predictionFrame;
         }
 

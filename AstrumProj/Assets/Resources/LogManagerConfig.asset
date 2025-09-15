@@ -151,9 +151,29 @@ MonoBehaviour:
           isGenerated: 0
         totalLogCount: 1
         enabledLogCount: 1
+      - name: Send
+        fullPath: Network.Send
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: "Session.cs:Send:\u53D1\u9001\u6D88\u606F: {}"
+          fallbackId: Session.cs:202:Send
+          category: Network.Send
+          level: 0
+          message: "\u53D1\u9001\u6D88\u606F: {message.GetType().Name}"
+          cleanMessage: "\u53D1\u9001\u6D88\u606F: {}"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\Network\Session.cs
+          lineNumber: 202
+          methodName: Send
+          className: Session
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 1
+        enabledLogCount: 1
       logs: []
-      totalLogCount: 2
-      enabledLogCount: 2
+      totalLogCount: 3
+      enabledLogCount: 3
     - name: UI
       fullPath: UI
       enabled: 1
@@ -5058,9 +5078,196 @@ MonoBehaviour:
         isGenerated: 0
       totalLogCount: 371
       enabledLogCount: 370
+    - name: Input
+      fullPath: Input
+      enabled: 1
+      minLevel: 0
+      children:
+      - name: Manager
+        fullPath: Input.Manager
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: "InputManager.cs:Initialize:InputManager \u521D\u59CB\u5316\u8F93\u5165\u7BA1\u7406\u5668"
+          fallbackId: InputManager.cs:44:Initialize
+          category: Input.Manager
+          level: 1
+          message: "InputManager: \u521D\u59CB\u5316\u8F93\u5165\u7BA1\u7406\u5668"
+          cleanMessage: "InputManager \u521D\u59CB\u5316\u8F93\u5165\u7BA1\u7406\u5668"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 44
+          methodName: Initialize
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        - id: "InputManager.cs:Initialize:InputManager \u8F93\u5165\u7BA1\u7406\u5668\u521D\u59CB\u5316\u5B8C\u6210"
+          fallbackId: InputManager.cs:47:Initialize
+          category: Input.Manager
+          level: 1
+          message: "InputManager: \u8F93\u5165\u7BA1\u7406\u5668\u521D\u59CB\u5316\u5B8C\u6210"
+          cleanMessage: "InputManager \u8F93\u5165\u7BA1\u7406\u5668\u521D\u59CB\u5316\u5B8C\u6210"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 47
+          methodName: Initialize
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        - id: "InputManager.cs:ClearInputHistory:InputManager \u6E05\u7406\u8F93\u5165\u5386\u53F2"
+          fallbackId: InputManager.cs:375:ClearInputHistory
+          category: Input.Manager
+          level: 0
+          message: "InputManager: \u6E05\u7406\u8F93\u5165\u5386\u53F2"
+          cleanMessage: "InputManager \u6E05\u7406\u8F93\u5165\u5386\u53F2"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 375
+          methodName: ClearInputHistory
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        - id: "InputManager.cs:Shutdown:InputManager \u5173\u95ED\u8F93\u5165\u7BA1\u7406\u5668"
+          fallbackId: InputManager.cs:384:Shutdown
+          category: Input.Manager
+          level: 1
+          message: "InputManager: \u5173\u95ED\u8F93\u5165\u7BA1\u7406\u5668"
+          cleanMessage: "InputManager \u5173\u95ED\u8F93\u5165\u7BA1\u7406\u5668"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 384
+          methodName: Shutdown
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 4
+        enabledLogCount: 4
+      - name: Movement
+        fullPath: Input.Movement
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: "InputManager.cs:OnMoveCanceled:InputManager \u79FB\u52A8\u8F93\u5165\u53D6\u6D88"
+          fallbackId: InputManager.cs:330:OnMoveCanceled
+          category: Input.Movement
+          level: 0
+          message: "InputManager: \u79FB\u52A8\u8F93\u5165\u53D6\u6D88"
+          cleanMessage: "InputManager \u79FB\u52A8\u8F93\u5165\u53D6\u6D88"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 330
+          methodName: OnMoveCanceled
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 1
+        enabledLogCount: 1
+      - name: Action
+        fullPath: Input.Action
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: "InputManager.cs:OnActionPerformed:InputManager \u52A8\u4F5C\u8F93\u5165"
+          fallbackId: InputManager.cs:341:OnActionPerformed
+          category: Input.Action
+          level: 0
+          message: "InputManager: \u52A8\u4F5C\u8F93\u5165"
+          cleanMessage: "InputManager \u52A8\u4F5C\u8F93\u5165"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 341
+          methodName: OnActionPerformed
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        - id: "InputManager.cs:OnActionCanceled:InputManager \u52A8\u4F5C\u8F93\u5165\u53D6\u6D88"
+          fallbackId: InputManager.cs:352:OnActionCanceled
+          category: Input.Action
+          level: 0
+          message: "InputManager: \u52A8\u4F5C\u8F93\u5165\u53D6\u6D88"
+          cleanMessage: "InputManager \u52A8\u4F5C\u8F93\u5165\u53D6\u6D88"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 352
+          methodName: OnActionCanceled
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 2
+        enabledLogCount: 2
+      - name: System
+        fullPath: Input.System
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: "InputManager.cs:OnPausePerformed:InputManager \u6682\u505C\u8F93\u5165"
+          fallbackId: InputManager.cs:361:OnPausePerformed
+          category: Input.System
+          level: 0
+          message: "InputManager: \u6682\u505C\u8F93\u5165"
+          cleanMessage: "InputManager \u6682\u505C\u8F93\u5165"
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 361
+          methodName: OnPausePerformed
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 1
+        enabledLogCount: 1
+      - name: LSInput
+        fullPath: Input.LSInput
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: 'InputManager.cs:CollectLSInput:LSInput: MoveX={}, MoveY={}, Attack={},
+            Skill1={}, Skill2={}'
+          fallbackId: InputManager.cs:425:CollectLSInput
+          category: Input.LSInput
+          level: 0
+          message: 'LSInput: MoveX={input.MoveX}, MoveY={input.MoveY}, Attack={input.Attack},
+            Skill1={input.Skill1}, Skill2={input.Skill2}'
+          cleanMessage: 'LSInput: MoveX={}, MoveY={}, Attack={}, Skill1={}, Skill2={}'
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+          lineNumber: 425
+          methodName: CollectLSInput
+          className: InputManager
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 1
+        enabledLogCount: 1
+      logs: []
+      totalLogCount: 9
+      enabledLogCount: 9
+    - name: FrameSync
+      fullPath: FrameSync
+      enabled: 1
+      minLevel: 0
+      children:
+      - name: Prediction
+        fullPath: FrameSync.Prediction
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: 'LSInputSystem.cs:GetOneFrameMessages:Predict Frame: {}, MoveX={},
+            MoveY={}'
+          fallbackId: LSInputSystem.cs:78:GetOneFrameMessages
+          category: FrameSync.Prediction
+          level: 0
+          message: 'Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}'
+          cleanMessage: 'Predict Frame: {}, MoveX={}, MoveY={}'
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSInputSystem.cs
+          lineNumber: 78
+          methodName: GetOneFrameMessages
+          className: LSInputSystem
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 1
+        enabledLogCount: 1
+      logs: []
+      totalLogCount: 1
+      enabledLogCount: 1
     logs: []
-    totalLogCount: 379
-    enabledLogCount: 378
+    totalLogCount: 390
+    enabledLogCount: 389
   logEntries:
   - id: "RuntimeLogManager.cs:TestLogOutput:\u8FD9\u662F\u8C03\u8BD5\u65E5\u5FD7"
     fallbackId: RuntimeLogManager.cs:266:TestLogOutput
@@ -9817,6 +10024,140 @@ MonoBehaviour:
     className: MessageSerializeHelper
     enabled: 1
     isGenerated: 0
+  - id: "Session.cs:Send:\u53D1\u9001\u6D88\u606F: {}"
+    fallbackId: Session.cs:202:Send
+    category: Network.Send
+    level: 0
+    message: "\u53D1\u9001\u6D88\u606F: {message.GetType().Name}"
+    cleanMessage: "\u53D1\u9001\u6D88\u606F: {}"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\Network\Session.cs
+    lineNumber: 202
+    methodName: Send
+    className: Session
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:Initialize:InputManager \u521D\u59CB\u5316\u8F93\u5165\u7BA1\u7406\u5668"
+    fallbackId: InputManager.cs:44:Initialize
+    category: Input.Manager
+    level: 1
+    message: "InputManager: \u521D\u59CB\u5316\u8F93\u5165\u7BA1\u7406\u5668"
+    cleanMessage: "InputManager \u521D\u59CB\u5316\u8F93\u5165\u7BA1\u7406\u5668"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 44
+    methodName: Initialize
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:Initialize:InputManager \u8F93\u5165\u7BA1\u7406\u5668\u521D\u59CB\u5316\u5B8C\u6210"
+    fallbackId: InputManager.cs:47:Initialize
+    category: Input.Manager
+    level: 1
+    message: "InputManager: \u8F93\u5165\u7BA1\u7406\u5668\u521D\u59CB\u5316\u5B8C\u6210"
+    cleanMessage: "InputManager \u8F93\u5165\u7BA1\u7406\u5668\u521D\u59CB\u5316\u5B8C\u6210"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 47
+    methodName: Initialize
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:OnMoveCanceled:InputManager \u79FB\u52A8\u8F93\u5165\u53D6\u6D88"
+    fallbackId: InputManager.cs:330:OnMoveCanceled
+    category: Input.Movement
+    level: 0
+    message: "InputManager: \u79FB\u52A8\u8F93\u5165\u53D6\u6D88"
+    cleanMessage: "InputManager \u79FB\u52A8\u8F93\u5165\u53D6\u6D88"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 330
+    methodName: OnMoveCanceled
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:OnActionPerformed:InputManager \u52A8\u4F5C\u8F93\u5165"
+    fallbackId: InputManager.cs:341:OnActionPerformed
+    category: Input.Action
+    level: 0
+    message: "InputManager: \u52A8\u4F5C\u8F93\u5165"
+    cleanMessage: "InputManager \u52A8\u4F5C\u8F93\u5165"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 341
+    methodName: OnActionPerformed
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:OnActionCanceled:InputManager \u52A8\u4F5C\u8F93\u5165\u53D6\u6D88"
+    fallbackId: InputManager.cs:352:OnActionCanceled
+    category: Input.Action
+    level: 0
+    message: "InputManager: \u52A8\u4F5C\u8F93\u5165\u53D6\u6D88"
+    cleanMessage: "InputManager \u52A8\u4F5C\u8F93\u5165\u53D6\u6D88"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 352
+    methodName: OnActionCanceled
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:OnPausePerformed:InputManager \u6682\u505C\u8F93\u5165"
+    fallbackId: InputManager.cs:361:OnPausePerformed
+    category: Input.System
+    level: 0
+    message: "InputManager: \u6682\u505C\u8F93\u5165"
+    cleanMessage: "InputManager \u6682\u505C\u8F93\u5165"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 361
+    methodName: OnPausePerformed
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:ClearInputHistory:InputManager \u6E05\u7406\u8F93\u5165\u5386\u53F2"
+    fallbackId: InputManager.cs:375:ClearInputHistory
+    category: Input.Manager
+    level: 0
+    message: "InputManager: \u6E05\u7406\u8F93\u5165\u5386\u53F2"
+    cleanMessage: "InputManager \u6E05\u7406\u8F93\u5165\u5386\u53F2"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 375
+    methodName: ClearInputHistory
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: "InputManager.cs:Shutdown:InputManager \u5173\u95ED\u8F93\u5165\u7BA1\u7406\u5668"
+    fallbackId: InputManager.cs:384:Shutdown
+    category: Input.Manager
+    level: 1
+    message: "InputManager: \u5173\u95ED\u8F93\u5165\u7BA1\u7406\u5668"
+    cleanMessage: "InputManager \u5173\u95ED\u8F93\u5165\u7BA1\u7406\u5668"
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 384
+    methodName: Shutdown
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: 'InputManager.cs:CollectLSInput:LSInput: MoveX={}, MoveY={}, Attack={}, Skill1={},
+      Skill2={}'
+    fallbackId: InputManager.cs:425:CollectLSInput
+    category: Input.LSInput
+    level: 0
+    message: 'LSInput: MoveX={input.MoveX}, MoveY={input.MoveY}, Attack={input.Attack},
+      Skill1={input.Skill1}, Skill2={input.Skill2}'
+    cleanMessage: 'LSInput: MoveX={}, MoveY={}, Attack={}, Skill1={}, Skill2={}'
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
+    lineNumber: 425
+    methodName: CollectLSInput
+    className: InputManager
+    enabled: 1
+    isGenerated: 0
+  - id: 'LSInputSystem.cs:GetOneFrameMessages:Predict Frame: {}, MoveX={}, MoveY={}'
+    fallbackId: LSInputSystem.cs:78:GetOneFrameMessages
+    category: FrameSync.Prediction
+    level: 0
+    message: 'Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}'
+    cleanMessage: 'Predict Frame: {}, MoveX={}, MoveY={}'
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSInputSystem.cs
+    lineNumber: 78
+    methodName: GetOneFrameMessages
+    className: LSInputSystem
+    enabled: 1
+    isGenerated: 0
   autoScanOnStart: 1
   saveOnChange: 1
   scanPaths:
@@ -9827,8 +10168,8 @@ MonoBehaviour:
   globalMinLevel: 0
   enableCategoryFilter: 1
   enableLogFilter: 1
-  totalCategories: 13
-  enabledCategories: 13
-  totalLogs: 379
-  enabledLogs: 378
+  totalCategories: 22
+  enabledCategories: 22
+  totalLogs: 390
+  enabledLogs: 389
   lastScanTimeTicks: 0
