@@ -12,7 +12,7 @@ namespace Astrum.Editor.ASLogger
     /// </summary>
     public class ASLoggerManagerWindow : EditorWindow
     {
-        private Astrum.Editor.ASLogger.LogManagerConfigEditor _config;
+        private Astrum.Client.LogManagerConfigEditor _config;
         private LogCategory _selectedCategory;
         private Vector2 _categoryScrollPosition;
         private Vector2 _logScrollPosition;
@@ -113,12 +113,12 @@ namespace Astrum.Editor.ASLogger
                 Debug.Log("[ASLoggerManager] 开始加载配置");
                 
                 // 首先尝试从Resources文件夹加载
-                _config = Resources.Load<LogManagerConfigEditor>("LogManagerConfig");
+                _config = Resources.Load<Astrum.Client.LogManagerConfigEditor>("LogManagerConfig");
                 
                 if (_config == null)
                 {
                     // 尝试从项目根目录加载
-                    var configs = Resources.FindObjectsOfTypeAll<LogManagerConfigEditor>();
+                    var configs = Resources.FindObjectsOfTypeAll<Astrum.Client.LogManagerConfigEditor>();
                     if (configs.Length > 0)
                     {
                         _config = configs[0];
@@ -127,7 +127,7 @@ namespace Astrum.Editor.ASLogger
                     else
                     {
                         // 创建新配置并保存到Resources文件夹
-                        _config = CreateInstance<LogManagerConfigEditor>();
+                        _config = CreateInstance<Astrum.Client.LogManagerConfigEditor>();
                         _config.name = "LogManagerConfig";
                         
                         // 确保Resources文件夹存在
@@ -154,16 +154,9 @@ namespace Astrum.Editor.ASLogger
                 {
                     _config.Initialize();
                     
-                    // 通知ASLogger加载配置（只有在游戏运行时才设置）
-                    if (Application.isPlaying)
-                    {
-                        Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
-                        Debug.Log("[ASLoggerManager] 配置已同步到ASLogger");
-                    }
-                    else
-                    {
-                        Debug.Log("[ASLoggerManager] 编辑器模式，跳过ASLogger配置同步");
-                    }
+                    // 通知ASLogger加载配置（无论是否在游戏运行时都设置）
+                    Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
+                    Debug.Log($"[ASLoggerManager] 配置已同步到ASLogger，包含{_config.logEntries.Count}个日志条目");
                 }
                 else
                 {
@@ -174,7 +167,7 @@ namespace Astrum.Editor.ASLogger
             {
                 Debug.LogError($"[ASLoggerManager] 加载配置时发生错误: {ex.Message}");
                 // 创建默认配置作为后备
-                _config = CreateInstance<LogManagerConfigEditor>();
+                _config = CreateInstance<Astrum.Client.LogManagerConfigEditor>();
                 _config.Initialize();
             }
         }
@@ -787,20 +780,45 @@ namespace Astrum.Editor.ASLogger
                 
                 EditorUtility.DisplayProgressBar("扫描日志", "正在扫描项目中的日志...", 0.3f);
                 
-                // 清空现有数据
-                _config.Clear();
-                
                 // 扫描项目中的实际日志
                 var projectLogs = LogScanner.ScanProject(_config.ToRuntimeConfig());
                 
-                // 添加扫描到的日志到配置
+                // 创建临时字典来跟踪已存在的日志
+                var existingLogs = new System.Collections.Generic.Dictionary<string, LogEntry>();
+                foreach (var log in _config.logEntries)
+                {
+                    if (!string.IsNullOrEmpty(log.id))
+                    {
+                        existingLogs[log.id] = log;
+                    }
+                    if (!string.IsNullOrEmpty(log.fallbackId))
+                    {
+                        existingLogs[log.fallbackId] = log;
+                    }
+                }
+                
+                // 添加扫描到的日志到配置（避免重复）
                 foreach (var log in projectLogs)
                 {
-                    _config.AddLogEntry(log);
+                    // 检查是否已存在相同的日志
+                    bool exists = false;
+                    if (!string.IsNullOrEmpty(log.id) && existingLogs.ContainsKey(log.id))
+                    {
+                        exists = true;
+                    }
+                    else if (!string.IsNullOrEmpty(log.fallbackId) && existingLogs.ContainsKey(log.fallbackId))
+                    {
+                        exists = true;
+                    }
                     
-                    // 确保分类存在
-                    var category = _config.GetOrCreateCategory(log.category);
-                    category.AddLog(log);
+                    if (!exists)
+                    {
+                        _config.AddLogEntry(log);
+                        
+                        // 确保分类存在
+                        var category = _config.GetOrCreateCategory(log.category);
+                        category.AddLog(log);
+                    }
                 }
                 
                 // 如果没有扫描到日志，添加一些示例数据用于演示
@@ -861,281 +879,4 @@ namespace Astrum.Editor.ASLogger
         }
     }
 
-    /// <summary>
-    /// Unity编辑器版本的LogManagerConfig
-    /// 继承自ScriptableObject，用于Unity编辑器
-    /// </summary>
-    [CreateAssetMenu(fileName = "LogManagerConfig", menuName = "ASLogger/Log Manager Config")]
-    public class LogManagerConfigEditor : ScriptableObject
-    {
-        // 分类配置
-        public System.Collections.Generic.List<LogCategory> categories = new System.Collections.Generic.List<LogCategory>();
-        
-        // 日志条目
-        public System.Collections.Generic.List<LogEntry> logEntries = new System.Collections.Generic.List<LogEntry>();
-        
-        // 扫描设置
-        public bool autoScanOnStart = true;
-        public bool saveOnChange = true;
-        public System.Collections.Generic.List<string> scanPaths = new System.Collections.Generic.List<string>();
-        public System.Collections.Generic.List<string> excludePaths = new System.Collections.Generic.List<string>();
-        
-        // 过滤设置
-        public LogLevel globalMinLevel = LogLevel.Debug;
-        public bool enableCategoryFilter = true;
-        public bool enableLogFilter = true;
-        
-        // 统计信息
-        public int totalCategories = 0;
-        public int enabledCategories = 0;
-        public int totalLogs = 0;
-        public int enabledLogs = 0;
-        public System.DateTime lastScanTime = System.DateTime.MinValue;
-        
-        /// <summary>
-        /// 转换为运行时配置
-        /// </summary>
-        public LogManagerConfig ToRuntimeConfig()
-        {
-            var config = new LogManagerConfig();
-            config.categories = categories;
-            config.logEntries = logEntries;
-            config.autoScanOnStart = autoScanOnStart;
-            config.saveOnChange = saveOnChange;
-            config.scanPaths = scanPaths;
-            config.excludePaths = excludePaths;
-            config.globalMinLevel = globalMinLevel;
-            config.enableCategoryFilter = enableCategoryFilter;
-            config.enableLogFilter = enableLogFilter;
-            config.totalCategories = totalCategories;
-            config.enabledCategories = enabledCategories;
-            config.totalLogs = totalLogs;
-            config.enabledLogs = enabledLogs;
-            config.lastScanTime = lastScanTime;
-            return config;
-        }
-        
-        /// <summary>
-        /// 从运行时配置更新
-        /// </summary>
-        public void UpdateFromRuntimeConfig(LogManagerConfig config)
-        {
-            if (config == null) return;
-            
-            categories = config.categories;
-            logEntries = config.logEntries;
-            autoScanOnStart = config.autoScanOnStart;
-            saveOnChange = config.saveOnChange;
-            scanPaths = config.scanPaths;
-            excludePaths = config.excludePaths;
-            globalMinLevel = config.globalMinLevel;
-            enableCategoryFilter = config.enableCategoryFilter;
-            enableLogFilter = config.enableLogFilter;
-            totalCategories = config.totalCategories;
-            enabledCategories = config.enabledCategories;
-            totalLogs = config.totalLogs;
-            enabledLogs = config.enabledLogs;
-            lastScanTime = config.lastScanTime;
-        }
-        
-        /// <summary>
-        /// 初始化配置
-        /// </summary>
-        public void Initialize()
-        {
-            // 初始化默认扫描路径
-            if (scanPaths.Count == 0)
-            {
-                scanPaths.Add("Assets/Script");
-            }
-            
-            // 初始化默认排除路径
-            if (excludePaths.Count == 0)
-            {
-                excludePaths.Add("Assets/Script/Generated");
-                excludePaths.Add("Assets/Script/Editor");
-            }
-            
-            // 构建字典
-            RebuildDictionaries();
-        }
-        
-        /// <summary>
-        /// 重建字典
-        /// </summary>
-        public void RebuildDictionaries()
-        {
-            // 这里可以添加字典重建逻辑
-        }
-        
-        /// <summary>
-        /// 添加日志条目
-        /// </summary>
-        public void AddLogEntry(LogEntry logEntry)
-        {
-            if (logEntry == null) return;
-            
-            // 检查是否已存在
-            var existing = FindLogEntry(logEntry.id);
-            if (existing != null)
-            {
-                // 更新现有条目
-                existing.UpdateMessage(logEntry.message);
-                existing.enabled = logEntry.enabled;
-                existing.lastModified = System.DateTime.Now;
-            }
-            else
-            {
-                // 添加新条目
-                logEntries.Add(logEntry);
-            }
-            
-            UpdateStatistics();
-        }
-        
-        /// <summary>
-        /// 查找日志条目
-        /// </summary>
-        public LogEntry FindLogEntry(string identifier)
-        {
-            if (string.IsNullOrEmpty(identifier)) return null;
-            
-            // 尝试直接匹配
-            foreach (var log in logEntries)
-            {
-                if (log.id == identifier || log.fallbackId == identifier)
-                {
-                    return log;
-                }
-            }
-            
-            return null;
-        }
-        
-        /// <summary>
-        /// 获取或创建分类
-        /// </summary>
-        public LogCategory GetOrCreateCategory(string path)
-        {
-            var category = FindCategory(path);
-            if (category != null)
-            {
-                return category;
-            }
-            
-            // 创建新分类
-            var pathParts = path.Split('.');
-            var rootCategory = GetOrCreateRootCategory();
-            
-            return CreateCategoryPath(rootCategory, pathParts, 0);
-        }
-        
-        /// <summary>
-        /// 查找分类
-        /// </summary>
-        public LogCategory FindCategory(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return null;
-            
-            foreach (var category in categories)
-            {
-                if (category.fullPath == path)
-                {
-                    return category;
-                }
-            }
-            
-            return null;
-        }
-        
-        /// <summary>
-        /// 获取或创建根分类
-        /// </summary>
-        private LogCategory GetOrCreateRootCategory()
-        {
-            if (categories.Count == 0)
-            {
-                var root = new LogCategory("Root", "Root");
-                categories.Add(root);
-            }
-            
-            return categories[0];
-        }
-        
-        /// <summary>
-        /// 递归创建分类路径
-        /// </summary>
-        private LogCategory CreateCategoryPath(LogCategory parent, string[] pathParts, int index)
-        {
-            if (index >= pathParts.Length) return parent;
-            
-            var currentName = pathParts[index];
-            var currentPath = string.Join(".", pathParts, 0, index + 1);
-            
-            var child = parent.FindChild(currentName);
-            if (child == null)
-            {
-                child = new LogCategory(currentName, currentPath);
-                parent.AddChild(child);
-            }
-            
-            return CreateCategoryPath(child, pathParts, index + 1);
-        }
-        
-        /// <summary>
-        /// 更新统计信息
-        /// </summary>
-        public void UpdateStatistics()
-        {
-            totalCategories = 0;
-            enabledCategories = 0;
-            totalLogs = 0;
-            enabledLogs = 0;
-            
-            foreach (var category in categories)
-            {
-                category.UpdateStatistics();
-                totalCategories += 1 + CountSubCategories(category);
-                enabledCategories += (category.enabled ? 1 : 0) + CountEnabledSubCategories(category);
-                totalLogs += category.totalLogCount;
-                enabledLogs += category.enabledLogCount;
-            }
-        }
-        
-        /// <summary>
-        /// 计算子分类数量
-        /// </summary>
-        private int CountSubCategories(LogCategory category)
-        {
-            int count = 0;
-            foreach (var child in category.children)
-            {
-                count += 1 + CountSubCategories(child);
-            }
-            return count;
-        }
-        
-        /// <summary>
-        /// 计算启用的子分类数量
-        /// </summary>
-        private int CountEnabledSubCategories(LogCategory category)
-        {
-            int count = 0;
-            foreach (var child in category.children)
-            {
-                count += (child.enabled ? 1 : 0) + CountEnabledSubCategories(child);
-            }
-            return count;
-        }
-        
-        /// <summary>
-        /// 清空所有数据
-        /// </summary>
-        public void Clear()
-        {
-            categories.Clear();
-            logEntries.Clear();
-            UpdateStatistics();
-        }
-    }
 }

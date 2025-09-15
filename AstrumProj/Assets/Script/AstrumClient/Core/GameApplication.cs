@@ -179,45 +179,6 @@ namespace Astrum.Client.Core
             // 添加Unity日志处理器
             ASLogger.Instance.AddHandler(new UnityLogHandler());
             
-            // 加载ASLogger配置
-            LoadASLoggerConfig();
-        }
-        
-        /// <summary>
-        /// 加载ASLogger配置
-        /// </summary>
-        private void LoadASLoggerConfig()
-        {
-            try
-            {
-                // 尝试从Resources文件夹加载LogManagerConfigEditor（使用反射）
-                var editorConfigType = System.Type.GetType("Astrum.Editor.ASLogger.LogManagerConfigEditor, Assembly-CSharp-Editor");
-                if (editorConfigType != null)
-                {
-                    var editorConfig = Resources.Load("LogManagerConfig", editorConfigType);
-                    if (editorConfig != null)
-                    {
-                        // 使用反射调用ToRuntimeConfig方法
-                        var toRuntimeConfigMethod = editorConfigType.GetMethod("ToRuntimeConfig");
-                        if (toRuntimeConfigMethod != null)
-                        {
-                            var runtimeConfig = toRuntimeConfigMethod.Invoke(editorConfig, null) as LogManagerConfig;
-                            if (runtimeConfig != null)
-                            {
-                                ASLogger.SetConfig(runtimeConfig);
-                                Debug.Log("GameApplication: ASLogger配置加载成功");
-                                return;
-                            }
-                        }
-                    }
-                }
-                
-                Debug.LogWarning("GameApplication: 未找到ASLogger配置文件，使用默认配置");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"GameApplication: 加载ASLogger配置失败 - {ex.Message}");
-            }
         }
         
         /// <summary>
