@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using UnityEngine;
+using System.Linq;
 
 namespace Astrum.CommonBase
 {
@@ -265,6 +267,11 @@ namespace Astrum.CommonBase
         private LogLevel _minLevel = LogLevel.Debug;
         private readonly object _lock = new object();
         
+        // 配置管理
+        private static LogManagerConfig _config;
+        private static bool _isConfigInitialized = false;
+        private static readonly object _configLock = new object();
+        
         /// <summary>
         /// 是否显示时间戳
         /// </summary>
@@ -283,6 +290,16 @@ namespace Astrum.CommonBase
             get => _minLevel;
             set => _minLevel = value;
         }
+        
+        /// <summary>
+        /// 当前配置
+        /// </summary>
+        public static LogManagerConfig CurrentConfig => _config;
+        
+        /// <summary>
+        /// 配置是否已初始化
+        /// </summary>
+        public static bool IsConfigInitialized => _isConfigInitialized;
 
         /// <summary>
         /// 添加日志处理器
@@ -354,12 +371,54 @@ namespace Astrum.CommonBase
         }
 
         /// <summary>
+        /// 记录带分类的调试日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        public void Debug(string message, string category)
+        {
+            Log(LogLevel.Debug, message, category);
+        }
+
+        /// <summary>
+        /// 记录带分类和ID的调试日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        /// <param name="logId">日志ID</param>
+        public void Debug(string message, string category, string logId)
+        {
+            Log(LogLevel.Debug, message, category, logId);
+        }
+
+        /// <summary>
         /// 记录信息日志
         /// </summary>
         /// <param name="message">日志消息</param>
         public void Info(string message)
         {
             Log(LogLevel.Info, message);
+        }
+
+        /// <summary>
+        /// 记录带分类的信息日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        public void Info(string message, string category)
+        {
+            Log(LogLevel.Info, message, category);
+        }
+
+        /// <summary>
+        /// 记录带分类和ID的信息日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        /// <param name="logId">日志ID</param>
+        public void Info(string message, string category, string logId)
+        {
+            Log(LogLevel.Info, message, category, logId);
         }
 
         /// <summary>
@@ -372,12 +431,54 @@ namespace Astrum.CommonBase
         }
 
         /// <summary>
+        /// 记录带分类的警告日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        public void Warning(string message, string category)
+        {
+            Log(LogLevel.Warning, message, category);
+        }
+
+        /// <summary>
+        /// 记录带分类和ID的警告日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        /// <param name="logId">日志ID</param>
+        public void Warning(string message, string category, string logId)
+        {
+            Log(LogLevel.Warning, message, category, logId);
+        }
+
+        /// <summary>
         /// 记录错误日志
         /// </summary>
         /// <param name="message">日志消息</param>
         public void Error(string message)
         {
             Log(LogLevel.Error, message);
+        }
+
+        /// <summary>
+        /// 记录带分类的错误日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        public void Error(string message, string category)
+        {
+            Log(LogLevel.Error, message, category);
+        }
+
+        /// <summary>
+        /// 记录带分类和ID的错误日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        /// <param name="logId">日志ID</param>
+        public void Error(string message, string category, string logId)
+        {
+            Log(LogLevel.Error, message, category, logId);
         }
 
         /// <summary>
@@ -390,12 +491,69 @@ namespace Astrum.CommonBase
         }
 
         /// <summary>
+        /// 记录带分类的致命错误日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        public void Fatal(string message, string category)
+        {
+            Log(LogLevel.Fatal, message, category);
+        }
+
+        /// <summary>
+        /// 记录带分类和ID的致命错误日志
+        /// </summary>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        /// <param name="logId">日志ID</param>
+        public void Fatal(string message, string category, string logId)
+        {
+            Log(LogLevel.Fatal, message, category, logId);
+        }
+
+        /// <summary>
         /// 记录指定级别的日志
         /// </summary>
         /// <param name="level">日志级别</param>
         /// <param name="message">日志消息</param>
         public void Log(LogLevel level, string message)
         {
+            Log(level, message, "Default");
+        }
+
+        /// <summary>
+        /// 记录带分类的指定级别日志
+        /// </summary>
+        /// <param name="level">日志级别</param>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        public void Log(LogLevel level, string message, string category)
+        {
+            Log(level, message, category, null);
+        }
+
+        /// <summary>
+        /// 记录带分类和ID的指定级别日志
+        /// </summary>
+        /// <param name="level">日志级别</param>
+        /// <param name="message">日志消息</param>
+        /// <param name="category">分类</param>
+        /// <param name="logId">日志ID</param>
+        public void Log(LogLevel level, string message, string category, string logId)
+        {
+            // 自动加载配置（如果未初始化）
+            if (!_isConfigInitialized)
+            {
+                LoadConfig();
+            }
+            
+            // 检查是否应该输出日志
+            if (!LogFilter.ShouldLog(level, category, logId))
+            {
+                return;
+            }
+
+            // 检查最小级别
             if (level < _minLevel) return;
 
             var timestamp = DateTime.Now;
@@ -406,17 +564,36 @@ namespace Astrum.CommonBase
                 handlers = new List<ILogHandler>(_handlers);
             }
 
+            // 格式化消息（添加分类信息）
+            string formattedMessage = FormatMessage(message, category);
+
             foreach (var handler in handlers)
             {
                 try
                 {
-                    handler.HandleLog(level, message, timestamp);
+                    handler.HandleLog(level, formattedMessage, timestamp);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"日志处理器执行失败: {ex.Message}");
                 }
             }
+        }
+
+        /// <summary>
+        /// 格式化消息（添加分类信息）
+        /// </summary>
+        /// <param name="message">原始消息</param>
+        /// <param name="category">分类</param>
+        /// <returns>格式化后的消息</returns>
+        private string FormatMessage(string message, string category)
+        {
+            if (string.IsNullOrEmpty(category) || category == "Default")
+            {
+                return message;
+            }
+
+            return $"[{category}] {message}";
         }
 
         /// <summary>
@@ -450,6 +627,177 @@ namespace Astrum.CommonBase
             var message = FormatException(ex);
             Log(level, message);
         }
+        
+        #region 配置管理
+        
+        /// <summary>
+        /// 设置日志配置
+        /// </summary>
+        /// <param name="config">日志配置</param>
+        public static void SetConfig(LogManagerConfig config)
+        {
+            lock (_configLock)
+            {
+                _config = config;
+                _isConfigInitialized = config != null;
+                
+                if (_isConfigInitialized)
+                {
+                    // 设置到LogFilter
+                    LogFilter.SetConfig(config);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 加载配置
+        /// </summary>
+        public static void LoadConfig()
+        {
+            if (_config == null)
+            {
+                UnityEngine.Debug.Log("[ASLogger] 开始加载配置...");
+                
+                // 尝试从Resources文件夹加载
+                _config = Resources.Load<LogManagerConfig>("LogManagerConfig");
+                
+                if (_config == null)
+                {
+                    UnityEngine.Debug.Log("[ASLogger] 未找到LogManagerConfig，尝试搜索所有配置...");
+                    // 尝试从项目根目录加载
+                    var configs = Resources.LoadAll<LogManagerConfig>("");
+                    _config = configs.FirstOrDefault();
+                    
+                    if (_config != null)
+                    {
+                        UnityEngine.Debug.Log($"[ASLogger] 找到配置: {_config.name}");
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogWarning("[ASLogger] 未找到任何LogManagerConfig配置文件");
+                        UnityEngine.Debug.LogWarning("[ASLogger] 请确保在Resources文件夹中创建了LogManagerConfig");
+                    }
+                }
+                else
+                {
+                    UnityEngine.Debug.Log($"[ASLogger] 成功加载配置: {_config.name}");
+                }
+            }
+            
+            if (_config != null)
+            {
+                SetConfig(_config);
+                UnityEngine.Debug.Log($"[ASLogger] 配置已设置，初始化状态: {_isConfigInitialized}");
+            }
+            else
+            {
+                UnityEngine.Debug.LogWarning("[ASLogger] 配置加载失败，将使用默认设置");
+            }
+        }
+        
+        /// <summary>
+        /// 启用/禁用分类
+        /// </summary>
+        /// <param name="category">分类路径</param>
+        /// <param name="enabled">是否启用</param>
+        public static void SetCategoryEnabled(string category, bool enabled)
+        {
+            if (!_isConfigInitialized) return;
+            
+            LogFilter.SetCategoryEnabled(category, enabled);
+        }
+        
+        /// <summary>
+        /// 启用/禁用单个日志
+        /// </summary>
+        /// <param name="logId">日志ID</param>
+        /// <param name="enabled">是否启用</param>
+        public static void SetLogEnabled(string logId, bool enabled)
+        {
+            if (!_isConfigInitialized) return;
+            
+            LogFilter.SetLogEnabled(logId, enabled);
+        }
+        
+        /// <summary>
+        /// 设置分类的最小日志级别
+        /// </summary>
+        /// <param name="category">分类路径</param>
+        /// <param name="minLevel">最小级别</param>
+        public static void SetCategoryMinLevel(string category, LogLevel minLevel)
+        {
+            if (!_isConfigInitialized) return;
+            
+            LogFilter.SetCategoryMinLevel(category, minLevel);
+        }
+        
+        /// <summary>
+        /// 检查分类是否启用
+        /// </summary>
+        /// <param name="category">分类路径</param>
+        /// <returns>是否启用</returns>
+        public static bool IsCategoryEnabled(string category)
+        {
+            return LogFilter.IsCategoryEnabled(category);
+        }
+        
+        /// <summary>
+        /// 检查日志是否启用
+        /// </summary>
+        /// <param name="logId">日志ID</param>
+        /// <returns>是否启用</returns>
+        public static bool IsLogEnabled(string logId)
+        {
+            return LogFilter.IsLogEnabled(logId);
+        }
+        
+        /// <summary>
+        /// 获取分类统计信息
+        /// </summary>
+        /// <param name="category">分类路径</param>
+        /// <returns>统计信息</returns>
+        public static (int total, int enabled) GetCategoryStatistics(string category)
+        {
+            return LogFilter.GetCategoryStatistics(category);
+        }
+        
+        /// <summary>
+        /// 获取全局统计信息
+        /// </summary>
+        /// <returns>全局统计信息</returns>
+        public static (int totalCategories, int enabledCategories, int totalLogs, int enabledLogs) GetGlobalStatistics()
+        {
+            return LogFilter.GetGlobalStatistics();
+        }
+        
+        /// <summary>
+        /// 重置所有过滤器
+        /// </summary>
+        public static void ResetAllFilters()
+        {
+            if (!_isConfigInitialized) return;
+            
+            LogFilter.ResetAllFilters();
+        }
+        
+        /// <summary>
+        /// 获取所有启用的分类
+        /// </summary>
+        /// <returns>启用的分类列表</returns>
+        public static List<string> GetEnabledCategories()
+        {
+            return LogFilter.GetEnabledCategories();
+        }
+        
+        /// <summary>
+        /// 刷新配置
+        /// </summary>
+        public static void RefreshConfig()
+        {
+            LoadConfig();
+        }
+        
+        #endregion
     }
 
     /// <summary>
