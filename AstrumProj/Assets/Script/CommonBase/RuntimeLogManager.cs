@@ -249,35 +249,6 @@ namespace Astrum.CommonBase
             return LogFilter.GetEnabledCategories();
         }
         
-        /// <summary>
-        /// 测试日志输出
-        /// </summary>
-        public void TestLogOutput()
-        {
-            if (!_isInitialized)
-            {
-                Console.WriteLine("[RuntimeLogManager] 未初始化，无法测试日志输出");
-                return;
-            }
-            
-            Console.WriteLine("=== 开始测试日志输出 ===");
-            
-            // 测试不同分类的日志
-            ASLogger.Instance.Debug("这是调试日志", "Test.Debug");
-            ASLogger.Instance.Info("这是信息日志", "Test.Info");
-            ASLogger.Instance.Warning("这是警告日志", "Test.Warning");
-            ASLogger.Instance.Error("这是错误日志", "Test.Error");
-            
-            // 测试网络分类
-            ASLogger.Instance.Info("网络连接成功", "Network.Connection");
-            ASLogger.Instance.Debug("发送消息", "Network.Message");
-            
-            // 测试UI分类
-            ASLogger.Instance.Info("UI初始化完成", "UI.Initialization");
-            ASLogger.Instance.Debug("按钮点击", "UI.Interaction");
-            
-            Console.WriteLine("=== 日志输出测试完成 ===");
-        }
         
         /// <summary>
         /// 显示当前配置状态

@@ -41,10 +41,10 @@ namespace Astrum.Client.Managers
             currentInput = new InputState();
             previousInput = new InputState();
             if (enableLogging)
-                Debug.Log("InputManager: 初始化输入管理器");
+                ASLogger.Instance.Info("InputManager: 初始化输入管理器", "Input.Manager");
             
             if (enableLogging)
-                Debug.Log("InputManager: 输入管理器初始化完成");
+                ASLogger.Instance.Info("InputManager: 输入管理器初始化完成", "Input.Manager");
         }
         
         /// <summary>
@@ -58,14 +58,15 @@ namespace Astrum.Client.Managers
             }
             var input = CollectLSInput(GamePlayManager.Instance.MainRoom.MainPlayerId);
             GamePlayManager.Instance.MainRoom?.LSController.SetPlayerInput(GamePlayManager.Instance.PlayerId, input);
-            /*
             // 保存上一帧的输入状态
             if(currentInput != null)
                 previousInput = currentInput.Clone();
             
             // 更新当前输入状态
             UpdateInputState();
-            ASLogger.Instance.Info($"Current Input: {currentInput.MoveInput}, Mouse Position: {currentInput.MousePosition}");
+            if (enableLogging)
+                ASLogger.Instance.Debug($"Current Input: {currentInput.MoveInput}, Mouse Position: {currentInput.MousePosition}", "Input.State");
+            
             // 检查输入变化
             if (HasInputChanged())
             {
@@ -77,7 +78,7 @@ namespace Astrum.Client.Managers
             }
             
             // 处理传统输入
-            ProcessLegacyInput();*/
+            ProcessLegacyInput();
             
         }
         
@@ -326,7 +327,7 @@ namespace Astrum.Client.Managers
             currentInput.MoveInput = Vector2.zero;
             
             if (enableLogging)
-                Debug.Log("InputManager: 移动输入取消");
+                ASLogger.Instance.Debug("InputManager: 移动输入取消", "Input.Movement");
         }
         
         /// <summary>
@@ -337,7 +338,7 @@ namespace Astrum.Client.Managers
             currentInput.IsActionPressed = true;
             
             if (enableLogging)
-                Debug.Log("InputManager: 动作输入");
+                ASLogger.Instance.Debug("InputManager: 动作输入", "Input.Action");
         }
         
         /// <summary>
@@ -348,7 +349,7 @@ namespace Astrum.Client.Managers
             currentInput.IsActionPressed = false;
             
             if (enableLogging)
-                Debug.Log("InputManager: 动作输入取消");
+                ASLogger.Instance.Debug("InputManager: 动作输入取消", "Input.Action");
         }
         
         /// <summary>
@@ -357,7 +358,7 @@ namespace Astrum.Client.Managers
         private void OnPausePerformed(object context)
         {
             if (enableLogging)
-                Debug.Log("InputManager: 暂停输入");
+                ASLogger.Instance.Debug("InputManager: 暂停输入", "Input.System");
             
             // 触发暂停事件
             OnKeyPressed?.Invoke(KeyCode.Escape);
@@ -371,7 +372,7 @@ namespace Astrum.Client.Managers
             inputHistory.Clear();
             
             if (enableLogging)
-                Debug.Log("InputManager: 清理输入历史");
+                ASLogger.Instance.Debug("InputManager: 清理输入历史", "Input.Manager");
         }
         
         /// <summary>
@@ -380,7 +381,7 @@ namespace Astrum.Client.Managers
         public void Shutdown()
         {
             if (enableLogging)
-                Debug.Log("InputManager: 关闭输入管理器");
+                ASLogger.Instance.Info("InputManager: 关闭输入管理器", "Input.Manager");
             
             // InputSystem相关代码已注释
             // if (inputActions != null)
@@ -420,7 +421,8 @@ namespace Astrum.Client.Managers
             input.Skill1 = UnityEngine.Input.GetKey(KeyCode.Q);
             // 技能2输入
             input.Skill2 = UnityEngine.Input.GetKey(KeyCode.E);
-            //ASLogger.Instance.Debug(input.MoveX + ", " + input.MoveY + ", Attack: " + input.Attack + ", Skill1: " + input.Skill1 + ", Skill2: " + input.Skill2);
+            if (enableLogging)
+                ASLogger.Instance.Debug($"LSInput: MoveX={input.MoveX}, MoveY={input.MoveY}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
             return input;
         }
     }

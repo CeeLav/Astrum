@@ -47,7 +47,7 @@ namespace AstrumServer.Managers
             _isRunning = true;
             _frameTimer = new Timer(OnFrameTimer, null, 0, FRAME_INTERVAL_MS);
             
-            ASLogger.Instance.Info($"帧同步管理器已启动，帧率: {FRAME_RATE}FPS，间隔: {FRAME_INTERVAL_MS}ms");
+            ASLogger.Instance.Info($"帧同步管理器已启动，帧率: {FRAME_RATE}FPS，间隔: {FRAME_INTERVAL_MS}ms", "FrameSync.Manager");
         }
         
         /// <summary>
@@ -64,7 +64,7 @@ namespace AstrumServer.Managers
             // 清理所有房间的帧同步状态
             _roomFrameStates.Clear();
             
-            ASLogger.Instance.Info("帧同步管理器已停止");
+            ASLogger.Instance.Info("帧同步管理器已停止", "FrameSync.Manager");
         }
         
         /// <summary>
@@ -77,13 +77,13 @@ namespace AstrumServer.Managers
                 var roomInfo = _roomManager.GetRoom(roomId);
                 if (roomInfo == null)
                 {
-                    ASLogger.Instance.Warning($"房间不存在，无法开始帧同步: {roomId}");
+                    ASLogger.Instance.Warning($"房间不存在，无法开始帧同步: {roomId}", "FrameSync.Room");
                     return;
                 }
                 
                 if (roomInfo.Status != 1) // 1=游戏中
                 {
-                    ASLogger.Instance.Warning($"房间不在游戏中，无法开始帧同步: {roomId} (Status: {roomInfo.Status})");
+                    ASLogger.Instance.Warning($"房间不在游戏中，无法开始帧同步: {roomId} (Status: {roomInfo.Status})", "FrameSync.Room");
                     return;
                 }
                 
@@ -102,11 +102,11 @@ namespace AstrumServer.Managers
                 // 发送帧同步开始通知
                 SendFrameSyncStartNotification(roomId, frameState);
                 
-                ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}");
+                ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}", "FrameSync.Room");
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"开始房间帧同步时出错: {ex.Message}");
+                ASLogger.Instance.Error($"开始房间帧同步时出错: {ex.Message}", "FrameSync.Room");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
@@ -219,11 +219,11 @@ namespace AstrumServer.Managers
                 // 发送帧同步数据给房间内所有玩家
                 SendFrameSyncData(roomId, frameState.AuthorityFrame, frameInputs);
                 
-                ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}");
+                ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}", "FrameSync.Processing");
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"处理房间帧时出错: {ex.Message}");
+                ASLogger.Instance.Error($"处理房间帧时出错: {ex.Message}", "FrameSync.Processing");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }

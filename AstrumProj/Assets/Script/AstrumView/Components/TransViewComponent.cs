@@ -57,7 +57,7 @@ namespace Astrum.View.Components
             _targetPosition.x = pos.X;
             _targetPosition.y = pos.Y;
             _targetPosition.z = pos.Z;
-            //ASLogger.Instance.Debug($"MovementViewComponent: 更新目标位置，位置: {_targetPosition}");
+            ASLogger.Instance.Debug($"MovementViewComponent: 更新目标位置，位置: {_targetPosition}", "View.Movement");
             
             // 更新移动
             UpdateMovement(deltaTime);
