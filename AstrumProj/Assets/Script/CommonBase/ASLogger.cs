@@ -806,7 +806,31 @@ namespace Astrum.CommonBase
             
             // 获取调用栈信息
             var stackTrace = new System.Diagnostics.StackTrace(true);
-            var callingFrame = stackTrace.GetFrame(4); // 跳过TryMatchLogId、Log(3个重载)和Info方法
+            System.Diagnostics.StackFrame callingFrame = null;
+            
+            // 动态查找第一个不是ASLogger的调用帧
+            for (int i = 0; i < stackTrace.FrameCount; i++)
+            {
+                var frame = stackTrace.GetFrame(i);
+                if (frame == null) continue;
+                
+                var method = frame.GetMethod();
+                if (method == null) continue;
+                
+                var declaringType = method.DeclaringType;
+                if (declaringType == null) continue;
+                
+                // 跳过ASLogger相关的类型
+                if (declaringType.Name == "ASLogger" || 
+                    declaringType.Namespace == "Astrum.CommonBase" && declaringType.Name.Contains("ASLogger"))
+                {
+                    continue;
+                }
+                
+                // 找到第一个非ASLogger的调用帧
+                callingFrame = frame;
+                break;
+            }
             
             if (callingFrame == null) 
             {
