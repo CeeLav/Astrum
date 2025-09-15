@@ -165,5 +165,35 @@ namespace Astrum.CommonBase
             this.enabled = enabled;
             // 注意：分类和日志的启用状态是隔离的，不自动修改日志状态
         }
+        
+        /// <summary>
+        /// 克隆分类
+        /// </summary>
+        public LogCategory Clone()
+        {
+            var clone = new LogCategory();
+            clone.name = name;
+            clone.fullPath = fullPath;
+            clone.enabled = enabled;
+            clone.minLevel = minLevel;
+            clone.totalLogCount = totalLogCount;
+            clone.enabledLogCount = enabledLogCount;
+            
+            // 深拷贝子分类
+            clone.children = new List<LogCategory>();
+            foreach (var child in children)
+            {
+                clone.children.Add(child.Clone());
+            }
+            
+            // 深拷贝日志条目
+            clone.logs = new List<LogEntry>();
+            foreach (var log in logs)
+            {
+                clone.logs.Add(log.Clone());
+            }
+            
+            return clone;
+        }
     }
 }

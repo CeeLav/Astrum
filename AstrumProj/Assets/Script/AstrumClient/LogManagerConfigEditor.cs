@@ -52,12 +52,26 @@ namespace Astrum.Client
         public LogManagerConfig ToRuntimeConfig()
         {
             var config = new LogManagerConfig();
-            config.categories = categories;
-            config.logEntries = logEntries;
+            
+            // 深拷贝分类列表
+            config.categories = new List<LogCategory>();
+            foreach (var category in categories)
+            {
+                config.categories.Add(category.Clone());
+            }
+            
+            // 深拷贝日志条目列表
+            config.logEntries = new List<LogEntry>();
+            foreach (var log in logEntries)
+            {
+                config.logEntries.Add(log.Clone());
+            }
+            
+            // 拷贝其他属性
             config.autoScanOnStart = autoScanOnStart;
             config.saveOnChange = saveOnChange;
-            config.scanPaths = scanPaths;
-            config.excludePaths = excludePaths;
+            config.scanPaths = new List<string>(scanPaths);
+            config.excludePaths = new List<string>(excludePaths);
             config.globalMinLevel = globalMinLevel;
             config.enableCategoryFilter = enableCategoryFilter;
             config.enableLogFilter = enableLogFilter;
