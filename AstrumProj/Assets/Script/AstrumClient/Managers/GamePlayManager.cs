@@ -704,18 +704,18 @@ namespace Astrum.Client.Managers
         {
             try
             {
-                ASLogger.Instance.Info($"GamePlayManager: 收到帧同步开始通知 - 房间: {notification.roomId}，帧率: {notification.frameRate}FPS");
+                ASLogger.Instance.Info($"GamePlayManager: 收到帧同步开始通知 - 房间: {notification.roomId}，帧率: {notification.frameRate}FPS", "FrameSync.Client");
                 
                 // 初始化帧同步相关状态
                 if (MainRoom?.LSController != null)
                 {
                     MainRoom.LSController.Start();
-                    ASLogger.Instance.Info($"帧同步控制器已启动，房间: {notification.roomId}");
+                    ASLogger.Instance.Info($"帧同步控制器已启动，房间: {notification.roomId}", "FrameSync.Client");
                 }
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"处理帧同步开始通知时出错: {ex.Message}");
+                ASLogger.Instance.Error($"处理帧同步开始通知时出错: {ex.Message}", "FrameSync.Client");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
@@ -727,18 +727,18 @@ namespace Astrum.Client.Managers
         {
             try
             {
-                ASLogger.Instance.Info($"GamePlayManager: 收到帧同步结束通知 - 房间: {notification.roomId}，最终帧: {notification.finalFrame}，原因: {notification.reason}");
+                ASLogger.Instance.Info($"GamePlayManager: 收到帧同步结束通知 - 房间: {notification.roomId}，最终帧: {notification.finalFrame}，原因: {notification.reason}", "FrameSync.Client");
                 
                 // 停止帧同步相关状态
                 if (MainRoom?.LSController != null)
                 {
                     MainRoom.LSController.Stop();
-                    ASLogger.Instance.Info($"帧同步控制器已停止，房间: {notification.roomId}");
+                    ASLogger.Instance.Info($"帧同步控制器已停止，房间: {notification.roomId}", "FrameSync.Client");
                 }
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"处理帧同步结束通知时出错: {ex.Message}");
+                ASLogger.Instance.Error($"处理帧同步结束通知时出错: {ex.Message}", "FrameSync.Client");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
@@ -750,14 +750,14 @@ namespace Astrum.Client.Managers
         {
             try
             {
-                ASLogger.Instance.Debug($"GamePlayManager: 收到帧同步数据 - 房间: {frameData.roomId}，权威帧: {frameData.authorityFrame}，输入数: {frameData.frameInputs.Inputs.Count}");
+                ASLogger.Instance.Debug($"GamePlayManager: 收到帧同步数据 - 房间: {frameData.roomId}，权威帧: {frameData.authorityFrame}，输入数: {frameData.frameInputs.Inputs.Count}", "FrameSync.Client");
                 
                 // 处理帧同步数据
                 DealNetFrameInputs(frameData.frameInputs, frameData.authorityFrame);
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"处理帧同步数据时出错: {ex.Message}");
+                ASLogger.Instance.Error($"处理帧同步数据时出错: {ex.Message}", "FrameSync.Client");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }

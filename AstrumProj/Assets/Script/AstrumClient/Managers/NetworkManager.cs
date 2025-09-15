@@ -197,7 +197,7 @@ namespace Astrum.Client.Managers
             try
             {
                 currentSession.Send(message);
-                //ASLogger.Instance.Debug($"Message sent via Session: {message.GetType().Name}");
+                ASLogger.Instance.Debug($"Message sent via Session: {message.GetType().Name}", "Network.Message");
             }
             catch (Exception ex)
             {
@@ -362,7 +362,7 @@ namespace Astrum.Client.Managers
                 currentSession.LastRecvTime = TimeInfo.Instance.ClientNow();
                 
                 // 客户端模式：连接已在ConnectAsync中建立，这里只处理消息
-                //ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}");
+                ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}", "Network.Receive");
             }
             
             ProcessMessage(channelId, buffer);
@@ -423,7 +423,7 @@ namespace Astrum.Client.Managers
                 {
                     // 根据消息类型触发对应事件
                     DispatchMessage(messageObject);
-                    //ASLogger.Instance.Debug($"成功反序列化消息: {messageObject.GetType().Name}");
+                    ASLogger.Instance.Debug($"成功反序列化消息: {messageObject.GetType().Name}", "Network.Deserialize");
                 }
                 else
                 {
