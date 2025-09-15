@@ -51,6 +51,19 @@ namespace Astrum.Client
         /// </summary>
         public LogManagerConfig ToRuntimeConfig()
         {
+            // 记录原数据数量
+            int originalCategoryCount = categories.Count;
+            int originalLogEntryCount = logEntries.Count;
+            
+            // 统计分类中的日志数量
+            int totalLogsInCategories = 0;
+            foreach (var category in categories)
+            {
+                totalLogsInCategories += category.GetAllLogs().Count;
+            }
+            
+            Debug.Log($"[ToRuntimeConfig] 原数据统计 - 分类数量: {originalCategoryCount}, logEntries数量: {originalLogEntryCount}, 分类中日志总数: {totalLogsInCategories}");
+            
             var config = new LogManagerConfig();
             
             // 深拷贝分类列表
@@ -80,6 +93,45 @@ namespace Astrum.Client
             config.totalLogs = totalLogs;
             config.enabledLogs = enabledLogs;
             config.lastScanTime = new DateTime(lastScanTimeTicks);
+            
+            // 记录转化后数据数量
+            int convertedCategoryCount = config.categories.Count;
+            int convertedLogEntryCount = config.logEntries.Count;
+            
+            // 统计转化后分类中的日志数量
+            int totalLogsInConvertedCategories = 0;
+            foreach (var category in config.categories)
+            {
+                totalLogsInConvertedCategories += category.GetAllLogs().Count;
+            }
+            
+            Debug.Log($"[ToRuntimeConfig] 转化后统计 - 分类数量: {convertedCategoryCount}, logEntries数量: {convertedLogEntryCount}, 分类中日志总数: {totalLogsInConvertedCategories}");
+            
+            // 检查数据一致性
+            if (originalCategoryCount != convertedCategoryCount)
+            {
+                Debug.LogWarning($"[ToRuntimeConfig] 警告：分类数量不一致！原数据: {originalCategoryCount}, 转化后: {convertedCategoryCount}");
+            }
+            
+            if (originalLogEntryCount != convertedLogEntryCount)
+            {
+                Debug.LogWarning($"[ToRuntimeConfig] 警告：logEntries数量不一致！原数据: {originalLogEntryCount}, 转化后: {convertedLogEntryCount}");
+            }
+            
+            if (totalLogsInCategories != totalLogsInConvertedCategories)
+            {
+                Debug.LogWarning($"[ToRuntimeConfig] 警告：分类中日志数量不一致！原数据: {totalLogsInCategories}, 转化后: {totalLogsInConvertedCategories}");
+            }
+            
+            // 统计各分类的日志数量
+            Debug.Log($"[ToRuntimeConfig] 分类详细统计：");
+            for (int i = 0; i < Math.Min(config.categories.Count, 10); i++) // 只显示前10个分类
+            {
+                var category = config.categories[i];
+                var logsInCategory = category.GetAllLogs();
+                Debug.Log($"[ToRuntimeConfig] 分类 '{category.fullPath}': {logsInCategory.Count} 个日志");
+            }
+            
             return config;
         }
         
@@ -147,7 +199,8 @@ namespace Astrum.Client
             var existing = FindLogEntry(logEntry.id);
             if (existing != null)
             {
-                // 更新现有条目
+                // 更新现有条目（不添加新条目）
+                Debug.Log($"[AddLogEntry] 发现重复ID '{logEntry.id}'，更新现有条目而不是添加新条目");
                 existing.UpdateMessage(logEntry.message);
                 existing.enabled = logEntry.enabled;
                 existing.lastModified = DateTime.Now;
@@ -155,6 +208,7 @@ namespace Astrum.Client
             else
             {
                 // 添加新条目
+                Debug.Log($"[AddLogEntry] 添加新日志条目，ID: '{logEntry.id}', 分类: '{logEntry.category}'");
                 logEntries.Add(logEntry);
             }
             
@@ -185,17 +239,23 @@ namespace Astrum.Client
         /// </summary>
         public LogCategory GetOrCreateCategory(string path)
         {
+            Debug.Log($"[LogManagerConfig] GetOrCreateCategory 请求: {path}");
+            
             var category = FindCategory(path);
             if (category != null)
             {
+                Debug.Log($"[LogManagerConfig] 找到现有分类: {category.fullPath}");
                 return category;
             }
             
             // 创建新分类
+            Debug.Log($"[LogManagerConfig] 创建新分类: {path}");
             var pathParts = path.Split('.');
             var rootCategory = GetOrCreateRootCategory();
             
-            return CreateCategoryPath(rootCategory, pathParts, 0);
+            var newCategory = CreateCategoryPath(rootCategory, pathParts, 0);
+            Debug.Log($"[LogManagerConfig] 新分类创建完成: {newCategory.fullPath}");
+            return newCategory;
         }
         
         /// <summary>
@@ -240,11 +300,19 @@ namespace Astrum.Client
             var currentName = pathParts[index];
             var currentPath = string.Join(".", pathParts, 0, index + 1);
             
+            Debug.Log($"[LogManagerConfig] CreateCategoryPath: 处理 {currentName} (路径: {currentPath})");
+            
             var child = parent.FindChild(currentName);
             if (child == null)
             {
+                Debug.Log($"[LogManagerConfig] 创建子分类: {currentName} 在 {parent.fullPath} 下");
                 child = new LogCategory(currentName, currentPath);
                 parent.AddChild(child);
+                Debug.Log($"[LogManagerConfig] 子分类创建完成，父分类现在有 {parent.children.Count} 个子分类");
+            }
+            else
+            {
+                Debug.Log($"[LogManagerConfig] 找到现有子分类: {currentName}");
             }
             
             return CreateCategoryPath(child, pathParts, index + 1);

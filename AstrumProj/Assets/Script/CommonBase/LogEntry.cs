@@ -26,6 +26,7 @@ namespace Astrum.CommonBase
         public int lineNumber;               // 当前行号
         public string methodName;            // 方法名
         public string className;             // 类名
+        public int relativePosition;         // 在函数内的相对位置（从函数开始的行数）
         
         // 状态
         public bool enabled = true;          // 单个日志启用状态
@@ -44,12 +45,13 @@ namespace Astrum.CommonBase
             lineNumber = 0;
             methodName = "";
             className = "";
+            relativePosition = 0;
             enabled = true;
             isGenerated = false;
             lastModified = DateTime.Now;
         }
         
-        public LogEntry(string message, string category, LogLevel level, string filePath, int lineNumber, string methodName, string className)
+        public LogEntry(string message, string category, LogLevel level, string filePath, int lineNumber, string methodName, string className, int relativePosition = 0)
         {
             this.message = message;
             this.category = category;
@@ -58,6 +60,7 @@ namespace Astrum.CommonBase
             this.lineNumber = lineNumber;
             this.methodName = methodName;
             this.className = className;
+            this.relativePosition = relativePosition;
             this.enabled = true;
             this.isGenerated = false;
             this.lastModified = DateTime.Now;
@@ -76,11 +79,17 @@ namespace Astrum.CommonBase
         {
             var fileName = System.IO.Path.GetFileName(filePath);
             
-            // 主标识：基于消息内容和方法名（稳定）
-            id = $"{fileName}:{methodName}:{cleanMessage}";
+            // 主标识：基于文件名、类名、方法名和相对位置（确保唯一性）
+            id = $"{fileName}:{className}:{methodName}:{relativePosition}";
             
-            // 备用标识：基于行号（用于匹配）
+            // 备用标识：基于行号（用于向后兼容）
             fallbackId = $"{fileName}:{lineNumber}:{methodName}";
+            
+            // 如果相对位置为0（未设置），回退到基于消息的旧方式
+            if (relativePosition == 0)
+            {
+                id = $"{fileName}:{className}:{methodName}:{cleanMessage}";
+            }
         }
         
         /// <summary>
@@ -128,6 +137,21 @@ namespace Astrum.CommonBase
             // 重新生成备用标识
             var fileName = System.IO.Path.GetFileName(filePath);
             fallbackId = $"{fileName}:{lineNumber}:{methodName}";
+            
+            // 注意：相对位置需要重新计算，这里只更新行号
+            // 相对位置应该通过外部调用重新计算
+        }
+        
+        /// <summary>
+        /// 更新相对位置
+        /// </summary>
+        public void UpdateRelativePosition(int newRelativePosition)
+        {
+            relativePosition = newRelativePosition;
+            lastModified = DateTime.Now;
+            
+            // 重新生成主标识
+            GenerateIds();
         }
         
         /// <summary>
@@ -200,6 +224,7 @@ namespace Astrum.CommonBase
             clone.lineNumber = lineNumber;
             clone.methodName = methodName;
             clone.className = className;
+            clone.relativePosition = relativePosition;
             clone.enabled = enabled;
             clone.isGenerated = isGenerated;
             clone.lastModified = lastModified;
