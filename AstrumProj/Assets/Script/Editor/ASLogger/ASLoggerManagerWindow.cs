@@ -40,21 +40,42 @@ namespace Astrum.Editor.ASLogger
             window.Show();
         }
         
+        /// <summary>
+        /// 在进入播放模式时重新初始化配置
+        /// </summary>
+        [InitializeOnEnterPlayMode]
+        static void OnEnterPlayMode()
+        {
+            Debug.Log("[ASLoggerManager] 进入播放模式，准备重新初始化配置");
+        }
+        
+        /// <summary>
+        /// 手动刷新配置（用于游戏状态变化时）
+        /// </summary>
+        public void RefreshConfig()
+        {
+            Debug.Log("[ASLoggerManager] 手动刷新配置");
+            _isInitialized = false;
+            Initialize();
+        }
+        
         private void OnEnable()
         {
-            // 检查ASLogger是否已经初始化，如果已初始化则直接使用其配置
-            if (Astrum.CommonBase.ASLogger.IsConfigInitialized && Astrum.CommonBase.ASLogger.CurrentConfig != null)
+            try
             {
-                // 将运行时配置转换为编辑器配置
-                var runtimeConfig = Astrum.CommonBase.ASLogger.CurrentConfig;
-                _config = CreateInstance<LogManagerConfigEditor>();
-                _config.UpdateFromRuntimeConfig(runtimeConfig);
-                _isInitialized = true;
-                UpdateStatistics();
-                return;
+                Debug.Log("[ASLoggerManager] OnEnable - 开始初始化");
+                
+                // 直接初始化，不依赖ASLogger的运行时状态
+                // 因为游戏启动/关闭时Unity会进行域重载，静态字段会被重置
+                Initialize();
             }
-            
-            Initialize();
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[ASLoggerManager] OnEnable时发生错误: {ex.Message}");
+                // 强制初始化
+                _isInitialized = false;
+                Initialize();
+            }
         }
         
         private void OnDisable()
@@ -66,68 +87,95 @@ namespace Astrum.Editor.ASLogger
         {
             if (_isInitialized) return;
             
-            LoadConfig();
-            InitializeLogFilter();
-            UpdateStatistics();
-            
-            _isInitialized = true;
-            
-            Debug.Log("[ASLoggerManager] 窗口初始化完成");
+            try
+            {
+                Debug.Log("[ASLoggerManager] 开始初始化窗口");
+                
+                LoadConfig();
+                InitializeLogFilter();
+                UpdateStatistics();
+                
+                _isInitialized = true;
+                
+                Debug.Log("[ASLoggerManager] 窗口初始化完成");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[ASLoggerManager] 初始化失败: {ex.Message}");
+                _isInitialized = false;
+            }
         }
         
         private void LoadConfig()
         {
-            // 如果ASLogger已经有配置，直接使用
-            if (Astrum.CommonBase.ASLogger.IsConfigInitialized && Astrum.CommonBase.ASLogger.CurrentConfig != null)
+            try
             {
-                // 将运行时配置转换为编辑器配置
-                var runtimeConfig = Astrum.CommonBase.ASLogger.CurrentConfig;
-                _config = CreateInstance<LogManagerConfigEditor>();
-                _config.UpdateFromRuntimeConfig(runtimeConfig);
-                Debug.Log("[ASLoggerManager] 使用ASLogger现有配置");
-                return;
-            }
-            
-            // 首先尝试从Resources文件夹加载
-            _config = Resources.Load<LogManagerConfigEditor>("LogManagerConfig");
-            
-            if (_config == null)
-            {
-                // 尝试从项目根目录加载
-                var configs = Resources.FindObjectsOfTypeAll<LogManagerConfigEditor>();
-                if (configs.Length > 0)
+                Debug.Log("[ASLoggerManager] 开始加载配置");
+                
+                // 首先尝试从Resources文件夹加载
+                _config = Resources.Load<LogManagerConfigEditor>("LogManagerConfig");
+                
+                if (_config == null)
                 {
-                    _config = configs[0];
+                    // 尝试从项目根目录加载
+                    var configs = Resources.FindObjectsOfTypeAll<LogManagerConfigEditor>();
+                    if (configs.Length > 0)
+                    {
+                        _config = configs[0];
+                        Debug.Log("[ASLoggerManager] 从项目根目录加载配置");
+                    }
+                    else
+                    {
+                        // 创建新配置并保存到Resources文件夹
+                        _config = CreateInstance<LogManagerConfigEditor>();
+                        _config.name = "LogManagerConfig";
+                        
+                        // 确保Resources文件夹存在
+                        string resourcesPath = "Assets/Resources";
+                        if (!AssetDatabase.IsValidFolder(resourcesPath))
+                        {
+                            AssetDatabase.CreateFolder("Assets", "Resources");
+                        }
+                        
+                        // 保存到Resources文件夹
+                        string assetPath = "Assets/Resources/LogManagerConfig.asset";
+                        AssetDatabase.CreateAsset(_config, assetPath);
+                        AssetDatabase.SaveAssets();
+                        
+                        Debug.Log($"[ASLoggerManager] 创建新配置文件: {assetPath}");
+                    }
                 }
                 else
                 {
-                    // 创建新配置并保存到Resources文件夹
-                    _config = CreateInstance<LogManagerConfigEditor>();
-                    _config.name = "LogManagerConfig";
+                    Debug.Log("[ASLoggerManager] 从Resources文件夹加载配置");
+                }
+                
+                if (_config != null)
+                {
+                    _config.Initialize();
                     
-                    // 确保Resources文件夹存在
-                    string resourcesPath = "Assets/Resources";
-                    if (!AssetDatabase.IsValidFolder(resourcesPath))
+                    // 通知ASLogger加载配置（只有在游戏运行时才设置）
+                    if (Application.isPlaying)
                     {
-                        AssetDatabase.CreateFolder("Assets", "Resources");
+                        Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
+                        Debug.Log("[ASLoggerManager] 配置已同步到ASLogger");
                     }
-                    
-                    // 保存到Resources文件夹
-                    string assetPath = "Assets/Resources/LogManagerConfig.asset";
-                    AssetDatabase.CreateAsset(_config, assetPath);
-                    AssetDatabase.SaveAssets();
-                    
-                    Debug.Log($"[ASLoggerManager] 创建新配置文件: {assetPath}");
+                    else
+                    {
+                        Debug.Log("[ASLoggerManager] 编辑器模式，跳过ASLogger配置同步");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("[ASLoggerManager] 无法加载或创建配置文件");
                 }
             }
-            
-            if (_config != null)
+            catch (System.Exception ex)
             {
+                Debug.LogError($"[ASLoggerManager] 加载配置时发生错误: {ex.Message}");
+                // 创建默认配置作为后备
+                _config = CreateInstance<LogManagerConfigEditor>();
                 _config.Initialize();
-                
-                // 通知ASLogger加载配置
-                Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
-                Debug.Log("[ASLoggerManager] 配置已同步到ASLogger");
             }
         }
         
@@ -170,6 +218,7 @@ namespace Astrum.Editor.ASLogger
         {
             if (!_isInitialized)
             {
+                EditorGUILayout.HelpBox("正在初始化...", MessageType.Info);
                 Initialize();
                 return;
             }
@@ -177,6 +226,10 @@ namespace Astrum.Editor.ASLogger
             if (_config == null)
             {
                 EditorGUILayout.HelpBox("无法加载日志管理器配置", MessageType.Error);
+                if (GUILayout.Button("重新加载配置"))
+                {
+                    RefreshConfig();
+                }
                 return;
             }
             
@@ -189,6 +242,11 @@ namespace Astrum.Editor.ASLogger
             catch (Exception ex)
             {
                 EditorGUILayout.HelpBox($"绘制GUI时发生错误: {ex.Message}", MessageType.Error);
+                if (GUILayout.Button("重新初始化"))
+                {
+                    _isInitialized = false;
+                    Initialize();
+                }
             }
         }
         
@@ -715,7 +773,19 @@ namespace Astrum.Editor.ASLogger
         {
             try
             {
-                EditorUtility.DisplayProgressBar("扫描日志", "正在扫描项目中的日志...", 0f);
+                EditorUtility.DisplayProgressBar("刷新配置", "正在刷新配置和扫描日志...", 0f);
+                
+                // 先刷新配置
+                RefreshConfig();
+                
+                if (_config == null)
+                {
+                    EditorUtility.ClearProgressBar();
+                    EditorUtility.DisplayDialog("错误", "无法加载配置", "确定");
+                    return;
+                }
+                
+                EditorUtility.DisplayProgressBar("扫描日志", "正在扫描项目中的日志...", 0.3f);
                 
                 // 清空现有数据
                 _config.Clear();
