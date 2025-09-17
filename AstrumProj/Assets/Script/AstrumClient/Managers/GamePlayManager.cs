@@ -24,7 +24,17 @@ namespace Astrum.Client.Managers
         public Stage MainStage { get; private set; }
         public Room MainRoom { get; private set; }
 
-        public long PlayerId { get; private set; } = -1;
+        public long PlayerId
+        {
+            get => MainRoom?.MainPlayerId ?? -1;
+            private set
+            {
+                if (MainRoom != null)
+                {
+                    MainRoom.MainPlayerId = value;
+                }
+            }
+        }
 
         // 网络游戏相关 - 使用专门的管理器
         public UserInfo CurrentUser => UserManager.Instance?.CurrentUser;
@@ -55,6 +65,7 @@ namespace Astrum.Client.Managers
             request.PlayerID = PlayerId;
             request.FrameID = eventData.FrameID;
             request.Input = eventData.Input;
+            request.Input.BornInfo = 0;
             NetworkManager.Instance.Send(request);
             ASLogger.Instance.Debug($"GamePlayManager: 发送单帧输入，帧: {eventData.FrameID}，输入: {JsonConvert.SerializeObject(eventData.Input)}");
 
@@ -65,9 +76,9 @@ namespace Astrum.Client.Managers
             if (eventData.BornInfo == UserManager.Instance.UserId.GetHashCode())
             {
                 PlayerId = eventData.PlayerID;
-                MainRoom.MainPlayerId = eventData.PlayerID;
+                //MainRoom.MainPlayerId = eventData.PlayerID;
                 MainRoom.LSController.MaxPredictionFrames = 5;
-                ASLogger.Instance.Info("GamePlayManager: 主玩家创建完成, ID: " + MainRoom.MainPlayerId);
+                ASLogger.Instance.Info("GamePlayManager: 主玩家创建完成, ID: " + PlayerId);
             }
             ASLogger.Instance.Debug($"GamePlayManager: <OnPlayerCreated>: {eventData.PlayerID} , BornInfo: {eventData.BornInfo}");
         }
@@ -465,10 +476,10 @@ namespace Astrum.Client.Managers
             ASLogger.Instance.Info("GameLauncher: 创建Player并加入Stage");
 
 
-            PlayerId = room.AddPlayer();
+            var playerID = room.AddPlayer();
             if (isMainPlayer)
             {
-                room.MainPlayerId = PlayerId;
+                PlayerId = playerID;
             }
             //Vector3 playerPosition = new Vector3(-5f, 0.5f, 0f);
 
