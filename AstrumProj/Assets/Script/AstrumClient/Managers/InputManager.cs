@@ -12,7 +12,6 @@ namespace Astrum.Client.Managers
     public class InputManager : Singleton<InputManager>
     {
         [Header("输入设置")]
-        private bool enableLogging = false;
         private float inputThreshold = 0.1f;
         private int maxInputHistory = 10;
         
@@ -40,11 +39,9 @@ namespace Astrum.Client.Managers
             // 初始化输入状态
             currentInput = new InputState();
             previousInput = new InputState();
-            if (enableLogging)
-                ASLogger.Instance.Info("InputManager: 初始化输入管理器", "Input.Manager");
+            ASLogger.Instance.Info("InputManager: 初始化输入管理器", "Input.Manager");
             
-            if (enableLogging)
-                ASLogger.Instance.Info("InputManager: 输入管理器初始化完成", "Input.Manager");
+            ASLogger.Instance.Info("InputManager: 输入管理器初始化完成", "Input.Manager");
         }
         
         /// <summary>
@@ -56,16 +53,16 @@ namespace Astrum.Client.Managers
             {
                 return;
             }
-            var input = CollectLSInput(GamePlayManager.Instance.MainRoom.MainPlayerId);
+            var input = CollectLSInput(GamePlayManager.Instance.PlayerId);
             GamePlayManager.Instance.MainRoom?.LSController.SetPlayerInput(GamePlayManager.Instance.PlayerId, input);
+            /*
             // 保存上一帧的输入状态
             if(currentInput != null)
                 previousInput = currentInput.Clone();
             
             // 更新当前输入状态
             UpdateInputState();
-            if (enableLogging)
-                ASLogger.Instance.Debug($"Current Input: {currentInput.MoveInput}, Mouse Position: {currentInput.MousePosition}", "Input.State");
+            ASLogger.Instance.Debug($"Current Input: {currentInput.MoveInput}, Mouse Position: {currentInput.MousePosition}", "Input.State");
             
             // 检查输入变化
             if (HasInputChanged())
@@ -79,7 +76,7 @@ namespace Astrum.Client.Managers
             
             // 处理传统输入
             ProcessLegacyInput();
-            
+            */
         }
         
         /// <summary>
@@ -242,146 +239,11 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
-        /// 获取输入增量
-        /// </summary>
-        /// <returns>输入状�?/returns>
-        public InputState GetInputDelta()
-        {
-            InputState delta = new InputState();
-            
-            // 计算移动输入增量
-            delta.MoveInput = currentInput.MoveInput - previousInput.MoveInput;
-            
-            // 计算鼠标位置增量
-            delta.MousePosition = currentInput.MousePosition - previousInput.MousePosition;
-            
-            // 动作输入变化
-            delta.IsActionPressed = currentInput.IsActionPressed && !previousInput.IsActionPressed;
-            
-            return delta;
-        }
-        
-        /// <summary>
-        /// 检查按键是否按�?
-        /// </summary>
-        /// <param name="keyCode">按键代码</param>
-        /// <returns>是否按下</returns>
-        public bool IsKeyPressed(KeyCode keyCode)
-        {
-            return currentInput.KeyStates.ContainsKey(keyCode) && currentInput.KeyStates[keyCode];
-        }
-        
-        /// <summary>
-        /// 检查按键是否持续按�?
-        /// </summary>
-        /// <param name="keyCode">按键代码</param>
-        /// <returns>是否持续按下</returns>
-        public bool IsKeyHeld(KeyCode keyCode)
-        {
-            return currentInput.KeyStates.ContainsKey(keyCode) && currentInput.KeyStates[keyCode] &&
-                   previousInput.KeyStates.ContainsKey(keyCode) && previousInput.KeyStates[keyCode];
-        }
-        
-        /// <summary>
-        /// 获取鼠标位置
-        /// </summary>
-        /// <returns>鼠标位置</returns>
-        public Vector2 GetMousePosition()
-        {
-            return currentInput.MousePosition;
-        }
-        
-        /// <summary>
-        /// 获取移动输入
-        /// </summary>
-        /// <returns>移动输入向量</returns>
-        public Vector2 GetMoveInput()
-        {
-            return currentInput.MoveInput;
-        }
-        
-        /// <summary>
-        /// 检查是否按下动作键
-        /// </summary>
-        /// <returns>是否按下动作�?/returns>
-        public bool IsActionPressed()
-        {
-            return currentInput.IsActionPressed;
-        }
-        
-        /// <summary>
-        /// 移动输入回调
-        /// </summary>
-        private void OnMovePerformed(object context)
-        {
-            // InputSystem相关代码已注释
-            // var movement = context.ReadValue<Vector2>();
-            // currentInput.MoveVector = movement;
-        }
-        
-        /// <summary>
-        /// 移动输入取消回调
-        /// </summary>
-        private void OnMoveCanceled(object context)
-        {
-            currentInput.MoveInput = Vector2.zero;
-            
-            if (enableLogging)
-                ASLogger.Instance.Debug("InputManager: 移动输入取消", "Input.Movement");
-        }
-        
-        /// <summary>
-        /// 动作输入回调
-        /// </summary>
-        private void OnActionPerformed(object context)
-        {
-            currentInput.IsActionPressed = true;
-            
-            if (enableLogging)
-                ASLogger.Instance.Debug("InputManager: 动作输入", "Input.Action");
-        }
-        
-        /// <summary>
-        /// 动作输入取消回调
-        /// </summary>
-        private void OnActionCanceled(object context)
-        {
-            currentInput.IsActionPressed = false;
-            
-            if (enableLogging)
-                ASLogger.Instance.Debug("InputManager: 动作输入取消", "Input.Action");
-        }
-        
-        /// <summary>
-        /// 暂停输入回调
-        /// </summary>
-        private void OnPausePerformed(object context)
-        {
-            if (enableLogging)
-                ASLogger.Instance.Debug("InputManager: 暂停输入", "Input.System");
-            
-            // 触发暂停事件
-            OnKeyPressed?.Invoke(KeyCode.Escape);
-        }
-        
-        /// <summary>
-        /// 清理输入历史
-        /// </summary>
-        public void ClearInputHistory()
-        {
-            inputHistory.Clear();
-            
-            if (enableLogging)
-                ASLogger.Instance.Debug("InputManager: 清理输入历史", "Input.Manager");
-        }
-        
-        /// <summary>
         /// 关闭输入管理�?
         /// </summary>
         public void Shutdown()
         {
-            if (enableLogging)
-                ASLogger.Instance.Info("InputManager: 关闭输入管理器", "Input.Manager");
+            ASLogger.Instance.Info("InputManager: 关闭输入管理器", "Input.Manager");
             
             // InputSystem相关代码已注释
             // if (inputActions != null)
@@ -421,8 +283,7 @@ namespace Astrum.Client.Managers
             input.Skill1 = UnityEngine.Input.GetKey(KeyCode.Q);
             // 技能2输入
             input.Skill2 = UnityEngine.Input.GetKey(KeyCode.E);
-            if (enableLogging)
-                ASLogger.Instance.Debug($"LSInput: MoveX={input.MoveX}, MoveY={input.MoveY}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
+            ASLogger.Instance.Debug($"LSInput: MainPlayerID:{playerId} MoveX={input.MoveX}, MoveY={input.MoveY}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
             return input;
         }
     }

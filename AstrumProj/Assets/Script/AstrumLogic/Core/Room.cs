@@ -164,6 +164,7 @@ namespace Astrum.LogicCore.Core
                     (
                         playerId,pairs.Value.BornInfo
                     );
+                    pairs.Value.BornInfo = 0;
                     EventSystem.Instance.Publish(newPlayerEventData);
                 }
             }

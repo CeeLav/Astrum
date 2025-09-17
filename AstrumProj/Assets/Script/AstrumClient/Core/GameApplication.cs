@@ -96,6 +96,7 @@ namespace Astrum.Client.Core
             
             try
             {
+                Application.runInBackground = true;
                 // 初始化各个管理器
                 InitializeManagers();
                 
