@@ -833,58 +833,33 @@ namespace Astrum.Editor.ASLogger
                 
                 EditorUtility.DisplayProgressBar("扫描日志", "正在扫描项目中的日志...", 0.3f);
                 
-                // 扫描项目中的实际日志
-                var projectLogs = LogScanner.ScanProject(_config.ToRuntimeConfig());
+                // 扫描项目中的实际日志 - 使用Roslyn扫描器
+                var projectLogs = RoslynLogScanner.ScanProject(_config.ToRuntimeConfig());
                 
-                // 创建临时字典来跟踪已存在的日志
-                var existingLogs = new System.Collections.Generic.Dictionary<string, LogEntry>();
-                foreach (var log in _config.logEntries)
-                {
-                    if (!string.IsNullOrEmpty(log.id))
-                    {
-                        existingLogs[log.id] = log;
-                    }
-                    if (!string.IsNullOrEmpty(log.fallbackId))
-                    {
-                        existingLogs[log.fallbackId] = log;
-                    }
-                }
+                Debug.Log($"[ASLoggerManager] Roslyn扫描器找到 {projectLogs.Count} 个日志条目");
                 
-                // 添加扫描到的日志到配置（避免重复）
+                // 清除现有配置，重新构建
+                _config.logEntries.Clear();
+                _config.categories.Clear();
+                
+                // 添加扫描到的日志到配置
+                int addedCount = 0;
                 foreach (var log in projectLogs)
                 {
-                    // 检查是否已存在相同的日志
-                    bool exists = false;
-                    if (!string.IsNullOrEmpty(log.id) && existingLogs.ContainsKey(log.id))
-                    {
-                        exists = true;
-                    }
-                    else if (!string.IsNullOrEmpty(log.fallbackId) && existingLogs.ContainsKey(log.fallbackId))
-                    {
-                        exists = true;
-                    }
+                    _config.AddLogEntry(log);
                     
-                    if (!exists)
-                    {
-                        _config.AddLogEntry(log);
-                        
-                        // 确保分类存在
-                        var category = _config.GetOrCreateCategory(log.category);
-                        category.AddLog(log);
-                    }
+                    // 确保分类存在
+                    var category = _config.GetOrCreateCategory(log.category);
+                    category.AddLog(log);
+                    addedCount++;
                 }
                 
-                // 如果没有扫描到日志，添加一些示例数据用于演示
+                Debug.Log($"[ASLoggerManager] 成功添加 {addedCount} 个日志条目到配置");
+                
+                // 如果没有扫描到日志，记录警告
                 if (projectLogs.Count == 0)
                 {
-                    Debug.LogWarning("未扫描到任何日志，添加示例数据用于演示");
-                    var sampleLogs = LogScanner.CreateSampleLogEntries();
-                    foreach (var log in sampleLogs)
-                    {
-                        _config.AddLogEntry(log);
-                        var category = _config.GetOrCreateCategory(log.category);
-                        category.AddLog(log);
-                    }
+                    Debug.LogWarning("未扫描到任何日志，请检查项目中的ASLogger调用格式");
                 }
                 
                 // 更新统计信息
