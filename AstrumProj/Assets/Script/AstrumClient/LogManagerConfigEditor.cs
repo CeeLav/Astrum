@@ -200,8 +200,9 @@ namespace Astrum.Client
             if (existing != null)
             {
                 // 更新现有条目（不添加新条目）
-                Debug.Log($"[AddLogEntry] 发现重复ID '{logEntry.id}'，更新现有条目而不是添加新条目");
+                Debug.Log($"[AddLogEntry] 发现重复ID '{logEntry.id}'，更新现有条目而不是添加新条目 - 原分类: '{existing.category}' -> 新分类: '{logEntry.category}'");
                 existing.UpdateMessage(logEntry.message);
+                existing.category = logEntry.category; // 更新分类信息
                 existing.enabled = logEntry.enabled;
                 existing.lastModified = DateTime.Now;
             }
