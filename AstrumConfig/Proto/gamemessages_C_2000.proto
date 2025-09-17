@@ -35,8 +35,8 @@ message LSInput
 {
     int64 PlayerId = 1;        // 玩家ID
     int32 Frame = 2;           // 帧号
-    float MoveX = 3;           // X轴移动输入
-    float MoveY = 4;           // Y轴移动输入
+    int64 MoveX = 3;           // X轴移动输入（Q31.32 定点数）
+    int64 MoveY = 4;           // Y轴移动输入（Q31.32 定点数）
     bool Attack = 5;           // 攻击输入
     bool Skill1 = 6;           // 技能1输入
     bool Skill2 = 7;           // 技能2输入

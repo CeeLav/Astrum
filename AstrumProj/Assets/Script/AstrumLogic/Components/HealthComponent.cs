@@ -1,4 +1,5 @@
 using System;
+using TrueSync;
 
 namespace Astrum.LogicCore.Components
 {
@@ -23,9 +24,9 @@ namespace Astrum.LogicCore.Components
         public bool IsDead => CurrentHealth <= 0;
 
         /// <summary>
-        /// 生命值百分比
+        /// 生命值百分比（0-1）
         /// </summary>
-        public float HealthPercentage => MaxHealth > 0 ? (float)CurrentHealth / MaxHealth : 0f;
+        public FP HealthPercentage => MaxHealth > 0 ? (FP)CurrentHealth / (FP)MaxHealth : FP.Zero;
 
         public HealthComponent() : base() { }
 

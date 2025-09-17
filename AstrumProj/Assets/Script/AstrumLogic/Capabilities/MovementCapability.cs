@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.FrameSync;
+using TrueSync;
 
 namespace Astrum.LogicCore.Capabilities
 {
@@ -13,7 +14,7 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 移动阈值，低于此值视为停止移动
         /// </summary>
-        public float MovementThreshold { get; set; } = 0.1f;
+        public FP MovementThreshold { get; set; } = (FP)0.1f;
 
         public MovementCapability()
         {
@@ -46,33 +47,34 @@ namespace Astrum.LogicCore.Capabilities
 
             // 获取输入数据
             var input = inputComponent.CurrentInput;
-            float moveX = input.MoveX;
-            float moveY = input.MoveY;
+            // Q31.32 -> FP: 生成器已直接是 long，使用 (FP) 强转创建 FP
+            FP moveX = (FP)input.MoveX;
+            FP moveY = (FP)input.MoveY;
 
             // 计算输入强度
-            float inputMagnitude = (float)Math.Sqrt(moveX * moveX + moveY * moveY);
+            FP inputMagnitude = FP.Sqrt(moveX * moveX + moveY * moveY);
             
             // 限制输入强度在0-1之间
-            if (inputMagnitude > 1f)
+            if (inputMagnitude > FP.One)
             {
                 moveX /= inputMagnitude;
                 moveY /= inputMagnitude;
-                inputMagnitude = 1f;
+                inputMagnitude = FP.One;
             }
 
-            var deltaTime = LSConstValue.UpdateInterval / 1000f; // 将毫秒转换为秒;
+            var deltaTime = LSConstValue.UpdateInterval / 1000f; // 秒（float）
             // 直接移动
             if (inputMagnitude > MovementThreshold && movementComponent.CanMove)
             {
                 // 根据输入方向和速度计算移动距离
-                float speed = movementComponent.Speed;
-                float deltaX = moveX * speed * deltaTime;
-                float deltaY = moveY * speed * deltaTime;
+                FP speed = movementComponent.Speed;
+                FP dt = (FP)deltaTime;
+                FP deltaX = moveX * speed * dt;
+                FP deltaY = moveY * speed * dt;
                 
                 // 更新位置
-                positionComponent.X += deltaX;
-                positionComponent.Y += 0f;
-                positionComponent.Z += deltaY; // 2D移动，Z轴不移动
+                var pos = positionComponent.Position;
+                positionComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
             }
             
         }
@@ -104,7 +106,7 @@ namespace Astrum.LogicCore.Capabilities
         /// 设置移动速度
         /// </summary>
         /// <param name="speed">速度值</param>
-        public void SetSpeed(float speed)
+        public void SetSpeed(FP speed)
         {
             var movementComponent = GetOwnerComponent<MovementComponent>();
             movementComponent?.SetSpeed(speed);
@@ -114,10 +116,10 @@ namespace Astrum.LogicCore.Capabilities
         /// 获取当前移动速度
         /// </summary>
         /// <returns>当前移动速度</returns>
-        public float GetCurrentSpeed()
+        public FP GetCurrentSpeed()
         {
             var movementComponent = GetOwnerComponent<MovementComponent>();
-            return movementComponent?.Speed ?? 0f;
+            return movementComponent?.Speed ?? FP.Zero;
         }
 
         /// <summary>

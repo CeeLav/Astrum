@@ -271,19 +271,30 @@ namespace Astrum.Client.Managers
             //input.Frame = frame;
             input.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             // 移动输入
-            input.MoveX = 0f;
-            input.MoveY = 0f;
-            if (UnityEngine.Input.GetKey(KeyCode.W)) input.MoveY += 1f;
-            if (UnityEngine.Input.GetKey(KeyCode.S)) input.MoveY -= 1f;
-            if (UnityEngine.Input.GetKey(KeyCode.A)) input.MoveX -= 1f;
-            if (UnityEngine.Input.GetKey(KeyCode.D)) input.MoveX += 1f;
+            float moveX = 0f;
+            float moveY = 0f;
+            if (UnityEngine.Input.GetKey(KeyCode.W)) moveY += 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.S)) moveY -= 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.A)) moveX -= 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.D)) moveX += 1f;
+            // 归一化到单位圆
+            float mag = Mathf.Sqrt(moveX * moveX + moveY * moveY);
+            if (mag > 1f)
+            {
+                moveX /= mag;
+                moveY /= mag;
+            }
+            // 转 Q31.32 定点
+            long ToQ32(float v) => (long)(v * (double)(1L << 32));
+            input.MoveX = ToQ32(moveX);
+            input.MoveY = ToQ32(moveY);
             // 攻击输入
             input.Attack = UnityEngine.Input.GetKey(KeyCode.Space) || UnityEngine.Input.GetMouseButton(0);
             // 技能1输入
             input.Skill1 = UnityEngine.Input.GetKey(KeyCode.Q);
             // 技能2输入
             input.Skill2 = UnityEngine.Input.GetKey(KeyCode.E);
-            ASLogger.Instance.Debug($"LSInput: MainPlayerID:{playerId} MoveX={input.MoveX}, MoveY={input.MoveY}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
+            ASLogger.Instance.Debug($"LSInput: MainPlayerID:{playerId} MoveX={moveX:F2}, MoveY={moveY:F2}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
             return input;
         }
     }

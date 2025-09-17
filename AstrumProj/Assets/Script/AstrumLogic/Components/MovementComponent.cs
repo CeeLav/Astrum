@@ -1,4 +1,5 @@
 using System;
+using TrueSync;
 
 namespace Astrum.LogicCore.Components
 {
@@ -10,7 +11,7 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 移动速度
         /// </summary>
-        public float Speed { get; set; } = 1;
+        public FP Speed { get; set; } = FP.One;
 
         /// <summary>
         /// 是否可以移动
@@ -19,7 +20,7 @@ namespace Astrum.LogicCore.Components
 
         public MovementComponent() : base() { }
 
-        public MovementComponent(float speed) : base()
+        public MovementComponent(FP speed) : base()
         {
             Speed = speed;
         }
@@ -29,23 +30,23 @@ namespace Astrum.LogicCore.Components
         /// </summary>
         public void Stop()
         {
-            Speed = 0f;
+            Speed = FP.Zero;
         }
 
         /// <summary>
         /// 设置移动速度
         /// </summary>
         /// <param name="speed">速度值</param>
-        public void SetSpeed(float speed)
+        public void SetSpeed(FP speed)
         {
-            Speed = Math.Max(0f, speed);
+            Speed = TSMath.Max(FP.Zero, speed);
         }
 
         /// <summary>
         /// 获取当前速度
         /// </summary>
         /// <returns>当前速度值</returns>
-        public float GetSpeed()
+        public FP GetSpeed()
         {
             return Speed;
         }

@@ -187,16 +187,16 @@ namespace Astrum.Generated
         public int Frame { get; set; }
 
         /// <summary>
-        /// X轴移动输入
+        /// X轴移动输入（Q31.32 定点数）
         /// </summary>
         [MemoryPackOrder(2)]
-        public float MoveX { get; set; }
+        public long MoveX { get; set; }
 
         /// <summary>
-        /// Y轴移动输入
+        /// Y轴移动输入（Q31.32 定点数）
         /// </summary>
         [MemoryPackOrder(3)]
-        public float MoveY { get; set; }
+        public long MoveY { get; set; }
 
         /// <summary>
         /// 攻击输入

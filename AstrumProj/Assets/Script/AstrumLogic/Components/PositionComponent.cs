@@ -1,5 +1,5 @@
 using System;
-using System.Numerics;
+using TrueSync;
 
 namespace Astrum.LogicCore.Components
 {
@@ -9,27 +9,15 @@ namespace Astrum.LogicCore.Components
     public class PositionComponent : BaseComponent
     {
         /// <summary>
-        /// X坐标
+        /// 位置向量（TrueSync 定点）
         /// </summary>
-        public float X { get; set; }
+        public TSVector Position { get; set; }
 
-        /// <summary>
-        /// Y坐标
-        /// </summary>
-        public float Y { get; set; }
+        public PositionComponent() : base() { Position = TSVector.zero; }
 
-        /// <summary>
-        /// Z坐标
-        /// </summary>
-        public float Z { get; set; }
-
-        public PositionComponent() : base() { }
-
-        public PositionComponent(float x, float y, float z) : base()
+        public PositionComponent(FP x, FP y, FP z) : base()
         {
-            X = x;
-            Y = y;
-            Z = z;
+            Position = new TSVector(x, y, z);
         }
 
         /// <summary>
@@ -38,29 +26,25 @@ namespace Astrum.LogicCore.Components
         /// <param name="x">X坐标</param>
         /// <param name="y">Y坐标</param>
         /// <param name="z">Z坐标</param>
-        public void SetPosition(float x, float y, float z)
+        public void SetPosition(FP x, FP y, FP z)
         {
-            X = x;
-            Y = y;
-            Z = z;
+            Position = new TSVector(x, y, z);
         }
 
-        public Vector3 GetPosition()
+        public TSVector GetPosition()
         {
-            return new Vector3(X, Y, Z);
+            return Position;
         }
 
         /// <summary>
         /// 获取与另一个位置的距离
         /// </summary>
         /// <param name="other">另一个位置组件</param>
-        /// <returns>距离</returns>
-        public float DistanceTo(PositionComponent other)
+        /// <returns>距离（FP）</returns>
+        public FP DistanceTo(PositionComponent other)
         {
-            float dx = X - other.X;
-            float dy = Y - other.Y;
-            float dz = Z - other.Z;
-            return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            TSVector diff = Position - other.Position;
+            return diff.magnitude;
         }
     }
 }
