@@ -173,12 +173,12 @@ namespace Astrum.LogicCore.Core
         public void SetPlayerInput(long playerId, LSInput input)
         {
             _inputSystem.ClientInput = input;
-/*
+
             if (input != null)
             {
                 ASLogger.Instance.Log(LogLevel.Debug, $"Input Details - Frame: {input.Frame}, Move: ({input.MoveX:F2}, {input.MoveY:F2}), " +
                     $"Attack: {input.Attack}, Skill1: {input.Skill1}, Skill2: {input.Skill2}, Timestamp: {input.Timestamp}");
-            }*/
+            }
         }
         
         public void SetOneFrameInputs(OneFrameInputs inputs)
