@@ -54,9 +54,9 @@ namespace Astrum.View.Components
             if (!_isEnabled || _ownerEntityView == null) return;
 
             var pos = _ownerEntityView.OwnerEntity.GetComponent<PositionComponent>().GetPosition();
-            _targetPosition.x = pos.X;
-            _targetPosition.y = pos.Y;
-            _targetPosition.z = pos.Z;
+            _targetPosition.x = (float)pos.x;
+            _targetPosition.y = (float)pos.y;
+            _targetPosition.z = (float)pos.z;
             ASLogger.Instance.Debug($"MovementViewComponent: 更新目标位置，位置: {_targetPosition}", "View.Movement");
             
             // 更新移动

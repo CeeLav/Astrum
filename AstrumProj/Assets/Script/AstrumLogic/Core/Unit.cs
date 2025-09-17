@@ -1,5 +1,6 @@
 using System;      
 using Astrum.LogicCore.Components;
+using TrueSync;
 
 
 namespace Astrum.LogicCore.Core
@@ -43,25 +44,22 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 设置Unit的初始位置
         /// </summary>
-        /// <param name="position">初始位置</param>
-        public void SetInitialPosition(Vector3 position)
+        /// <param name="position">初始位置（TSVector）</param>
+        public void SetInitialPosition(TSVector position)
         {
             var positionComponent = GetComponent<PositionComponent>();
             if (positionComponent != null)
             {
-                positionComponent.SetPosition(position.X, position.Y, position.Z);
+                positionComponent.SetPosition(position.x, position.y, position.z);
             }
         }
 
         /// <summary>
-        /// 设置Unit的初始位置（重载方法，接受三个float参数）
+        /// 设置Unit的初始位置（重载，FP 参数）
         /// </summary>
-        /// <param name="x">X坐标</param>
-        /// <param name="y">Y坐标</param>
-        /// <param name="z">Z坐标</param>
-        public void SetInitialPosition(float x, float y, float z)
+        public void SetInitialPosition(FP x, FP y, FP z)
         {
-            SetInitialPosition(new Vector3(x, y, z));
+            SetInitialPosition(new TSVector(x, y, z));
         }
     }
 } 
