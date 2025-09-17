@@ -831,12 +831,19 @@ namespace Astrum.Editor.ASLogger
                     return;
                 }
                 
+                // 缓存现有日志的启用状态
+                var enabledStateCache = CacheLogEnabledStates();
+                Debug.Log($"[ASLoggerManager] 缓存了 {enabledStateCache.Count} 个日志条目的启用状态");
+                
                 EditorUtility.DisplayProgressBar("扫描日志", "正在扫描项目中的日志...", 0.3f);
                 
                 // 扫描项目中的实际日志 - 使用Roslyn扫描器
                 var projectLogs = RoslynLogScanner.ScanProject(_config.ToRuntimeConfig());
                 
                 Debug.Log($"[ASLoggerManager] Roslyn扫描器找到 {projectLogs.Count} 个日志条目");
+                
+                // 恢复启用状态
+                RestoreLogEnabledStates(projectLogs, enabledStateCache);
                 
                 // 清除现有配置，重新构建
                 _config.logEntries.Clear();
@@ -876,7 +883,7 @@ namespace Astrum.Editor.ASLogger
                 
                 EditorUtility.ClearProgressBar();
                 
-                Debug.Log($"日志扫描完成，找到 {projectLogs.Count} 个实际日志条目");
+                Debug.Log($"日志扫描完成，找到 {projectLogs.Count} 个实际日志条目，恢复了 {enabledStateCache.Count} 个状态");
             }
             catch (Exception ex)
             {
@@ -904,6 +911,79 @@ namespace Astrum.Editor.ASLogger
             _enabledCategories = _config.enabledCategories;
             _totalLogs = _config.totalLogs;
             _enabledLogs = _config.enabledLogs;
+        }
+        
+        /// <summary>
+        /// 缓存现有日志的启用状态
+        /// </summary>
+        private Dictionary<string, bool> CacheLogEnabledStates()
+        {
+            var cache = new Dictionary<string, bool>();
+            
+            foreach (var log in _config.logEntries)
+            {
+                // 优先使用log.id作为键
+                if (!string.IsNullOrEmpty(log.id))
+                {
+                    cache[log.id] = log.enabled;
+                }
+                // 如果没有id，使用fallbackId
+                else if (!string.IsNullOrEmpty(log.fallbackId))
+                {
+                    cache[log.fallbackId] = log.enabled;
+                }
+                // 如果都没有，使用文件路径+行号+消息的组合作为键
+                else
+                {
+                    var key = $"{log.filePath}:{log.lineNumber}:{log.message}";
+                    cache[key] = log.enabled;
+                }
+            }
+            
+            return cache;
+        }
+        
+        /// <summary>
+        /// 恢复日志的启用状态
+        /// </summary>
+        private void RestoreLogEnabledStates(List<LogEntry> newLogs, Dictionary<string, bool> enabledStateCache)
+        {
+            int restoredCount = 0;
+            
+            foreach (var log in newLogs)
+            {
+                bool foundMatch = false;
+                
+                // 尝试使用log.id匹配
+                if (!string.IsNullOrEmpty(log.id) && enabledStateCache.ContainsKey(log.id))
+                {
+                    log.enabled = enabledStateCache[log.id];
+                    foundMatch = true;
+                }
+                // 尝试使用fallbackId匹配
+                else if (!string.IsNullOrEmpty(log.fallbackId) && enabledStateCache.ContainsKey(log.fallbackId))
+                {
+                    log.enabled = enabledStateCache[log.fallbackId];
+                    foundMatch = true;
+                }
+                // 尝试使用文件路径+行号+消息的组合匹配
+                else
+                {
+                    var key = $"{log.filePath}:{log.lineNumber}:{log.message}";
+                    if (enabledStateCache.ContainsKey(key))
+                    {
+                        log.enabled = enabledStateCache[key];
+                        foundMatch = true;
+                    }
+                }
+                
+                if (foundMatch)
+                {
+                    restoredCount++;
+                }
+            }
+            
+            Debug.Log($"[ASLoggerManager] 恢复了 {restoredCount} 个日志条目的启用状态");
         }
     }
 

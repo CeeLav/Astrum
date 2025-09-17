@@ -1,13 +1,16 @@
 # Astrum 项目概述
 
+> 📖 **完整文档**: 请查看 [README.md](README.md) 获取最新的项目文档和快速开始指南
+
 ## 项目简介
 
-Astrum 是一个基于 Unity 的多人游戏项目，采用客户端-服务器架构，使用自定义的网络框架进行通信。项目的核心特点是基于 Session 的网络通信和帧同步游戏逻辑。
+Astrum 是一个基于 Unity 的多人游戏项目，采用客户端-服务器架构，使用自定义的网络框架进行通信。项目的核心特点是基于 Session 的网络通信、智能日志管理系统和帧同步游戏逻辑。
 
 **项目版本**: Unity 6000.2.0b7  
 **架构模式**: 客户端-服务器架构  
 **网络框架**: 基于 Session 的 TCP 通信  
-**同步方式**: 帧同步 (Frame Sync)
+**同步方式**: 帧同步 (Frame Sync)  
+**日志系统**: ASLogger 智能日志管理
 
 ## 项目结构
 
@@ -105,71 +108,63 @@ Client -> NetworkManager -> Session -> TService -> TCP -> Server
 - **类型分发**: 根据消息类型自动分发到对应处理器
 - **异步处理**: 支持异步消息发送和处理
 
-## 最近的重要变更
+## 最新重要更新 (2024年12月)
 
-### 网络模块重构 (最新)
+### 🚀 ASLogger 系统优化
 
-**变更原因**: 简化网络架构，移除复杂的 RPC 系统，专注于 Session 通信
+**主要改进**:
+1. **扩展 RoslynLogScanner 支持**
+   - 新增对 `ASLogger.Instance.Log(LogLevel, ...)` 格式的支持
+   - 删除了基于正则表达式的 LogScanner，统一使用 Roslyn 扫描器
+   - 提高了日志识别的准确性和性能
+
+2. **智能状态缓存机制**
+   - 刷新扫描时自动缓存现有日志的启用/禁用状态
+   - 使用多级匹配策略（ID → FallbackID → 文件路径+行号+消息）
+   - 确保用户手动配置的状态在刷新后不会丢失
+
+3. **改进的日志格式支持**
+   ```csharp
+   // 现在支持两种格式：
+   ASLogger.Instance.Debug("消息");
+   ASLogger.Instance.Log(LogLevel.Debug, "消息");
+   ```
+
+### 🔧 网络模块重构
 
 **主要变更**:
-1. **移除 RPC 系统**: 删除了所有 RPC 相关代码和方法
-2. **简化 NetworkManager**: 
-   - 移除 `RegisterHandler` 方法
-   - 添加 `OnMessageReceived` 事件
-   - 简化连接管理逻辑
-3. **强化 Session**: Session 成为网络通信的核心
-4. **统一消息处理**: 所有消息通过统一的事件接口处理
+1. **简化网络架构**
+   - 移除复杂的 RPC 系统
+   - 统一使用 Session 通信模式
+   - 简化 NetworkManager 接口
 
-**影响的文件**:
-- `NetworkManager.cs` - 大幅简化，移除 RPC 相关代码
-- `GameApplication.cs` - 更新消息处理器注册方式
-- `GamePlayManager.cs` - 适配新的消息处理机制
+2. **统一消息处理**
+   - 所有消息通过 `OnMessageReceived` 事件处理
+   - 类型安全的消息分发机制
+   - 改进的错误处理和日志记录
 
-### 业务逻辑适配
+## 开发工具和测试
 
-**变更内容**:
-1. **API 更新**: `IsConnectedProperty` -> `IsConnected()`
-2. **事件订阅**: 从方法注册改为事件订阅
-3. **消息分发**: 统一的消息分发机制
-4. **错误处理**: 改进的错误处理和日志记录
-
-## 开发和测试
-
-### 命令行测试系统
-
-项目包含完整的命令行测试系统:
-
-**测试脚本**:
-- `Test-UnityNetwork.ps1` - PowerShell 测试脚本 (推荐)
-- `run_unity_tests.bat` - 批处理测试脚本
-- `unity_test.bat` - 通用 Unity 测试脚本
-
-**测试类**:
-- `AstrumProj/Assets/Editor/NetworkTestRunner.cs` - Unity 编辑器测试类
-
-**测试功能**:
-- 编译检查
-- 网络功能测试
-- 性能测试
-- 环境清理
-
-**使用方法**:
-```powershell
-# 运行所有测试
-.\Test-UnityNetwork.ps1 -TestType all
-
-# 编译检查
-.\Test-UnityNetwork.ps1 -TestType compile
-
-# 网络测试
-.\Test-UnityNetwork.ps1 -TestType network
-```
-
-### 开发工具
-
+### 🛠️ 开发工具
 - **Proto2CS**: Protocol Buffers 到 C# 代码生成工具
-- **BattleSimulator**: 战斗逻辑模拟器
-- **NetworkTest**: 网络功能测试项目
+- **UI Generator**: 基于 Prefab 的 UI 代码生成工具
+- **ASLogger Manager**: 智能日志管理系统 (`Tools > ASLogger Manager`)
+
+### 🧪 测试系统
+- **Unity Editor 测试**: `AstrumProj/Assets/Editor/NetworkTestRunner.cs`
+- **编译检查**: 自动验证项目编译状态
+- **网络功能测试**: 验证网络连接和消息处理
+- **性能测试**: 测试系统性能和资源使用
+
+### 📝 日志管理
+1. 打开ASLogger Manager：`Tools > ASLogger Manager`
+2. 点击"刷新扫描"自动识别项目中的日志
+3. 配置日志的启用/禁用状态
+4. 支持两种日志格式：
+   ```csharp
+   ASLogger.Instance.Debug("消息");
+   ASLogger.Instance.Log(LogLevel.Debug, "消息");
+   ```
 
 ## 技术栈
 
@@ -203,42 +198,36 @@ Client -> NetworkManager -> Session -> TService -> TCP -> Server
 - **API 兼容性**: .NET Standard 2.1
 - **目标平台**: Windows Standalone
 
-## 常见问题和解决方案
+## 常见问题
 
-### 1. 网络连接问题
-- **问题**: 连接失败或超时
-- **解决**: 检查服务器状态，确认端口开放
-- **调试**: 查看 `network_test.log` 日志
+### Q: 编译时出现找不到类型错误
+A: 检查是否已运行协议生成工具，确保 `Generated/` 目录下有最新的代码
 
-### 2. 编译错误
-- **问题**: 脚本编译失败
-- **解决**: 运行 `NetworkTestRunner.CheckForErrors`
-- **调试**: 查看 Unity Console 或 `compile_check.log`
+### Q: UI界面不显示
+A: 检查UI Prefab是否正确放置在 `Assets/ArtRes/UI/` 目录，并确保已生成UI代码
 
-### 3. 消息处理问题
-- **问题**: 消息未正确处理
-- **解决**: 检查事件订阅和消息类型匹配
-- **调试**: 启用网络调试日志
+### Q: 服务器连接失败
+A: 确保服务器已启动，检查端口8888是否被占用
+
+### Q: 日志没有被识别
+A: 检查日志格式是否正确，使用 `Tools > ASLogger Manager` 刷新扫描
 
 ## 开发指南
 
 ### 添加新的网络消息
-1. 在 `Proto/` 目录定义 `.proto` 文件
+1. 在 `AstrumConfig/Proto/` 目录定义 `.proto` 文件
 2. 使用 `Proto2CS` 工具生成 C# 代码
 3. 在消息处理器中添加对应的处理逻辑
-4. 更新客户端和服务器的消息分发逻辑
 
-### 添加新的管理器
-1. 继承 `Singleton<T>` 基类
-2. 实现 `Initialize()` 和 `Shutdown()` 方法
-3. 在 `GameApplication` 中注册管理器
-4. 添加相应的更新逻辑
+### 管理日志系统
+1. 使用ASLogger Manager：`Tools > ASLogger Manager`
+2. 刷新扫描自动识别项目中的日志
+3. 配置日志的启用/禁用状态
 
-### 网络调试
-1. 启用网络日志: 设置日志级别为 Debug
-2. 使用网络测试工具: 运行 `NetworkTestRunner`
-3. 监控网络状态: 检查 `ConnectionStatus`
-4. 分析消息流: 查看消息发送和接收日志
+### 创建UI界面
+1. 在Unity中创建UI Prefab（放在 `Assets/ArtRes/UI/` 目录）
+2. 打开UI Generator工具：`Tools > UI Generator`
+3. 选择Prefab并生成UI代码
 
 ## 依赖结构 (最新更新)
 
@@ -271,19 +260,7 @@ AstrumServer (.NET 9.0)
 - 服务器项目依赖Unity程序集的编译输出
 - MemoryPack序列化在跨平台时可能需要特殊处理
 
-## 部署说明
-
-### 客户端部署
-1. 使用 Unity 构建系统生成可执行文件
-2. 包含必要的依赖库和资源文件
-3. 配置网络连接参数
-
-### 服务器部署
-1. **首先编译Unity项目**: 确保生成最新的程序集dll文件
-2. 编译 `AstrumServer` 项目
-3. 确保Unity程序集dll文件可访问
-4. 配置数据库连接和网络端口
-5. 部署到目标服务器环境
+## 构建和部署
 
 ### 构建顺序
 ```
@@ -292,42 +269,19 @@ AstrumServer (.NET 9.0)
 3. 部署服务器 → 包含所有依赖
 ```
 
-## 性能优化
+### 快速启动
+```bash
+# 启动服务器
+start_server.bat
 
-### 网络优化
-- 使用 MemoryPack 进行高效序列化
-- 实现消息压缩和批处理
-- 优化连接池和内存管理
-
-### 游戏逻辑优化
-- ECS 架构提供高性能的实体管理
-- 帧同步减少网络通信开销
-- 客户端预测减少延迟感知
-
-## 未来规划
-
-### 短期目标
-- [ ] 完善网络重连机制
-- [ ] 增加更多的单元测试
-- [ ] 优化消息处理性能
-- [ ] 改进错误处理和日志系统
-
-### 长期目标
-- [ ] 支持更多的网络协议 (UDP, WebSocket)
-- [ ] 实现分布式服务器架构
-- [ ] 添加更多的游戏功能模块
-- [ ] 提供完整的开发文档和示例
-
-## 联系信息
-
-如果在开发过程中遇到问题，可以：
-1. 查看项目日志文件
-2. 运行相应的测试脚本
-3. 检查代码注释和文档
-4. 使用调试工具进行问题定位
+# 或手动启动
+cd AstrumServer && dotnet run
+```
 
 ---
 
-**最后更新**: 2024年12月 (网络模块重构完成)  
-**文档版本**: 1.0  
-**适用版本**: Unity 6000.2.0b7, .NET 8.0
+> 📚 **完整文档**: 查看 [README.md](README.md) 获取完整的项目文档、快速开始指南和技术架构说明
+
+**最后更新**: 2024年12月 (ASLogger系统优化完成)  
+**文档版本**: 2.0  
+**适用版本**: Unity 6000.2.0b7, .NET 9.0
