@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Core
 {
     /// <summary>
     /// 游戏世界类，管理所有实体和世界级别的逻辑
     /// </summary>
-    public class World
+    [MemoryPackable]
+    public partial class World
     {
         /// <summary>
         /// 世界唯一标识符
@@ -44,7 +46,7 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 世界更新器
         /// </summary>
-        public LSUpdater? Updater { get; set; }
+        public LSUpdater Updater { get; set; }
         
         /// <summary>
         /// 所属房间ID
