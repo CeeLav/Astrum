@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.FrameSync;
 using TrueSync;
@@ -47,9 +48,9 @@ namespace Astrum.LogicCore.Capabilities
 
             // 获取输入数据
             var input = inputComponent.CurrentInput;
-            // Q31.32 -> FP: 生成器已直接是 long，使用 (FP) 强转创建 FP
-            FP moveX = (FP)input.MoveX;
-            FP moveY = (FP)input.MoveY;
+            // Q31.32 -> FP: 先转换为浮点数再转换为 FP
+            FP moveX = (FP)(input.MoveX / (double)(1L << 32));
+            FP moveY = (FP)(input.MoveY / (double)(1L << 32));
 
             // 计算输入强度
             FP inputMagnitude = FP.Sqrt(moveX * moveX + moveY * moveY);
@@ -75,6 +76,9 @@ namespace Astrum.LogicCore.Capabilities
                 // 更新位置
                 var pos = positionComponent.Position;
                 positionComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
+                
+                // 调试日志
+                ASLogger.Instance.Info($"MovementCapability: 移动执行 - 输入:({moveX}, {moveY}), 速度:{speed}, 增量:({deltaX}, {deltaY}), 新位置:({positionComponent.Position.x}, {positionComponent.Position.z})", "Logic.Movement");
             }
             
         }

@@ -24,7 +24,7 @@ namespace Astrum.Client.Core
                 // 1. 创建Room (这里模拟逻辑层的Room)
                 var room = CreateRoom();
                 var world = new World();
-                room.AddWorld(world);
+                room.MainWorld = world;
                 room.Initialize();
                 // 2. 创建Stage
                 Stage gameStage = CreateStage(room);

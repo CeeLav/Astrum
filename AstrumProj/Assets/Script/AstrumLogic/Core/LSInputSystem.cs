@@ -16,6 +16,39 @@ namespace Astrum.LogicCore.Core
                 to.Inputs[input.Key] = input.Value;
             }
         }
+
+        public static bool Equal (this OneFrameInputs a, OneFrameInputs b)
+        {
+            if (a is null || b is null)
+            {
+                if (a is null && b is null)
+                {
+                    return true;
+                }
+                return false;
+            }
+            
+            if (a.Inputs.Count != b.Inputs.Count)
+            {
+                return false;
+            }
+
+            foreach (var kv in a.Inputs)
+            {
+                if (!b.Inputs.TryGetValue(kv.Key, out LSInput inputInfo))
+                {
+                    return false;
+                }
+
+                if (kv.Value != inputInfo)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
     }
     /// <summary>
     /// 帧同步输入系统

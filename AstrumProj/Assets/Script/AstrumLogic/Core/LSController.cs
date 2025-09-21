@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
+using UnityEditor.UI;
 
 namespace Astrum.LogicCore.Core
 {
@@ -15,7 +17,7 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 所属房间
         /// </summary>
-        public Room? Room { get; set; }
+        public Room Room { get; set; }
 
         /// <summary>
         /// 当前帧
@@ -24,7 +26,12 @@ namespace Astrum.LogicCore.Core
         
         public int PredictionFrame { get; set; } = -1;
         
-        public int MaxPredictionFrames { get; set; } = -1;
+        public int MaxPredictionFrames { get; set; } = 5;
+
+        public FrameBuffer FrameBuffer
+        {
+            get { return Room?.FrameBuffer; }
+        }
 
         /// <summary>
         /// 帧率（如60FPS）
@@ -48,10 +55,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         private LSInputSystem _inputSystem;
 
-        /// <summary>
-        /// 状态历史（用于回滚）
-        /// </summary>
-        private Dictionary<int, byte[]> _stateHistory = new();
 
         /// <summary>
         /// 最大状态历史数量
@@ -95,6 +98,7 @@ namespace Astrum.LogicCore.Core
 
                 OneFrameInputs oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
                 ASLogger.Instance.Log(LogLevel.Debug, $"Tick Frame: {PredictionFrame}, Inputs Count: {oneOneFrameInputs.Inputs.Count}" );
+                SaveState();
                 Room.FrameTick(oneOneFrameInputs);
                 if (Room.MainPlayerId > 0)
                 {
@@ -109,29 +113,62 @@ namespace Astrum.LogicCore.Core
             
         }
 
+        public void Rollback(int frame)
+        {
+            Room.MainWorld.Cleanup();
+            Room.MainWorld = LoadState(frame);
+            var aInput = FrameBuffer.FrameInputs(frame);
+            Room.FrameTick(aInput);
+            for(int i = AuthorityFrame +1; i <= PredictionFrame; ++i)
+            {
+                var pInput = FrameBuffer.FrameInputs(i);
+                CopyOtherInputsTo(aInput, pInput);
+                Room.FrameTick(pInput);
+            }
+            
+        }
+        public void CopyOtherInputsTo(OneFrameInputs from, OneFrameInputs to)
+        {
+            long myId = Room.MainPlayerId;
+            foreach (var kv in from.Inputs)
+            {
+                if (kv.Key == myId)
+                {
+                    continue;
+                }
+                to.Inputs[kv.Key] = kv.Value;
+            }
+        }
+        
         /// <summary>
         /// 保存状态
         /// </summary>
         /// <param name="frame">帧号</param>
-        public void SaveState(int frame)
+        public void SaveState()
         {
-            // 这里应该序列化游戏状态
-            // 为简化实现，这里只是创建一个占位符
-            _stateHistory[frame] = SerializeGameState();
+            int frame = PredictionFrame;
+            var memoryBuffer = FrameBuffer.Snapshot(frame);
+            memoryBuffer.Seek(0, SeekOrigin.Begin);
+            memoryBuffer.SetLength(0);
+            
+            MemoryPackHelper.Serialize(Room.MainWorld, memoryBuffer);
+            memoryBuffer.Seek(0, SeekOrigin.Begin);
+            long hash = memoryBuffer.GetBuffer().Hash(0, (int)memoryBuffer.Length);
+            FrameBuffer.SetHash(frame, hash);
+
         }
 
         /// <summary>
         /// 加载状态
         /// </summary>
         /// <param name="frame">帧号</param>
-        public void LoadState(int frame)
+        public World LoadState(int frame)
         {
-            if (_stateHistory.TryGetValue(frame, out var stateData))
-            {
-                // 这里应该反序列化游戏状态
-                DeserializeGameState(stateData);
-                AuthorityFrame = frame;
-            }
+            var memoryBuffer = FrameBuffer.Snapshot(frame);
+            memoryBuffer.Seek(0, SeekOrigin.Begin);
+            World world = MemoryPackHelper.Deserialize( typeof(World),memoryBuffer) as World;
+            memoryBuffer.Seek(0, SeekOrigin.Begin);
+            return world;
         }
 
         /// <summary>
@@ -154,15 +191,7 @@ namespace Astrum.LogicCore.Core
             IsRunning = false;
             IsPaused = false;
             
-            _stateHistory.Clear();
-        }
-
-        /// <summary>
-        /// 暂停控制器
-        /// </summary>
-        public void Pause()
-        {
-            IsPaused = true;
+            
         }
         
         /// <summary>
@@ -183,30 +212,31 @@ namespace Astrum.LogicCore.Core
         
         public void SetOneFrameInputs(OneFrameInputs inputs)
         {
+            // 服务端返回的消息比预测的还早,此时使用权威帧的输入覆盖预测帧的输入
+            if (AuthorityFrame > PredictionFrame)
+            {
+                var aFrame = FrameBuffer.FrameInputs(AuthorityFrame);
+                inputs.CopyTo(aFrame);
+            }
+            else
+            {
+                var pFrame = FrameBuffer.FrameInputs(AuthorityFrame);
+                if (!inputs.Equal(pFrame))
+                {
+                    ASLogger.Instance.Log(LogLevel.Warning, $"Input Mismatch at Frame {AuthorityFrame}. Rolling back from PredictionFrame {PredictionFrame} to AuthorityFrame {AuthorityFrame}.");
+                    inputs.CopyTo(pFrame);
+                    ASLogger.Instance.Log(LogLevel.Warning,$"roll back start {AuthorityFrame});");
+                    Rollback(AuthorityFrame);
+                }
+                else
+                {
+                       
+                }
+            }
             _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
             var af = _inputSystem.FrameBuffer.FrameInputs(AuthorityFrame);
             inputs.CopyTo(af);
         }
-
-        /// <summary>
-        /// 序列化游戏状态
-        /// </summary>
-        /// <returns>序列化的状态数据</returns>
-        private byte[] SerializeGameState()
-        {
-            // 这里应该实现实际的序列化逻辑
-            // 为简化实现，返回空数组
-            return new byte[0];
-        }
-
-        /// <summary>
-        /// 反序列化游戏状态
-        /// </summary>
-        /// <param name="stateData">状态数据</param>
-        private void DeserializeGameState(byte[] stateData)
-        {
-            // 这里应该实现实际的反序列化逻辑
-        }
-
+        
     }
 }

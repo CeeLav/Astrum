@@ -2,19 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Astrum.LogicCore.Core;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Core
 {
     /// <summary>
     /// 逻辑更新器，负责更新游戏逻辑
     /// </summary>
-    public class LSUpdater
+    [MemoryPackable]
+    public partial class LSUpdater
     {
-        /// <summary>
-        /// 所属房间
-        /// </summary>
-        public Room? Room { get; set; }
-
         /// <summary>
         /// 固定时间步长
         /// </summary>
@@ -43,23 +40,7 @@ namespace Astrum.LogicCore.Core
             //world.TotalTime += deltaTime;
         }
 
-        /// <summary>
-        /// 获取需要更新的实体
-        /// </summary>
-        /// <returns>需要更新的实体列表</returns>
-        public List<Entity> GetEntitiesForUpdate()
-        {
-            var entities = new List<Entity>();
 
-            if (Room == null) return entities;
-
-            foreach (var world in Room.Worlds)
-            {
-                entities.AddRange(GetEntitiesForUpdate(world));
-            }
-
-            return entities;
-        }
 
         /// <summary>
         /// 获取指定世界中需要更新的实体

@@ -366,7 +366,7 @@ namespace Astrum.Client.Managers
                 // 1. 创建Room (这里模拟逻辑层的Room)
                 var room = CreateRoom();
                 var world = new World();
-                room.AddWorld(world);
+                room.MainWorld = world;
                 room.Initialize();
                 // 2. 创建Stage
                 Stage gameStage = CreateStage(room);
@@ -407,11 +407,9 @@ namespace Astrum.Client.Managers
                     {
                         ++MainRoom.LSController.AuthorityFrame;
                     }
-                    //MainRoom.LSController.FrameBuffer.MoveForward(frame);
                     
                     MainRoom.LSController.SetOneFrameInputs(frameInputs);
-                    // 处理帧输入
-                    //MainRoom.FrameTick(frameInputs);
+
                     
                     ASLogger.Instance.Debug($"GamePlayManager: 处理网络帧输入，帧: {MainRoom.LSController.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}");
                 }
@@ -563,7 +561,7 @@ namespace Astrum.Client.Managers
                 // 创建游戏Room和Stage
                 var room = CreateGameRoom(notification);
                 var world = new World();
-                room.AddWorld(world);
+                room.MainWorld = world;
                 room.Initialize();
                 var stage = CreateGameStage(room);
 
