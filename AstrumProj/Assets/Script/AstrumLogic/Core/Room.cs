@@ -29,11 +29,33 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public bool IsActive { get; set; } = true;
 
+        public FrameBuffer FrameBuffer
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// 管理的世界列表
         /// </summary>
-        public List<World> Worlds { get; private set; } = new List<World>();
-        public World MainWorld => Worlds.FirstOrDefault(); // 默认返回第一个世界，如果没有则返回一个新的空世界
+        public List<World> Worlds { get; private set; } = new List<World>(1);
+
+        public World MainWorld
+        {
+            get
+            {
+                return Worlds[0];
+            }
+            set
+            {
+                if (Worlds.Count < 1)
+                {
+                    Worlds.Add(value);
+                    return;
+                }
+                Worlds[0] = value;
+            }
+        } // 默认返回第一个世界，如果没有则返回空
 
         /// <summary>
         /// 玩家列表
@@ -71,32 +93,6 @@ namespace Astrum.LogicCore.Core
         {
             RoomId = roomId;
             Name = name;
-        }
-
-        /// <summary>
-        /// 添加世界
-        /// </summary>
-        /// <param name="world">世界对象</param>
-        public void AddWorld(World world)
-        {
-            if (world != null && !Worlds.Contains(world))
-            {
-                Worlds.Add(world);
-                world.Initialize();
-            }
-        }
-
-        /// <summary>
-        /// 移除世界
-        /// </summary>
-        /// <param name="world">世界对象</param>
-        public void RemoveWorld(World world)
-        {
-            if (world != null && Worlds.Contains(world))
-            {
-                world.Cleanup();
-                Worlds.Remove(world);
-            }
         }
 
         /// <summary>
@@ -184,7 +180,12 @@ namespace Astrum.LogicCore.Core
         {
             CreationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             TotalTime = 0f;
-
+            if (MainWorld == null)
+            {
+                ASLogger.Instance.Error($"Room {RoomId} has no MainWorld defined.");
+            }
+            MainWorld?.Initialize();
+            FrameBuffer = new FrameBuffer();
             // 初始化帧同步控制器
             if (LSController == null)
             {
@@ -199,113 +200,9 @@ namespace Astrum.LogicCore.Core
             // 初始化所有世界
             foreach (var world in Worlds)
             {
-                world.Initialize();
+                world?.Initialize();
             }
         }
-
-        /// <summary>
-        /// 清理房间
-        /// </summary>
-        public virtual void Cleanup()
-        {
-            IsActive = false;
-
-            // 停止帧同步控制器
-            LSController?.Stop();
-
-            // 清理所有世界
-            foreach (var world in Worlds)
-            {
-                world.Cleanup();
-            }
-
-            // 清空数据
-            Worlds.Clear();
-            Players.Clear();
-        }
-
-        /// <summary>
-        /// 根据ID获取世界
-        /// </summary>
-        /// <param name="worldId">世界ID</param>
-        /// <returns>世界对象，如果不存在返回null</returns>
-        public World? GetWorldById(int worldId)
-        {
-            return Worlds.FirstOrDefault(w => w.WorldId == worldId);
-        }
-
-        /// <summary>
-        /// 获取玩家数量
-        /// </summary>
-        /// <returns>当前玩家数量</returns>
-        public int GetPlayerCount()
-        {
-            return Players.Count;
-        }
-
-        /// <summary>
-        /// 检查玩家是否在房间中
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <returns>是否在房间中</returns>
-        public bool HasPlayer(int playerId)
-        {
-            return Players.Contains(playerId);
-        }
-
-        /// <summary>
-        /// 检查房间是否已满
-        /// </summary>
-        /// <returns>是否已满</returns>
-        public bool IsFull()
-        {
-            return Players.Count >= MaxPlayers;
-        }
-
-        /// <summary>
-        /// 检查房间是否为空
-        /// </summary>
-        /// <returns>是否为空</returns>
-        public bool IsEmpty()
-        {
-            return Players.Count == 0;
-        }
-
-        /// <summary>
-        /// 获取所有实体
-        /// </summary>
-        /// <returns>所有实体列表</returns>
-        public List<Entity> GetAllEntities()
-        {
-            var entities = new List<Entity>();
-            
-            foreach (var world in Worlds)
-            {
-                entities.AddRange(world.Entities.Values);
-            }
-
-            return entities;
-        }
-
-        /// <summary>
-        /// 根据玩家ID获取实体
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <returns>玩家实体列表</returns>
-        public List<Entity> GetPlayerEntities(int playerId)
-        {
-            var entities = new List<Entity>();
-
-            foreach (var world in Worlds)
-            {
-                var playerEntities = world.Entities.Values
-                    .Where(e => e.GetComponent<LSInputComponent>()?.PlayerId == playerId)
-                    .ToList();
-                
-                entities.AddRange(playerEntities);
-            }
-
-            return entities;
-        }
+        
     }
 }

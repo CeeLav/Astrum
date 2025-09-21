@@ -262,7 +262,7 @@ namespace Astrum.CommonBase
     public class ASLogger : Singleton<ASLogger>, ILogger
     {
         private readonly List<ILogHandler> _handlers = new List<ILogHandler>();
-        private LogLevel _minLevel = LogLevel.Debug;
+        private LogLevel _minLevel = LogLevel.Info;
         private readonly object _lock = new object();
         
         // 配置管理
@@ -581,8 +581,8 @@ namespace Astrum.CommonBase
                 logId = TryMatchLogId(message, category, level);
             }
             
-            // 检查是否应该输出日志（只有在有配置的情况下才启用过滤）
-            if (_isConfigInitialized && _config != null && !LogFilter.ShouldLog(level, category, logId))
+            // 检查是否应该输出日志（始终使用过滤器）
+            if (!LogFilter.ShouldLog(level, category, logId))
             {
                 return;
             }
