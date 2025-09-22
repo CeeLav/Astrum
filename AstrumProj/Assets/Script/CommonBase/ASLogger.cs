@@ -587,8 +587,6 @@ namespace Astrum.CommonBase
                 return;
             }
 
-            // 检查最小级别
-            if (level < _minLevel) return;
 
             var timestamp = DateTime.Now;
             List<ILogHandler> handlers;

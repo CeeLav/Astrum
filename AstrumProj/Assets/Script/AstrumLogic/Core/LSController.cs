@@ -30,7 +30,7 @@ namespace Astrum.LogicCore.Core
 
         public FrameBuffer FrameBuffer
         {
-            get { return Room?.FrameBuffer; }
+            get { return _inputSystem.FrameBuffer; }
         }
 
         /// <summary>
@@ -151,11 +151,27 @@ namespace Astrum.LogicCore.Core
             memoryBuffer.Seek(0, SeekOrigin.Begin);
             memoryBuffer.SetLength(0);
             
+            // 记录保存状态前的 World 信息
+            if (Room?.MainWorld != null)
+            {
+                var world = Room.MainWorld;
+                ASLogger.Instance.Debug($"保存帧状态 - 帧: {frame}, World ID: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.SaveState");
+                
+                if (world.Entities != null)
+                {
+                    foreach (var entity in world.Entities.Values)
+                    {
+                        ASLogger.Instance.Debug($"  - 保存实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.Capabilities?.Count ?? 0}", "FrameSync.SaveState");
+                    }
+                }
+            }
+            
             MemoryPackHelper.Serialize(Room.MainWorld, memoryBuffer);
             memoryBuffer.Seek(0, SeekOrigin.Begin);
             long hash = memoryBuffer.GetBuffer().Hash(0, (int)memoryBuffer.Length);
             FrameBuffer.SetHash(frame, hash);
-
+            
+            ASLogger.Instance.Debug($"帧状态保存完成 - 帧: {frame}, 数据大小: {memoryBuffer.Length} bytes, 哈希: {hash}", "FrameSync.SaveState");
         }
 
         /// <summary>
@@ -166,8 +182,30 @@ namespace Astrum.LogicCore.Core
         {
             var memoryBuffer = FrameBuffer.Snapshot(frame);
             memoryBuffer.Seek(0, SeekOrigin.Begin);
+            
+            ASLogger.Instance.Debug($"加载帧状态 - 帧: {frame}, 数据大小: {memoryBuffer.Length} bytes", "FrameSync.LoadState");
+            
             World world = MemoryPackHelper.Deserialize( typeof(World),memoryBuffer) as World;
             memoryBuffer.Seek(0, SeekOrigin.Begin);
+            
+            // 记录加载状态后的 World 信息
+            if (world != null)
+            {
+                ASLogger.Instance.Debug($"帧状态加载完成 - 帧: {frame}, World ID: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.LoadState");
+                
+                if (world.Entities != null)
+                {
+                    foreach (var entity in world.Entities.Values)
+                    {
+                        ASLogger.Instance.Debug($"  - 加载实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.Capabilities?.Count ?? 0}", "FrameSync.LoadState");
+                    }
+                }
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"帧状态加载失败 - 帧: {frame}, 反序列化结果为 null", "FrameSync.LoadState");
+            }
+            
             return world;
         }
 
@@ -212,6 +250,7 @@ namespace Astrum.LogicCore.Core
         
         public void SetOneFrameInputs(OneFrameInputs inputs)
         {
+            _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
             // 服务端返回的消息比预测的还早,此时使用权威帧的输入覆盖预测帧的输入
             if (AuthorityFrame > PredictionFrame)
             {
@@ -233,7 +272,6 @@ namespace Astrum.LogicCore.Core
                        
                 }
             }
-            _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
             var af = _inputSystem.FrameBuffer.FrameInputs(AuthorityFrame);
             inputs.CopyTo(af);
         }
