@@ -52,10 +52,18 @@ namespace Astrum.View.Components
         protected override void OnUpdate(float deltaTime)
         {
             if (!_isEnabled || _ownerEntityView == null) return;
-            var posC = _ownerEntityView.OwnerEntity.GetComponent<PositionComponent>();
+            
+            var ownerEntity = _ownerEntityView.OwnerEntity;
+            if (ownerEntity == null)
+            {
+                ASLogger.Instance.Log(LogLevel.Warning, $"TransViewComponent: OwnerEntity为null，跳过更新，EntityId: {_ownerEntityView.EntityId}", "View.Transform");
+                return;
+            }
+            
+            var posC = ownerEntity.GetComponent<PositionComponent>();
             if (posC == null)
             {
-                ASLogger.Instance.Log(LogLevel.Error,$"MovementViewComponent: 实体缺少PositionComponent，无法更新位置，实体ID: {_ownerEntityView.OwnerEntity.UniqueId}", "View.Movement");
+                ASLogger.Instance.Log(LogLevel.Error,$"TransViewComponent: 实体缺少PositionComponent，无法更新位置，实体ID: {ownerEntity.UniqueId}", "View.Transform");
                 return;
             }
             var pos = posC.GetPosition();

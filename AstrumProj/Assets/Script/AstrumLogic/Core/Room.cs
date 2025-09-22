@@ -132,6 +132,7 @@ namespace Astrum.LogicCore.Core
         
         public void FrameTick(OneFrameInputs oneFrameInputs)
         {
+            LSController.SaveState();
             foreach (var pairs in oneFrameInputs.Inputs)
             {
                 var input = pairs.Value;
@@ -178,7 +179,7 @@ namespace Astrum.LogicCore.Core
             {
                 ASLogger.Instance.Error($"Room {RoomId} has no MainWorld defined.");
             }
-            MainWorld?.Initialize();
+            MainWorld?.Initialize(0);
             // 初始化帧同步控制器
             if (LSController == null)
             {
@@ -193,7 +194,7 @@ namespace Astrum.LogicCore.Core
             // 初始化所有世界
             foreach (var world in Worlds)
             {
-                world?.Initialize();
+                world?.Initialize(0);
             }
         }
         
