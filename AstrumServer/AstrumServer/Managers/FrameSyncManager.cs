@@ -29,6 +29,9 @@ namespace AstrumServer.Managers
         // 定时器
         private Timer? _frameTimer;
         private bool _isRunning = false;
+
+        // 测试/观测用事件：下发帧数据前回调（便于单元测试捕获）
+        public event Action<string, int, OneFrameInputs, string>? OnBeforeSendFrameToPlayer;
         
         public FrameSyncManager(RoomManager roomManager, ServerNetworkManager networkManager, UserManager userManager)
         {
@@ -148,17 +151,20 @@ namespace AstrumServer.Managers
                     return;
                 }
                 
-                // 将SingleInput转换为LSInput并存储
+                // 将SingleInput转换为LSInput
                 var lsInput = singleInput.Input;
-                // 使用服务器的权威帧数，而不是客户端上传的帧数
                 lsInput.PlayerId = singleInput.PlayerID;
-                // 将输入存储到下一帧，因为当前帧可能已经处理完了
-                lsInput.Frame = frameState.AuthorityFrame + 1;
                 
-                // 存储输入数据到下一帧
+                // 保持客户端原始帧号，让StoreFrameInput方法处理帧号验证
+                lsInput.Frame = singleInput.FrameID;
+                
+                // 详细记录接收到的输入数据
+                LogReceivedInputDetails(roomId, singleInput.PlayerID.ToString(), lsInput, frameState.AuthorityFrame);
+                
+                // 存储输入数据（内部会处理帧号验证和缓存）
                 frameState.StoreFrameInput(lsInput);
                 
-                ASLogger.Instance.Debug($"收到玩家 {singleInput.PlayerID} 的单帧输入，房间: {roomId}，客户端帧: {singleInput.FrameID}，服务器帧: {frameState.AuthorityFrame}，输入已存储到帧 {lsInput.Frame}");
+                ASLogger.Instance.Debug($"收到玩家 {singleInput.PlayerID} 的单帧输入，房间: {roomId}，客户端帧: {singleInput.FrameID}，服务器帧: {frameState.AuthorityFrame}，最终存储帧: {lsInput.Frame}");
             }
             catch (Exception ex)
             {
@@ -213,13 +219,13 @@ namespace AstrumServer.Managers
                 // 递增权威帧
                 frameState.AuthorityFrame++;
                 
-                // 收集当前帧的所有输入数据
+                // 收集当前帧的所有输入数据（从缓存中获取）
                 var frameInputs = frameState.CollectFrameInputs(frameState.AuthorityFrame);
                 
                 // 发送帧同步数据给房间内所有玩家
                 SendFrameSyncData(roomId, frameState.AuthorityFrame, frameInputs);
                 
-                ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}", "FrameSync.Processing");
+                ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}，缓存总帧数: {frameState.GetCacheFrameCount()}", "FrameSync.Processing");
             }
             catch (Exception ex)
             {
@@ -300,6 +306,9 @@ namespace AstrumServer.Managers
         {
             try
             {
+                // 详细记录帧同步数据内容
+                LogFrameSyncDataDetails(roomId, authorityFrame, frameInputs);
+                
                 var frameData = FrameSyncData.Create();
                 frameData.roomId = roomId;
                 frameData.authorityFrame = authorityFrame;
@@ -310,19 +319,262 @@ namespace AstrumServer.Managers
                 var frameState = _roomFrameStates.GetValueOrDefault(roomId);
                 if (frameState != null)
                 {
+                    int successCount = 0;
+                    int failCount = 0;
+                    
                     foreach (var playerId in frameState.PlayerIds)
                     {
+                        // 先触发测试观测事件（不依赖底层网络），保证即使网络层失败也能在测试中捕获到数据
+                        try
+                        {
+                            OnBeforeSendFrameToPlayer?.Invoke(roomId, authorityFrame, frameInputs, playerId);
+                        }
+                        catch (Exception cbEx)
+                        {
+                            ASLogger.Instance.Warning($"OnBeforeSendFrameToPlayer 回调抛出异常: {cbEx.Message}", "FrameSync.Send");
+                        }
+
                         var sessionId = _userManager.GetSessionIdByUserId(playerId);
                         if (!string.IsNullOrEmpty(sessionId))
                         {
-                            _networkManager.SendMessage(sessionId, frameData);
+                            try
+                            {
+                                _networkManager.SendMessage(sessionId, frameData);
+                                successCount++;
+                                
+                                // 记录发送给每个玩家的详细信息
+                                LogPlayerFrameDataSent(roomId, playerId, authorityFrame, frameInputs);
+                            }
+                            catch (Exception ex)
+                            {
+                                failCount++;
+                                ASLogger.Instance.Error($"发送帧数据给玩家 {playerId} 失败: {ex.Message}", "FrameSync.Send");
+                            }
+                        }
+                        else
+                        {
+                            failCount++;
+                            ASLogger.Instance.Warning($"玩家 {playerId} 的会话ID为空，无法发送帧数据", "FrameSync.Send");
                         }
                     }
+                    
+                    ASLogger.Instance.Info($"房间 {roomId} 帧 {authorityFrame} 数据发送完成 - 成功: {successCount}, 失败: {failCount}", "FrameSync.Send");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"房间 {roomId} 的帧同步状态不存在，无法发送帧数据", "FrameSync.Send");
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"发送帧同步数据时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 详细记录接收到的输入数据
+        /// </summary>
+        private void LogReceivedInputDetails(string roomId, string playerId, LSInput input, int serverFrame)
+        {
+            try
+            {
+                if (input == null)
+                {
+                    ASLogger.Instance.Warning($"房间 {roomId} 玩家 {playerId} 输入数据为 null", "FrameSync.Input");
+                    return;
+                }
+                
+                // 检查输入内容
+                bool hasMovement = input.MoveX != 0 || input.MoveY != 0;
+                bool hasBornInfo = input.BornInfo != 0;
+                bool hasSkills = input.Skill1 || input.Skill2;
+                bool hasAttack = input.Attack;
+                
+                if (hasMovement || hasBornInfo || hasSkills || hasAttack)
+                {
+                    var inputDetails = new List<string>();
+                    
+                    if (hasMovement)
+                    {
+                        inputDetails.Add($"移动:({input.MoveX:F2},{input.MoveY:F2})");
+                    }
+                    
+                    if (hasBornInfo)
+                    {
+                        inputDetails.Add($"出生信息:{input.BornInfo}");
+                    }
+                    
+                    if (hasAttack)
+                    {
+                        inputDetails.Add("攻击");
+                    }
+                    
+                    if (hasSkills)
+                    {
+                        var skills = new List<string>();
+                        if (input.Skill1) skills.Add("技能1");
+                        if (input.Skill2) skills.Add("技能2");
+                        inputDetails.Add($"技能:[{string.Join(",", skills)}]");
+                    }
+                    
+                    ASLogger.Instance.Info($"房间 {roomId} 收到玩家 {playerId} 有效输入 (帧:{input.Frame}): {string.Join(", ", inputDetails)}", "FrameSync.Input");
+                }
+                else
+                {
+                    ASLogger.Instance.Debug($"房间 {roomId} 收到玩家 {playerId} 空输入 (帧:{input.Frame})", "FrameSync.Input");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"记录接收输入详情时出错: {ex.Message}", "FrameSync.Input");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 记录发送给单个玩家的帧数据详情
+        /// </summary>
+        private void LogPlayerFrameDataSent(string roomId, string playerId, int authorityFrame, OneFrameInputs frameInputs)
+        {
+            try
+            {
+                if (frameInputs?.Inputs == null || frameInputs.Inputs.Count == 0)
+                {
+                    ASLogger.Instance.Debug($"发送给玩家 {playerId} 的帧 {authorityFrame} 数据为空", "FrameSync.Send");
+                    return;
+                }
+
+                // 检查该玩家是否有输入数据
+                bool hasPlayerInput = frameInputs.Inputs.ContainsKey(long.Parse(playerId));
+                var playerInput = hasPlayerInput ? frameInputs.Inputs[long.Parse(playerId)] : null;
+                
+                if (hasPlayerInput && playerInput != null)
+                {
+                    var inputDetails = new List<string>();
+                    
+                    if (playerInput.MoveX != 0 || playerInput.MoveY != 0)
+                    {
+                        inputDetails.Add($"移动:({playerInput.MoveX:F2},{playerInput.MoveY:F2})");
+                    }
+                    
+                    if (playerInput.BornInfo != 0)
+                    {
+                        inputDetails.Add($"出生信息:{playerInput.BornInfo}");
+                    }
+                    
+                    if (playerInput.Attack)
+                    {
+                        inputDetails.Add("攻击");
+                    }
+                    
+                    if (playerInput.Skill1 || playerInput.Skill2)
+                    {
+                        var skills = new List<string>();
+                        if (playerInput.Skill1) skills.Add("技能1");
+                        if (playerInput.Skill2) skills.Add("技能2");
+                        inputDetails.Add($"技能:[{string.Join(",", skills)}]");
+                    }
+                    
+                    if (inputDetails.Count > 0)
+                    {
+                        ASLogger.Instance.Info($"发送给玩家 {playerId} 的帧 {authorityFrame} 数据: {string.Join(", ", inputDetails)}", "FrameSync.Send");
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Debug($"发送给玩家 {playerId} 的帧 {authorityFrame} 数据为空输入", "FrameSync.Send");
+                    }
+                }
+                else
+                {
+                    ASLogger.Instance.Debug($"发送给玩家 {playerId} 的帧 {authorityFrame} 数据: 无该玩家输入", "FrameSync.Send");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"记录玩家帧数据发送详情时出错: {ex.Message}", "FrameSync.Send");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 详细记录帧同步数据内容
+        /// </summary>
+        private void LogFrameSyncDataDetails(string roomId, int authorityFrame, OneFrameInputs frameInputs)
+        {
+            try
+            {
+                if (frameInputs?.Inputs == null || frameInputs.Inputs.Count == 0)
+                {
+                    ASLogger.Instance.Debug($"房间 {roomId} 帧 {authorityFrame} - 无输入数据", "FrameSync.Data");
+                    return;
+                }
+
+                ASLogger.Instance.Info($"房间 {roomId} 帧 {authorityFrame} - 输入数据详情 (玩家数: {frameInputs.Inputs.Count})", "FrameSync.Data");
+                
+                foreach (var kvp in frameInputs.Inputs)
+                {
+                    var playerId = kvp.Key;
+                    var input = kvp.Value;
+                    
+                    if (input == null)
+                    {
+                        ASLogger.Instance.Warning($"玩家 {playerId} 的输入数据为 null", "FrameSync.Data");
+                        continue;
+                    }
+                    
+                    // 检查是否有移动输入
+                    bool hasMovement = input.MoveX != 0 || input.MoveY != 0;
+                    
+                    // 检查是否有出生信息
+                    bool hasBornInfo = input.BornInfo != 0;
+                    
+                    // 检查是否有技能输入
+                    bool hasSkills = input.Skill1 || input.Skill2;
+                    
+                    // 检查是否有攻击输入
+                    bool hasAttack = input.Attack;
+                    
+                    // 构建输入详情字符串
+                    var inputDetails = new List<string>();
+                    
+                    if (hasMovement)
+                    {
+                        inputDetails.Add($"移动:({input.MoveX:F2},{input.MoveY:F2})");
+                    }
+                    
+                    if (hasBornInfo)
+                    {
+                        inputDetails.Add($"出生信息:{input.BornInfo}");
+                    }
+                    
+                    if (hasAttack)
+                    {
+                        inputDetails.Add("攻击");
+                    }
+                    
+                    if (hasSkills)
+                    {
+                        var skills = new List<string>();
+                        if (input.Skill1) skills.Add("技能1");
+                        if (input.Skill2) skills.Add("技能2");
+                        inputDetails.Add($"技能:[{string.Join(",", skills)}]");
+                    }
+                    
+                    // 记录输入详情
+                    if (inputDetails.Count > 0)
+                    {
+                        ASLogger.Instance.Info($"  玩家 {playerId} (帧:{input.Frame}): {string.Join(", ", inputDetails)}", "FrameSync.Data");
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Debug($"  玩家 {playerId} (帧:{input.Frame}): 无有效输入", "FrameSync.Data");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"记录帧同步数据详情时出错: {ex.Message}", "FrameSync.Data");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
@@ -420,17 +672,39 @@ namespace AstrumServer.Managers
         // 帧输入缓冲区 (帧号 -> 输入数据)
         private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();
         
+        // 帧数据缓存配置
+        private const int MAX_CACHE_FRAMES = 300; // 缓存15秒的数据(20FPS)
+        private const int CACHE_CLEANUP_INTERVAL = 60; // 每60帧清理一次缓存
+        private int _lastCleanupFrame = 0;
+        
         /// <summary>
         /// 存储帧输入数据
         /// </summary>
         public void StoreFrameInput(LSInput input)
         {
+            // 如果输入帧号已经过了，使用服务器的当前帧号
+            if (input.Frame < AuthorityFrame)
+            {
+                ASLogger.Instance.Debug($"输入帧号 {input.Frame} 已过期，使用服务器当前帧号 {AuthorityFrame}，玩家: {input.PlayerId}");
+                input.Frame = AuthorityFrame;
+            }
+            
+            // 如果输入帧号比服务器当前帧晚太多，限制在合理范围内
+            if (input.Frame > AuthorityFrame + MAX_CACHE_FRAMES)
+            {
+                ASLogger.Instance.Warning($"输入帧号 {input.Frame} 过于超前，限制为 {AuthorityFrame + MAX_CACHE_FRAMES}，玩家: {input.PlayerId}");
+                input.Frame = AuthorityFrame + MAX_CACHE_FRAMES;
+            }
+            
             if (!_frameInputs.ContainsKey(input.Frame))
             {
                 _frameInputs[input.Frame] = new Dictionary<long, LSInput>();
             }
             
             _frameInputs[input.Frame][input.PlayerId] = input;
+            
+            // 定期清理过期缓存
+            CleanupExpiredCache();
         }
         
         /// <summary>
@@ -449,6 +723,49 @@ namespace AstrumServer.Managers
             }
             
             return frameInputs;
+        }
+        
+        /// <summary>
+        /// 清理过期的帧数据缓存
+        /// </summary>
+        private void CleanupExpiredCache()
+        {
+            // 每60帧清理一次，避免频繁清理
+            if (AuthorityFrame - _lastCleanupFrame < CACHE_CLEANUP_INTERVAL)
+            {
+                return;
+            }
+            
+            _lastCleanupFrame = AuthorityFrame;
+            
+            var framesToRemove = new List<int>();
+            var cutoffFrame = AuthorityFrame - MAX_CACHE_FRAMES;
+            
+            foreach (var frame in _frameInputs.Keys)
+            {
+                if (frame < cutoffFrame)
+                {
+                    framesToRemove.Add(frame);
+                }
+            }
+            
+            foreach (var frame in framesToRemove)
+            {
+                _frameInputs.Remove(frame);
+            }
+            
+            if (framesToRemove.Count > 0)
+            {
+                ASLogger.Instance.Debug($"清理了 {framesToRemove.Count} 个过期帧缓存，当前缓存帧数: {_frameInputs.Count}");
+            }
+        }
+        
+        /// <summary>
+        /// 获取当前缓存的帧数
+        /// </summary>
+        public int GetCacheFrameCount()
+        {
+            return _frameInputs.Count;
         }
     }
 }
