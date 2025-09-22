@@ -162,7 +162,13 @@ namespace AstrumServer.Managers
                 {
                     currentPlayerIdMap[roomId] = 0;
                 }
+                
+                // 记录玩家ID映射过程
+                var originalPlayerId = lsInput.PlayerId;
+                var singleInputPlayerId = singleInput.PlayerID;
                 lsInput.PlayerId = singleInput.PlayerID != 0 ? singleInput.PlayerID : ++currentPlayerIdMap[roomId];
+                
+                ASLogger.Instance.Debug($"玩家ID映射 - 房间: {roomId}, SingleInput.PlayerID: {singleInputPlayerId}, Input.PlayerId: {originalPlayerId}, 最终PlayerId: {lsInput.PlayerId}");
                 
                 // 保持客户端原始帧号，让StoreFrameInput方法处理帧号验证
                 lsInput.Frame = singleInput.FrameID;
@@ -230,6 +236,10 @@ namespace AstrumServer.Managers
                 
                 // 收集当前帧的所有输入数据（从缓存中获取）
                 var frameInputs = frameState.CollectFrameInputs(frameState.AuthorityFrame);
+                
+                // 记录实际收集到的玩家数量
+                var actualPlayerCount = frameInputs.Inputs.Count;
+                ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，实际收到输入玩家数: {actualPlayerCount}");
                 
                 // 发送帧同步数据给房间内所有玩家
                 SendFrameSyncData(roomId, frameState.AuthorityFrame, frameInputs);
@@ -690,6 +700,9 @@ namespace AstrumServer.Managers
         // 帧输入缓冲区 (帧号 -> 输入数据)
         private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();
         
+        // 历史上曾经上报过输入的玩家ID集合（仅记录非零ID）
+        private readonly HashSet<long> _uploadedPlayerIds = new();
+        
         // 帧数据缓存配置
         private const int MAX_CACHE_FRAMES = 300; // 缓存15秒的数据(20FPS)
         private const int CACHE_CLEANUP_INTERVAL = 60; // 每60帧清理一次缓存
@@ -700,6 +713,11 @@ namespace AstrumServer.Managers
         /// </summary>
         public void StoreFrameInput(LSInput input)
         {
+            // 登记曾经上报过的非零玩家ID
+            if (input.PlayerId != 0)
+            {
+                _uploadedPlayerIds.Add(input.PlayerId);
+            }
             // 如果输入帧号已经过了，使用服务器的当前帧号
             if (input.Frame < AuthorityFrame + 1)
             {
@@ -720,7 +738,11 @@ namespace AstrumServer.Managers
             }
             
             _frameInputs[input.Frame][input.PlayerId] = input;
-            ASLogger.Instance.Debug($"存储玩家 {input.PlayerId} 的输入数据，帧号: {input.Frame}");
+            
+            // 记录存储后的帧数据状态
+            var framePlayerCount = _frameInputs[input.Frame].Count;
+            var framePlayerIds = string.Join(", ", _frameInputs[input.Frame].Keys.OrderBy(x => x));
+            ASLogger.Instance.Debug($"存储玩家 {input.PlayerId} 的输入数据，帧号: {input.Frame}，该帧当前玩家数: {framePlayerCount}，玩家ID: [{framePlayerIds}]");
             
             // 定期清理过期缓存
             CleanupExpiredCache();
@@ -733,17 +755,67 @@ namespace AstrumServer.Managers
         {
             var frameInputs = OneFrameInputs.Create();
             
-            if (_frameInputs.TryGetValue(frame, out var inputs))
+            // 优先依据历史上报过的玩家ID进行下发（保证所有曾经上报过的玩家都有条目）
+            if (_uploadedPlayerIds.Count > 0)
             {
-                foreach (var kvp in inputs)
+                var hadInputs = _frameInputs.TryGetValue(frame, out var inputsThisFrame) ? inputsThisFrame : null;
+                foreach (var playerId in _uploadedPlayerIds.OrderBy(x => x))
                 {
-                    frameInputs.Inputs[kvp.Key] = kvp.Value;
+                    if (playerId == 0) continue; // 保险过滤
+                    if (hadInputs != null && hadInputs.TryGetValue(playerId, out var actual))
+                    {
+                        frameInputs.Inputs[playerId] = actual;
+                    }
+                    else
+                    {
+                        // 为本帧未上报的历史玩家填充默认空输入
+                        frameInputs.Inputs[playerId] = CreateDefaultInput(playerId, frame);
+                        ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，填充默认空输入");
+                    }
                 }
             }
-            ASLogger.Instance.Debug($"收集帧 {frame} 的输入数据，玩家数: {frameInputs.Inputs.Count}");
+            else
+            {
+                // 如果还没有历史上报ID，则仅收集本帧实际收到的有效输入（排除0）
+                if (_frameInputs.TryGetValue(frame, out var inputs))
+                {
+                    foreach (var kvp in inputs)
+                    {
+                        var playerId = kvp.Key;
+                        var input = kvp.Value;
+                        if (playerId != 0)
+                        {
+                            frameInputs.Inputs[playerId] = input;
+                        }
+                    }
+                }
+            }
+            
+            // 详细记录收集到的玩家ID
+            var collectedPlayerIds = string.Join(", ", frameInputs.Inputs.Keys.OrderBy(x => x));
+            ASLogger.Instance.Debug($"收集帧 {frame} 的输入数据，玩家数: {frameInputs.Inputs.Count}，玩家ID: [{collectedPlayerIds}]");
             
             return frameInputs;
         }
+        
+        /// <summary>
+        /// 创建默认的空输入
+        /// </summary>
+        private LSInput CreateDefaultInput(long playerId, int frame)
+        {
+            var defaultInput = LSInput.Create();
+            defaultInput.PlayerId = playerId;
+            defaultInput.Frame = frame;
+            defaultInput.MoveX = 0;
+            defaultInput.MoveY = 0;
+            defaultInput.Attack = false;
+            defaultInput.Skill1 = false;
+            defaultInput.Skill2 = false;
+            defaultInput.BornInfo = 0;
+            defaultInput.Timestamp = TimeInfo.Instance.ClientNow();
+            return defaultInput;
+        }
+        
         
         /// <summary>
         /// 清理过期的帧数据缓存
