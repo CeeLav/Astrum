@@ -31,6 +31,9 @@ namespace AstrumServer.Core
         {
             _networkManager = ServerNetworkManager.Instance;
             
+            // 设置服务器日志级别为Debug，确保所有日志都能输出
+            ASLogger.Instance.MinLevel = LogLevel.Debug;
+            
             // 使用ASLogger创建管理器
             _userManager = new UserManager();
             _roomManager = new RoomManager();

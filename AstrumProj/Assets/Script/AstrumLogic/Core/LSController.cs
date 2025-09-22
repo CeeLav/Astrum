@@ -140,6 +140,102 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
+        /// 详细比较两个 OneFrameInputs 的差异
+        /// </summary>
+        /// <param name="inputs1">第一个输入</param>
+        /// <param name="inputs2">第二个输入</param>
+        /// <returns>差异描述</returns>
+        private string CompareInputs(OneFrameInputs inputs1, OneFrameInputs inputs2)
+        {
+            var differences = new List<string>();
+            
+            // 比较玩家数量
+            if (inputs1.Inputs.Count != inputs2.Inputs.Count)
+            {
+                differences.Add($"PlayerCount: {inputs1.Inputs.Count} vs {inputs2.Inputs.Count}");
+            }
+            
+            // 获取所有玩家ID
+            var allPlayerIds = inputs1.Inputs.Keys.Union(inputs2.Inputs.Keys).OrderBy(x => x);
+            
+            foreach (var playerId in allPlayerIds)
+            {
+                bool hasInput1 = inputs1.Inputs.TryGetValue(playerId, out var input1);
+                bool hasInput2 = inputs2.Inputs.TryGetValue(playerId, out var input2);
+                
+                if (!hasInput1)
+                {
+                    differences.Add($"Player {playerId}: Missing in inputs1");
+                    continue;
+                }
+                
+                if (!hasInput2)
+                {
+                    differences.Add($"Player {playerId}: Missing in inputs2");
+                    continue;
+                }
+                
+                // 比较具体输入字段
+                var playerDifferences = CompareSingleInput(input1, input2, playerId);
+                if (!string.IsNullOrEmpty(playerDifferences))
+                {
+                    differences.Add($"Player {playerId}: {playerDifferences}");
+                }
+            }
+            
+            return differences.Count > 0 ? string.Join("; ", differences) : "No differences found";
+        }
+        
+        /// <summary>
+        /// 比较单个 LSInput 的差异
+        /// </summary>
+        /// <param name="input1">第一个输入</param>
+        /// <param name="input2">第二个输入</param>
+        /// <param name="playerId">玩家ID</param>
+        /// <returns>差异描述</returns>
+        private string CompareSingleInput(LSInput input1, LSInput input2, long playerId)
+        {
+            var differences = new List<string>();
+            
+            if (input1.PlayerId != input2.PlayerId)
+            {
+                differences.Add($"PlayerId: {input1.PlayerId} vs {input2.PlayerId}");
+            }
+            
+            if (input1.MoveX != input2.MoveX)
+            {
+                differences.Add($"MoveX: {input1.MoveX} vs {input2.MoveX}");
+            }
+            
+            if (input1.MoveY != input2.MoveY)
+            {
+                differences.Add($"MoveY: {input1.MoveY} vs {input2.MoveY}");
+            }
+            
+            if (input1.Attack != input2.Attack)
+            {
+                differences.Add($"Attack: {input1.Attack} vs {input2.Attack}");
+            }
+            
+            if (input1.Skill1 != input2.Skill1)
+            {
+                differences.Add($"Skill1: {input1.Skill1} vs {input2.Skill1}");
+            }
+            
+            if (input1.Skill2 != input2.Skill2)
+            {
+                differences.Add($"Skill2: {input1.Skill2} vs {input2.Skill2}");
+            }
+            
+            if (input1.BornInfo != input2.BornInfo)
+            {
+                differences.Add($"BornInfo: {input1.BornInfo} vs {input2.BornInfo}");
+            }
+            
+            return differences.Count > 0 ? string.Join(", ", differences) : "";
+        }
+        
+        /// <summary>
         /// 保存状态
         /// </summary>
         /// <param name="frame">帧号</param>
@@ -261,7 +357,11 @@ namespace Astrum.LogicCore.Core
                 var pFrame = FrameBuffer.FrameInputs(AuthorityFrame);
                 if (!inputs.Equal(pFrame))
                 {
+                    // 详细比较并输出差异
+                    var differences = CompareInputs(inputs, pFrame);
                     ASLogger.Instance.Log(LogLevel.Warning, $"Input Mismatch at Frame {AuthorityFrame}. Rolling back from PredictionFrame {PredictionFrame} to AuthorityFrame {AuthorityFrame}.");
+                    ASLogger.Instance.Log(LogLevel.Warning, $"Input Differences: {differences}");
+                    
                     inputs.CopyTo(pFrame);
                     ASLogger.Instance.Log(LogLevel.Warning,$"roll back start {AuthorityFrame}");
                     Rollback(AuthorityFrame);

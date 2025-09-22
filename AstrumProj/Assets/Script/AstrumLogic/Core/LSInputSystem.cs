@@ -40,7 +40,7 @@ namespace Astrum.LogicCore.Core
                     return false;
                 }
 
-                if (kv.Value != inputInfo)
+                if (!kv.Value.Equal(inputInfo))
                 {
                     return false;
                 }
@@ -48,6 +48,35 @@ namespace Astrum.LogicCore.Core
 
             return true;
         }
+
+        /// <summary>
+        /// 比较两个 LSInput 是否相等
+        /// </summary>
+        /// <param name="a">第一个输入</param>
+        /// <param name="b">第二个输入</param>
+        /// <returns>是否相等</returns>
+        public static bool Equal(this LSInput a, LSInput b)
+        {
+            if (a is null || b is null)
+            {
+                if (a is null && b is null)
+                {
+                    return true;
+                }
+                return false;
+            }
+
+            return a.PlayerId == b.PlayerId &&
+                   a.MoveX == b.MoveX &&
+                   a.MoveY == b.MoveY &&
+                   a.Attack == b.Attack &&
+                   a.Skill1 == b.Skill1 &&
+                   a.Skill2 == b.Skill2 &&
+                   //a.Timestamp == b.Timestamp &&
+                   a.BornInfo == b.BornInfo;
+        }
+
+
 
     }
     /// <summary>
