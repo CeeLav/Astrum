@@ -4,13 +4,15 @@ using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.FrameSync;
 using TrueSync;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
     /// 移动能力，处理实体的移动逻辑
     /// </summary>
-    public class MovementCapability : Capability
+    [MemoryPackable]
+    public partial class MovementCapability : Capability
     {
         /// <summary>
         /// 移动阈值，低于此值视为停止移动

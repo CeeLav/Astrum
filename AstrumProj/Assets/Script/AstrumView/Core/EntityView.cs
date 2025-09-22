@@ -34,7 +34,18 @@ namespace Astrum.View.Core
         // 公共属�?
         public long EntityId => _entityId;
 
-        public Entity OwnerEntity => _ownerEntity;
+        public Entity OwnerEntity
+        {
+            get
+            {
+                if (_ownerEntity == null || _ownerEntity.IsDestroyed || _ownerEntity.UniqueId != _entityId)
+                {
+                    _ownerEntity = _stage.Room.MainWorld.GetEntity(EntityId);
+                }
+
+                return _ownerEntity;
+            }
+        }
         public string EntityType => _entityType;
         public bool IsVisible => _isVisible;
         public bool IsActive => _isActive;

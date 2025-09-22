@@ -1,18 +1,21 @@
 using System;
 using TrueSync;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Components
 {
     /// <summary>
     /// 位置组件，存储实体的三维坐标
     /// </summary>
-    public class PositionComponent : BaseComponent
+    [MemoryPackable]
+    public partial class PositionComponent : BaseComponent
     {
         /// <summary>
         /// 位置向量（TrueSync 定点）
         /// </summary>
         public TSVector Position { get; set; }
 
+        [MemoryPackConstructor]
         public PositionComponent() : base() { Position = TSVector.zero; }
 
         public PositionComponent(FP x, FP y, FP z) : base()

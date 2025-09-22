@@ -1,12 +1,14 @@
 using System;
 using TrueSync;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Components
 {
     /// <summary>
     /// 移动组件，存储移动相关的数据
     /// </summary>
-    public class MovementComponent : BaseComponent
+    [MemoryPackable]
+    public partial class MovementComponent : BaseComponent
     {
         /// <summary>
         /// 移动速度
@@ -18,6 +20,7 @@ namespace Astrum.LogicCore.Components
         /// </summary>
         public bool CanMove { get; set; } = true;
 
+        [MemoryPackConstructor]
         public MovementComponent() : base() { }
 
         public MovementComponent(FP speed) : base()

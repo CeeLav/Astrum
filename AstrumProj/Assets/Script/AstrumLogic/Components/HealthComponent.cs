@@ -1,12 +1,14 @@
 using System;
 using TrueSync;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Components
 {
     /// <summary>
     /// 生命值组件，管理实体的生命值
     /// </summary>
-    public class HealthComponent : BaseComponent
+    [MemoryPackable]
+    public partial class HealthComponent : BaseComponent
     {
         /// <summary>
         /// 当前生命值
@@ -28,6 +30,7 @@ namespace Astrum.LogicCore.Components
         /// </summary>
         public FP HealthPercentage => MaxHealth > 0 ? (FP)CurrentHealth / (FP)MaxHealth : FP.Zero;
 
+        [MemoryPackConstructor]
         public HealthComponent() : base() { }
 
         public HealthComponent(int maxHealth) : base()
