@@ -151,20 +151,23 @@ namespace AstrumServer.Managers
                     return;
                 }
                 
+                // 调试：记录接收到的原始数据
+                ASLogger.Instance.Debug($"收到SingleInput - PlayerID: {singleInput.PlayerID}, FrameID: {singleInput.FrameID}, Input.PlayerId: {singleInput.Input?.PlayerId}");
+                
                 // 将SingleInput转换为LSInput
                 var lsInput = singleInput.Input;
-                lsInput.PlayerId = singleInput.PlayerID;
+                lsInput.PlayerId = singleInput.PlayerID != 0 ? singleInput.PlayerID : singleInput.Input.BornInfo;
                 
                 // 保持客户端原始帧号，让StoreFrameInput方法处理帧号验证
                 lsInput.Frame = singleInput.FrameID;
                 
                 // 详细记录接收到的输入数据
-                LogReceivedInputDetails(roomId, singleInput.PlayerID.ToString(), lsInput, frameState.AuthorityFrame);
+                LogReceivedInputDetails(roomId, lsInput.PlayerId.ToString(), lsInput, frameState.AuthorityFrame);
                 
                 // 存储输入数据（内部会处理帧号验证和缓存）
                 frameState.StoreFrameInput(lsInput);
                 
-                ASLogger.Instance.Debug($"收到玩家 {singleInput.PlayerID} 的单帧输入，房间: {roomId}，客户端帧: {singleInput.FrameID}，服务器帧: {frameState.AuthorityFrame}，最终存储帧: {lsInput.Frame}");
+                ASLogger.Instance.Debug($"收到玩家 {lsInput.PlayerId} 的单帧输入，房间: {roomId}，客户端帧: {singleInput.FrameID}，服务器帧: {frameState.AuthorityFrame}，最终存储帧: {lsInput.Frame}");
             }
             catch (Exception ex)
             {
@@ -358,7 +361,7 @@ namespace AstrumServer.Managers
                         }
                     }
                     
-                    ASLogger.Instance.Info($"房间 {roomId} 帧 {authorityFrame} 数据发送完成 - 成功: {successCount}, 失败: {failCount}", "FrameSync.Send");
+                    //ASLogger.Instance.Info($"房间 {roomId} 帧 {authorityFrame} 数据发送完成 - 成功: {successCount}, 失败: {failCount}", "FrameSync.Send");
                 }
                 else
                 {
@@ -445,9 +448,13 @@ namespace AstrumServer.Managers
                     return;
                 }
 
-                // 检查该玩家是否有输入数据
-                bool hasPlayerInput = frameInputs.Inputs.ContainsKey(long.Parse(playerId));
-                var playerInput = hasPlayerInput ? frameInputs.Inputs[long.Parse(playerId)] : null;
+                // 检查该玩家是否有输入数据（playerId 可能是非数字的用户ID，不能直接 Parse）
+                LSInput? playerInput = null;
+                var hasPlayerInput = false;
+                if (long.TryParse(playerId, out var numericPlayerId))
+                {
+                    hasPlayerInput = frameInputs.Inputs.TryGetValue(numericPlayerId, out playerInput);
+                }
                 
                 if (hasPlayerInput && playerInput != null)
                 {
@@ -487,7 +494,8 @@ namespace AstrumServer.Managers
                 }
                 else
                 {
-                    ASLogger.Instance.Debug($"发送给玩家 {playerId} 的帧 {authorityFrame} 数据: 无该玩家输入", "FrameSync.Send");
+                    // 可能用户ID是非数字（如 user_***），或该玩家在本帧无输入
+                    ASLogger.Instance.Debug($"发送给玩家 {playerId} 的帧 {authorityFrame} 数据: 无该玩家输入或用户ID非数字", "FrameSync.Send");
                 }
             }
             catch (Exception ex)
@@ -510,7 +518,7 @@ namespace AstrumServer.Managers
                     return;
                 }
 
-                ASLogger.Instance.Info($"房间 {roomId} 帧 {authorityFrame} - 输入数据详情 (玩家数: {frameInputs.Inputs.Count})", "FrameSync.Data");
+                //ASLogger.Instance.Info($"房间 {roomId} 帧 {authorityFrame} - 输入数据详情 (玩家数: {frameInputs.Inputs.Count})", "FrameSync.Data");
                 
                 foreach (var kvp in frameInputs.Inputs)
                 {
@@ -683,10 +691,10 @@ namespace AstrumServer.Managers
         public void StoreFrameInput(LSInput input)
         {
             // 如果输入帧号已经过了，使用服务器的当前帧号
-            if (input.Frame < AuthorityFrame)
+            if (input.Frame < AuthorityFrame + 1)
             {
-                ASLogger.Instance.Debug($"输入帧号 {input.Frame} 已过期，使用服务器当前帧号 {AuthorityFrame}，玩家: {input.PlayerId}");
-                input.Frame = AuthorityFrame;
+                ASLogger.Instance.Debug($"输入帧号 {input.Frame} 已过期，使用服务器当前帧号 {AuthorityFrame + 1}，玩家: {input.PlayerId}");
+                input.Frame = AuthorityFrame + 1;
             }
             
             // 如果输入帧号比服务器当前帧晚太多，限制在合理范围内
