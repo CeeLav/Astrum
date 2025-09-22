@@ -713,845 +713,845 @@ MonoBehaviour:
         relativePosition: 11
         enabled: 1
         isGenerated: 0
-      - id: GamePlayManager.cs:GamePlayManager:FrameDataUpload:7
-        fallbackId: GamePlayManager.cs:69:FrameDataUpload
+      - id: GamePlayManager.cs:GamePlayManager:FrameDataUpload:8
+        fallbackId: GamePlayManager.cs:70:FrameDataUpload
         category: Default
         level: 0
         message: "$\"GamePlayManager: \u53D1\u9001\u5355\u5E27\u8F93\u5165\uFF0C\u5E27:
           {...}\uFF0C\u8F93\u5165: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 69
+        lineNumber: 70
         methodName: FrameDataUpload
         className: GamePlayManager
-        relativePosition: 7
+        relativePosition: 8
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnPlayerCreated:7
-        fallbackId: GamePlayManager.cs:80:OnPlayerCreated
+        fallbackId: GamePlayManager.cs:81:OnPlayerCreated
         category: Default
         level: 1
         message: "\"GamePlayManager: \u4E3B\u73A9\u5BB6\u521B\u5EFA\u5B8C\u6210,
           ID: \" + PlayerId"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 80
+        lineNumber: 81
         methodName: OnPlayerCreated
         className: GamePlayManager
         relativePosition: 7
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnPlayerCreated:9
-        fallbackId: GamePlayManager.cs:82:OnPlayerCreated
+        fallbackId: GamePlayManager.cs:83:OnPlayerCreated
         category: Default
         level: 0
         message: '$"GamePlayManager: <OnPlayerCreated>: {...} , BornInfo: {...}"'
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 82
+        lineNumber: 83
         methodName: OnPlayerCreated
         className: GamePlayManager
         relativePosition: 9
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:RegisterNetworkMessageHandlers:22
-        fallbackId: GamePlayManager.cs:110:RegisterNetworkMessageHandlers
+        fallbackId: GamePlayManager.cs:111:RegisterNetworkMessageHandlers
         category: Default
         level: 1
         message: "GamePlayManager: \u7F51\u7EDC\u6D88\u606F\u5904\u7406\u5668\u6CE8\u518C\u5B8C\u6210"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 110
+        lineNumber: 111
         methodName: RegisterNetworkMessageHandlers
         className: GamePlayManager
         relativePosition: 22
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:RegisterNetworkMessageHandlers:26
-        fallbackId: GamePlayManager.cs:114:RegisterNetworkMessageHandlers
+        fallbackId: GamePlayManager.cs:115:RegisterNetworkMessageHandlers
         category: Default
         level: 2
         message: "GamePlayManager: NetworkManager \u4E0D\u5B58\u5728\uFF0C\u65E0\u6CD5\u6CE8\u518C\u6D88\u606F\u5904\u7406\u5668"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 114
+        lineNumber: 115
         methodName: RegisterNetworkMessageHandlers
         className: GamePlayManager
         relativePosition: 26
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:UnregisterNetworkMessageHandlers:22
-        fallbackId: GamePlayManager.cs:143:UnregisterNetworkMessageHandlers
+        fallbackId: GamePlayManager.cs:144:UnregisterNetworkMessageHandlers
         category: Default
         level: 1
         message: "GamePlayManager: \u7F51\u7EDC\u6D88\u606F\u5904\u7406\u5668\u53D6\u6D88\u6CE8\u518C\u5B8C\u6210"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 143
+        lineNumber: 144
         methodName: UnregisterNetworkMessageHandlers
         className: GamePlayManager
         relativePosition: 22
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:Shutdown:11
-        fallbackId: GamePlayManager.cs:172:Shutdown
+        fallbackId: GamePlayManager.cs:173:Shutdown
         category: Default
         level: 1
         message: "GamePlayManager: \u5DF2\u5173\u95ED"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 172
+        lineNumber: 173
         methodName: Shutdown
         className: GamePlayManager
         relativePosition: 11
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnLoginResponse:4
-        fallbackId: GamePlayManager.cs:186:OnLoginResponse
+        fallbackId: GamePlayManager.cs:187:OnLoginResponse
         category: Default
         level: 1
         message: "GamePlayManager: \u6536\u5230\u767B\u5F55\u54CD\u5E94"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 186
+        lineNumber: 187
         methodName: OnLoginResponse
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnLoginResponse:13
-        fallbackId: GamePlayManager.cs:195:OnLoginResponse
+        fallbackId: GamePlayManager.cs:196:OnLoginResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u767B\u5F55\u5931\u8D25 - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 195
+        lineNumber: 196
         methodName: OnLoginResponse
         className: GamePlayManager
         relativePosition: 13
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnLoginResponse:19
-        fallbackId: GamePlayManager.cs:201:OnLoginResponse
+        fallbackId: GamePlayManager.cs:202:OnLoginResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u767B\u5F55\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 201
+        lineNumber: 202
         methodName: OnLoginResponse
         className: GamePlayManager
         relativePosition: 19
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnCreateRoomResponse:4
-        fallbackId: GamePlayManager.cs:213:OnCreateRoomResponse
+        fallbackId: GamePlayManager.cs:214:OnCreateRoomResponse
         category: Default
         level: 1
         message: "GamePlayManager: \u6536\u5230\u521B\u5EFA\u623F\u95F4\u54CD\u5E94"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 213
+        lineNumber: 214
         methodName: OnCreateRoomResponse
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnCreateRoomResponse:13
-        fallbackId: GamePlayManager.cs:222:OnCreateRoomResponse
+        fallbackId: GamePlayManager.cs:223:OnCreateRoomResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u521B\u5EFA\u623F\u95F4\u5931\u8D25 - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 222
+        lineNumber: 223
         methodName: OnCreateRoomResponse
         className: GamePlayManager
         relativePosition: 13
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnCreateRoomResponse:19
-        fallbackId: GamePlayManager.cs:228:OnCreateRoomResponse
+        fallbackId: GamePlayManager.cs:229:OnCreateRoomResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u521B\u5EFA\u623F\u95F4\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 228
+        lineNumber: 229
         methodName: OnCreateRoomResponse
         className: GamePlayManager
         relativePosition: 19
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnJoinRoomResponse:4
-        fallbackId: GamePlayManager.cs:240:OnJoinRoomResponse
+        fallbackId: GamePlayManager.cs:241:OnJoinRoomResponse
         category: Default
         level: 1
         message: "GamePlayManager: \u6536\u5230\u52A0\u5165\u623F\u95F4\u54CD\u5E94"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 240
+        lineNumber: 241
         methodName: OnJoinRoomResponse
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnJoinRoomResponse:13
-        fallbackId: GamePlayManager.cs:249:OnJoinRoomResponse
+        fallbackId: GamePlayManager.cs:250:OnJoinRoomResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u52A0\u5165\u623F\u95F4\u5931\u8D25 - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 249
+        lineNumber: 250
         methodName: OnJoinRoomResponse
         className: GamePlayManager
         relativePosition: 13
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnJoinRoomResponse:19
-        fallbackId: GamePlayManager.cs:255:OnJoinRoomResponse
+        fallbackId: GamePlayManager.cs:256:OnJoinRoomResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u52A0\u5165\u623F\u95F4\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 255
+        lineNumber: 256
         methodName: OnJoinRoomResponse
         className: GamePlayManager
         relativePosition: 19
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnLeaveRoomResponse:4
-        fallbackId: GamePlayManager.cs:267:OnLeaveRoomResponse
+        fallbackId: GamePlayManager.cs:268:OnLeaveRoomResponse
         category: Default
         level: 1
         message: "GamePlayManager: \u6536\u5230\u79BB\u5F00\u623F\u95F4\u54CD\u5E94"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 267
+        lineNumber: 268
         methodName: OnLeaveRoomResponse
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnLeaveRoomResponse:13
-        fallbackId: GamePlayManager.cs:276:OnLeaveRoomResponse
+        fallbackId: GamePlayManager.cs:277:OnLeaveRoomResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u79BB\u5F00\u623F\u95F4\u5931\u8D25 - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 276
+        lineNumber: 277
         methodName: OnLeaveRoomResponse
         className: GamePlayManager
         relativePosition: 13
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnLeaveRoomResponse:19
-        fallbackId: GamePlayManager.cs:282:OnLeaveRoomResponse
+        fallbackId: GamePlayManager.cs:283:OnLeaveRoomResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u79BB\u5F00\u623F\u95F4\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 282
+        lineNumber: 283
         methodName: OnLeaveRoomResponse
         className: GamePlayManager
         relativePosition: 19
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGetRoomListResponse:4
-        fallbackId: GamePlayManager.cs:294:OnGetRoomListResponse
+        fallbackId: GamePlayManager.cs:295:OnGetRoomListResponse
         category: Default
         level: 1
         message: "GamePlayManager: \u6536\u5230\u83B7\u53D6\u623F\u95F4\u5217\u8868\u54CD\u5E94"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 294
+        lineNumber: 295
         methodName: OnGetRoomListResponse
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGetRoomListResponse:13
-        fallbackId: GamePlayManager.cs:303:OnGetRoomListResponse
+        fallbackId: GamePlayManager.cs:304:OnGetRoomListResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u83B7\u53D6\u623F\u95F4\u5217\u8868\u5931\u8D25
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 303
+        lineNumber: 304
         methodName: OnGetRoomListResponse
         className: GamePlayManager
         relativePosition: 13
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGetRoomListResponse:19
-        fallbackId: GamePlayManager.cs:309:OnGetRoomListResponse
+        fallbackId: GamePlayManager.cs:310:OnGetRoomListResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u83B7\u53D6\u623F\u95F4\u5217\u8868\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 309
+        lineNumber: 310
         methodName: OnGetRoomListResponse
         className: GamePlayManager
         relativePosition: 19
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnRoomUpdateNotification:4
-        fallbackId: GamePlayManager.cs:321:OnRoomUpdateNotification
+        fallbackId: GamePlayManager.cs:322:OnRoomUpdateNotification
         category: Default
         level: 1
         message: "GamePlayManager: \u6536\u5230\u623F\u95F4\u66F4\u65B0\u901A\u77E5"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 321
+        lineNumber: 322
         methodName: OnRoomUpdateNotification
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnRoomUpdateNotification:11
-        fallbackId: GamePlayManager.cs:328:OnRoomUpdateNotification
+        fallbackId: GamePlayManager.cs:329:OnRoomUpdateNotification
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u623F\u95F4\u66F4\u65B0\u901A\u77E5\u65F6\u53D1\u751F\u5F02\u5E38
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 328
+        lineNumber: 329
         methodName: OnRoomUpdateNotification
         className: GamePlayManager
         relativePosition: 11
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnHeartbeatResponse:4
-        fallbackId: GamePlayManager.cs:339:OnHeartbeatResponse
+        fallbackId: GamePlayManager.cs:340:OnHeartbeatResponse
         category: Default
         level: 0
         message: "GamePlayManager: \u6536\u5230\u5FC3\u8DF3\u54CD\u5E94"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 339
+        lineNumber: 340
         methodName: OnHeartbeatResponse
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnHeartbeatResponse:9
-        fallbackId: GamePlayManager.cs:344:OnHeartbeatResponse
+        fallbackId: GamePlayManager.cs:345:OnHeartbeatResponse
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u5FC3\u8DF3\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 344
+        lineNumber: 345
         methodName: OnHeartbeatResponse
         className: GamePlayManager
         relativePosition: 9
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:StartSinglePlayerGame:2
-        fallbackId: GamePlayManager.cs:361:StartSinglePlayerGame
+        fallbackId: GamePlayManager.cs:362:StartSinglePlayerGame
         category: Default
         level: 1
         message: "GameLauncher: \u542F\u52A8\u6E38\u620F"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 361
+        lineNumber: 362
         methodName: StartSinglePlayerGame
         className: GamePlayManager
         relativePosition: 2
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:StartSinglePlayerGame:19
-        fallbackId: GamePlayManager.cs:378:StartSinglePlayerGame
+        fallbackId: GamePlayManager.cs:379:StartSinglePlayerGame
         category: Default
         level: 1
         message: "GameLauncher: \u6E38\u620F\u542F\u52A8\u6210\u529F"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 378
+        lineNumber: 379
         methodName: StartSinglePlayerGame
         className: GamePlayManager
         relativePosition: 19
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:StartSinglePlayerGame:23
-        fallbackId: GamePlayManager.cs:382:StartSinglePlayerGame
+        fallbackId: GamePlayManager.cs:383:StartSinglePlayerGame
         category: Default
         level: 3
         message: "$\"GameLauncher: \u542F\u52A8\u6E38\u620F\u5931\u8D25 - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 382
+        lineNumber: 383
         methodName: StartSinglePlayerGame
         className: GamePlayManager
         relativePosition: 23
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:4
-        fallbackId: GamePlayManager.cs:391:DealNetFrameInputs
+        fallbackId: GamePlayManager.cs:392:DealNetFrameInputs
         category: Default
         level: 2
         message: "GamePlayManager: \u5F53\u524D\u6CA1\u6709Room"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 391
+        lineNumber: 392
         methodName: DealNetFrameInputs
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
-      - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:28
-        fallbackId: GamePlayManager.cs:415:DealNetFrameInputs
+      - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:26
+        fallbackId: GamePlayManager.cs:414:DealNetFrameInputs
         category: Default
         level: 0
         message: "$\"GamePlayManager: \u5904\u7406\u7F51\u7EDC\u5E27\u8F93\u5165\uFF0C\u5E27:
           {...}\uFF0C\u8F93\u5165\u6570: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 415
+        lineNumber: 414
         methodName: DealNetFrameInputs
         className: GamePlayManager
-        relativePosition: 28
-        enabled: 0
+        relativePosition: 26
+        enabled: 1
         isGenerated: 0
-      - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:32
-        fallbackId: GamePlayManager.cs:419:DealNetFrameInputs
+      - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:30
+        fallbackId: GamePlayManager.cs:418:DealNetFrameInputs
         category: Default
         level: 2
         message: "GamePlayManager: LSController \u4E0D\u5B58\u5728\uFF0C\u65E0\u6CD5\u5904\u7406\u5E27\u8F93\u5165"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 419
+        lineNumber: 418
         methodName: DealNetFrameInputs
         className: GamePlayManager
-        relativePosition: 32
+        relativePosition: 30
         enabled: 1
         isGenerated: 0
-      - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:37
-        fallbackId: GamePlayManager.cs:424:DealNetFrameInputs
+      - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:35
+        fallbackId: GamePlayManager.cs:423:DealNetFrameInputs
         category: Default
         level: 3
         message: "$\"GamePlayManager: \u5904\u7406\u7F51\u7EDC\u5E27\u8F93\u5165\u65F6\u51FA\u9519:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 424
+        lineNumber: 423
         methodName: DealNetFrameInputs
         className: GamePlayManager
-        relativePosition: 37
+        relativePosition: 35
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:CreateRoom:4
-        fallbackId: GamePlayManager.cs:437:CreateRoom
+        fallbackId: GamePlayManager.cs:436:CreateRoom
         category: Default
         level: 1
         message: "$\"GameLauncher: \u521B\u5EFARoom\uFF0CID: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 437
+        lineNumber: 436
         methodName: CreateRoom
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:CreateStage:2
-        fallbackId: GamePlayManager.cs:446:CreateStage
+        fallbackId: GamePlayManager.cs:445:CreateStage
         category: Default
         level: 1
         message: "GameLauncher: \u521B\u5EFAStage"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 446
+        lineNumber: 445
         methodName: CreateStage
         className: GamePlayManager
         relativePosition: 2
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:RequestCreatePlayer:7
-        fallbackId: GamePlayManager.cs:467:RequestCreatePlayer
+        fallbackId: GamePlayManager.cs:466:RequestCreatePlayer
         category: Default
         level: 0
         message: "$\"GamePlayManager: \u53D1\u9001\u751F\u6210\u73A9\u5BB6\u8BF7\u6C42\uFF0C\u8F93\u5165:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 467
+        lineNumber: 466
         methodName: RequestCreatePlayer
         className: GamePlayManager
         relativePosition: 7
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:CreatePlayer:2
-        fallbackId: GamePlayManager.cs:475:CreatePlayer
+        fallbackId: GamePlayManager.cs:474:CreatePlayer
         category: Default
         level: 1
         message: "GameLauncher: \u521B\u5EFAPlayer\u5E76\u52A0\u5165Stage"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 475
+        lineNumber: 474
         methodName: CreatePlayer
         className: GamePlayManager
         relativePosition: 2
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:CreatePlayer:13
-        fallbackId: GamePlayManager.cs:486:CreatePlayer
+        fallbackId: GamePlayManager.cs:485:CreatePlayer
         category: Default
         level: 1
         message: "$\"GameLauncher: Player\u521B\u5EFA\u5B8C\u6210\uFF0CID: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 486
+        lineNumber: 485
         methodName: CreatePlayer
         className: GamePlayManager
         relativePosition: 13
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:SwitchToGameScene:2
-        fallbackId: GamePlayManager.cs:494:SwitchToGameScene
+        fallbackId: GamePlayManager.cs:493:SwitchToGameScene
         category: Default
         level: 1
         message: "$\"GameLauncher: \u5207\u6362\u5230\u6E38\u620F\u573A\u666F {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 494
+        lineNumber: 493
         methodName: SwitchToGameScene
         className: GamePlayManager
         relativePosition: 2
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameSceneLoaded:2
-        fallbackId: GamePlayManager.cs:514:OnGameSceneLoaded
+        fallbackId: GamePlayManager.cs:513:OnGameSceneLoaded
         category: Default
         level: 1
         message: "GameLauncher: \u6E38\u620F\u573A\u666F\u52A0\u8F7D\u5B8C\u6210"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 514
+        lineNumber: 513
         methodName: OnGameSceneLoaded
         className: GamePlayManager
         relativePosition: 2
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameSceneLoaded:8
-        fallbackId: GamePlayManager.cs:520:OnGameSceneLoaded
+        fallbackId: GamePlayManager.cs:519:OnGameSceneLoaded
         category: Default
         level: 1
         message: "GameLauncher: \u6E38\u620F\u51C6\u5907\u5B8C\u6210"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 520
+        lineNumber: 519
         methodName: OnGameSceneLoaded
         className: GamePlayManager
         relativePosition: 8
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:4
-        fallbackId: GamePlayManager.cs:532:OnGameResponse
+        fallbackId: GamePlayManager.cs:531:OnGameResponse
         category: Default
         level: 1
         message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u54CD\u5E94 - Success:
           {...}, Message: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 532
+        lineNumber: 531
         methodName: OnGameResponse
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:10
-        fallbackId: GamePlayManager.cs:538:OnGameResponse
+        fallbackId: GamePlayManager.cs:537:OnGameResponse
         category: Default
         level: 1
         message: "$\"\u6E38\u620F\u64CD\u4F5C\u6210\u529F: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 538
+        lineNumber: 537
         methodName: OnGameResponse
         className: GamePlayManager
         relativePosition: 10
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:15
-        fallbackId: GamePlayManager.cs:543:OnGameResponse
+        fallbackId: GamePlayManager.cs:542:OnGameResponse
         category: Default
         level: 2
         message: "$\"\u6E38\u620F\u64CD\u4F5C\u5931\u8D25: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 543
+        lineNumber: 542
         methodName: OnGameResponse
         className: GamePlayManager
         relativePosition: 15
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:20
-        fallbackId: GamePlayManager.cs:548:OnGameResponse
+        fallbackId: GamePlayManager.cs:547:OnGameResponse
         category: Default
         level: 3
         message: "$\"\u5904\u7406\u6E38\u620F\u54CD\u5E94\u65F6\u51FA\u9519: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 548
+        lineNumber: 547
         methodName: OnGameResponse
         className: GamePlayManager
         relativePosition: 20
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameStartNotification:4
-        fallbackId: GamePlayManager.cs:560:OnGameStartNotification
+        fallbackId: GamePlayManager.cs:559:OnGameStartNotification
         category: Default
         level: 1
         message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u5F00\u59CB\u901A\u77E5
           - \u623F\u95F4: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 560
+        lineNumber: 559
         methodName: OnGameStartNotification
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameStartNotification:22
-        fallbackId: GamePlayManager.cs:578:OnGameStartNotification
+        fallbackId: GamePlayManager.cs:577:OnGameStartNotification
         category: Default
         level: 1
         message: "$\"\u6E38\u620F\u5F00\u59CB - \u623F\u95F4: {...}, \u73A9\u5BB6\u6570:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 578
+        lineNumber: 577
         methodName: OnGameStartNotification
         className: GamePlayManager
         relativePosition: 22
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameStartNotification:26
-        fallbackId: GamePlayManager.cs:582:OnGameStartNotification
+        fallbackId: GamePlayManager.cs:581:OnGameStartNotification
         category: Default
         level: 3
         message: "$\"\u5904\u7406\u6E38\u620F\u5F00\u59CB\u901A\u77E5\u65F6\u51FA\u9519:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 582
+        lineNumber: 581
         methodName: OnGameStartNotification
         className: GamePlayManager
         relativePosition: 26
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameEndNotification:4
-        fallbackId: GamePlayManager.cs:594:OnGameEndNotification
+        fallbackId: GamePlayManager.cs:593:OnGameEndNotification
         category: Default
         level: 1
         message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u7ED3\u675F\u901A\u77E5
           - \u623F\u95F4: {...}, \u539F\u56E0: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 594
+        lineNumber: 593
         methodName: OnGameEndNotification
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameEndNotification:17
-        fallbackId: GamePlayManager.cs:607:OnGameEndNotification
+        fallbackId: GamePlayManager.cs:606:OnGameEndNotification
         category: Default
         level: 1
         message: "$\"\u6E38\u620F\u7ED3\u675F - \u623F\u95F4: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 607
+        lineNumber: 606
         methodName: OnGameEndNotification
         className: GamePlayManager
         relativePosition: 17
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameEndNotification:21
-        fallbackId: GamePlayManager.cs:611:OnGameEndNotification
+        fallbackId: GamePlayManager.cs:610:OnGameEndNotification
         category: Default
         level: 3
         message: "$\"\u5904\u7406\u6E38\u620F\u7ED3\u675F\u901A\u77E5\u65F6\u51FA\u9519:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 611
+        lineNumber: 610
         methodName: OnGameEndNotification
         className: GamePlayManager
         relativePosition: 21
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameStateUpdate:4
-        fallbackId: GamePlayManager.cs:623:OnGameStateUpdate
+        fallbackId: GamePlayManager.cs:622:OnGameStateUpdate
         category: Default
         level: 1
         message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u72B6\u6001\u66F4\u65B0
           - \u623F\u95F4: {...}, \u56DE\u5408: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 623
+        lineNumber: 622
         methodName: OnGameStateUpdate
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameStateUpdate:11
-        fallbackId: GamePlayManager.cs:630:OnGameStateUpdate
+        fallbackId: GamePlayManager.cs:629:OnGameStateUpdate
         category: Default
         level: 1
         message: "$\"\u6E38\u620F\u72B6\u6001\u66F4\u65B0 - \u5F53\u524D\u56DE\u5408:
           {...}/{...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 630
+        lineNumber: 629
         methodName: OnGameStateUpdate
         className: GamePlayManager
         relativePosition: 11
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnGameStateUpdate:17
-        fallbackId: GamePlayManager.cs:636:OnGameStateUpdate
+        fallbackId: GamePlayManager.cs:635:OnGameStateUpdate
         category: Default
         level: 3
         message: "$\"\u5904\u7406\u6E38\u620F\u72B6\u6001\u66F4\u65B0\u65F6\u51FA\u9519:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 636
+        lineNumber: 635
         methodName: OnGameStateUpdate
         className: GamePlayManager
         relativePosition: 17
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:CreateGameRoom:3
-        fallbackId: GamePlayManager.cs:647:CreateGameRoom
+        fallbackId: GamePlayManager.cs:646:CreateGameRoom
         category: Default
         level: 1
         message: "$\"\u521B\u5EFA\u6E38\u620F\u623F\u95F4: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 647
+        lineNumber: 646
         methodName: CreateGameRoom
         className: GamePlayManager
         relativePosition: 3
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:CreateGameStage:5
-        fallbackId: GamePlayManager.cs:659:CreateGameStage
+        fallbackId: GamePlayManager.cs:658:CreateGameStage
         category: Default
         level: 1
         message: "\u521B\u5EFA\u6E38\u620F\u821E\u53F0"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 659
+        lineNumber: 658
         methodName: CreateGameStage
         className: GamePlayManager
         relativePosition: 5
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:ShowGameResult:4
-        fallbackId: GamePlayManager.cs:670:ShowGameResult
+        fallbackId: GamePlayManager.cs:669:ShowGameResult
         category: Default
         level: 1
         message: "$\"\u6E38\u620F\u7ED3\u679C - \u623F\u95F4: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 670
+        lineNumber: 669
         methodName: ShowGameResult
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:ShowGameResult:8
-        fallbackId: GamePlayManager.cs:674:ShowGameResult
+        fallbackId: GamePlayManager.cs:673:ShowGameResult
         category: Default
         level: 1
         message: "$\"\u73A9\u5BB6 {...}: \u5206\u6570 {...}, \u6392\u540D {...},
           \u83B7\u80DC: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 674
+        lineNumber: 673
         methodName: ShowGameResult
         className: GamePlayManager
         relativePosition: 8
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:ShowGameResult:17
-        fallbackId: GamePlayManager.cs:683:ShowGameResult
+        fallbackId: GamePlayManager.cs:682:ShowGameResult
         category: Default
         level: 3
         message: "$\"\u663E\u793A\u6E38\u620F\u7ED3\u679C\u65F6\u51FA\u9519: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 683
+        lineNumber: 682
         methodName: ShowGameResult
         className: GamePlayManager
         relativePosition: 17
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:ReturnToRoomList:6
-        fallbackId: GamePlayManager.cs:697:ReturnToRoomList
+        fallbackId: GamePlayManager.cs:696:ReturnToRoomList
         category: Default
         level: 1
         message: "\u8FD4\u56DE\u623F\u95F4\u5217\u8868"
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 697
+        lineNumber: 696
         methodName: ReturnToRoomList
         className: GamePlayManager
         relativePosition: 6
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:ReturnToRoomList:10
-        fallbackId: GamePlayManager.cs:701:ReturnToRoomList
+        fallbackId: GamePlayManager.cs:700:ReturnToRoomList
         category: Default
         level: 3
         message: "$\"\u8FD4\u56DE\u623F\u95F4\u5217\u8868\u65F6\u51FA\u9519: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 701
+        lineNumber: 700
         methodName: ReturnToRoomList
         className: GamePlayManager
         relativePosition: 10
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnFrameInputs:4
-        fallbackId: GamePlayManager.cs:782:OnFrameInputs
+        fallbackId: GamePlayManager.cs:781:OnFrameInputs
         category: Default
         level: 0
         message: "$\"GamePlayManager: \u6536\u5230\u5E27\u8F93\u5165\u6570\u636E\uFF0C\u8F93\u5165\u6570:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 782
+        lineNumber: 781
         methodName: OnFrameInputs
         className: GamePlayManager
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: GamePlayManager.cs:GamePlayManager:OnFrameInputs:11
-        fallbackId: GamePlayManager.cs:789:OnFrameInputs
+        fallbackId: GamePlayManager.cs:788:OnFrameInputs
         category: Default
         level: 3
         message: "$\"\u5904\u7406\u5E27\u8F93\u5165\u6570\u636E\u65F6\u51FA\u9519:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-        lineNumber: 789
+        lineNumber: 788
         methodName: OnFrameInputs
         className: GamePlayManager
         relativePosition: 11
@@ -3034,20 +3034,20 @@ MonoBehaviour:
         enabled: 1
         isGenerated: 0
       - id: LSController.cs:LSController:Tick:21
-        fallbackId: LSController.cs:97:Tick
+        fallbackId: LSController.cs:100:Tick
         category: Default
         level: 0
         message: '$"Tick Frame: {...}, Inputs Count: {...}"'
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
-        lineNumber: 97
+        lineNumber: 100
         methodName: Tick
         className: LSController
         relativePosition: 21
         enabled: 0
         isGenerated: 0
       - id: LSController.cs:LSController:SetPlayerInput:6
-        fallbackId: LSController.cs:179:SetPlayerInput
+        fallbackId: LSController.cs:246:SetPlayerInput
         category: Default
         level: 0
         message: "$\"Input Details - Frame: {input.Frame}, Move: ({input.MoveX:F2},
@@ -3055,23 +3055,63 @@ MonoBehaviour:
           Skill1: {input.Skill1}, Skill2: {input.Skill2}, Timestamp: {input.Timestamp}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
-        lineNumber: 179
+        lineNumber: 246
         methodName: SetPlayerInput
         className: LSController
         relativePosition: 6
         enabled: 1
         isGenerated: 0
+      - id: LSController.cs:LSController:SetOneFrameInputs:14
+        fallbackId: LSController.cs:265:SetOneFrameInputs
+        category: Default
+        level: 2
+        message: $"Input Mismatch at Frame {...}. Rolling back from PredictionFrame
+          {...} to AuthorityFrame {...}."
+        cleanMessage: 
+        filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+        lineNumber: 265
+        methodName: SetOneFrameInputs
+        className: LSController
+        relativePosition: 14
+        enabled: 1
+        isGenerated: 0
+      - id: LSController.cs:LSController:SetOneFrameInputs:16
+        fallbackId: LSController.cs:267:SetOneFrameInputs
+        category: Default
+        level: 2
+        message: $"roll back start {...});"
+        cleanMessage: 
+        filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+        lineNumber: 267
+        methodName: SetOneFrameInputs
+        className: LSController
+        relativePosition: 16
+        enabled: 1
+        isGenerated: 0
       - id: Room.cs:Room:FrameTick:17
-        fallbackId: Room.cs:160:FrameTick
+        fallbackId: Room.cs:156:FrameTick
         category: Default
         level: 1
         message: "$\"\u65B0\u73A9\u5BB6\u521B\u5EFA BornInfo: {...} \""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\Room.cs
-        lineNumber: 160
+        lineNumber: 156
         methodName: FrameTick
         className: Room
         relativePosition: 17
+        enabled: 1
+        isGenerated: 0
+      - id: Room.cs:Room:Initialize:6
+        fallbackId: Room.cs:185:Initialize
+        category: Default
+        level: 3
+        message: $"Room {...} has no MainWorld defined."
+        cleanMessage: 
+        filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\Room.cs
+        lineNumber: 185
+        methodName: Initialize
+        className: Room
+        relativePosition: 6
         enabled: 1
         isGenerated: 0
       - id: HealthViewComponent.cs:HealthViewComponent:OnInitialize:2
@@ -3170,235 +3210,235 @@ MonoBehaviour:
         enabled: 1
         isGenerated: 0
       - id: TransViewComponent.cs:TransViewComponent:OnDestroy:2
-        fallbackId: TransViewComponent.cs:71:OnDestroy
+        fallbackId: TransViewComponent.cs:76:OnDestroy
         category: Default
         level: 1
         message: "$\"MovementViewComponent: \u9500\u6BC1\u79FB\u52A8\u89C6\u56FE\u7EC4\u4EF6\uFF0CID:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
-        lineNumber: 71
+        lineNumber: 76
         methodName: OnDestroy
         className: TransViewComponent
         relativePosition: 2
         enabled: 1
         isGenerated: 0
       - id: TransViewComponent.cs:TransViewComponent:OnSyncData:9
-        fallbackId: TransViewComponent.cs:83:OnSyncData
+        fallbackId: TransViewComponent.cs:88:OnSyncData
         category: Default
         level: 0
         message: "$\"MovementViewComponent: \u540C\u6B65\u79FB\u52A8\u6570\u636E\uFF0C\u4F4D\u7F6E:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
-        lineNumber: 83
+        lineNumber: 88
         methodName: OnSyncData
         className: TransViewComponent
         relativePosition: 9
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:Initialize:4
-        fallbackId: EntityView.cs:69:Initialize
+        fallbackId: EntityView.cs:80:Initialize
         category: Default
         level: 2
         message: "$\"EntityView: \u5B9E\u4F53\u89C6\u56FE\u5DF2\u7ECF\u521D\u59CB\u5316\uFF0CID:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 69
+        lineNumber: 80
         methodName: Initialize
         className: EntityView
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:Initialize:11
-        fallbackId: EntityView.cs:76:Initialize
+        fallbackId: EntityView.cs:87:Initialize
         category: Default
         level: 1
         message: "$\"EntityView: \u521D\u59CB\u5316\u5B9E\u4F53\u89C6\u56FE\uFF0CID:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 76
+        lineNumber: 87
         methodName: Initialize
         className: EntityView
         relativePosition: 11
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:Initialize:25
-        fallbackId: EntityView.cs:90:Initialize
+        fallbackId: EntityView.cs:101:Initialize
         category: Default
         level: 1
         message: "$\"EntityView: \u5B9E\u4F53\u89C6\u56FE\u521D\u59CB\u5316\u5B8C\u6210\uFF0CID:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 90
+        lineNumber: 101
         methodName: Initialize
         className: EntityView
         relativePosition: 25
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:Initialize:29
-        fallbackId: EntityView.cs:94:Initialize
+        fallbackId: EntityView.cs:105:Initialize
         category: Default
         level: 3
         message: "$\"EntityView: \u5B9E\u4F53\u89C6\u56FE\u521D\u59CB\u5316\u5931\u8D25\uFF0CID:
           {...} - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 94
+        lineNumber: 105
         methodName: Initialize
         className: EntityView
         relativePosition: 29
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:SyncWithEntity:4
-        fallbackId: EntityView.cs:136:SyncWithEntity
+        fallbackId: EntityView.cs:147:SyncWithEntity
         category: Default
         level: 2
         message: "$\"EntityView: \u5B9E\u4F53ID\u4E0D\u5339\u914D\uFF0C\u671F\u671B:
           {...}\uFF0C\u5B9E\u9645: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 136
+        lineNumber: 147
         methodName: SyncWithEntity
         className: EntityView
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:SyncTransformFromLogic:14
-        fallbackId: EntityView.cs:168:SyncTransformFromLogic
+        fallbackId: EntityView.cs:179:SyncTransformFromLogic
         category: Default
         level: 0
         message: "$\"EntityView: \u540C\u6B65Transform\u6570\u636E\uFF0CID: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 168
+        lineNumber: 179
         methodName: SyncTransformFromLogic
         className: EntityView
         relativePosition: 14
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:SyncComponentsFromLogic:15
-        fallbackId: EntityView.cs:190:SyncComponentsFromLogic
+        fallbackId: EntityView.cs:201:SyncComponentsFromLogic
         category: Default
         level: 0
         message: "$\"EntityView: \u540C\u6B65Component\u6570\u636E\uFF0CID: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 190
+        lineNumber: 201
         methodName: SyncComponentsFromLogic
         className: EntityView
         relativePosition: 15
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:SetVisible:24
-        fallbackId: EntityView.cs:221:SetVisible
+        fallbackId: EntityView.cs:232:SetVisible
         category: Default
         level: 1
         message: "$\"EntityView: \u8BBE\u7F6E\u53EF\u89C1\u6027\uFF0CID: {...}\uFF0C\u53EF\uFFFD?
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 221
+        lineNumber: 232
         methodName: SetVisible
         className: EntityView
         relativePosition: 24
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:SetActive:11
-        fallbackId: EntityView.cs:239:SetActive
+        fallbackId: EntityView.cs:250:SetActive
         category: Default
         level: 1
         message: "$\"EntityView: \u8BBE\u7F6E\u6FC0\u6D3B\u72B6\u6001\uFF0CID: {...}\uFF0C\u6FC0\uFFFD?
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 239
+        lineNumber: 250
         methodName: SetActive
         className: EntityView
         relativePosition: 11
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:AddViewComponent:4
-        fallbackId: EntityView.cs:250:AddViewComponent
+        fallbackId: EntityView.cs:261:AddViewComponent
         category: Default
         level: 2
         message: "$\"EntityView: \u5C1D\u8BD5\u6DFB\u52A0\u7A7A\u7684\u89C6\u56FE\u7EC4\u4EF6\uFF0CID:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 250
+        lineNumber: 261
         methodName: AddViewComponent
         className: EntityView
         relativePosition: 4
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:AddViewComponent:10
-        fallbackId: EntityView.cs:256:AddViewComponent
+        fallbackId: EntityView.cs:267:AddViewComponent
         category: Default
         level: 2
         message: "$\"EntityView: \u89C6\u56FE\u7EC4\u4EF6\u5DF2\u5B58\u5728\uFF0CID:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 256
+        lineNumber: 267
         methodName: AddViewComponent
         className: EntityView
         relativePosition: 10
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:AddViewComponent:18
-        fallbackId: EntityView.cs:264:AddViewComponent
+        fallbackId: EntityView.cs:275:AddViewComponent
         category: Default
         level: 1
         message: "$\"EntityView: \u6DFB\u52A0\u89C6\u56FE\u7EC4\u4EF6\uFF0CID: {...}\uFF0C\u7EC4\u4EF6:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 264
+        lineNumber: 275
         methodName: AddViewComponent
         className: EntityView
         relativePosition: 18
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:RemoveViewComponent:8
-        fallbackId: EntityView.cs:279:RemoveViewComponent
+        fallbackId: EntityView.cs:290:RemoveViewComponent
         category: Default
         level: 1
         message: "$\"EntityView: \u79FB\u9664\u89C6\u56FE\u7EC4\u4EF6\uFF0CID: {...}\uFF0C\u7EC4\u4EF6:
           {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 279
+        lineNumber: 290
         methodName: RemoveViewComponent
         className: EntityView
         relativePosition: 8
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:Destroy:2
-        fallbackId: EntityView.cs:305:Destroy
+        fallbackId: EntityView.cs:316:Destroy
         category: Default
         level: 1
         message: "$\"EntityView: \u9500\u6BC1\u5B9E\u4F53\u89C6\u56FE\uFF0CID: {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 305
+        lineNumber: 316
         methodName: Destroy
         className: EntityView
         relativePosition: 2
         enabled: 1
         isGenerated: 0
       - id: EntityView.cs:EntityView:BuildViewComponents:18
-        fallbackId: EntityView.cs:444:BuildViewComponents
+        fallbackId: EntityView.cs:455:BuildViewComponents
         category: Default
         level: 3
         message: "$\"EntityView: \u521B\u5EFA\u89C6\u56FE\u7EC4\u4EF6 {...} \u5931\u8D25
           - {...}\""
         cleanMessage: 
         filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-        lineNumber: 444
+        lineNumber: 455
         methodName: BuildViewComponents
         className: EntityView
         relativePosition: 18
@@ -4946,8 +4986,8 @@ MonoBehaviour:
         relativePosition: 2
         enabled: 1
         isGenerated: 0
-      totalLogCount: 371
-      enabledLogCount: 368
+      totalLogCount: 374
+      enabledLogCount: 372
     - name: Network
       fullPath: Network
       enabled: 1
@@ -5053,49 +5093,49 @@ MonoBehaviour:
         children: []
         logs:
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncStartNotification:4
-          fallbackId: GamePlayManager.cs:717:OnFrameSyncStartNotification
+          fallbackId: GamePlayManager.cs:716:OnFrameSyncStartNotification
           category: FrameSync.Client
           level: 1
           message: "$\"GamePlayManager: \u6536\u5230\u5E27\u540C\u6B65\u5F00\u59CB\u901A\u77E5
             - \u623F\u95F4: {...}\uFF0C\u5E27\u7387: {...}FPS\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 717
+          lineNumber: 716
           methodName: OnFrameSyncStartNotification
           className: GamePlayManager
           relativePosition: 4
           enabled: 0
           isGenerated: 0
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncStartNotification:10
-          fallbackId: GamePlayManager.cs:723:OnFrameSyncStartNotification
+          fallbackId: GamePlayManager.cs:722:OnFrameSyncStartNotification
           category: FrameSync.Client
           level: 1
           message: "$\"\u5E27\u540C\u6B65\u63A7\u5236\u5668\u5DF2\u542F\u52A8\uFF0C\u623F\u95F4:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 723
+          lineNumber: 722
           methodName: OnFrameSyncStartNotification
           className: GamePlayManager
           relativePosition: 10
           enabled: 1
           isGenerated: 0
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncStartNotification:15
-          fallbackId: GamePlayManager.cs:728:OnFrameSyncStartNotification
+          fallbackId: GamePlayManager.cs:727:OnFrameSyncStartNotification
           category: FrameSync.Client
           level: 3
           message: "$\"\u5904\u7406\u5E27\u540C\u6B65\u5F00\u59CB\u901A\u77E5\u65F6\u51FA\u9519:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 728
+          lineNumber: 727
           methodName: OnFrameSyncStartNotification
           className: GamePlayManager
           relativePosition: 15
           enabled: 1
           isGenerated: 0
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncEndNotification:4
-          fallbackId: GamePlayManager.cs:740:OnFrameSyncEndNotification
+          fallbackId: GamePlayManager.cs:739:OnFrameSyncEndNotification
           category: FrameSync.Client
           level: 1
           message: "$\"GamePlayManager: \u6536\u5230\u5E27\u540C\u6B65\u7ED3\u675F\u901A\u77E5
@@ -5103,42 +5143,42 @@ MonoBehaviour:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 740
+          lineNumber: 739
           methodName: OnFrameSyncEndNotification
           className: GamePlayManager
           relativePosition: 4
           enabled: 0
           isGenerated: 0
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncEndNotification:10
-          fallbackId: GamePlayManager.cs:746:OnFrameSyncEndNotification
+          fallbackId: GamePlayManager.cs:745:OnFrameSyncEndNotification
           category: FrameSync.Client
           level: 1
           message: "$\"\u5E27\u540C\u6B65\u63A7\u5236\u5668\u5DF2\u505C\u6B62\uFF0C\u623F\u95F4:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 746
+          lineNumber: 745
           methodName: OnFrameSyncEndNotification
           className: GamePlayManager
           relativePosition: 10
           enabled: 1
           isGenerated: 0
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncEndNotification:15
-          fallbackId: GamePlayManager.cs:751:OnFrameSyncEndNotification
+          fallbackId: GamePlayManager.cs:750:OnFrameSyncEndNotification
           category: FrameSync.Client
           level: 3
           message: "$\"\u5904\u7406\u5E27\u540C\u6B65\u7ED3\u675F\u901A\u77E5\u65F6\u51FA\u9519:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 751
+          lineNumber: 750
           methodName: OnFrameSyncEndNotification
           className: GamePlayManager
           relativePosition: 15
           enabled: 1
           isGenerated: 0
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncData:4
-          fallbackId: GamePlayManager.cs:763:OnFrameSyncData
+          fallbackId: GamePlayManager.cs:762:OnFrameSyncData
           category: FrameSync.Client
           level: 0
           message: "$\"GamePlayManager: \u6536\u5230\u5E27\u540C\u6B65\u6570\u636E
@@ -5146,21 +5186,21 @@ MonoBehaviour:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 763
+          lineNumber: 762
           methodName: OnFrameSyncData
           className: GamePlayManager
           relativePosition: 4
           enabled: 0
           isGenerated: 0
         - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncData:11
-          fallbackId: GamePlayManager.cs:770:OnFrameSyncData
+          fallbackId: GamePlayManager.cs:769:OnFrameSyncData
           category: FrameSync.Client
           level: 3
           message: "$\"\u5904\u7406\u5E27\u540C\u6B65\u6570\u636E\u65F6\u51FA\u9519:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-          lineNumber: 770
+          lineNumber: 769
           methodName: OnFrameSyncData
           className: GamePlayManager
           relativePosition: 11
@@ -5168,6 +5208,120 @@ MonoBehaviour:
           isGenerated: 0
         totalLogCount: 8
         enabledLogCount: 5
+      - name: SaveState
+        fullPath: FrameSync.SaveState
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: LSController.cs:LSController:SaveState:11
+          fallbackId: LSController.cs:158:SaveState
+          category: FrameSync.SaveState
+          level: 0
+          message: "$\"\u4FDD\u5B58\u5E27\u72B6\u6001 - \u5E27: {...}, World ID:
+            {...}, \u5B9E\u4F53\u6570\u91CF: {...}\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+          lineNumber: 158
+          methodName: SaveState
+          className: LSController
+          relativePosition: 11
+          enabled: 1
+          isGenerated: 0
+        - id: LSController.cs:LSController:SaveState:17
+          fallbackId: LSController.cs:164:SaveState
+          category: FrameSync.SaveState
+          level: 0
+          message: "$\"  - \u4FDD\u5B58\u5B9E\u4F53: {...} (ID: {...}), \u6FC0\u6D3B:
+            {...}, \u7EC4\u4EF6: {...}, \u80FD\u529B: {...}\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+          lineNumber: 164
+          methodName: SaveState
+          className: LSController
+          relativePosition: 17
+          enabled: 1
+          isGenerated: 0
+        - id: LSController.cs:LSController:SaveState:27
+          fallbackId: LSController.cs:174:SaveState
+          category: FrameSync.SaveState
+          level: 0
+          message: "$\"\u5E27\u72B6\u6001\u4FDD\u5B58\u5B8C\u6210 - \u5E27: {...},
+            \u6570\u636E\u5927\u5C0F: {...} bytes, \u54C8\u5E0C: {...}\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+          lineNumber: 174
+          methodName: SaveState
+          className: LSController
+          relativePosition: 27
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 3
+        enabledLogCount: 3
+      - name: LoadState
+        fullPath: FrameSync.LoadState
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: LSController.cs:LSController:LoadState:5
+          fallbackId: LSController.cs:186:LoadState
+          category: FrameSync.LoadState
+          level: 0
+          message: "$\"\u52A0\u8F7D\u5E27\u72B6\u6001 - \u5E27: {...}, \u6570\u636E\u5927\u5C0F:
+            {...} bytes\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+          lineNumber: 186
+          methodName: LoadState
+          className: LSController
+          relativePosition: 5
+          enabled: 1
+          isGenerated: 0
+        - id: LSController.cs:LSController:LoadState:13
+          fallbackId: LSController.cs:194:LoadState
+          category: FrameSync.LoadState
+          level: 0
+          message: "$\"\u5E27\u72B6\u6001\u52A0\u8F7D\u5B8C\u6210 - \u5E27: {...},
+            World ID: {...}, \u5B9E\u4F53\u6570\u91CF: {...}\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+          lineNumber: 194
+          methodName: LoadState
+          className: LSController
+          relativePosition: 13
+          enabled: 1
+          isGenerated: 0
+        - id: LSController.cs:LSController:LoadState:19
+          fallbackId: LSController.cs:200:LoadState
+          category: FrameSync.LoadState
+          level: 0
+          message: "$\"  - \u52A0\u8F7D\u5B9E\u4F53: {...} (ID: {...}), \u6FC0\u6D3B:
+            {...}, \u7EC4\u4EF6: {...}, \u80FD\u529B: {...}\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+          lineNumber: 200
+          methodName: LoadState
+          className: LSController
+          relativePosition: 19
+          enabled: 1
+          isGenerated: 0
+        - id: LSController.cs:LSController:LoadState:25
+          fallbackId: LSController.cs:206:LoadState
+          category: FrameSync.LoadState
+          level: 2
+          message: "$\"\u5E27\u72B6\u6001\u52A0\u8F7D\u5931\u8D25 - \u5E27: {...},
+            \u53CD\u5E8F\u5217\u5316\u7ED3\u679C\u4E3A null\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+          lineNumber: 206
+          methodName: LoadState
+          className: LSController
+          relativePosition: 25
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 4
+        enabledLogCount: 4
       - name: Prediction
         fullPath: FrameSync.Prediction
         enabled: 1
@@ -5175,13 +5329,13 @@ MonoBehaviour:
         children: []
         logs:
         - id: LSInputSystem.cs:LSInputSystem:GetOneFrameMessages:25
-          fallbackId: LSInputSystem.cs:78:GetOneFrameMessages
+          fallbackId: LSInputSystem.cs:111:GetOneFrameMessages
           category: FrameSync.Prediction
           level: 0
           message: '$"Predict Frame: {...}, MoveX={...}, MoveY={...}"'
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSInputSystem.cs
-          lineNumber: 78
+          lineNumber: 111
           methodName: GetOneFrameMessages
           className: LSInputSystem
           relativePosition: 25
@@ -5190,8 +5344,8 @@ MonoBehaviour:
         totalLogCount: 1
         enabledLogCount: 0
       logs: []
-      totalLogCount: 9
-      enabledLogCount: 5
+      totalLogCount: 16
+      enabledLogCount: 12
     - name: Input
       fullPath: Input
       enabled: 1
@@ -5250,18 +5404,18 @@ MonoBehaviour:
         minLevel: 0
         children: []
         logs:
-        - id: InputManager.cs:InputManager:CollectLSInput:19
-          fallbackId: InputManager.cs:286:CollectLSInput
+        - id: InputManager.cs:InputManager:CollectLSInput:30
+          fallbackId: InputManager.cs:297:CollectLSInput
           category: Input.LSInput
           level: 0
           message: '$"LSInput: MainPlayerID:{...} MoveX={...}, MoveY={...}, Attack={...},
             Skill1={...}, Skill2={...}"'
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
-          lineNumber: 286
+          lineNumber: 297
           methodName: CollectLSInput
           className: InputManager
-          relativePosition: 19
+          relativePosition: 30
           enabled: 1
           isGenerated: 0
         totalLogCount: 1
@@ -5269,6 +5423,37 @@ MonoBehaviour:
       logs: []
       totalLogCount: 4
       enabledLogCount: 4
+    - name: Logic
+      fullPath: Logic
+      enabled: 1
+      minLevel: 0
+      children:
+      - name: Movement
+        fullPath: Logic.Movement
+        enabled: 1
+        minLevel: 0
+        children: []
+        logs:
+        - id: MovementCapability.cs:MovementCapability:Tick:52
+          fallbackId: MovementCapability.cs:83:Tick
+          category: Logic.Movement
+          level: 1
+          message: "$\"MovementCapability: \u79FB\u52A8\u6267\u884C - \u8F93\u5165:({...},
+            {...}), \u901F\u5EA6:{...}, \u589E\u91CF:({...}, {...}), \u65B0\u4F4D\u7F6E:({...},
+            {...})\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Capabilities\MovementCapability.cs
+          lineNumber: 83
+          methodName: Tick
+          className: MovementCapability
+          relativePosition: 52
+          enabled: 1
+          isGenerated: 0
+        totalLogCount: 1
+        enabledLogCount: 1
+      logs: []
+      totalLogCount: 1
+      enabledLogCount: 1
     - name: View
       fullPath: View
       enabled: 1
@@ -5280,28 +5465,42 @@ MonoBehaviour:
         minLevel: 0
         children: []
         logs:
-        - id: TransViewComponent.cs:TransViewComponent:OnUpdate:8
-          fallbackId: TransViewComponent.cs:60:OnUpdate
+        - id: TransViewComponent.cs:TransViewComponent:OnUpdate:6
+          fallbackId: TransViewComponent.cs:58:OnUpdate
+          category: View.Movement
+          level: 3
+          message: "$\"MovementViewComponent: \u5B9E\u4F53\u7F3A\u5C11PositionComponent\uFF0C\u65E0\u6CD5\u66F4\u65B0\u4F4D\u7F6E\uFF0C\u5B9E\u4F53ID:
+            {...}\""
+          cleanMessage: 
+          filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
+          lineNumber: 58
+          methodName: OnUpdate
+          className: TransViewComponent
+          relativePosition: 6
+          enabled: 1
+          isGenerated: 0
+        - id: TransViewComponent.cs:TransViewComponent:OnUpdate:13
+          fallbackId: TransViewComponent.cs:65:OnUpdate
           category: View.Movement
           level: 0
           message: "$\"MovementViewComponent: \u66F4\u65B0\u76EE\u6807\u4F4D\u7F6E\uFF0C\u4F4D\u7F6E:
             {...}\""
           cleanMessage: 
           filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
-          lineNumber: 60
+          lineNumber: 65
           methodName: OnUpdate
           className: TransViewComponent
-          relativePosition: 8
-          enabled: 0
+          relativePosition: 13
+          enabled: 1
           isGenerated: 0
-        totalLogCount: 1
-        enabledLogCount: 0
+        totalLogCount: 2
+        enabledLogCount: 2
       logs: []
-      totalLogCount: 1
-      enabledLogCount: 0
+      totalLogCount: 2
+      enabledLogCount: 2
     logs: []
-    totalLogCount: 389
-    enabledLogCount: 379
+    totalLogCount: 401
+    enabledLogCount: 393
   logEntries:
   - id: Circularbuffer.cs:CircularBuffer:Accessor_get:13
     fallbackId: Circularbuffer.cs:42:Accessor_get
@@ -5990,955 +6189,955 @@ MonoBehaviour:
     relativePosition: 11
     enabled: 1
     isGenerated: 0
-  - id: GamePlayManager.cs:GamePlayManager:FrameDataUpload:7
-    fallbackId: GamePlayManager.cs:69:FrameDataUpload
+  - id: GamePlayManager.cs:GamePlayManager:FrameDataUpload:8
+    fallbackId: GamePlayManager.cs:70:FrameDataUpload
     category: Default
     level: 0
     message: "$\"GamePlayManager: \u53D1\u9001\u5355\u5E27\u8F93\u5165\uFF0C\u5E27:
       {...}\uFF0C\u8F93\u5165: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 69
+    lineNumber: 70
     methodName: FrameDataUpload
     className: GamePlayManager
-    relativePosition: 7
+    relativePosition: 8
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnPlayerCreated:7
-    fallbackId: GamePlayManager.cs:80:OnPlayerCreated
+    fallbackId: GamePlayManager.cs:81:OnPlayerCreated
     category: Default
     level: 1
     message: "\"GamePlayManager: \u4E3B\u73A9\u5BB6\u521B\u5EFA\u5B8C\u6210, ID:
       \" + PlayerId"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 80
+    lineNumber: 81
     methodName: OnPlayerCreated
     className: GamePlayManager
     relativePosition: 7
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnPlayerCreated:9
-    fallbackId: GamePlayManager.cs:82:OnPlayerCreated
+    fallbackId: GamePlayManager.cs:83:OnPlayerCreated
     category: Default
     level: 0
     message: '$"GamePlayManager: <OnPlayerCreated>: {...} , BornInfo: {...}"'
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 82
+    lineNumber: 83
     methodName: OnPlayerCreated
     className: GamePlayManager
     relativePosition: 9
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:RegisterNetworkMessageHandlers:22
-    fallbackId: GamePlayManager.cs:110:RegisterNetworkMessageHandlers
+    fallbackId: GamePlayManager.cs:111:RegisterNetworkMessageHandlers
     category: Default
     level: 1
     message: "GamePlayManager: \u7F51\u7EDC\u6D88\u606F\u5904\u7406\u5668\u6CE8\u518C\u5B8C\u6210"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 110
+    lineNumber: 111
     methodName: RegisterNetworkMessageHandlers
     className: GamePlayManager
     relativePosition: 22
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:RegisterNetworkMessageHandlers:26
-    fallbackId: GamePlayManager.cs:114:RegisterNetworkMessageHandlers
+    fallbackId: GamePlayManager.cs:115:RegisterNetworkMessageHandlers
     category: Default
     level: 2
     message: "GamePlayManager: NetworkManager \u4E0D\u5B58\u5728\uFF0C\u65E0\u6CD5\u6CE8\u518C\u6D88\u606F\u5904\u7406\u5668"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 114
+    lineNumber: 115
     methodName: RegisterNetworkMessageHandlers
     className: GamePlayManager
     relativePosition: 26
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:UnregisterNetworkMessageHandlers:22
-    fallbackId: GamePlayManager.cs:143:UnregisterNetworkMessageHandlers
+    fallbackId: GamePlayManager.cs:144:UnregisterNetworkMessageHandlers
     category: Default
     level: 1
     message: "GamePlayManager: \u7F51\u7EDC\u6D88\u606F\u5904\u7406\u5668\u53D6\u6D88\u6CE8\u518C\u5B8C\u6210"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 143
+    lineNumber: 144
     methodName: UnregisterNetworkMessageHandlers
     className: GamePlayManager
     relativePosition: 22
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:Shutdown:11
-    fallbackId: GamePlayManager.cs:172:Shutdown
+    fallbackId: GamePlayManager.cs:173:Shutdown
     category: Default
     level: 1
     message: "GamePlayManager: \u5DF2\u5173\u95ED"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 172
+    lineNumber: 173
     methodName: Shutdown
     className: GamePlayManager
     relativePosition: 11
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnLoginResponse:4
-    fallbackId: GamePlayManager.cs:186:OnLoginResponse
+    fallbackId: GamePlayManager.cs:187:OnLoginResponse
     category: Default
     level: 1
     message: "GamePlayManager: \u6536\u5230\u767B\u5F55\u54CD\u5E94"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 186
+    lineNumber: 187
     methodName: OnLoginResponse
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnLoginResponse:13
-    fallbackId: GamePlayManager.cs:195:OnLoginResponse
+    fallbackId: GamePlayManager.cs:196:OnLoginResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u767B\u5F55\u5931\u8D25 - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 195
+    lineNumber: 196
     methodName: OnLoginResponse
     className: GamePlayManager
     relativePosition: 13
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnLoginResponse:19
-    fallbackId: GamePlayManager.cs:201:OnLoginResponse
+    fallbackId: GamePlayManager.cs:202:OnLoginResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u767B\u5F55\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 201
+    lineNumber: 202
     methodName: OnLoginResponse
     className: GamePlayManager
     relativePosition: 19
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnCreateRoomResponse:4
-    fallbackId: GamePlayManager.cs:213:OnCreateRoomResponse
+    fallbackId: GamePlayManager.cs:214:OnCreateRoomResponse
     category: Default
     level: 1
     message: "GamePlayManager: \u6536\u5230\u521B\u5EFA\u623F\u95F4\u54CD\u5E94"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 213
+    lineNumber: 214
     methodName: OnCreateRoomResponse
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnCreateRoomResponse:13
-    fallbackId: GamePlayManager.cs:222:OnCreateRoomResponse
+    fallbackId: GamePlayManager.cs:223:OnCreateRoomResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u521B\u5EFA\u623F\u95F4\u5931\u8D25 - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 222
+    lineNumber: 223
     methodName: OnCreateRoomResponse
     className: GamePlayManager
     relativePosition: 13
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnCreateRoomResponse:19
-    fallbackId: GamePlayManager.cs:228:OnCreateRoomResponse
+    fallbackId: GamePlayManager.cs:229:OnCreateRoomResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u521B\u5EFA\u623F\u95F4\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 228
+    lineNumber: 229
     methodName: OnCreateRoomResponse
     className: GamePlayManager
     relativePosition: 19
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnJoinRoomResponse:4
-    fallbackId: GamePlayManager.cs:240:OnJoinRoomResponse
+    fallbackId: GamePlayManager.cs:241:OnJoinRoomResponse
     category: Default
     level: 1
     message: "GamePlayManager: \u6536\u5230\u52A0\u5165\u623F\u95F4\u54CD\u5E94"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 240
+    lineNumber: 241
     methodName: OnJoinRoomResponse
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnJoinRoomResponse:13
-    fallbackId: GamePlayManager.cs:249:OnJoinRoomResponse
+    fallbackId: GamePlayManager.cs:250:OnJoinRoomResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u52A0\u5165\u623F\u95F4\u5931\u8D25 - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 249
+    lineNumber: 250
     methodName: OnJoinRoomResponse
     className: GamePlayManager
     relativePosition: 13
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnJoinRoomResponse:19
-    fallbackId: GamePlayManager.cs:255:OnJoinRoomResponse
+    fallbackId: GamePlayManager.cs:256:OnJoinRoomResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u52A0\u5165\u623F\u95F4\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 255
+    lineNumber: 256
     methodName: OnJoinRoomResponse
     className: GamePlayManager
     relativePosition: 19
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnLeaveRoomResponse:4
-    fallbackId: GamePlayManager.cs:267:OnLeaveRoomResponse
+    fallbackId: GamePlayManager.cs:268:OnLeaveRoomResponse
     category: Default
     level: 1
     message: "GamePlayManager: \u6536\u5230\u79BB\u5F00\u623F\u95F4\u54CD\u5E94"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 267
+    lineNumber: 268
     methodName: OnLeaveRoomResponse
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnLeaveRoomResponse:13
-    fallbackId: GamePlayManager.cs:276:OnLeaveRoomResponse
+    fallbackId: GamePlayManager.cs:277:OnLeaveRoomResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u79BB\u5F00\u623F\u95F4\u5931\u8D25 - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 276
+    lineNumber: 277
     methodName: OnLeaveRoomResponse
     className: GamePlayManager
     relativePosition: 13
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnLeaveRoomResponse:19
-    fallbackId: GamePlayManager.cs:282:OnLeaveRoomResponse
+    fallbackId: GamePlayManager.cs:283:OnLeaveRoomResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u79BB\u5F00\u623F\u95F4\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 282
+    lineNumber: 283
     methodName: OnLeaveRoomResponse
     className: GamePlayManager
     relativePosition: 19
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGetRoomListResponse:4
-    fallbackId: GamePlayManager.cs:294:OnGetRoomListResponse
+    fallbackId: GamePlayManager.cs:295:OnGetRoomListResponse
     category: Default
     level: 1
     message: "GamePlayManager: \u6536\u5230\u83B7\u53D6\u623F\u95F4\u5217\u8868\u54CD\u5E94"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 294
+    lineNumber: 295
     methodName: OnGetRoomListResponse
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGetRoomListResponse:13
-    fallbackId: GamePlayManager.cs:303:OnGetRoomListResponse
+    fallbackId: GamePlayManager.cs:304:OnGetRoomListResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u83B7\u53D6\u623F\u95F4\u5217\u8868\u5931\u8D25
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 303
+    lineNumber: 304
     methodName: OnGetRoomListResponse
     className: GamePlayManager
     relativePosition: 13
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGetRoomListResponse:19
-    fallbackId: GamePlayManager.cs:309:OnGetRoomListResponse
+    fallbackId: GamePlayManager.cs:310:OnGetRoomListResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u83B7\u53D6\u623F\u95F4\u5217\u8868\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 309
+    lineNumber: 310
     methodName: OnGetRoomListResponse
     className: GamePlayManager
     relativePosition: 19
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnRoomUpdateNotification:4
-    fallbackId: GamePlayManager.cs:321:OnRoomUpdateNotification
+    fallbackId: GamePlayManager.cs:322:OnRoomUpdateNotification
     category: Default
     level: 1
     message: "GamePlayManager: \u6536\u5230\u623F\u95F4\u66F4\u65B0\u901A\u77E5"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 321
+    lineNumber: 322
     methodName: OnRoomUpdateNotification
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnRoomUpdateNotification:11
-    fallbackId: GamePlayManager.cs:328:OnRoomUpdateNotification
+    fallbackId: GamePlayManager.cs:329:OnRoomUpdateNotification
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u623F\u95F4\u66F4\u65B0\u901A\u77E5\u65F6\u53D1\u751F\u5F02\u5E38
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 328
+    lineNumber: 329
     methodName: OnRoomUpdateNotification
     className: GamePlayManager
     relativePosition: 11
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnHeartbeatResponse:4
-    fallbackId: GamePlayManager.cs:339:OnHeartbeatResponse
+    fallbackId: GamePlayManager.cs:340:OnHeartbeatResponse
     category: Default
     level: 0
     message: "GamePlayManager: \u6536\u5230\u5FC3\u8DF3\u54CD\u5E94"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 339
+    lineNumber: 340
     methodName: OnHeartbeatResponse
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnHeartbeatResponse:9
-    fallbackId: GamePlayManager.cs:344:OnHeartbeatResponse
+    fallbackId: GamePlayManager.cs:345:OnHeartbeatResponse
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u5FC3\u8DF3\u54CD\u5E94\u65F6\u53D1\u751F\u5F02\u5E38
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 344
+    lineNumber: 345
     methodName: OnHeartbeatResponse
     className: GamePlayManager
     relativePosition: 9
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:StartSinglePlayerGame:2
-    fallbackId: GamePlayManager.cs:361:StartSinglePlayerGame
+    fallbackId: GamePlayManager.cs:362:StartSinglePlayerGame
     category: Default
     level: 1
     message: "GameLauncher: \u542F\u52A8\u6E38\u620F"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 361
+    lineNumber: 362
     methodName: StartSinglePlayerGame
     className: GamePlayManager
     relativePosition: 2
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:StartSinglePlayerGame:19
-    fallbackId: GamePlayManager.cs:378:StartSinglePlayerGame
+    fallbackId: GamePlayManager.cs:379:StartSinglePlayerGame
     category: Default
     level: 1
     message: "GameLauncher: \u6E38\u620F\u542F\u52A8\u6210\u529F"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 378
+    lineNumber: 379
     methodName: StartSinglePlayerGame
     className: GamePlayManager
     relativePosition: 19
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:StartSinglePlayerGame:23
-    fallbackId: GamePlayManager.cs:382:StartSinglePlayerGame
+    fallbackId: GamePlayManager.cs:383:StartSinglePlayerGame
     category: Default
     level: 3
     message: "$\"GameLauncher: \u542F\u52A8\u6E38\u620F\u5931\u8D25 - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 382
+    lineNumber: 383
     methodName: StartSinglePlayerGame
     className: GamePlayManager
     relativePosition: 23
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:4
-    fallbackId: GamePlayManager.cs:391:DealNetFrameInputs
+    fallbackId: GamePlayManager.cs:392:DealNetFrameInputs
     category: Default
     level: 2
     message: "GamePlayManager: \u5F53\u524D\u6CA1\u6709Room"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 391
+    lineNumber: 392
     methodName: DealNetFrameInputs
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
-  - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:28
-    fallbackId: GamePlayManager.cs:415:DealNetFrameInputs
+  - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:26
+    fallbackId: GamePlayManager.cs:414:DealNetFrameInputs
     category: Default
     level: 0
     message: "$\"GamePlayManager: \u5904\u7406\u7F51\u7EDC\u5E27\u8F93\u5165\uFF0C\u5E27:
       {...}\uFF0C\u8F93\u5165\u6570: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 415
+    lineNumber: 414
     methodName: DealNetFrameInputs
     className: GamePlayManager
-    relativePosition: 28
-    enabled: 0
+    relativePosition: 26
+    enabled: 1
     isGenerated: 0
-  - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:32
-    fallbackId: GamePlayManager.cs:419:DealNetFrameInputs
+  - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:30
+    fallbackId: GamePlayManager.cs:418:DealNetFrameInputs
     category: Default
     level: 2
     message: "GamePlayManager: LSController \u4E0D\u5B58\u5728\uFF0C\u65E0\u6CD5\u5904\u7406\u5E27\u8F93\u5165"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 419
+    lineNumber: 418
     methodName: DealNetFrameInputs
     className: GamePlayManager
-    relativePosition: 32
+    relativePosition: 30
     enabled: 1
     isGenerated: 0
-  - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:37
-    fallbackId: GamePlayManager.cs:424:DealNetFrameInputs
+  - id: GamePlayManager.cs:GamePlayManager:DealNetFrameInputs:35
+    fallbackId: GamePlayManager.cs:423:DealNetFrameInputs
     category: Default
     level: 3
     message: "$\"GamePlayManager: \u5904\u7406\u7F51\u7EDC\u5E27\u8F93\u5165\u65F6\u51FA\u9519:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 424
+    lineNumber: 423
     methodName: DealNetFrameInputs
     className: GamePlayManager
-    relativePosition: 37
+    relativePosition: 35
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:CreateRoom:4
-    fallbackId: GamePlayManager.cs:437:CreateRoom
+    fallbackId: GamePlayManager.cs:436:CreateRoom
     category: Default
     level: 1
     message: "$\"GameLauncher: \u521B\u5EFARoom\uFF0CID: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 437
+    lineNumber: 436
     methodName: CreateRoom
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:CreateStage:2
-    fallbackId: GamePlayManager.cs:446:CreateStage
+    fallbackId: GamePlayManager.cs:445:CreateStage
     category: Default
     level: 1
     message: "GameLauncher: \u521B\u5EFAStage"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 446
+    lineNumber: 445
     methodName: CreateStage
     className: GamePlayManager
     relativePosition: 2
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:RequestCreatePlayer:7
-    fallbackId: GamePlayManager.cs:467:RequestCreatePlayer
+    fallbackId: GamePlayManager.cs:466:RequestCreatePlayer
     category: Default
     level: 0
     message: "$\"GamePlayManager: \u53D1\u9001\u751F\u6210\u73A9\u5BB6\u8BF7\u6C42\uFF0C\u8F93\u5165:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 467
+    lineNumber: 466
     methodName: RequestCreatePlayer
     className: GamePlayManager
     relativePosition: 7
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:CreatePlayer:2
-    fallbackId: GamePlayManager.cs:475:CreatePlayer
+    fallbackId: GamePlayManager.cs:474:CreatePlayer
     category: Default
     level: 1
     message: "GameLauncher: \u521B\u5EFAPlayer\u5E76\u52A0\u5165Stage"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 475
+    lineNumber: 474
     methodName: CreatePlayer
     className: GamePlayManager
     relativePosition: 2
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:CreatePlayer:13
-    fallbackId: GamePlayManager.cs:486:CreatePlayer
+    fallbackId: GamePlayManager.cs:485:CreatePlayer
     category: Default
     level: 1
     message: "$\"GameLauncher: Player\u521B\u5EFA\u5B8C\u6210\uFF0CID: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 486
+    lineNumber: 485
     methodName: CreatePlayer
     className: GamePlayManager
     relativePosition: 13
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:SwitchToGameScene:2
-    fallbackId: GamePlayManager.cs:494:SwitchToGameScene
+    fallbackId: GamePlayManager.cs:493:SwitchToGameScene
     category: Default
     level: 1
     message: "$\"GameLauncher: \u5207\u6362\u5230\u6E38\u620F\u573A\u666F {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 494
+    lineNumber: 493
     methodName: SwitchToGameScene
     className: GamePlayManager
     relativePosition: 2
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameSceneLoaded:2
-    fallbackId: GamePlayManager.cs:514:OnGameSceneLoaded
+    fallbackId: GamePlayManager.cs:513:OnGameSceneLoaded
     category: Default
     level: 1
     message: "GameLauncher: \u6E38\u620F\u573A\u666F\u52A0\u8F7D\u5B8C\u6210"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 514
+    lineNumber: 513
     methodName: OnGameSceneLoaded
     className: GamePlayManager
     relativePosition: 2
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameSceneLoaded:8
-    fallbackId: GamePlayManager.cs:520:OnGameSceneLoaded
+    fallbackId: GamePlayManager.cs:519:OnGameSceneLoaded
     category: Default
     level: 1
     message: "GameLauncher: \u6E38\u620F\u51C6\u5907\u5B8C\u6210"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 520
+    lineNumber: 519
     methodName: OnGameSceneLoaded
     className: GamePlayManager
     relativePosition: 8
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:4
-    fallbackId: GamePlayManager.cs:532:OnGameResponse
+    fallbackId: GamePlayManager.cs:531:OnGameResponse
     category: Default
     level: 1
     message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u54CD\u5E94 - Success:
       {...}, Message: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 532
+    lineNumber: 531
     methodName: OnGameResponse
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:10
-    fallbackId: GamePlayManager.cs:538:OnGameResponse
+    fallbackId: GamePlayManager.cs:537:OnGameResponse
     category: Default
     level: 1
     message: "$\"\u6E38\u620F\u64CD\u4F5C\u6210\u529F: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 538
+    lineNumber: 537
     methodName: OnGameResponse
     className: GamePlayManager
     relativePosition: 10
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:15
-    fallbackId: GamePlayManager.cs:543:OnGameResponse
+    fallbackId: GamePlayManager.cs:542:OnGameResponse
     category: Default
     level: 2
     message: "$\"\u6E38\u620F\u64CD\u4F5C\u5931\u8D25: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 543
+    lineNumber: 542
     methodName: OnGameResponse
     className: GamePlayManager
     relativePosition: 15
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameResponse:20
-    fallbackId: GamePlayManager.cs:548:OnGameResponse
+    fallbackId: GamePlayManager.cs:547:OnGameResponse
     category: Default
     level: 3
     message: "$\"\u5904\u7406\u6E38\u620F\u54CD\u5E94\u65F6\u51FA\u9519: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 548
+    lineNumber: 547
     methodName: OnGameResponse
     className: GamePlayManager
     relativePosition: 20
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameStartNotification:4
-    fallbackId: GamePlayManager.cs:560:OnGameStartNotification
+    fallbackId: GamePlayManager.cs:559:OnGameStartNotification
     category: Default
     level: 1
     message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u5F00\u59CB\u901A\u77E5
       - \u623F\u95F4: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 560
+    lineNumber: 559
     methodName: OnGameStartNotification
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameStartNotification:22
-    fallbackId: GamePlayManager.cs:578:OnGameStartNotification
+    fallbackId: GamePlayManager.cs:577:OnGameStartNotification
     category: Default
     level: 1
     message: "$\"\u6E38\u620F\u5F00\u59CB - \u623F\u95F4: {...}, \u73A9\u5BB6\u6570:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 578
+    lineNumber: 577
     methodName: OnGameStartNotification
     className: GamePlayManager
     relativePosition: 22
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameStartNotification:26
-    fallbackId: GamePlayManager.cs:582:OnGameStartNotification
+    fallbackId: GamePlayManager.cs:581:OnGameStartNotification
     category: Default
     level: 3
     message: "$\"\u5904\u7406\u6E38\u620F\u5F00\u59CB\u901A\u77E5\u65F6\u51FA\u9519:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 582
+    lineNumber: 581
     methodName: OnGameStartNotification
     className: GamePlayManager
     relativePosition: 26
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameEndNotification:4
-    fallbackId: GamePlayManager.cs:594:OnGameEndNotification
+    fallbackId: GamePlayManager.cs:593:OnGameEndNotification
     category: Default
     level: 1
     message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u7ED3\u675F\u901A\u77E5
       - \u623F\u95F4: {...}, \u539F\u56E0: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 594
+    lineNumber: 593
     methodName: OnGameEndNotification
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameEndNotification:17
-    fallbackId: GamePlayManager.cs:607:OnGameEndNotification
+    fallbackId: GamePlayManager.cs:606:OnGameEndNotification
     category: Default
     level: 1
     message: "$\"\u6E38\u620F\u7ED3\u675F - \u623F\u95F4: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 607
+    lineNumber: 606
     methodName: OnGameEndNotification
     className: GamePlayManager
     relativePosition: 17
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameEndNotification:21
-    fallbackId: GamePlayManager.cs:611:OnGameEndNotification
+    fallbackId: GamePlayManager.cs:610:OnGameEndNotification
     category: Default
     level: 3
     message: "$\"\u5904\u7406\u6E38\u620F\u7ED3\u675F\u901A\u77E5\u65F6\u51FA\u9519:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 611
+    lineNumber: 610
     methodName: OnGameEndNotification
     className: GamePlayManager
     relativePosition: 21
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameStateUpdate:4
-    fallbackId: GamePlayManager.cs:623:OnGameStateUpdate
+    fallbackId: GamePlayManager.cs:622:OnGameStateUpdate
     category: Default
     level: 1
     message: "$\"GamePlayManager: \u6536\u5230\u6E38\u620F\u72B6\u6001\u66F4\u65B0
       - \u623F\u95F4: {...}, \u56DE\u5408: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 623
+    lineNumber: 622
     methodName: OnGameStateUpdate
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameStateUpdate:11
-    fallbackId: GamePlayManager.cs:630:OnGameStateUpdate
+    fallbackId: GamePlayManager.cs:629:OnGameStateUpdate
     category: Default
     level: 1
     message: "$\"\u6E38\u620F\u72B6\u6001\u66F4\u65B0 - \u5F53\u524D\u56DE\u5408:
       {...}/{...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 630
+    lineNumber: 629
     methodName: OnGameStateUpdate
     className: GamePlayManager
     relativePosition: 11
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnGameStateUpdate:17
-    fallbackId: GamePlayManager.cs:636:OnGameStateUpdate
+    fallbackId: GamePlayManager.cs:635:OnGameStateUpdate
     category: Default
     level: 3
     message: "$\"\u5904\u7406\u6E38\u620F\u72B6\u6001\u66F4\u65B0\u65F6\u51FA\u9519:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 636
+    lineNumber: 635
     methodName: OnGameStateUpdate
     className: GamePlayManager
     relativePosition: 17
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:CreateGameRoom:3
-    fallbackId: GamePlayManager.cs:647:CreateGameRoom
+    fallbackId: GamePlayManager.cs:646:CreateGameRoom
     category: Default
     level: 1
     message: "$\"\u521B\u5EFA\u6E38\u620F\u623F\u95F4: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 647
+    lineNumber: 646
     methodName: CreateGameRoom
     className: GamePlayManager
     relativePosition: 3
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:CreateGameStage:5
-    fallbackId: GamePlayManager.cs:659:CreateGameStage
+    fallbackId: GamePlayManager.cs:658:CreateGameStage
     category: Default
     level: 1
     message: "\u521B\u5EFA\u6E38\u620F\u821E\u53F0"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 659
+    lineNumber: 658
     methodName: CreateGameStage
     className: GamePlayManager
     relativePosition: 5
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:ShowGameResult:4
-    fallbackId: GamePlayManager.cs:670:ShowGameResult
+    fallbackId: GamePlayManager.cs:669:ShowGameResult
     category: Default
     level: 1
     message: "$\"\u6E38\u620F\u7ED3\u679C - \u623F\u95F4: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 670
+    lineNumber: 669
     methodName: ShowGameResult
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:ShowGameResult:8
-    fallbackId: GamePlayManager.cs:674:ShowGameResult
+    fallbackId: GamePlayManager.cs:673:ShowGameResult
     category: Default
     level: 1
     message: "$\"\u73A9\u5BB6 {...}: \u5206\u6570 {...}, \u6392\u540D {...}, \u83B7\u80DC:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 674
+    lineNumber: 673
     methodName: ShowGameResult
     className: GamePlayManager
     relativePosition: 8
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:ShowGameResult:17
-    fallbackId: GamePlayManager.cs:683:ShowGameResult
+    fallbackId: GamePlayManager.cs:682:ShowGameResult
     category: Default
     level: 3
     message: "$\"\u663E\u793A\u6E38\u620F\u7ED3\u679C\u65F6\u51FA\u9519: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 683
+    lineNumber: 682
     methodName: ShowGameResult
     className: GamePlayManager
     relativePosition: 17
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:ReturnToRoomList:6
-    fallbackId: GamePlayManager.cs:697:ReturnToRoomList
+    fallbackId: GamePlayManager.cs:696:ReturnToRoomList
     category: Default
     level: 1
     message: "\u8FD4\u56DE\u623F\u95F4\u5217\u8868"
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 697
+    lineNumber: 696
     methodName: ReturnToRoomList
     className: GamePlayManager
     relativePosition: 6
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:ReturnToRoomList:10
-    fallbackId: GamePlayManager.cs:701:ReturnToRoomList
+    fallbackId: GamePlayManager.cs:700:ReturnToRoomList
     category: Default
     level: 3
     message: "$\"\u8FD4\u56DE\u623F\u95F4\u5217\u8868\u65F6\u51FA\u9519: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 701
+    lineNumber: 700
     methodName: ReturnToRoomList
     className: GamePlayManager
     relativePosition: 10
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncStartNotification:4
-    fallbackId: GamePlayManager.cs:717:OnFrameSyncStartNotification
+    fallbackId: GamePlayManager.cs:716:OnFrameSyncStartNotification
     category: FrameSync.Client
     level: 1
     message: "$\"GamePlayManager: \u6536\u5230\u5E27\u540C\u6B65\u5F00\u59CB\u901A\u77E5
       - \u623F\u95F4: {...}\uFF0C\u5E27\u7387: {...}FPS\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 717
+    lineNumber: 716
     methodName: OnFrameSyncStartNotification
     className: GamePlayManager
     relativePosition: 4
     enabled: 0
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncStartNotification:10
-    fallbackId: GamePlayManager.cs:723:OnFrameSyncStartNotification
+    fallbackId: GamePlayManager.cs:722:OnFrameSyncStartNotification
     category: FrameSync.Client
     level: 1
     message: "$\"\u5E27\u540C\u6B65\u63A7\u5236\u5668\u5DF2\u542F\u52A8\uFF0C\u623F\u95F4:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 723
+    lineNumber: 722
     methodName: OnFrameSyncStartNotification
     className: GamePlayManager
     relativePosition: 10
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncStartNotification:15
-    fallbackId: GamePlayManager.cs:728:OnFrameSyncStartNotification
+    fallbackId: GamePlayManager.cs:727:OnFrameSyncStartNotification
     category: FrameSync.Client
     level: 3
     message: "$\"\u5904\u7406\u5E27\u540C\u6B65\u5F00\u59CB\u901A\u77E5\u65F6\u51FA\u9519:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 728
+    lineNumber: 727
     methodName: OnFrameSyncStartNotification
     className: GamePlayManager
     relativePosition: 15
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncEndNotification:4
-    fallbackId: GamePlayManager.cs:740:OnFrameSyncEndNotification
+    fallbackId: GamePlayManager.cs:739:OnFrameSyncEndNotification
     category: FrameSync.Client
     level: 1
     message: "$\"GamePlayManager: \u6536\u5230\u5E27\u540C\u6B65\u7ED3\u675F\u901A\u77E5
       - \u623F\u95F4: {...}\uFF0C\u6700\u7EC8\u5E27: {...}\uFF0C\u539F\u56E0: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 740
+    lineNumber: 739
     methodName: OnFrameSyncEndNotification
     className: GamePlayManager
     relativePosition: 4
     enabled: 0
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncEndNotification:10
-    fallbackId: GamePlayManager.cs:746:OnFrameSyncEndNotification
+    fallbackId: GamePlayManager.cs:745:OnFrameSyncEndNotification
     category: FrameSync.Client
     level: 1
     message: "$\"\u5E27\u540C\u6B65\u63A7\u5236\u5668\u5DF2\u505C\u6B62\uFF0C\u623F\u95F4:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 746
+    lineNumber: 745
     methodName: OnFrameSyncEndNotification
     className: GamePlayManager
     relativePosition: 10
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncEndNotification:15
-    fallbackId: GamePlayManager.cs:751:OnFrameSyncEndNotification
+    fallbackId: GamePlayManager.cs:750:OnFrameSyncEndNotification
     category: FrameSync.Client
     level: 3
     message: "$\"\u5904\u7406\u5E27\u540C\u6B65\u7ED3\u675F\u901A\u77E5\u65F6\u51FA\u9519:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 751
+    lineNumber: 750
     methodName: OnFrameSyncEndNotification
     className: GamePlayManager
     relativePosition: 15
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncData:4
-    fallbackId: GamePlayManager.cs:763:OnFrameSyncData
+    fallbackId: GamePlayManager.cs:762:OnFrameSyncData
     category: FrameSync.Client
     level: 0
     message: "$\"GamePlayManager: \u6536\u5230\u5E27\u540C\u6B65\u6570\u636E - \u623F\u95F4:
       {...}\uFF0C\u6743\u5A01\u5E27: {...}\uFF0C\u8F93\u5165\u6570: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 763
+    lineNumber: 762
     methodName: OnFrameSyncData
     className: GamePlayManager
     relativePosition: 4
     enabled: 0
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameSyncData:11
-    fallbackId: GamePlayManager.cs:770:OnFrameSyncData
+    fallbackId: GamePlayManager.cs:769:OnFrameSyncData
     category: FrameSync.Client
     level: 3
     message: "$\"\u5904\u7406\u5E27\u540C\u6B65\u6570\u636E\u65F6\u51FA\u9519: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 770
+    lineNumber: 769
     methodName: OnFrameSyncData
     className: GamePlayManager
     relativePosition: 11
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameInputs:4
-    fallbackId: GamePlayManager.cs:782:OnFrameInputs
+    fallbackId: GamePlayManager.cs:781:OnFrameInputs
     category: Default
     level: 0
     message: "$\"GamePlayManager: \u6536\u5230\u5E27\u8F93\u5165\u6570\u636E\uFF0C\u8F93\u5165\u6570:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 782
+    lineNumber: 781
     methodName: OnFrameInputs
     className: GamePlayManager
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: GamePlayManager.cs:GamePlayManager:OnFrameInputs:11
-    fallbackId: GamePlayManager.cs:789:OnFrameInputs
+    fallbackId: GamePlayManager.cs:788:OnFrameInputs
     category: Default
     level: 3
     message: "$\"\u5904\u7406\u5E27\u8F93\u5165\u6570\u636E\u65F6\u51FA\u9519: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\GamePlayManager.cs
-    lineNumber: 789
+    lineNumber: 788
     methodName: OnFrameInputs
     className: GamePlayManager
     relativePosition: 11
@@ -6983,18 +7182,18 @@ MonoBehaviour:
     relativePosition: 2
     enabled: 1
     isGenerated: 0
-  - id: InputManager.cs:InputManager:CollectLSInput:19
-    fallbackId: InputManager.cs:286:CollectLSInput
+  - id: InputManager.cs:InputManager:CollectLSInput:30
+    fallbackId: InputManager.cs:297:CollectLSInput
     category: Input.LSInput
     level: 0
     message: '$"LSInput: MainPlayerID:{...} MoveX={...}, MoveY={...}, Attack={...},
       Skill1={...}, Skill2={...}"'
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumClient\Managers\InputManager.cs
-    lineNumber: 286
+    lineNumber: 297
     methodName: CollectLSInput
     className: InputManager
-    relativePosition: 19
+    relativePosition: 30
     enabled: 1
     isGenerated: 0
   - id: NetworkManager.cs:NetworkManager:Initialize:4
@@ -8511,21 +8710,134 @@ MonoBehaviour:
     relativePosition: 20
     enabled: 1
     isGenerated: 0
+  - id: MovementCapability.cs:MovementCapability:Tick:52
+    fallbackId: MovementCapability.cs:83:Tick
+    category: Logic.Movement
+    level: 1
+    message: "$\"MovementCapability: \u79FB\u52A8\u6267\u884C - \u8F93\u5165:({...},
+      {...}), \u901F\u5EA6:{...}, \u589E\u91CF:({...}, {...}), \u65B0\u4F4D\u7F6E:({...},
+      {...})\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Capabilities\MovementCapability.cs
+    lineNumber: 83
+    methodName: Tick
+    className: MovementCapability
+    relativePosition: 52
+    enabled: 1
+    isGenerated: 0
   - id: LSController.cs:LSController:Tick:21
-    fallbackId: LSController.cs:97:Tick
+    fallbackId: LSController.cs:100:Tick
     category: Default
     level: 0
     message: '$"Tick Frame: {...}, Inputs Count: {...}"'
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
-    lineNumber: 97
+    lineNumber: 100
     methodName: Tick
     className: LSController
     relativePosition: 21
     enabled: 0
     isGenerated: 0
+  - id: LSController.cs:LSController:SaveState:11
+    fallbackId: LSController.cs:158:SaveState
+    category: FrameSync.SaveState
+    level: 0
+    message: "$\"\u4FDD\u5B58\u5E27\u72B6\u6001 - \u5E27: {...}, World ID: {...},
+      \u5B9E\u4F53\u6570\u91CF: {...}\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 158
+    methodName: SaveState
+    className: LSController
+    relativePosition: 11
+    enabled: 1
+    isGenerated: 0
+  - id: LSController.cs:LSController:SaveState:17
+    fallbackId: LSController.cs:164:SaveState
+    category: FrameSync.SaveState
+    level: 0
+    message: "$\"  - \u4FDD\u5B58\u5B9E\u4F53: {...} (ID: {...}), \u6FC0\u6D3B: {...},
+      \u7EC4\u4EF6: {...}, \u80FD\u529B: {...}\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 164
+    methodName: SaveState
+    className: LSController
+    relativePosition: 17
+    enabled: 1
+    isGenerated: 0
+  - id: LSController.cs:LSController:SaveState:27
+    fallbackId: LSController.cs:174:SaveState
+    category: FrameSync.SaveState
+    level: 0
+    message: "$\"\u5E27\u72B6\u6001\u4FDD\u5B58\u5B8C\u6210 - \u5E27: {...}, \u6570\u636E\u5927\u5C0F:
+      {...} bytes, \u54C8\u5E0C: {...}\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 174
+    methodName: SaveState
+    className: LSController
+    relativePosition: 27
+    enabled: 1
+    isGenerated: 0
+  - id: LSController.cs:LSController:LoadState:5
+    fallbackId: LSController.cs:186:LoadState
+    category: FrameSync.LoadState
+    level: 0
+    message: "$\"\u52A0\u8F7D\u5E27\u72B6\u6001 - \u5E27: {...}, \u6570\u636E\u5927\u5C0F:
+      {...} bytes\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 186
+    methodName: LoadState
+    className: LSController
+    relativePosition: 5
+    enabled: 1
+    isGenerated: 0
+  - id: LSController.cs:LSController:LoadState:13
+    fallbackId: LSController.cs:194:LoadState
+    category: FrameSync.LoadState
+    level: 0
+    message: "$\"\u5E27\u72B6\u6001\u52A0\u8F7D\u5B8C\u6210 - \u5E27: {...}, World
+      ID: {...}, \u5B9E\u4F53\u6570\u91CF: {...}\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 194
+    methodName: LoadState
+    className: LSController
+    relativePosition: 13
+    enabled: 1
+    isGenerated: 0
+  - id: LSController.cs:LSController:LoadState:19
+    fallbackId: LSController.cs:200:LoadState
+    category: FrameSync.LoadState
+    level: 0
+    message: "$\"  - \u52A0\u8F7D\u5B9E\u4F53: {...} (ID: {...}), \u6FC0\u6D3B: {...},
+      \u7EC4\u4EF6: {...}, \u80FD\u529B: {...}\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 200
+    methodName: LoadState
+    className: LSController
+    relativePosition: 19
+    enabled: 1
+    isGenerated: 0
+  - id: LSController.cs:LSController:LoadState:25
+    fallbackId: LSController.cs:206:LoadState
+    category: FrameSync.LoadState
+    level: 2
+    message: "$\"\u5E27\u72B6\u6001\u52A0\u8F7D\u5931\u8D25 - \u5E27: {...}, \u53CD\u5E8F\u5217\u5316\u7ED3\u679C\u4E3A
+      null\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 206
+    methodName: LoadState
+    className: LSController
+    relativePosition: 25
+    enabled: 1
+    isGenerated: 0
   - id: LSController.cs:LSController:SetPlayerInput:6
-    fallbackId: LSController.cs:179:SetPlayerInput
+    fallbackId: LSController.cs:246:SetPlayerInput
     category: Default
     level: 0
     message: "$\"Input Details - Frame: {input.Frame}, Move: ({input.MoveX:F2}, {input.MoveY:F2}),
@@ -8533,36 +8845,76 @@ MonoBehaviour:
       Skill2: {input.Skill2}, Timestamp: {input.Timestamp}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
-    lineNumber: 179
+    lineNumber: 246
     methodName: SetPlayerInput
     className: LSController
     relativePosition: 6
     enabled: 1
     isGenerated: 0
+  - id: LSController.cs:LSController:SetOneFrameInputs:14
+    fallbackId: LSController.cs:265:SetOneFrameInputs
+    category: Default
+    level: 2
+    message: $"Input Mismatch at Frame {...}. Rolling back from PredictionFrame {...}
+      to AuthorityFrame {...}."
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 265
+    methodName: SetOneFrameInputs
+    className: LSController
+    relativePosition: 14
+    enabled: 1
+    isGenerated: 0
+  - id: LSController.cs:LSController:SetOneFrameInputs:16
+    fallbackId: LSController.cs:267:SetOneFrameInputs
+    category: Default
+    level: 2
+    message: $"roll back start {...});"
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSController.cs
+    lineNumber: 267
+    methodName: SetOneFrameInputs
+    className: LSController
+    relativePosition: 16
+    enabled: 1
+    isGenerated: 0
   - id: LSInputSystem.cs:LSInputSystem:GetOneFrameMessages:25
-    fallbackId: LSInputSystem.cs:78:GetOneFrameMessages
+    fallbackId: LSInputSystem.cs:111:GetOneFrameMessages
     category: FrameSync.Prediction
     level: 0
     message: '$"Predict Frame: {...}, MoveX={...}, MoveY={...}"'
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\LSInputSystem.cs
-    lineNumber: 78
+    lineNumber: 111
     methodName: GetOneFrameMessages
     className: LSInputSystem
     relativePosition: 25
     enabled: 0
     isGenerated: 0
   - id: Room.cs:Room:FrameTick:17
-    fallbackId: Room.cs:160:FrameTick
+    fallbackId: Room.cs:156:FrameTick
     category: Default
     level: 1
     message: "$\"\u65B0\u73A9\u5BB6\u521B\u5EFA BornInfo: {...} \""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\Room.cs
-    lineNumber: 160
+    lineNumber: 156
     methodName: FrameTick
     className: Room
     relativePosition: 17
+    enabled: 1
+    isGenerated: 0
+  - id: Room.cs:Room:Initialize:6
+    fallbackId: Room.cs:185:Initialize
+    category: Default
+    level: 3
+    message: $"Room {...} has no MainWorld defined."
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumLogic\Core\Room.cs
+    lineNumber: 185
+    methodName: Initialize
+    className: Room
+    relativePosition: 6
     enabled: 1
     isGenerated: 0
   - id: HealthViewComponent.cs:HealthViewComponent:OnInitialize:2
@@ -8660,250 +9012,264 @@ MonoBehaviour:
     relativePosition: 2
     enabled: 1
     isGenerated: 0
-  - id: TransViewComponent.cs:TransViewComponent:OnUpdate:8
-    fallbackId: TransViewComponent.cs:60:OnUpdate
+  - id: TransViewComponent.cs:TransViewComponent:OnUpdate:6
+    fallbackId: TransViewComponent.cs:58:OnUpdate
+    category: View.Movement
+    level: 3
+    message: "$\"MovementViewComponent: \u5B9E\u4F53\u7F3A\u5C11PositionComponent\uFF0C\u65E0\u6CD5\u66F4\u65B0\u4F4D\u7F6E\uFF0C\u5B9E\u4F53ID:
+      {...}\""
+    cleanMessage: 
+    filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
+    lineNumber: 58
+    methodName: OnUpdate
+    className: TransViewComponent
+    relativePosition: 6
+    enabled: 1
+    isGenerated: 0
+  - id: TransViewComponent.cs:TransViewComponent:OnUpdate:13
+    fallbackId: TransViewComponent.cs:65:OnUpdate
     category: View.Movement
     level: 0
     message: "$\"MovementViewComponent: \u66F4\u65B0\u76EE\u6807\u4F4D\u7F6E\uFF0C\u4F4D\u7F6E:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
-    lineNumber: 60
+    lineNumber: 65
     methodName: OnUpdate
     className: TransViewComponent
-    relativePosition: 8
-    enabled: 0
+    relativePosition: 13
+    enabled: 1
     isGenerated: 0
   - id: TransViewComponent.cs:TransViewComponent:OnDestroy:2
-    fallbackId: TransViewComponent.cs:71:OnDestroy
+    fallbackId: TransViewComponent.cs:76:OnDestroy
     category: Default
     level: 1
     message: "$\"MovementViewComponent: \u9500\u6BC1\u79FB\u52A8\u89C6\u56FE\u7EC4\u4EF6\uFF0CID:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
-    lineNumber: 71
+    lineNumber: 76
     methodName: OnDestroy
     className: TransViewComponent
     relativePosition: 2
     enabled: 1
     isGenerated: 0
   - id: TransViewComponent.cs:TransViewComponent:OnSyncData:9
-    fallbackId: TransViewComponent.cs:83:OnSyncData
+    fallbackId: TransViewComponent.cs:88:OnSyncData
     category: Default
     level: 0
     message: "$\"MovementViewComponent: \u540C\u6B65\u79FB\u52A8\u6570\u636E\uFF0C\u4F4D\u7F6E:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Components\TransViewComponent.cs
-    lineNumber: 83
+    lineNumber: 88
     methodName: OnSyncData
     className: TransViewComponent
     relativePosition: 9
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:Initialize:4
-    fallbackId: EntityView.cs:69:Initialize
+    fallbackId: EntityView.cs:80:Initialize
     category: Default
     level: 2
     message: "$\"EntityView: \u5B9E\u4F53\u89C6\u56FE\u5DF2\u7ECF\u521D\u59CB\u5316\uFF0CID:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 69
+    lineNumber: 80
     methodName: Initialize
     className: EntityView
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:Initialize:11
-    fallbackId: EntityView.cs:76:Initialize
+    fallbackId: EntityView.cs:87:Initialize
     category: Default
     level: 1
     message: "$\"EntityView: \u521D\u59CB\u5316\u5B9E\u4F53\u89C6\u56FE\uFF0CID:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 76
+    lineNumber: 87
     methodName: Initialize
     className: EntityView
     relativePosition: 11
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:Initialize:25
-    fallbackId: EntityView.cs:90:Initialize
+    fallbackId: EntityView.cs:101:Initialize
     category: Default
     level: 1
     message: "$\"EntityView: \u5B9E\u4F53\u89C6\u56FE\u521D\u59CB\u5316\u5B8C\u6210\uFF0CID:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 90
+    lineNumber: 101
     methodName: Initialize
     className: EntityView
     relativePosition: 25
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:Initialize:29
-    fallbackId: EntityView.cs:94:Initialize
+    fallbackId: EntityView.cs:105:Initialize
     category: Default
     level: 3
     message: "$\"EntityView: \u5B9E\u4F53\u89C6\u56FE\u521D\u59CB\u5316\u5931\u8D25\uFF0CID:
       {...} - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 94
+    lineNumber: 105
     methodName: Initialize
     className: EntityView
     relativePosition: 29
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:SyncWithEntity:4
-    fallbackId: EntityView.cs:136:SyncWithEntity
+    fallbackId: EntityView.cs:147:SyncWithEntity
     category: Default
     level: 2
     message: "$\"EntityView: \u5B9E\u4F53ID\u4E0D\u5339\u914D\uFF0C\u671F\u671B:
       {...}\uFF0C\u5B9E\u9645: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 136
+    lineNumber: 147
     methodName: SyncWithEntity
     className: EntityView
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:SyncTransformFromLogic:14
-    fallbackId: EntityView.cs:168:SyncTransformFromLogic
+    fallbackId: EntityView.cs:179:SyncTransformFromLogic
     category: Default
     level: 0
     message: "$\"EntityView: \u540C\u6B65Transform\u6570\u636E\uFF0CID: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 168
+    lineNumber: 179
     methodName: SyncTransformFromLogic
     className: EntityView
     relativePosition: 14
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:SyncComponentsFromLogic:15
-    fallbackId: EntityView.cs:190:SyncComponentsFromLogic
+    fallbackId: EntityView.cs:201:SyncComponentsFromLogic
     category: Default
     level: 0
     message: "$\"EntityView: \u540C\u6B65Component\u6570\u636E\uFF0CID: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 190
+    lineNumber: 201
     methodName: SyncComponentsFromLogic
     className: EntityView
     relativePosition: 15
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:SetVisible:24
-    fallbackId: EntityView.cs:221:SetVisible
+    fallbackId: EntityView.cs:232:SetVisible
     category: Default
     level: 1
     message: "$\"EntityView: \u8BBE\u7F6E\u53EF\u89C1\u6027\uFF0CID: {...}\uFF0C\u53EF\uFFFD?
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 221
+    lineNumber: 232
     methodName: SetVisible
     className: EntityView
     relativePosition: 24
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:SetActive:11
-    fallbackId: EntityView.cs:239:SetActive
+    fallbackId: EntityView.cs:250:SetActive
     category: Default
     level: 1
     message: "$\"EntityView: \u8BBE\u7F6E\u6FC0\u6D3B\u72B6\u6001\uFF0CID: {...}\uFF0C\u6FC0\uFFFD?
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 239
+    lineNumber: 250
     methodName: SetActive
     className: EntityView
     relativePosition: 11
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:AddViewComponent:4
-    fallbackId: EntityView.cs:250:AddViewComponent
+    fallbackId: EntityView.cs:261:AddViewComponent
     category: Default
     level: 2
     message: "$\"EntityView: \u5C1D\u8BD5\u6DFB\u52A0\u7A7A\u7684\u89C6\u56FE\u7EC4\u4EF6\uFF0CID:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 250
+    lineNumber: 261
     methodName: AddViewComponent
     className: EntityView
     relativePosition: 4
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:AddViewComponent:10
-    fallbackId: EntityView.cs:256:AddViewComponent
+    fallbackId: EntityView.cs:267:AddViewComponent
     category: Default
     level: 2
     message: "$\"EntityView: \u89C6\u56FE\u7EC4\u4EF6\u5DF2\u5B58\u5728\uFF0CID:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 256
+    lineNumber: 267
     methodName: AddViewComponent
     className: EntityView
     relativePosition: 10
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:AddViewComponent:18
-    fallbackId: EntityView.cs:264:AddViewComponent
+    fallbackId: EntityView.cs:275:AddViewComponent
     category: Default
     level: 1
     message: "$\"EntityView: \u6DFB\u52A0\u89C6\u56FE\u7EC4\u4EF6\uFF0CID: {...}\uFF0C\u7EC4\u4EF6:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 264
+    lineNumber: 275
     methodName: AddViewComponent
     className: EntityView
     relativePosition: 18
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:RemoveViewComponent:8
-    fallbackId: EntityView.cs:279:RemoveViewComponent
+    fallbackId: EntityView.cs:290:RemoveViewComponent
     category: Default
     level: 1
     message: "$\"EntityView: \u79FB\u9664\u89C6\u56FE\u7EC4\u4EF6\uFF0CID: {...}\uFF0C\u7EC4\u4EF6:
       {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 279
+    lineNumber: 290
     methodName: RemoveViewComponent
     className: EntityView
     relativePosition: 8
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:Destroy:2
-    fallbackId: EntityView.cs:305:Destroy
+    fallbackId: EntityView.cs:316:Destroy
     category: Default
     level: 1
     message: "$\"EntityView: \u9500\u6BC1\u5B9E\u4F53\u89C6\u56FE\uFF0CID: {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 305
+    lineNumber: 316
     methodName: Destroy
     className: EntityView
     relativePosition: 2
     enabled: 1
     isGenerated: 0
   - id: EntityView.cs:EntityView:BuildViewComponents:18
-    fallbackId: EntityView.cs:444:BuildViewComponents
+    fallbackId: EntityView.cs:455:BuildViewComponents
     category: Default
     level: 3
     message: "$\"EntityView: \u521B\u5EFA\u89C6\u56FE\u7EC4\u4EF6 {...} \u5931\u8D25
       - {...}\""
     cleanMessage: 
     filePath: D:/Develop/Projects/Astrum/AstrumProj/Assets\Script\AstrumView\Core\EntityView.cs
-    lineNumber: 444
+    lineNumber: 455
     methodName: BuildViewComponents
     className: EntityView
     relativePosition: 18
@@ -10459,8 +10825,8 @@ MonoBehaviour:
   globalMinLevel: 0
   enableCategoryFilter: 1
   enableLogFilter: 1
-  totalCategories: 15
-  enabledCategories: 15
-  totalLogs: 389
-  enabledLogs: 379
+  totalCategories: 19
+  enabledCategories: 19
+  totalLogs: 401
+  enabledLogs: 393
   lastScanTimeTicks: 0
