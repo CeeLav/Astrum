@@ -1,11 +1,14 @@
 using Astrum.LogicCore.Core;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
     /// 能力抽象基类，所有能力都继承自此类
     /// </summary>
-    public abstract class Capability
+    [MemoryPackUnion(0, typeof(MovementCapability))]
+    [MemoryPackable]
+    public abstract partial class Capability
     {
         /// <summary>
         /// 能力的唯一标识符

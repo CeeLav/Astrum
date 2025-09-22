@@ -6,13 +6,15 @@ using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
 using Astrum.Generated;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Core
 {
     /// <summary>
     /// 实体类，游戏中所有对象的基础类
     /// </summary>
-    public class Entity
+    [MemoryPackable]
+    public partial class Entity
     {
         private static long _nextId = 1;
 

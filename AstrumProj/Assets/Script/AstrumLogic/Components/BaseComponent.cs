@@ -1,11 +1,17 @@
 using Astrum.LogicCore.Core;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Components
 {
     /// <summary>
     /// 组件基类，所有组件都继承自此类
     /// </summary>
-    public abstract class BaseComponent
+    [MemoryPackUnion(0, typeof(HealthComponent))]
+    [MemoryPackUnion(1, typeof(PositionComponent))]
+    [MemoryPackUnion(2, typeof(MovementComponent))]
+    [MemoryPackUnion(3, typeof(Astrum.LogicCore.FrameSync.LSInputComponent))]
+    [MemoryPackable]
+    public abstract partial class BaseComponent
     {
         /// <summary>
         /// 组件的唯一标识符
