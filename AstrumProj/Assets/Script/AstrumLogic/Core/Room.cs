@@ -29,12 +29,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public bool IsActive { get; set; } = true;
 
-        public FrameBuffer FrameBuffer
-        {
-            get;
-            set;
-        }
-
         /// <summary>
         /// 管理的世界列表
         /// </summary>
@@ -185,7 +179,6 @@ namespace Astrum.LogicCore.Core
                 ASLogger.Instance.Error($"Room {RoomId} has no MainWorld defined.");
             }
             MainWorld?.Initialize();
-            FrameBuffer = new FrameBuffer();
             // 初始化帧同步控制器
             if (LSController == null)
             {
