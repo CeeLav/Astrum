@@ -52,6 +52,8 @@ namespace Astrum.LogicCore.Core
         /// 所属房间ID
         /// </summary>
         public long RoomId { get; set; }
+        
+        public int CurFrame { get; set; }
 
         /// <summary>
         /// 默认构造函数
@@ -65,8 +67,8 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public World(int worldId, string name, DateTime creationTime, Dictionary<long, Entity> entities, 
-                    float deltaTime, float totalTime, LSUpdater updater, long roomId)
+        public World(int worldId, string name, DateTime creationTime, Dictionary<long, Entity> entities,
+            float deltaTime, float totalTime, LSUpdater updater, long roomId, int curFrame)
         {
             WorldId = worldId;
             Name = name;
@@ -76,7 +78,7 @@ namespace Astrum.LogicCore.Core
             TotalTime = totalTime;
             Updater = updater;
             RoomId = roomId;
-
+            CurFrame = curFrame;
             // 重建关系
             foreach (var entity in Entities.Values)
             {
@@ -143,16 +145,18 @@ namespace Astrum.LogicCore.Core
         public void Update()
         {
             Updater?.UpdateWorld(this);
+            CurFrame++;
         }
 
         /// <summary>
         /// 初始化世界
         /// </summary>
-        public virtual void Initialize()
+        public virtual void Initialize(int frame)
         {
             CreationTime = DateTime.Now;
             TotalTime = 0f;
             Updater = new LSUpdater();
+            CurFrame = frame;
         }
 
         /// <summary>

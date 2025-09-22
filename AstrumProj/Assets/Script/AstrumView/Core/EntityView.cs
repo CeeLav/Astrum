@@ -40,6 +40,13 @@ namespace Astrum.View.Core
             {
                 if (_ownerEntity == null || _ownerEntity.IsDestroyed || _ownerEntity.UniqueId != _entityId)
                 {
+                    // 检查必要的引用是否存在
+                    if (_stage?.Room?.MainWorld == null)
+                    {
+                        ASLogger.Instance.Warning($"EntityView: 无法获取实体，Stage或Room或MainWorld为null，EntityId: {_entityId}");
+                        return null;
+                    }
+                    
                     _ownerEntity = _stage.Room.MainWorld.GetEntity(EntityId);
                 }
 
