@@ -98,7 +98,6 @@ namespace Astrum.LogicCore.Core
 
                 OneFrameInputs oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
                 ASLogger.Instance.Log(LogLevel.Debug, $"Tick Frame: {PredictionFrame}, Inputs Count: {oneOneFrameInputs.Inputs.Count}" );
-                SaveState();
                 Room.FrameTick(oneOneFrameInputs);
                 if (Room.MainPlayerId > 0)
                 {
@@ -146,7 +145,7 @@ namespace Astrum.LogicCore.Core
         /// <param name="frame">帧号</param>
         public void SaveState()
         {
-            int frame = PredictionFrame;
+            int frame = Room.MainWorld.CurFrame;
             var memoryBuffer = FrameBuffer.Snapshot(frame);
             memoryBuffer.Seek(0, SeekOrigin.Begin);
             memoryBuffer.SetLength(0);
@@ -155,7 +154,7 @@ namespace Astrum.LogicCore.Core
             if (Room?.MainWorld != null)
             {
                 var world = Room.MainWorld;
-                ASLogger.Instance.Debug($"保存帧状态 - 帧: {frame}, World ID: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.SaveState");
+                ASLogger.Instance.Debug($"保存帧状态 - 帧: {frame}, World ID: {world.WorldId},World Frame:{world.CurFrame} 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.SaveState");
                 
                 if (world.Entities != null)
                 {
@@ -264,7 +263,7 @@ namespace Astrum.LogicCore.Core
                 {
                     ASLogger.Instance.Log(LogLevel.Warning, $"Input Mismatch at Frame {AuthorityFrame}. Rolling back from PredictionFrame {PredictionFrame} to AuthorityFrame {AuthorityFrame}.");
                     inputs.CopyTo(pFrame);
-                    ASLogger.Instance.Log(LogLevel.Warning,$"roll back start {AuthorityFrame});");
+                    ASLogger.Instance.Log(LogLevel.Warning,$"roll back start {AuthorityFrame}");
                     Rollback(AuthorityFrame);
                 }
                 else
