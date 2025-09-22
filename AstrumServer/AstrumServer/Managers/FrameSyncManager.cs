@@ -138,6 +138,8 @@ namespace AstrumServer.Managers
             }
         }
         
+        public Dictionary<string,int> currentPlayerIdMap = new Dictionary<string, int>();
+        
         /// <summary>
         /// 处理客户端发送的单帧输入数据
         /// </summary>
@@ -156,7 +158,11 @@ namespace AstrumServer.Managers
                 
                 // 将SingleInput转换为LSInput
                 var lsInput = singleInput.Input;
-                lsInput.PlayerId = singleInput.PlayerID != 0 ? singleInput.PlayerID : singleInput.Input.BornInfo;
+                if (!currentPlayerIdMap.ContainsKey(roomId))
+                {
+                    currentPlayerIdMap[roomId] = 0;
+                }
+                lsInput.PlayerId = singleInput.PlayerID != 0 ? singleInput.PlayerID : ++currentPlayerIdMap[roomId];
                 
                 // 保持客户端原始帧号，让StoreFrameInput方法处理帧号验证
                 lsInput.Frame = singleInput.FrameID;
@@ -317,7 +323,11 @@ namespace AstrumServer.Managers
                 frameData.authorityFrame = authorityFrame;
                 frameData.frameInputs = frameInputs;
                 frameData.timestamp = TimeInfo.Instance.ClientNow();
-                
+                ASLogger.Instance.Debug($"发送帧同步数据 - 房间: {roomId}, 帧: {authorityFrame}, 输入数: {frameInputs.Inputs.Count}, 时间戳: {frameData.timestamp}", "FrameSync.Send");
+                if (frameData.frameInputs.Inputs.Count > 0)
+                {
+                    ASLogger.Instance.Debug($"input frame: {frameData.frameInputs.Inputs.Values.First().Frame}", "FrameSync.Send");
+                }
                 // 发送给房间内所有玩家
                 var frameState = _roomFrameStates.GetValueOrDefault(roomId);
                 if (frameState != null)
@@ -710,6 +720,7 @@ namespace AstrumServer.Managers
             }
             
             _frameInputs[input.Frame][input.PlayerId] = input;
+            ASLogger.Instance.Debug($"存储玩家 {input.PlayerId} 的输入数据，帧号: {input.Frame}");
             
             // 定期清理过期缓存
             CleanupExpiredCache();
@@ -729,6 +740,7 @@ namespace AstrumServer.Managers
                     frameInputs.Inputs[kvp.Key] = kvp.Value;
                 }
             }
+            ASLogger.Instance.Debug($"收集帧 {frame} 的输入数据，玩家数: {frameInputs.Inputs.Count}");
             
             return frameInputs;
         }

@@ -269,7 +269,7 @@ namespace Astrum.Client.Managers
             var input = new LSInput();
             input.PlayerId = playerId;
             //input.Frame = frame;
-            input.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            //input.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             // 移动输入
             float moveX = 0f;
             float moveY = 0f;
