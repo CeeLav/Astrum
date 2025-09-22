@@ -2,13 +2,15 @@ using System.Collections.Generic;
 using Astrum.Generated;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using MemoryPack;
 
 namespace Astrum.LogicCore.FrameSync
 {
     /// <summary>
     /// 帧同步输入组件，用于存储实体的输入数据
     /// </summary>
-    public class LSInputComponent : BaseComponent
+    [MemoryPackable]
+    public partial class LSInputComponent : BaseComponent
     {
         /// <summary>
         /// 玩家ID
@@ -35,6 +37,7 @@ namespace Astrum.LogicCore.FrameSync
         /// </summary>
         public int MaxHistoryCount { get; set; } = 30;
 
+        [MemoryPackConstructor]
         public LSInputComponent() : base() { }
 
         public LSInputComponent(int playerId) : base()
@@ -179,6 +182,15 @@ namespace Astrum.LogicCore.FrameSync
                 InputType.Skill2 => input.Skill2,
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// 重写 ToString 方法，避免循环引用
+        /// </summary>
+        /// <returns>字符串表示</returns>
+        public override string ToString()
+        {
+            return $"LSInputComponent[PlayerId={PlayerId}, CurrentFrame={CurrentInput?.Frame ?? -1}, HistoryCount={InputHistory.Count}]";
         }
     }
 

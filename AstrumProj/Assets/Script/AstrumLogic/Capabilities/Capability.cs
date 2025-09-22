@@ -1,11 +1,12 @@
 using Astrum.LogicCore.Core;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
     /// 能力抽象基类，所有能力都继承自此类
     /// </summary>
-    public abstract class Capability
+    public abstract partial class Capability
     {
         /// <summary>
         /// 能力的唯一标识符
@@ -15,6 +16,7 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 拥有此能力的实体
         /// </summary>
+        [MemoryPackIgnore]
         public Entity? OwnerEntity { get; set; }
 
         /// <summary>
@@ -103,6 +105,15 @@ namespace Astrum.LogicCore.Capabilities
         protected bool OwnerHasComponent<T>() where T : Astrum.LogicCore.Components.BaseComponent
         {
             return OwnerEntity?.HasComponent<T>() ?? false;
+        }
+
+        /// <summary>
+        /// 重写 ToString 方法，避免循环引用
+        /// </summary>
+        /// <returns>字符串表示</returns>
+        public override string ToString()
+        {
+            return $"{GetType().Name}[Id={CapabilityId}, Active={IsActive}, Priority={Priority}]";
         }
     }
 }

@@ -31,7 +31,7 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 所有实体的字典（EntityId -> Entity）
         /// </summary>
-        public Dictionary<long, Entity> Entities { get; private set; } = new Dictionary<long, Entity>();
+        public Dictionary<long, Entity> Entities { get; private set; }
 
         /// <summary>
         /// 当前帧时间差
@@ -52,6 +52,47 @@ namespace Astrum.LogicCore.Core
         /// 所属房间ID
         /// </summary>
         public long RoomId { get; set; }
+
+        /// <summary>
+        /// 默认构造函数
+        /// </summary>
+        public World()
+        {
+            Entities = new Dictionary<long, Entity>();
+        }
+
+        /// <summary>
+        /// MemoryPack 构造函数
+        /// </summary>
+        [MemoryPackConstructor]
+        public World(int worldId, string name, DateTime creationTime, Dictionary<long, Entity> entities, 
+                    float deltaTime, float totalTime, LSUpdater updater, long roomId)
+        {
+            WorldId = worldId;
+            Name = name;
+            CreationTime = creationTime;
+            Entities = entities ?? new Dictionary<long, Entity>();
+            DeltaTime = deltaTime;
+            TotalTime = totalTime;
+            Updater = updater;
+            RoomId = roomId;
+
+            // 重建关系
+            foreach (var entity in Entities.Values)
+            {
+                // 重建组件的 EntityId 关系
+                foreach (var component in entity.Components)
+                {
+                    component.EntityId = entity.UniqueId;
+                }
+                
+                // 重建 Capability 的 OwnerEntity 关系
+                foreach (var capability in entity.Capabilities)
+                {
+                    capability.OwnerEntity = entity;
+                }
+            }
+        }
 
         /// <summary>
         /// 创建新实体
