@@ -6,13 +6,15 @@ using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
 using Astrum.Generated;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Core
 {
     /// <summary>
     /// 实体类，游戏中所有对象的基础类
     /// </summary>
-    public class Entity
+    [MemoryPackable]
+    public partial class Entity
     {
         private static long _nextId = 1;
 
@@ -70,6 +72,35 @@ namespace Astrum.LogicCore.Core
         {
             UniqueId = _nextId++;
             CreationTime = DateTime.Now;
+        }
+
+        /// <summary>
+        /// MemoryPack 构造函数
+        /// </summary>
+        [MemoryPackConstructor]
+        public Entity(long uniqueId, string name, bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities)
+        {
+            UniqueId = uniqueId;
+            Name = name;
+            IsActive = isActive;
+            IsDestroyed = isDestroyed;
+            CreationTime = creationTime;
+            ComponentMask = componentMask;
+            Components = components;
+            ParentId = parentId;
+            ChildrenIds = childrenIds;
+            Capabilities = capabilities;
+
+            foreach (var component in Components)
+            {
+                component.EntityId = UniqueId;
+            }
+            
+            // 重建 Capability 的 OwnerEntity 关系
+            foreach (var capability in Capabilities)
+            {
+                capability.OwnerEntity = this;
+            }
         }
 
         /// <summary>
@@ -291,6 +322,15 @@ namespace Astrum.LogicCore.Core
             // 在实际使用中，可能需要通过其他方式获取这些信息
             var eventData = new EntityComponentChangedEventData(this, 0, 0, component.GetType().Name, changeType, component);
             EventSystem.Instance.Publish(eventData);
+        }
+
+        /// <summary>
+        /// 重写 ToString 方法，避免循环引用
+        /// </summary>
+        /// <returns>字符串表示</returns>
+        public override string ToString()
+        {
+            return $"Entity[Id={UniqueId}, Name={Name}, Active={IsActive}, Components={Components.Count}, Capabilities={Capabilities.Count}]";
         }
     }
 }

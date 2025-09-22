@@ -5,7 +5,7 @@ namespace Astrum.LogicCore.Components
     /// <summary>
     /// 组件基类，所有组件都继承自此类
     /// </summary>
-    public abstract class BaseComponent
+    public abstract partial class BaseComponent
     {
         /// <summary>
         /// 组件的唯一标识符
@@ -25,6 +25,15 @@ namespace Astrum.LogicCore.Components
         public virtual void OnAttachToEntity(Entity entity)
         {
             
+        }
+
+        /// <summary>
+        /// 重写 ToString 方法，避免循环引用
+        /// </summary>
+        /// <returns>字符串表示</returns>
+        public override string ToString()
+        {
+            return $"{GetType().Name}[Id={ComponentId}, EntityId={EntityId}]";
         }
     }
 }
