@@ -130,8 +130,35 @@ namespace AstrumServer.Core
         {
             ASLogger.Instance.Info($"客户端已断开: {client.Id}");
             
-            // 移除用户
-            _userManager.RemoveUser(client.Id.ToString());
+            try
+            {
+                // 查找对应用户
+                var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
+                if (userInfo != null)
+                {
+                    // 若在房间内，先从房间移除
+                    if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                    {
+                        var roomId = userInfo.CurrentRoomId;
+                        var left = _roomManager.LeaveRoom(roomId, userInfo.Id);
+                        _userManager.UpdateUserRoom(userInfo.Id, "");
+
+                        // 若房间已为空，RoomManager 应删除房间；这里触发一次系统清理以确保及时清理
+                        CleanupSystem();
+                        ASLogger.Instance.Info($"用户 {userInfo.Id} 断线，已从房间 {roomId} 移除 (left={left})");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Warning($"处理断线清理时出现问题: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Warning);
+            }
+            finally
+            {
+                // 最终移除用户映射
+                _userManager.RemoveUser(client.Id.ToString());
+            }
         }
         
         private void OnMessageReceived(Session client, MessageObject message)

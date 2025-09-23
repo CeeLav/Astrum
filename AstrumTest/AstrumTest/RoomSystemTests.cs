@@ -33,8 +33,8 @@ namespace AstrumTest
             _roomLogger = loggerFactory.CreateLogger<RoomManager>();
             _userLogger = loggerFactory.CreateLogger<UserManager>();
             
-            _roomManager = new RoomManager(_roomLogger);
-            _userManager = new UserManager(_userLogger);
+            _roomManager = new RoomManager();
+            _userManager = new UserManager();
         }
 
         /// <summary>
