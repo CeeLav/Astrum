@@ -102,3 +102,100 @@ AstrumServer/
 - 配置文件支持
 - 更复杂的消息协议
 - 房间/大厅系统 
+
+## 网络管理器架构
+
+项目采用接口抽象的网络管理器设计，支持两种模式：
+
+### 网络模式 vs 本地模式
+
+- **网络模式**：使用 `ServerNetworkManager` 进行真实 TCP 网络通信
+- **本地模式**：使用 `LocalServerNetworkManager` 进行内存模拟，用于测试
+
+### 核心组件
+
+- `IServerNetworkManager`：网络管理器接口
+- `ServerNetworkManager`：网络模式实现（真实TCP）
+- `LocalServerNetworkManager`：本地模式实现（内存模拟）
+- `NetworkManagerFactory`：工厂类，根据模式创建相应的管理器
+
+## 如何添加服务器测试用例（单进程）
+
+为避免多进程/端口占用导致的不稳定性，项目提供了本地模式网络管理器，支持在 Test 工程内单进程运行服务器逻辑并编写健壮性测试。
+
+### 1. 使用本地模式网络管理器
+
+```csharp
+// 创建本地模式网络管理器
+var localNetworkManager = new LocalServerNetworkManager();
+var userManager = new UserManager();
+var roomManager = new RoomManager();
+
+// 创建游戏服务器，使用本地模式
+var gameServer = new GameServer(localNetworkManager, userManager, roomManager, null);
+```
+
+### 2. 测试用例编写
+
+```csharp
+[Fact]
+public async Task LocalNetworkManager_ShouldSupportDirectInteraction()
+{
+    // 初始化网络管理器
+    await localNetworkManager.InitializeAsync(8888);
+
+    // 模拟客户端连接
+    var sessionId = localNetworkManager.SimulateConnect();
+
+    // 模拟客户端发送消息
+    var loginRequest = LoginRequest.Create();
+    loginRequest.DisplayName = "TestUser";
+    localNetworkManager.SimulateReceive(sessionId, loginRequest);
+
+    // 更新网络状态，处理消息
+    localNetworkManager.Update();
+
+    // 验证服务器响应
+    var pendingMessages = localNetworkManager.GetPendingMessages(sessionId);
+    Assert.Contains(pendingMessages, msg => msg is LoginResponse);
+}
+```
+
+### 3. 本地模式专用方法
+
+- `SimulateConnect()`：模拟客户端连接
+- `SimulateDisconnect(sessionId, abrupt)`：模拟客户端断开
+- `SimulateReceive(sessionId, message)`：模拟客户端发送消息
+- `GetPendingMessages(sessionId)`：获取待发送消息
+- `ClearPendingMessages(sessionId)`：清空待发送消息
+- `GetPendingMessageStats()`：获取消息统计
+
+### 4. 运行测试
+
+```bash
+cd AstrumTest/AstrumTest
+dotnet test --filter FullyQualifiedName~NetworkManagerInterfaceTests
+```
+
+### 5. 测试用例示例
+
+参考 `NetworkManagerInterfaceTests.cs` 中的完整测试用例，包括：
+- 直接交互测试
+- 房间操作测试
+- 异常断开测试
+- 消息广播测试
+- 消息统计测试
+
+### 6. 工厂模式使用
+
+```csharp
+// 根据模式创建网络管理器
+var networkManager = NetworkManagerFactory.Create(NetworkManagerMode.Local);
+var localManager = NetworkManagerFactory.CreateLocal();
+var networkManager = NetworkManagerFactory.CreateNetwork();
+
+// 根据环境变量创建
+var manager = NetworkManagerFactory.CreateFromEnvironment();
+```
+
+提示：本地模式完全封装了服务器逻辑，测试用例只能通过 `LocalServerNetworkManager` 与服务器交互，无法直接访问服务器内部代码，确保了良好的封装性。

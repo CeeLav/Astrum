@@ -16,7 +16,7 @@ namespace AstrumServer.Managers
     public class FrameSyncManager
     {
         private readonly RoomManager _roomManager;
-        private readonly ServerNetworkManager _networkManager;
+        private readonly IServerNetworkManager _networkManager;
         private readonly UserManager _userManager;
         
         // 帧同步配置
@@ -33,7 +33,7 @@ namespace AstrumServer.Managers
         // 测试/观测用事件：下发帧数据前回调（便于单元测试捕获）
         public event Action<string, int, OneFrameInputs, string>? OnBeforeSendFrameToPlayer;
         
-        public FrameSyncManager(RoomManager roomManager, ServerNetworkManager networkManager, UserManager userManager)
+        public FrameSyncManager(RoomManager roomManager, IServerNetworkManager networkManager, UserManager userManager)
         {
             _roomManager = roomManager;
             _networkManager = networkManager;
