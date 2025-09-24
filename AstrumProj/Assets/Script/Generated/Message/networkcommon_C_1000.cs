@@ -693,6 +693,64 @@ namespace Astrum.Generated
         }
     }
 
+    // 客户端 -> 服务器：Ping 请求（用于时间校准/测延迟）
+    [MemoryPackable]
+    [MessageAttribute(1016)]
+    public partial class C2G_Ping : MessageObject
+    {
+        public static C2G_Ping Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(C2G_Ping), isFromPool) as C2G_Ping;
+        }
+
+        /// <summary>
+        /// 客户端发送时间戳（可选）
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public long ClientSendTime { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.ClientSendTime = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 服务器 -> 客户端：Ping 响应
+    [MemoryPackable]
+    [MessageAttribute(1017)]
+    public partial class G2C_Ping : MessageObject
+    {
+        public static G2C_Ping Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(G2C_Ping), isFromPool) as G2C_Ping;
+        }
+
+        /// <summary>
+        /// 服务器当前时间戳（毫秒）
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public long Time { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.Time = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
     public static class networkcommon
     {
         public const ushort UserInfo = 1001;
@@ -710,5 +768,7 @@ namespace Astrum.Generated
         public const ushort LoginResponse = 1013;
         public const ushort HeartbeatMessage = 1014;
         public const ushort HeartbeatResponse = 1015;
+        public const ushort C2G_Ping = 1016;
+        public const ushort G2C_Ping = 1017;
     }
 }

@@ -197,6 +197,9 @@ namespace AstrumServer.Core
                     case SingleInput singleInput:
                         HandleSingleInput(client, singleInput);
                         break;
+                    case C2G_Ping c2gPing:
+                        HandlePing(client, c2gPing);
+                        break;
                     default:
                         ASLogger.Instance.Warning($"未处理的消息类型: {message.GetType().Name}");
                         break;
@@ -839,6 +842,24 @@ namespace AstrumServer.Core
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"处理单帧输入时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理客户端 Ping：回发服务器当前时间（毫秒）
+        /// </summary>
+        private void HandlePing(Session client, C2G_Ping request)
+        {
+            try
+            {
+                var resp = G2C_Ping.Create();
+                resp.Time = TimeInfo.Instance.ClientNow(); // 服务器当前时间（毫秒）
+                _networkManager.SendMessage(client.Id.ToString(), resp);
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理Ping时出错: {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
