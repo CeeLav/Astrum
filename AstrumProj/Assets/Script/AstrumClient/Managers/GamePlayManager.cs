@@ -367,7 +367,7 @@ namespace Astrum.Client.Managers
                 var room = CreateRoom();
                 var world = new World();
                 room.MainWorld = world;
-                room.Initialize();
+                room.Initialize(); // 仅构建对象，不启动帧同步
                 // 2. 创建Stage
                 Stage gameStage = CreateStage(room);
 
@@ -718,8 +718,18 @@ namespace Astrum.Client.Managers
                 // 初始化帧同步相关状态
                 if (MainRoom?.LSController != null)
                 {
-                    MainRoom.LSController.Start();
-                    ASLogger.Instance.Info($"帧同步控制器已启动，房间: {notification.roomId}", "FrameSync.Client");
+                    // 将客户端 Room/LSController 的 CreationTime 改为服务器时间
+                    MainRoom.SetServerCreationTime(notification.startTime);
+                    // 仅在帧同步开始通知时启动控制器，避免重复 Start
+                    if (!MainRoom.LSController.IsRunning)
+                    {
+                        MainRoom.LSController.Start();
+                        ASLogger.Instance.Info($"帧同步控制器已启动，房间: {notification.roomId}", "FrameSync.Client");
+                    }
+                }
+                else
+                {
+                    ASLogger.Instance.Error($"<LSController = null>: {notification.roomId}");
                 }
             }
             catch (Exception ex)
