@@ -16,7 +16,7 @@ namespace AstrumServer.Managers
     public class FrameSyncManager
     {
         private readonly RoomManager _roomManager;
-        private readonly IServerNetworkManager _networkManager;
+        private readonly ServerNetworkManager _networkManager;
         private readonly UserManager _userManager;
         
         // 帧同步配置
@@ -26,14 +26,14 @@ namespace AstrumServer.Managers
         // 房间帧同步状态
         private readonly ConcurrentDictionary<string, RoomFrameSyncState> _roomFrameStates = new();
         
-        // 定时器
-        private Timer? _frameTimer;
+        // 运行状态（弃用定时器，改为在Update中推进）
         private bool _isRunning = false;
+        private const int MAX_ADVANCE_PER_UPDATE = 5; // 单次Update最多补帧数，防止雪崩
 
         // 测试/观测用事件：下发帧数据前回调（便于单元测试捕获）
         public event Action<string, int, OneFrameInputs, string>? OnBeforeSendFrameToPlayer;
         
-        public FrameSyncManager(RoomManager roomManager, IServerNetworkManager networkManager, UserManager userManager)
+        public FrameSyncManager(RoomManager roomManager, ServerNetworkManager networkManager, UserManager userManager)
         {
             _roomManager = roomManager;
             _networkManager = networkManager;
@@ -48,9 +48,8 @@ namespace AstrumServer.Managers
             if (_isRunning) return;
             
             _isRunning = true;
-            _frameTimer = new Timer(OnFrameTimer, null, 0, FRAME_INTERVAL_MS);
             
-            ASLogger.Instance.Info($"帧同步管理器已启动，帧率: {FRAME_RATE}FPS，间隔: {FRAME_INTERVAL_MS}ms", "FrameSync.Manager");
+            ASLogger.Instance.Info($"帧同步管理器已启动，帧率: {FRAME_RATE}FPS，间隔: {FRAME_INTERVAL_MS}ms (基于Update推进)", "FrameSync.Manager");
         }
         
         /// <summary>
@@ -61,13 +60,47 @@ namespace AstrumServer.Managers
             if (!_isRunning) return;
             
             _isRunning = false;
-            _frameTimer?.Dispose();
-            _frameTimer = null;
             
             // 清理所有房间的帧同步状态
             _roomFrameStates.Clear();
             
             ASLogger.Instance.Info("帧同步管理器已停止", "FrameSync.Manager");
+        }
+
+        /// <summary>
+        /// 基于当前时间推进所有活跃房间的帧（在服务器主循环中调用）
+        /// </summary>
+        public void Update()
+        {
+            if (!_isRunning) return;
+            try
+            {
+                var now = TimeInfo.Instance.ClientNow();
+                foreach (var kvp in _roomFrameStates)
+                {
+                    var roomId = kvp.Key;
+                    var state = kvp.Value;
+                    if (!state.IsActive) continue;
+
+                    // 目标应到达的帧 = floor((now - StartTime) / interval)
+                    var elapsed = now - state.StartTime;
+                    if (elapsed < 0) continue;
+                    var expectedFrame = (int)(elapsed / FRAME_INTERVAL_MS);
+
+                    // 将 AuthorityFrame 补到 expectedFrame，单次最多推进若干帧
+                    var steps = 0;
+                    while (state.AuthorityFrame < expectedFrame && steps < MAX_ADVANCE_PER_UPDATE)
+                    {
+                        ProcessRoomFrame(roomId, state);
+                        steps++;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"帧同步Update推进时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
         }
         
         /// <summary>
@@ -188,33 +221,7 @@ namespace AstrumServer.Managers
             }
         }
         
-        /// <summary>
-        /// 帧定时器回调
-        /// </summary>
-        private void OnFrameTimer(object? state)
-        {
-            if (!_isRunning) return;
-            
-            try
-            {
-                // 处理所有活跃房间的帧同步
-                foreach (var kvp in _roomFrameStates)
-                {
-                    var roomId = kvp.Key;
-                    var frameState = kvp.Value;
-                    
-                    if (frameState.IsActive)
-                    {
-                        ProcessRoomFrame(roomId, frameState);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"帧定时器处理时出错: {ex.Message}");
-                ASLogger.Instance.LogException(ex, LogLevel.Error);
-            }
-        }
+        // 定时器模式已废弃，保留占位以兼容旧代码（不再使用）
         
         /// <summary>
         /// 处理房间的当前帧
@@ -231,7 +238,7 @@ namespace AstrumServer.Managers
                     return;
                 }
                 
-                // 递增权威帧
+                // 计算目标帧并推进一帧（由Update循环控制推进次数）
                 frameState.AuthorityFrame++;
                 
                 // 收集当前帧的所有输入数据（从缓存中获取）
