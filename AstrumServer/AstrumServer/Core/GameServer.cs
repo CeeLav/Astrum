@@ -16,7 +16,7 @@ namespace AstrumServer.Core
     /// </summary>
     public class GameServer : BackgroundService
     {
-        private readonly IServerNetworkManager _networkManager;
+        private readonly ServerNetworkManager _networkManager;
         private readonly UserManager _userManager;
         private readonly RoomManager _roomManager;
         private readonly FrameSyncManager _frameSyncManager;
@@ -27,31 +27,17 @@ namespace AstrumServer.Core
         private int _lastTotalPlayers = -1;
         private int _lastEmptyRooms = -1;
         
-        /// <summary>
-        /// 默认构造函数 - 使用网络模式
-        /// </summary>
-        public GameServer() : this(NetworkManagerFactory.CreateNetwork())
+        public GameServer()
         {
-        }
-
-        /// <summary>
-        /// 构造函数 - 支持依赖注入
-        /// </summary>
-        /// <param name="networkManager">网络管理器</param>
-        /// <param name="userManager">用户管理器</param>
-        /// <param name="roomManager">房间管理器</param>
-        /// <param name="frameSyncManager">帧同步管理器</param>
-        public GameServer(IServerNetworkManager networkManager, UserManager? userManager = null, RoomManager? roomManager = null, FrameSyncManager? frameSyncManager = null)
-        {
-            _networkManager = networkManager ?? throw new ArgumentNullException(nameof(networkManager));
+            _networkManager = ServerNetworkManager.Instance;
             
             // 设置服务器日志级别为Debug，确保所有日志都能输出
             ASLogger.Instance.MinLevel = LogLevel.Debug;
             
             // 使用ASLogger创建管理器
-            _userManager = userManager ?? new UserManager();
-            _roomManager = roomManager ?? new RoomManager();
-            _frameSyncManager = frameSyncManager ?? new FrameSyncManager(_roomManager, _networkManager, _userManager);
+            _userManager = new UserManager();
+            _roomManager = new RoomManager();
+            _frameSyncManager = new FrameSyncManager(_roomManager, _networkManager, _userManager);
             
             _networkManager.SetLogger(ASLogger.Instance);
         }
@@ -92,6 +78,9 @@ namespace AstrumServer.Core
                         // 更新网络服务
                         _networkManager.Update();
                         
+                        // 帧同步推进（基于时间计算应到达的帧）
+                        _frameSyncManager.Update();
+
                         // 处理客户端消息
                         await ProcessClientMessages();
                         
