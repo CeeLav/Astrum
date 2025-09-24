@@ -80,7 +80,6 @@ namespace Astrum.LogicCore.Core
 
         public Room()
         {
-            CreationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
 
         public Room(int roomId, string name) : this()
@@ -174,7 +173,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public virtual void Initialize()
         {
-            CreationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             TotalTime = 0f;
             if (MainWorld == null)
             {
@@ -188,14 +186,25 @@ namespace Astrum.LogicCore.Core
                 {
                     Room = this
                 };
-                LSController.CreationTime = CreationTime;
-                LSController.Start();
             }
 
             // 初始化所有世界
             foreach (var world in Worlds)
             {
                 world?.Initialize(0);
+            }
+        }
+
+        /// <summary>
+        /// 应用服务器下发的创建时间（服务器本地时间）
+        /// </summary>
+        /// <param name="serverCreationTime">服务器时间戳（毫秒）</param>
+        public void SetServerCreationTime(long serverCreationTime)
+        {
+            CreationTime = serverCreationTime;
+            if (LSController != null)
+            {
+                LSController.CreationTime = serverCreationTime;
             }
         }
         

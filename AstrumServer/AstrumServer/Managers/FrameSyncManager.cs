@@ -272,6 +272,12 @@ namespace AstrumServer.Managers
                 notification.frameRate = FRAME_RATE;
                 notification.frameInterval = FRAME_INTERVAL_MS;
                 notification.startTime = frameState.StartTime;
+                // 兼容客户端Room/LSController的CreationTime对齐
+                // 使用服务端帧开始时间作为CreationTime基准
+                // 若有更精细定义，可替换为真实Room创建时间
+                // 此处沿用frameState.StartTime以减少歧义
+                // 客户端将据此设置 Room.CreationTime/LSController.CreationTime
+                
                 notification.playerIds = new List<string>(frameState.PlayerIds);
                 
                 // 发送给房间内所有玩家
