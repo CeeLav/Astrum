@@ -126,3 +126,15 @@ message HeartbeatResponse
     int64 Timestamp = 1;       // 响应时间戳
     string Message = 2;        // 响应消息
 }
+
+// 客户端 -> 服务器：Ping 请求（用于时间校准/测延迟）
+message C2G_Ping
+{
+    int64 ClientSendTime = 1;  // 客户端发送时间戳（可选）
+}
+
+// 服务器 -> 客户端：Ping 响应
+message G2C_Ping
+{
+    int64 Time = 1;            // 服务器当前时间戳（毫秒）
+}

@@ -20,6 +20,8 @@ namespace Astrum.Client.Managers
         private TService tcpService;
         private Session currentSession;
         private bool isInitialized = false;
+        private long _lastPingAtMs = 0;
+        private bool _pingInProgress = false;
         
         // 客户端代码期望的事件接口
         public event Action OnConnected;
@@ -35,6 +37,7 @@ namespace Astrum.Client.Managers
         public event Action<GetRoomListResponse> OnGetRoomListResponse;
         public event Action<RoomUpdateNotification> OnRoomUpdateNotification;
         public event Action<HeartbeatResponse> OnHeartbeatResponse;
+        public event Action<G2C_Ping> OnPingResponse;
         public event Action<GameResponse> OnGameResponse;
         public event Action<GameStartNotification> OnGameStartNotification;
         public event Action<GameEndNotification> OnGameEndNotification;
@@ -128,6 +131,10 @@ namespace Astrum.Client.Managers
                     // 触发连接成功事件
                     OnConnected?.Invoke();
                     OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
+
+                    // 记录首次连接时间并立即发起一次校准
+                    _lastPingAtMs = TimeInfo.Instance.ClientNow();
+                    _ = SafePingOnceAsync();
                 }
                 else
                 {
@@ -243,6 +250,16 @@ namespace Astrum.Client.Managers
             try
             {
                 tcpService.Update();
+
+                // 每分钟进行一次Ping校准
+                if (IsConnected() && !_pingInProgress)
+                {
+                    var now = TimeInfo.Instance.ClientNow();
+                    if (now - _lastPingAtMs >= 60_000)
+                    {
+                        _ = SafePingOnceAsync();
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -467,6 +484,9 @@ namespace Astrum.Client.Managers
                 case HeartbeatResponse heartbeatResponse:
                     OnHeartbeatResponse?.Invoke(heartbeatResponse);
                     break;
+                case G2C_Ping pingResponse:
+                    OnPingResponse?.Invoke(pingResponse);
+                    break;
                 case GameResponse gameResponse:
                     OnGameResponse?.Invoke(gameResponse);
                     break;
@@ -536,5 +556,87 @@ namespace Astrum.Client.Managers
         }
         
         #endregion
+
+        /// <summary>
+        /// 发送一次 Ping 并基于响应校准 ServerMinusClientTime
+        /// </summary>
+        public async Task SendPingAndCalibrateAsync()
+        {
+            if (!IsConnected() || currentSession == null)
+            {
+                ASLogger.Instance.Warning("Ping skipped: not connected");
+                return;
+            }
+
+            // 无 RPC 管道：使用事件+TCS等待响应，支持超时与重试
+            const int timeoutMs = 300;
+            const int maxRetries = 2;
+            int attempt = 0;
+            bool success = false;
+            while (attempt <= maxRetries && !success)
+            {
+                attempt++;
+                var t1 = TimeInfo.Instance.ClientNow();
+                var req = C2G_Ping.Create();
+                req.ClientSendTime = t1;
+
+                var tcs = new TaskCompletionSource<G2C_Ping?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                void Handler(G2C_Ping resp)
+                {
+                    tcs.TrySetResult(resp);
+                }
+                OnPingResponse += Handler;
+                try
+                {
+                    Send(req);
+                    var completed = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs));
+                    if (completed == tcs.Task)
+                    {
+                        var captured = tcs.Task.Result;
+                        if (captured != null)
+                        {
+                            var t2 = TimeInfo.Instance.ClientNow();
+                            var rtt = t2 - t1;
+                            var offset = captured.Time + rtt / 2 - t2;
+                            TimeInfo.Instance.ServerMinusClientTime = offset;
+                            ASLogger.Instance.Info($"Ping RTT={rtt}ms, offset={offset}ms (attempt {attempt})");
+                            success = true;
+                        }
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Warning($"Ping response timeout after {timeoutMs}ms (attempt {attempt})");
+                    }
+                }
+                finally
+                {
+                    OnPingResponse -= Handler;
+                }
+            }
+
+            if (!success)
+            {
+                ASLogger.Instance.Warning("Ping response not received in time");
+            }
+        }
+
+        private async Task SafePingOnceAsync()
+        {
+            if (_pingInProgress) return;
+            _pingInProgress = true;
+            try
+            {
+                await SendPingAndCalibrateAsync();
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Warning($"Ping calibration failed: {ex.Message}");
+            }
+            finally
+            {
+                _lastPingAtMs = TimeInfo.Instance.ClientNow();
+                _pingInProgress = false;
+            }
+        }
     }
 } 
