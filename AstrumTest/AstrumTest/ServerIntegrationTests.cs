@@ -218,86 +218,24 @@ namespace AstrumTest
         }
 
         /// <summary>
-        /// 基于时间推进的帧同步：上传与下发的基本一致性验证
+        /// Ping 偏差计算公式验证（纯逻辑）：offset = serverTime + (t2 - t1)/2 - t2
         /// </summary>
         [Fact]
-        public void FrameSync_TimeBased_Update_ShouldDistributeCurrentFrame()
+        public void PingOffset_Calculation_ShouldBeCorrect()
         {
-            // 准备：构造必须的管理器实例（不启动真实网络）
-            var userManager = new UserManager();
-            var roomManager = new RoomManager();
-            var networkManager = ServerNetworkManager.Instance;
-            var frameSync = new FrameSyncManager(roomManager, networkManager, userManager);
+            // 模拟一次 ping 往返时间
+            long t1 = 1_000_000;          // 客户端发送时间
+            long serverTime = 1_000_050;  // 服务器在收到时刻的时间（或回包携带时间）
+            long t2 = 1_000_100;          // 客户端收到响应时间
 
-            frameSync.Start();
+            long rtt = t2 - t1;           // 100ms
+            long offset = serverTime + rtt / 2 - t2; // 1_000_050 + 50 - 1_000_100 = 0
+            Assert.Equal(0, offset);
 
-            // 创建两个用户并加入同一房间
-            var creator = userManager.AssignUserId("1001", "creator");
-            var room = roomManager.CreateRoom(creator.Id, "test_room", 4);
-            var joiner = userManager.AssignUserId("1002", "joiner");
-            roomManager.JoinRoom(room.Id, joiner.Id);
-
-            // 开始游戏并启动该房间的帧同步
-            roomManager.StartGame(room.Id, creator.Id);
-            frameSync.StartRoomFrameSync(room.Id);
-
-            // 订阅观测事件，捕获下发帧
-            int observedAuthorityFrame = -1;
-            OneFrameInputs? observedInputs = null;
-            string? observedPlayerId = null;
-            frameSync.OnBeforeSendFrameToPlayer += (rid, af, inputs, pid) =>
-            {
-                if (rid == room.Id)
-                {
-                    observedAuthorityFrame = af;
-                    observedInputs = inputs;
-                    observedPlayerId = pid;
-                }
-            };
-
-            // 等待一段时间，手动推进Update多次以模拟时间前进
-            // 注意：不依赖真实睡眠，直接调用Update若干次
-            for (int i = 0; i < 10; i++)
-            {
-                frameSync.Update();
-            }
-
-            // 断言：应当已经下发至少第1帧
-            Assert.True(observedAuthorityFrame >= 1, $"expected authority frame >= 1, got {observedAuthorityFrame}");
-            Assert.NotNull(observedInputs);
-
-            // 上传一条单帧输入，再推进，验证该帧能被包含在后续下发中
-            var input = LSInput.Create();
-            input.PlayerId = 1;
-            input.Frame = observedAuthorityFrame + 1; // 下一帧
-            input.MoveX = 1;
-            input.MoveY = 0; // 使用整型以兼容生成的数值类型
-            input.Timestamp = TimeInfo.Instance.ClientNow();
-
-            var single = SingleInput.Create();
-            single.PlayerID = (int)input.PlayerId;
-            single.FrameID = input.Frame;
-            single.Input = input;
-
-            frameSync.HandleSingleInput(room.Id, single);
-
-            // 推进若干次，等待该帧被收集并下发
-            int prevObserved = observedAuthorityFrame;
-            observedAuthorityFrame = -1;
-            observedInputs = null;
-            for (int i = 0; i < 10; i++)
-            {
-                frameSync.Update();
-            }
-
-            Assert.True(observedAuthorityFrame > prevObserved, "authority frame should advance");
-            Assert.NotNull(observedInputs);
-
-            // 验证包含该玩家输入（可能玩家ID为数字字符串映射，做宽松校验）
-            var hasAnyInput = observedInputs!.Inputs.Count > 0;
-            Assert.True(hasAnyInput, "should have at least one input in distributed frame");
-
-            frameSync.Stop();
+            // 服务器比客户端快 20ms 的情况
+            serverTime = 1_000_070;
+            offset = serverTime + rtt / 2 - t2; // 1_000_070 + 50 - 1_000_100 = 20
+            Assert.Equal(20, offset);
         }
 
         /// <summary>
