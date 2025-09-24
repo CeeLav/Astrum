@@ -652,14 +652,14 @@ namespace AstrumServer.Core
                     return;
                 }
                 
-                // 开始房间帧同步
-                _frameSyncManager.StartRoomFrameSync(roomInfo.Id);
-                
                 // 发送开始游戏成功响应
                 SendGameResponse(client.Id.ToString(), true, "游戏开始成功");
-                
-                // 通知房间内所有玩家游戏开始
+
+                // 先通知房间内所有玩家游戏开始（构建客户端房间/舞台）
                 NotifyGameStart(roomInfo, userInfo.Id);
+
+                // 再开始房间帧同步（并下发 FrameSyncStartNotification）
+                _frameSyncManager.StartRoomFrameSync(roomInfo.Id);
                 
                 ASLogger.Instance.Info($"用户 {userInfo.Id} 开始游戏成功 - 房间: {roomInfo.Id}");
             }
