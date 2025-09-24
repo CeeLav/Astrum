@@ -11,8 +11,9 @@ namespace AstrumServer.Network
 {
     /// <summary>
     /// 服务器网络管理器 - 使用Unity的Network程序集 + MemoryPack序列化
+    /// 网络模式：真实TCP网络通信
     /// </summary>
-    public class ServerNetworkManager : Singleton<ServerNetworkManager>
+    public class ServerNetworkManager : Singleton<ServerNetworkManager>, IServerNetworkManager
     {
         private AService? _tcpService;
         private readonly Dictionary<long, Session> _sessions = new();
