@@ -570,7 +570,7 @@ namespace Astrum.Client.Managers
                 MainStage = stage;
 
                 // 切换到游戏场景
-                SwitchToGameScene("Game", stage);
+                SwitchToGameScene("DungeonsGame", stage);
                 //CreatePlayer(stage, room);
                 //RequestCreatePlayer();
 
