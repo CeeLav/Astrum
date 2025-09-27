@@ -2,17 +2,13 @@
 using UnityEngine.SceneManagement;
 using System;
 using System.Collections;
+using Astrum.Client.Behaviour;
+using Astrum.Client.Core;
 using Astrum.CommonBase;
 
 namespace Astrum.Client.Managers
 {
-    /// <summary>
-    /// 协程运行器组件
-    /// </summary>
-    public class CoroutineRunner : MonoBehaviour
-    {
-        // 这个类专门用于运行协程
-    }
+
 
     /// <summary>
     /// 场景管理器 - 简化版本
@@ -60,9 +56,21 @@ namespace Astrum.Client.Managers
         /// </summary>
         private void CreateCoroutineRunner()
         {
-            GameObject runnerGO = new GameObject("SceneManager Coroutine Runner");
-            coroutineRunner = runnerGO.AddComponent<CoroutineRunner>();
-            UnityEngine.Object.DontDestroyOnLoad(runnerGO);
+            // 尝试从GameApplication获取CoroutineRunner引用
+            var gameAppCoroutineRunner = GameApplication.Instance?.CoroutineRunner;
+            if (gameAppCoroutineRunner != null)
+            {
+                coroutineRunner = gameAppCoroutineRunner;
+                Debug.Log("SceneManager: 使用GameApplication中的CoroutineRunner引用");
+            }
+            else
+            {
+                // 如果没有，创建自己的CoroutineRunner
+                GameObject runnerGO = new GameObject("SceneManager Coroutine Runner");
+                coroutineRunner = runnerGO.AddComponent<CoroutineRunner>();
+                UnityEngine.Object.DontDestroyOnLoad(runnerGO);
+                Debug.Log("SceneManager: 创建独立的CoroutineRunner");
+            }
         }
         
         /// <summary>
