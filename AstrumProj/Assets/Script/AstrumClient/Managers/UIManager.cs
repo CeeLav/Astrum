@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using Astrum.Client.UI.Core;
+using Astrum.Client.Core;
+using Astrum.CommonBase;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -10,49 +12,21 @@ namespace Astrum.Client.Managers
     /// <summary>
     /// UI管理器 - 负责UI的创建、显示、隐藏和销毁
     /// </summary>
-    public class UIManager : MonoBehaviour
+    public class UIManager : Singleton<UIManager>
     {
-        private static UIManager instance;
-        public static UIManager Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    var go = new GameObject("UIManager");
-                    instance = go.AddComponent<UIManager>();
-                    DontDestroyOnLoad(go);
-                }
-                return instance;
-            }
-        }
 
-        [Header("UI配置")]
-        [SerializeField] private Transform uiRoot;
-        [SerializeField] private string uiPrefabPath = "Assets/ArtRes/UI/";
+        // UI配置
+        private string uiPrefabPath = "Assets/ArtRes/UI/";
 
         // UI缓存
         private Dictionary<string, GameObject> uiCache = new Dictionary<string, GameObject>();
-
-        private void Awake()
-        {
-            if (instance == null)
-            {
-                instance = this;
-                DontDestroyOnLoad(gameObject);
-                InitializeUIRoot();
-            }
-            else if (instance != this)
-            {
-                Destroy(gameObject);
-            }
-        }
 
         /// <summary>
         /// 初始化UI管理器
         /// </summary>
         public void Initialize()
         {
+            ASLogger.Instance.Info("UIManager: 初始化UI管理器");
             Debug.Log("[UIManager] 初始化完成");
         }
 
@@ -73,26 +47,6 @@ namespace Astrum.Client.Managers
             Debug.Log("[UIManager] 关闭完成");
         }
 
-        private void InitializeUIRoot()
-        {
-            if (uiRoot == null)
-            {
-                var canvas = FindFirstObjectByType<Canvas>();
-                if (canvas != null)
-                {
-                    uiRoot = canvas.transform;
-                }
-                else
-                {
-                    // 创建默认Canvas
-                    var canvasGO = new GameObject("UI Root");
-                    canvasGO.AddComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
-                    canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
-                    canvasGO.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-                    uiRoot = canvasGO.transform;
-                }
-            }
-        }
 
         /// <summary>
         /// 显示UI
@@ -137,7 +91,7 @@ namespace Astrum.Client.Managers
             if (uiCache.TryGetValue(uiName, out var uiGO))
             {
                 uiCache.Remove(uiName);
-                Destroy(uiGO);
+                UnityEngine.Object.Destroy(uiGO);
             }
         }
 
@@ -188,8 +142,16 @@ namespace Astrum.Client.Managers
                 return null;
             }
 
+            // 获取UIRoot引用
+            var uiRootTransform = GameApplication.Instance?.UIRoot?.transform;
+            if (uiRootTransform == null)
+            {
+                Debug.LogError("[UIManager] 无法获取UIRoot引用，请确保GameApplication已初始化");
+                return null;
+            }
+
             // 实例化UI
-            var uiGO = Instantiate(prefab, uiRoot);
+            var uiGO = UnityEngine.Object.Instantiate(prefab, uiRootTransform);
             uiGO.name = uiName;
             
             // 缓存UI
@@ -207,18 +169,11 @@ namespace Astrum.Client.Managers
             {
                 if (kvp.Value != null)
                 {
-                    Destroy(kvp.Value);
+                    UnityEngine.Object.Destroy(kvp.Value);
                 }
             }
             uiCache.Clear();
         }
 
-        private void OnDestroy()
-        {
-            if (instance == this)
-            {
-                instance = null;
-            }
-        }
     }
 }

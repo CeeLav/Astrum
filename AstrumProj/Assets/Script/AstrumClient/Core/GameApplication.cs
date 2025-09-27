@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using System.Linq;
 using Astrum.Client.Managers;
 using Astrum.CommonBase;
 using Astrum.Generated;
@@ -27,6 +28,16 @@ namespace Astrum.Client.Core
         [SerializeField] private AudioManager audioManager;
         [SerializeField] private GamePlayManager gamePlayManager;
         
+        [Header("核心GameObject引用")]
+        [SerializeField] private GameObject uiRoot;
+        [SerializeField] private GameObject stageRoot;
+        [SerializeField] private Camera mainCamera;
+        [SerializeField] private Camera uiCamera;
+        [SerializeField] private UnityEngine.SceneManagement.SceneManager sceneManagerUnity;
+        [SerializeField] private Astrum.Client.Behaviour.CoroutineRunner coroutineRunner;
+        
+        
+        
         // 应用程序状�?
         private ApplicationState currentState = ApplicationState.INITIALIZING;
         
@@ -46,6 +57,14 @@ namespace Astrum.Client.Core
         public UIManager UIManager => uiManager;
         public AudioManager AudioManager => audioManager;
         public GamePlayManager GamePlayManager => gamePlayManager;
+        
+        // 核心GameObject访问器
+        public GameObject UIRoot => uiRoot;
+        public GameObject StageRoot => stageRoot;
+        public Camera MainCamera => mainCamera;
+        public Camera UICamera => uiCamera;
+        public UnityEngine.SceneManagement.SceneManager SceneManagerUnity => sceneManagerUnity;
+        public Astrum.Client.Behaviour.CoroutineRunner CoroutineRunner => coroutineRunner;
         
         private void Awake()
         {
