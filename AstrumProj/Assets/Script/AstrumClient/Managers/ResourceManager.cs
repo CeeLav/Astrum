@@ -367,28 +367,44 @@ namespace Astrum.Client.Managers
             }
 
 #if YOO_ASSET_2
-            try
+            // 尝试多种地址格式加载场景
+            string[] possibleAddresses = {
+                sceneName,  // 直接使用场景名
+                $"Assets/Scenes/{sceneName}.unity",  // 完整路径
+                $"{sceneName}.unity"  // 带扩展名的文件名
+            };
+            
+            foreach (var address in possibleAddresses)
             {
-                // 使用YooAsset同步加载场景
-                var handle = _defaultPackage.LoadSceneSync(sceneName, loadSceneMode);
-                
-                if (handle.Status == EOperationStatus.Succeed)
+                try
                 {
                     if (enableLogging)
-                        Debug.Log($"ResourceManager: 成功加载场景 {sceneName}");
-                    return true;
+                        Debug.Log($"ResourceManager: 尝试同步加载场景地址: {address}");
+                    
+                    var handle = _defaultPackage.LoadSceneSync(address, loadSceneMode);
+                    
+                    if (handle.Status == EOperationStatus.Succeed)
+                    {
+                        if (enableLogging)
+                            Debug.Log($"ResourceManager: 成功加载场景 {sceneName}，使用地址: {address}");
+                        return true;
+                    }
+                    else
+                    {
+                        if (enableLogging)
+                            Debug.LogWarning($"ResourceManager: 地址 {address} 加载失败: {handle.LastError}");
+                        handle?.Release();
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Debug.LogError($"ResourceManager: 加载场景 {sceneName} 失败 - {handle.LastError}");
-                    return false;
+                    if (enableLogging)
+                        Debug.LogWarning($"ResourceManager: 地址 {address} 加载异常: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"ResourceManager: 加载场景 {sceneName} 失败 - {ex.Message}");
-                return false;
-            }
+            
+            Debug.LogError($"ResourceManager: 加载场景 {sceneName} 失败，尝试了所有地址格式");
+            return false;
 #else
             try
             {
@@ -431,19 +447,49 @@ namespace Astrum.Client.Managers
             }
 
 #if YOO_ASSET_2
-            // 使用YooAsset异步加载场景
-            var handle = _defaultPackage.LoadSceneAsync(sceneName, loadSceneMode);
-            yield return handle;
+            // 尝试多种地址格式加载场景
+            string[] possibleAddresses = {
+                $"Assets/Scenes/{sceneName}.unity",  // 完整路径
+                
+                sceneName,  // 直接使用场景名
+                $"{sceneName}.unity"  // 带扩展名的文件名
+            };
             
-            if (handle.Status == EOperationStatus.Succeed)
+            SceneHandle handle = null;
+            string usedAddress = "";
+            
+            // 尝试不同的地址格式
+            foreach (var address in possibleAddresses)
             {
                 if (enableLogging)
-                    Debug.Log($"ResourceManager: 成功异步加载场景 {sceneName}");
+                    Debug.Log($"ResourceManager: 尝试加载场景地址: {address}");
+                
+                handle = _defaultPackage.LoadSceneAsync(address, loadSceneMode);
+                yield return handle;
+                
+                if (handle.Status == EOperationStatus.Succeed)
+                {
+                    usedAddress = address;
+                    break;
+                }
+                else
+                {
+                    if (enableLogging)
+                        Debug.LogWarning($"ResourceManager: 地址 {address} 加载失败: {handle.LastError}");
+                    handle?.Release();
+                    handle = null;
+                }
+            }
+            
+            if (handle != null && handle.Status == EOperationStatus.Succeed)
+            {
+                if (enableLogging)
+                    Debug.Log($"ResourceManager: 成功异步加载场景 {sceneName}，使用地址: {usedAddress}");
                 onLoaded?.Invoke(true);
             }
             else
             {
-                Debug.LogError($"ResourceManager: 异步加载场景 {sceneName} 失败 - {handle.LastError}");
+                Debug.LogError($"ResourceManager: 异步加载场景 {sceneName} 失败，尝试了所有地址格式");
                 onLoaded?.Invoke(false);
             }
 #else
