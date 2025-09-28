@@ -27,6 +27,7 @@ namespace Astrum.Client.Core
         [SerializeField] private UIManager uiManager;
         [SerializeField] private AudioManager audioManager;
         [SerializeField] private GamePlayManager gamePlayManager;
+        [SerializeField] private CameraManager cameraManager;
         
         [Header("核心GameObject引用")]
         [SerializeField] private GameObject uiRoot;
@@ -57,6 +58,7 @@ namespace Astrum.Client.Core
         public UIManager UIManager => uiManager;
         public AudioManager AudioManager => audioManager;
         public GamePlayManager GamePlayManager => gamePlayManager;
+        public CameraManager CameraManager => cameraManager;
         
         // 核心GameObject访问器
         public GameObject UIRoot => uiRoot;
@@ -169,6 +171,10 @@ namespace Astrum.Client.Core
             gamePlayManager = GamePlayManager.Instance;
             gamePlayManager.Initialize();
             
+            // 初始化相机管理器（单例赋值）
+            cameraManager = CameraManager.Instance;
+            cameraManager.Initialize();
+            
             // 显示登录UI
             ShowLoginUI();
         }
@@ -246,8 +252,11 @@ namespace Astrum.Client.Core
             // 更新音频管理�?
             //audioManager?.Update();
             
-            // 更新游戏玩法管理?
+            // 更新游戏玩法管理器
             gamePlayManager?.Update(deltaTime);
+            
+            // 更新相机管理器
+            cameraManager?.Update();
         }
         
 
@@ -306,6 +315,7 @@ namespace Astrum.Client.Core
             uiManager?.Shutdown();
             //audioManager?.Shutdown();
             gamePlayManager?.Shutdown();
+            cameraManager?.Shutdown();
             
             isRunning = false;
         }

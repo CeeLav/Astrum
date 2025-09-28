@@ -392,6 +392,8 @@ namespace Astrum.Client.Managers
                         if (uiManager != null)
                         {
                             ASLogger.Instance.Info("RoomSystemManager: 切换到房间详情界面");
+                            // 关闭Login UI
+                            uiManager.HideUI("Login");
                             uiManager.ShowUI("RoomDetail");
                             
                             // 设置房间信息到RoomDetailView
@@ -451,6 +453,8 @@ namespace Astrum.Client.Managers
                         if (uiManager != null)
                         {
                             ASLogger.Instance.Info("RoomSystemManager: 切换到房间详情界面");
+                            // 关闭Login UI
+                            uiManager.HideUI("Login");
                             uiManager.ShowUI("RoomDetail");
                             
                             // 设置房间信息到RoomDetailView
