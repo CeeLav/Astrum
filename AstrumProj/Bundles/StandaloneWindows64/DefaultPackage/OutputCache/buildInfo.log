@@ -1,0 +1,15 @@
+﻿2025-09-28 23:29:37.242 [INFO] Begin to build package : DefaultPackage by EditorSimulateBuildPipeline
+2025-09-28 23:29:37.242 [INFO] --------------------------------------------->TaskPrepare<--------------------------------------------
+2025-09-28 23:29:37.243 [INFO] TaskPrepare It takes 0 seconds in total
+2025-09-28 23:29:37.243 [INFO] --------------------------------------------->TaskGetBuildMap<--------------------------------------------
+2025-09-28 23:29:37.308 [INFO] TaskGetBuildMap It takes 0 seconds in total
+2025-09-28 23:29:37.309 [INFO] --------------------------------------------->TaskUpdateBundleInfo<--------------------------------------------
+2025-09-28 23:29:37.369 [INFO] TaskUpdateBundleInfo It takes 0 seconds in total
+2025-09-28 23:29:37.370 [INFO] --------------------------------------------->TaskCreateManifest<--------------------------------------------
+2025-09-28 23:29:37.431 [INFO] Create package manifest file: D:/Develop/Projects/Astrum/AstrumProj/Bundles/StandaloneWindows64/DefaultPackage/2025-09-28-1409/DefaultPackage_2025-09-28-1409.json
+2025-09-28 23:29:37.453 [INFO] Create package manifest file: D:/Develop/Projects/Astrum/AstrumProj/Bundles/StandaloneWindows64/DefaultPackage/2025-09-28-1409/DefaultPackage_2025-09-28-1409.bytes
+2025-09-28 23:29:37.454 [INFO] Create package manifest hash file: D:/Develop/Projects/Astrum/AstrumProj/Bundles/StandaloneWindows64/DefaultPackage/2025-09-28-1409/DefaultPackage_2025-09-28-1409.hash
+2025-09-28 23:29:37.455 [INFO] Create package manifest version file: D:/Develop/Projects/Astrum/AstrumProj/Bundles/StandaloneWindows64/DefaultPackage/2025-09-28-1409/DefaultPackage.version
+2025-09-28 23:29:37.467 [INFO] TaskCreateManifest It takes 0 seconds in total
+2025-09-28 23:29:37.467 [INFO] Total build process time: 0 seconds
+2025-09-28 23:29:37.468 [INFO] Resource pipeline build success
