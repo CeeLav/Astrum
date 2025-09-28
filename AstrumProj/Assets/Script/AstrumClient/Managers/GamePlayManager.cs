@@ -79,6 +79,9 @@ namespace Astrum.Client.Managers
                 //MainRoom.MainPlayerId = eventData.PlayerID;
                 MainRoom.LSController.MaxPredictionFrames = 5;
                 ASLogger.Instance.Info("GamePlayManager: 主玩家创建完成, ID: " + PlayerId);
+                
+                // 设置相机跟随主玩家
+                SetCameraFollowMainPlayer();
             }
             ASLogger.Instance.Debug($"GamePlayManager: <OnPlayerCreated>: {eventData.PlayerID} , BornInfo: {eventData.BornInfo}");
         }
@@ -190,6 +193,10 @@ namespace Astrum.Client.Managers
                 {
                     // 使用用户管理器处理登录响应
                     UserManager.Instance?.HandleLoginResponse(response);
+                    
+                    // 登录成功后关闭Login UI并显示RoomList UI
+                    CloseLoginUI();
+                    ShowRoomListUI();
                 }
                 else
                 {
@@ -478,6 +485,9 @@ namespace Astrum.Client.Managers
             if (isMainPlayer)
             {
                 PlayerId = playerID;
+                
+                // 设置相机跟随主玩家
+                SetCameraFollowMainPlayer();
             }
             //Vector3 playerPosition = new Vector3(-5f, 0.5f, 0f);
 
@@ -512,11 +522,69 @@ namespace Astrum.Client.Managers
         {
             ASLogger.Instance.Info("GameLauncher: 游戏场景加载完成");
 
+            // 关闭Login UI
+            CloseLoginUI();
+
             // 激活Stage
             gameStage.SetActive(true);
             gameStage.OnEnter();
+            
+            // 订阅EntityView创建事件，用于设置相机跟随
+            gameStage.OnEntityViewAdded += OnEntityViewAdded;
+            
             RequestCreatePlayer();
             ASLogger.Instance.Info("GameLauncher: 游戏准备完成");
+        }
+
+        /// <summary>
+        /// 关闭Login UI
+        /// </summary>
+        private void CloseLoginUI()
+        {
+            try
+            {
+                var uiManager = GameApplication.Instance?.UIManager;
+                if (uiManager != null)
+                {
+                    uiManager.HideUI("Login");
+                    uiManager.DestroyUI("Login");
+                    uiManager.DestroyUI("RoomList");
+                    uiManager.DestroyUI("RoomDetail");
+                    ASLogger.Instance.Info("GamePlayManager: Login UI已关闭");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning("GamePlayManager: UIManager未找到，无法关闭Login UI");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"GamePlayManager: 关闭Login UI失败 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 显示RoomList UI
+        /// </summary>
+        private void ShowRoomListUI()
+        {
+            try
+            {
+                var uiManager = GameApplication.Instance?.UIManager;
+                if (uiManager != null)
+                {
+                    uiManager.ShowUI("RoomList");
+                    ASLogger.Instance.Info("GamePlayManager: RoomList UI已显示");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning("GamePlayManager: UIManager未找到，无法显示RoomList UI");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"GamePlayManager: 显示RoomList UI失败 - {ex.Message}");
+            }
         }
 
         #region 游戏开始和结束事件处理器
@@ -797,6 +865,64 @@ namespace Astrum.Client.Managers
             {
                 ASLogger.Instance.Error($"处理帧输入数据时出错: {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        #endregion
+
+        #region 相机跟随逻辑
+
+        /// <summary>
+        /// 设置相机跟随主玩家
+        /// </summary>
+        private void SetCameraFollowMainPlayer()
+        {
+            if (MainStage == null || PlayerId <= 0) return;
+            
+            // 尝试从Stage中获取主玩家的EntityView
+            if (MainStage.EntityViews.TryGetValue(PlayerId, out var entityView))
+            {
+                var cameraManager = GameApplication.Instance?.CameraManager;
+                if (cameraManager != null)
+                {
+                    cameraManager.SetFollowTarget(entityView.Transform);
+                    ASLogger.Instance.Info($"GamePlayManager: 设置相机跟随主玩家，ID: {PlayerId}");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning("GamePlayManager: CameraManager未找到，无法设置相机跟随");
+                }
+            }
+            else
+            {
+                ASLogger.Instance.Info($"GamePlayManager: 主玩家EntityView尚未创建，ID: {PlayerId}，等待EntityView创建");
+            }
+        }
+
+        /// <summary>
+        /// EntityView创建事件处理
+        /// </summary>
+        /// <param name="entityView">创建的EntityView</param>
+        private void OnEntityViewAdded(Astrum.View.Core.EntityView entityView)
+        {
+            if (entityView == null) return;
+
+            // 检查是否是主玩家的EntityView
+            if (entityView.EntityId == PlayerId)
+            {
+                ASLogger.Instance.Info($"GamePlayManager: 主玩家EntityView创建完成，ID: {entityView.EntityId}");
+                
+                // 设置相机跟随目标
+                var cameraManager = GameApplication.Instance?.CameraManager;
+                if (cameraManager != null)
+                {
+                    cameraManager.SetFollowTarget(entityView.Transform);
+                    ASLogger.Instance.Info("GamePlayManager: 设置相机跟随主玩家");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning("GamePlayManager: CameraManager未找到，无法设置相机跟随");
+                }
             }
         }
 
