@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Astrum.CommonBase;
+using UnityEngine.SceneManagement;
 
 #if YOO_ASSET_2
 using YooAsset;
@@ -65,11 +66,28 @@ namespace Astrum.Client.Managers
                     return;
                 }
 
-                _isInitialized = true;
-                _loadingProgress = 1f;
-                
-                if (enableLogging)
-                    Debug.Log("ResourceManager: YooAsset资源管理器初始化完成");
+                // 启动异步初始化协程
+                if (Application.isPlaying)
+                {
+                    var coroutineRunner = UnityEngine.Object.FindObjectOfType<MonoBehaviour>();
+                    if (coroutineRunner != null)
+                    {
+                        coroutineRunner.StartCoroutine(InitPackage());
+                    }
+                    else
+                    {
+                        Debug.LogError("ResourceManager: 无法找到MonoBehaviour来启动协程");
+                        _isInitialized = false;
+                    }
+                }
+                else
+                {
+                    // 编辑器模式下，暂时标记为已初始化
+                    _isInitialized = true;
+                    _loadingProgress = 1f;
+                    if (enableLogging)
+                        Debug.Log("ResourceManager: 编辑器模式下跳过异步初始化");
+                }
             }
             catch (Exception ex)
             {
@@ -99,6 +117,42 @@ namespace Astrum.Client.Managers
             
             // 设置默认资源包
             YooAssets.SetDefaultPackage(package);
+            
+            if (enableLogging)
+                Debug.Log("ResourceManager: YooAsset包已创建，开始异步初始化");
+        }
+
+        /// <summary>
+        /// 异步初始化YooAsset包
+        /// </summary>
+        private IEnumerator InitPackage()
+        {  
+            var buildResult = EditorSimulateModeHelper.SimulateBuild("DefaultPackage");    
+            var packageRoot = buildResult.PackageRootDirectory;
+            var fileSystemParams = FileSystemParameters.CreateDefaultEditorFileSystemParameters(packageRoot);
+            
+            var createParameters = new EditorSimulateModeParameters();
+            createParameters.EditorFileSystemParameters = fileSystemParams;
+            
+            var initOperation = _defaultPackage.InitializeAsync(createParameters);
+            yield return initOperation;
+            
+            if(initOperation.Status != EOperationStatus.Succeed)
+                yield break;
+            var operation = _defaultPackage.RequestPackageVersionAsync();
+            yield return operation;
+            if (operation.Status != EOperationStatus.Succeed)
+                yield break;
+            
+            var operation2 = _defaultPackage.UpdatePackageManifestAsync(operation.PackageVersion);
+            yield return operation2;
+            if (operation2.Status != EOperationStatus.Succeed)
+                yield break; 
+            _isInitialized = true;
+            _loadingProgress = 1f;
+            
+            Debug.Log("ResourceManager: 资源包初始化成功！");
+            
         }
 #endif
         
@@ -289,6 +343,210 @@ namespace Astrum.Client.Managers
             if (enableLogging)
                 Debug.Log("ResourceManager: 清理所有缓存资源");
         }
+
+        #region 场景加载功能
+
+        /// <summary>
+        /// 同步加载场景
+        /// </summary>
+        /// <param name="sceneName">场景名称</param>
+        /// <param name="loadSceneMode">加载模式</param>
+        /// <returns>是否加载成功</returns>
+        public bool LoadScene(string sceneName, UnityEngine.SceneManagement.LoadSceneMode loadSceneMode = UnityEngine.SceneManagement.LoadSceneMode.Single)
+        {
+            if (!_isInitialized)
+            {
+                Debug.LogError("ResourceManager: 资源管理器未初始化");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                Debug.LogError("ResourceManager: 场景名称不能为空");
+                return false;
+            }
+
+#if YOO_ASSET_2
+            try
+            {
+                // 使用YooAsset同步加载场景
+                var handle = _defaultPackage.LoadSceneSync(sceneName, loadSceneMode);
+                
+                if (handle.Status == EOperationStatus.Succeed)
+                {
+                    if (enableLogging)
+                        Debug.Log($"ResourceManager: 成功加载场景 {sceneName}");
+                    return true;
+                }
+                else
+                {
+                    Debug.LogError($"ResourceManager: 加载场景 {sceneName} 失败 - {handle.LastError}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"ResourceManager: 加载场景 {sceneName} 失败 - {ex.Message}");
+                return false;
+            }
+#else
+            try
+            {
+                // 使用Unity SceneManager加载场景
+                UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName, loadSceneMode);
+                
+                if (enableLogging)
+                    Debug.Log($"ResourceManager: 成功加载场景 {sceneName}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"ResourceManager: 加载场景 {sceneName} 失败 - {ex.Message}");
+                return false;
+            }
+#endif
+        }
+
+        /// <summary>
+        /// 异步加载场景
+        /// </summary>
+        /// <param name="sceneName">场景名称</param>
+        /// <param name="loadSceneMode">加载模式</param>
+        /// <param name="onLoaded">加载完成回调</param>
+        /// <returns>协程</returns>
+        public IEnumerator LoadSceneAsync(string sceneName, UnityEngine.SceneManagement.LoadSceneMode loadSceneMode, Action<bool> onLoaded)
+        {
+            if (!_isInitialized)
+            {
+                Debug.LogError("ResourceManager: 资源管理器未初始化");
+                onLoaded?.Invoke(false);
+                yield break;
+            }
+
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                Debug.LogError("ResourceManager: 场景名称不能为空");
+                onLoaded?.Invoke(false);
+                yield break;
+            }
+
+#if YOO_ASSET_2
+            // 使用YooAsset异步加载场景
+            var handle = _defaultPackage.LoadSceneAsync(sceneName, loadSceneMode);
+            yield return handle;
+            
+            if (handle.Status == EOperationStatus.Succeed)
+            {
+                if (enableLogging)
+                    Debug.Log($"ResourceManager: 成功异步加载场景 {sceneName}");
+                onLoaded?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogError($"ResourceManager: 异步加载场景 {sceneName} 失败 - {handle.LastError}");
+                onLoaded?.Invoke(false);
+            }
+#else
+            // 使用Unity SceneManager异步加载场景
+            var operation = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneName, loadSceneMode);
+            yield return operation;
+            
+            if (operation.isDone)
+            {
+                if (enableLogging)
+                    Debug.Log($"ResourceManager: 成功异步加载场景 {sceneName}");
+                onLoaded?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogError($"ResourceManager: 异步加载场景 {sceneName} 失败");
+                onLoaded?.Invoke(false);
+            }
+#endif
+        }
+
+        /// <summary>
+        /// 卸载场景
+        /// </summary>
+        /// <param name="sceneName">场景名称</param>
+        /// <returns>是否卸载成功</returns>
+        public bool UnloadScene(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                Debug.LogError("ResourceManager: 场景名称不能为空");
+                return false;
+            }
+
+            try
+            {
+                // 查找场景
+                var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName);
+                
+                if (scene.IsValid())
+                {
+                    var operation = UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
+                    
+                    if (operation != null)
+                    {
+                        if (enableLogging)
+                            Debug.Log($"ResourceManager: 成功卸载场景 {sceneName}");
+                        return true;
+                    }
+                    else
+                    {
+                        Debug.LogError($"ResourceManager: 卸载场景 {sceneName} 失败");
+                        return false;
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"ResourceManager: 场景 {sceneName} 不存在或未加载");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"ResourceManager: 卸载场景 {sceneName} 失败 - {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 检查场景是否已加载
+        /// </summary>
+        /// <param name="sceneName">场景名称</param>
+        /// <returns>是否已加载</returns>
+        public bool IsSceneLoaded(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName))
+                return false;
+
+            var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName);
+            return scene.IsValid() && scene.isLoaded;
+        }
+
+        /// <summary>
+        /// 获取当前加载的场景列表
+        /// </summary>
+        /// <returns>场景名称列表</returns>
+        public List<string> GetLoadedScenes()
+        {
+            var loadedScenes = new List<string>();
+            
+            for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+            {
+                var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+                if (scene.IsValid() && scene.isLoaded)
+                {
+                    loadedScenes.Add(scene.name);
+                }
+            }
+            
+            return loadedScenes;
+        }
+
+        #endregion
         
         /// <summary>
         /// 关闭资源管理器
@@ -317,10 +575,13 @@ namespace Astrum.Client.Managers
             if (!_isInitialized)
                 return "ResourceManager: 未初始化";
             
+            var loadedScenes = GetLoadedScenes();
+            var sceneInfo = loadedScenes.Count > 0 ? $", 已加载场景: {string.Join(", ", loadedScenes)}" : "";
+            
 #if YOO_ASSET_2
-            return $"ResourceManager: 已初始化(YooAsset), 缓存资源数量: {_loadedHandles.Count}, 进度: {_loadingProgress:F2}";
+            return $"ResourceManager: 已初始化(YooAsset), 缓存资源数量: {_loadedHandles.Count}, 进度: {_loadingProgress:F2}{sceneInfo}";
 #else
-            return $"ResourceManager: 已初始化(Resources), 缓存资源数量: {_loadedResources.Count}, 进度: {_loadingProgress:F2}";
+            return $"ResourceManager: 已初始化(Resources), 缓存资源数量: {_loadedResources.Count}, 进度: {_loadingProgress:F2}{sceneInfo}";
 #endif
         }
     }
