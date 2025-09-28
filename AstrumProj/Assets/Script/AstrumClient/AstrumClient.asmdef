@@ -6,7 +6,8 @@
         "Network",
         "AstrumView",
         "AstrumLogic",
-        "Generated"
+        "Generated",
+        "YooAsset"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

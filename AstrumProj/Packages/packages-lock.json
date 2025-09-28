@@ -9,6 +9,18 @@
       },
       "hash": "6906c24290c7a981b39e9cd09cff937d3414ac7c"
     },
+    "com.tuyoogame.yooasset": {
+      "version": "2.3.16",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.scriptablebuildpipeline": "1.21.25",
+        "com.unity.modules.assetbundle": "1.0.0",
+        "com.unity.modules.unitywebrequest": "1.0.0",
+        "com.unity.modules.unitywebrequestassetbundle": "1.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
     "com.unity.ai.assistant": {
       "version": "1.0.0-pre.8",
       "depth": 0,
@@ -186,6 +198,16 @@
         "com.unity.mathematics": "1.2.4",
         "com.unity.modules.terrain": "1.0.0"
       }
+    },
+    "com.unity.scriptablebuildpipeline": {
+      "version": "2.4.0",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.test-framework": "1.4.5",
+        "com.unity.modules.assetbundle": "1.0.0"
+      },
+      "url": "https://packages.unity.com"
     },
     "com.unity.searcher": {
       "version": "4.9.3",
