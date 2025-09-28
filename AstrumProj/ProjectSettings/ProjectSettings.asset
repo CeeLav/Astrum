@@ -818,7 +818,9 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Standalone: YOO_ASSET_2
+    YOO_ASSET_2: 0
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:

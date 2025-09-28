@@ -17,15 +17,13 @@ namespace Astrum.Client.Managers
     {
         [Header("场景管理设置")]
         private bool enableLogging = true;
-        private float asyncLoadTimeout = 30f;
         
         // 当前场景信息
         private Scene currentScene;
         private bool isLoading = false;
         private float loadingProgress = 0f;
         
-        // 异步加载相关
-        private AsyncOperation currentAsyncOperation;
+        // 协程运行器
         private MonoBehaviour coroutineRunner;
         
         // 公共属性
@@ -91,15 +89,41 @@ namespace Astrum.Client.Managers
             
             try
             {
+                // 获取ResourceManager实例
+                var resourceManager = GameApplication.Instance?.ResourceManager;
+                if (resourceManager == null)
+                {
+                    Debug.LogError("SceneManager: ResourceManager未初始化");
+                    return;
+                }
+                
                 // 根据模式加载场景
                 switch (mode)
                 {
                     case LoadSceneMode.SINGLE:
-                        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+                        if (resourceManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Single))
+                        {
+                            if (enableLogging)
+                                Debug.Log($"SceneManager: 成功加载场景 {sceneName}");
+                        }
+                        else
+                        {
+                            Debug.LogError($"SceneManager: 加载场景 {sceneName} 失败");
+                            return;
+                        }
                         break;
                         
                     case LoadSceneMode.ADDITIVE:
-                        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+                        if (resourceManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive))
+                        {
+                            if (enableLogging)
+                                Debug.Log($"SceneManager: 成功加载场景 {sceneName}");
+                        }
+                        else
+                        {
+                            Debug.LogError($"SceneManager: 加载场景 {sceneName} 失败");
+                            return;
+                        }
                         break;
                         
                     case LoadSceneMode.ASYNC:
@@ -161,47 +185,38 @@ namespace Astrum.Client.Managers
             isLoading = true;
             loadingProgress = 0f;
             
-            // 开始异步加载
-            currentAsyncOperation = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneName);
-            
-            if (currentAsyncOperation == null)
+            // 获取ResourceManager实例
+            var resourceManager = GameApplication.Instance?.ResourceManager;
+            if (resourceManager == null)
             {
-                Debug.LogError($"SceneManager: 无法开始异步加载场景 {sceneName}");
+                Debug.LogError("SceneManager: ResourceManager未初始化");
                 isLoading = false;
                 yield break;
             }
             
-            currentAsyncOperation.allowSceneActivation = true;
-            
-            // 等待加载完成
-            float startTime = Time.time;
-            while (!currentAsyncOperation.isDone)
+            // 使用ResourceManager异步加载场景
+            yield return resourceManager.LoadSceneAsync(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Single, (success) =>
             {
-                loadingProgress = currentAsyncOperation.progress;
-                
-                // 检查超时
-                if (Time.time - startTime > asyncLoadTimeout)
+                if (success)
                 {
-                    Debug.LogError($"SceneManager: 异步加载场景 {sceneName} 超时");
-                    break;
+                    if (enableLogging)
+                        Debug.Log($"SceneManager: 成功异步加载场景 {sceneName}");
+                    
+                    // 更新当前场景
+                    currentScene = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName);
+                    isLoading = false;
+                    loadingProgress = 1f;
+                    
+                    // 调用回调
+                    callback?.Invoke();
                 }
-                
-                yield return null;
-            }
-            
-            // 加载完成
-            loadingProgress = 1f;
-            currentScene = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName);
-            
-            if (enableLogging)
-                Debug.Log($"SceneManager: 异步加载场景 {sceneName} 完成");
-            
-            // 调用回调
-            callback?.Invoke();
-            
-            // 清理
-            isLoading = false;
-            currentAsyncOperation = null;
+                else
+                {
+                    Debug.LogError($"SceneManager: 异步加载场景 {sceneName} 失败");
+                    isLoading = false;
+                    loadingProgress = 0f;
+                }
+            });
         }
         
         /// <summary>
@@ -213,24 +228,23 @@ namespace Astrum.Client.Managers
             if (enableLogging)
                 Debug.Log($"SceneManager: 卸载场景 {sceneName}");
             
-            try
+            // 获取ResourceManager实例
+            var resourceManager = GameApplication.Instance?.ResourceManager;
+            if (resourceManager == null)
             {
-                Scene sceneToUnload = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName);
-                if (sceneToUnload.isLoaded)
-                {
-                    UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(sceneName);
-                    
-                    if (enableLogging)
-                        Debug.Log($"SceneManager: 场景 {sceneName} 卸载完成");
-                }
-                else
-                {
-                    Debug.LogWarning($"SceneManager: 场景 {sceneName} 未加载，无法卸载");
-                }
+                Debug.LogError("SceneManager: ResourceManager未初始化");
+                return;
             }
-            catch (Exception ex)
+            
+            // 使用ResourceManager卸载场景
+            if (resourceManager.UnloadScene(sceneName))
             {
-                Debug.LogError($"SceneManager: 卸载场景 {sceneName} 失败 - {ex.Message}");
+                if (enableLogging)
+                    Debug.Log($"SceneManager: 场景 {sceneName} 卸载完成");
+            }
+            else
+            {
+                Debug.LogWarning($"SceneManager: 场景 {sceneName} 未加载，无法卸载");
             }
         }
         
@@ -293,7 +307,6 @@ namespace Astrum.Client.Managers
             
             isLoading = false;
             loadingProgress = 0f;
-            currentAsyncOperation = null;
         }
     }
     
