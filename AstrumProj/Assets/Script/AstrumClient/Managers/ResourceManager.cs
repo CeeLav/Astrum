@@ -127,8 +127,10 @@ namespace Astrum.Client.Managers
         /// </summary>
         private IEnumerator InitPackage()
         {  
-            var buildResult = EditorSimulateModeHelper.SimulateBuild("DefaultPackage");    
-            var packageRoot = buildResult.PackageRootDirectory;
+            //var buildResult = EditorSimulateModeHelper.SimulateBuild("DefaultPackage");
+
+            var packageRoot =
+                "D:\\Develop\\Projects\\Astrum\\AstrumProj\\Bundles\\StandaloneWindows64\\DefaultPackage\\Simulate";//buildResult.PackageRootDirectory;
             var fileSystemParams = FileSystemParameters.CreateDefaultEditorFileSystemParameters(packageRoot);
             
             var createParameters = new EditorSimulateModeParameters();
