@@ -28,19 +28,19 @@ public sealed partial class EntityModel : Luban.BeanBase
     }
 
     /// <summary>
-    /// ModelID
+    /// 模型ID
     /// </summary>
     public readonly int ModelId;
     /// <summary>
-    /// ModelName
+    /// 模型名称
     /// </summary>
     public readonly string ModelName;
     /// <summary>
-    /// ModelPath
+    /// 模型路径
     /// </summary>
     public readonly string ModelPath;
     /// <summary>
-    /// ModelType
+    /// 模型类型
     /// </summary>
     public readonly string ModelType;
    
