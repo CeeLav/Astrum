@@ -28,19 +28,19 @@ public sealed partial class Action : Luban.BeanBase
     }
 
     /// <summary>
-    /// ActionID
+    /// 动作ID
     /// </summary>
     public readonly int ActionId;
     /// <summary>
-    /// ActionName
+    /// 动作名称
     /// </summary>
     public readonly string ActionName;
     /// <summary>
-    /// ActionType
+    /// 动作类型
     /// </summary>
     public readonly string ActionType;
     /// <summary>
-    /// Duration
+    /// 持续时间
     /// </summary>
     public readonly float Duration;
    

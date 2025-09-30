@@ -277,7 +277,7 @@ Tables/output/
 |----------|----------|---------|------------|------------|-----------|------------|-------------|-------------|
 | ##type   | int      | int     | string     | string     | string    | string     | string      | string      |
 | ##group  |          |         |            |            |           |            |             |             |
-| ##desc   | EntityID | ModelID | IdleAction | WalkAction | RunAction | JumpAction | BirthAction | DeathAction |
+| ##desc   | 实体ID   | 模型ID  | 静止动作   | 走路动作   | 跑步动作  | 跳跃动作   | 出生动作    | 死亡动作    |
 |          | 1001     | 2001    | idle_01    | walk_01    | run_01    | jump_01    | birth_01    | death_01    |
 |          | 1002     | 2002    | idle_02    | walk_02    | run_02    | jump_02    | birth_02    | death_02    |
 |          | 1003     | 2003    | idle_03    | walk_03    | run_03    | jump_03    | birth_03    | death_03    |
