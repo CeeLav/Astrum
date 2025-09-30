@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using System.IO;
 using System.Linq;
 using Astrum.Client.Managers;
 using Astrum.CommonBase;
@@ -7,6 +8,7 @@ using Astrum.Generated;
 using Astrum.View.Managers;
 using Astrum.Network.Generated;
 using Astrum.Network;
+using Astrum.LogicCore.Managers;
 
 namespace Astrum.Client.Core
 {
@@ -28,6 +30,7 @@ namespace Astrum.Client.Core
         [SerializeField] private AudioManager audioManager;
         [SerializeField] private GamePlayManager gamePlayManager;
         [SerializeField] private CameraManager cameraManager;
+        [SerializeField] private ConfigManager configManager;
         
         [Header("核心GameObject引用")]
         [SerializeField] private GameObject uiRoot;
@@ -59,6 +62,7 @@ namespace Astrum.Client.Core
         public AudioManager AudioManager => audioManager;
         public GamePlayManager GamePlayManager => gamePlayManager;
         public CameraManager CameraManager => cameraManager;
+        public ConfigManager ConfigManager => configManager;
         
         // 核心GameObject访问器
         public GameObject UIRoot => uiRoot;
@@ -138,6 +142,9 @@ namespace Astrum.Client.Core
             // 初始化日志管理器（必须在其他管理器之前初始化）
             InitializeLogManager();
             
+            // 初始化配置管理器（必须在其他管理器之前初始化）
+            InitializeConfigManager();
+            
             // 初始化网络系统基础组件（必须在网络管理器之前初始化）
             InitializeNetworkSystem();
             
@@ -205,6 +212,37 @@ namespace Astrum.Client.Core
             // 添加Unity日志处理器
             ASLogger.Instance.AddHandler(new UnityLogHandler());
             
+        }
+        
+        /// <summary>
+        /// 初始化配置管理器
+        /// </summary>
+        private void InitializeConfigManager()
+        {
+            Debug.Log("GameApplication: 初始化配置管理器");
+            
+            try
+            {
+                // 初始化配置管理器（单例赋值）
+                configManager = ConfigManager.Instance;
+                
+                // 初始化配置管理器，指定配置路径
+                // 配置文件位于 Astrum\AstrumConfig\Tables\output\Client 目录
+                var configPath = Path.Combine(Application.dataPath, "..","..", "AstrumConfig", "Tables", "output", "Client");
+                configManager.Initialize(configPath);
+                
+                // 输出配置统计信息
+                var configStats = configManager.GetConfigStatistics();
+                ASLogger.Instance.Info($"ConfigManager初始化完成:\n{configStats}");
+                
+                Debug.Log("GameApplication: 配置管理器初始化完成");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"GameApplication: 配置管理器初始化失败 - {ex.Message}");
+                ASLogger.Instance.Error($"ConfigManager初始化失败: {ex.Message}");
+                throw;
+            }
         }
         
         /// <summary>
@@ -316,6 +354,7 @@ namespace Astrum.Client.Core
             //audioManager?.Shutdown();
             gamePlayManager?.Shutdown();
             cameraManager?.Shutdown();
+            configManager?.Shutdown();
             
             isRunning = false;
         }
