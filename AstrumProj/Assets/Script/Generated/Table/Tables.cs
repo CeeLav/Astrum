@@ -14,16 +14,19 @@ namespace cfg
 public partial class Tables
 {
     public TbItem TbItem {get; }
+    public Entity.TbEntityBase TbEntityBase {get; }
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
         TbItem = new TbItem(loader("tbitem"));
+        TbEntityBase = new Entity.TbEntityBase(loader("entity_tbentitybase"));
         ResolveRef();
     }
     
     private void ResolveRef()
     {
         TbItem.ResolveRef(this);
+        TbEntityBase.ResolveRef(this);
     }
 }
 
