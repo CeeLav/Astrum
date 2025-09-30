@@ -1,7 +1,7 @@
 #!/bin/bash
 
 WORKSPACE=..
-LUBAN_DLL=$WORKSPACE/Tools/Luban/Luban.dll
+LUBAN_DLL=$WORKSPACE/../AstrumTool/Luban/Luban.dll
 CONF_ROOT=.
 
 dotnet $LUBAN_DLL \
