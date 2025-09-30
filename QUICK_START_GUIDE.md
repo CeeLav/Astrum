@@ -21,6 +21,12 @@ Astrum 是一个基于 Unity 的多人网络游戏项目，采用客户端-服�
 - **基于 Prefab**: 从 Unity Prefab 自动生成 C# UI 逻辑类
 - **编辑器工具**: `Tools > UI Generator` 可视化工具
 
+### 资源管理优化
+- **解决启动卡顿**: 手动生成YooAsset资源清单，避免运行时卡顿
+- **场景加载修复**: 修复了YooAsset场景加载失败问题，支持多种地址格式
+- **编辑器工具**: `Astrum/资源管理/` 菜单，支持生成、清理、打开资源清单
+- **平台支持**: 自动检测当前构建平台，支持多平台开发
+
 > 📖 **完整功能**: 查看 [README.md](README.md) 了解所有核心功能
 
 ## 环境要求
@@ -58,12 +64,21 @@ cd AstrumServer && dotnet run
    ASLogger.Instance.Log(LogLevel.Debug, "消息");
    ```
 
-### 4. 创建UI界面
+### 4. 生成资源清单（重要！）
+**解决游戏启动卡顿问题**
+1. 在Unity编辑器中，点击菜单 `Astrum/资源管理/生成资源清单`
+2. 等待生成完成（首次生成可能需要几分钟）
+3. 生成成功后，游戏启动将不再卡顿
+4. 当项目资源发生变化时，需要重新生成资源清单
+
+> 💡 **提示**: 这是解决YooAsset EditorSimulateMode启动卡顿的关键步骤！
+
+### 5. 创建UI界面
 1. 在Unity中创建UI Prefab（放在 `Assets/ArtRes/UI/` 目录）
 2. 打开UI Generator工具：`Tools > UI Generator`
 3. 选择Prefab并生成UI代码
 
-### 5. 修改协议
+### 6. 修改协议
 1. 编辑 `AstrumConfig/Proto/*.proto` 文件
 2. 运行协议生成工具: `cd AstrumTool/Proto2CS && dotnet run`
 3. 代码自动生成到客户端和服务器端
@@ -95,13 +110,34 @@ A: 确保服务器已启动，检查端口8888是否被占用
 ### Q: 日志没有被识别
 A: 检查日志格式是否正确，使用 `Tools > ASLogger Manager` 刷新扫描
 
+### Q: 游戏启动时卡顿很久
+A: 这是YooAsset EditorSimulateMode的常见问题，需要先生成资源清单：
+   1. 点击菜单 `Astrum/资源管理/生成资源清单`
+   2. 等待生成完成后再次启动游戏
+
+### Q: 场景加载失败 "Failed to load scene! The location is invalid"
+A: 这个问题已经修复，ResourceManager现在支持多种场景地址格式：
+   1. 优先尝试完整路径：`Assets/Scenes/场景名.unity`
+   2. 备用场景名：`场景名`
+   3. 带扩展名：`场景名.unity`
+   如果仍有问题，检查场景是否在Build Settings中
+
+### Q: 资源清单生成失败
+A: 检查以下几点：
+   1. 确保项目已启用YooAsset
+   2. 检查Console窗口的错误信息
+   3. 确认项目资源没有损坏
+   4. 确保场景文件在`Assets/Scenes/`目录下
+
 ## 注意事项
 
 1. **协议修改**: 永远不要直接修改 `Generated/` 目录下的文件
 2. **代码生成**: 修改协议后必须重新运行生成工具
 3. **UI开发**: 使用UI Generator工具生成UI代码，不要手动创建
 4. **日志管理**: 使用ASLogger Manager管理日志，支持状态保持
-5. **编译顺序**: 先编译协议代码，再编译客户端和服务器
+5. **资源管理**: 首次使用或资源更新后，必须生成资源清单避免启动卡顿
+6. **场景加载**: ResourceManager已优化，支持多种场景地址格式，优先使用完整路径
+7. **编译顺序**: 先编译协议代码，再编译客户端和服务器
 
 ---
 
