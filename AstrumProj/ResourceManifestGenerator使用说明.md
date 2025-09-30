@@ -119,3 +119,5 @@ AstrumProj/Bundles/[平台名称]/DefaultPackage/Simulate/
 ## 更新历史
 
 - **v1.0** (2025-01-14): 初始版本，支持基本的资源清单生成功能
+
+
