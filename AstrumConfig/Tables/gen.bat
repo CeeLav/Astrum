@@ -1,5 +1,5 @@
 set WORKSPACE=..
-set LUBAN_DLL=%WORKSPACE%\Tools\Luban\Luban.dll
+set LUBAN_DLL=%WORKSPACE%\..\AstrumTool\Luban\Luban.dll
 set CONF_ROOT=.
 
 dotnet %LUBAN_DLL% ^
