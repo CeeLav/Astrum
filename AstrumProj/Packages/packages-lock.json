@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.code-philosophy.luban": {
+      "version": "https://github.com/focus-creative-games/luban_unity.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "005c365bac0b245048050d48d27df098739a6f8f"
+    },
     "com.justinpbarnett.unity-mcp": {
       "version": "https://github.com/justinpbarnett/unity-mcp.git?path=/UnityMcpBridge",
       "depth": 0,
