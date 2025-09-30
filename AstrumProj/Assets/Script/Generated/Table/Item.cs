@@ -10,11 +10,11 @@
 using Luban;
 
 
-namespace cfg.demo
+namespace cfg
 {
-public sealed partial class item : Luban.BeanBase
+public sealed partial class Item : Luban.BeanBase
 {
-    public item(ByteBuf _buf) 
+    public Item(ByteBuf _buf) 
     {
         Id = _buf.ReadInt();
         Name = _buf.ReadString();
@@ -22,9 +22,9 @@ public sealed partial class item : Luban.BeanBase
         Count = _buf.ReadInt();
     }
 
-    public static item Deserializeitem(ByteBuf _buf)
+    public static Item DeserializeItem(ByteBuf _buf)
     {
-        return new demo.item(_buf);
+        return new Item(_buf);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public sealed partial class item : Luban.BeanBase
     /// </summary>
     public readonly int Count;
    
-    public const int __ID__ = 750578750;
+    public const int __ID__ = 2289459;
     public override int GetTypeId() => __ID__;
 
     public  void ResolveRef(Tables tables)
