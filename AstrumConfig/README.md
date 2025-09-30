@@ -163,7 +163,30 @@ gen_client.bat
 
 ### 表格注册
 
-#### 在 __tables__.xlsx 中注册新表
+#### 方式一：自动导入（推荐方式）
+
+使用文件名前缀 `#` 创建表格，无需在 `__tables__.xlsx` 中注册：
+
+**文件名格式：** `#表格名.xlsx`
+
+**示例：**
+- `#EntityBase.xlsx` - 自动生成 `Entity.TbEntityBase` 类
+- `#Action.xlsx` - 自动生成 `Action.TbAction` 类  
+- `#EntityModel.xlsx` - 自动生成 `EntityModel.TbEntityModel` 类
+
+**优势：**
+- 无需手动维护 `__tables__.xlsx` 文件
+- 减少配置错误
+- 简化表格管理流程
+- 支持嵌套目录结构
+
+**创建新表格步骤：**
+1. 在 `Datas/` 目录下创建子文件夹（如 `Entity/`）
+2. 创建以 `#` 开头的 Excel 文件（如 `#EntityBase.xlsx`）
+3. 按照标准格式填写表格内容（##var、##type、##group、##desc 行）
+4. 运行生成脚本即可自动导入表格
+
+#### 方式二：手动注册（传统方式）
 
 创建业务表格后，需要在 `__tables__.xlsx` 中注册：
 
@@ -246,6 +269,20 @@ Tables/output/
 | ##desc   | 技能ID| 技能名称  | 等级  | 伤害值  | 冷却时间  | 目标类型    | 技能效果    |
 |          | 1001 | 火球术    | 1     | 50.0   | 3.0      | enemy       | {type:1,value:50} |
 |          | 1002 | 治疗术    | 1     | 30.0   | 5.0      | ally        | {type:2,value:30} |
+
+#### 4. 实体配置表（使用自动导入）
+
+**#EntityBase.xlsx**:
+| ##var    | entityId | modelId | idleAction | walkAction | runAction | jumpAction | birthAction | deathAction |
+|----------|----------|---------|------------|------------|-----------|------------|-------------|-------------|
+| ##type   | int      | int     | string     | string     | string    | string     | string      | string      |
+| ##group  |          |         |            |            |           |            |             |             |
+| ##desc   | EntityID | ModelID | IdleAction | WalkAction | RunAction | JumpAction | BirthAction | DeathAction |
+|          | 1001     | 2001    | idle_01    | walk_01    | run_01    | jump_01    | birth_01    | death_01    |
+|          | 1002     | 2002    | idle_02    | walk_02    | run_02    | jump_02    | birth_02    | death_02    |
+|          | 1003     | 2003    | idle_03    | walk_03    | run_03    | jump_03    | birth_03    | death_03    |
+
+**注意：** 使用 `#` 前缀的文件名会自动导入，无需在 `__tables__.xlsx` 中注册。
 
 对应的Bean定义：
 **__beans__.xlsx**:
