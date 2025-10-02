@@ -1,5 +1,4 @@
 @startuml ActionCancelSystem
-!theme plain
 skinparam backgroundColor #FFFFFF
 
 title 动作取消系统机制
@@ -56,24 +55,12 @@ ActionB .down.> N1
 N1 .down.> N2
 
 ' 时间范围示例
-rectangle "动作时间轴" {
-    rectangle "0%" as T0
-    rectangle "25%" as T25
-    rectangle "50%" as T50
-    rectangle "75%" as T75
-    rectangle "100%" as T100
-    
-    T0 -right-> T25
-    T25 -right-> T50
-    T50 -right-> T75
-    T75 -right-> T100
-    
-    note bottom of T50
-        BeCancelledTag Range: [0.0, 1.0]
-        = 整个动作过程都可被取消
-    end note
-}
+note as TimeNote
+**动作时间轴**:
+0% → 25% → 50% → 75% → 100%
+
+BeCancelledTag Range: [0.0, 1.0]
+= 整个动作过程都可被取消
+end note
 
 @enduml
-
-
