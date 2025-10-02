@@ -10,3 +10,6 @@ dotnet %GEN_CLIENT% ^
     -x outputDataDir=output\Client
 
 pause
+
+
+

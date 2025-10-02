@@ -1,0 +1,149 @@
+@startuml ActionSystem
+
+title 动作系统架构设计
+
+' 核心数据结构
+package DataStructure {
+    class ActionInfo {
+        + Id: int
+        + Catalog: string
+        + CancelTags: List~CancelTag~
+        + BeCancelledTags: List~BeCancelledTag~
+        + TempBeCancelledTags: List~TempBeCancelledTag~
+        + Commands: List~ActionCommand~
+        + AutoNextActionId: int
+        + KeepPlayingAnim: bool
+        + AutoTerminate: bool
+        + Priority: int
+    }
+    
+    class CancelTag {
+        + Tag: string
+        + StartFrom: float
+        + BlendIn: float
+        + Priority: int
+    }
+    
+    class BeCancelledTag {
+        + Tags: List~string~
+        + Range: Vector2
+        + BlendOut: float
+        + Priority: int
+    }
+    
+    class TempBeCancelledTag {
+        + Id: int
+        + Tags: List~string~
+        + Time: int
+        + BlendOut: float
+        + Priority: int
+    }
+    
+    class ActionCommand {
+        + KeySequence: List~KeyMap~
+        + ValidFrames: int
+    }
+    
+    class PreorderActionInfo {
+        + ActionId: int
+        + Priority: int
+        + TransitionFrames: int
+        + FromFrame: int
+        + FreezingFrames: int
+    }
+    
+    class ActionTableData {
+        + Id: int
+        + Catalog: string
+        + Priority: int
+        + AutoNextActionId: int
+        + KeepPlayingAnim: bool
+        + AutoTerminate: bool
+        + CancelTags: List~CancelTagTableData~
+        + BeCancelledTags: List~BeCancelledTagTableData~
+        + TempBeCancelledTags: List~TempBeCancelledTagTableData~
+        + Commands: List~ActionCommandTableData~
+    }
+}
+
+' 组件和能力
+package CoreClasses {
+    class ActionComponent <<Component>> {
+        + CurrentAction: ActionInfo
+        + CurrentActionProgress: float
+        + CurrentFrame: int
+        + InputCommands: List~ActionCommand~
+        + PreorderActions: List~PreorderActionInfo~
+        + IsExecutingAction: bool
+        + IsActionFinished: bool
+    }
+    
+    class ActionCapability <<Capability>> {
+        - _actionComponent: ActionComponent
+        + Initialize(): void
+        + Tick(deltaTime: float): void
+        + ExecuteAction(actionId: int): void
+        + CanExecuteAction(actionId: int): bool
+        - CheckActionCancellation(): void
+        - SelectActionFromCandidates(): void
+        - SwitchToAction(actionInfo, preorderInfo): void
+        - UpdateCurrentAction(deltaTime): void
+        - SwitchToNextAction(): void
+        - CanCancelToAction(targetAction): bool
+        - HasValidCommand(actionInfo): bool
+        - IsCommandValid(command): bool
+        - CheckKeySequence(keySequence): bool
+    }
+    
+    class ActionConfigManager <<Singleton>> {
+        + {static} Instance: ActionConfigManager
+        - _actionTableData: Dictionary~int, ActionTableData~
+        + {static} Initialize(): void
+        - LoadActionTableData(): void
+        + GetAction(actionId: int, entityId: int): ActionInfo
+    }
+}
+
+' 关系
+ActionInfo "1" *-- "*" CancelTag
+ActionInfo "1" *-- "*" BeCancelledTag
+ActionInfo "1" *-- "*" TempBeCancelledTag
+ActionInfo "1" *-- "*" ActionCommand
+
+ActionComponent "1" o-- "0..1" ActionInfo
+ActionComponent "1" *-- "*" PreorderActionInfo
+
+ActionCapability "1" --> "1" ActionComponent
+ActionCapability ..> ActionConfigManager : uses (static)
+
+ActionConfigManager "1" o-- "*" ActionTableData
+ActionConfigManager ..> ActionInfo : creates
+
+' 继承关系
+Capability <|-- ActionCapability
+
+note right of ActionCapability
+  每个实体通过ActionCapability
+  管理自己的动作状态
+end note
+
+note right of ActionComponent
+  存储实体的动作状态数据
+  可序列化用于网络同步
+end note
+
+note right of ActionInfo
+  运行时数据
+  由表格数据和实体状态组装
+  支持动态修改
+end note
+
+note right of ActionConfigManager
+  单例模式
+  工厂类，组装ActionInfo
+  从表格数据和运行时数据创建
+end note
+
+@enduml
+
+

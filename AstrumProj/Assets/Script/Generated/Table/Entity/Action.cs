@@ -19,7 +19,7 @@ public sealed partial class Action : Luban.BeanBase
         ActionId = _buf.ReadInt();
         ActionName = _buf.ReadString();
         ActionType = _buf.ReadString();
-        Duration = _buf.ReadFloat();
+        Duration = _buf.ReadInt();
     }
 
     public static Action DeserializeAction(ByteBuf _buf)
@@ -40,9 +40,9 @@ public sealed partial class Action : Luban.BeanBase
     /// </summary>
     public readonly string ActionType;
     /// <summary>
-    /// 持续时间
+    /// 帧
     /// </summary>
-    public readonly float Duration;
+    public readonly int Duration;
    
     public const int __ID__ = 2143930017;
     public override int GetTypeId() => __ID__;
