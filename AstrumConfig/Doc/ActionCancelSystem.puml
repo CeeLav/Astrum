@@ -1,0 +1,79 @@
+@startuml ActionCancelSystem
+!theme plain
+skinparam backgroundColor #FFFFFF
+
+title 动作取消系统机制
+
+' 动作A和动作B的关系
+object "动作A (当前)" as ActionA {
+    Id = "idle"
+    BeCancelledTags = [
+        { Tags: ["attack", "move"] }
+        { Range: [0.0, 1.0] }
+    ]
+    Priority = 0
+}
+
+object "动作B (候选)" as ActionB {
+    Id = "attack_light"
+    CancelTags = [
+        { Tag: "attack" }
+        { StartFrom: 0.0 }
+    ]
+    Priority = 10
+}
+
+object "动作C (候选)" as ActionC {
+    Id = "dodge"
+    CancelTags = [
+        { Tag: "move" }
+        { StartFrom: 0.0 }
+    ]
+    Priority = 5
+}
+
+' 取消判定流程
+note as N1
+**取消判定步骤**:
+1. 检查动作B的CancelTag["attack"]
+2. 是否在动作A的BeCancelledTags中
+3. 检查时间范围是否匹配
+4. 检查输入命令是否有效
+5. 如果满足，加入候选列表
+end note
+
+note as N2
+**优先级排序**:
+- 动作B (attack_light): Priority = 10
+- 动作C (dodge): Priority = 5
+→ 选择动作B执行
+end note
+
+ActionB ..> ActionA : 可以取消\n(Tag: "attack")
+ActionC ..> ActionA : 可以取消\n(Tag: "move")
+
+ActionB .down.> N1
+N1 .down.> N2
+
+' 时间范围示例
+rectangle "动作时间轴" {
+    rectangle "0%" as T0
+    rectangle "25%" as T25
+    rectangle "50%" as T50
+    rectangle "75%" as T75
+    rectangle "100%" as T100
+    
+    T0 -right-> T25
+    T25 -right-> T50
+    T50 -right-> T75
+    T75 -right-> T100
+    
+    note bottom of T50
+        BeCancelledTag Range: [0.0, 1.0]
+        = 整个动作过程都可被取消
+    end note
+}
+
+@enduml
+
+
