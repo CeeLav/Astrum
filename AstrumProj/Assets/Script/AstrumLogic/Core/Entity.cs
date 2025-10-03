@@ -6,6 +6,8 @@ using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
 using Astrum.Generated;
+using Astrum.LogicCore.Managers;
+using cfg.Entity;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Core
@@ -27,6 +29,17 @@ namespace Astrum.LogicCore.Core
         /// 实体名称，便于调试和识别
         /// </summary>
         public string Name { get; set; } = string.Empty;
+        
+        public int EntityConfigId { get; set; } = 0;
+        [MemoryPackIgnore]
+        public EntityBaseTable EntityConfig
+        {
+            get
+            {
+                if (EntityConfigId == 0) return null;
+                return ConfigManager.Instance.Tables.TbEntityBaseTable.Get(EntityConfigId);
+            }
+        }
 
         /// <summary>
         /// 实体是否激活，控制逻辑执行
@@ -78,10 +91,11 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities)
+        public Entity(long uniqueId, string name, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities)
         {
             UniqueId = uniqueId;
             Name = name;
+            EntityConfigId = entityConfigId;
             IsActive = isActive;
             IsDestroyed = isDestroyed;
             CreationTime = creationTime;

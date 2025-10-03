@@ -9,7 +9,7 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/9/29 10:54:05",
+    "PackageNote": "2025/10/3 10:29:34",
     "AssetList": [
         {
             "Address": "",
@@ -19061,7 +19061,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Scenes/DungeonsGame.unity",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Knight.prefab",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 31,
@@ -19069,7 +19069,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
+            "AssetPath": "Assets/Scenes/DungeonsGame.unity",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 32,
@@ -19077,10 +19077,18 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 33,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/Scenes/Game.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 31,
+            "BundleID": 32,
             "DependBundleIDs": []
         },
         {
@@ -19088,7 +19096,7 @@
             "AssetPath": "Assets/Scenes/Start.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 31,
+            "BundleID": 32,
             "DependBundleIDs": []
         },
         {
@@ -19096,7 +19104,7 @@
             "AssetPath": "Assets/Scenes/UIScene.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 31,
+            "BundleID": 32,
             "DependBundleIDs": []
         }
     ],
@@ -19407,6 +19415,16 @@
             "FileHash": "119f15bc2f772e65240d209586ba9c17",
             "FileCRC": 0,
             "FileSize": 257335,
+            "Encrypted": false,
+            "Tags": [],
+            "DependBundleIDs": []
+        },
+        {
+            "BundleName": "assets_artres_unit_role_knight.bundle",
+            "UnityCRC": 0,
+            "FileHash": "7f2680e23cb3ca8b769edddcbb428fa2",
+            "FileCRC": 0,
+            "FileSize": 136565,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []

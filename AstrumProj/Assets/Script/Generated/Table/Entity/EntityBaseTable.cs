@@ -12,23 +12,24 @@ using Luban;
 
 namespace cfg.Entity
 {
-public sealed partial class EntityBase : Luban.BeanBase
+public sealed partial class EntityBaseTable : Luban.BeanBase
 {
-    public EntityBase(ByteBuf _buf) 
+    public EntityBaseTable(ByteBuf _buf) 
     {
         EntityId = _buf.ReadInt();
-        ModelId = _buf.ReadInt();
-        IdleAction = _buf.ReadString();
-        WalkAction = _buf.ReadString();
-        RunAction = _buf.ReadString();
-        JumpAction = _buf.ReadString();
-        BirthAction = _buf.ReadString();
-        DeathAction = _buf.ReadString();
+        ModelName = _buf.ReadString();
+        ModelPath = _buf.ReadString();
+        IdleAction = _buf.ReadInt();
+        WalkAction = _buf.ReadInt();
+        RunAction = _buf.ReadInt();
+        JumpAction = _buf.ReadInt();
+        BirthAction = _buf.ReadInt();
+        DeathAction = _buf.ReadInt();
     }
 
-    public static EntityBase DeserializeEntityBase(ByteBuf _buf)
+    public static EntityBaseTable DeserializeEntityBaseTable(ByteBuf _buf)
     {
-        return new Entity.EntityBase(_buf);
+        return new Entity.EntityBaseTable(_buf);
     }
 
     /// <summary>
@@ -36,35 +37,39 @@ public sealed partial class EntityBase : Luban.BeanBase
     /// </summary>
     public readonly int EntityId;
     /// <summary>
-    /// 模型ID
+    /// 模型名字
     /// </summary>
-    public readonly int ModelId;
+    public readonly string ModelName;
+    /// <summary>
+    /// 模型路径
+    /// </summary>
+    public readonly string ModelPath;
     /// <summary>
     /// 静止动作
     /// </summary>
-    public readonly string IdleAction;
+    public readonly int IdleAction;
     /// <summary>
     /// 走路动作
     /// </summary>
-    public readonly string WalkAction;
+    public readonly int WalkAction;
     /// <summary>
     /// 跑步动作
     /// </summary>
-    public readonly string RunAction;
+    public readonly int RunAction;
     /// <summary>
     /// 跳跃动作
     /// </summary>
-    public readonly string JumpAction;
+    public readonly int JumpAction;
     /// <summary>
     /// 出生动作
     /// </summary>
-    public readonly string BirthAction;
+    public readonly int BirthAction;
     /// <summary>
     /// 死亡动作
     /// </summary>
-    public readonly string DeathAction;
+    public readonly int DeathAction;
    
-    public const int __ID__ = -1683173313;
+    public const int __ID__ = 807652047;
     public override int GetTypeId() => __ID__;
 
     public  void ResolveRef(Tables tables)
@@ -75,7 +80,8 @@ public sealed partial class EntityBase : Luban.BeanBase
     {
         return "{ "
         + "entityId:" + EntityId + ","
-        + "modelId:" + ModelId + ","
+        + "modelName:" + ModelName + ","
+        + "modelPath:" + ModelPath + ","
         + "idleAction:" + IdleAction + ","
         + "walkAction:" + WalkAction + ","
         + "runAction:" + RunAction + ","

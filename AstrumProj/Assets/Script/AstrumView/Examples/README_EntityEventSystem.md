@@ -109,7 +109,7 @@ stage.SetRoom(new Room(1, "测试房间"));
 stage.Initialize();
 
 // 创建实体（会自动触发事件并创建EntityView）
-var entity = world.CreateEntity<Entity>("Player");
+var entity = world.CreateEntity<Entity>(1001); // EntityConfigId=1001 (需要根据实际配置表确定)
 ```
 
 ### 2. 手动发布事件

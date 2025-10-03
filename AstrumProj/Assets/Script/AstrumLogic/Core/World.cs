@@ -99,11 +99,11 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 创建新实体
         /// </summary>
-        /// <param name="name">实体名称</param>
+        /// <param name="entityConfigId">实体配置ID</param>
         /// <returns>创建的实体</returns>
-        public T CreateEntity<T>(string name) where T : Entity, new()
+        public T CreateEntity<T>(int entityConfigId) where T : Entity, new()
         {
-            var entity = EntityFactory.Instance.CreateEntity<T>(name, this);
+            var entity = EntityFactory.Instance.CreateEntity<T>(entityConfigId, this);
             
             // 发布实体创建事件
             PublishEntityCreatedEvent(entity);

@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
-using System;
 using Astrum.View.Core;
-
+using Astrum.View.Managers;
 namespace Astrum.View.Components
 {
     /// <summary>
@@ -13,10 +12,13 @@ namespace Astrum.View.Components
 
         protected override void OnInitialize()
         {
+            var entityConfig = OwnerEntity.EntityConfig;
+            var modelPath = entityConfig.ModelPath;
             // 可在此初始化模型资源
             // 初始化一个立方体模型资源
-            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Initialize(cube);
+            var prefab =
+                ResourceManager.Instance.LoadResource<GameObject>(modelPath);//GameObject.CreatePrimitive(PrimitiveType.Cube);
+            Initialize(prefab);
             
         }
 
@@ -28,7 +30,7 @@ namespace Astrum.View.Components
             if (_modelObject != null)
                 UnityEngine.GameObject.Destroy(_modelObject);
 
-            _modelObject = modelPrefab;//UnityEngine.GameObject.Instantiate(modelPrefab);
+            _modelObject = UnityEngine.GameObject.Instantiate(modelPrefab);
             if (_ownerEntityView.GameObject != null)
                 _modelObject.transform.SetParent(_ownerEntityView.GameObject.transform, false);
             _transform = _modelObject.transform;

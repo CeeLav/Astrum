@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Managers;
 
 namespace Astrum.LogicCore.Factories
 {
@@ -37,13 +38,14 @@ namespace Astrum.LogicCore.Factories
         /// <summary>
         /// 创建基础实体
         /// </summary>
-        /// <param name="name">实体名称</param>
+        /// <param name="entityConfigId">实体配置ID</param>
         /// <returns>创建的实体</returns>
-        public Entity CreateEntity(string name)
+        public Entity CreateEntity(int entityConfigId)
         {
             var entity = new Entity
             {
-                Name = name,
+                Name = GetEntityNameFromConfig(entityConfigId),
+                EntityConfigId = entityConfigId,
                 CreationTime = DateTime.Now,
                 IsActive = true,
                 IsDestroyed = false
@@ -62,13 +64,15 @@ namespace Astrum.LogicCore.Factories
         /// 创建指定类型的实体
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="name">实体名称</param>
+        /// <param name="entityConfigId">实体配置ID</param>
+        /// <param name="world">所属世界</param>
         /// <returns>创建的实体</returns>
-        public T CreateEntity<T>(string name, World world) where T : Entity, new()
+        public T CreateEntity<T>(int entityConfigId, World world) where T : Entity, new()
         {
             var entity = new T
             {
-                Name = name,
+                Name = GetEntityNameFromConfig(entityConfigId),
+                EntityConfigId = entityConfigId,
                 CreationTime = DateTime.Now,
                 IsActive = true,
                 IsDestroyed = false
@@ -132,12 +136,12 @@ namespace Astrum.LogicCore.Factories
         /// <summary>
         /// 创建带有指定组件的实体
         /// </summary>
-        /// <param name="name">实体名称</param>
+        /// <param name="entityConfigId">实体配置ID</param>
         /// <param name="componentTypes">组件类型列表</param>
         /// <returns>创建的实体</returns>
-        public Entity CreateEntityWithComponents(string name, params Type[] componentTypes)
+        public Entity CreateEntityWithComponents(int entityConfigId, params Type[] componentTypes)
         {
-            var entity = CreateEntity(name);
+            var entity = CreateEntity(entityConfigId);
 
             var componentFactory = ComponentFactory.Instance;
 
@@ -230,6 +234,29 @@ namespace Astrum.LogicCore.Factories
         public static void ResetEntityIdCounter()
         {
             _nextEntityId = 1;
+        }
+
+        /// <summary>
+        /// 从配置中获取实体名称
+        /// </summary>
+        /// <param name="entityConfigId">实体配置ID</param>
+        /// <returns>实体名称</returns>
+        private string GetEntityNameFromConfig(int entityConfigId)
+        {
+            if (entityConfigId == 0)
+            {
+                return "UnknownEntity";
+            }
+
+            try
+            {
+                var entityConfig = ConfigManager.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
+                return entityConfig?.ModelName ?? $"Entity_{entityConfigId}";
+            }
+            catch
+            {
+                return $"Entity_{entityConfigId}";
+            }
         }
     }
 }

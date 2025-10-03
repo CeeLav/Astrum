@@ -231,10 +231,6 @@ namespace Astrum.Client.Core
                 var configPath = Path.Combine(Application.dataPath, "..","..", "AstrumConfig", "Tables", "output", "Client");
                 configManager.Initialize(configPath);
                 
-                // 输出配置统计信息
-                var configStats = configManager.GetConfigStatistics();
-                ASLogger.Instance.Info($"ConfigManager初始化完成:\n{configStats}");
-                
                 Debug.Log("GameApplication: 配置管理器初始化完成");
             }
             catch (Exception ex)
