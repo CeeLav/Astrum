@@ -12,9 +12,9 @@ using Luban;
 
 namespace cfg.Entity
 {
-public sealed partial class EntityModel : Luban.BeanBase
+public sealed partial class EntityModelTable : Luban.BeanBase
 {
-    public EntityModel(ByteBuf _buf) 
+    public EntityModelTable(ByteBuf _buf) 
     {
         ModelId = _buf.ReadInt();
         ModelName = _buf.ReadString();
@@ -22,9 +22,9 @@ public sealed partial class EntityModel : Luban.BeanBase
         ModelType = _buf.ReadString();
     }
 
-    public static EntityModel DeserializeEntityModel(ByteBuf _buf)
+    public static EntityModelTable DeserializeEntityModelTable(ByteBuf _buf)
     {
-        return new Entity.EntityModel(_buf);
+        return new Entity.EntityModelTable(_buf);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public sealed partial class EntityModel : Luban.BeanBase
     /// </summary>
     public readonly string ModelType;
    
-    public const int __ID__ = -628203653;
+    public const int __ID__ = -2126094061;
     public override int GetTypeId() => __ID__;
 
     public  void ResolveRef(Tables tables)

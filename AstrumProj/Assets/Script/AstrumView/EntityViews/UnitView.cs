@@ -54,31 +54,7 @@ namespace Astrum.View.EntityViews
         /// </summary>
         private void SetupUnitComponents()
         {
-            if (_gameObject == null) return;
             
-            // 查找或创建模型渲染器
-            _modelRenderer = _gameObject.GetComponent<Renderer>();
-            if (_modelRenderer == null)
-            {
-                // 创建一个简单的立方体作为默认模型
-                GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cube.transform.SetParent(_gameObject.transform);
-                cube.transform.localPosition = Vector3.zero;
-                _modelRenderer = cube.GetComponent<Renderer>();
-            }
-            
-            // 查找或创建动画控制器
-            _animator = _gameObject.GetComponent<Animator>();
-            if (_animator == null)
-            {
-                _animator = _gameObject.AddComponent<Animator>();
-            }
-            
-            // 创建血条组件
-            CreateHealthBarUI();
-            
-            // 创建选择指示器
-            CreateSelectionIndicator();
             
             ASLogger.Instance.Info($"UnitView: 设置单位组件完成，ID: {EntityId}");
         }

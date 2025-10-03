@@ -1,18 +1,21 @@
 {
-  "name": "AstrumView",
-  "references": [
-    "UnityEngine",
-    "UnityEngine.UI",
-    "CommonBase",
-    "AstrumLogic"
-  ],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": false,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+    "name": "AstrumView",
+    "rootNamespace": "",
+    "references": [
+        "UnityEngine",
+        "UnityEngine.UI",
+        "CommonBase",
+        "AstrumLogic",
+        "YooAsset",
+        "Generated"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

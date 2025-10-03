@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 using YooAsset;
 #endif
 
-namespace Astrum.Client.Managers
+namespace Astrum.View.Managers
 {
     /// <summary>
     /// 资源管理器 - 基于YooAsset

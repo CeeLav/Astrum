@@ -115,47 +115,7 @@ namespace Astrum.LogicCore.Managers
             }
         }
 
-        /// <summary>
-        /// 获取配置统计信息
-        /// </summary>
-        /// <returns>配置统计信息</returns>
-        public string GetConfigStatistics()
-        {
-            if (!_isInitialized)
-            {
-                return "ConfigManager not initialized";
-            }
 
-            try
-            {
-                var stats = $"ConfigManager Statistics:\n";
-                stats += $"- Config path: {_configPath}\n";
-                
-                // 显示配置表统计（如果可用）
-                if (_tables != null)
-                {
-                    stats += "- Configuration tables:\n";
-                    
-                    try { stats += $"  * TbEntityBase: {_tables.TbEntityBase.DataList.Count} entries\n"; }
-                    catch (Exception ex) { stats += $"  * TbEntityBase: Error - {ex.Message}\n"; }
-                    
-                    try { stats += $"  * TbAction: {_tables.TbAction.DataList.Count} entries\n"; }
-                    catch (Exception ex) { stats += $"  * TbAction: Error - {ex.Message}\n"; }
-                    
-                    try { stats += $"  * TbEntityModel: {_tables.TbEntityModel.DataList.Count} entries\n"; }
-                    catch (Exception ex) { stats += $"  * TbEntityModel: Error - {ex.Message}\n"; }
-                    
-                    try { stats += $"  * TbItem: {_tables.TbItem.DataList.Count} entries\n"; }
-                    catch (Exception ex) { stats += $"  * TbItem: Error - {ex.Message}\n"; }
-                }
-
-                return stats;
-            }
-            catch (Exception ex)
-            {
-                return $"Error getting config statistics: {ex.Message}";
-            }
-        }
 
         /// <summary>
         /// 获取配置路径

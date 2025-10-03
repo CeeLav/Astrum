@@ -14,25 +14,25 @@ namespace cfg
 public partial class Tables
 {
     public TbItem TbItem {get; }
-    public Entity.TbAction TbAction {get; }
-    public Entity.TbEntityBase TbEntityBase {get; }
-    public Entity.TbEntityModel TbEntityModel {get; }
+    public Entity.TbActionTable TbActionTable {get; }
+    public Entity.TbEntityBaseTable TbEntityBaseTable {get; }
+    public Entity.TbEntityModelTable TbEntityModelTable {get; }
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
         TbItem = new TbItem(loader("tbitem"));
-        TbAction = new Entity.TbAction(loader("entity_tbaction"));
-        TbEntityBase = new Entity.TbEntityBase(loader("entity_tbentitybase"));
-        TbEntityModel = new Entity.TbEntityModel(loader("entity_tbentitymodel"));
+        TbActionTable = new Entity.TbActionTable(loader("entity_tbactiontable"));
+        TbEntityBaseTable = new Entity.TbEntityBaseTable(loader("entity_tbentitybasetable"));
+        TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
         ResolveRef();
     }
     
     private void ResolveRef()
     {
         TbItem.ResolveRef(this);
-        TbAction.ResolveRef(this);
-        TbEntityBase.ResolveRef(this);
-        TbEntityModel.ResolveRef(this);
+        TbActionTable.ResolveRef(this);
+        TbEntityBaseTable.ResolveRef(this);
+        TbEntityModelTable.ResolveRef(this);
     }
 }
 
