@@ -26,6 +26,9 @@ public sealed partial class ActionTable : Luban.BeanBase
         AutoTerminate = _buf.ReadBool();
         Command = _buf.ReadString();
         Priority = _buf.ReadInt();
+        CancelTags = _buf.ReadString();
+        BeCancelledTags = _buf.ReadString();
+        TempBeCancelledTags = _buf.ReadString();
     }
 
     public static ActionTable DeserializeActionTable(ByteBuf _buf)
@@ -70,6 +73,9 @@ public sealed partial class ActionTable : Luban.BeanBase
     /// 优先级，越小越高
     /// </summary>
     public readonly int Priority;
+    public readonly string CancelTags;
+    public readonly string BeCancelledTags;
+    public readonly string TempBeCancelledTags;
    
     public const int __ID__ = -320110163;
     public override int GetTypeId() => __ID__;
@@ -91,6 +97,9 @@ public sealed partial class ActionTable : Luban.BeanBase
         + "AutoTerminate:" + AutoTerminate + ","
         + "Command:" + Command + ","
         + "Priority:" + Priority + ","
+        + "CancelTags:" + CancelTags + ","
+        + "BeCancelledTags:" + BeCancelledTags + ","
+        + "TempBeCancelledTags:" + TempBeCancelledTags + ","
         + "}";
     }
 }
