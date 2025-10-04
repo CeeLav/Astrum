@@ -13,9 +13,6 @@ namespace Astrum.LogicCore.Components
         /// <summary>当前动作信息</summary>
         public ActionInfo? CurrentAction { get; set; }
         
-        /// <summary>当前动作进度（0.0-1.0）</summary>
-        public float CurrentActionProgress { get; set; } = 0.0f;
-        
         /// <summary>当前动作帧</summary>
         public int CurrentFrame { get; set; } = 0;
         
@@ -42,14 +39,13 @@ namespace Astrum.LogicCore.Components
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public ActionComponent(int componentId, long entityId, ActionInfo? currentAction, float currentActionProgress, 
+        public ActionComponent(int componentId, long entityId, ActionInfo? currentAction, 
             int currentFrame, List<ActionCommand> inputCommands, List<PreorderActionInfo> preorderActions, 
             List<ActionInfo> availableActions)
         {
             ComponentId = componentId;
             EntityId = entityId;
             CurrentAction = currentAction;
-            CurrentActionProgress = currentActionProgress;
             CurrentFrame = currentFrame;
             InputCommands = inputCommands ?? new List<ActionCommand>();
             PreorderActions = preorderActions ?? new List<PreorderActionInfo>();

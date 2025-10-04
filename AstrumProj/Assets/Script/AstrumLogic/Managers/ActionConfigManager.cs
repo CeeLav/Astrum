@@ -80,7 +80,7 @@ namespace Astrum.LogicCore.Managers
                 return jsonData?.Select(ct => new CancelTag
                 {
                     Tag = ct.Tag,
-                    StartFrom = ct.StartFrom,
+                    StartFromFrames = ct.StartFromFrames,
                     BlendInFrames = ct.BlendInFrames,
                     Priority = ct.Priority
                 }).ToList() ?? new List<CancelTag>();
@@ -105,7 +105,7 @@ namespace Astrum.LogicCore.Managers
                 return jsonData?.Select(bt => new BeCancelledTag
                 {
                     Tags = bt.Tags ?? new List<string>(),
-                    Range = new vector2(), // 暂时使用默认值，vector2是只读的，需要特殊处理
+                    RangeFrames = bt.RangeFrames ?? new List<int>(),
                     BlendOutFrames = bt.BlendOutFrames,
                     Priority = bt.Priority
                 }).ToList() ?? new List<BeCancelledTag>();
@@ -173,7 +173,7 @@ namespace Astrum.LogicCore.Managers
     public class CancelTagJsonData
     {
         public string Tag { get; set; } = string.Empty;
-        public float StartFrom { get; set; }
+        public int StartFromFrames { get; set; }
         public int BlendInFrames { get; set; }
         public int Priority { get; set; }
     }
@@ -184,8 +184,7 @@ namespace Astrum.LogicCore.Managers
     public class BeCancelledTagJsonData
     {
         public List<string>? Tags { get; set; }
-        public float RangeX { get; set; }
-        public float RangeY { get; set; }
+        public List<int>? RangeFrames { get; set; }
         public int BlendOutFrames { get; set; }
         public int Priority { get; set; }
     }
