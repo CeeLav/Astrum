@@ -8,7 +8,8 @@
         "AstrumLogic",
         "YooAsset",
         "Generated",
-        "Kybernetik.Animancer"
+        "Kybernetik.Animancer",
+        "Luban.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
