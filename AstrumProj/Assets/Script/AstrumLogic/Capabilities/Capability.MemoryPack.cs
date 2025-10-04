@@ -6,6 +6,7 @@ namespace Astrum.LogicCore.Capabilities
     /// Capability 的 MemoryPack 序列化特性定义
     /// </summary>
     [MemoryPackUnion(0, typeof(MovementCapability))]
+    [MemoryPackUnion(1, typeof(ActionCapability))]
     [MemoryPackable]
     public abstract partial class Capability
     {

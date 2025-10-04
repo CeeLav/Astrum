@@ -6,13 +6,15 @@ using Astrum.CommonBase;
 using System.Collections.Generic;
 using System.Reflection;
 using cfg;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
     /// 动作能力 - 管理单个实体的动作系统
     /// </summary>
-    public class ActionCapability : Capability
+    [MemoryPackable]
+    public partial class ActionCapability : Capability
     {
         
         /// <summary>
@@ -57,7 +59,11 @@ namespace Astrum.LogicCore.Capabilities
         private void LoadAvailableActions()
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent == null) return;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.LoadAvailableActions: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return;
+            }
             
             actionComponent.AvailableActions.Clear();
             
@@ -71,6 +77,15 @@ namespace Astrum.LogicCore.Capabilities
                 {
                     actionComponent.AvailableActions.Add(actionInfo);
                 }
+            }
+            
+            var initialAction = GetActionInfo(availableActionIds[0]);
+            actionComponent.CurrentAction = initialAction;
+            
+            if (initialAction != null)
+            {
+                ASLogger.Instance.Info($"ActionCapability.LoadAvailableActions: Set initial action ActionId={initialAction.Id} " +
+                    $"on entity {OwnerEntity?.UniqueId}");
             }
         }
         
@@ -94,13 +109,18 @@ namespace Astrum.LogicCore.Capabilities
         private void CheckActionCancellation()
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent?.CurrentAction == null) return;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.CheckActionCancellation: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return;
+            }
+            if (actionComponent.CurrentAction == null) return;
             
             // 清空预订单列表
             actionComponent.PreorderActions.Clear();
             
             // 检查当前动作是否已结束
-            var actionDuration = GetActionDuration();
+            var actionDuration = GetActionDuration(actionComponent.CurrentAction);
             if (IsActionFinished(actionDuration))
             {
                 // 添加默认下一个动作到预订单列表
@@ -150,7 +170,12 @@ namespace Astrum.LogicCore.Capabilities
         private void SelectActionFromCandidates()
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent?.PreorderActions == null || actionComponent.PreorderActions.Count == 0) return;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.SelectActionFromCandidates: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return;
+            }
+            if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0) return;
             
             // 按优先级排序
             actionComponent.PreorderActions.Sort((a, b) => b.Priority.CompareTo(a.Priority));
@@ -161,8 +186,16 @@ namespace Astrum.LogicCore.Capabilities
             
             if (actionInfo != null)
             {
+                ASLogger.Instance.Info($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
+                    $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {OwnerEntity?.UniqueId}");
+                
                 // 切换到新动作
                 SwitchToAction(actionInfo, selectedAction);
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: Failed to get ActionInfo for ActionId={selectedAction.ActionId} " +
+                    $"on entity {OwnerEntity?.UniqueId}");
             }
             
             // 清空候选列表
@@ -175,10 +208,23 @@ namespace Astrum.LogicCore.Capabilities
         private void SwitchToAction(ActionInfo actionInfo, PreorderActionInfo preorderInfo)
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent == null) return;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.SwitchToAction: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return;
+            }
+            
+            // 记录切换前的动作信息
+            var previousActionId = actionComponent.CurrentAction?.Id ?? 0;
+            var previousFrame = actionComponent.CurrentFrame;
             
             actionComponent.CurrentAction = actionInfo;
             actionComponent.CurrentFrame = preorderInfo.FromFrame;
+            
+            // 记录切换成功的日志
+            ASLogger.Instance.Info($"ActionCapability.SwitchToAction: Successfully switched action on entity {OwnerEntity?.UniqueId} " +
+                $"from ActionId={previousActionId}(Frame={previousFrame}) to ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame}) " +
+                $"[Priority={preorderInfo.Priority}, TransitionFrames={preorderInfo.TransitionFrames}]");
         }
         
         /// <summary>
@@ -187,7 +233,12 @@ namespace Astrum.LogicCore.Capabilities
         private void UpdateCurrentAction()
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent?.CurrentAction == null) return;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.UpdateCurrentAction: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return;
+            }
+            if (actionComponent.CurrentAction == null) return;
             
             // 按帧更新动作进度
             actionComponent.CurrentFrame += 1;
@@ -199,7 +250,12 @@ namespace Astrum.LogicCore.Capabilities
         private bool IsActionFinished(int actionDuration)
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent?.CurrentAction == null) return false;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.IsActionFinished: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return false;
+            }
+            if (actionComponent.CurrentAction == null) return false;
             
             return actionComponent.CurrentFrame >= actionDuration;
         }
@@ -219,17 +275,25 @@ namespace Astrum.LogicCore.Capabilities
         {
             // 从ActionComponent获取所有可用的ActionInfo
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            return actionComponent?.AvailableActions ?? new List<ActionInfo>();
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.GetAvailableActions: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return new List<ActionInfo>();
+            }
+            return actionComponent.AvailableActions ?? new List<ActionInfo>();
         }
         
         /// <summary>
         /// 获取动作持续时间
         /// </summary>
-        private int GetActionDuration()
+        private int GetActionDuration(ActionInfo actionInfo)
         {
-            // TODO: 根据实际的动作系统实现
-            // 应该从ActionInfo或配置中获取动作的帧数
-            return 0;
+            if (actionInfo == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.GetActionDuration: ActionInfo is null on entity {OwnerEntity?.UniqueId}");
+                return 0;
+            }
+            return actionInfo.Duration;
         }
         
         /// <summary>
@@ -238,7 +302,12 @@ namespace Astrum.LogicCore.Capabilities
         private bool CanCancelToAction(ActionInfo targetAction)
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent?.CurrentAction == null || targetAction == null) return false;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.CanCancelToAction: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return false;
+            }
+            if (actionComponent.CurrentAction == null || targetAction == null) return false;
             
             // 检查CancelTag是否匹配BeCancelledTag
             foreach (var cancelTag in targetAction.CancelTags)
@@ -289,7 +358,12 @@ namespace Astrum.LogicCore.Capabilities
         private bool IsInTimeRange(int startFrame, int endFrame)
         {
             var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent?.CurrentAction == null) return false;
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.IsInTimeRange: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return false;
+            }
+            if (actionComponent.CurrentAction == null) return false;
             
             // 直接按帧数判断
             return actionComponent.CurrentFrame >= startFrame && actionComponent.CurrentFrame <= endFrame;
@@ -311,15 +385,20 @@ namespace Astrum.LogicCore.Capabilities
         {
             // 获取输入组件
             var inputComponent = GetOwnerComponent<LSInputComponent>();
-            if (inputComponent?.CurrentInput == null) return false;
+            if (inputComponent == null)
+            {
+                ASLogger.Instance.Error($"ActionCapability.CheckCommandMatch: LSInputComponent not found on entity {OwnerEntity?.UniqueId}");
+                return false;
+            }
+            if (inputComponent.CurrentInput == null) return false;
             
             var currentInput = inputComponent.CurrentInput;
-            ASLogger.Instance.Warning($"CheckCommandMatch: Command={commandName}, Input=[MoveX={currentInput.MoveX}, MoveY={currentInput.MoveY}, Attack={currentInput.Attack}, Skill1={currentInput.Skill1}, Skill2={currentInput.Skill2}]");
+            //ASLogger.Instance.Warning($"CheckCommandMatch: Command={commandName}, Input=[MoveX={currentInput.MoveX}, MoveY={currentInput.MoveY}, Attack={currentInput.Attack}, Skill1={currentInput.Skill1}, Skill2={currentInput.Skill2}]");
             // 根据命令名称匹配输入
             return commandName.ToLower() switch
             {
-                "Move" => currentInput.MoveX != 0 || currentInput.MoveY != 0,
-                "attack" or "NormalAttack" => currentInput.Attack,
+                "move" => currentInput.MoveX != 0 || currentInput.MoveY != 0,
+                "attack" or "normalattack" => currentInput.Attack,
                 "skill1" => currentInput.Skill1,
                 "skill2" => currentInput.Skill2,
                 _ => false
