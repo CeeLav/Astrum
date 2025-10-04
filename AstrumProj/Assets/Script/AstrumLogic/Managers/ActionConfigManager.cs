@@ -1,8 +1,10 @@
 using Astrum.LogicCore.ActionSystem;
 using Astrum.CommonBase;
 using cfg;
+using cfg.Entity;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Astrum.LogicCore.Managers
 {
@@ -11,33 +13,6 @@ namespace Astrum.LogicCore.Managers
     /// </summary>
     public class ActionConfigManager : Singleton<ActionConfigManager>
     {
-        /// <summary>单例实例</summary>
-        public new static ActionConfigManager Instance { get; private set; }
-        
-        /// <summary>动作表格数据缓存</summary>
-        private Dictionary<int, ActionTableData> _actionTableData = new();
-        
-        /// <summary>
-        /// 初始化配置管理器
-        /// </summary>
-        public static void Initialize()
-        {
-            if (Instance == null)
-            {
-                Instance = new ActionConfigManager();
-            }
-            Instance.LoadActionTableData();
-        }
-        
-        /// <summary>
-        /// 加载动作表格数据
-        /// </summary>
-        private void LoadActionTableData()
-        {
-            // 从Luban表格加载动作配置数据
-            // TODO: 暂时不引用Luban表格，后续实现
-            // 例如：_actionTableData = Tables.Action.DataList.ToDictionary(x => x.Id);
-        }
         
         /// <summary>
         /// 获取动作信息（工厂方法）
@@ -47,9 +22,18 @@ namespace Astrum.LogicCore.Managers
         /// <returns>组装后的ActionInfo</returns>
         public ActionInfo? GetAction(int actionId, long entityId)
         {
-            // 从表格获取基础数据
-            if (!_actionTableData.TryGetValue(actionId, out var tableData))
+            // 通过ConfigManager获取表格数据
+            var configManager = ConfigManager.Instance;
+            if (!configManager.IsInitialized)
             {
+                ASLogger.Instance.Error($"ActionConfigManager.GetAction: ConfigManager not initialized, actionId={actionId}, entityId={entityId}");
+                return null;
+            }
+            
+            var tableData = configManager.Tables.TbActionTable.Get(actionId);
+            if (tableData == null)
+            {
+                ASLogger.Instance.Error($"ActionConfigManager.GetAction: ActionTable not found, actionId={actionId}, entityId={entityId}");
                 return null;
             }
             
@@ -57,76 +41,136 @@ namespace Astrum.LogicCore.Managers
             var actionInfo = new ActionInfo
             {
                 Id = actionId,
-                Catalog = tableData.Catalog,
+                Catalog = tableData.ActionType,
                 Priority = tableData.Priority,
                 AutoNextActionId = tableData.AutoNextActionId,
                 KeepPlayingAnim = tableData.KeepPlayingAnim,
                 AutoTerminate = tableData.AutoTerminate
             };
             
-            // 从表格数据组装CancelTags
-            actionInfo.CancelTags = tableData.CancelTags?.Select(ct => new CancelTag
-            {
-                Tag = ct.Tag,
-                StartFrom = ct.StartFrom,
-                BlendInFrames = ct.BlendInFrames,
-                Priority = ct.Priority
-            }).ToList() ?? new List<CancelTag>();
+            // 解析CancelTags JSON字符串
+            actionInfo.CancelTags = ParseCancelTagsJson(tableData.CancelTags);
             
-            // 从表格数据组装BeCancelledTags
-            actionInfo.BeCancelledTags = tableData.BeCancelledTags?.Select(bt => new BeCancelledTag
-            {
-                Tags = bt.Tags,
-                Range = new vector2(),
-                BlendOutFrames = bt.BlendOutFrames,
-                Priority = bt.Priority
-            }).ToList() ?? new List<BeCancelledTag>();
+            // 解析BeCancelledTags JSON字符串
+            actionInfo.BeCancelledTags = ParseBeCancelledTagsJson(tableData.BeCancelledTags);
             
-            // 从表格数据组装TempBeCancelledTags
-            actionInfo.TempBeCancelledTags = tableData.TempBeCancelledTags?.Select(tt => new TempBeCancelledTag
-            {
-                Id = tt.Id,
-                Tags = tt.Tags,
-                DurationFrames = tt.DurationFrames,
-                BlendOutFrames = tt.BlendOutFrames,
-                Priority = tt.Priority
-            }).ToList() ?? new List<TempBeCancelledTag>();
+            // 解析TempBeCancelledTags JSON字符串
+            actionInfo.TempBeCancelledTags = ParseTempBeCancelledTagsJson(tableData.TempBeCancelledTags);
             
-            // 从表格数据组装Commands
-            actionInfo.Commands = tableData.Commands?.Select(cmd => new ActionCommand
-            {
-                CommandName = cmd.CommandName,
-                ValidFrames = cmd.ValidFrames
-            }).ToList() ?? new List<ActionCommand>();
+            // 解析Command字符串为ActionCommand
+            actionInfo.Commands = ParseCommandString(tableData.Command);
             
             // TODO: 根据entityId获取运行时数据，与表格数据合并
             // 例如：从实体的状态、buff等获取额外的动作修改
             
             return actionInfo;
         }
+        
+        /// <summary>
+        /// 解析CancelTags JSON字符串
+        /// </summary>
+        private List<CancelTag> ParseCancelTagsJson(string jsonString)
+        {
+            if (string.IsNullOrEmpty(jsonString))
+                return new List<CancelTag>();
+                
+            try
+            {
+                var jsonData = JsonConvert.DeserializeObject<List<CancelTagJsonData>>(jsonString);
+                return jsonData?.Select(ct => new CancelTag
+                {
+                    Tag = ct.Tag,
+                    StartFrom = ct.StartFrom,
+                    BlendInFrames = ct.BlendInFrames,
+                    Priority = ct.Priority
+                }).ToList() ?? new List<CancelTag>();
+            }
+            catch
+            {
+                return new List<CancelTag>();
+            }
+        }
+        
+        /// <summary>
+        /// 解析BeCancelledTags JSON字符串
+        /// </summary>
+        private List<BeCancelledTag> ParseBeCancelledTagsJson(string jsonString)
+        {
+            if (string.IsNullOrEmpty(jsonString))
+                return new List<BeCancelledTag>();
+                
+            try
+            {
+                var jsonData = JsonConvert.DeserializeObject<List<BeCancelledTagJsonData>>(jsonString);
+                return jsonData?.Select(bt => new BeCancelledTag
+                {
+                    Tags = bt.Tags ?? new List<string>(),
+                    Range = new vector2(), // 暂时使用默认值，vector2是只读的，需要特殊处理
+                    BlendOutFrames = bt.BlendOutFrames,
+                    Priority = bt.Priority
+                }).ToList() ?? new List<BeCancelledTag>();
+            }
+            catch
+            {
+                return new List<BeCancelledTag>();
+            }
+        }
+        
+        /// <summary>
+        /// 解析TempBeCancelledTags JSON字符串
+        /// </summary>
+        private List<TempBeCancelledTag> ParseTempBeCancelledTagsJson(string jsonString)
+        {
+            if (string.IsNullOrEmpty(jsonString))
+                return new List<TempBeCancelledTag>();
+                
+            try
+            {
+                var jsonData = JsonConvert.DeserializeObject<List<TempBeCancelledTagJsonData>>(jsonString);
+                return jsonData?.Select(tt => new TempBeCancelledTag
+                {
+                    Id = tt.Id,
+                    Tags = tt.Tags ?? new List<string>(),
+                    DurationFrames = tt.DurationFrames,
+                    BlendOutFrames = tt.BlendOutFrames,
+                    Priority = tt.Priority
+                }).ToList() ?? new List<TempBeCancelledTag>();
+            }
+            catch
+            {
+                return new List<TempBeCancelledTag>();
+            }
+        }
+        
+        /// <summary>
+        /// 解析Command字符串为ActionCommand
+        /// </summary>
+        private List<ActionCommand> ParseCommandString(string commandString)
+        {
+            if (string.IsNullOrEmpty(commandString))
+                return new List<ActionCommand>();
+                
+            // 简单的命令解析，假设命令格式为 "commandName:validFrames"
+            var parts = commandString.Split(':');
+            if (parts.Length >= 1)
+            {
+                var commandName = parts[0];
+                var validFrames = parts.Length > 1 && int.TryParse(parts[1], out var frames) ? frames : 0;
+                
+                return new List<ActionCommand>
+                {
+                    new ActionCommand(commandName, validFrames)
+                };
+            }
+            
+            return new List<ActionCommand>();
+        }
     }
     
     /// <summary>
-    /// 动作表格数据结构（临时定义，后续由Luban生成）
+    /// CancelTag JSON数据结构
     /// </summary>
-    public class ActionTableData
-    {
-        public int Id { get; set; }
-        public string Catalog { get; set; } = string.Empty;
-        public int Priority { get; set; }
-        public int AutoNextActionId { get; set; }
-        public bool KeepPlayingAnim { get; set; }
-        public bool AutoTerminate { get; set; }
-        public List<CancelTagTableData>? CancelTags { get; set; }
-        public List<BeCancelledTagTableData>? BeCancelledTags { get; set; }
-        public List<TempBeCancelledTagTableData>? TempBeCancelledTags { get; set; }
-        public List<ActionCommandTableData>? Commands { get; set; }
-    }
-    
-    /// <summary>
-    /// 取消标签表格数据
-    /// </summary>
-    public class CancelTagTableData
+    public class CancelTagJsonData
     {
         public string Tag { get; set; } = string.Empty;
         public float StartFrom { get; set; }
@@ -135,43 +179,26 @@ namespace Astrum.LogicCore.Managers
     }
     
     /// <summary>
-    /// 被取消标签表格数据
+    /// BeCancelledTag JSON数据结构
     /// </summary>
-    public class BeCancelledTagTableData
+    public class BeCancelledTagJsonData
     {
-        public List<string> Tags { get; set; } = new();
-        public Vector2TableData Range { get; set; } = new();
+        public List<string>? Tags { get; set; }
+        public float RangeX { get; set; }
+        public float RangeY { get; set; }
         public int BlendOutFrames { get; set; }
         public int Priority { get; set; }
     }
     
     /// <summary>
-    /// 临时被取消标签表格数据
+    /// TempBeCancelledTag JSON数据结构
     /// </summary>
-    public class TempBeCancelledTagTableData
+    public class TempBeCancelledTagJsonData
     {
         public string Id { get; set; } = string.Empty;
-        public List<string> Tags { get; set; } = new();
+        public List<string>? Tags { get; set; }
         public int DurationFrames { get; set; }
         public int BlendOutFrames { get; set; }
         public int Priority { get; set; }
-    }
-    
-    /// <summary>
-    /// 动作命令表格数据
-    /// </summary>
-    public class ActionCommandTableData
-    {
-        public string CommandName { get; set; } = string.Empty;
-        public int ValidFrames { get; set; }
-    }
-    
-    /// <summary>
-    /// 二维向量表格数据
-    /// </summary>
-    public class Vector2TableData
-    {
-        public float X { get; set; }
-        public float Y { get; set; }
     }
 }
