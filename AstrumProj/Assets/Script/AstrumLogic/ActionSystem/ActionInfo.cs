@@ -44,6 +44,9 @@ namespace Astrum.LogicCore.ActionSystem
         /// <summary>基础优先级</summary>
         public int Priority { get; set; } = 0;
         
+        /// <summary>动作持续时间（帧数）</summary>
+        public int Duration { get; set; } = 0;
+        
         /// <summary>
         /// 默认构造函数
         /// </summary>
@@ -57,7 +60,7 @@ namespace Astrum.LogicCore.ActionSystem
         [MemoryPackConstructor]
         public ActionInfo(int id, string catalog, List<CancelTag> cancelTags, List<BeCancelledTag> beCancelledTags, 
             List<TempBeCancelledTag> tempBeCancelledTags, List<ActionCommand> commands, int autoNextActionId, 
-            bool keepPlayingAnim, bool autoTerminate, int priority)
+            bool keepPlayingAnim, bool autoTerminate, int priority, int duration)
         {
             Id = id;
             Catalog = catalog ?? string.Empty;
@@ -69,6 +72,7 @@ namespace Astrum.LogicCore.ActionSystem
             KeepPlayingAnim = keepPlayingAnim;
             AutoTerminate = autoTerminate;
             Priority = priority;
+            Duration = duration;
         }
     }
 }
