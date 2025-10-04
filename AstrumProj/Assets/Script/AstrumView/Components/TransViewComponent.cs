@@ -11,15 +11,27 @@ namespace Astrum.View.Components
     {
         [Header("移动设置")]
         [SerializeField] private float moveSpeed = 5f;
-        [SerializeField] private float rotationSpeed = 180f;
+        [SerializeField] private float rotationSpeed = 720f;
         [SerializeField] private bool smoothMovement = true;
         [SerializeField] private float smoothTime = 0.1f;
+        
+        [Header("朝向设置")]
+        [SerializeField] private bool enableRotationToMovement = true;
+        [SerializeField] private float rotationThreshold = 0.1f;
+        [SerializeField] private bool smoothRotation = false;
+        [SerializeField] private float rotationSmoothTime = 0.05f;
         
         // 移动状态
         private Vector3 _targetPosition;
         private Quaternion _targetRotation;
         private Vector3 _currentVelocity;
         private bool _isMoving = false;
+        
+        // 朝向状态
+        private Vector3 _lastPosition;
+        private Vector3 _movementDirection;
+        private Quaternion _rotationVelocity;
+        private bool _isRotating = false;
         
         // 动画相关
         private Animator _animator;
@@ -46,6 +58,7 @@ namespace Astrum.View.Components
             {
                 _targetPosition = _ownerEntityView.GetWorldPosition();
                 _targetRotation = _ownerEntityView.GetWorldRotation();
+                _lastPosition = _targetPosition;
             }
         }
         
@@ -72,6 +85,12 @@ namespace Astrum.View.Components
             _targetPosition.z = (float)pos.z;
             ASLogger.Instance.Debug($"MovementViewComponent: 更新目标位置，位置: {_targetPosition}", "View.Movement");
             
+            // 检测移动方向并计算朝向
+            if (enableRotationToMovement)
+            {
+                UpdateMovementDirection();
+            }
+            
             // 更新移动
             UpdateMovement(deltaTime);
 
@@ -93,6 +112,57 @@ namespace Astrum.View.Components
                 
                 ASLogger.Instance.Debug($"MovementViewComponent: 同步移动数据，位置: {_targetPosition}");
             }
+        }
+        
+        /// <summary>
+        /// 更新移动方向
+        /// </summary>
+        private void UpdateMovementDirection()
+        {
+            if (_ownerEntityView == null) return;
+            
+            Vector3 currentPosition = _ownerEntityView.GetWorldPosition();
+            Vector3 positionDelta = currentPosition - _lastPosition;
+            
+            // 检查是否有足够的移动距离
+            //if (positionDelta.magnitude > rotationThreshold)
+            {
+                _movementDirection = positionDelta.normalized;
+                _isRotating = true;
+                
+                // 计算目标旋转（朝向移动方向）
+                _targetRotation = CalculateTargetRotation(_movementDirection);
+                
+                ASLogger.Instance.Debug($"TransViewComponent: 检测到移动方向 {_movementDirection}, 目标旋转 {_targetRotation.eulerAngles}", "View.Rotation");
+            }
+            //else
+            {
+                _isRotating = false;
+            }
+            
+            // 更新上一帧位置
+            _lastPosition = currentPosition;
+        }
+        
+        /// <summary>
+        /// 计算目标旋转
+        /// </summary>
+        /// <param name="direction">移动方向</param>
+        /// <returns>目标旋转</returns>
+        private Quaternion CalculateTargetRotation(Vector3 direction)
+        {
+            // 忽略Y轴，只考虑XZ平面的方向
+            Vector3 flatDirection = new Vector3(direction.x, 0f, direction.z);
+            
+            if (flatDirection.magnitude < 0.01f)
+            {
+                return _targetRotation; // 保持当前旋转
+            }
+            
+            flatDirection.Normalize();
+            
+            // 计算朝向移动方向的旋转
+            return Quaternion.LookRotation(flatDirection);
         }
         
         /// <summary>
@@ -137,7 +207,17 @@ namespace Astrum.View.Components
             // 平滑旋转
             if (Quaternion.Angle(currentRotation, _targetRotation) > 0.1f)
             {
-                Quaternion newRotation = Quaternion.RotateTowards(currentRotation, _targetRotation, rotationSpeed * deltaTime);
+                Quaternion newRotation;
+                if (smoothRotation)
+                {
+                    // 使用Slerp进行平滑旋转
+                    newRotation = Quaternion.Slerp(currentRotation, _targetRotation, rotationSmoothTime * deltaTime * 10f);
+                }
+                else
+                {
+                    // 使用RotateTowards进行线性旋转
+                    newRotation = Quaternion.RotateTowards(currentRotation, _targetRotation, rotationSpeed * deltaTime);
+                }
                 _ownerEntityView.SetWorldRotation(newRotation);
             }
         }
@@ -186,6 +266,51 @@ namespace Astrum.View.Components
         public float GetCurrentSpeed()
         {
             return _currentVelocity.magnitude;
+        }
+        
+        /// <summary>
+        /// 设置是否启用朝向移动方向
+        /// </summary>
+        /// <param name="enabled">是否启用</param>
+        public void SetRotationToMovementEnabled(bool enabled)
+        {
+            enableRotationToMovement = enabled;
+        }
+        
+        /// <summary>
+        /// 设置旋转阈值
+        /// </summary>
+        /// <param name="threshold">旋转阈值</param>
+        public void SetRotationThreshold(float threshold)
+        {
+            rotationThreshold = Mathf.Max(0.01f, threshold);
+        }
+        
+        /// <summary>
+        /// 设置旋转平滑度
+        /// </summary>
+        /// <param name="smoothTime">平滑时间</param>
+        public void SetRotationSmoothTime(float smoothTime)
+        {
+            rotationSmoothTime = Mathf.Max(0.01f, smoothTime);
+        }
+        
+        /// <summary>
+        /// 获取当前移动方向
+        /// </summary>
+        /// <returns>移动方向</returns>
+        public Vector3 GetMovementDirection()
+        {
+            return _movementDirection;
+        }
+        
+        /// <summary>
+        /// 获取是否正在旋转
+        /// </summary>
+        /// <returns>是否正在旋转</returns>
+        public bool IsRotating()
+        {
+            return _isRotating;
         }
     }
     
