@@ -781,9 +781,10 @@ namespace AstrumServer.Managers
                     }
                     else
                     {
-                        // 为本帧未上报的历史玩家填充默认空输入
-                        frameInputs.Inputs[playerId] = CreateDefaultInput(playerId, frame);
-                        ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，填充默认空输入");
+                        // 为本帧未上报的历史玩家使用上一帧的输入
+                        var previousFrameInput = GetPreviousFrameInput(playerId, frame);
+                        frameInputs.Inputs[playerId] = previousFrameInput;
+                        ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，使用上一帧输入");
                     }
                 }
             }
@@ -827,6 +828,45 @@ namespace AstrumServer.Managers
             defaultInput.BornInfo = 0;
             defaultInput.Timestamp = TimeInfo.Instance.ClientNow();
             return defaultInput;
+        }
+
+        /// <summary>
+        /// 获取玩家上一帧的输入，如果找不到则返回默认空输入
+        /// </summary>
+        /// <param name="playerId">玩家ID</param>
+        /// <param name="currentFrame">当前帧</param>
+        /// <returns>上一帧的输入或默认输入</returns>
+        private LSInput GetPreviousFrameInput(long playerId, int currentFrame)
+        {
+            // 从当前帧往前查找，最多查找10帧
+            for (int frameOffset = 1; frameOffset <= 10; frameOffset++)
+            {
+                int previousFrame = currentFrame - frameOffset;
+                if (previousFrame < 0) break;
+
+                if (_frameInputs.TryGetValue(previousFrame, out var previousInputs) &&
+                    previousInputs.TryGetValue(playerId, out var previousInput))
+                {
+                    // 找到上一帧的输入，复制并更新帧号和时间戳
+                    var input = LSInput.Create();
+                    input.PlayerId = playerId;
+                    input.Frame = currentFrame;
+                    input.MoveX = previousInput.MoveX;
+                    input.MoveY = previousInput.MoveY;
+                    input.Attack = previousInput.Attack;
+                    input.Skill1 = previousInput.Skill1;
+                    input.Skill2 = previousInput.Skill2;
+                    input.BornInfo = previousInput.BornInfo;
+                    input.Timestamp = TimeInfo.Instance.ClientNow();
+                    
+                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {currentFrame} 使用帧 {previousFrame} 的输入");
+                    return input;
+                }
+            }
+
+            // 如果找不到任何历史输入，返回默认空输入
+            ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {currentFrame} 找不到历史输入，使用默认空输入");
+            return CreateDefaultInput(playerId, currentFrame);
         }
         
         
