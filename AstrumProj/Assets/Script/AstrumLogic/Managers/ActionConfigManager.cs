@@ -45,7 +45,8 @@ namespace Astrum.LogicCore.Managers
                 Priority = tableData.Priority,
                 AutoNextActionId = tableData.AutoNextActionId,
                 KeepPlayingAnim = tableData.KeepPlayingAnim,
-                AutoTerminate = tableData.AutoTerminate
+                AutoTerminate = tableData.AutoTerminate,
+                Duration = tableData.Duration
             };
             
             // 解析CancelTags JSON字符串

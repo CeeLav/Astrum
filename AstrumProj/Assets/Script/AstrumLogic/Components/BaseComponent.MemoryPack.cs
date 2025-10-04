@@ -9,6 +9,7 @@ namespace Astrum.LogicCore.Components
     [MemoryPackUnion(1, typeof(PositionComponent))]
     [MemoryPackUnion(2, typeof(MovementComponent))]
     [MemoryPackUnion(3, typeof(Astrum.LogicCore.FrameSync.LSInputComponent))]
+    [MemoryPackUnion(4, typeof(ActionComponent))]
     [MemoryPackable]
     public abstract partial class BaseComponent
     {
