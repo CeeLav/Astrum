@@ -11,8 +11,8 @@ namespace Astrum.LogicCore.ActionSystem
         /// <summary>取消标签名称</summary>
         public string Tag { get; set; } = string.Empty;
         
-        /// <summary>起始帧（百分比 0.0-1.0）</summary>
-        public float StartFrom { get; set; } = 0.0f;
+        /// <summary>起始帧（帧数）</summary>
+        public int StartFromFrames { get; set; } = 0;
         
         /// <summary>融合时间（帧）</summary>
         public int BlendInFrames { get; set; } = 0;
@@ -31,10 +31,10 @@ namespace Astrum.LogicCore.ActionSystem
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public CancelTag(string tag, float startFrom, int blendInFrames, int priority)
+        public CancelTag(string tag, int startFromFrames, int blendInFrames, int priority)
         {
             Tag = tag;
-            StartFrom = startFrom;
+            StartFromFrames = startFromFrames;
             BlendInFrames = blendInFrames;
             Priority = priority;
         }
