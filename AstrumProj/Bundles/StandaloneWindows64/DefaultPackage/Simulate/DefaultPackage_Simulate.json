@@ -9,7 +9,7 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/10/3 10:29:34",
+    "PackageNote": "2025/10/4 16:49:15",
     "AssetList": [
         {
             "Address": "",
@@ -19061,6 +19061,22 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_B_1.anim",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 32,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 32,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Knight.prefab",
             "AssetGUID": "",
             "AssetTags": [],
@@ -19072,7 +19088,7 @@
             "AssetPath": "Assets/Scenes/DungeonsGame.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 32,
+            "BundleID": 33,
             "DependBundleIDs": []
         },
         {
@@ -19080,7 +19096,7 @@
             "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 33,
+            "BundleID": 34,
             "DependBundleIDs": []
         },
         {
@@ -19088,7 +19104,7 @@
             "AssetPath": "Assets/Scenes/Game.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 32,
+            "BundleID": 33,
             "DependBundleIDs": []
         },
         {
@@ -19096,7 +19112,7 @@
             "AssetPath": "Assets/Scenes/Start.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 32,
+            "BundleID": 33,
             "DependBundleIDs": []
         },
         {
@@ -19104,7 +19120,7 @@
             "AssetPath": "Assets/Scenes/UIScene.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 32,
+            "BundleID": 33,
             "DependBundleIDs": []
         }
     ],
@@ -19425,6 +19441,16 @@
             "FileHash": "7f2680e23cb3ca8b769edddcbb428fa2",
             "FileCRC": 0,
             "FileSize": 136565,
+            "Encrypted": false,
+            "Tags": [],
+            "DependBundleIDs": []
+        },
+        {
+            "BundleName": "assets_artres_unit_role_knight_animation.bundle",
+            "UnityCRC": 0,
+            "FileHash": "95fa6045a9eb8f94224b208b6b95911e",
+            "FileCRC": 0,
+            "FileSize": 892147,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []

@@ -112,6 +112,34 @@ namespace Astrum.LogicCore.Core
             
         }
 
+        /// <summary>
+        /// 获取当前预测帧对应的时间
+        /// </summary>
+        /// <returns>当前预测帧对应的时间（毫秒）</returns>
+        public long GetCurrentPredictionFrameTime()
+        {
+            return CreationTime + (PredictionFrame * LSConstValue.UpdateInterval);
+        }
+
+        /// <summary>
+        /// 获取指定预测帧对应的时间
+        /// </summary>
+        /// <param name="predictionFrame">预测帧数</param>
+        /// <returns>指定预测帧对应的时间（毫秒）</returns>
+        public long GetPredictionFrameTime(int predictionFrame)
+        {
+            return CreationTime + (predictionFrame * LSConstValue.UpdateInterval);
+        }
+
+        /// <summary>
+        /// 获取下一预测帧对应的时间
+        /// </summary>
+        /// <returns>下一预测帧对应的时间（毫秒）</returns>
+        public long GetNextPredictionFrameTime()
+        {
+            return CreationTime + ((PredictionFrame + 1) * LSConstValue.UpdateInterval);
+        }
+
         public void Rollback(int frame)
         {
             Room.MainWorld.Cleanup();
