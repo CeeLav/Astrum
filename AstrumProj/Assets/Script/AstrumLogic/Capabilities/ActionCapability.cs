@@ -3,6 +3,7 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Managers;
 using Astrum.CommonBase;
 using System.Collections.Generic;
+using System.Reflection;
 using cfg;
 
 namespace Astrum.LogicCore.Capabilities
@@ -26,8 +27,8 @@ namespace Astrum.LogicCore.Capabilities
             _actionComponent = OwnerEntity?.GetComponent<ActionComponent>();
             if (_actionComponent == null)
             {
-                _actionComponent = new ActionComponent();
-                OwnerEntity?.AddComponent(_actionComponent);
+                ASLogger.Instance.Error($"ActionCapability.Initialize: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                return;
             }
             
             // 预加载所有可用的ActionInfo
@@ -172,8 +173,6 @@ namespace Astrum.LogicCore.Capabilities
             if (_actionComponent == null) return;
             
             _actionComponent.CurrentAction = actionInfo;
-            // TODO: 根据实际帧率计算动作进度
-            _actionComponent.CurrentActionProgress = 0.0f;
             _actionComponent.CurrentFrame = preorderInfo.FromFrame;
         }
         
@@ -186,11 +185,6 @@ namespace Astrum.LogicCore.Capabilities
             
             // 按帧更新动作进度
             _actionComponent.CurrentFrame += 1;
-            var actionDuration = GetActionDuration();
-            if (actionDuration > 0)
-            {
-                _actionComponent.CurrentActionProgress = (float)_actionComponent.CurrentFrame / actionDuration;
-            }
         }
         
         /// <summary>
@@ -245,7 +239,8 @@ namespace Astrum.LogicCore.Capabilities
                     if (beCancelledTag.Tags.Contains(cancelTag.Tag))
                     {
                         // 检查时间范围
-                        if (IsInTimeRange(beCancelledTag.Range))
+                        if (beCancelledTag.RangeFrames.Count >= 2 && 
+                            IsInTimeRange(beCancelledTag.RangeFrames[0], beCancelledTag.RangeFrames[1]))
                         {
                             return true;
                         }
@@ -282,11 +277,12 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查是否在时间范围内
         /// </summary>
-        private bool IsInTimeRange(vector2 range)
+        private bool IsInTimeRange(int startFrame, int endFrame)
         {
             if (_actionComponent?.CurrentAction == null) return false;
             
-            return _actionComponent.CurrentActionProgress >= range.X && _actionComponent.CurrentActionProgress <= range.Y;
+            // 直接按帧数判断
+            return _actionComponent.CurrentFrame >= startFrame && _actionComponent.CurrentFrame <= endFrame;
         }
         
         /// <summary>

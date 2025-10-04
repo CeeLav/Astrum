@@ -15,7 +15,8 @@ namespace Astrum.LogicCore.Core
             typeof(Components.PositionComponent),
             typeof(Components.MovementComponent),
             typeof(Components.HealthComponent),
-            typeof(FrameSync.LSInputComponent)
+            typeof(FrameSync.LSInputComponent),
+            typeof(Components.ActionComponent)
         };
 
         /// <summary>
@@ -29,7 +30,8 @@ namespace Astrum.LogicCore.Core
 
         private static readonly Type[] _requiredCapabilities = new Type[]
         {
-            typeof(Capabilities.MovementCapability)
+            typeof(Capabilities.MovementCapability),
+            typeof(Capabilities.ActionCapability),
         };
 
         /// <summary>

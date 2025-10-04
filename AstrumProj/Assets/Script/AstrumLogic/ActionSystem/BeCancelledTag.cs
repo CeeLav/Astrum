@@ -1,5 +1,4 @@
 using MemoryPack;
-using cfg;
 using System.Collections.Generic;
 
 namespace Astrum.LogicCore.ActionSystem
@@ -14,8 +13,9 @@ namespace Astrum.LogicCore.ActionSystem
         [MemoryPackAllowSerialize]
         public List<string> Tags { get; set; } = new();
         
-        /// <summary>生效范围（时间百分比）</summary>
-        public vector2 Range { get; set; } = new vector2();
+        /// <summary>生效范围帧数 [起始帧, 结束帧]</summary>
+        [MemoryPackAllowSerialize]
+        public List<int> RangeFrames { get; set; } = new List<int>();
         
         /// <summary>融合时间（帧）</summary>
         public int BlendOutFrames { get; set; } = 0;
@@ -34,10 +34,10 @@ namespace Astrum.LogicCore.ActionSystem
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public BeCancelledTag(List<string> tags, vector2 range, int blendOutFrames, int priority)
+        public BeCancelledTag(List<string> tags, List<int> rangeFrames, int blendOutFrames, int priority)
         {
             Tags = tags ?? new List<string>();
-            Range = range;
+            RangeFrames = rangeFrames ?? new List<int>();
             BlendOutFrames = blendOutFrames;
             Priority = priority;
         }
