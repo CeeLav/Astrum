@@ -145,6 +145,7 @@ namespace Astrum.LogicCore.Core
             Room.MainWorld.Cleanup();
             Room.MainWorld = LoadState(frame);
             var aInput = FrameBuffer.FrameInputs(frame);
+            //ASLogger.Instance.Warning($"aInput {aInput.Inputs[Room.MainPlayerId].MoveX}");
             Room.FrameTick(aInput);
             for(int i = AuthorityFrame +1; i <= PredictionFrame; ++i)
             {

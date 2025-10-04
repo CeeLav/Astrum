@@ -80,7 +80,7 @@ namespace Astrum.LogicCore.Capabilities
                 positionComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
                 
                 // 调试日志
-                ASLogger.Instance.Info($"MovementCapability: 移动执行 - 输入:({moveX}, {moveY}), 速度:{speed}, 增量:({deltaX}, {deltaY}), 新位置:({positionComponent.Position.x}, {positionComponent.Position.z})", "Logic.Movement");
+                ASLogger.Instance.Debug($"MovementCapability: 移动执行 - 输入:({moveX}, {moveY}), 速度:{speed}, 增量:({deltaX}, {deltaY}), 新位置:({positionComponent.Position.x}, {positionComponent.Position.z})", "Logic.Movement");
             }
             
         }
