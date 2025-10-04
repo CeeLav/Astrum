@@ -272,7 +272,8 @@ namespace Astrum.View.EntityViews
             {
                 typeof(ModelViewComponent), // 管理模型表现
                 typeof(HealthBarComponent), // 管理血条表现
-                typeof(TransViewComponent) // 管理位置
+                typeof(TransViewComponent), // 管理位置
+                typeof(AnimationViewComponent) // 管理动画播放
                 // 你可以根据需要添加更多组件类型，如血条、选中指示等
             };
         }

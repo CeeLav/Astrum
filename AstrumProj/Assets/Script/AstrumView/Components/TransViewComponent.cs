@@ -74,9 +74,7 @@ namespace Astrum.View.Components
             
             // 更新移动
             UpdateMovement(deltaTime);
-            
-            // 更新动画
-            UpdateAnimation();
+
         }
         
         protected override void OnDestroy()
@@ -142,21 +140,6 @@ namespace Astrum.View.Components
                 Quaternion newRotation = Quaternion.RotateTowards(currentRotation, _targetRotation, rotationSpeed * deltaTime);
                 _ownerEntityView.SetWorldRotation(newRotation);
             }
-        }
-        
-        /// <summary>
-        /// 更新动画
-        /// </summary>
-        private void UpdateAnimation()
-        {
-            if (_animator == null) return;
-            
-            // 更新移动状态动画
-            _animator.SetBool(_isMovingHash, _isMoving);
-            
-            // 更新移动速度动画
-            float currentSpeed = _currentVelocity.magnitude;
-            _animator.SetFloat(_moveSpeedHash, currentSpeed);
         }
         
         /// <summary>
