@@ -62,7 +62,10 @@ namespace Astrum.LogicCore.Managers
             
             // TODO: 根据entityId获取运行时数据，与表格数据合并
             // 例如：从实体的状态、buff等获取额外的动作修改
-            
+            if (actionInfo.AutoNextActionId <= 0)
+            {
+                actionInfo.AutoNextActionId = 1001;//默认是静止
+            }
             return actionInfo;
         }
         
