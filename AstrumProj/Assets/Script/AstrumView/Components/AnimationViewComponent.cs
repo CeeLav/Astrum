@@ -316,6 +316,13 @@ namespace Astrum.View.Components
                 ASLogger.Instance.Info($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentAction.Id} on entity {OwnerEntity.UniqueId}");
                 return;
             }
+            else
+            {
+                if (currentAction.KeepPlayingAnim)
+                {
+                    return;
+                }
+            }
             /*
             // 3. 检查动作帧数是否发生显著变化
             int frameDifference = Mathf.Abs(currentFrame - _lastActionFrame);

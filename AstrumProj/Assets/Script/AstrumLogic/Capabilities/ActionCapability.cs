@@ -121,7 +121,15 @@ namespace Astrum.LogicCore.Capabilities
             
             // 检查当前动作是否已结束
             var actionDuration = GetActionDuration(actionComponent.CurrentAction);
-            if (IsActionFinished(actionDuration))
+            
+            var shouldTerminate = 
+                (actionComponent.CurrentAction.AutoTerminate && !HasValidCommand(actionComponent.CurrentAction));
+            if (actionComponent.CurrentAction.AutoTerminate)
+            {
+                ASLogger.Instance.Info($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
+                                       $"HasValidCommand={HasValidCommand(actionComponent.CurrentAction)} on entity {OwnerEntity?.UniqueId}");
+            }
+            if (IsActionFinished(actionDuration) || shouldTerminate)
             {
                 // 添加默认下一个动作到预订单列表
                 var nextActionId = actionComponent.CurrentAction.AutoNextActionId;
