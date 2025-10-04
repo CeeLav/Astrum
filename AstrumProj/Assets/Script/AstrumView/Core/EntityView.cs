@@ -33,6 +33,11 @@ namespace Astrum.View.Core
         
         // 公共属�?
         public long EntityId => _entityId;
+        
+        /// <summary>
+        /// 所属的Stage引用
+        /// </summary>
+        public Stage Stage => _stage;
 
         public Entity OwnerEntity
         {
