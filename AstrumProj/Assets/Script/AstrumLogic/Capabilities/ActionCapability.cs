@@ -1,6 +1,7 @@
 using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
 using System.Collections.Generic;
 using System.Reflection;
@@ -13,8 +14,6 @@ namespace Astrum.LogicCore.Capabilities
     /// </summary>
     public class ActionCapability : Capability
     {
-        /// <summary>动作组件</summary>
-        private ActionComponent? _actionComponent;
         
         /// <summary>
         /// 初始化动作能力
@@ -23,9 +22,9 @@ namespace Astrum.LogicCore.Capabilities
         {
             base.Initialize();
             
-            // 获取或创建动作组件
-            _actionComponent = OwnerEntity?.GetComponent<ActionComponent>();
-            if (_actionComponent == null)
+            // 检查动作组件是否存在
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent == null)
             {
                 ASLogger.Instance.Error($"ActionCapability.Initialize: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
                 return;
@@ -41,15 +40,15 @@ namespace Astrum.LogicCore.Capabilities
         public override void Tick()
         {
             if (!CanExecute()) return;
+            // 1. 更新当前动作
+            UpdateCurrentAction();
             
-            // 1. 检查所有动作的取消条件
+            // 2. 检查所有动作的取消条件
             CheckActionCancellation();
             
-            // 2. 从候选列表选择动作
+            // 3. 从候选列表选择动作
             SelectActionFromCandidates();
             
-            // 3. 更新当前动作
-            UpdateCurrentAction();
         }
         
         /// <summary>
@@ -57,9 +56,10 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void LoadAvailableActions()
         {
-            if (_actionComponent == null) return;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent == null) return;
             
-            _actionComponent.AvailableActions.Clear();
+            actionComponent.AvailableActions.Clear();
             
             // 获取所有可用的动作ID（这里需要根据实际需求实现）
             var availableActionIds = GetAvailableActionIds();
@@ -69,7 +69,7 @@ namespace Astrum.LogicCore.Capabilities
                 var actionInfo = ActionConfigManager.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
                 if (actionInfo != null)
                 {
-                    _actionComponent.AvailableActions.Add(actionInfo);
+                    actionComponent.AvailableActions.Add(actionInfo);
                 }
             }
         }
@@ -79,9 +79,13 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private List<int> GetAvailableActionIds()
         {
+            var config = OwnerEntity.EntityConfig;
+            var list = new List<int>();
+            list.Add(config.IdleAction);
+            list.Add(config.WalkAction);
             // TODO: 根据实际需求实现
             // 例如：从配置、技能系统、装备等获取
-            return new List<int>();
+            return list;
         }
         
         /// <summary>
@@ -89,23 +93,25 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void CheckActionCancellation()
         {
-            if (_actionComponent?.CurrentAction == null) return;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent?.CurrentAction == null) return;
             
             // 清空预订单列表
-            _actionComponent.PreorderActions.Clear();
+            actionComponent.PreorderActions.Clear();
             
             // 检查当前动作是否已结束
             var actionDuration = GetActionDuration();
             if (IsActionFinished(actionDuration))
             {
                 // 添加默认下一个动作到预订单列表
-                var nextActionId = _actionComponent.CurrentAction.AutoNextActionId;
+                var nextActionId = actionComponent.CurrentAction.AutoNextActionId;
                 if (nextActionId > 0)
                 {
-                    var nextAction = GetActionInfo(nextActionId);
+                    // 从可用动作列表中查找下一个动作的数据
+                    var nextAction = actionComponent.AvailableActions.Find(a => a.Id == nextActionId);
                     if (nextAction != null)
                     {
-                        _actionComponent.PreorderActions.Add(new PreorderActionInfo
+                        actionComponent.PreorderActions.Add(new PreorderActionInfo
                         {
                             ActionId = nextActionId,
                             Priority = nextAction.Priority,
@@ -116,26 +122,23 @@ namespace Astrum.LogicCore.Capabilities
                     }
                 }
             }
-            else
+            // 检查其他动作的取消条件
+            var availableActions = GetAvailableActions();
+            
+            foreach (var action in availableActions)
             {
-                // 检查其他动作的取消条件
-                var availableActions = GetAvailableActions();
-                
-                foreach (var action in availableActions)
+                if (CanCancelToAction(action))
                 {
-                    if (CanCancelToAction(action))
+                    if (HasValidCommand(action))
                     {
-                        if (HasValidCommand(action))
+                        actionComponent.PreorderActions.Add(new PreorderActionInfo
                         {
-                            _actionComponent.PreorderActions.Add(new PreorderActionInfo
-                            {
-                                ActionId = action.Id,
-                                Priority = CalculatePriority(action),
-                                TransitionFrames = 3,
-                                FromFrame = 0,
-                                FreezingFrames = 0
-                            });
-                        }
+                            ActionId = action.Id,
+                            Priority = CalculatePriority(action),
+                            TransitionFrames = 3,
+                            FromFrame = 0,
+                            FreezingFrames = 0
+                        });
                     }
                 }
             }
@@ -146,13 +149,14 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void SelectActionFromCandidates()
         {
-            if (_actionComponent?.PreorderActions == null || _actionComponent.PreorderActions.Count == 0) return;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent?.PreorderActions == null || actionComponent.PreorderActions.Count == 0) return;
             
             // 按优先级排序
-            _actionComponent.PreorderActions.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+            actionComponent.PreorderActions.Sort((a, b) => b.Priority.CompareTo(a.Priority));
             
             // 选择优先级最高的动作
-            var selectedAction = _actionComponent.PreorderActions[0];
+            var selectedAction = actionComponent.PreorderActions[0];
             var actionInfo = ActionConfigManager.Instance?.GetAction(selectedAction.ActionId, OwnerEntity?.UniqueId ?? 0);
             
             if (actionInfo != null)
@@ -162,7 +166,7 @@ namespace Astrum.LogicCore.Capabilities
             }
             
             // 清空候选列表
-            _actionComponent.PreorderActions.Clear();
+            actionComponent.PreorderActions.Clear();
         }
         
         /// <summary>
@@ -170,10 +174,11 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void SwitchToAction(ActionInfo actionInfo, PreorderActionInfo preorderInfo)
         {
-            if (_actionComponent == null) return;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent == null) return;
             
-            _actionComponent.CurrentAction = actionInfo;
-            _actionComponent.CurrentFrame = preorderInfo.FromFrame;
+            actionComponent.CurrentAction = actionInfo;
+            actionComponent.CurrentFrame = preorderInfo.FromFrame;
         }
         
         /// <summary>
@@ -181,10 +186,11 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void UpdateCurrentAction()
         {
-            if (_actionComponent?.CurrentAction == null) return;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent?.CurrentAction == null) return;
             
             // 按帧更新动作进度
-            _actionComponent.CurrentFrame += 1;
+            actionComponent.CurrentFrame += 1;
         }
         
         /// <summary>
@@ -192,9 +198,10 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool IsActionFinished(int actionDuration)
         {
-            if (_actionComponent?.CurrentAction == null) return false;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent?.CurrentAction == null) return false;
             
-            return _actionComponent.CurrentFrame >= actionDuration;
+            return actionComponent.CurrentFrame >= actionDuration;
         }
         
         /// <summary>
@@ -211,7 +218,8 @@ namespace Astrum.LogicCore.Capabilities
         private List<ActionInfo> GetAvailableActions()
         {
             // 从ActionComponent获取所有可用的ActionInfo
-            return _actionComponent?.AvailableActions ?? new List<ActionInfo>();
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            return actionComponent?.AvailableActions ?? new List<ActionInfo>();
         }
         
         /// <summary>
@@ -229,12 +237,13 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool CanCancelToAction(ActionInfo targetAction)
         {
-            if (_actionComponent?.CurrentAction == null || targetAction == null) return false;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent?.CurrentAction == null || targetAction == null) return false;
             
             // 检查CancelTag是否匹配BeCancelledTag
             foreach (var cancelTag in targetAction.CancelTags)
             {
-                foreach (var beCancelledTag in _actionComponent.CurrentAction.BeCancelledTags)
+                foreach (var beCancelledTag in actionComponent.CurrentAction.BeCancelledTags)
                 {
                     if (beCancelledTag.Tags.Contains(cancelTag.Tag))
                     {
@@ -279,10 +288,11 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool IsInTimeRange(int startFrame, int endFrame)
         {
-            if (_actionComponent?.CurrentAction == null) return false;
+            var actionComponent = GetOwnerComponent<ActionComponent>();
+            if (actionComponent?.CurrentAction == null) return false;
             
             // 直接按帧数判断
-            return _actionComponent.CurrentFrame >= startFrame && _actionComponent.CurrentFrame <= endFrame;
+            return actionComponent.CurrentFrame >= startFrame && actionComponent.CurrentFrame <= endFrame;
         }
         
         /// <summary>
@@ -299,39 +309,22 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool CheckCommandMatch(string commandName)
         {
-            // TODO: 实现命令匹配逻辑
-            // 应该检查输入命令是否匹配命令名称
-            return false;
-        }
-        
-        /// <summary>
-        /// 执行动作
-        /// </summary>
-        public void ExecuteAction(int actionId)
-        {
-            var actionInfo = ActionConfigManager.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
-            if (actionInfo != null)
+            // 获取输入组件
+            var inputComponent = GetOwnerComponent<LSInputComponent>();
+            if (inputComponent?.CurrentInput == null) return false;
+            
+            var currentInput = inputComponent.CurrentInput;
+            ASLogger.Instance.Warning($"CheckCommandMatch: Command={commandName}, Input=[MoveX={currentInput.MoveX}, MoveY={currentInput.MoveY}, Attack={currentInput.Attack}, Skill1={currentInput.Skill1}, Skill2={currentInput.Skill2}]");
+            // 根据命令名称匹配输入
+            return commandName.ToLower() switch
             {
-                var preorderInfo = new PreorderActionInfo
-                {
-                    ActionId = actionId,
-                    Priority = actionInfo.Priority,
-                    TransitionFrames = 3,
-                    FromFrame = 0,
-                    FreezingFrames = 0
-                };
-                
-                SwitchToAction(actionInfo, preorderInfo);
-            }
+                "Move" => currentInput.MoveX != 0 || currentInput.MoveY != 0,
+                "attack" or "NormalAttack" => currentInput.Attack,
+                "skill1" => currentInput.Skill1,
+                "skill2" => currentInput.Skill2,
+                _ => false
+            };
         }
         
-        /// <summary>
-        /// 检查是否可以执行动作
-        /// </summary>
-        public bool CanExecuteAction(int actionId)
-        {
-            var actionInfo = ActionConfigManager.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
-            return actionInfo != null && CanCancelToAction(actionInfo);
-        }
     }
 }
