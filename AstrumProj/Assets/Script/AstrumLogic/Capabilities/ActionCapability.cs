@@ -30,9 +30,6 @@ namespace Astrum.LogicCore.Capabilities
                 OwnerEntity?.AddComponent(_actionComponent);
             }
             
-            // 初始化配置管理器
-            ActionConfigManager.Initialize();
-            
             // 预加载所有可用的ActionInfo
             LoadAvailableActions();
         }
