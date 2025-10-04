@@ -129,7 +129,9 @@ namespace Astrum.LogicCore.Capabilities
                 ASLogger.Instance.Info($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
                                        $"HasValidCommand={HasValidCommand(actionComponent.CurrentAction)} on entity {OwnerEntity?.UniqueId}");
             }
-            if (IsActionFinished(actionDuration) || shouldTerminate)
+
+            var shouldContinue = !IsActionFinished(actionDuration) || HasValidCommand(actionComponent.CurrentAction);
+            if (!shouldContinue || shouldTerminate)
             {
                 // 添加默认下一个动作到预订单列表
                 var nextActionId = actionComponent.CurrentAction.AutoNextActionId;
