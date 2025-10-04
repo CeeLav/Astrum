@@ -270,32 +270,90 @@ namespace Astrum.Client.Managers
             input.PlayerId = playerId;
             //input.Frame = frame;
             //input.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            // 移动输入
-            float moveX = 0f;
-            float moveY = 0f;
-            if (UnityEngine.Input.GetKey(KeyCode.W)) moveY += 1f;
-            if (UnityEngine.Input.GetKey(KeyCode.S)) moveY -= 1f;
-            if (UnityEngine.Input.GetKey(KeyCode.A)) moveX -= 1f;
-            if (UnityEngine.Input.GetKey(KeyCode.D)) moveX += 1f;
-            // 归一化到单位圆
-            float mag = Mathf.Sqrt(moveX * moveX + moveY * moveY);
-            if (mag > 1f)
-            {
-                moveX /= mag;
-                moveY /= mag;
-            }
+            
+            // 获取相机方向相关的移动输入
+            Vector2 cameraRelativeMove = GetCameraRelativeMoveInput();
+            
             // 转 Q31.32 定点
             long ToQ32(float v) => (long)(v * (double)(1L << 32));
-            input.MoveX = ToQ32(moveX);
-            input.MoveY = ToQ32(moveY);
+            input.MoveX = ToQ32(cameraRelativeMove.x);
+            input.MoveY = ToQ32(cameraRelativeMove.y);
+            
             // 攻击输入
             input.Attack = UnityEngine.Input.GetKey(KeyCode.Space) || UnityEngine.Input.GetMouseButton(0);
             // 技能1输入
             input.Skill1 = UnityEngine.Input.GetKey(KeyCode.Q);
             // 技能2输入
             input.Skill2 = UnityEngine.Input.GetKey(KeyCode.E);
-            ASLogger.Instance.Debug($"LSInput: MainPlayerID:{playerId} MoveX={moveX:F2}, MoveY={moveY:F2}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
+            ASLogger.Instance.Debug($"LSInput: MainPlayerID:{playerId} MoveX={cameraRelativeMove.x:F2}, MoveY={cameraRelativeMove.y:F2}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
             return input;
+        }
+        
+        /// <summary>
+        /// 获取考虑相机方向的移动输入
+        /// </summary>
+        /// <returns>相机相对坐标的移动向量</returns>
+        private Vector2 GetCameraRelativeMoveInput()
+        {
+            // 获取原始WASD输入
+            Vector2 rawInput = Vector2.zero;
+            if (UnityEngine.Input.GetKey(KeyCode.W)) rawInput.y += 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.S)) rawInput.y -= 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.A)) rawInput.x -= 1f;
+            if (UnityEngine.Input.GetKey(KeyCode.D)) rawInput.x += 1f;
+            
+            // 如果没有输入，直接返回
+            if (rawInput.magnitude < 0.1f)
+                return Vector2.zero;
+            
+            // 归一化输入
+            rawInput.Normalize();
+            
+            // 获取相机方向
+            Vector3 cameraForward = GetCameraForward();
+            Vector3 cameraRight = GetCameraRight();
+            
+            // 将输入转换为相机相对坐标
+            Vector3 worldMove = cameraForward * rawInput.y + cameraRight * rawInput.x;
+            
+            // 返回XZ平面的移动向量（忽略Y轴）
+            return new Vector2(worldMove.x, worldMove.z);
+        }
+        
+        /// <summary>
+        /// 获取相机前方向量（忽略Y轴）
+        /// </summary>
+        /// <returns>相机前方向量</returns>
+        private Vector3 GetCameraForward()
+        {
+            if (CameraManager.Instance?.MainCamera != null)
+            {
+                Vector3 forward = CameraManager.Instance.MainCamera.transform.forward;
+                // 忽略Y轴，只保留XZ平面的方向
+                forward.y = 0f;
+                return forward.normalized;
+            }
+            
+            // 如果没有相机，返回默认前方向量
+            return Vector3.forward;
+        }
+        
+        /// <summary>
+        /// 获取相机右方向量（忽略Y轴）
+        /// </summary>
+        /// <returns>相机右方向量</returns>
+        private Vector3 GetCameraRight()
+        {
+            if (CameraManager.Instance?.MainCamera != null)
+            {
+                Vector3 right = CameraManager.Instance.MainCamera.transform.right;
+                // 忽略Y轴，只保留XZ平面的方向
+                right.y = 0f;
+                return right.normalized;
+            }
+            
+            // 如果没有相机，返回默认右方向量
+            return Vector3.right;
         }
     }
     
