@@ -17,6 +17,7 @@ public partial class Tables
     public Entity.TbActionTable TbActionTable {get; }
     public Entity.TbEntityBaseTable TbEntityBaseTable {get; }
     public Entity.TbEntityModelTable TbEntityModelTable {get; }
+    public Role.TbRoleBaseTable TbRoleBaseTable {get; }
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
@@ -24,6 +25,7 @@ public partial class Tables
         TbActionTable = new Entity.TbActionTable(loader("entity_tbactiontable"));
         TbEntityBaseTable = new Entity.TbEntityBaseTable(loader("entity_tbentitybasetable"));
         TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
+        TbRoleBaseTable = new Role.TbRoleBaseTable(loader("role_tbrolebasetable"));
         ResolveRef();
     }
     
@@ -33,6 +35,7 @@ public partial class Tables
         TbActionTable.ResolveRef(this);
         TbEntityBaseTable.ResolveRef(this);
         TbEntityModelTable.ResolveRef(this);
+        TbRoleBaseTable.ResolveRef(this);
     }
 }
 
