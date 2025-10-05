@@ -42,26 +42,5 @@ namespace Astrum.LogicCore.Core
         {
             return _requiredCapabilities;
         }
-
-        /// <summary>
-        /// 设置Unit的初始位置
-        /// </summary>
-        /// <param name="position">初始位置（TSVector）</param>
-        public void SetInitialPosition(TSVector position)
-        {
-            var positionComponent = GetComponent<PositionComponent>();
-            if (positionComponent != null)
-            {
-                positionComponent.SetPosition(position.x, position.y, position.z);
-            }
-        }
-
-        /// <summary>
-        /// 设置Unit的初始位置（重载，FP 参数）
-        /// </summary>
-        public void SetInitialPosition(FP x, FP y, FP z)
-        {
-            SetInitialPosition(new TSVector(x, y, z));
-        }
     }
 } 
