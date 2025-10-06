@@ -19,6 +19,8 @@ public partial class Tables
     public Entity.TbEntityModelTable TbEntityModelTable {get; }
     public Role.TbRoleBaseTable TbRoleBaseTable {get; }
     public Role.TbRoleGrowthTable TbRoleGrowthTable {get; }
+    public Skill.TbSkillActionTable TbSkillActionTable {get; }
+    public Skill.TbSkillEffectTable TbSkillEffectTable {get; }
     public Skill.TbSkillTable TbSkillTable {get; }
     public Skill.TbSkillUpgradeTable TbSkillUpgradeTable {get; }
 
@@ -30,6 +32,8 @@ public partial class Tables
         TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
         TbRoleBaseTable = new Role.TbRoleBaseTable(loader("role_tbrolebasetable"));
         TbRoleGrowthTable = new Role.TbRoleGrowthTable(loader("role_tbrolegrowthtable"));
+        TbSkillActionTable = new Skill.TbSkillActionTable(loader("skill_tbskillactiontable"));
+        TbSkillEffectTable = new Skill.TbSkillEffectTable(loader("skill_tbskilleffecttable"));
         TbSkillTable = new Skill.TbSkillTable(loader("skill_tbskilltable"));
         TbSkillUpgradeTable = new Skill.TbSkillUpgradeTable(loader("skill_tbskillupgradetable"));
         ResolveRef();
@@ -43,6 +47,8 @@ public partial class Tables
         TbEntityModelTable.ResolveRef(this);
         TbRoleBaseTable.ResolveRef(this);
         TbRoleGrowthTable.ResolveRef(this);
+        TbSkillActionTable.ResolveRef(this);
+        TbSkillEffectTable.ResolveRef(this);
         TbSkillTable.ResolveRef(this);
         TbSkillUpgradeTable.ResolveRef(this);
     }
