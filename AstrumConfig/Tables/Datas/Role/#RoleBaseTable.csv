@@ -1,9 +1,9 @@
-##var,id,name,description,roleType,baseAttack,baseDefense,baseHealth,baseSpeed,attackGrowth,defenseGrowth,healthGrowth,speedGrowth,skill1Id,skill2Id,maxLevel,expPerLevel
-##type,int,string,string,int,float,float,float,float,float,float,float,float,int,int,int,int
-##group,c,s,e,,,,,,,,,,,,,
-##desc,Role ID,Role Name,Role Description,Role Type,Base Attack,Base Defense,Base Health,Base Speed,Attack Growth,Defense Growth,Health Growth,Speed Growth,Skill 1 ID,Skill 2 ID,Max Level,Exp Per Level
-,1001,Knight,Balanced melee character with good attack and defense,1,100,80,1000,5,10,8,100,0.1,2001,2002,100,1000
-,1002,Archer,Remote mobile character good at kiting,2,120,60,800,6,12,6,80,0.15,2003,2004,100,1000
-,1003,Mage,Control AOE character with area damage,3,150,40,700,4.5,15,4,70,0.05,2005,2006,100,1000
-,1004,Hammer,Melee burst character with strong block,4,130,120,1200,3.5,13,12,120,0.05,2007,2008,100,1000
-,1005,Assassin,High mobility combo character with burst damage,5,110,50,600,7,11,5,60,0.2,2009,2010,100,1000
+##var,id,name,description,roleType,baseLightAttack,baseHeavyAttack,baseDefense,baseHealth,baseSpeed,lightAttackGrowth,heavyAttackGrowth,defenseGrowth,healthGrowth,speedGrowth,lightAttackActionId,heavyAttackActionId,skill1Id,skill2Id,maxLevel,expPerLevel
+##type,int,string,string,int,float,float,float,float,float,float,float,float,float,float,int,int,int,int,int,int
+##group,c,s,e,,,,,,,,,,,,,,,,,,,
+##desc,Role ID,Role Name,Role Description,Role Type,Base Light Attack,Base Heavy Attack,Base Defense,Base Health,Base Speed,Light Attack Growth,Heavy Attack Growth,Defense Growth,Health Growth,Speed Growth,Light Attack Action ID,Heavy Attack Action ID,Skill 1 ID,Skill 2 ID,Max Level,Exp Per Level
+,1001,Knight,Balanced melee character with good attack and defense,1,80.0,150.0,80.0,1000.0,5.0,8.0,15.0,8.0,100.0,0.1,1001,1002,2001,2002,100,1000
+,1002,Archer,Remote mobile character good at kiting,2,60.0,120.0,60.0,800.0,6.0,6.0,12.0,6.0,80.0,0.15,1003,1004,2003,2004,100,1000
+,1003,Mage,Control AOE character with area damage,3,50.0,100.0,40.0,700.0,4.5,5.0,10.0,4.0,70.0,0.05,1005,1006,2005,2006,100,1000
+,1004,Hammer,Melee burst character with strong block,4,100.0,200.0,120.0,1200.0,3.5,10.0,20.0,12.0,120.0,0.05,1007,1008,2007,2008,100,1000
+,1005,Assassin,High mobility combo character with burst damage,5,70.0,130.0,50.0,600.0,7.0,7.0,13.0,5.0,60.0,0.2,1009,1010,2009,2010,100,1000
