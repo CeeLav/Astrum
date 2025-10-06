@@ -17,6 +17,7 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     public EntityBaseTable(ByteBuf _buf) 
     {
         EntityId = _buf.ReadInt();
+        ArchetypeName = _buf.ReadString();
         ModelName = _buf.ReadString();
         ModelPath = _buf.ReadString();
         IdleAction = _buf.ReadInt();
@@ -36,6 +37,10 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     /// 实体ID
     /// </summary>
     public readonly int EntityId;
+    /// <summary>
+    /// 原型名
+    /// </summary>
+    public readonly string ArchetypeName;
     /// <summary>
     /// 模型名字
     /// </summary>
@@ -80,6 +85,7 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     {
         return "{ "
         + "entityId:" + EntityId + ","
+        + "archetypeName:" + ArchetypeName + ","
         + "modelName:" + ModelName + ","
         + "modelPath:" + ModelPath + ","
         + "idleAction:" + IdleAction + ","

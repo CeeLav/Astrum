@@ -17,45 +17,19 @@ namespace Astrum.View.Core
         /// <summary>
         /// 根据实体类型创建EntityView
         /// </summary>
-        /// <param name="entityType">实体类型</param>
         /// <param name="entityId">实体ID</param>
         /// <returns>创建的EntityView</returns>
-        public EntityView CreateEntityView(string entityType, long entityId, Stage stage)
+        public EntityView CreateEntityView(long entityId, Stage stage)
         {
             if (enableLogging)
-                ASLogger.Instance.Info($"EntityViewFactory: 创建EntityView - 类型:{entityType}, ID:{entityId}");
+                ASLogger.Instance.Info($"EntityViewFactory: 创建EntityView - ID:{entityId}");
             
             EntityView entityView = null;
             
             try
             {
-                // 根据实体类型创建对应的EntityView
-                switch (entityType.ToLower())
-                {
-                    case "player":
-                    case "unit":
-                        entityView = new UnitView();
-                        break;
-                    /*
-                    case "enemy":
-                        entityView = new EnemyEntityView();
-                        break;
-                    case "building":
-                        entityView = new BuildingEntityView();
-                        break;
-                    case "projectile":
-                        entityView = new ProjectileEntityView();
-                        break;
-                    case "item":
-                        entityView = new ItemEntityView();
-                        break;
-                    case "environment":
-                        entityView = new EnvironmentEntityView();
-                        break;
-                    default:
-                        entityView = new DefaultEntityView();
-                        break;*/
-                }
+                // 创建默认的 EntityView（后续通过 Archetype 装配 ViewComponents）
+                entityView = new UnitView();
                 
                 // 初始化EntityView
                 if (entityView != null)
@@ -63,12 +37,12 @@ namespace Astrum.View.Core
                     entityView.Initialize(entityId, stage);
                     
                     if (enableLogging)
-                        ASLogger.Instance.Info($"EntityViewFactory: EntityView创建成功 - 类型:{entityType}, ID:{entityId}");
+                        ASLogger.Instance.Info($"EntityViewFactory: EntityView创建成功 - ID:{entityId}");
                 }
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"EntityViewFactory: 创建EntityView失败 - 类型:{entityType}, ID:{entityId}, 错误:{ex.Message}");
+                ASLogger.Instance.Error($"EntityViewFactory: 创建EntityView失败 - ID:{entityId}, 错误:{ex.Message}");
             }
             
             return entityView;

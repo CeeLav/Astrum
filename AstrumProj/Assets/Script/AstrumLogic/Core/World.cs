@@ -4,6 +4,8 @@ using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
 using MemoryPack;
+using Astrum.LogicCore.Archetypes;
+using Astrum.LogicCore.Managers;
 
 namespace Astrum.LogicCore.Core
 {
@@ -157,6 +159,8 @@ namespace Astrum.LogicCore.Core
             TotalTime = 0f;
             Updater = new LSUpdater();
             CurFrame = frame;
+
+            // 工厂与原型管理器初始化应由 GameApplication 负责
         }
 
         /// <summary>
@@ -212,6 +216,16 @@ namespace Astrum.LogicCore.Core
         {
             var eventData = new EntityActiveStateChangedEventData(entity, WorldId, RoomId, isActive);
             EventSystem.Instance.Publish(eventData);
+        }
+
+        /// <summary>
+        /// 按配置创建实体（支持 ArchetypeName 列）
+        /// </summary>
+        public Entity CreateEntityByConfig(int entityConfigId)
+        {
+            var entity = EntityFactory.Instance.CreateFromConfig(entityConfigId);
+            PublishEntityCreatedEvent(entity);
+            return entity;
         }
     }
 }

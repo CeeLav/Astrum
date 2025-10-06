@@ -4,6 +4,9 @@ using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.View.Managers;
+using Astrum.View.Archetypes;
+using Astrum.View.Components;
+using System.Linq;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
 
@@ -226,16 +229,12 @@ namespace Astrum.View.Core
             // 创建对应的EntityView
             if (eventData.EntityId <= 0) return;
             
-            // 通过逻辑层接口获取实体类型
-            // 这里可以通过GamePlayManager或其他方式获取实体信息
-            string entityType = GetEntityType(entityId);
-            
             // 使用EntityViewFactory创建EntityView
-            var entityView = EntityViewFactory.Instance.CreateEntityView(entityType, entityId, this);
+            var entityView = EntityViewFactory.Instance.CreateEntityView(entityId, this);
             
             if (entityView == null)
             {
-                ASLogger.Instance.Warning($"GameStage: 无法创建EntityView - ID:{entityId}, 类型:{entityType}");
+                ASLogger.Instance.Warning($"GameStage: 无法创建EntityView - ID:{entityId}");
             }
             
             if (entityView != null)
@@ -253,17 +252,7 @@ namespace Astrum.View.Core
                 ASLogger.Instance.Warning($"Stage: 无法创建实体视图 - {eventData.EntityName} (ID: {eventData.EntityId})");
             }
         }
-        /// <summary>
-        /// 获取实体类型
-        /// </summary>
-        /// <param name="entityId">实体ID</param>
-        /// <returns>实体类型</returns>
-        private string GetEntityType(long entityId)
-        {
-            // 这里可以通过GamePlayManager获取实体信息
-            // 暂时返回默认类型，实际使用时需要从逻辑层获取
-            return "unit";
-        }
+        
         /// <summary>
         /// 实体销毁事件处理
         /// </summary>
