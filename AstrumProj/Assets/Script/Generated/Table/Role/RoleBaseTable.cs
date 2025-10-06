@@ -18,14 +18,18 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     {
         Id = _buf.ReadInt();
         RoleType = _buf.ReadInt();
-        BaseAttack = _buf.ReadFloat();
+        BaseLightAttack = _buf.ReadFloat();
+        BaseHeavyAttack = _buf.ReadFloat();
         BaseDefense = _buf.ReadFloat();
         BaseHealth = _buf.ReadFloat();
         BaseSpeed = _buf.ReadFloat();
-        AttackGrowth = _buf.ReadFloat();
+        LightAttackGrowth = _buf.ReadFloat();
+        HeavyAttackGrowth = _buf.ReadFloat();
         DefenseGrowth = _buf.ReadFloat();
         HealthGrowth = _buf.ReadFloat();
         SpeedGrowth = _buf.ReadFloat();
+        LightAttackActionId = _buf.ReadInt();
+        HeavyAttackActionId = _buf.ReadInt();
         Skill1Id = _buf.ReadInt();
         Skill2Id = _buf.ReadInt();
         MaxLevel = _buf.ReadInt();
@@ -46,9 +50,13 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// </summary>
     public readonly int RoleType;
     /// <summary>
-    /// Base Attack
+    /// Base Light Attack
     /// </summary>
-    public readonly float BaseAttack;
+    public readonly float BaseLightAttack;
+    /// <summary>
+    /// Base Heavy Attack
+    /// </summary>
+    public readonly float BaseHeavyAttack;
     /// <summary>
     /// Base Defense
     /// </summary>
@@ -62,9 +70,13 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// </summary>
     public readonly float BaseSpeed;
     /// <summary>
-    /// Attack Growth
+    /// Light Attack Growth
     /// </summary>
-    public readonly float AttackGrowth;
+    public readonly float LightAttackGrowth;
+    /// <summary>
+    /// Heavy Attack Growth
+    /// </summary>
+    public readonly float HeavyAttackGrowth;
     /// <summary>
     /// Defense Growth
     /// </summary>
@@ -77,6 +89,14 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// Speed Growth
     /// </summary>
     public readonly float SpeedGrowth;
+    /// <summary>
+    /// Light Attack Action ID
+    /// </summary>
+    public readonly int LightAttackActionId;
+    /// <summary>
+    /// Heavy Attack Action ID
+    /// </summary>
+    public readonly int HeavyAttackActionId;
     /// <summary>
     /// Skill 1 ID
     /// </summary>
@@ -106,14 +126,18 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
         return "{ "
         + "id:" + Id + ","
         + "roleType:" + RoleType + ","
-        + "baseAttack:" + BaseAttack + ","
+        + "baseLightAttack:" + BaseLightAttack + ","
+        + "baseHeavyAttack:" + BaseHeavyAttack + ","
         + "baseDefense:" + BaseDefense + ","
         + "baseHealth:" + BaseHealth + ","
         + "baseSpeed:" + BaseSpeed + ","
-        + "attackGrowth:" + AttackGrowth + ","
+        + "lightAttackGrowth:" + LightAttackGrowth + ","
+        + "heavyAttackGrowth:" + HeavyAttackGrowth + ","
         + "defenseGrowth:" + DefenseGrowth + ","
         + "healthGrowth:" + HealthGrowth + ","
         + "speedGrowth:" + SpeedGrowth + ","
+        + "lightAttackActionId:" + LightAttackActionId + ","
+        + "heavyAttackActionId:" + HeavyAttackActionId + ","
         + "skill1Id:" + Skill1Id + ","
         + "skill2Id:" + Skill2Id + ","
         + "maxLevel:" + MaxLevel + ","

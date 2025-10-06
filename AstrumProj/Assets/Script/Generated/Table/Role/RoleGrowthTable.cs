@@ -18,7 +18,8 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
     {
         Id = _buf.ReadInt();
         RequiredExp = _buf.ReadInt();
-        AttackBonus = _buf.ReadFloat();
+        LightAttackBonus = _buf.ReadFloat();
+        HeavyAttackBonus = _buf.ReadFloat();
         DefenseBonus = _buf.ReadFloat();
         HealthBonus = _buf.ReadFloat();
         SpeedBonus = _buf.ReadFloat();
@@ -32,35 +33,39 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// 配置ID
+    /// Config ID
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// 升级所需经验值
+    /// Required Exp
     /// </summary>
     public readonly int RequiredExp;
     /// <summary>
-    /// 攻击力加成
+    /// Light Attack Bonus
     /// </summary>
-    public readonly float AttackBonus;
+    public readonly float LightAttackBonus;
     /// <summary>
-    /// 防御力加成
+    /// Heavy Attack Bonus
+    /// </summary>
+    public readonly float HeavyAttackBonus;
+    /// <summary>
+    /// Defense Bonus
     /// </summary>
     public readonly float DefenseBonus;
     /// <summary>
-    /// 生命值加成
+    /// Health Bonus
     /// </summary>
     public readonly float HealthBonus;
     /// <summary>
-    /// 移动速度加成
+    /// Speed Bonus
     /// </summary>
     public readonly float SpeedBonus;
     /// <summary>
-    /// 解锁的技能ID
+    /// Unlock Skill ID
     /// </summary>
     public readonly int UnlockSkillId;
     /// <summary>
-    /// 获得的技能点
+    /// Skill Point
     /// </summary>
     public readonly int SkillPoint;
    
@@ -76,7 +81,8 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
         return "{ "
         + "id:" + Id + ","
         + "requiredExp:" + RequiredExp + ","
-        + "attackBonus:" + AttackBonus + ","
+        + "lightAttackBonus:" + LightAttackBonus + ","
+        + "heavyAttackBonus:" + HeavyAttackBonus + ","
         + "defenseBonus:" + DefenseBonus + ","
         + "healthBonus:" + HealthBonus + ","
         + "speedBonus:" + SpeedBonus + ","
