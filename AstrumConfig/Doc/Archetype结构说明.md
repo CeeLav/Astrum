@@ -224,7 +224,7 @@ public static class EntityViewFactory
 ### 9.1 基本约定
 
 - 绑定：每个 ViewArchetype 通过 `[ViewArchetype("LogicArchetypeName")]` 绑定一个或多个逻辑原型名。
-- 增量：ViewArchetype 仅声明 `ViewType?` 与 `ViewComponents[]`。不引入任何策略位。
+- 增量：ViewArchetype 仅声明 `ViewType?` 与 `ViewComponents[]`。
 
 ### 9.2 合成算法（给定逻辑原型名 L）
 

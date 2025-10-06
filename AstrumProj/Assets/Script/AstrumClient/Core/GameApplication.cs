@@ -9,6 +9,8 @@ using Astrum.View.Managers;
 using Astrum.Network.Generated;
 using Astrum.Network;
 using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.Archetypes;
+using Astrum.View.Archetypes;
 
 namespace Astrum.Client.Core
 {
@@ -144,6 +146,10 @@ namespace Astrum.Client.Core
             
             // 初始化配置管理器（必须在其他管理器之前初始化）
             InitializeConfigManager();
+
+            // 初始化原型管理器（逻辑与视图）
+            ArchetypeManager.Instance.Initialize();
+            ViewArchetypeManager.Instance.Initialize();
             
             // 初始化网络系统基础组件（必须在网络管理器之前初始化）
             InitializeNetworkSystem();

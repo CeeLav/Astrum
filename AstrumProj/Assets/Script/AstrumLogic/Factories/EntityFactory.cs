@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.Archetypes;
 
 namespace Astrum.LogicCore.Factories
 {
@@ -58,6 +59,73 @@ namespace Astrum.LogicCore.Factories
             World.Entities[entity.UniqueId] = entity;
 
             return entity;
+        }
+
+        /// <summary>
+        /// 通过 Archetype 创建实体（最小外观，后续接入组件/能力并集装配）。
+        /// </summary>
+        /// <param name="archetypeName">原型名，例如 "Role"</param>
+        /// <param name="entityConfigId">实体配置ID（用于命名/资源）</param>
+        /// <returns>创建的实体</returns>
+        public Entity CreateByArchetype(string archetypeName, int entityConfigId)
+        {
+            if (!ArchetypeManager.Instance.TryGet(archetypeName, out var info))
+            {
+                throw new Exception($"Archetype '{archetypeName}' not found");
+            }
+
+            var entity = new Entity
+            {
+                Name = GetEntityNameFromConfig(entityConfigId),
+                EntityConfigId = entityConfigId,
+                CreationTime = DateTime.Now,
+                IsActive = true,
+                IsDestroyed = false
+            };
+
+            // 按 ArchetypeInfo 装配组件
+            var componentFactory = ComponentFactory.Instance;
+            foreach (var compType in info.Components ?? Array.Empty<Type>())
+            {
+                if (compType == null) continue;
+                var component = componentFactory.CreateComponentFromType(compType);
+                if (component != null)
+                {
+                    entity.AddComponent(component);
+                    component.OnAttachToEntity(entity);
+                }
+            }
+
+            // 按 ArchetypeInfo 装配能力
+            foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
+            {
+                if (capType == null) continue;
+                try
+                {
+                    var capability = Activator.CreateInstance(capType) as LogicCore.Capabilities.Capability;
+                    if (capability != null)
+                    {
+                        entity.AddCapability(capability);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"创建能力 {capType.Name} 失败: {ex.Message}");
+                }
+            }
+
+            World.Entities[entity.UniqueId] = entity;
+            return entity;
+        }
+
+        /// <summary>
+        /// 从配置表行创建（表需提供 ArchetypeName 列）- 推荐入口
+        /// </summary>
+        public Entity CreateFromConfig(int entityConfigId)
+        {
+            var tb = ConfigManager.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
+            var archetypeName = tb != null ? tb.ArchetypeName : string.Empty;
+            return !string.IsNullOrEmpty(archetypeName) ? CreateByArchetype(archetypeName, entityConfigId) : CreateEntity(entityConfigId);
         }
 
         /// <summary>
