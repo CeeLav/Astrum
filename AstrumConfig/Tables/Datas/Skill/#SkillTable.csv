@@ -1,15 +1,14 @@
-##var,id,name,description,skillType,actionId,cooldown,manaCost,damage,range,castTime,targetType,effectIds,soundId,iconId,isPassive,requiredLevel,maxLevel
-##type,int,string,string,int,int,float,int,float,float,float,int,string,int,int,bool,int,int
-##group,c,s,e,,,,,,,,,,,,,,,
-##desc,技能ID,技能名称,技能描述,技能类型,对应动作ID,冷却时间,法力消耗,基础伤害,技能范围,施法时间,目标类型,特效ID列表,音效ID,图标ID,是否被动技能,学习所需等级,技能最大等级
-,2001,冲刺斩,向前冲刺并造成伤害,3,1101,5.0,20,150.0,5.0,0.5,4,"1001,1002",3001,4001,false,1,10
-,2002,防御反击,格挡攻击后反击,1,1102,8.0,15,120.0,2.0,0.3,2,1003,3002,4002,false,3,10
-,2003,多重射击,连续射出多支箭,1,1103,4.0,25,100.0,8.0,0.8,3,"1004,1005",3003,4003,false,1,10
-,2004,箭雨覆盖,大范围箭雨攻击,1,1104,10.0,40,200.0,10.0,1.2,3,1006,3004,4004,false,5,10
-,2005,冰环冻结,冰冻周围敌人,2,1105,6.0,30,80.0,6.0,1.0,3,"1007,1008",3005,4005,false,1,10
-,2006,火球爆裂,发射爆炸火球,1,1106,7.0,35,180.0,7.0,0.9,3,1009,3006,4006,false,3,10
-,2007,蓄力重击,蓄力后造成高伤害,1,1107,12.0,20,300.0,3.0,1.5,2,1010,3007,4007,false,1,10
-,2008,地裂震荡,重击地面造成震荡,1,1108,15.0,45,250.0,8.0,2.0,3,"1011,1012",3008,4008,false,7,10
-,2009,影步突袭,瞬间移动到敌人身后,3,1109,6.0,25,140.0,6.0,0.1,2,1013,3009,4009,false,1,10
-,2010,致命乱舞,连续攻击周围敌人,1,1110,8.0,30,160.0,4.0,1.8,3,"1014,1015",3010,4010,false,5,10
-
+##var,id,name,description,skillType,skillActionIds,displayCooldown,displayCost,requiredLevel,maxLevel,iconId
+##type,int,string,string,int,int[],float,int,int,int,int
+##group,,,,,,,,,,
+##desc,Skill ID,Skill Name,Skill Description,Skill Type,Skill Action IDs,Display Cooldown,Display Cost,Required Level,Max Level,Icon ID
+,2001,Rush Slash,Forward dash and deal damage,3,"3001,3002",5.0,20,1,10,4001
+,2002,Defense Counter,Counter attack after blocking,1,3003,8.0,15,3,10,4002
+,2003,Multi Shot,Continuous arrow shots,1,"3004,3005",4.0,25,1,10,4003
+,2004,Arrow Rain,Large area arrow attack,1,3006,10.0,40,5,10,4004
+,2005,Ice Ring,Freeze surrounding enemies,2,3007,6.0,30,1,10,4005
+,2006,Fireball,Launch explosive fireball,1,3008,7.0,35,3,10,4006
+,2007,Charge Strike,Charged high damage attack,1,3009,12.0,20,1,10,4007
+,2008,Earth Shatter,Ground slam causing shockwave,1,3010,15.0,45,7,10,4008
+,2009,Shadow Step,Instant teleport behind enemy,3,3011,6.0,25,1,10,4009
+,2010,Deadly Dance,Continuous attacks around,1,3012,8.0,30,5,10,4010
