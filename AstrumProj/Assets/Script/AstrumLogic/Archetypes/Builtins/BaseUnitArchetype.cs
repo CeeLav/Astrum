@@ -1,0 +1,26 @@
+using System;
+using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Capabilities;
+
+namespace Astrum.LogicCore.Archetypes
+{
+    [Archetype("BaseUnit")]
+    public class BaseUnitArchetype : Archetype
+    {
+        private static readonly Type[] _comps =
+        {
+            typeof(PositionComponent),
+            typeof(MovementComponent),
+        };
+
+        private static readonly Type[] _caps =
+        {
+            typeof(MovementCapability)
+        };
+
+        public override Type[] Components => _comps;
+        public override Type[] Capabilities => _caps;
+    }
+}
+
+
