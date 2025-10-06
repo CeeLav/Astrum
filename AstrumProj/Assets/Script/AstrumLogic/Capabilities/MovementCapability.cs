@@ -98,43 +98,6 @@ namespace Astrum.LogicCore.Capabilities
                    OwnerHasComponent<MovementComponent>() && 
                    OwnerHasComponent<PositionComponent>();
         }
-
-        /// <summary>
-        /// 立即停止移动
-        /// </summary>
-        public void StopMovement()
-        {
-            var movementComponent = GetOwnerComponent<MovementComponent>();
-            movementComponent?.Stop();
-        }
-
-        /// <summary>
-        /// 设置移动速度
-        /// </summary>
-        /// <param name="speed">速度值</param>
-        public void SetSpeed(FP speed)
-        {
-            var movementComponent = GetOwnerComponent<MovementComponent>();
-            movementComponent?.SetSpeed(speed);
-        }
-
-        /// <summary>
-        /// 获取当前移动速度
-        /// </summary>
-        /// <returns>当前移动速度</returns>
-        public FP GetCurrentSpeed()
-        {
-            var movementComponent = GetOwnerComponent<MovementComponent>();
-            return movementComponent?.Speed ?? FP.Zero;
-        }
-
-        /// <summary>
-        /// 检查是否正在移动
-        /// </summary>
-        /// <returns>是否正在移动</returns>
-        public bool IsMoving()
-        {
-            return GetCurrentSpeed() > MovementThreshold;
-        }
+        
     }
 }
