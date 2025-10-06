@@ -17,20 +17,15 @@ public sealed partial class SkillTable : Luban.BeanBase
     public SkillTable(ByteBuf _buf) 
     {
         Id = _buf.ReadInt();
+        Name = _buf.ReadString();
+        Description = _buf.ReadString();
         SkillType = _buf.ReadInt();
-        ActionId = _buf.ReadInt();
-        Cooldown = _buf.ReadFloat();
-        ManaCost = _buf.ReadInt();
-        Damage = _buf.ReadFloat();
-        Range = _buf.ReadFloat();
-        CastTime = _buf.ReadFloat();
-        TargetType = _buf.ReadInt();
-        EffectIds = _buf.ReadString();
-        SoundId = _buf.ReadInt();
-        IconId = _buf.ReadInt();
-        IsPassive = _buf.ReadBool();
+        {int __n0 = _buf.ReadSize(); SkillActionIds = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); SkillActionIds[__index0] = __e0;}}
+        DisplayCooldown = _buf.ReadFloat();
+        DisplayCost = _buf.ReadInt();
         RequiredLevel = _buf.ReadInt();
         MaxLevel = _buf.ReadInt();
+        IconId = _buf.ReadInt();
     }
 
     public static SkillTable DeserializeSkillTable(ByteBuf _buf)
@@ -39,65 +34,45 @@ public sealed partial class SkillTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// 技能ID
+    /// Skill ID
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// 技能类型
+    /// Skill Name
+    /// </summary>
+    public readonly string Name;
+    /// <summary>
+    /// Skill Description
+    /// </summary>
+    public readonly string Description;
+    /// <summary>
+    /// Skill Type
     /// </summary>
     public readonly int SkillType;
     /// <summary>
-    /// 对应动作ID
+    /// Skill Action IDs
     /// </summary>
-    public readonly int ActionId;
+    public readonly int[] SkillActionIds;
     /// <summary>
-    /// 冷却时间
+    /// Display Cooldown
     /// </summary>
-    public readonly float Cooldown;
+    public readonly float DisplayCooldown;
     /// <summary>
-    /// 法力消耗
+    /// Display Cost
     /// </summary>
-    public readonly int ManaCost;
+    public readonly int DisplayCost;
     /// <summary>
-    /// 基础伤害
-    /// </summary>
-    public readonly float Damage;
-    /// <summary>
-    /// 技能范围
-    /// </summary>
-    public readonly float Range;
-    /// <summary>
-    /// 施法时间
-    /// </summary>
-    public readonly float CastTime;
-    /// <summary>
-    /// 目标类型
-    /// </summary>
-    public readonly int TargetType;
-    /// <summary>
-    /// 特效ID列表
-    /// </summary>
-    public readonly string EffectIds;
-    /// <summary>
-    /// 音效ID
-    /// </summary>
-    public readonly int SoundId;
-    /// <summary>
-    /// 图标ID
-    /// </summary>
-    public readonly int IconId;
-    /// <summary>
-    /// 是否被动技能
-    /// </summary>
-    public readonly bool IsPassive;
-    /// <summary>
-    /// 学习所需等级
+    /// Required Level
     /// </summary>
     public readonly int RequiredLevel;
     /// <summary>
-    /// 技能最大等级
+    /// Max Level
     /// </summary>
     public readonly int MaxLevel;
+    /// <summary>
+    /// Icon ID
+    /// </summary>
+    public readonly int IconId;
    
     public const int __ID__ = -901262342;
     public override int GetTypeId() => __ID__;
@@ -110,20 +85,15 @@ public sealed partial class SkillTable : Luban.BeanBase
     {
         return "{ "
         + "id:" + Id + ","
+        + "name:" + Name + ","
+        + "description:" + Description + ","
         + "skillType:" + SkillType + ","
-        + "actionId:" + ActionId + ","
-        + "cooldown:" + Cooldown + ","
-        + "manaCost:" + ManaCost + ","
-        + "damage:" + Damage + ","
-        + "range:" + Range + ","
-        + "castTime:" + CastTime + ","
-        + "targetType:" + TargetType + ","
-        + "effectIds:" + EffectIds + ","
-        + "soundId:" + SoundId + ","
-        + "iconId:" + IconId + ","
-        + "isPassive:" + IsPassive + ","
+        + "skillActionIds:" + Luban.StringUtil.CollectionToString(SkillActionIds) + ","
+        + "displayCooldown:" + DisplayCooldown + ","
+        + "displayCost:" + DisplayCost + ","
         + "requiredLevel:" + RequiredLevel + ","
         + "maxLevel:" + MaxLevel + ","
+        + "iconId:" + IconId + ","
         + "}";
     }
 }
