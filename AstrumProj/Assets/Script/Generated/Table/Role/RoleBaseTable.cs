@@ -38,59 +38,59 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// 角色ID
+    /// Role ID
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// 角色类型
+    /// Role Type
     /// </summary>
     public readonly int RoleType;
     /// <summary>
-    /// 基础攻击力
+    /// Base Attack
     /// </summary>
     public readonly float BaseAttack;
     /// <summary>
-    /// 基础防御力
+    /// Base Defense
     /// </summary>
     public readonly float BaseDefense;
     /// <summary>
-    /// 基础生命值
+    /// Base Health
     /// </summary>
     public readonly float BaseHealth;
     /// <summary>
-    /// 基础移动速度
+    /// Base Speed
     /// </summary>
     public readonly float BaseSpeed;
     /// <summary>
-    /// 攻击力成长系数
+    /// Attack Growth
     /// </summary>
     public readonly float AttackGrowth;
     /// <summary>
-    /// 防御力成长系数
+    /// Defense Growth
     /// </summary>
     public readonly float DefenseGrowth;
     /// <summary>
-    /// 生命值成长系数
+    /// Health Growth
     /// </summary>
     public readonly float HealthGrowth;
     /// <summary>
-    /// 移动速度成长系数
+    /// Speed Growth
     /// </summary>
     public readonly float SpeedGrowth;
     /// <summary>
-    /// 第一个技能ID
+    /// Skill 1 ID
     /// </summary>
     public readonly int Skill1Id;
     /// <summary>
-    /// 第二个技能ID
+    /// Skill 2 ID
     /// </summary>
     public readonly int Skill2Id;
     /// <summary>
-    /// 最大等级
+    /// Max Level
     /// </summary>
     public readonly int MaxLevel;
     /// <summary>
-    /// 每级所需经验值
+    /// Exp Per Level
     /// </summary>
     public readonly int ExpPerLevel;
    
