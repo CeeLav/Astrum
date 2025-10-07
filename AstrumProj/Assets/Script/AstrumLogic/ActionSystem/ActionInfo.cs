@@ -8,7 +8,9 @@ namespace Astrum.LogicCore.ActionSystem
     /// 由表格数据和运行时数据共同组装而成
     /// </summary>
     [MemoryPackable]
-    public partial class ActionInfo
+    [MemoryPackUnion(0, typeof(NormalActionInfo))]     // 普通动作
+    [MemoryPackUnion(1, typeof(Astrum.LogicCore.SkillSystem.SkillActionInfo))]  // 技能动作
+    public abstract partial class ActionInfo
     {
         /// <summary>动作唯一标识符</summary>
         public int Id { get; set; } = 0;

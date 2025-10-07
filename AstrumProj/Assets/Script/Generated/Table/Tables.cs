@@ -22,7 +22,6 @@ public partial class Tables
     public Skill.TbSkillActionTable TbSkillActionTable {get; }
     public Skill.TbSkillEffectTable TbSkillEffectTable {get; }
     public Skill.TbSkillTable TbSkillTable {get; }
-    public Skill.TbSkillUpgradeTable TbSkillUpgradeTable {get; }
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
@@ -35,7 +34,6 @@ public partial class Tables
         TbSkillActionTable = new Skill.TbSkillActionTable(loader("skill_tbskillactiontable"));
         TbSkillEffectTable = new Skill.TbSkillEffectTable(loader("skill_tbskilleffecttable"));
         TbSkillTable = new Skill.TbSkillTable(loader("skill_tbskilltable"));
-        TbSkillUpgradeTable = new Skill.TbSkillUpgradeTable(loader("skill_tbskillupgradetable"));
         ResolveRef();
     }
     
@@ -50,7 +48,6 @@ public partial class Tables
         TbSkillActionTable.ResolveRef(this);
         TbSkillEffectTable.ResolveRef(this);
         TbSkillTable.ResolveRef(this);
-        TbSkillUpgradeTable.ResolveRef(this);
     }
 }
 
