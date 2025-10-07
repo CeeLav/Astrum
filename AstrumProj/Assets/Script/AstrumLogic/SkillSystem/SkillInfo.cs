@@ -40,9 +40,9 @@ namespace Astrum.LogicCore.SkillSystem
         /// <summary>展示用法力消耗</summary>
         public int DisplayCost { get; set; } = 0;
         
-        /// <summary>技能动作列表（根据当前等级构造的运行时数据）</summary>
+        /// <summary>技能动作ID列表（由SkillTable提供，运行时按等级构造实例）</summary>
         [MemoryPackAllowSerialize]
-        public List<SkillActionInfo> SkillActions { get; set; } = new();
+        public List<int> SkillActionIds { get; set; } = new();
         
         /// <summary>
         /// 默认构造函数
@@ -57,7 +57,7 @@ namespace Astrum.LogicCore.SkillSystem
         [MemoryPackConstructor]
         public SkillInfo(int skillId, int currentLevel, string name, string description, 
             int skillType, int iconId, int requiredLevel, int maxLevel,
-            float displayCooldown, int displayCost, List<SkillActionInfo> skillActions)
+            float displayCooldown, int displayCost, List<int> skillActionIds)
         {
             SkillId = skillId;
             CurrentLevel = currentLevel;
@@ -69,7 +69,7 @@ namespace Astrum.LogicCore.SkillSystem
             MaxLevel = maxLevel;
             DisplayCooldown = displayCooldown;
             DisplayCost = displayCost;
-            SkillActions = skillActions ?? new List<SkillActionInfo>();
+            SkillActionIds = skillActionIds ?? new List<int>();
         }
     }
 }

@@ -65,7 +65,7 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            actionComponent.AvailableActions.Clear();
+            //actionComponent.AvailableActions.Clear();
             
             // 获取所有可用的动作ID（这里需要根据实际需求实现）
             var availableActionIds = GetAvailableActionIds();

@@ -1,4 +1,6 @@
 using Astrum.LogicCore.Managers;
+using Astrum.CommonBase;
+using Astrum.LogicCore.Core;
 using cfg.Role;
 using MemoryPack;
 
@@ -14,20 +16,42 @@ namespace Astrum.LogicCore.Components
         /// 角色配置ID（直接使用EntityId）
         /// </summary>
         [MemoryPackIgnore]
-        public int RoleId => (int)EntityId;
+        public int RoleId { get; set; }
         
         /// <summary>
-        /// 获取角色配置表数据
+        /// 获取角色配置表数据（健壮性增强：拿不到时记录错误）
         /// </summary>
         [MemoryPackIgnore]
-        public RoleBaseTable? RoleConfig => 
-            RoleId > 0 ? ConfigManager.Instance.Tables.TbRoleBaseTable.Get(RoleId) : null;
+        public RoleBaseTable? RoleConfig
+        {
+            get
+            {
+                if (RoleId <= 0)
+                {
+                    ASLogger.Instance.Error($"RoleInfoComponent.RoleConfig: Invalid RoleId for entity {EntityId}");
+                    return null;
+                }
+
+                var cfg = ConfigManager.Instance.Tables.TbRoleBaseTable.Get(RoleId);
+                if (cfg == null)
+                {
+                    ASLogger.Instance.Error($"RoleInfoComponent.RoleConfig: RoleBaseTable not found for RoleId={RoleId}");
+                }
+                return cfg;
+            }
+        }
         
         /// <summary>
         /// 默认构造函数
         /// </summary>
         [MemoryPackConstructor]
         public RoleInfoComponent() : base() { }
+
+        public override void OnAttachToEntity(Entity entity)
+        {
+            base.OnAttachToEntity(entity);
+            RoleId = (int)entity.EntityConfigId;
+        }
     }
 }
 
