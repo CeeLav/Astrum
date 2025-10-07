@@ -1,4 +1,5 @@
 using Astrum.LogicCore.ActionSystem;
+using Astrum.LogicCore.SkillSystem;
 using Astrum.CommonBase;
 using cfg;
 using cfg.Entity;
@@ -9,17 +10,17 @@ using Newtonsoft.Json;
 namespace Astrum.LogicCore.Managers
 {
     /// <summary>
-    /// 动作配置管理器 - 工厂类，用于组装ActionInfo（单例）
+    /// 动作配置管理器 - 工厂类，用于组装ActionInfo及其派生类（单例）
     /// </summary>
     public class ActionConfigManager : Singleton<ActionConfigManager>
     {
-        
         /// <summary>
         /// 获取动作信息（工厂方法）
+        /// 根据动作类型自动返回 ActionInfo 或 SkillActionInfo
         /// </summary>
         /// <param name="actionId">动作ID</param>
         /// <param name="entityId">实体ID</param>
-        /// <returns>组装后的ActionInfo</returns>
+        /// <returns>组装后的ActionInfo或其派生类</returns>
         public ActionInfo? GetAction(int actionId, long entityId)
         {
             // 通过ConfigManager获取表格数据
@@ -30,45 +31,110 @@ namespace Astrum.LogicCore.Managers
                 return null;
             }
             
-            var tableData = configManager.Tables.TbActionTable.Get(actionId);
-            if (tableData == null)
+            var actionTable = configManager.Tables.TbActionTable.Get(actionId);
+            if (actionTable == null)
             {
                 ASLogger.Instance.Error($"ActionConfigManager.GetAction: ActionTable not found, actionId={actionId}, entityId={entityId}");
                 return null;
             }
             
-            // 组装ActionInfo
-            var actionInfo = new ActionInfo
+            // 检查是否是技能动作（根据 ActionType 判断）
+            if (actionTable.ActionType.Equals("Skill", System.StringComparison.OrdinalIgnoreCase))
             {
-                Id = actionId,
-                Catalog = tableData.ActionType,
-                Priority = tableData.Priority,
-                AutoNextActionId = tableData.AutoNextActionId,
-                KeepPlayingAnim = tableData.KeepPlayingAnim,
-                AutoTerminate = tableData.AutoTerminate,
-                Duration = tableData.Duration
-            };
-            
-            // 解析CancelTags JSON字符串
-            actionInfo.CancelTags = ParseCancelTagsJson(tableData.CancelTags);
-            
-            // 解析BeCancelledTags JSON字符串
-            actionInfo.BeCancelledTags = ParseBeCancelledTagsJson(tableData.BeCancelledTags);
-            
-            // 解析TempBeCancelledTags JSON字符串
-            actionInfo.TempBeCancelledTags = ParseTempBeCancelledTagsJson(tableData.TempBeCancelledTags);
-            
-            // 解析Command字符串为ActionCommand
-            actionInfo.Commands = ParseCommandString(tableData.Command);
-            
-            // TODO: 根据entityId获取运行时数据，与表格数据合并
-            // 例如：从实体的状态、buff等获取额外的动作修改
-            if (actionInfo.AutoNextActionId <= 0)
-            {
-                actionInfo.AutoNextActionId = 1001;//默认是静止
+                return ConstructSkillActionInfo(actionId, entityId, actionTable);
             }
+            else
+            {
+                return ConstructActionInfo(actionId, entityId, actionTable);
+            }
+        }
+        
+        /// <summary>
+        /// 构造普通动作信息
+        /// </summary>
+        private ActionInfo ConstructActionInfo(int actionId, long entityId, cfg.Entity.ActionTable actionTable)
+        {
+            var actionInfo = new NormalActionInfo();
+            
+            // 填充基类字段（通用逻辑）
+            PopulateBaseActionFields(actionInfo, actionTable);
+            
             return actionInfo;
         }
+        
+        /// <summary>
+        /// 构造技能动作信息
+        /// </summary>
+        private SkillActionInfo? ConstructSkillActionInfo(int actionId, long entityId, cfg.Entity.ActionTable actionTable)
+        {
+            // 从 SkillActionTable 获取技能专属数据
+            var configManager = ConfigManager.Instance;
+            var skillActionTable = configManager.Tables.TbSkillActionTable.Get(actionId);
+            
+            if (skillActionTable == null)
+            {
+                ASLogger.Instance.Error($"ActionConfigManager.ConstructSkillActionInfo: SkillActionTable not found for actionId={actionId}");
+                return null;
+            }
+            
+            // 创建 SkillActionInfo 实例
+            var skillActionInfo = new SkillActionInfo();
+            
+            // 复用基类字段填充逻辑
+            PopulateBaseActionFields(skillActionInfo, actionTable);
+            
+            // 填充派生类特有字段
+            PopulateSkillActionFields(skillActionInfo, skillActionTable);
+            
+            ASLogger.Instance.Debug($"ActionConfigManager: Constructed SkillActionInfo for actionId={actionId}, skillId={skillActionInfo.SkillId}");
+            
+            return skillActionInfo;
+        }
+        
+        /// <summary>
+        /// 填充 ActionInfo 基类字段（通用逻辑，避免代码重复）
+        /// </summary>
+        /// <param name="actionInfo">要填充的 ActionInfo 实例（或其派生类实例）</param>
+        /// <param name="actionTable">ActionTable 配置数据</param>
+        public void PopulateBaseActionFields(ActionInfo actionInfo, cfg.Entity.ActionTable actionTable)
+        {
+            // 基础字段
+            actionInfo.Id = actionTable.ActionId;
+            actionInfo.Catalog = actionTable.ActionType;
+            actionInfo.Priority = actionTable.Priority;
+            actionInfo.AutoNextActionId = actionTable.AutoNextActionId;
+            actionInfo.KeepPlayingAnim = actionTable.KeepPlayingAnim;
+            actionInfo.AutoTerminate = actionTable.AutoTerminate;
+            actionInfo.Duration = actionTable.Duration;
+            
+            // 解析复杂字段（JSON 字符串）
+            actionInfo.CancelTags = ParseCancelTagsJson(actionTable.CancelTags);
+            actionInfo.BeCancelledTags = ParseBeCancelledTagsJson(actionTable.BeCancelledTags);
+            actionInfo.TempBeCancelledTags = ParseTempBeCancelledTagsJson(actionTable.TempBeCancelledTags);
+            actionInfo.Commands = ParseCommandString(actionTable.Command);
+            
+            // 默认值处理
+            if (actionInfo.AutoNextActionId <= 0)
+            {
+                actionInfo.AutoNextActionId = 1001; // 默认是静止
+            }
+        }
+        
+        /// <summary>
+        /// 填充 SkillActionInfo 派生类字段
+        /// </summary>
+        /// <param name="skillActionInfo">要填充的 SkillActionInfo 实例</param>
+        /// <param name="skillActionTable">SkillActionTable 配置数据</param>
+        public void PopulateSkillActionFields(SkillActionInfo skillActionInfo, cfg.Skill.SkillActionTable skillActionTable)
+        {
+            skillActionInfo.SkillId = skillActionTable.SkillId;
+            skillActionInfo.AttackBoxInfo = skillActionTable.AttackBoxInfo ?? string.Empty;
+            skillActionInfo.ActualCost = skillActionTable.ActualCost;
+            skillActionInfo.ActualCooldown = skillActionTable.ActualCooldown;
+            skillActionInfo.TriggerFrames = skillActionTable.TriggerFrames ?? string.Empty;
+        }
+        
+        // ========== 以下是 JSON 解析方法 ==========
         
         /// <summary>
         /// 解析CancelTags JSON字符串
@@ -170,6 +236,8 @@ namespace Astrum.LogicCore.Managers
             return new List<ActionCommand>();
         }
     }
+    
+    // ========== JSON解析辅助类（保持不变）==========
     
     /// <summary>
     /// CancelTag JSON数据结构
