@@ -223,7 +223,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public Entity CreateEntityByConfig(int entityConfigId)
         {
-            var entity = EntityFactory.Instance.CreateFromConfig(entityConfigId);
+            var entity = EntityFactory.Instance.CreateFromConfig(entityConfigId, this);
             PublishEntityCreatedEvent(entity);
             return entity;
         }
