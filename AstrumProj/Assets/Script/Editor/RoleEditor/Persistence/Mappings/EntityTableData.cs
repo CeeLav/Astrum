@@ -1,0 +1,79 @@
+using Astrum.Editor.RoleEditor.Persistence.Core;
+
+namespace Astrum.Editor.RoleEditor.Persistence.Mappings
+{
+    /// <summary>
+    /// EntityBaseTable数据映射
+    /// </summary>
+    public class EntityTableData
+    {
+        [TableField(0, "EntityId")]
+        public int EntityId { get; set; }
+        
+        [TableField(1, "ArchetypeName")]
+        public string ArchetypeName { get; set; }
+        
+        [TableField(2, "ModelName")]
+        public string ModelName { get; set; }
+        
+        [TableField(3, "ModelPath")]
+        public string ModelPath { get; set; }
+        
+        [TableField(4, "IdleAction")]
+        public int IdleAction { get; set; }
+        
+        [TableField(5, "WalkAction")]
+        public int WalkAction { get; set; }
+        
+        [TableField(6, "RunAction")]
+        public int RunAction { get; set; }
+        
+        [TableField(7, "JumpAction")]
+        public int JumpAction { get; set; }
+        
+        [TableField(8, "BirthAction")]
+        public int BirthAction { get; set; }
+        
+        [TableField(9, "DeathAction")]
+        public int DeathAction { get; set; }
+        
+        /// <summary>
+        /// 获取表配置
+        /// </summary>
+        public static LubanTableConfig GetTableConfig()
+        {
+            return new LubanTableConfig
+            {
+                FilePath = "AstrumConfig/Tables/Datas/Entity/#EntityBaseTable.csv",
+                HeaderLines = 4,
+                HasEmptyFirstColumn = true,
+                Header = new TableHeader
+                {
+                    VarNames = new System.Collections.Generic.List<string>
+                    {
+                        "entityId", "archetypeName", "modelName", "modelPath",
+                        "idleAction", "walkAction", "runAction", "jumpAction",
+                        "birthAction", "deathAction"
+                    },
+                    Types = new System.Collections.Generic.List<string>
+                    {
+                        "int", "string", "string", "string",
+                        "int", "int", "int", "int",
+                        "int", "int"
+                    },
+                    Groups = new System.Collections.Generic.List<string>
+                    {
+                        "", "", "", "", "", "", "", "", "", ""
+                    },
+                    Descriptions = new System.Collections.Generic.List<string>
+                    {
+                        "实体ID", "原型名", "模型名字", "模型路径",
+                        "静止动作", "走路动作", "跑步动作", "跳跃动作",
+                        "出生动作", "死亡动作"
+                    }
+                }
+            };
+        }
+    }
+}
+
