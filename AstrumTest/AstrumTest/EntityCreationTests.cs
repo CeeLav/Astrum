@@ -17,10 +17,8 @@ namespace AstrumTest
             ArchetypeManager.Instance.Initialize();
             var world = new World { WorldId = 1, Name = "TestWorld", RoomId = 1001 };
             world.Initialize(0);
-            EntityFactory.Instance.Initialize(world);
-
             // Act
-            var entity = EntityFactory.Instance.CreateByArchetype("BaseUnit", 0);
+            var entity = EntityFactory.Instance.CreateByArchetype("BaseUnit", 0, world);
 
             // Assert
             Assert.NotNull(entity);
@@ -40,8 +38,6 @@ namespace AstrumTest
             ArchetypeManager.Instance.Initialize();
             var world = new World { WorldId = 2, Name = "CfgWorld", RoomId = 2001 };
             world.Initialize(0);
-            EntityFactory.Instance.Initialize(world);
-
             // Act: 从表格数据 1001 创建
             var entity = world.CreateEntityByConfig(1001);
 
