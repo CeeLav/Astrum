@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System;
 using Astrum.CommonBase;
-using Astrum.View.EntityViews;
 using Astrum.View.Core;
 using Astrum.View.Managers;
 
@@ -237,7 +236,7 @@ namespace Astrum.View.Stages
             // TODO: 通过逻辑层接口获取实体类型
             string entityType = "unit"; // 默认类型，实际应该从逻辑层获取
             
-            UnitView unitView = new UnitView();
+            EntityView unitView = new EntityView();
             unitView.Initialize(entityId, this);
             return unitView;
         }

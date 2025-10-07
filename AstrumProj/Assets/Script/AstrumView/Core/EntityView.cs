@@ -13,7 +13,7 @@ namespace Astrum.View.Core
     /// 实体视图基类
     /// 对应LogicCore中的Entity，负责实体的视觉表现
     /// </summary>
-    public abstract class EntityView
+    public class EntityView
     {
         // 实体视图设置
         protected long _entityId = 0;
@@ -102,8 +102,7 @@ namespace Astrum.View.Core
             {
                 // 创建Unity GameObject
                 CreateGameObject();
-                // 根据EntityView类型自动构建和挂载视图组件
-                BuildViewComponents();
+                // 注意：ViewComponents的装配由EntityViewFactory负责，在Initialize之后调用
                 
                 // 子类特定的初始化
                 OnInitialize();
@@ -430,9 +429,20 @@ namespace Astrum.View.Core
         }
         
         // 抽象方法 - 子类必须实现
-        protected abstract void OnInitialize();
-        protected abstract void OnUpdateView(float deltaTime);
-        protected abstract void OnSyncWithEntity(long entityId); // 修改为只接收entityId
+        protected virtual void OnInitialize()
+        {
+            
+        }
+
+        protected virtual void OnUpdateView(float deltaTime)
+        {
+            
+        }
+
+        protected virtual void OnSyncWithEntity(long entityId)
+        {
+            
+        }
         
         /// <summary>
         /// 获取EntityView需要的视图组件类型列表
@@ -444,15 +454,19 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 根据EntityView类型自动构建和挂载视图组件
+        /// 根据传入的类型列表构建和挂载视图组件（由EntityViewFactory调用）
         /// </summary>
-        protected virtual void BuildViewComponents()
+        /// <param name="componentTypes">要构建的ViewComponent类型列表</param>
+        public virtual void BuildViewComponents(Type[] componentTypes)
         {
-            var componentTypes = GetRequiredViewComponentTypes();
+            if (componentTypes == null || componentTypes.Length == 0)
+            {
+                return;
+            }
             
             foreach (var componentType in componentTypes)
             {
-                if (componentType.IsSubclassOf(typeof(ViewComponent)))
+                if (componentType != null && componentType.IsSubclassOf(typeof(ViewComponent)))
                 {
                     try
                     {
@@ -468,6 +482,15 @@ namespace Astrum.View.Core
                     }
                 }
             }
+        }
+        
+        /// <summary>
+        /// 根据EntityView类型自动构建和挂载视图组件（子类可重写以提供默认组件）
+        /// </summary>
+        protected virtual void BuildViewComponents()
+        {
+            var componentTypes = GetRequiredViewComponentTypes();
+            BuildViewComponents(componentTypes);
         }
     }
 }
