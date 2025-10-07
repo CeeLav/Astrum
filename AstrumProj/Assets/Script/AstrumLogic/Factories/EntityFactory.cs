@@ -73,7 +73,8 @@ namespace Astrum.LogicCore.Factories
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"创建能力 {capType.Name} 失败: {ex.Message}");
+                    ASLogger.Instance.Error($"创建能力 {capType.Name} 失败: {ex.Message}");
+                    ASLogger.Instance.LogException(ex);
                 }
             }
 
