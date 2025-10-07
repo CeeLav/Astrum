@@ -6,8 +6,7 @@ using System.Reflection;
 namespace Astrum.LogicCore.Archetypes
 {
     /// <summary>
-    /// Archetype 管理器（单例）。
-    /// 说明：当前提供最小可用外观，便于后续接入真实 Archetype 扫描/合并逻辑。
+    /// Archetype 管理器（单例）- 负责扫描、注册和合并所有 Archetype。
     /// </summary>
     public sealed class ArchetypeManager
     {
@@ -21,7 +20,7 @@ namespace Astrum.LogicCore.Archetypes
         }
 
         /// <summary>
-        /// 最小初始化（后续可扩展为反射扫描与递归合并）。
+        /// 初始化：扫描所有程序集，收集并合并 Archetype。
         /// </summary>
         public void Initialize()
         {
@@ -48,7 +47,6 @@ namespace Astrum.LogicCore.Archetypes
                     _nameToInfo[attr.Name] = new ArchetypeInfo
                     {
                         Name = attr.Name,
-                        Merge = attr.Merge ?? Array.Empty<string>(),
                         RawMerge = attr.Merge ?? Array.Empty<string>(),
                         Components = instance.Components ?? Array.Empty<Type>(),
                         Capabilities = instance.Capabilities ?? Array.Empty<Type>()
@@ -72,7 +70,7 @@ namespace Astrum.LogicCore.Archetypes
             var comps = new HashSet<Type>(data.Components ?? Array.Empty<Type>());
             var caps = new HashSet<Type>(data.Capabilities ?? Array.Empty<Type>());
 
-            foreach (var parentName in data.Merge ?? Array.Empty<string>())
+            foreach (var parentName in data.RawMerge ?? Array.Empty<string>())
             {
                 if (!_nameToInfo.TryGetValue(parentName, out var parent))
                     throw new Exception($"Missing merged archetype '{parentName}' in '{data.Name}'");
@@ -131,15 +129,14 @@ namespace Astrum.LogicCore.Archetypes
     }
 
     /// <summary>
-    /// 占位信息结构，后续可扩展为组件/能力并集等。
+    /// Archetype 信息结构，包含名称、合并关系、组件和能力列表。
     /// </summary>
     public struct ArchetypeInfo
     {
         public string Name;
-        public string[] Merge;
-        public string[] RawMerge;
-        public Type[] Components;
-        public Type[] Capabilities;
+        public string[] RawMerge;  // 直接父 Archetype 名称列表
+        public Type[] Components;   // 合并后的组件类型列表
+        public Type[] Capabilities; // 合并后的能力类型列表
     }
 }
 

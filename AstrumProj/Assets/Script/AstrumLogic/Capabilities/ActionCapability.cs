@@ -126,7 +126,7 @@ namespace Astrum.LogicCore.Capabilities
                 (actionComponent.CurrentAction.AutoTerminate && !HasValidCommand(actionComponent.CurrentAction));
             if (actionComponent.CurrentAction.AutoTerminate)
             {
-                ASLogger.Instance.Info($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
+                ASLogger.Instance.Debug($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
                                        $"HasValidCommand={HasValidCommand(actionComponent.CurrentAction)} on entity {OwnerEntity?.UniqueId}");
             }
 

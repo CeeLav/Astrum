@@ -217,35 +217,18 @@ namespace Astrum.View.Core
         /// <param name="eventData">事件数据</param>
         private void OnEntityCreated(EntityCreatedEventData eventData)
         {
-            // 检查是否属于当前Stage的Room
-            if (eventData.RoomId != _roomId)
-            {
-                return;
-            }
+            if (eventData.RoomId != _roomId || eventData.EntityId <= 0) return;
             
             ASLogger.Instance.Info($"Stage: 收到实体创建事件 - {eventData.EntityName} (ID: {eventData.EntityId})");
             
-            var entityId = eventData.EntityId;
-            // 创建对应的EntityView
-            if (eventData.EntityId <= 0) return;
-            
-            // 使用EntityViewFactory创建EntityView
-            var entityView = EntityViewFactory.Instance.CreateEntityView(entityId, this);
-            
-            if (entityView == null)
-            {
-                ASLogger.Instance.Warning($"GameStage: 无法创建EntityView - ID:{entityId}");
-            }
+            var entityView = EntityViewFactory.Instance.CreateEntityView(eventData.EntityId, this);
             
             if (entityView != null)
             {
-                // 添加到实体视图字典
                 _entityViews[eventData.EntityId] = entityView;
                 entityView.Transform.SetParent(StageRoot.transform);
-                // 触发事件
                 OnEntityViewAdded?.Invoke(entityView);
-                
-                ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {eventData.EntityName} (ID: {eventData.EntityId})");
+                ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {eventData.EntityName}");
             }
             else
             {
@@ -259,27 +242,14 @@ namespace Astrum.View.Core
         /// <param name="eventData">事件数据</param>
         private void OnEntityDestroyed(EntityDestroyedEventData eventData)
         {
-            // 检查是否属于当前Stage的Room
-            if (eventData.RoomId != _roomId)
-            {
-                return;
-            }
+            if (eventData.RoomId != _roomId) return;
             
-            ASLogger.Instance.Info($"Stage: 收到实体销毁事件 - {eventData.EntityName} (ID: {eventData.EntityId})");
-            
-            // 移除对应的EntityView
             if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
             {
-                // 销毁实体视图
                 entityView.Destroy();
-                
-                // 从字典中移除
                 _entityViews.Remove(eventData.EntityId);
-                
-                // 触发事件
                 OnEntityViewRemoved?.Invoke(eventData.EntityId);
-                
-                ASLogger.Instance.Info($"Stage: 销毁实体视图成功 - {eventData.EntityName} (ID: {eventData.EntityId})");
+                ASLogger.Instance.Info($"Stage: 销毁实体视图 - {eventData.EntityName}");
             }
         }
         
@@ -289,36 +259,11 @@ namespace Astrum.View.Core
         /// <param name="eventData">事件数据</param>
         private void OnEntityUpdated(EntityUpdatedEventData eventData)
         {
-            // 检查是否属于当前Stage的Room
-            if (eventData.RoomId != _roomId)
-            {
-                return;
-            }
+            if (eventData.RoomId != _roomId) return;
             
-            // 获取对应的EntityView并同步数据
             if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
             {
                 entityView.SyncWithEntity(eventData.EntityId);
-                
-                // 可以根据更新类型进行特殊处理
-                switch (eventData.UpdateType.ToLower())
-                {
-                    case "position":
-                        // 处理位置更新
-                        break;
-                    case "rotation":
-                        // 处理旋转更新
-                        break;
-                    case "scale":
-                        // 处理缩放更新
-                        break;
-                    case "health":
-                        // 处理血量更新
-                        break;
-                    default:
-                        // 处理其他更新
-                        break;
-                }
             }
         }
         
@@ -328,11 +273,7 @@ namespace Astrum.View.Core
         /// <param name="eventData">事件数据</param>
         private void OnEntityActiveStateChanged(EntityActiveStateChangedEventData eventData)
         {
-            // 检查是否属于当前Stage的Room
-            if (eventData.RoomId != _roomId)
-            {
-                return;
-            }
+            if (eventData.RoomId != _roomId) return;
             
             // 获取对应的EntityView并设置激活状态
             if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))

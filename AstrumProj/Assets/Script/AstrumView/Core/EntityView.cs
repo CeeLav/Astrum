@@ -18,8 +18,7 @@ namespace Astrum.View.Core
         // 实体视图设置
         protected long _entityId = 0;
         protected Entity _ownerEntity = null;
-        protected Stage _stage = null; // Stage引用，用于管理实体所在的场景或阶段
-        protected string _entityType = "";
+        protected Stage _stage = null;
         protected bool _isVisible = true;
         protected bool _isActive = true;
         
@@ -34,31 +33,21 @@ namespace Astrum.View.Core
         // 公共属�?
         public long EntityId => _entityId;
         
-        /// <summary>
-        /// 所属的Stage引用
-        /// </summary>
         public Stage Stage => _stage;
-
         public Entity OwnerEntity
         {
             get
             {
                 if (_ownerEntity == null || _ownerEntity.IsDestroyed || _ownerEntity.UniqueId != _entityId)
                 {
-                    // 检查必要的引用是否存在
-                    if (_stage?.Room?.MainWorld == null)
+                    if (_stage?.Room?.MainWorld != null)
                     {
-                        ASLogger.Instance.Warning($"EntityView: 无法获取实体，Stage或Room或MainWorld为null，EntityId: {_entityId}");
-                        return null;
+                        _ownerEntity = _stage.Room.MainWorld.GetEntity(EntityId);
                     }
-                    
-                    _ownerEntity = _stage.Room.MainWorld.GetEntity(EntityId);
                 }
-
                 return _ownerEntity;
             }
         }
-        public string EntityType => _entityType;
         public bool IsVisible => _isVisible;
         public bool IsActive => _isActive;
         public GameObject GameObject => _gameObject;
@@ -72,13 +61,8 @@ namespace Astrum.View.Core
         public event Action<EntityView, bool> OnVisibilityChanged;
         public event Action<EntityView, bool> OnActiveStateChanged;
         
-        /// <summary>
-        /// 构造函�?
-        /// </summary>
-        /// <param name="entityType">实体类型</param>
-        public EntityView(string entityType = "")
+        public EntityView()
         {
-            _entityType = entityType;
         }
         
         /// <summary>
@@ -169,46 +153,13 @@ namespace Astrum.View.Core
             OnSyncWithEntity(entityId);
         }
         
-        /// <summary>
-        /// 从逻辑层同步Transform数据
-        /// </summary>
-        /// <param name="entityId">实体ID</param>
         protected virtual void SyncTransformFromLogic(long entityId)
         {
-            // TODO: 这里需要通过逻辑层的接口获取Transform Component数据
-            // 示例：假设有一个LogicCore的接口来获取Transform数据
-            /*
-            var transformComponent = LogicCore.EntityManager.GetComponent<TransformComponent>(entityId);
-            if (transformComponent != null && _transform != null)
-            {
-                _transform.position = transformComponent.Position;
-                _transform.rotation = transformComponent.Rotation;
-                _transform.localScale = transformComponent.Scale;
-            }
-            */
-            
             ASLogger.Instance.Debug($"EntityView: 同步Transform数据，ID: {entityId}");
         }
         
-        /// <summary>
-        /// 从逻辑层同步Component数据
-        /// </summary>
-        /// <param name="entityId">实体ID</param>
         protected virtual void SyncComponentsFromLogic(long entityId)
         {
-            // TODO: 这里需要通过逻辑层的接口获取各种Component数据
-            // 示例：遍历所有需要同步的Component类型
-            /*
-            foreach (var viewComponent in _viewComponents)
-            {
-                var logicComponent = LogicCore.EntityManager.GetComponent(entityId, viewComponent.LogicComponentType);
-                if (logicComponent != null)
-                {
-                    viewComponent.SyncWithLogicComponent(logicComponent);
-                }
-            }
-            */
-            
             ASLogger.Instance.Debug($"EntityView: 同步Component数据，ID: {entityId}");
         }
         
@@ -424,7 +375,7 @@ namespace Astrum.View.Core
         /// </summary>
         protected virtual void CreateGameObject()
         {
-            _gameObject = new GameObject($"EntityView_{_entityId}_{_entityType}");
+            _gameObject = new GameObject($"EntityView_{_entityId}");
             _transform = _gameObject.transform;
         }
         
