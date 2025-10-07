@@ -23,33 +23,6 @@ namespace Astrum.LogicCore.Factories
             // 默认构造函数
         }
 
-
-        /// <summary>
-        /// 创建基础实体
-        /// </summary>
-        /// <param name="entityConfigId">实体配置ID</param>
-        /// <param name="world">所属世界</param>
-        /// <returns>创建的实体</returns>
-        public Entity CreateEntity(int entityConfigId, World world)
-        {
-            var entity = new Entity
-            {
-                Name = GetEntityNameFromConfig(entityConfigId),
-                EntityConfigId = entityConfigId,
-                CreationTime = DateTime.Now,
-                IsActive = true,
-                IsDestroyed = false
-            };
-
-            // 根据实体类型自动构建和挂载组件
-            BuildComponentsForEntity(entity);
-
-            // 将实体添加到世界中
-            world.Entities[entity.UniqueId] = entity;
-
-            return entity;
-        }
-
         /// <summary>
         /// 通过 Archetype 创建实体（最小外观，后续接入组件/能力并集装配）。
         /// </summary>
@@ -107,6 +80,57 @@ namespace Astrum.LogicCore.Factories
             world.Entities[entity.UniqueId] = entity;
             return entity;
         }
+        
+        public T CreateByArchetype<T>(string archetypeName, int entityConfigId, World world)  where T : Entity, new()
+        {
+            if (!ArchetypeManager.Instance.TryGet(archetypeName, out var info))
+            {
+                throw new Exception($"Archetype '{archetypeName}' not found");
+            }
+
+            var entity = new T
+            {
+                Name = GetEntityNameFromConfig(entityConfigId),
+                EntityConfigId = entityConfigId,
+                CreationTime = DateTime.Now,
+                IsActive = true,
+                IsDestroyed = false
+            };
+
+            // 按 ArchetypeInfo 装配组件
+            var componentFactory = ComponentFactory.Instance;
+            foreach (var compType in info.Components ?? Array.Empty<Type>())
+            {
+                if (compType == null) continue;
+                var component = componentFactory.CreateComponentFromType(compType);
+                if (component != null)
+                {
+                    entity.AddComponent(component);
+                    component.OnAttachToEntity(entity);
+                }
+            }
+
+            // 按 ArchetypeInfo 装配能力
+            foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
+            {
+                if (capType == null) continue;
+                try
+                {
+                    var capability = Activator.CreateInstance(capType) as LogicCore.Capabilities.Capability;
+                    if (capability != null)
+                    {
+                        entity.AddCapability(capability);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"创建能力 {capType.Name} 失败: {ex.Message}");
+                }
+            }
+
+            world.Entities[entity.UniqueId] = entity;
+            return entity;
+        }
 
         /// <summary>
         /// 从配置表行创建（表需提供 ArchetypeName 列）- 推荐入口
@@ -114,11 +138,13 @@ namespace Astrum.LogicCore.Factories
         /// <param name="entityConfigId">实体配置ID</param>
         /// <param name="world">所属世界</param>
         /// <returns>创建的实体</returns>
-        public Entity CreateFromConfig(int entityConfigId, World world)
+        public Entity CreateEntity(int entityConfigId, World world)
         {
             var tb = ConfigManager.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
             var archetypeName = tb != null ? tb.ArchetypeName : string.Empty;
-            return !string.IsNullOrEmpty(archetypeName) ? CreateByArchetype(archetypeName, entityConfigId, world) : CreateEntity(entityConfigId, world);
+            return !string.IsNullOrEmpty(archetypeName)
+                ? CreateByArchetype(archetypeName, entityConfigId, world)
+                : null;
         }
 
         /// <summary>
@@ -130,22 +156,11 @@ namespace Astrum.LogicCore.Factories
         /// <returns>创建的实体</returns>
         public T CreateEntity<T>(int entityConfigId, World world) where T : Entity, new()
         {
-            var entity = new T
-            {
-                Name = GetEntityNameFromConfig(entityConfigId),
-                EntityConfigId = entityConfigId,
-                CreationTime = DateTime.Now,
-                IsActive = true,
-                IsDestroyed = false
-            };
-
-            // 根据实体类型自动构建和挂载组件
-            BuildComponentsForEntity(entity);
-
-            // 将实体添加到世界中
-            world.Entities[entity.UniqueId] = entity;
-
-            return entity;
+            var tb = ConfigManager.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
+            var archetypeName = tb != null ? tb.ArchetypeName : string.Empty;
+            return !string.IsNullOrEmpty(archetypeName)
+                ? CreateByArchetype<T>(archetypeName, entityConfigId, world)
+                : null;
         }
 
         /// <summary>
@@ -192,35 +207,6 @@ namespace Astrum.LogicCore.Factories
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// 创建带有指定组件的实体
-        /// </summary>
-        /// <param name="entityConfigId">实体配置ID</param>
-        /// <param name="world">所属世界</param>
-        /// <param name="componentTypes">组件类型列表</param>
-        /// <returns>创建的实体</returns>
-        public Entity CreateEntityWithComponents(int entityConfigId, World world, params Type[] componentTypes)
-        {
-            var entity = CreateEntity(entityConfigId, world);
-
-            var componentFactory = ComponentFactory.Instance;
-
-            foreach (var componentType in componentTypes)
-            {
-                if (componentType.IsSubclassOf(typeof(LogicCore.Components.BaseComponent)))
-                {
-                    var component = componentFactory.CreateComponentFromType(componentType);
-                    if (component != null)
-                    {
-                        component.EntityId = entity.UniqueId;
-                        entity.Components.Add(component);
-                    }
-                }
-            }
-
-            return entity;
         }
 
         /// <summary>
