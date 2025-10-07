@@ -18,22 +18,18 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     {
         Id = _buf.ReadInt();
         RoleType = _buf.ReadInt();
-        BaseLightAttack = _buf.ReadFloat();
-        BaseHeavyAttack = _buf.ReadFloat();
+        BaseAttack = _buf.ReadFloat();
         BaseDefense = _buf.ReadFloat();
         BaseHealth = _buf.ReadFloat();
         BaseSpeed = _buf.ReadFloat();
-        LightAttackGrowth = _buf.ReadFloat();
-        HeavyAttackGrowth = _buf.ReadFloat();
+        AttackGrowth = _buf.ReadFloat();
         DefenseGrowth = _buf.ReadFloat();
         HealthGrowth = _buf.ReadFloat();
         SpeedGrowth = _buf.ReadFloat();
-        LightAttackActionId = _buf.ReadInt();
-        HeavyAttackActionId = _buf.ReadInt();
+        LightAttackSkillId = _buf.ReadInt();
+        HeavyAttackSkillId = _buf.ReadInt();
         Skill1Id = _buf.ReadInt();
         Skill2Id = _buf.ReadInt();
-        MaxLevel = _buf.ReadInt();
-        ExpPerLevel = _buf.ReadInt();
     }
 
     public static RoleBaseTable DeserializeRoleBaseTable(ByteBuf _buf)
@@ -50,13 +46,9 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// </summary>
     public readonly int RoleType;
     /// <summary>
-    /// 基础轻击攻击力
+    /// 基础攻击力
     /// </summary>
-    public readonly float BaseLightAttack;
-    /// <summary>
-    /// 基础重击攻击力
-    /// </summary>
-    public readonly float BaseHeavyAttack;
+    public readonly float BaseAttack;
     /// <summary>
     /// 基础防御力
     /// </summary>
@@ -70,13 +62,9 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// </summary>
     public readonly float BaseSpeed;
     /// <summary>
-    /// 轻击攻击力成长
+    /// 攻击力成长
     /// </summary>
-    public readonly float LightAttackGrowth;
-    /// <summary>
-    /// 重击攻击力成长
-    /// </summary>
-    public readonly float HeavyAttackGrowth;
+    public readonly float AttackGrowth;
     /// <summary>
     /// 防御力成长
     /// </summary>
@@ -90,13 +78,13 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// </summary>
     public readonly float SpeedGrowth;
     /// <summary>
-    /// 轻击动作ID
+    /// 轻击技能ID
     /// </summary>
-    public readonly int LightAttackActionId;
+    public readonly int LightAttackSkillId;
     /// <summary>
-    /// 重击动作ID
+    /// 重击技能ID
     /// </summary>
-    public readonly int HeavyAttackActionId;
+    public readonly int HeavyAttackSkillId;
     /// <summary>
     /// 技能1ID
     /// </summary>
@@ -105,14 +93,6 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// 技能2ID
     /// </summary>
     public readonly int Skill2Id;
-    /// <summary>
-    /// 最大等级
-    /// </summary>
-    public readonly int MaxLevel;
-    /// <summary>
-    /// 每级经验值
-    /// </summary>
-    public readonly int ExpPerLevel;
    
     public const int __ID__ = 458507311;
     public override int GetTypeId() => __ID__;
@@ -126,22 +106,18 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
         return "{ "
         + "id:" + Id + ","
         + "roleType:" + RoleType + ","
-        + "baseLightAttack:" + BaseLightAttack + ","
-        + "baseHeavyAttack:" + BaseHeavyAttack + ","
+        + "baseAttack:" + BaseAttack + ","
         + "baseDefense:" + BaseDefense + ","
         + "baseHealth:" + BaseHealth + ","
         + "baseSpeed:" + BaseSpeed + ","
-        + "lightAttackGrowth:" + LightAttackGrowth + ","
-        + "heavyAttackGrowth:" + HeavyAttackGrowth + ","
+        + "attackGrowth:" + AttackGrowth + ","
         + "defenseGrowth:" + DefenseGrowth + ","
         + "healthGrowth:" + HealthGrowth + ","
         + "speedGrowth:" + SpeedGrowth + ","
-        + "lightAttackActionId:" + LightAttackActionId + ","
-        + "heavyAttackActionId:" + HeavyAttackActionId + ","
+        + "lightAttackSkillId:" + LightAttackSkillId + ","
+        + "heavyAttackSkillId:" + HeavyAttackSkillId + ","
         + "skill1Id:" + Skill1Id + ","
         + "skill2Id:" + Skill2Id + ","
-        + "maxLevel:" + MaxLevel + ","
-        + "expPerLevel:" + ExpPerLevel + ","
         + "}";
     }
 }

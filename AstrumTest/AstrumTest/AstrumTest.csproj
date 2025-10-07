@@ -28,7 +28,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AstrumServer\AstrumServer.csproj" />
     <ProjectReference Include="..\..\AstrumProj\AstrumLogic.csproj" />
   </ItemGroup>
 
