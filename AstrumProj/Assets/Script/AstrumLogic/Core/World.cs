@@ -221,9 +221,9 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 按配置创建实体（支持 ArchetypeName 列）
         /// </summary>
-        public Entity CreateEntityByConfig(int entityConfigId)
+        public Entity CreateEntity(int entityConfigId)
         {
-            var entity = EntityFactory.Instance.CreateFromConfig(entityConfigId, this);
+            var entity = EntityFactory.Instance.CreateEntity(entityConfigId, this);
             PublishEntityCreatedEvent(entity);
             return entity;
         }

@@ -86,8 +86,6 @@ namespace Astrum.View.Core
             {
                 // 创建Unity GameObject
                 CreateGameObject();
-                // 注意：ViewComponents的装配由EntityViewFactory负责，在Initialize之后调用
-                
                 // 子类特定的初始化
                 OnInitialize();
                 
@@ -379,7 +377,7 @@ namespace Astrum.View.Core
             _transform = _gameObject.transform;
         }
         
-        // 抽象方法 - 子类必须实现
+
         protected virtual void OnInitialize()
         {
             
@@ -393,15 +391,6 @@ namespace Astrum.View.Core
         protected virtual void OnSyncWithEntity(long entityId)
         {
             
-        }
-        
-        /// <summary>
-        /// 获取EntityView需要的视图组件类型列表
-        /// </summary>
-        /// <returns>视图组件类型列表</returns>
-        public virtual Type[] GetRequiredViewComponentTypes()
-        {
-            return new Type[0];
         }
         
         /// <summary>
@@ -433,15 +422,6 @@ namespace Astrum.View.Core
                     }
                 }
             }
-        }
-        
-        /// <summary>
-        /// 根据EntityView类型自动构建和挂载视图组件（子类可重写以提供默认组件）
-        /// </summary>
-        protected virtual void BuildViewComponents()
-        {
-            var componentTypes = GetRequiredViewComponentTypes();
-            BuildViewComponents(componentTypes);
         }
     }
 }

@@ -99,7 +99,7 @@ namespace Astrum.LogicCore.Core
             {
                 return -1;
             }
-            var player = MainWorld.CreateEntityByConfig(1001); // 创建玩家实体，EntityConfigId=1001 (需要根据实际配置表确定)
+            var player = MainWorld.CreateEntity(1001); // 创建玩家实体，EntityConfigId=1001 (需要根据实际配置表确定)
             Players.Add(player.UniqueId);
             return player.UniqueId;
         }
