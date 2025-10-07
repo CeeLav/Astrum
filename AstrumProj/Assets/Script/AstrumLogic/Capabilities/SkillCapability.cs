@@ -118,8 +118,11 @@ namespace Astrum.LogicCore.Capabilities
 			var actionComponent = GetOwnerComponent<ActionComponent>();
 			if (actionComponent == null) return;
 
-			foreach (var action in skill.SkillActions)
+			// 基于 SkillActionIds 动态构造新的 SkillActionInfo 实例
+			foreach (var actionId in skill.SkillActionIds)
 			{
+				var action = SkillConfigManager.Instance.CreateSkillActionInstance(actionId, skill.CurrentLevel);
+				if (action == null) continue;
 				if (!actionComponent.AvailableActions.Exists(a => a.Id == action.Id))
 				{
 					actionComponent.AvailableActions.Add(action);
@@ -132,12 +135,12 @@ namespace Astrum.LogicCore.Capabilities
 		{
 			var actionComponent = GetOwnerComponent<ActionComponent>();
 			if (actionComponent == null) return;
-
+/*
 			foreach (var action in skill.SkillActions)
 			{
 				actionComponent.AvailableActions.RemoveAll(a => a.Id == action.Id);
 				ASLogger.Instance.Debug($"SkillCapability: Unregistered action {action.Id} for skill {skill.SkillId}");
-			}
+			}*/
 		}
 	}
 }

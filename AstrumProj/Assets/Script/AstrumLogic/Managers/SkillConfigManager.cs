@@ -66,17 +66,6 @@ namespace Astrum.LogicCore.Managers
                 return null;
             }
             
-            // 构造技能动作列表（根据等级）
-            var skillActions = new List<SkillActionInfo>();
-            foreach (var actionId in skillTable.SkillActionIds)
-            {
-                var skillAction = BuildSkillActionInfo(actionId, level);
-                if (skillAction != null)
-                {
-                    skillActions.Add(skillAction);
-                }
-            }
-            
             // 组装 SkillInfo
             var skillInfo = new SkillInfo
             {
@@ -90,7 +79,7 @@ namespace Astrum.LogicCore.Managers
                 MaxLevel = skillTable.MaxLevel,
                 DisplayCooldown = skillTable.DisplayCooldown,
                 DisplayCost = skillTable.DisplayCost,
-                SkillActions = skillActions
+                SkillActionIds = new List<int>(skillTable.SkillActionIds)
             };
             
             ASLogger.Instance.Info($"SkillConfigManager: Built SkillInfo for skill {skillId} ({skillInfo.Name}) level {level}");
@@ -108,7 +97,7 @@ namespace Astrum.LogicCore.Managers
             if (!configManager.IsInitialized) return null;
             
             // 1. 从 ActionTable 获取基础动作数据
-            var actionTable = configManager.Tables.TbActionTable.Get(actionId);
+            var actionTable = configManager.Tables.TbActionTable.GetOrDefault(actionId);
             if (actionTable == null)
             {
                 ASLogger.Instance.Error($"SkillConfigManager: ActionTable {actionId} not found");
@@ -141,6 +130,14 @@ namespace Astrum.LogicCore.Managers
             ASLogger.Instance.Debug($"SkillConfigManager: Built SkillActionInfo {actionId} for skill level {skillLevel}");
             
             return skillActionInfo;
+        }
+
+        /// <summary>
+        /// 对外公开：根据动作ID与技能等级构造新的 SkillActionInfo 实例
+        /// </summary>
+        public SkillActionInfo? CreateSkillActionInstance(int actionId, int skillLevel)
+        {
+            return BuildSkillActionInfo(actionId, skillLevel);
         }
         
         // ========== BaseEffectId + Level 映射 ==========
