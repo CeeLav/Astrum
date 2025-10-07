@@ -42,75 +42,75 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// Role ID
+    /// 角色ID
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// Role Type
+    /// 角色类型
     /// </summary>
     public readonly int RoleType;
     /// <summary>
-    /// Base Light Attack
+    /// 基础轻击攻击力
     /// </summary>
     public readonly float BaseLightAttack;
     /// <summary>
-    /// Base Heavy Attack
+    /// 基础重击攻击力
     /// </summary>
     public readonly float BaseHeavyAttack;
     /// <summary>
-    /// Base Defense
+    /// 基础防御力
     /// </summary>
     public readonly float BaseDefense;
     /// <summary>
-    /// Base Health
+    /// 基础生命值
     /// </summary>
     public readonly float BaseHealth;
     /// <summary>
-    /// Base Speed
+    /// 基础移动速度
     /// </summary>
     public readonly float BaseSpeed;
     /// <summary>
-    /// Light Attack Growth
+    /// 轻击攻击力成长
     /// </summary>
     public readonly float LightAttackGrowth;
     /// <summary>
-    /// Heavy Attack Growth
+    /// 重击攻击力成长
     /// </summary>
     public readonly float HeavyAttackGrowth;
     /// <summary>
-    /// Defense Growth
+    /// 防御力成长
     /// </summary>
     public readonly float DefenseGrowth;
     /// <summary>
-    /// Health Growth
+    /// 生命值成长
     /// </summary>
     public readonly float HealthGrowth;
     /// <summary>
-    /// Speed Growth
+    /// 移动速度成长
     /// </summary>
     public readonly float SpeedGrowth;
     /// <summary>
-    /// Light Attack Action ID
+    /// 轻击动作ID
     /// </summary>
     public readonly int LightAttackActionId;
     /// <summary>
-    /// Heavy Attack Action ID
+    /// 重击动作ID
     /// </summary>
     public readonly int HeavyAttackActionId;
     /// <summary>
-    /// Skill 1 ID
+    /// 技能1ID
     /// </summary>
     public readonly int Skill1Id;
     /// <summary>
-    /// Skill 2 ID
+    /// 技能2ID
     /// </summary>
     public readonly int Skill2Id;
     /// <summary>
-    /// Max Level
+    /// 最大等级
     /// </summary>
     public readonly int MaxLevel;
     /// <summary>
-    /// Exp Per Level
+    /// 每级经验值
     /// </summary>
     public readonly int ExpPerLevel;
    
