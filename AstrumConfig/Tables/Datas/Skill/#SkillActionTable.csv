@@ -3,7 +3,7 @@
 ##group,,,,,,,,,
 ##desc,动作ID,技能ID,攻击碰撞盒信息,实际法力消耗,实际冷却时间(帧),触发帧信息,,,
 ,3001,2001,Box1:5x2x1,15,270,Frame5:Collision:4001,Frame8:Direct:4002,,
-,3002,2001,Box2:3x3x1,0,0,Frame12:Direct:4003,,,
+,3002,2002,Box2:3x3x1,0,0,Frame12:Direct:4003,,,
 ,3003,2002,Box3:2x1x1,10,480,Frame6:Collision:4004,,,
 ,3004,2003,Box4:8x1x1,20,240,Frame3:Direct:4005,Frame6:Direct:4006,Frame9:Direct:4007,
 ,3005,2003,Box5:6x2x1,5,120,Frame15:Direct:4008,,,
