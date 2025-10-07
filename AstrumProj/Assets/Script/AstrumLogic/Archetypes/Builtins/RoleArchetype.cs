@@ -1,5 +1,6 @@
 using System;
 using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Capabilities;
 
 namespace Astrum.LogicCore.Archetypes
 {
@@ -8,10 +9,17 @@ namespace Astrum.LogicCore.Archetypes
     {
         private static readonly Type[] _comps = 
         {
-            typeof(RoleInfoComponent)
+            typeof(RoleInfoComponent),
+            typeof(SkillComponent)
         };
         
+        private static readonly Type[] _caps =
+        {
+            typeof(SkillCapability)
+        };
+
         public override Type[] Components => _comps;
+        public override Type[] Capabilities => _caps;
     }
 }
 
