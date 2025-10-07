@@ -69,8 +69,77 @@
 
 ---
 
-版本：v1.0
-位置：`AstrumConfig/Doc/Archetype结构说明.md`
+---
+
+版本：v1.1 (更新日期：2025-10-07)  
+位置：`AstrumConfig/Doc/Archetype结构说明.md`  
+变更记录：
+- v1.1: 更新 ViewArchetype 合成算法为实际实现（使用 `ArchetypeManager.GetMergeChain()`）
+- v1.1: 补充完整的装配流程和示例
+- v1.0: 初始版本
+
+## 10. 实现状态与测试
+
+### 10.1 已完成功能 ✅
+
+**逻辑层 (AstrumLogic):**
+- ✅ `ArchetypeManager`: 完整的注册、合并、查询功能
+- ✅ `ArchetypeAttribute`: 支持名称和合并列表声明
+- ✅ 内置 Archetype: `BaseUnit`, `Action`, `Controllable`, `Role` 等
+- ✅ `EntityFactory.CreateByArchetype()`: 严格从 `ArchetypeInfo` 装配
+- ✅ `EntityFactory.CreateFromConfig()`: 表驱动的实体创建
+- ✅ `World.CreateEntityByConfig()`: 推荐的统一入口
+
+**视图层 (AstrumView):**
+- ✅ `ViewArchetypeManager`: 使用逻辑侧合并链的视图原型管理
+- ✅ `ViewArchetypeAttribute`: 建立逻辑 Archetype 名称映射
+- ✅ 内置 ViewArchetype: `BaseUnitViewArchetype`, `ActionViewArchetype`, `RoleViewArchetype` 等
+- ✅ `EntityViewFactory`: 完整的 EntityView 创建和装配流程
+- ✅ `EntityView.BuildViewComponents()`: 接受类型数组并装配组件
+
+**配置与数据:**
+- ✅ `EntityBaseTable.ArchetypeName`: 配置表支持
+- ✅ 测试用例: `EntityCreationTests` 验证核心功能
+
+### 10.2 使用示例
+
+**创建实体（推荐方式）:**
+```csharp
+// 在配置表中设置 EntityId=1001, ArchetypeName="Role"
+var entity = world.CreateEntityByConfig(1001);
+// 自动装配: PositionComponent, MovementComponent, ActionComponent, LSInputComponent
+//          + MovementCapability, ActionCapability, ControlCapability
+// 自动创建视图: TransViewComponent, ModelViewComponent, AnimationViewComponent
+```
+
+**添加新的 Archetype:**
+```csharp
+// 1. 创建逻辑 Archetype
+[Archetype("Monster", "BaseUnit", "Action")]
+public class MonsterArchetype : Archetype
+{
+    private static readonly Type[] _caps = { typeof(AICapability) };
+    public override Type[] Capabilities => _caps;
+}
+
+// 2. 创建对应的 ViewArchetype（可选）
+[ViewArchetype("Monster")]
+public class MonsterViewArchetype : ViewArchetype
+{
+    private static readonly Type[] _comps = { typeof(HealthBarViewComponent) };
+    public override Type[] ViewComponents => _comps;
+}
+
+// 3. 在配置表中使用
+// EntityId=2001, ArchetypeName="Monster"
+```
+
+### 10.3 调试技巧
+
+1. **检查 Archetype 注册**：在 `ArchetypeManager.Initialize()` 后打印 `_nameToInfo` 内容
+2. **检查合并链**：调用 `ArchetypeManager.Instance.GetMergeChain("Role")` 查看展开序列
+3. **检查 ViewComponent 装配**：在 `EntityViewFactory.AssembleViewComponents()` 中打断点
+4. **验证组件是否装配**：使用 `entity.HasComponent<T>()` 和 `entityView.GetViewComponent<T>()`
 
 ## 8. 示例（可直接参考的最小实现）
 
@@ -217,33 +286,115 @@ public static class EntityViewFactory
 2) 视图：传入 `logicArchetypeName = "Role"` 调用 `EntityViewFactory.CreateIfAny(...)`；
 3) 若存在 `RoleViewArchetype` 映射，则创建 `UnitView` 并自动挂载 `Model/Trans/Animation` 视图组件。
 
-## 9. ViewArchetype 组合规则与合成算法
+## 9. ViewArchetype 组合规则与合成算法（实际实现）
 
-为避免在视图层重复维护一套合并关系，复用“逻辑原型”的合并展开结果；ViewArchetype 仅做“增量合并”。
+为避免在视图层重复维护一套合并关系，复用"逻辑原型"的合并展开结果；ViewArchetype 仅做"增量合并"。
 
 ### 9.1 基本约定
 
-- 绑定：每个 ViewArchetype 通过 `[ViewArchetype("LogicArchetypeName")]` 绑定一个或多个逻辑原型名。
-- 增量：ViewArchetype 仅声明 `ViewType?` 与 `ViewComponents[]`。
+- **绑定**：每个 ViewArchetype 通过 `[ViewArchetype("LogicArchetypeName")]` 绑定一个逻辑原型名
+- **增量**：ViewArchetype 仅声明 `ViewComponents[]`，不需要维护合并关系
+- **单向依赖**：视图层可以访问逻辑层（`ArchetypeManager`），但逻辑层不依赖视图层
 
-### 9.2 合成算法（给定逻辑原型名 L）
+### 9.2 实际实现的合成算法
 
-1) 从逻辑侧获取 L 的“合并展开序列”（自底向上：父 → 子 → L）。
-2) 依次处理序列中每一个逻辑名：
-   - 若存在对应 ViewArchetype：将该节点声明的 `ViewComponents` 与当前累计集合做 HashSet 并集（纯增量、去重）。
-3) 得到最终的 `ViewType` 与去重后的 `ViewComponents`，据此创建 `EntityView` 并自动挂载组件。
-4) 若整条链上均无 ViewArchetype，视为无需创建视图（逻辑可独立运行）。
+**核心机制：** `ViewArchetypeManager` 直接调用 `ArchetypeManager.GetMergeChain()` 获取完整的合并链。
 
-### 9.4 示例（组合演示）
+```csharp
+public bool TryGetComponents(string logicArchetypeName, out Type[] viewComponents)
+{
+    var result = new HashSet<Type>();
+    
+    // 1. 从逻辑侧获取合并展开序列（从父到子，有序）
+    var mergeChain = ArchetypeManager.Instance.GetMergeChain(logicArchetypeName);
+    
+    // 2. 遍历合并链，累加每个节点的 ViewComponents
+    foreach (var nameInChain in mergeChain)
+    {
+        if (_logicNameToViewComponents.TryGetValue(nameInChain, out var components))
+        {
+            result.UnionWith(components); // HashSet 自动去重
+        }
+    }
+    
+    viewComponents = result.ToArray();
+    return result.Count > 0;
+}
+```
 
-- 逻辑：`Role = BaseUnit ∪ Combatant ∪ Controllable`
-  - 视图（ViewArchetype 对应一个逻辑 Archetype，并列出其包含的 ViewComponents）：
-    - BaseUnitViewArchetype (BaseUnit)：{ TransViewComponent, ModelViewComponent }
-    - ActionViewArchetype (Action)：{ AnimationViewComponent }
-    - RoleViewArchetype (Role)：{ ModelViewComponent }
+**关键优势：**
+- 不需要在视图侧重复实现合并逻辑
+- 自动与逻辑侧的 Archetype 结构保持同步
+- 如果逻辑 Archetype 调整合并关系，视图自动生效
 
-### 9.5 实施提示
+### 9.3 完整装配流程
 
-- 视图注册器只在 AstrumView 程序集中扫描，保持单向依赖。
-- 合成过程在 `EntityViewFactory.CreateIfAny(...)` 内部完成；逻辑侧仅提供最终 `logicArchetypeName` 与 `entityId`。
-- 缺省路径：若最终无 `ViewType`，可设工程级默认（如 `EntityView`）或直接不创建视图。
+```
+1. Entity 创建完成，发布 EntityCreatedEvent
+   ↓
+2. Stage.OnEntityCreated() 接收事件
+   ↓
+3. EntityViewFactory.CreateEntityView(entityId, stage)
+   ↓
+4. EntityView.Initialize(entityId, stage) - 创建 GameObject
+   ↓
+5. EntityViewFactory.AssembleViewComponents(entityView, stage)
+   ↓
+6. 通过 stage.Room.MainWorld.GetEntity(entityId) 获取 Entity
+   ↓
+7. 读取 entity.EntityConfig.ArchetypeName
+   ↓
+8. ViewArchetypeManager.TryGetComponents(archetypeName, out viewComponentTypes)
+   ↓ 内部调用 ArchetypeManager.GetMergeChain(archetypeName)
+   ↓ 遍历合并链，收集所有 ViewComponents
+   ↓
+9. EntityView.BuildViewComponents(viewComponentTypes)
+   ↓
+10. 遍历类型数组，创建 ViewComponent 实例并 AddViewComponent()
+```
+
+### 9.4 示例（实际运行）
+
+假设配置：
+- **逻辑 Archetype**:
+  - `BaseUnit`: `[PositionComponent, MovementComponent]`
+  - `Action`: `[ActionComponent]`
+  - `Controllable`: `[LSInputComponent]`
+  - `Role`: 合并 `[BaseUnit, Action, Controllable]`
+
+- **ViewArchetype**:
+  - `BaseUnitViewArchetype("BaseUnit")`: `[TransViewComponent, ModelViewComponent]`
+  - `ActionViewArchetype("Action")`: `[AnimationViewComponent]`
+  - `RoleViewArchetype("Role")`: `[]` (无额外 ViewComponent)
+
+**创建 Role 实体时的 ViewComponent 合并结果：**
+
+1. `ArchetypeManager.GetMergeChain("Role")` 返回: `["BaseUnit", "Action", "Controllable", "Role"]`
+2. 遍历合并链：
+   - `BaseUnit` → 添加 `TransViewComponent`, `ModelViewComponent`
+   - `Action` → 添加 `AnimationViewComponent`
+   - `Controllable` → 无对应 ViewArchetype，跳过
+   - `Role` → 无额外 ViewComponents
+3. 最终结果（去重后）: `[TransViewComponent, ModelViewComponent, AnimationViewComponent]`
+
+### 9.5 实施关键点
+
+1. **初始化顺序**：必须先初始化 `ArchetypeManager`，再初始化 `ViewArchetypeManager`
+   ```csharp
+   // GameApplication.InitializeManagers()
+   ArchetypeManager.Instance.Initialize();
+   ViewArchetypeManager.Instance.Initialize();
+   ```
+
+2. **程序集扫描**：
+   - `ArchetypeManager` 扫描所有程序集中的 Archetype 类
+   - `ViewArchetypeManager` 仅扫描当前程序集（AstrumView）中的 ViewArchetype 类
+
+3. **缺省处理**：
+   - 如果逻辑 Archetype 没有对应的 ViewArchetype，不会报错，只是不创建 ViewComponents
+   - 所有 EntityView 都使用默认的 `EntityView` 类型（或其子类），由 `EntityViewFactory` 决定
+
+4. **性能考虑**：
+   - 合并链在 `ArchetypeManager.Initialize()` 时已计算完成
+   - `GetMergeChain()` 直接返回缓存结果，无运行时开销
+   - ViewComponent 类型数组在第一次查询后可以缓存
