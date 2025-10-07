@@ -15,8 +15,6 @@ namespace Astrum.View.Archetypes
         public static ViewArchetypeManager Instance => _instance.Value;
 
         private readonly Dictionary<string, HashSet<Type>> _logicNameToViewComponents = new Dictionary<string, HashSet<Type>>(StringComparer.OrdinalIgnoreCase);
-        // 不再在视图侧维护父链，直接读取逻辑侧的合并链
-
         private bool _initialized;
 
         private ViewArchetypeManager() { }
@@ -26,7 +24,6 @@ namespace Astrum.View.Archetypes
             if (_initialized) return;
             _initialized = true;
 
-            // 1) 收集 ViewArchetype 声明
             var asm = Assembly.GetExecutingAssembly();
             foreach (var type in asm.GetTypes())
             {
@@ -34,7 +31,6 @@ namespace Astrum.View.Archetypes
                 var attrs = type.GetCustomAttributes(typeof(ViewArchetypeAttribute), false) as ViewArchetypeAttribute[];
                 if (attrs == null || attrs.Length == 0) continue;
 
-                // 实例化以获取 ViewComponents
                 var instance = Activator.CreateInstance(type) as ViewArchetype;
                 if (instance == null) continue;
                 var comps = instance.ViewComponents ?? Array.Empty<Type>();
@@ -53,8 +49,6 @@ namespace Astrum.View.Archetypes
                     }
                 }
             }
-
-            // 父链由逻辑侧的 ArchetypeManager 提供
         }
 
         /// <summary>
@@ -65,25 +59,26 @@ namespace Astrum.View.Archetypes
             if (!_initialized) Initialize();
             var result = new HashSet<Type>();
 
-            // 先合并父链（深度优先，自底向上并集）
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            MergeChain(logicArchetypeName, visited, result);
+            if (string.IsNullOrWhiteSpace(logicArchetypeName))
+            {
+                viewComponents = Array.Empty<Type>();
+                return false;
+            }
 
-            viewComponents = result.ToArray();
-            return result.Count > 0;
-        }
-
-        private void MergeChain(string logicName, HashSet<string> visited, HashSet<Type> accumulator)
-        {
-            if (string.IsNullOrWhiteSpace(logicName)) return;
-            var chain = ArchetypeManager.Instance.GetMergeChain(logicName); // 父 → ... → 自身
+            var chain = ArchetypeManager.Instance.GetMergeChain(logicArchetypeName);
             foreach (var name in chain)
             {
                 if (_logicNameToViewComponents.TryGetValue(name, out var set))
                 {
-                    foreach (var t in set) if (t != null) accumulator.Add(t);
+                    foreach (var t in set)
+                    {
+                        if (t != null) result.Add(t);
+                    }
                 }
             }
+
+            viewComponents = result.ToArray();
+            return result.Count > 0;
         }
     }
 }
