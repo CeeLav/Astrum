@@ -33,39 +33,39 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// Config ID
+    /// 配置ID
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// Required Exp
+    /// 升级所需经验值
     /// </summary>
     public readonly int RequiredExp;
     /// <summary>
-    /// Light Attack Bonus
+    /// 轻击攻击力加成
     /// </summary>
     public readonly float LightAttackBonus;
     /// <summary>
-    /// Heavy Attack Bonus
+    /// 重击攻击力加成
     /// </summary>
     public readonly float HeavyAttackBonus;
     /// <summary>
-    /// Defense Bonus
+    /// 防御力加成
     /// </summary>
     public readonly float DefenseBonus;
     /// <summary>
-    /// Health Bonus
+    /// 生命值加成
     /// </summary>
     public readonly float HealthBonus;
     /// <summary>
-    /// Speed Bonus
+    /// 移动速度加成
     /// </summary>
     public readonly float SpeedBonus;
     /// <summary>
-    /// Unlock Skill ID
+    /// 解锁的技能ID
     /// </summary>
     public readonly int UnlockSkillId;
     /// <summary>
-    /// Skill Point
+    /// 获得的技能点
     /// </summary>
     public readonly int SkillPoint;
    

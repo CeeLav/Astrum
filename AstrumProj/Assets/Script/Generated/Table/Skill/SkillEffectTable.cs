@@ -34,43 +34,43 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// Skill Effect ID
+    /// 技能效果ID
     /// </summary>
     public readonly int SkillEffectId;
     /// <summary>
-    /// Effect Type
+    /// 效果类型
     /// </summary>
     public readonly int EffectType;
     /// <summary>
-    /// Effect Value
+    /// 效果数值
     /// </summary>
     public readonly float EffectValue;
     /// <summary>
-    /// Target Type
+    /// 目标类型
     /// </summary>
     public readonly int TargetType;
     /// <summary>
-    /// Effect Duration
+    /// 效果持续时间
     /// </summary>
     public readonly float EffectDuration;
     /// <summary>
-    /// Effect Range
+    /// 效果范围
     /// </summary>
     public readonly float EffectRange;
     /// <summary>
-    /// Cast Time
+    /// 施法时间
     /// </summary>
     public readonly float CastTime;
     /// <summary>
-    /// Effect Params
+    /// 效果参数
     /// </summary>
     public readonly string EffectParams;
     /// <summary>
-    /// Visual Effect ID
+    /// 视觉效果ID
     /// </summary>
     public readonly int VisualEffectId;
     /// <summary>
-    /// Sound Effect ID
+    /// 音效ID
     /// </summary>
     public readonly int SoundEffectId;
    
