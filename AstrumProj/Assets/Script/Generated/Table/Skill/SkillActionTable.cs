@@ -30,27 +30,27 @@ public sealed partial class SkillActionTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// Action ID
+    /// 动作ID
     /// </summary>
     public readonly int ActionId;
     /// <summary>
-    /// Skill ID
+    /// 技能ID
     /// </summary>
     public readonly int SkillId;
     /// <summary>
-    /// Attack Box Info
+    /// 攻击碰撞盒信息
     /// </summary>
     public readonly string AttackBoxInfo;
     /// <summary>
-    /// Actual Cost
+    /// 实际法力消耗
     /// </summary>
     public readonly int ActualCost;
     /// <summary>
-    /// Actual Cooldown
+    /// 实际冷却时间(帧)
     /// </summary>
     public readonly int ActualCooldown;
     /// <summary>
-    /// Trigger Frames
+    /// 触发帧信息
     /// </summary>
     public readonly string TriggerFrames;
    
