@@ -1,7 +1,7 @@
 ##var,id,roleId,level,requiredExp,lightAttackBonus,heavyAttackBonus,defenseBonus,healthBonus,speedBonus,unlockSkillId,skillPoint
 ##type,int,int,int,int,float,float,float,float,float,int,int
 ##group,c,s,e,,,,,,,,,
-##desc,Config ID,Role ID,Level,Required Exp,Light Attack Bonus,Heavy Attack Bonus,Defense Bonus,Health Bonus,Speed Bonus,Unlock Skill ID,Skill Point
+##desc,配置ID,角色ID,等级,升级所需经验值,轻击攻击力加成,重击攻击力加成,防御力加成,生命值加成,移动速度加成,解锁的技能ID,获得的技能点
 ,1,1001,1,0,0.0,0.0,0.0,0.0,0.0,0,0
 ,2,1001,2,1000,8.0,15.0,8.0,100.0,0.1,0,1
 ,3,1001,3,2500,8.0,15.0,8.0,100.0,0.1,0,1

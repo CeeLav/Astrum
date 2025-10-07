@@ -1,7 +1,7 @@
 ##var,actionId,skillId,attackBoxInfo,actualCost,actualCooldown,triggerFrames,,,
 ##type,int,int,string,int,int,string,,,
 ##group,,,,,,,,,
-##desc,Action ID,Skill ID,Attack Box Info,Actual Cost,Actual Cooldown,Trigger Frames,,,
+##desc,动作ID,技能ID,攻击碰撞盒信息,实际法力消耗,实际冷却时间(帧),触发帧信息,,,
 ,3001,2001,Box1:5x2x1,15,270,Frame5:Collision:4001,Frame8:Direct:4002,,
 ,3002,2001,Box2:3x3x1,0,0,Frame12:Direct:4003,,,
 ,3003,2002,Box3:2x1x1,10,480,Frame6:Collision:4004,,,

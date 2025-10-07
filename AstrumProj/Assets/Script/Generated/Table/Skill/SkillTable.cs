@@ -34,43 +34,43 @@ public sealed partial class SkillTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// Skill ID
+    /// 技能ID
     /// </summary>
     public readonly int Id;
     /// <summary>
-    /// Skill Name
+    /// 技能名称
     /// </summary>
     public readonly string Name;
     /// <summary>
-    /// Skill Description
+    /// 技能描述
     /// </summary>
     public readonly string Description;
     /// <summary>
-    /// Skill Type
+    /// 技能类型
     /// </summary>
     public readonly int SkillType;
     /// <summary>
-    /// Skill Action IDs
+    /// 技能动作ID列表
     /// </summary>
     public readonly int[] SkillActionIds;
     /// <summary>
-    /// Display Cooldown
+    /// 展示冷却时间
     /// </summary>
     public readonly float DisplayCooldown;
     /// <summary>
-    /// Display Cost
+    /// 展示法力消耗
     /// </summary>
     public readonly int DisplayCost;
     /// <summary>
-    /// Required Level
+    /// 学习所需等级
     /// </summary>
     public readonly int RequiredLevel;
     /// <summary>
-    /// Max Level
+    /// 技能最大等级
     /// </summary>
     public readonly int MaxLevel;
     /// <summary>
-    /// Icon ID
+    /// 图标ID
     /// </summary>
     public readonly int IconId;
    
