@@ -230,10 +230,14 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private void DrawFrameLines(Rect rect, int totalFrames)
         {
             float pixelsPerFrame = _layoutCalculator.GetPixelsPerFrame();
-            float startX = _layoutCalculator.GetTrackHeaderWidth();
+            float startX = rect.x; // 使用时间轴区域的起始X坐标
             
-            // 确定刻度间隔
-            int frameInterval = GetFrameInterval(pixelsPerFrame);
+            // 确定主刻度和次刻度间隔
+            int majorInterval = GetFrameInterval(pixelsPerFrame);
+            int minorInterval = Mathf.Max(1, majorInterval / 5); // 次刻度是主刻度的1/5
+            
+            // 如果缩放太小，不绘制次刻度
+            bool drawMinorTicks = pixelsPerFrame >= 3f;
             
             for (int frame = 0; frame <= totalFrames; frame++)
             {
@@ -242,24 +246,43 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 if (x < rect.x || x > rect.xMax)
                     continue;
                 
-                bool isMajor = (frame % frameInterval == 0);
-                Color lineColor = isMajor ? COLOR_FRAME_LINE_MAJOR : COLOR_FRAME_LINE_MINOR;
-                float lineHeight = isMajor ? rect.height : rect.height * 0.5f;
+                bool isMajor = (frame % majorInterval == 0);
+                bool isMinor = (frame % minorInterval == 0) && !isMajor;
                 
-                DrawVerticalLine(new Vector2(x, rect.yMax - lineHeight), lineHeight, lineColor);
+                if (isMajor)
+                {
+                    // 主刻度：全高，明显
+                    DrawVerticalLine(new Vector2(x, rect.y), rect.height, COLOR_FRAME_LINE_MAJOR);
+                }
+                else if (isMinor && drawMinorTicks)
+                {
+                    // 次刻度：半高，淡色
+                    DrawVerticalLine(new Vector2(x, rect.y + rect.height * 0.6f), rect.height * 0.4f, COLOR_FRAME_LINE_MINOR);
+                }
+                else if (drawMinorTicks && pixelsPerFrame >= 5f)
+                {
+                    // 超细刻度：仅在放大时显示
+                    Color veryMinorColor = new Color(0.28f, 0.28f, 0.28f);
+                    DrawVerticalLine(new Vector2(x, rect.y + rect.height * 0.8f), rect.height * 0.2f, veryMinorColor);
+                }
             }
         }
         
         private void DrawFrameNumbers(Rect rect, int totalFrames)
         {
             float pixelsPerFrame = _layoutCalculator.GetPixelsPerFrame();
-            float startX = _layoutCalculator.GetTrackHeaderWidth();
+            float startX = rect.x; // 使用时间轴区域的起始X坐标
             int frameInterval = GetFrameInterval(pixelsPerFrame);
             
             GUIStyle labelStyle = new GUIStyle(EditorStyles.miniLabel);
             labelStyle.normal.textColor = COLOR_FRAME_TEXT;
             labelStyle.alignment = TextAnchor.UpperCenter;
             labelStyle.fontSize = 9;
+            
+            GUIStyle timeStyle = new GUIStyle(EditorStyles.miniLabel);
+            timeStyle.normal.textColor = new Color(0.6f, 0.8f, 1f); // 淡蓝色
+            timeStyle.alignment = TextAnchor.UpperCenter;
+            timeStyle.fontSize = 8;
             
             for (int frame = 0; frame <= totalFrames; frame += frameInterval)
             {
@@ -268,8 +291,24 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 if (x < rect.x || x > rect.xMax)
                     continue;
                 
-                Rect labelRect = new Rect(x - 20, rect.y + 2, 40, 15);
+                // 帧号
+                Rect labelRect = new Rect(x - 20, rect.y + 2, 40, 12);
                 GUI.Label(labelRect, frame.ToString(), labelStyle);
+                
+                // 时间 (50ms/帧)
+                float timeMs = frame * 50f;
+                string timeLabel;
+                if (timeMs >= 1000)
+                {
+                    timeLabel = $"{timeMs / 1000f:F2}s";
+                }
+                else
+                {
+                    timeLabel = $"{timeMs:F0}ms";
+                }
+                
+                Rect timeRect = new Rect(x - 20, rect.y + 14, 40, 10);
+                GUI.Label(timeRect, timeLabel, timeStyle);
             }
         }
         
@@ -290,10 +329,23 @@ namespace Astrum.Editor.RoleEditor.Timeline
             GUIStyle labelStyle = new GUIStyle(EditorStyles.miniLabel);
             labelStyle.normal.textColor = Color.white;
             labelStyle.alignment = TextAnchor.MiddleCenter;
-            labelStyle.fontSize = 8;
+            labelStyle.fontSize = 9;
+            labelStyle.fontStyle = FontStyle.Bold;
             
-            Rect labelRect = new Rect(rect.x, rect.y + 12, rect.width, 15);
-            GUI.Label(labelRect, currentFrame.ToString(), labelStyle);
+            // 时间信息 (50ms/帧)
+            float timeMs = currentFrame * 50f;
+            string timeText;
+            if (timeMs >= 1000)
+            {
+                timeText = $"F{currentFrame} ({timeMs / 1000f:F2}s)";
+            }
+            else
+            {
+                timeText = $"F{currentFrame} ({timeMs:F0}ms)";
+            }
+            
+            Rect labelRect = new Rect(rect.x - 10, rect.y + 12, rect.width + 20, 15);
+            GUI.Label(labelRect, timeText, labelStyle);
         }
         
         private void DrawPlayheadLine(Rect contentRect, float x)
@@ -323,14 +375,21 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private void DrawVerticalLine(Vector2 start, float height, Color color)
         {
             Handles.color = color;
-            Handles.DrawLine(start, start + Vector2.up * height);
+            Handles.DrawLine(start, start + Vector2.down * height);
         }
         
+        /// <summary>
+        /// 根据缩放级别获取刻度间隔
+        /// 50ms/帧标准：20帧=1秒
+        /// </summary>
         private int GetFrameInterval(float pixelsPerFrame)
         {
-            if (pixelsPerFrame >= 10) return 5;
-            if (pixelsPerFrame >= 5) return 10;
-            return 30;
+            // 优先使用整秒间隔（20帧）和半秒间隔（10帧）
+            if (pixelsPerFrame >= 15) return 5;   // 250ms (0.25s)
+            if (pixelsPerFrame >= 10) return 10;  // 500ms (0.5s)
+            if (pixelsPerFrame >= 5) return 20;   // 1000ms (1s)
+            if (pixelsPerFrame >= 3) return 40;   // 2000ms (2s)
+            return 100;                            // 5000ms (5s)
         }
         
         // === 属性 ===

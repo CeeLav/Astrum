@@ -51,5 +51,21 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
             return base.ConvertFromString(text, row, memberMapData);
         }
     }
+    
+    /// <summary>
+    /// 可空Boolean转换器 - 空字符串转为false
+    /// </summary>
+    public class NullableBooleanConverter : BooleanConverter
+    {
+        public override object ConvertFromString(string text, IReaderRow row, MemberMapData memberMapData)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+            
+            return base.ConvertFromString(text, row, memberMapData);
+        }
+    }
 }
 

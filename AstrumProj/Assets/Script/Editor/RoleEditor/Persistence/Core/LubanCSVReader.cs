@@ -59,6 +59,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                         csv.Context.TypeConverterCache.AddConverter<int>(new NullableInt32Converter());
                         csv.Context.TypeConverterCache.AddConverter<float>(new NullableFloatConverter());
                         csv.Context.TypeConverterCache.AddConverter<double>(new NullableDoubleConverter());
+                        csv.Context.TypeConverterCache.AddConverter<bool>(new NullableBooleanConverter());
                         
                         // 动态注册ClassMap
                         var classMap = CreateDynamicClassMap<T>(config);
