@@ -33,6 +33,8 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 相机控制 ===
         private Vector2 _dragRotation = Vector2.zero;
         private float _zoomLevel = 3f;
+        private Vector3 _modelCenter = Vector3.zero;
+        private float _orbitRadius = 3f;
         
         // === 常量 ===
         private const float MIN_ZOOM = 1f;
@@ -131,7 +133,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         /// <summary>
         /// 播放指定动作
         /// </summary>
-        private void PlayAction(int actionId)
+        public void PlayAction(int actionId)
         {
             if (_animancer == null || actionId <= 0) return;
             
@@ -217,12 +219,27 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             if (_previewInstance != null)
             {
-                // 设置相机位置（根据缩放）
-                _previewRenderUtility.camera.transform.position = new Vector3(0, 1, -_zoomLevel);
-                _previewRenderUtility.camera.transform.LookAt(Vector3.up);
+                // 计算球形轨道相机位置
+                float theta = _dragRotation.x * Mathf.Deg2Rad; // 水平角度
+                float phi = _dragRotation.y * Mathf.Deg2Rad;   // 垂直角度
                 
-                // 应用旋转
-                _previewInstance.transform.rotation = Quaternion.Euler(_dragRotation.y, -_dragRotation.x, 0);
+                // 限制垂直角度，避免翻转
+                phi = Mathf.Clamp(phi, -80f * Mathf.Deg2Rad, 80f * Mathf.Deg2Rad);
+                
+                // 计算相机位置（球形坐标）
+                float radius = _orbitRadius * _zoomLevel;
+                Vector3 cameraPos = _modelCenter + new Vector3(
+                    radius * Mathf.Sin(phi) * Mathf.Cos(theta),
+                    radius * Mathf.Cos(phi),
+                    radius * Mathf.Sin(phi) * Mathf.Sin(theta)
+                );
+                
+                // 设置相机位置和朝向
+                _previewRenderUtility.camera.transform.position = cameraPos;
+                _previewRenderUtility.camera.transform.LookAt(_modelCenter);
+                
+                // 模型保持原始旋转（不跟随拖拽）
+                // _previewInstance.transform.rotation = Quaternion.identity;
                 
                 // 更新Animancer（预览模式的关键）
                 if (_isPlaying && _animancer != null)
@@ -366,6 +383,40 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _animancer = null;
                 _currentAnimState = null;
             }
+        }
+        
+        
+        /// <summary>
+        /// 停止动画
+        /// </summary>
+        public void StopAnimation()
+        {
+            if (_animancer != null)
+            {
+                _animancer.Stop();
+            }
+            _isPlaying = false;
+        }
+        
+        /// <summary>
+        /// 设置动画播放速度
+        /// </summary>
+        public void SetAnimationSpeed(float speed)
+        {
+            _animationSpeed = speed;
+            if (_animancer != null && _currentAnimState != null)
+            {
+                _currentAnimState.Speed = speed;
+            }
+        }
+        
+        /// <summary>
+        /// 重置相机视角
+        /// </summary>
+        public void ResetCamera()
+        {
+            _dragRotation = Vector2.zero;
+            _zoomLevel = 3f;
         }
         
         /// <summary>

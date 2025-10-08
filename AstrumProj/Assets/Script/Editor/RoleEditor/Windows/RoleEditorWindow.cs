@@ -33,6 +33,10 @@ namespace Astrum.Editor.RoleEditor.Windows
         private const float MIN_WINDOW_WIDTH = 1000f;
         private const float MIN_WINDOW_HEIGHT = 600f;
         
+        // === 可调整布局 ===
+        private float _previewWidth = PREVIEW_WIDTH;
+        private bool _isResizingPreview = false;
+        
         // === Unity生命周期 ===
         
         [MenuItem("Tools/Role & Skill Editor/Role Editor")]
@@ -84,7 +88,10 @@ namespace Astrum.Editor.RoleEditor.Windows
                 // 中间：详情面板（使用Odin）
                 DrawDetailPanel();
                 
-                // 右侧：预览面板
+                // 可调整大小的分隔条
+                DrawResizeHandle();
+                
+                // 右侧：预览面板（可调整大小）
                 DrawPreviewPanel();
             }
             EditorGUILayout.EndHorizontal();
@@ -361,18 +368,114 @@ namespace Astrum.Editor.RoleEditor.Windows
             EditorGUILayout.EndVertical();
         }
         
+        private void DrawResizeHandle()
+        {
+            // 绘制可拖拽的分隔条
+            Rect resizeRect = GUILayoutUtility.GetRect(5, position.height, GUILayout.Width(5));
+            
+            EditorGUI.DrawRect(resizeRect, Color.gray);
+            
+            // 处理拖拽调整大小
+            Event e = Event.current;
+            if (e.type == EventType.MouseDown && resizeRect.Contains(e.mousePosition))
+            {
+                _isResizingPreview = true;
+                e.Use();
+            }
+            
+            if (_isResizingPreview)
+            {
+                if (e.type == EventType.MouseDrag)
+                {
+                    _previewWidth = Mathf.Clamp(_previewWidth - e.delta.x, 200f, position.width - LIST_WIDTH - 200f);
+                    e.Use();
+                }
+                else if (e.type == EventType.MouseUp)
+                {
+                    _isResizingPreview = false;
+                    e.Use();
+                }
+            }
+        }
+        
         private void DrawPreviewPanel()
         {
-            EditorGUILayout.BeginVertical(GUILayout.Width(PREVIEW_WIDTH));
+            EditorGUILayout.BeginVertical(GUILayout.Width(_previewWidth));
             {
                 GUILayout.Label("模型预览", EditorStyles.boldLabel);
                 
-                Rect previewRect = GUILayoutUtility.GetRect(PREVIEW_WIDTH, position.height - 80);
+                // 预览区域（减去控制面板高度）
+                Rect previewRect = GUILayoutUtility.GetRect(_previewWidth, position.height - 200);
                 
                 if (_previewModule != null)
                 {
                     _previewModule.DrawPreview(previewRect);
                 }
+                
+                // 动画控制面板（移到预览面板底部）
+                DrawAnimationControls();
+            }
+            EditorGUILayout.EndVertical();
+        }
+        
+        private void DrawAnimationControls()
+        {
+            if (_selectedRole == null) return;
+            
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            {
+                GUILayout.Label("动画控制", EditorStyles.boldLabel);
+                
+                EditorGUILayout.BeginHorizontal();
+                {
+                    // 播放/停止按钮
+                    if (GUILayout.Button("播放", GUILayout.Height(25)))
+                    {
+                        _previewModule?.PlayAction(_selectedRole.IdleAction);
+                    }
+                    
+                    if (GUILayout.Button("停止", GUILayout.Height(25)))
+                    {
+                        _previewModule?.StopAnimation();
+                    }
+                    
+                    if (GUILayout.Button("重置视角", GUILayout.Height(25)))
+                    {
+                        _previewModule?.ResetCamera();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+                
+                // 动画选择下拉菜单
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUILayout.Label("动画:", GUILayout.Width(40));
+                    
+                    var actions = ConfigTableHelper.GetAvailableActions(_selectedRole);
+                    if (actions != null && actions.Count > 0)
+                    {
+                        string[] actionNames = actions.Select(a => $"{a.ActionName} (ID:{a.ActionId})").ToArray();
+                        int selectedIndex = EditorGUILayout.Popup(0, actionNames, GUILayout.ExpandWidth(true));
+                        
+                        if (selectedIndex >= 0 && selectedIndex < actions.Count)
+                        {
+                            if (GUILayout.Button("播放选中", GUILayout.Width(60)))
+                            {
+                                _previewModule?.PlayAction(actions[selectedIndex].ActionId);
+                            }
+                        }
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+                
+                // 播放速度控制
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUILayout.Label("速度:", GUILayout.Width(40));
+                    float speed = EditorGUILayout.Slider(1.0f, 0.1f, 3.0f, GUILayout.ExpandWidth(true));
+                    _previewModule?.SetAnimationSpeed(speed);
+                }
+                EditorGUILayout.EndHorizontal();
             }
             EditorGUILayout.EndVertical();
         }
