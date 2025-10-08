@@ -1,8 +1,20 @@
 # 通用Luban CSV读写框架
 
+> 📖 **项目路径**: `AstrumProj/Assets/Script/Editor/RoleEditor/Persistence/`  
+> 🔧 **依赖**: CsvHelper 33.1.0  
+> ✅ **状态**: 已测试通过
+
 ## 概述
 
 这是一个通用的CSV表格读写框架，专门用于处理Luban格式的CSV表。使用 **CsvHelper** 库进行CSV解析和生成，不需要为每张表都写重复的读写代码，只需要定义数据映射即可。
+
+### 核心特性
+
+✅ **通用性** - 一套代码支持所有Luban表  
+✅ **类型安全** - 强类型映射，编译期检查  
+✅ **空值处理** - 自动处理CSV中的空字段  
+✅ **自动备份** - 写入前自动备份原文件  
+✅ **易扩展** - 添加新表只需定义映射类
 
 ## 核心组件
 
@@ -157,8 +169,83 @@ CharacterDataReader和CharacterDataWriter展示了如何使用通用框架：
 
 ## 测试
 
-使用菜单`Tools/Role & Skill Editor/Test/`测试读写功能：
-- **Test CSV Read**: 测试读取
-- **Test CSV Write**: 测试写入
-- **Test Round Trip**: 测试读->写->读完整流程
+使用菜单 `Tools/Role & Skill Editor/Test/` 测试读写功能：
+- **Test CSV Read**: 测试读取功能
+- **Test CSV Write**: 测试写入功能
+- **Test Round Trip**: 测试完整的读→写→读流程
+
+### 测试结果示例
+
+```
+[LubanCSVReader] Successfully loaded 3 records from AstrumConfig/Tables/Datas/Entity/#EntityBaseTable.csv
+[LubanCSVReader] Successfully loaded 5 records from AstrumConfig/Tables/Datas/Role/#RoleBaseTable.csv
+[RoleEditor] Successfully loaded 5 roles
+```
+
+## 实际应用
+
+### 角色编辑器中的使用
+
+角色编辑器使用此框架读写 **EntityBaseTable** 和 **RoleBaseTable**：
+
+```csharp
+// RoleDataReader.cs - 读取并合并两张表
+var entityDataList = LubanCSVReader.ReadTable<EntityTableData>(EntityTableData.GetTableConfig());
+var roleDataList = LubanCSVReader.ReadTable<RoleTableData>(RoleTableData.GetTableConfig());
+
+// 合并为 RoleEditorData
+var mergedData = MergeData(entityDataList, roleDataList);
+
+// RoleDataWriter.cs - 拆分并写入两张表
+LubanCSVWriter.WriteTable(EntityTableData.GetTableConfig(), entityDataList);
+LubanCSVWriter.WriteTable(RoleTableData.GetTableConfig(), roleDataList);
+```
+
+## 关键技术点
+
+### 1. 空值处理方案
+
+Luban表中经常有空字段（如 `JumpAction` 为空），框架使用**自定义TypeConverter**处理：
+
+```csharp
+// NullableInt32Converter
+public override object ConvertFromString(string text, ...)
+{
+    if (string.IsNullOrWhiteSpace(text))
+        return 0;  // 空值转为默认值
+    
+    return base.ConvertFromString(text, row, memberMapData);
+}
+```
+
+全局注册：
+```csharp
+csv.Context.TypeConverterCache.AddConverter<int>(new NullableInt32Converter());
+```
+
+### 2. 路径解析
+
+框架自动处理项目路径：
+```
+Application.dataPath    = D:\Astrum\AstrumProj\Assets
+向上一级               = D:\Astrum\AstrumProj
+向上两级（项目根）      = D:\Astrum
+
+配置路径: "AstrumConfig/Tables/Datas/..."
+完整路径: "D:\Astrum\AstrumConfig/Tables/Datas/..."
+```
+
+### 3. 动态ClassMap生成
+
+框架通过反射自动生成CsvHelper的ClassMap：
+
+```csharp
+// 扫描 TableField 特性
+[TableField(0, "EntityId")]
+public int EntityId { get; set; }
+
+// 自动生成
+var memberMap = classMap.Map(type, property);
+memberMap.Index(columnIndex);
+```
 
