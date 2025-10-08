@@ -16,7 +16,6 @@ public partial class Tables
     public TbItem TbItem {get; }
     public Entity.TbActionTable TbActionTable {get; }
     public Entity.TbEntityBaseTable TbEntityBaseTable {get; }
-    public Entity.TbEntityModelTable TbEntityModelTable {get; }
     public Role.TbRoleBaseTable TbRoleBaseTable {get; }
     public Role.TbRoleGrowthTable TbRoleGrowthTable {get; }
     public Skill.TbSkillActionTable TbSkillActionTable {get; }
@@ -28,7 +27,6 @@ public partial class Tables
         TbItem = new TbItem(loader("tbitem"));
         TbActionTable = new Entity.TbActionTable(loader("entity_tbactiontable"));
         TbEntityBaseTable = new Entity.TbEntityBaseTable(loader("entity_tbentitybasetable"));
-        TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
         TbRoleBaseTable = new Role.TbRoleBaseTable(loader("role_tbrolebasetable"));
         TbRoleGrowthTable = new Role.TbRoleGrowthTable(loader("role_tbrolegrowthtable"));
         TbSkillActionTable = new Skill.TbSkillActionTable(loader("skill_tbskillactiontable"));
@@ -42,7 +40,6 @@ public partial class Tables
         TbItem.ResolveRef(this);
         TbActionTable.ResolveRef(this);
         TbEntityBaseTable.ResolveRef(this);
-        TbEntityModelTable.ResolveRef(this);
         TbRoleBaseTable.ResolveRef(this);
         TbRoleGrowthTable.ResolveRef(this);
         TbSkillActionTable.ResolveRef(this);
