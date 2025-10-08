@@ -40,10 +40,17 @@ namespace Astrum.Editor.RoleEditor.Services
             var actionTable = GetActionTable(actionId);
             if (actionTable == null)
             {
+                Debug.LogWarning($"{LOG_PREFIX} ActionTable data not found for actionId {actionId}");
+                return string.Empty;
+            }
+            
+            if (string.IsNullOrEmpty(actionTable.AnimationPath))
+            {
                 Debug.LogWarning($"{LOG_PREFIX} Animation path is empty for actionId {actionId}");
                 return string.Empty;
             }
-            return actionTable.AnimationPath ?? string.Empty;
+            
+            return actionTable.AnimationPath;
         }
         
         /// <summary>
@@ -145,8 +152,16 @@ namespace Astrum.Editor.RoleEditor.Services
                     }
                 };
                 
+                Debug.Log($"{LOG_PREFIX} Attempting to load ActionTable from: {config.FilePath}");
                 _actionTableCache = LubanCSVReader.ReadTable<ActionTableData>(config);
                 Debug.Log($"{LOG_PREFIX} Loaded {_actionTableCache.Count} action records from CSV");
+                
+                // 调试：打印前几条记录
+                for (int i = 0; i < Mathf.Min(3, _actionTableCache.Count); i++)
+                {
+                    var record = _actionTableCache[i];
+                    Debug.Log($"{LOG_PREFIX} Record {i}: Id={record.Id}, Name={record.Name}, AnimationPath={record.AnimationPath}");
+                }
             }
             catch (System.Exception ex)
             {
@@ -182,16 +197,19 @@ namespace Astrum.Editor.RoleEditor.Services
     /// </summary>
     public class ActionTableData
     {
-        [TableField(1, "actionId")]
+        [TableField(0, "actionId")]
         public int Id { get; set; }
         
-        [TableField(2, "actionName")]
+        [TableField(1, "actionName")]
         public string Name { get; set; }
         
-        [TableField(5, "AnimationName")]
-        public string AnimationPath { get; set; }
-        
-        [TableField(3, "actionType")]
+        [TableField(2, "actionType")]
         public string ActionType { get; set; }
+        
+        [TableField(3, "duration")]
+        public int Duration { get; set; }
+        
+        [TableField(4, "AnimationName")]
+        public string AnimationPath { get; set; }
     }
 }
