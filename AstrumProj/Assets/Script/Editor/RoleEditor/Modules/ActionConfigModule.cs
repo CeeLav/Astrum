@@ -61,6 +61,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 DrawEntitySelection();
                 EditorGUILayout.Space(5);
                 DrawOdinInspector();
+                DrawAnimationStatusCheck();
+                EditorGUILayout.Space(5);
                 DrawCancelTagSection();
                 DrawEventStatisticsSection();
             }
@@ -153,6 +155,48 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _currentAction.MarkDirty();
                 EditorUtility.SetDirty(_currentAction);
                 OnActionModified?.Invoke(_currentAction);
+            }
+        }
+        
+        private void DrawAnimationStatusCheck()
+        {
+            if (_currentAction == null) return;
+            
+            // 检查动画路径是否有效
+            if (string.IsNullOrEmpty(_currentAction.AnimationPath))
+            {
+                EditorGUILayout.HelpBox(
+                    "⚠️ 未设置动画路径，请先配置动画文件才能正常使用此动作", 
+                    MessageType.Warning
+                );
+                return;
+            }
+            
+            // 检查动画文件是否存在
+            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(_currentAction.AnimationPath);
+            if (clip == null)
+            {
+                EditorGUILayout.HelpBox(
+                    $"⚠️ 动画文件不存在: {_currentAction.AnimationPath}", 
+                    MessageType.Error
+                );
+                return;
+            }
+            
+            // 检查动作帧数是否超过动画帧数
+            if (_currentAction.Duration > _currentAction.AnimationDuration)
+            {
+                EditorGUILayout.HelpBox(
+                    $"⚠️ 动作总帧数({_currentAction.Duration})超过了动画总帧数({_currentAction.AnimationDuration})", 
+                    MessageType.Warning
+                );
+                
+                if (GUILayout.Button("自动修正为动画总帧数"))
+                {
+                    _currentAction.Duration = _currentAction.AnimationDuration;
+                    _currentAction.MarkDirty();
+                    OnActionModified?.Invoke(_currentAction);
+                }
             }
         }
         
