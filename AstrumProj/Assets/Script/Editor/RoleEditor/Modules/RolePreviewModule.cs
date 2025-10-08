@@ -115,6 +115,9 @@ namespace Astrum.Editor.RoleEditor.Modules
             _previewInstance.hideFlags = HideFlags.HideAndDontSave;
             _previewRenderUtility.AddSingleGO(_previewInstance);
             
+            // 计算模型边界框和中心点
+            CalculateModelBounds();
+            
             // 初始化Animancer
             _animancer = AnimationHelper.GetOrAddAnimancer(_previewInstance);
             
@@ -133,6 +136,36 @@ namespace Astrum.Editor.RoleEditor.Modules
             _zoomLevel = 3f;
             
             Debug.Log($"[RolePreviewModule] Loaded model for role [{_currentRole.RoleId}] {_currentRole.RoleName}");
+        }
+        
+        /// <summary>
+        /// 计算模型边界框和中心点
+        /// </summary>
+        private void CalculateModelBounds()
+        {
+            if (_previewInstance == null) return;
+            
+            // 获取所有渲染器
+            var renderers = _previewInstance.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            
+            // 计算边界框
+            Bounds bounds = renderers[0].bounds;
+            foreach (var renderer in renderers)
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+            
+            // 设置模型中心点
+            _modelCenter = bounds.center;
+            _orbitRadius = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * 1.5f;
+            
+            // 调整模型位置，使其中心在原点
+            Vector3 offset = _modelCenter;
+            _previewInstance.transform.position = -offset;
+            _modelCenter = Vector3.zero;
+            
+            Debug.Log($"[RolePreviewModule] Model bounds: {bounds.size}, Center: {_modelCenter}, Orbit radius: {_orbitRadius}");
         }
         
         /// <summary>
@@ -242,6 +275,11 @@ namespace Astrum.Editor.RoleEditor.Modules
                 // 设置相机位置和朝向
                 _previewRenderUtility.camera.transform.position = cameraPos;
                 _previewRenderUtility.camera.transform.LookAt(_modelCenter);
+                
+                // 调整相机裁剪平面，确保模型不被裁剪
+                float distance = Vector3.Distance(cameraPos, _modelCenter);
+                _previewRenderUtility.camera.nearClipPlane = Mathf.Max(0.01f, distance * 0.01f);
+                _previewRenderUtility.camera.farClipPlane = distance * 10f;
                 
                 // 模型保持原始旋转（不跟随拖拽）
                 // _previewInstance.transform.rotation = Quaternion.identity;
