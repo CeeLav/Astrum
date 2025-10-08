@@ -18,18 +18,18 @@ namespace Astrum.Editor.RoleEditor.Services
         // 缓存数据
         private static List<EntityTableData> _entityTableCache;
         private static List<RoleTableData> _roleTableCache;
-        private static List<ActionTableData> _actionTableCache;
+        private static List<ActionTableCacheData> _actionTableCache;
         
         /// <summary>
         /// 获取动作表数据（从CSV读取）
         /// </summary>
-        public static ActionTableData GetActionTable(int actionId)
+        public static ActionTableCacheData GetActionTable(int actionId)
         {
             if (actionId <= 0) return null;
             
             LoadActionTableIfNeeded();
             
-            return _actionTableCache?.FirstOrDefault(x => x.Id == actionId);
+            return _actionTableCache?.FirstOrDefault(x => x.ActionId == actionId);
         }
         
         /// <summary>
@@ -80,7 +80,7 @@ namespace Astrum.Editor.RoleEditor.Services
         public static string GetActionName(int actionId)
         {
             var actionTable = GetActionTable(actionId);
-            return actionTable?.Name ?? $"Action_{actionId}";
+            return actionTable?.ActionName ?? $"Action_{actionId}";
         }
         
         /// <summary>
@@ -113,7 +113,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 actions.Add(new RoleActionInfo
                 {
                     ActionId = actionId,
-                    ActionName = actionTable.Name ?? actionName,
+                    ActionName = actionTable.ActionName ?? actionName,
                     AnimationPath = actionTable.AnimationPath
                 });
             }
@@ -138,35 +138,23 @@ namespace Astrum.Editor.RoleEditor.Services
             
             try
             {
-                var config = new LubanTableConfig
-                {
-                    FilePath = "AstrumConfig/Tables/Datas/Entity/#ActionTable.csv",
-                    HeaderLines = 4,
-                    HasEmptyFirstColumn = true,
-                    Header = new TableHeader 
-                    { 
-                        VarNames = new List<string> { "actionId", "actionName", "actionType", "duration", "AnimationName" },
-                        Types = new List<string> { "int", "string", "string", "int", "string" },
-                        Groups = new List<string> { "", "", "", "", "" },
-                        Descriptions = new List<string> { "动作ID", "动作名称", "动作类型", "持续时间", "动画名称" }
-                    }
-                };
+                var config = ActionTableCacheData.GetTableConfig();
                 
                 Debug.Log($"{LOG_PREFIX} Attempting to load ActionTable from: {config.FilePath}");
-                _actionTableCache = LubanCSVReader.ReadTable<ActionTableData>(config);
+                _actionTableCache = LubanCSVReader.ReadTable<ActionTableCacheData>(config);
                 Debug.Log($"{LOG_PREFIX} Loaded {_actionTableCache.Count} action records from CSV");
                 
                 // 调试：打印前几条记录
                 for (int i = 0; i < Mathf.Min(3, _actionTableCache.Count); i++)
                 {
                     var record = _actionTableCache[i];
-                    Debug.Log($"{LOG_PREFIX} Record {i}: Id={record.Id}, Name={record.Name}, AnimationPath={record.AnimationPath}");
+                    Debug.Log($"{LOG_PREFIX} Record {i}: Id={record.ActionId}, Name={record.ActionName}, AnimationPath={record.AnimationPath}");
                 }
             }
             catch (System.Exception ex)
             {
                 Debug.LogError($"{LOG_PREFIX} Failed to load ActionTable: {ex.Message}");
-                _actionTableCache = new List<ActionTableData>();
+                _actionTableCache = new List<ActionTableCacheData>();
             }
         }
         
@@ -193,15 +181,15 @@ namespace Astrum.Editor.RoleEditor.Services
     }
     
     /// <summary>
-    /// ActionTable数据映射
+    /// ActionTable缓存数据（简化版，仅用于ConfigTableHelper）
     /// </summary>
-    public class ActionTableData
+    public class ActionTableCacheData
     {
         [TableField(0, "actionId")]
-        public int Id { get; set; }
+        public int ActionId { get; set; }
         
         [TableField(1, "actionName")]
-        public string Name { get; set; }
+        public string ActionName { get; set; }
         
         [TableField(2, "actionType")]
         public string ActionType { get; set; }
@@ -211,5 +199,22 @@ namespace Astrum.Editor.RoleEditor.Services
         
         [TableField(4, "AnimationName")]
         public string AnimationPath { get; set; }
+        
+        public static LubanTableConfig GetTableConfig()
+        {
+            return new LubanTableConfig
+            {
+                FilePath = "AstrumConfig/Tables/Datas/Entity/#ActionTable.csv",
+                HeaderLines = 4,
+                HasEmptyFirstColumn = true,
+                Header = new TableHeader
+                {
+                    VarNames = new List<string> { "actionId", "actionName", "actionType", "duration", "AnimationName" },
+                    Types = new List<string> { "int", "string", "string", "int", "string" },
+                    Groups = new List<string> { "", "", "", "", "" },
+                    Descriptions = new List<string> { "动作ID", "动作名称", "动作类型", "持续时间", "动画名称" }
+                }
+            };
+        }
     }
 }
