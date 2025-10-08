@@ -61,8 +61,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 背景
             EditorGUI.DrawRect(rect, COLOR_BACKGROUND);
             
-            // 播放头位置
-            float x = _layoutCalculator.FrameToPixel(currentFrame) + _layoutCalculator.GetTrackHeaderWidth();
+            // 播放头位置（相对于轨道内容区域）
+            float x = rect.x + _layoutCalculator.GetTrackHeaderWidth() + _layoutCalculator.FrameToPixel(currentFrame);
             
             // 绘制播放头标记
             DrawPlayheadMarker(new Rect(x - 5, rect.y, 10, rect.height), currentFrame);
@@ -230,7 +230,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private void DrawFrameLines(Rect rect, int totalFrames)
         {
             float pixelsPerFrame = _layoutCalculator.GetPixelsPerFrame();
-            float startX = rect.x; // 使用时间轴区域的起始X坐标
+            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
+            float startX = rect.x + trackHeaderWidth; // 从轨道标题宽度之后开始绘制
             
             // 确定主刻度和次刻度间隔
             int majorInterval = GetFrameInterval(pixelsPerFrame);
@@ -271,7 +272,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private void DrawFrameNumbers(Rect rect, int totalFrames)
         {
             float pixelsPerFrame = _layoutCalculator.GetPixelsPerFrame();
-            float startX = rect.x; // 使用时间轴区域的起始X坐标
+            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
+            float startX = rect.x + trackHeaderWidth; // 从轨道标题宽度之后开始绘制
             int frameInterval = GetFrameInterval(pixelsPerFrame);
             
             GUIStyle labelStyle = new GUIStyle(EditorStyles.miniLabel);
