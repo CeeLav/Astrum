@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using Sirenix.OdinInspector;
@@ -19,6 +20,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         private Vector2 _scrollPosition;
         private PropertyTree _propertyTree;
         
+        // === 实体选择 ===
+        private int _selectedEntityId = 0;
+        
         // === 折叠状态 ===
         private bool _basicInfoFoldout = true;
         private bool _actionConfigFoldout = true;
@@ -28,6 +32,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 事件 ===
         public event Action<ActionEditorData> OnActionModified;
         public event Action OnJumpToTimeline;
+        public event Action<int> OnEntitySelected;
         
         // === 核心方法 ===
         
@@ -53,6 +58,8 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             {
+                DrawEntitySelection();
+                EditorGUILayout.Space(5);
                 DrawOdinInspector();
                 DrawCancelTagSection();
                 DrawEventStatisticsSection();
@@ -87,6 +94,38 @@ namespace Astrum.Editor.RoleEditor.Modules
         }
         
         // === 私有绘制方法 ===
+        
+        private void DrawEntitySelection()
+        {
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("预览角色选择", EditorStyles.boldLabel);
+                
+                var allEntities = Services.ConfigTableHelper.GetAllEntities();
+                if (allEntities.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("没有可用的实体数据", MessageType.Warning);
+                }
+                else
+                {
+                    string[] entityNames = allEntities.Select(e => $"[{e.EntityId}] {e.ArchetypeName}").ToArray();
+                    int[] entityIds = allEntities.Select(e => e.EntityId).ToArray();
+                    
+                    int currentIndex = System.Array.IndexOf(entityIds, _selectedEntityId);
+                    if (currentIndex < 0) currentIndex = 0;
+                    
+                    int newIndex = EditorGUILayout.Popup("选择实体", currentIndex, entityNames);
+                    
+                    if (newIndex != currentIndex && newIndex >= 0 && newIndex < entityIds.Length)
+                    {
+                        _selectedEntityId = entityIds[newIndex];
+                        OnEntitySelected?.Invoke(_selectedEntityId);
+                        Debug.Log($"[ActionConfigModule] Entity selected: {_selectedEntityId}");
+                    }
+                }
+            }
+            EditorGUILayout.EndVertical();
+        }
         
         private void DrawOdinInspector()
         {
