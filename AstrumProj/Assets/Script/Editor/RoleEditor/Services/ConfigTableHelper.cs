@@ -1,64 +1,35 @@
 using UnityEngine;
 using UnityEditor;
-using Astrum.LogicCore.Managers;
 using Astrum.Editor.RoleEditor.Data;
+using Astrum.Editor.RoleEditor.Persistence.Core;
+using Astrum.Editor.RoleEditor.Persistence.Mappings;
 using System.Collections.Generic;
 using System.Linq;
-using cfg;
 
 namespace Astrum.Editor.RoleEditor.Services
 {
     /// <summary>
-    /// 配置表查询工具类 - 封装ConfigManager的查询逻辑
+    /// 配置表查询工具类 - 直接读取CSV文件，不依赖ConfigManager
     /// </summary>
     public static class ConfigTableHelper
     {
         private const string LOG_PREFIX = "[ConfigTableHelper]";
         
-        /// <summary>
-        /// 确保ConfigManager已初始化（编辑器模式，允许失败）
-        /// </summary>
-        public static bool EnsureConfigManagerInitialized()
-        {
-            if (!ConfigManager.Instance.IsInitialized)
-            {
-                try
-                {
-                    ConfigManager.Instance.Initialize("Config");
-                    Debug.Log($"{LOG_PREFIX} ConfigManager initialized successfully");
-                    return true;
-                }
-                catch (System.Exception ex)
-                {
-                    Debug.LogWarning($"{LOG_PREFIX} ConfigManager initialization failed (this is normal in editor mode): {ex.Message}");
-                    return false;
-                }
-            }
-            return true;
-        }
+        // 缓存数据
+        private static List<EntityTableData> _entityTableCache;
+        private static List<RoleTableData> _roleTableCache;
+        private static List<ActionTableData> _actionTableCache;
         
         /// <summary>
-        /// 获取动作表数据
+        /// 获取动作表数据（从CSV读取）
         /// </summary>
-        public static cfg.Entity.ActionTable GetActionTable(int actionId)
+        public static ActionTableData GetActionTable(int actionId)
         {
             if (actionId <= 0) return null;
             
-            if (!EnsureConfigManagerInitialized())
-            {
-                Debug.LogWarning($"{LOG_PREFIX} ConfigManager not available, cannot get ActionTable for actionId {actionId}");
-                return null;
-            }
+            LoadActionTableIfNeeded();
             
-            try
-            {
-                return ConfigManager.Instance.Tables.TbActionTable.Get(actionId);
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"{LOG_PREFIX} Failed to get ActionTable for actionId {actionId}: {ex.Message}");
-                return null;
-            }
+            return _actionTableCache?.FirstOrDefault(x => x.Id == actionId);
         }
         
         /// <summary>
@@ -66,10 +37,34 @@ namespace Astrum.Editor.RoleEditor.Services
         /// </summary>
         public static string GetAnimationPath(int actionId)
         {
-            if (actionId <= 0) return string.Empty;
-            
             var actionTable = GetActionTable(actionId);
-            return actionTable?.AnimationName ?? string.Empty;
+            if (actionTable == null)
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Animation path is empty for actionId {actionId}");
+                return string.Empty;
+            }
+            return actionTable.AnimationPath ?? string.Empty;
+        }
+        
+        /// <summary>
+        /// 加载动画片段
+        /// </summary>
+        public static AnimationClip LoadAnimationClip(int actionId)
+        {
+            string animationPath = GetAnimationPath(actionId);
+            if (string.IsNullOrEmpty(animationPath))
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Animation path is empty for actionId {actionId}");
+                return null;
+            }
+            
+            AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(animationPath);
+            if (clip == null)
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Failed to load animation clip at path: {animationPath}");
+            }
+            
+            return clip;
         }
         
         /// <summary>
@@ -77,70 +72,98 @@ namespace Astrum.Editor.RoleEditor.Services
         /// </summary>
         public static string GetActionName(int actionId)
         {
-            if (actionId <= 0) return "无";
+            var actionTable = GetActionTable(actionId);
+            return actionTable?.Name ?? $"Action_{actionId}";
+        }
+        
+        /// <summary>
+        /// 获取角色可用的动作列表
+        /// </summary>
+        public static List<RoleActionInfo> GetAvailableActions(RoleEditorData roleData)
+        {
+            var actions = new List<RoleActionInfo>();
+            
+            if (roleData == null) return actions;
+            
+            // 添加默认动作
+            AddActionIfValid(actions, "静止动作", roleData.IdleAction);
+            AddActionIfValid(actions, "跳跃动作", roleData.JumpAction);
+            AddActionIfValid(actions, "行走动作", roleData.WalkAction);
+            
+            return actions;
+        }
+        
+        /// <summary>
+        /// 添加动作到列表（如果有效）
+        /// </summary>
+        private static void AddActionIfValid(List<RoleActionInfo> actions, string actionName, int actionId)
+        {
+            if (actionId <= 0) return;
             
             var actionTable = GetActionTable(actionId);
-            return actionTable?.ActionName ?? "未命名动作";
-        }
-        
-        /// <summary>
-        /// 加载动画片段（通过ActionID）
-        /// </summary>
-        public static AnimationClip LoadAnimationClip(int actionId)
-        {
-            string animPath = GetAnimationPath(actionId);
-            
-            if (string.IsNullOrEmpty(animPath))
+            if (actionTable != null)
             {
-                Debug.LogWarning($"{LOG_PREFIX} Animation path is empty for actionId {actionId}");
-                return null;
-            }
-            
-            var animClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(animPath);
-            
-            if (animClip == null)
-            {
-                Debug.LogWarning($"{LOG_PREFIX} Failed to load animation clip: {animPath}");
-            }
-            
-            return animClip;
-        }
-        
-        /// <summary>
-        /// 获取角色的所有可用动作列表
-        /// </summary>
-        public static List<RoleActionInfo> GetAvailableActions(RoleEditorData role)
-        {
-            var result = new List<RoleActionInfo>();
-            
-            if (role == null) return result;
-            
-            // 收集所有有效的动作ID
-            AddActionIfValid(result, "待机", role.IdleAction);
-            AddActionIfValid(result, "行走", role.WalkAction);
-            AddActionIfValid(result, "奔跑", role.RunAction);
-            AddActionIfValid(result, "跳跃", role.JumpAction);
-            AddActionIfValid(result, "出生", role.BirthAction);
-            AddActionIfValid(result, "死亡", role.DeathAction);
-            
-            return result;
-        }
-        
-        /// <summary>
-        /// 添加动作信息（如果有效）
-        /// </summary>
-        private static void AddActionIfValid(List<RoleActionInfo> list, string label, int actionId)
-        {
-            if (actionId > 0)
-            {
-                var actionName = GetActionName(actionId);
-                list.Add(new RoleActionInfo
+                actions.Add(new RoleActionInfo
                 {
-                    Label = label,
                     ActionId = actionId,
-                    ActionName = actionName
+                    ActionName = actionTable.Name ?? actionName,
+                    AnimationPath = actionTable.AnimationPath
                 });
             }
+            else
+            {
+                // 即使找不到ActionTable，也添加基本信息
+                actions.Add(new RoleActionInfo
+                {
+                    ActionId = actionId,
+                    ActionName = actionName,
+                    AnimationPath = string.Empty
+                });
+            }
+        }
+        
+        /// <summary>
+        /// 加载ActionTable数据（如果需要）
+        /// </summary>
+        private static void LoadActionTableIfNeeded()
+        {
+            if (_actionTableCache != null) return;
+            
+            try
+            {
+                var config = new LubanTableConfig
+                {
+                    FilePath = "AstrumConfig/Tables/Datas/Entity/#ActionTable.csv",
+                    HeaderLines = 4,
+                    HasEmptyFirstColumn = true,
+                    Header = new TableHeader 
+                    { 
+                        VarNames = new List<string> { "actionId", "actionName", "actionType", "duration", "AnimationName" },
+                        Types = new List<string> { "int", "string", "string", "int", "string" },
+                        Groups = new List<string> { "", "", "", "", "" },
+                        Descriptions = new List<string> { "动作ID", "动作名称", "动作类型", "持续时间", "动画名称" }
+                    }
+                };
+                
+                _actionTableCache = LubanCSVReader.ReadTable<ActionTableData>(config);
+                Debug.Log($"{LOG_PREFIX} Loaded {_actionTableCache.Count} action records from CSV");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{LOG_PREFIX} Failed to load ActionTable: {ex.Message}");
+                _actionTableCache = new List<ActionTableData>();
+            }
+        }
+        
+        /// <summary>
+        /// 清除缓存（用于重新加载数据）
+        /// </summary>
+        public static void ClearCache()
+        {
+            _entityTableCache = null;
+            _roleTableCache = null;
+            _actionTableCache = null;
+            Debug.Log($"{LOG_PREFIX} Cache cleared");
         }
     }
     
@@ -149,14 +172,26 @@ namespace Astrum.Editor.RoleEditor.Services
     /// </summary>
     public class RoleActionInfo
     {
-        public string Label { get; set; }        // 显示标签（如"待机"）
-        public int ActionId { get; set; }        // 动作ID
-        public string ActionName { get; set; }   // 动作名称（从表读取）
+        public int ActionId { get; set; }
+        public string ActionName { get; set; }
+        public string AnimationPath { get; set; }
+    }
+    
+    /// <summary>
+    /// ActionTable数据映射
+    /// </summary>
+    public class ActionTableData
+    {
+        [TableField(1, "actionId")]
+        public int Id { get; set; }
         
-        public override string ToString()
-        {
-            return $"{Label} [{ActionId}] - {ActionName}";
-        }
+        [TableField(2, "actionName")]
+        public string Name { get; set; }
+        
+        [TableField(5, "AnimationName")]
+        public string AnimationPath { get; set; }
+        
+        [TableField(3, "actionType")]
+        public string ActionType { get; set; }
     }
 }
-
