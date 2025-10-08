@@ -290,9 +290,8 @@ namespace Astrum.Editor.RoleEditor.Data
         /// </summary>
         private string GetActionName()
         {
-            // TODO: 从ConfigTableHelper查询ActionTable获取动作名称
-            // 这里先返回占位符，后续在集成时实现
-            return $"Action_{ActionId}";
+            var actionTable = Services.ConfigTableHelper.GetActionTable(ActionId);
+            return actionTable?.Name ?? $"Action_{ActionId}";
         }
         
         private void OnActionIdChanged()
