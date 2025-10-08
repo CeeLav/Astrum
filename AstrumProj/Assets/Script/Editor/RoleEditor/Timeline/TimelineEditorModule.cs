@@ -105,7 +105,10 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 在轨道绘制完成后，重新绘制播放头竖线（确保在最上层）
             _renderer.DrawPlayheadLines(trackAreaRect, _currentFrame);
             
-            // 处理交互
+            // 处理刻度尺区域的交互（在其他交互之前处理，优先级更高）
+            _interaction.HandleFrameScaleInput(frameScaleRect, Event.current);
+            
+            // 处理其他交互
             _interaction.HandleInput(rect, Event.current, _tracks, _eventsByTrack, _currentFrame);
         }
         
