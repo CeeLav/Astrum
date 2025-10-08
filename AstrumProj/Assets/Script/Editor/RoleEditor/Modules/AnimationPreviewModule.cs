@@ -10,6 +10,10 @@ namespace Astrum.Editor.RoleEditor.Modules
     /// </summary>
     public class AnimationPreviewModule : BasePreviewModule
     {
+        // === 帧率常量 ===
+        private const float LOGIC_FRAME_RATE = 20f;     // 游戏逻辑帧率：20fps = 50ms/帧
+        private const float FRAME_TIME = 0.05f;          // 每帧时间：50ms = 0.05秒
+        
         // === 当前动画 ===
         private AnimationClip _currentClip;
         private string _currentAnimationPath;
@@ -17,6 +21,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 播放状态（特有） ===
         private int _currentFrame = 0;
+        private float _accumulatedTime = 0f;             // 累积时间，用于逐帧播放
         
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
@@ -98,10 +103,23 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 播放控制（重写基类方法，添加帧重置）===
         
+        public override void Play()
+        {
+            if (_currentAnimState != null)
+            {
+                _isPlaying = true;
+                _currentAnimState.Speed = 0; // 保持Speed=0，完全由我们手动控制Time
+                _lastUpdateTime = UnityEditor.EditorApplication.timeSinceStartup;
+                _accumulatedTime = 0f; // 重置累积时间，防止跳帧
+                Debug.Log($"{LogPrefix} Playing (manual frame control)");
+            }
+        }
+        
         public override void Stop()
         {
             base.Stop();
             _currentFrame = 0;
+            _accumulatedTime = 0f;
         }
         
         /// <summary>
@@ -114,8 +132,8 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             _currentFrame = Mathf.Clamp(frame, 0, GetTotalFrames() - 1);
             
-            // 计算时间（假设30fps）
-            float time = _currentFrame / 30f;
+            // 计算时间（50ms/帧 = 20fps）
+            float time = _currentFrame * FRAME_TIME;
             _currentAnimState.Time = time;
             
             // 手动更新Animancer
@@ -133,7 +151,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             if (_currentAnimState == null)
                 return 0;
             
-            return Mathf.RoundToInt(_currentAnimState.Time * 30f);
+            return Mathf.RoundToInt(_currentAnimState.Time * LOGIC_FRAME_RATE);
         }
         
         /// <summary>
@@ -144,7 +162,8 @@ namespace Astrum.Editor.RoleEditor.Modules
             if (_currentClip == null)
                 return 60;
             
-            return Mathf.RoundToInt(_currentClip.length * 30f);
+            // 动画总时长(秒) * 逻辑帧率(20fps) = 逻辑帧数
+            return Mathf.RoundToInt(_currentClip.length * LOGIC_FRAME_RATE);
         }
         
         // === 绘制 ===
@@ -167,12 +186,37 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         protected override void UpdateAnimation()
         {
-            base.UpdateAnimation();
-            
-            // 更新当前帧
-            if (_isPlaying)
+            if (_isPlaying && _currentAnimState != null && _animancer != null)
             {
-                _currentFrame = GetCurrentFrame();
+                double currentTime = UnityEditor.EditorApplication.timeSinceStartup;
+                float deltaTime = (float)(currentTime - _lastUpdateTime);
+                _lastUpdateTime = currentTime;
+                
+                // 累积时间
+                _accumulatedTime += deltaTime;
+                
+                // 按照逻辑帧率（20fps）逐帧更新
+                while (_accumulatedTime >= FRAME_TIME)
+                {
+                    _accumulatedTime -= FRAME_TIME;
+                    
+                    // 前进一帧
+                    _currentFrame++;
+                    
+                    // 检查是否到达结尾
+                    int totalFrames = GetTotalFrames();
+                    if (_currentFrame >= totalFrames)
+                    {
+                        // 循环播放
+                        _currentFrame = 0;
+                    }
+                    
+                    // 设置动画时间
+                    _currentAnimState.Time = _currentFrame * FRAME_TIME;
+                }
+                
+                // 手动更新Animancer（不传入deltaTime，因为我们直接设置了Time）
+                AnimationHelper.EvaluateAnimancer(_animancer, 0);
             }
         }
     }

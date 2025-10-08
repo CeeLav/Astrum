@@ -329,12 +329,21 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 加载动画片段
             _previewModule.LoadAnimationFromPath(action.AnimationPath);
             
-            // 同步帧数
-            int totalFrames = _previewModule.GetTotalFrames();
-            if (totalFrames > 0)
+            // 计算动画总帧数
+            int animationTotalFrames = _previewModule.GetTotalFrames();
+            if (animationTotalFrames > 0)
             {
-                action.Duration = totalFrames;
-                _timelineModule.SetTotalFrames(totalFrames);
+                // 更新动画总帧数
+                action.AnimationDuration = animationTotalFrames;
+                
+                // 如果动作帧数为0或超过动画帧数，则设置为动画帧数
+                if (action.Duration <= 0 || action.Duration > animationTotalFrames)
+                {
+                    action.Duration = animationTotalFrames;
+                }
+                
+                // 时间轴使用动作总帧数
+                _timelineModule.SetTotalFrames(action.Duration);
             }
         }
         
@@ -454,6 +463,12 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 动作配置被修改，可能需要更新时间轴
             if (action != null && action == _selectedAction)
             {
+                // 验证动作帧数不超过动画帧数
+                if (action.Duration > action.AnimationDuration)
+                {
+                    action.Duration = action.AnimationDuration;
+                }
+                
                 _timelineModule.SetTotalFrames(action.Duration);
             }
         }
