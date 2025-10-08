@@ -1,0 +1,30 @@
+{
+    "name": "Astrum.Editor.RoleEditor",
+    "rootNamespace": "Astrum.Editor.RoleEditor",
+    "references": [
+        "GUID:c0d9372acc40044428e2e9d20b961b9c",
+        "Astrum.Editor.Common",
+        "Astrum.CommonBase",
+        "Astrum.LogicCore",
+        "Astrum.Generated",
+        "Kybernetik.Animancer"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "CsvHelper.dll",
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Sirenix.OdinInspector.Editor.dll",
+        "Sirenix.Utilities.dll",
+        "Sirenix.Utilities.Editor.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
+

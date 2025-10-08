@@ -1,7 +1,0 @@
-##var,modelId,modelName,modelPath,modelType
-##type,int,string,string,string
-##group,,,,
-##desc,模型ID,模型名称,模型路径,模型类型
-,2001,character_01,Models/Character/character_01.prefab,character
-,2002,character_02,Models/Character/character_02.prefab,character
-,2003,character_03,Models/Character/character_03.prefab,character
