@@ -2,5 +2,5 @@
 ##type,int,int,string,int,int,string
 ##group,,,,,,
 ##desc,动作ID,技能ID,攻击碰撞盒信息,实际法力消耗,实际冷却时间(帧),触发帧信息
-,3001,2001,Box1:5x2x1,15,270,Frame5:Collision:4001
+,3001,2001,,20,300,
 ,3002,2002,Box2:3x3x1,0,0,Frame12:Direct:4003
