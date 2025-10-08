@@ -47,8 +47,8 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             base.OnEnable();
             
-            // 确保ConfigManager初始化（Helper内部会检查）
-            ConfigTableHelper.EnsureConfigManagerInitialized();
+            // 初始化配置表Helper（现在直接读取CSV，不需要ConfigManager）
+            ConfigTableHelper.ClearCache();
             
             InitializeModules();
             LoadData();
