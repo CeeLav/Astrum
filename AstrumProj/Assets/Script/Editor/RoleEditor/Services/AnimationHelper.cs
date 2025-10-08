@@ -165,7 +165,7 @@ namespace Astrum.Editor.RoleEditor.Services
         {
             if (animancer == null) return false;
             
-            return animancer.IsGraphPlaying;
+            return animancer.IsPlaying();
         }
     }
 }
