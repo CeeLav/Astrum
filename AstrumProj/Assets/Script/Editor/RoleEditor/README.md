@@ -51,10 +51,13 @@ Unity菜单 > Tools > Role & Skill Editor > Role Editor
 ```
 RoleEditor/
 ├── README.md                    # 本文档
+├── CHANGELOG.md                 # 更新日志 ⭐
+├── 常见问题快速修复.md           # 快速修复指南 🔧
 ├── SETUP.md                     # 设置说明
 ├── 阶段1完成总结.md              # 阶段1总结
 ├── 阶段2完成总结.md              # 阶段2总结
 ├── 阶段2测试指南.md              # 测试指南
+├── 阶段2-Bug修复记录.md          # Bug修复记录 ⭐
 ├── RoleEditor.asmdef            # 程序集定义
 │
 ├── Core/
@@ -139,7 +142,8 @@ RoleEditor/
 - 主编辑器窗口
 
 📖 [阶段2完成总结](./阶段2完成总结.md)  
-📖 [阶段2测试指南](./阶段2测试指南.md)
+📖 [阶段2测试指南](./阶段2测试指南.md)  
+📖 [阶段2 Bug修复记录](./阶段2-Bug修复记录.md) ⭐ **最新**
 
 ### 🔜 阶段3：技能编辑器（待规划）
 
@@ -196,10 +200,18 @@ RoleEditor/
 
 ## 相关文档
 
+**编辑器文档**：
+- [更新日志](./CHANGELOG.md) ⭐
+- [常见问题快速修复](./常见问题快速修复.md) 🔧
+- [设置说明](./SETUP.md)
+- [阶段2 Bug修复记录](./阶段2-Bug修复记录.md)
+
+**框架文档**：
 - [Luban CSV框架使用指南](../../../AstrumConfig/Doc/Luban_CSV框架使用指南.md)
 - [CSV框架快速参考](../../../AstrumConfig/Doc/CSV框架快速参考.md)
+
+**策划文档**：
 - [技能系统策划案](../../../AstrumConfig/Doc/技能系统策划案.md)
-- [设置说明](./SETUP.md)
 
 ---
 
@@ -224,5 +236,5 @@ A: 确保Odin Inspector已正确导入
 
 **最后更新**: 2025-10-08  
 **开发者**: Astrum Team  
-**版本**: v0.2.0 (阶段2)
+**版本**: v0.2.1 (阶段2 Bug修复完成)
 
