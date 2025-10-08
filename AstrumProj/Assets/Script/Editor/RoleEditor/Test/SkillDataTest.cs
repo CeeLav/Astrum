@@ -208,7 +208,7 @@ namespace Astrum.Editor.RoleEditor.Test
                         {
                             validActions++;
                             Debug.Log($"✓ 技能 [{skill.SkillId}] 的动作 {action.ActionId} 在 ActionTable 中存在");
-                            Debug.Log($"    ActionName: {actionTable.Name}, ActionType: {actionTable.ActionType}");
+                            Debug.Log($"    ActionName: {actionTable.ActionName}, ActionType: {actionTable.ActionType}");
                         }
                         else
                         {

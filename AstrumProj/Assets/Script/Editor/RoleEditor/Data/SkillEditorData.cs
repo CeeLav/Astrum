@@ -343,7 +343,7 @@ namespace Astrum.Editor.RoleEditor.Data
         private string GetActionName()
         {
             var actionTable = Services.ConfigTableHelper.GetActionTable(ActionId);
-            return actionTable?.Name ?? $"Action_{ActionId}";
+            return actionTable?.ActionName ?? $"Action_{ActionId}";
         }
         
         private void OnActionIdChanged()

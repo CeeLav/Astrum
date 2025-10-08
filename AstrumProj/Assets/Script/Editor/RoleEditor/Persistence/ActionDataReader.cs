@@ -1,0 +1,135 @@
+using System.Collections.Generic;
+using UnityEngine;
+using Astrum.Editor.RoleEditor.Data;
+using Astrum.Editor.RoleEditor.Persistence.Core;
+using Astrum.Editor.RoleEditor.Persistence.Mappings;
+
+namespace Astrum.Editor.RoleEditor.Persistence
+{
+    /// <summary>
+    /// 动作数据读取器
+    /// 从 ActionTable.csv 读取数据并转换为编辑器数据模型
+    /// </summary>
+    public static class ActionDataReader
+    {
+        private const string LOG_PREFIX = "[ActionDataReader]";
+        
+        /// <summary>
+        /// 读取所有动作数据
+        /// </summary>
+        public static List<ActionEditorData> ReadActionData()
+        {
+            var editorDataList = new List<ActionEditorData>();
+            
+            try
+            {
+                // 读取 ActionTable CSV
+                var tableDataList = ReadActionTableCSV();
+                
+                if (tableDataList == null || tableDataList.Count == 0)
+                {
+                    Debug.LogWarning($"{LOG_PREFIX} No action data found in ActionTable");
+                    return editorDataList;
+                }
+                
+                // 转换为编辑器数据
+                foreach (var tableData in tableDataList)
+                {
+                    var editorData = ConvertToEditorData(tableData);
+                    if (editorData != null)
+                    {
+                        editorDataList.Add(editorData);
+                    }
+                }
+                
+                Debug.Log($"{LOG_PREFIX} Successfully loaded {editorDataList.Count} actions");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{LOG_PREFIX} Failed to read action data: {ex.Message}\n{ex.StackTrace}");
+            }
+            
+            return editorDataList;
+        }
+        
+        /// <summary>
+        /// 读取 ActionTable CSV
+        /// </summary>
+        private static List<ActionTableData> ReadActionTableCSV()
+        {
+            var config = ActionTableData.GetTableConfig();
+            
+            try
+            {
+                var data = LubanCSVReader.ReadTable<ActionTableData>(config);
+                Debug.Log($"{LOG_PREFIX} Read {data.Count} records from {config.FilePath}");
+                return data;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{LOG_PREFIX} Failed to read ActionTable CSV: {ex.Message}");
+                return new List<ActionTableData>();
+            }
+        }
+        
+        /// <summary>
+        /// 转换表数据为编辑器数据
+        /// </summary>
+        private static ActionEditorData ConvertToEditorData(ActionTableData tableData)
+        {
+            if (tableData == null) return null;
+            
+            var editorData = ActionEditorData.CreateDefault(tableData.ActionId);
+            
+            // 复制基础字段
+            editorData.ActionId = tableData.ActionId;
+            editorData.ActionName = tableData.ActionName ?? "";
+            editorData.ActionType = tableData.ActionType ?? "idle";
+            editorData.Duration = tableData.Duration;
+            editorData.AnimationPath = tableData.AnimationPath ?? "";
+            editorData.AutoNextActionId = tableData.AutoNextActionId;
+            editorData.KeepPlayingAnim = tableData.KeepPlayingAnim;
+            editorData.AutoTerminate = tableData.AutoTerminate;
+            editorData.Command = tableData.Command ?? "";
+            editorData.Priority = tableData.Priority;
+            
+            // 解析时间轴事件
+            editorData.TimelineEvents = ParseTimelineEvents(tableData);
+            
+            // 清除新建和脏标记（从文件读取的数据是干净的）
+            editorData.IsNew = false;
+            editorData.IsDirty = false;
+            
+            return editorData;
+        }
+        
+        /// <summary>
+        /// 解析时间轴事件
+        /// </summary>
+        private static List<Timeline.TimelineEvent> ParseTimelineEvents(ActionTableData tableData)
+        {
+            var events = new List<Timeline.TimelineEvent>();
+            
+            // 解析 BeCancelledTags
+            var beCancelEvents = ActionCancelTagParser.ParseBeCancelledTags(
+                tableData.BeCancelledTags,
+                tableData.ActionId,
+                tableData.Duration
+            );
+            events.AddRange(beCancelEvents);
+            
+            // 解析 TempBeCancelledTags
+            var tempCancelEvents = ActionCancelTagParser.ParseTempBeCancelledTags(
+                tableData.TempBeCancelledTags,
+                tableData.ActionId
+            );
+            events.AddRange(tempCancelEvents);
+            
+            // CancelTags 不需要解析为时间轴事件（它们是动作属性）
+            
+            // TODO: 后续可以从其他字段解析特效、音效等事件
+            
+            return events;
+        }
+    }
+}
