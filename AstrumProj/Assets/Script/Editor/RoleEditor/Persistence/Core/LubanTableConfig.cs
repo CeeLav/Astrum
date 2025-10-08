@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Astrum.Editor.RoleEditor.Persistence.Core
 {
@@ -43,10 +44,26 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
             return new string[]
             {
                 "##var," + string.Join(",", VarNames),
-                "##type," + string.Join(",", Types),
+                "##type," + string.Join(",", Types.Select(t => QuoteIfNeeded(t))),
                 "##group," + string.Join(",", Groups),
-                "##desc," + string.Join(",", Descriptions)
+                "##desc," + string.Join(",", Descriptions.Select(d => QuoteIfNeeded(d)))
             };
+        }
+        
+        /// <summary>如果字段包含逗号或引号，则添加引号</summary>
+        private static string QuoteIfNeeded(string field)
+        {
+            if (string.IsNullOrEmpty(field))
+                return field;
+            
+            // 如果包含逗号、引号或换行符，需要用引号包裹
+            if (field.Contains(",") || field.Contains("\"") || field.Contains("\n"))
+            {
+                // 转义内部引号
+                return "\"" + field.Replace("\"", "\"\"") + "\"";
+            }
+            
+            return field;
         }
     }
 }

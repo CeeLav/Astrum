@@ -94,7 +94,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                     },
                     Types = new List<string>
                     {
-                        "int", "string", "string", "int", "(array#sep=,),int",
+                        "int", "string", "string", "int", "(array#sep==),int",
                         "float", "int", "int", "int", "int"
                     },
                     Groups = new List<string>
