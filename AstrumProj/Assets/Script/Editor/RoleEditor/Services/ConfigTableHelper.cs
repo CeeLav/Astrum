@@ -159,6 +159,55 @@ namespace Astrum.Editor.RoleEditor.Services
         }
         
         /// <summary>
+        /// 获取所有实体列表
+        /// </summary>
+        public static List<EntityTableData> GetAllEntities()
+        {
+            LoadEntityTableIfNeeded();
+            return _entityTableCache ?? new List<EntityTableData>();
+        }
+        
+        /// <summary>
+        /// 根据实体ID获取实体数据
+        /// </summary>
+        public static EntityTableData GetEntityById(int entityId)
+        {
+            if (entityId <= 0) return null;
+            
+            LoadEntityTableIfNeeded();
+            return _entityTableCache?.FirstOrDefault(x => x.EntityId == entityId);
+        }
+        
+        /// <summary>
+        /// 加载EntityTable数据（如果需要）
+        /// </summary>
+        private static void LoadEntityTableIfNeeded()
+        {
+            if (_entityTableCache != null) return;
+            
+            try
+            {
+                var config = EntityTableData.GetTableConfig();
+                
+                Debug.Log($"{LOG_PREFIX} Attempting to load EntityTable from: {config.FilePath}");
+                _entityTableCache = LubanCSVReader.ReadTable<EntityTableData>(config);
+                Debug.Log($"{LOG_PREFIX} Loaded {_entityTableCache.Count} entity records from CSV");
+                
+                // 调试：打印前几条记录
+                for (int i = 0; i < Mathf.Min(3, _entityTableCache.Count); i++)
+                {
+                    var record = _entityTableCache[i];
+                    Debug.Log($"{LOG_PREFIX} Entity {i}: Id={record.EntityId}, ArchetypeName={record.ArchetypeName}, ModelPath={record.ModelPath}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{LOG_PREFIX} Failed to load EntityTable: {ex.Message}");
+                _entityTableCache = new List<EntityTableData>();
+            }
+        }
+        
+        /// <summary>
         /// 清除缓存（用于重新加载数据）
         /// </summary>
         public static void ClearCache()
