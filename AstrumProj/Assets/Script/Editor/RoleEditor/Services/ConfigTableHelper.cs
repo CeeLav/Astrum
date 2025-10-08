@@ -16,9 +16,9 @@ namespace Astrum.Editor.RoleEditor.Services
         private const string LOG_PREFIX = "[ConfigTableHelper]";
         
         /// <summary>
-        /// 确保ConfigManager已初始化
+        /// 确保ConfigManager已初始化（编辑器模式，允许失败）
         /// </summary>
-        public static void EnsureConfigManagerInitialized()
+        public static bool EnsureConfigManagerInitialized()
         {
             if (!ConfigManager.Instance.IsInitialized)
             {
@@ -26,12 +26,15 @@ namespace Astrum.Editor.RoleEditor.Services
                 {
                     ConfigManager.Instance.Initialize("Config");
                     Debug.Log($"{LOG_PREFIX} ConfigManager initialized successfully");
+                    return true;
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogError($"{LOG_PREFIX} Failed to initialize ConfigManager: {ex}");
+                    Debug.LogWarning($"{LOG_PREFIX} ConfigManager initialization failed (this is normal in editor mode): {ex.Message}");
+                    return false;
                 }
             }
+            return true;
         }
         
         /// <summary>
@@ -41,7 +44,11 @@ namespace Astrum.Editor.RoleEditor.Services
         {
             if (actionId <= 0) return null;
             
-            EnsureConfigManagerInitialized();
+            if (!EnsureConfigManagerInitialized())
+            {
+                Debug.LogWarning($"{LOG_PREFIX} ConfigManager not available, cannot get ActionTable for actionId {actionId}");
+                return null;
+            }
             
             try
             {
