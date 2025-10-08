@@ -13,7 +13,7 @@ namespace Astrum.Editor.RoleEditor.Windows
     /// <summary>
     /// 角色编辑器主窗口
     /// </summary>
-    public class RoleEditorWindow : OdinEditorWindow
+    public class RoleEditorWindow : EditorWindow
     {
         // === UI模块 ===
         private RoleListModule _listModule;
@@ -43,10 +43,8 @@ namespace Astrum.Editor.RoleEditor.Windows
             window.Show();
         }
         
-        protected override void OnEnable()
+        private void OnEnable()
         {
-            base.OnEnable();
-            
             // 初始化配置表Helper（现在直接读取CSV，不需要ConfigManager）
             ConfigTableHelper.ClearCache();
             
@@ -56,17 +54,22 @@ namespace Astrum.Editor.RoleEditor.Windows
             Debug.Log("[RoleEditor] Role Editor Window opened");
         }
         
-        protected override void OnDisable()
+        private void OnDisable()
         {
-            base.OnDisable();
-            
             CheckUnsavedChanges();
             CleanupModules();
             
             Debug.Log("[RoleEditor] Role Editor Window closed");
         }
         
-        protected override void OnGUI()
+        private void OnDestroy()
+        {
+            // 清理PropertyTree
+            _propertyTree?.Dispose();
+            _propertyTree = null;
+        }
+        
+        private void OnGUI()
         {
             DrawToolbar();
             
@@ -217,11 +220,13 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             _selectedRole = role;
             
-            // 重建PropertyTree（Odin）
+            // 重建PropertyTree（Odin）- 现在RoleEditorData继承自ScriptableObject，支持Undo
             _propertyTree?.Dispose();
             if (_selectedRole != null)
             {
+                // 使用UnityObjectTree以支持Undo功能
                 _propertyTree = PropertyTree.Create(_selectedRole);
+                _propertyTree.UpdateTree(); // 确保树结构更新
             }
             
             // 更新预览
@@ -320,24 +325,37 @@ namespace Astrum.Editor.RoleEditor.Windows
                 if (_selectedRole == null)
                 {
                     EditorGUILayout.HelpBox("请选择一个角色", MessageType.Info);
-                    return;
                 }
-                
-                // 使用Odin绘制（自动根据特性生成UI）
-                EditorGUI.BeginChangeCheck();
-                
-                _detailScrollPosition = EditorGUILayout.BeginScrollView(_detailScrollPosition);
+                else
                 {
-                    if (_propertyTree != null)
+                    // 使用Odin绘制（自动根据特性生成UI）
+                    _detailScrollPosition = EditorGUILayout.BeginScrollView(_detailScrollPosition);
                     {
-                        _propertyTree.Draw(false);
+                        if (_propertyTree != null)
+                        {
+                            // 更新树结构
+                            _propertyTree.UpdateTree();
+                            
+                            // 绘制Inspector
+                            InspectorUtilities.BeginDrawPropertyTree(_propertyTree, true);
+                            
+                            // 遍历绘制所有属性
+                            foreach (var property in _propertyTree.EnumerateTree(false))
+                            {
+                                property.Draw();
+                            }
+                            
+                            InspectorUtilities.EndDrawPropertyTree(_propertyTree);
+                            
+                            // 应用修改
+                            if (_propertyTree.ApplyChanges())
+                            {
+                                _selectedRole.MarkDirty();
+                                EditorUtility.SetDirty(_selectedRole);
+                            }
+                        }
                     }
-                }
-                EditorGUILayout.EndScrollView();
-                
-                if (EditorGUI.EndChangeCheck())
-                {
-                    _selectedRole.MarkDirty();
+                    EditorGUILayout.EndScrollView();
                 }
             }
             EditorGUILayout.EndVertical();

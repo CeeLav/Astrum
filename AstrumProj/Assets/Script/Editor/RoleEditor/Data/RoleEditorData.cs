@@ -9,8 +9,8 @@ namespace Astrum.Editor.RoleEditor.Data
     /// 角色编辑器数据模型（合并 EntityBaseTable 和 RoleBaseTable）
     /// 使用 Odin Inspector 特性
     /// </summary>
-    [Serializable]
-    public class RoleEditorData
+    [CreateAssetMenu(fileName = "RoleData", menuName = "Astrum/Role Editor Data")]
+    public class RoleEditorData : ScriptableObject
     {
         // ===== EntityBaseTable 数据 =====
         
@@ -145,25 +145,58 @@ namespace Astrum.Editor.RoleEditor.Data
         
         public static RoleEditorData CreateDefault(int id)
         {
-            return new RoleEditorData
-            {
-                EntityId = id,
-                RoleId = id,
-                ArchetypeName = "RoleArchetype",
-                ModelName = $"Role_{id}",
-                RoleName = $"NewRole_{id}",
-                RoleDescription = "新角色",
-                IsNew = true,
-                IsDirty = true
-            };
+            var data = CreateInstance<RoleEditorData>();
+            data.EntityId = id;
+            data.RoleId = id;
+            data.ArchetypeName = "RoleArchetype";
+            data.ModelName = $"Role_{id}";
+            data.RoleName = $"NewRole_{id}";
+            data.RoleDescription = "新角色";
+            data.IsNew = true;
+            data.IsDirty = true;
+            return data;
         }
         
         public RoleEditorData Clone()
         {
-            var clone = (RoleEditorData)this.MemberwiseClone();
+            var clone = CreateInstance<RoleEditorData>();
+            
+            // 复制EntityBaseTable字段
+            clone.EntityId = this.EntityId;
+            clone.ArchetypeName = this.ArchetypeName;
+            clone.ModelName = this.ModelName;
+            clone.ModelPath = this.ModelPath;
+            clone.ModelPrefab = this.ModelPrefab;
+            clone.IdleAction = this.IdleAction;
+            clone.WalkAction = this.WalkAction;
+            clone.RunAction = this.RunAction;
+            clone.JumpAction = this.JumpAction;
+            clone.BirthAction = this.BirthAction;
+            clone.DeathAction = this.DeathAction;
+            
+            // 复制RoleBaseTable字段
+            clone.RoleId = this.RoleId;
+            clone.RoleName = this.RoleName;
+            clone.RoleDescription = this.RoleDescription;
+            clone.RoleType = this.RoleType;
+            clone.BaseAttack = this.BaseAttack;
+            clone.BaseDefense = this.BaseDefense;
+            clone.BaseHealth = this.BaseHealth;
+            clone.BaseSpeed = this.BaseSpeed;
+            clone.AttackGrowth = this.AttackGrowth;
+            clone.DefenseGrowth = this.DefenseGrowth;
+            clone.HealthGrowth = this.HealthGrowth;
+            clone.SpeedGrowth = this.SpeedGrowth;
+            clone.LightAttackSkillId = this.LightAttackSkillId;
+            clone.HeavyAttackSkillId = this.HeavyAttackSkillId;
+            clone.Skill1Id = this.Skill1Id;
+            clone.Skill2Id = this.Skill2Id;
+            
+            // 编辑器状态
             clone.ValidationErrors = new List<string>();
             clone.IsNew = true;
             clone.IsDirty = true;
+            
             return clone;
         }
         

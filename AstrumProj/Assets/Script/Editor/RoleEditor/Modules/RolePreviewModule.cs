@@ -200,8 +200,18 @@ namespace Astrum.Editor.RoleEditor.Modules
         /// </summary>
         private void RenderPreview(Rect rect)
         {
-            // 预留底部控制面板的空间
-            Rect previewRect = new Rect(rect.x, rect.y, rect.width, rect.height - 100);
+            // 预留底部控制面板的空间，确保最小高度
+            float controlPanelHeight = Mathf.Min(100f, rect.height * 0.3f);
+            float previewHeight = Mathf.Max(50f, rect.height - controlPanelHeight);
+            
+            Rect previewRect = new Rect(rect.x, rect.y, rect.width, previewHeight);
+            
+            // 确保渲染区域有效
+            if (previewRect.width <= 0 || previewRect.height <= 0)
+            {
+                EditorGUI.HelpBox(rect, "预览区域太小", MessageType.Warning);
+                return;
+            }
             
             _previewRenderUtility.BeginPreview(previewRect, GUIStyle.none);
             
