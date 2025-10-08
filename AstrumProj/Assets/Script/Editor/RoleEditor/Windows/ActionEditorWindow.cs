@@ -19,7 +19,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         // === UI模块 ===
         private ActionListModule _listModule;
         private ActionConfigModule _configModule;
-        private RolePreviewModule _previewModule;
+        private AnimationPreviewModule _previewModule;
         private TimelineEditorModule _timelineModule;
         private ActionEditorLayout _layoutManager;
         
@@ -55,6 +55,12 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private void OnDisable()
         {
+            // 取消事件订阅
+            if (_configModule != null)
+            {
+                _configModule.OnEntitySelected -= OnEntitySelected;
+            }
+            
             CheckUnsavedChanges();
             CleanupModules();
             
@@ -77,6 +83,30 @@ namespace Astrum.Editor.RoleEditor.Windows
             
             // 处理分隔线拖拽
             _layoutManager.HandleSeparatorDrag(Event.current, position);
+            
+            // 如果动画正在播放，同步播放头到时间轴
+            SyncAnimationToTimeline();
+        }
+        
+        /// <summary>
+        /// 同步动画播放到时间轴
+        /// </summary>
+        private void SyncAnimationToTimeline()
+        {
+            if (_previewModule != null && _previewModule.IsPlaying())
+            {
+                int animFrame = _previewModule.GetCurrentFrame();
+                int timelineFrame = _timelineModule.GetCurrentFrame();
+                
+                // 如果动画帧和时间轴帧不同步，更新时间轴
+                if (animFrame != timelineFrame)
+                {
+                    _timelineModule.SetCurrentFrame(animFrame);
+                }
+                
+                // 持续重绘
+                Repaint();
+            }
         }
         
         // === 初始化 ===
@@ -97,15 +127,17 @@ namespace Astrum.Editor.RoleEditor.Windows
             _configModule = new ActionConfigModule();
             _configModule.OnActionModified += OnActionModified;
             _configModule.OnJumpToTimeline += OnJumpToTimeline;
+            _configModule.OnEntitySelected += OnEntitySelected;
             
-            // 预览模块
-            _previewModule = new RolePreviewModule();
+            // 预览模块（使用简化的动画预览）
+            _previewModule = new AnimationPreviewModule();
             _previewModule.Initialize();
             
             // 时间轴模块
             _timelineModule = new TimelineEditorModule();
             _timelineModule.Initialize(60);
             _timelineModule.OnEventModified += OnTimelineEventModified;
+            _timelineModule.OnCurrentFrameChanged += OnTimelineFrameChanged;
         }
         
         private void CleanupModules()
@@ -276,7 +308,88 @@ namespace Astrum.Editor.RoleEditor.Windows
                 _timelineModule.SetEvents(action.TimelineEvents);
                 _timelineModule.SetTracks(TimelineTrackRegistry.GetAllTracks());
                 
-                // TODO: 更新预览模块（需要加载模型和动画）
+                // 更新预览模块：加载动画
+                LoadAnimationForAction(action);
+            }
+        }
+        
+        // === 动画预览方法 ===
+        
+        private void LoadAnimationForAction(ActionEditorData action)
+        {
+            if (action == null || _previewModule == null)
+                return;
+            
+            if (string.IsNullOrEmpty(action.AnimationPath))
+            {
+                Debug.LogWarning($"[ActionEditor] Action {action.ActionId} has no animation path");
+                return;
+            }
+            
+            // 加载动画片段
+            _previewModule.LoadAnimationFromPath(action.AnimationPath);
+            
+            // 同步帧数
+            int totalFrames = _previewModule.GetTotalFrames();
+            if (totalFrames > 0)
+            {
+                action.Duration = totalFrames;
+                _timelineModule.SetTotalFrames(totalFrames);
+            }
+        }
+        
+        private void PlayAnimation()
+        {
+            if (_selectedAction == null || _previewModule == null) return;
+            
+            _previewModule.Play();
+            Debug.Log("[ActionEditor] Play animation");
+        }
+        
+        private void PauseAnimation()
+        {
+            if (_previewModule == null) return;
+            
+            _previewModule.Pause();
+            Debug.Log("[ActionEditor] Pause animation");
+        }
+        
+        private void StopAnimation()
+        {
+            if (_selectedAction == null || _previewModule == null) return;
+            
+            _previewModule.Stop();
+            
+            // 停止动画，重置到第0帧
+            _timelineModule.SetCurrentFrame(0);
+            
+            Debug.Log("[ActionEditor] Stop animation");
+        }
+        
+        private void PreviousFrame()
+        {
+            int currentFrame = _timelineModule.GetCurrentFrame();
+            _timelineModule.SetCurrentFrame(Mathf.Max(0, currentFrame - 1));
+        }
+        
+        private void NextFrame()
+        {
+            int currentFrame = _timelineModule.GetCurrentFrame();
+            int totalFrames = _timelineModule.GetTotalFrames();
+            _timelineModule.SetCurrentFrame(Mathf.Min(totalFrames - 1, currentFrame + 1));
+        }
+        
+        /// <summary>
+        /// 时间轴帧改变时，同步到动画预览
+        /// </summary>
+        private void OnTimelineFrameChanged(int frame)
+        {
+            if (_previewModule != null)
+            {
+                _previewModule.SetFrame(frame);
+                
+                // 触发重绘
+                Repaint();
             }
         }
         
@@ -360,6 +473,22 @@ namespace Astrum.Editor.RoleEditor.Windows
             Debug.Log("[ActionEditor] Jump to timeline requested");
         }
         
+        private void OnEntitySelected(int entityId)
+        {
+            if (_previewModule != null)
+            {
+                _previewModule.SetEntity(entityId);
+                
+                // 如果已选择动作，重新加载动画
+                if (_selectedAction != null)
+                {
+                    LoadAnimationForAction(_selectedAction);
+                }
+                
+                Debug.Log($"[ActionEditor] Entity {entityId} selected for preview");
+            }
+        }
+        
         // === UI绘制 ===
         
         private void DrawToolbar()
@@ -429,18 +558,75 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private void DrawPreviewPanel(Rect rect)
         {
-            GUILayout.BeginArea(rect);
-            
             if (_selectedAction == null)
             {
+                GUILayout.BeginArea(rect);
                 EditorGUILayout.HelpBox("请选择一个动作", MessageType.Info);
-            }
-            else
-            {
-                // TODO: 绘制预览
-                EditorGUILayout.HelpBox("动画预览（待实现）", MessageType.Info);
+                GUILayout.EndArea();
+                return;
             }
             
+            // 分割预览区域：上方模型预览，下方控制
+            float controlHeight = 80f;
+            Rect previewRect = new Rect(rect.x, rect.y, rect.width, rect.height - controlHeight);
+            Rect controlRect = new Rect(rect.x, rect.y + rect.height - controlHeight, rect.width, controlHeight);
+            
+            // 绘制模型预览
+            if (_previewModule != null)
+            {
+                _previewModule.DrawPreview(previewRect);
+            }
+            
+            // 绘制动画控制
+            DrawAnimationControl(controlRect);
+        }
+        
+        private void DrawAnimationControl(Rect rect)
+        {
+            GUILayout.BeginArea(rect);
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("动画控制", EditorStyles.boldLabel);
+                
+                EditorGUILayout.BeginHorizontal();
+                {
+                    // 播放/暂停按钮
+                    if (GUILayout.Button("▶ 播放", GUILayout.Height(25)))
+                    {
+                        PlayAnimation();
+                    }
+                    
+                    if (GUILayout.Button("⏸ 暂停", GUILayout.Height(25)))
+                    {
+                        PauseAnimation();
+                    }
+                    
+                    if (GUILayout.Button("⏹ 停止", GUILayout.Height(25)))
+                    {
+                        StopAnimation();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+                
+                EditorGUILayout.BeginHorizontal();
+                {
+                    if (GUILayout.Button("◀", GUILayout.Width(30)))
+                    {
+                        PreviousFrame();
+                    }
+                    
+                    int currentFrame = _timelineModule.GetCurrentFrame();
+                    int totalFrames = _timelineModule.GetTotalFrames();
+                    EditorGUILayout.LabelField($"当前: {currentFrame} / {totalFrames}帧", EditorStyles.centeredGreyMiniLabel);
+                    
+                    if (GUILayout.Button("▶", GUILayout.Width(30)))
+                    {
+                        NextFrame();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            EditorGUILayout.EndVertical();
             GUILayout.EndArea();
         }
         
