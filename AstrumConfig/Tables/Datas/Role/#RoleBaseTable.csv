@@ -1,9 +1,9 @@
-##var,id,name,description,roleType,baseAttack,baseDefense,baseHealth,baseSpeed,attackGrowth,defenseGrowth,healthGrowth,speedGrowth,lightAttackSkillId,heavyAttackSkillId,skill1Id,skill2Id
+﻿##var,id,name,description,roleType,baseAttack,baseDefense,baseHealth,baseSpeed,attackGrowth,defenseGrowth,healthGrowth,speedGrowth,lightAttackSkillId,heavyAttackSkillId,skill1Id,skill2Id
 ##type,int,string,string,int,float,float,float,float,float,float,float,float,int,int,int,int
 ##group,c,s,e,,,,,,,,,,,,,
 ##desc,角色ID,角色名称,角色描述,角色类型,基础攻击力,基础防御力,基础生命值,基础移动速度,攻击力成长,防御力成长,生命值成长,移动速度成长,轻击技能ID,重击技能ID,技能1ID,技能2ID
-,1001,骑士,平衡型近战角色，攻防兼备,1,80,80,1000,5,8,8,100,0.1,2001,2002,2001,2001
-,1002,弓手,远程机动型角色，擅长风筝战术,2,60,60,800,6,6,6,80,0.15,2005,2006,2007,2008
-,1003,法师,控场AOE型角色，擅长范围伤害,3,50,40,700,4.5,5,4,70,0.05,2009,2010,2011,2012
-,1004,重锤者,近战爆发型角色，拥有强力格挡,4,100,120,1200,3.5,10,12,120,0.05,2013,2014,2015,2016
-,1005,刺客,高机动连击型角色，拥有爆发伤害,5,70,50,600,7,7,5,60,0.2,2017,2018,2019,2020
+,1001,骑士,平衡型近战角色，攻防兼备,1,80.0,80.0,1000.0,10.0,8.0,8.0,100.0,0.10,2001,2002,2001,2001
+,1002,弓手,远程机动型角色，擅长风筝战术,2,60.0,60.0,800.0,6.0,6.0,6.0,80.0,0.15,2005,2006,2007,2008
+,1003,法师,控场AOE型角色，擅长范围伤害,3,50.0,40.0,700.0,4.5,5.0,4.0,70.0,0.05,2009,2010,2011,2012
+,1004,重锤者,近战爆发型角色，拥有强力格挡,4,100.0,120.0,1200.0,3.5,10.0,12.0,120.0,0.05,2013,2014,2015,2016
+,1005,刺客,高机动连击型角色，拥有爆发伤害,5,70.0,50.0,600.0,7.0,7.0,5.0,60.0,0.20,2017,2018,2019,2020
