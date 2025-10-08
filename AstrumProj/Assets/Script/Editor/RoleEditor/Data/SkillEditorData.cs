@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
+using Sirenix.OdinInspector.Editor;
 using UnityEngine;
+using UnityEditor;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
 
 namespace Astrum.Editor.RoleEditor.Data
@@ -61,9 +63,20 @@ namespace Astrum.Editor.RoleEditor.Data
         
         [TitleGroup("技能动作")]
         [InfoBox("技能动作对应ActionTable中的动作，每个ActionId必须在ActionTable中存在", InfoMessageType.Warning)]
-        [ListDrawerSettings(ShowIndexLabels = true, ListElementLabelName = "ActionDisplayName")]
         [OnValueChanged("OnSkillActionsChanged")]
         public List<SkillActionData> SkillActions = new List<SkillActionData>();
+        
+        // ===== 技能动作管理按钮 =====
+        
+        [TitleGroup("技能动作")]
+        [Button("添加新动作", ButtonSizes.Medium)]
+        [GUIColor(0.4f, 1f, 0.4f)]
+        private void AddNewSkillAction()
+        {
+            // 生成新的ActionId（简单递增）
+            int newActionId = SkillActions.Count > 0 ? SkillActions.Max(a => a.ActionId) + 1 : 3001;
+            AddSkillAction(newActionId);
+        }
         
         // ===== 编辑器辅助字段 =====
         
@@ -176,7 +189,8 @@ namespace Astrum.Editor.RoleEditor.Data
                 AttackBoxInfo = "",
                 ActualCost = this.DisplayCost,
                 ActualCooldown = (int)(this.DisplayCooldown * 60), // 转换为帧数
-                TriggerFrames = new List<TriggerFrameInfo>()
+                TriggerFrames = new List<TriggerFrameInfo>(),
+                ParentSkillData = this // 设置父级引用
             };
             
             SkillActions.Add(actionData);
@@ -206,6 +220,25 @@ namespace Astrum.Editor.RoleEditor.Data
         {
             MarkDirty();
         }
+        
+        /// <summary>
+        /// 获取动作卡片列表
+        /// </summary>
+        private List<SkillActionCard> GetActionCards()
+        {
+            var cards = new List<SkillActionCard>();
+            foreach (var action in SkillActions)
+            {
+                cards.Add(new SkillActionCard
+                {
+                    ActionId = action.ActionId,
+                    ActionName = action.ActionName,
+                    SkillId = action.SkillId,
+                    ParentSkillData = this
+                });
+            }
+            return cards;
+        }
     }
     
     /// <summary>
@@ -214,40 +247,59 @@ namespace Astrum.Editor.RoleEditor.Data
     [Serializable]
     public class SkillActionData
     {
-        [TitleGroup("动作关联")]
         [LabelText("动作ID")]
-        [InfoBox("必须对应ActionTable中的动作ID", InfoMessageType.Warning)]
         [OnValueChanged("OnActionIdChanged")]
         public int ActionId;
         
-        [TitleGroup("动作关联")]
-        [LabelText("所属技能ID"), ReadOnly]
-        public int SkillId;
-        
-        [TitleGroup("动作关联")]
         [LabelText("动作名称"), ReadOnly]
         [ShowInInspector]
         public string ActionName => GetActionName();
         
-        [TitleGroup("技能专用配置")]
-        [LabelText("攻击碰撞盒信息")]
-        [InfoBox("格式: Box1:5x2x1,Box2:3x3x1", InfoMessageType.None)]
+        [HideInInspector]
+        public int SkillId;
+        
+        [HideInInspector]
+        public SkillEditorData ParentSkillData;
+        
+        // ===== 操作按钮 =====
+        
+        [HorizontalGroup("按钮组")]
+        [Button("编辑", ButtonSizes.Small)]
+        [GUIColor(0.4f, 0.8f, 1f)]
+        private void EditAction()
+        {
+            // TODO: 打开 SkillActionEditor 窗口
+            Debug.Log($"[SkillActionData] 编辑动作 {ActionId}: {ActionName}");
+        }
+        
+        [HorizontalGroup("按钮组")]
+        [Button("删除", ButtonSizes.Small)]
+        [GUIColor(1f, 0.4f, 0.4f)]
+        private void DeleteAction()
+        {
+            if (ParentSkillData != null)
+            {
+                ParentSkillData.RemoveSkillAction(ActionId);
+                Debug.Log($"[SkillActionData] 已删除动作 {ActionId}: {ActionName}");
+            }
+            else
+            {
+                Debug.LogError("[SkillActionData] 无法删除动作：ParentSkillData 为空");
+            }
+        }
+        
+        // ===== 详细配置（隐藏，通过编辑按钮访问） =====
+        
+        [HideInInspector]
         public string AttackBoxInfo = "";
         
-        [TitleGroup("技能专用配置")]
-        [LabelText("实际法力消耗"), Range(0, 1000)]
-        [InfoBox("实际释放时的法力消耗（可与展示值不同）", InfoMessageType.None)]
+        [HideInInspector]
         public int ActualCost = 15;
         
-        [TitleGroup("技能专用配置")]
-        [LabelText("实际冷却时间(帧)"), Range(0, 3600)]
-        [InfoBox("实际冷却时间，单位：帧（60帧=1秒）", InfoMessageType.None)]
+        [HideInInspector]
         public int ActualCooldown = 270;
         
-        [TitleGroup("技能专用配置")]
-        [LabelText("触发帧列表")]
-        [ListDrawerSettings(ShowIndexLabels = true, ListElementLabelName = "DisplayName")]
-        [InfoBox("配置技能效果在哪些帧触发", InfoMessageType.Info)]
+        [HideInInspector]
         public List<TriggerFrameInfo> TriggerFrames = new List<TriggerFrameInfo>();
         
         /// <summary>
@@ -297,6 +349,71 @@ namespace Astrum.Editor.RoleEditor.Data
         private void OnActionIdChanged()
         {
             // 当ActionId改变时，可以自动更新关联信息
+            Debug.Log($"[SkillActionData] ActionId 已更改为: {ActionId}");
+        }
+        
+    }
+    
+    /// <summary>
+    /// 技能动作卡片 - 用于UI显示的简化数据结构
+    /// </summary>
+    [Serializable]
+    public class SkillActionCard
+    {
+        [LabelText("动作ID")]
+        [OnValueChanged("OnActionIdChanged")]
+        public int ActionId;
+        
+        [LabelText("动作名称"), ReadOnly]
+        [ShowInInspector]
+        public string ActionName;
+        
+        [HideInInspector]
+        public int SkillId;
+        
+        [HideInInspector]
+        public SkillEditorData ParentSkillData;
+        
+        // ===== 操作按钮 =====
+        
+        [HorizontalGroup("按钮组")]
+        [Button("编辑", ButtonSizes.Small)]
+        [GUIColor(0.4f, 0.8f, 1f)]
+        private void EditAction()
+        {
+            // TODO: 打开 SkillActionEditor 窗口
+            Debug.Log($"[SkillActionCard] 编辑动作 {ActionId}: {ActionName}");
+        }
+        
+        [HorizontalGroup("按钮组")]
+        [Button("删除", ButtonSizes.Small)]
+        [GUIColor(1f, 0.4f, 0.4f)]
+        private void DeleteAction()
+        {
+            if (ParentSkillData != null)
+            {
+                ParentSkillData.RemoveSkillAction(ActionId);
+                Debug.Log($"[SkillActionCard] 已删除动作 {ActionId}: {ActionName}");
+            }
+            else
+            {
+                Debug.LogError("[SkillActionCard] 无法删除动作：ParentSkillData 为空");
+            }
+        }
+        
+        private void OnActionIdChanged()
+        {
+            // 更新对应的 SkillActionData
+            if (ParentSkillData != null)
+            {
+                var action = ParentSkillData.SkillActions.FirstOrDefault(a => a.SkillId == SkillId && a.ActionId != ActionId);
+                if (action != null)
+                {
+                    action.ActionId = ActionId;
+                    ParentSkillData.MarkDirty();
+                    Debug.Log($"[SkillActionCard] ActionId 已更改为: {ActionId}");
+                }
+            }
         }
     }
     

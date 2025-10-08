@@ -103,7 +103,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
                         AttackBoxInfo = actionTable.AttackBoxInfo ?? "",
                         ActualCost = actionTable.ActualCost,
                         ActualCooldown = actionTable.ActualCooldown,
-                        TriggerFrames = actionTable.ParseTriggerFrames()
+                        TriggerFrames = actionTable.ParseTriggerFrames(),
+                        ParentSkillData = data // 设置父级引用
                     };
                     
                     data.SkillActions.Add(actionData);
@@ -130,7 +131,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
                             AttackBoxInfo = "",
                             ActualCost = skillTable.DisplayCost,
                             ActualCooldown = (int)(skillTable.DisplayCooldown * 60), // 转换为帧数
-                            TriggerFrames = new List<TriggerFrameInfo>()
+                            TriggerFrames = new List<TriggerFrameInfo>(),
+                            ParentSkillData = data // 设置父级引用
                         };
                         
                         data.SkillActions.Add(actionData);
