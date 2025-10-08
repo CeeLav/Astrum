@@ -412,7 +412,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                     _previewModule.DrawPreview(previewRect);
                 }
                 
-                // 动画控制面板（移到预览面板底部）
+                // 动画控制面板（在预览面板底部）
                 DrawAnimationControls();
             }
             EditorGUILayout.EndVertical();

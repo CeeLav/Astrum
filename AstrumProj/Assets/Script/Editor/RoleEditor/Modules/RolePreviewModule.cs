@@ -52,9 +52,14 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 // 配置相机
                 _previewRenderUtility.camera.transform.position = new Vector3(0, 1, -3);
-                _previewRenderUtility.camera.transform.LookAt(Vector3.up);
+                _previewRenderUtility.camera.transform.LookAt(Vector3.zero);
                 _previewRenderUtility.camera.clearFlags = CameraClearFlags.SolidColor;
                 _previewRenderUtility.camera.backgroundColor = new Color(0.15f, 0.15f, 0.15f, 1f);
+                
+                // 调整相机参数
+                _previewRenderUtility.camera.nearClipPlane = 0.1f;
+                _previewRenderUtility.camera.farClipPlane = 100f;
+                _previewRenderUtility.camera.fieldOfView = 60f;
                 
                 // 添加灯光
                 _previewRenderUtility.lights[0].intensity = 1.0f;
@@ -167,7 +172,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             HandleInput(rect);
             RenderPreview(rect);
-            DrawControlPanel(rect);
+            // DrawControlPanel(rect); // 移除，控制面板现在在外部处理
         }
         
         /// <summary>
