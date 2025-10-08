@@ -85,6 +85,46 @@ namespace Astrum.Editor.RoleEditor.Timeline
         }
         
         /// <summary>
+        /// 处理刻度尺区域的输入
+        /// </summary>
+        public void HandleFrameScaleInput(Rect frameScaleRect, Event evt)
+        {
+            if (evt.type == EventType.MouseDown && evt.button == 0)
+            {
+                if (frameScaleRect.Contains(evt.mousePosition))
+                {
+                    // 点击刻度尺，跳转到对应帧
+                    // 注意：PixelToFrame 方法内部已经处理了 trackHeaderWidth，所以这里只需要传入相对于 frameScaleRect 的坐标
+                    float relativeX = evt.mousePosition.x - frameScaleRect.x;
+                    int frame = _layoutCalculator.PixelToFrame(relativeX);
+                    frame = Mathf.Max(0, frame);
+                    
+                    _isDraggingPlayhead = true;
+                    OnPlayheadMoved?.Invoke(frame);
+                    evt.Use();
+                }
+            }
+            else if (evt.type == EventType.MouseDrag && _isDraggingPlayhead)
+            {
+                // 拖动刻度尺，持续更新当前帧
+                float relativeX = evt.mousePosition.x - frameScaleRect.x;
+                int frame = _layoutCalculator.PixelToFrame(relativeX);
+                frame = Mathf.Max(0, frame);
+                
+                OnPlayheadMoved?.Invoke(frame);
+                evt.Use();
+            }
+            else if (evt.type == EventType.MouseUp && evt.button == 0)
+            {
+                if (_isDraggingPlayhead)
+                {
+                    _isDraggingPlayhead = false;
+                    evt.Use();
+                }
+            }
+        }
+        
+        /// <summary>
         /// 获取当前选中的事件
         /// </summary>
         public TimelineEvent GetSelectedEvent()
