@@ -35,25 +35,25 @@ namespace Astrum.Editor.RoleEditor.Data
         [InfoBox("1=攻击, 2=控制, 3=位移, 4=buff", InfoMessageType.None)]
         public SkillTypeEnum SkillType = SkillTypeEnum.攻击;
         
-        [TitleGroup("技能配置/等级与消耗")]
+        [TitleGroup("技能配置")]
         [LabelText("学习所需等级"), Range(1, 100)]
         public int RequiredLevel = 1;
         
-        [TitleGroup("技能配置/等级与消耗")]
+        [TitleGroup("技能配置")]
         [LabelText("技能最大等级"), Range(1, 100)]
         public int MaxLevel = 10;
         
-        [TitleGroup("技能配置/等级与消耗")]
+        [TitleGroup("技能配置")]
         [LabelText("展示冷却时间(秒)"), Range(0, 300)]
         [InfoBox("用于UI显示的冷却时间", InfoMessageType.None)]
         public float DisplayCooldown = 5.0f;
         
-        [TitleGroup("技能配置/等级与消耗")]
+        [TitleGroup("技能配置")]
         [LabelText("展示法力消耗"), Range(0, 1000)]
         [InfoBox("用于UI显示的法力消耗", InfoMessageType.None)]
         public int DisplayCost = 20;
         
-        [TitleGroup("技能配置/视觉效果")]
+        [TitleGroup("技能配置")]
         [LabelText("图标ID")]
         public int IconId = 0;
         
@@ -229,22 +229,22 @@ namespace Astrum.Editor.RoleEditor.Data
         [ShowInInspector]
         public string ActionName => GetActionName();
         
-        [TitleGroup("技能专用配置/攻击配置")]
+        [TitleGroup("技能专用配置")]
         [LabelText("攻击碰撞盒信息")]
         [InfoBox("格式: Box1:5x2x1,Box2:3x3x1", InfoMessageType.None)]
         public string AttackBoxInfo = "";
         
-        [TitleGroup("技能专用配置/消耗与冷却")]
+        [TitleGroup("技能专用配置")]
         [LabelText("实际法力消耗"), Range(0, 1000)]
         [InfoBox("实际释放时的法力消耗（可与展示值不同）", InfoMessageType.None)]
         public int ActualCost = 15;
         
-        [TitleGroup("技能专用配置/消耗与冷却")]
+        [TitleGroup("技能专用配置")]
         [LabelText("实际冷却时间(帧)"), Range(0, 3600)]
         [InfoBox("实际冷却时间，单位：帧（60帧=1秒）", InfoMessageType.None)]
         public int ActualCooldown = 270;
         
-        [TitleGroup("技能专用配置/触发帧配置")]
+        [TitleGroup("技能专用配置")]
         [LabelText("触发帧列表")]
         [ListDrawerSettings(ShowIndexLabels = true, ListElementLabelName = "DisplayName")]
         [InfoBox("配置技能效果在哪些帧触发", InfoMessageType.Info)]
