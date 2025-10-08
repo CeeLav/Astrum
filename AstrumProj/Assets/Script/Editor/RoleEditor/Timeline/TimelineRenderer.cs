@@ -22,6 +22,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private static readonly Color COLOR_TRACK_BG_EVEN = new Color(0.25f, 0.25f, 0.25f);
         private static readonly Color COLOR_TRACK_HEADER = new Color(0.2f, 0.2f, 0.2f);
         private static readonly Color COLOR_TRACK_SEPARATOR = new Color(0.15f, 0.15f, 0.15f);
+        private static readonly Color COLOR_TIMELINE_BORDER = new Color(0.5f, 0.5f, 0.5f); // 更明显的边框颜色
         
         // === 依赖 ===
         private TimelineLayoutCalculator _layoutCalculator;
@@ -49,27 +50,44 @@ namespace Astrum.Editor.RoleEditor.Timeline
             DrawFrameLines(rect, totalFrames);
             DrawFrameNumbers(rect, totalFrames);
             
-            // 边框
-            DrawBorder(rect, COLOR_TRACK_SEPARATOR);
+            // 边框（使用更明显的颜色）
+            DrawBorder(rect, COLOR_TIMELINE_BORDER);
         }
         
-        /// <summary>
-        /// 绘制播放头
-        /// </summary>
-        public void DrawPlayhead(Rect rect, int currentFrame)
-        {
-            // 背景
-            EditorGUI.DrawRect(rect, COLOR_BACKGROUND);
-            
-            // 播放头位置（相对于轨道内容区域）
-            float x = rect.x + _layoutCalculator.GetTrackHeaderWidth() + _layoutCalculator.FrameToPixel(currentFrame);
-            
-            // 绘制播放头标记
-            DrawPlayheadMarker(new Rect(x - 5, rect.y, 10, rect.height), currentFrame);
-            
-            // 边框
-            DrawBorder(rect, COLOR_TRACK_SEPARATOR);
-        }
+         /// <summary>
+         /// 绘制播放头
+         /// </summary>
+         public void DrawPlayhead(Rect rect, int currentFrame)
+         {
+             // 背景
+             EditorGUI.DrawRect(rect, COLOR_BACKGROUND);
+             
+             // 边框
+             DrawBorder(rect, COLOR_TRACK_SEPARATOR);
+         }
+         
+         /// <summary>
+         /// 绘制播放头竖线（在轨道绘制后调用，确保在最上层）
+         /// </summary>
+         public void DrawPlayheadLines(Rect trackAreaRect, int currentFrame)
+         {
+             // 计算播放头在轨道内容区域的位置
+             float playheadX = _layoutCalculator.FrameToPixel(currentFrame);
+             float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
+             
+             // 播放头在轨道内容区域的X坐标
+             float x = trackAreaRect.x + trackHeaderWidth + playheadX;
+             
+             // 绘制贯穿整个轨道区域的播放头竖线
+             Vector2 start = new Vector2(x, trackAreaRect.y);
+             Vector2 end = new Vector2(x, trackAreaRect.yMax);
+             
+             Handles.color = COLOR_PLAYHEAD;
+             Handles.DrawLine(start, end);
+             
+             // 绘制播放头标记（三角形）
+             DrawPlayheadMarker(new Rect(x - 5, trackAreaRect.y - 15, 10, 15), currentFrame);
+         }
         
         /// <summary>
         /// 绘制所有轨道
@@ -118,45 +136,41 @@ namespace Astrum.Editor.RoleEditor.Timeline
             GUI.EndScrollView();
         }
         
-        /// <summary>
-        /// 绘制单个轨道
-        /// </summary>
-        public void DrawTrack(
-            Rect rect,
-            TimelineTrackConfig track,
-            List<TimelineEvent> events,
-            int trackIndex,
-            int currentFrame)
-        {
-            // 交替背景色
-            Color bgColor = (trackIndex % 2 == 0) ? COLOR_TRACK_BG_EVEN : COLOR_TRACK_BG_ODD;
-            EditorGUI.DrawRect(rect, bgColor);
-            
-            // 轨道标题区域
-            Rect headerRect = new Rect(rect.x, rect.y, _layoutCalculator.GetTrackHeaderWidth(), rect.height);
-            DrawTrackHeader(headerRect, track);
-            
-            // 轨道内容区域
-            Rect contentRect = new Rect(
-                rect.x + _layoutCalculator.GetTrackHeaderWidth(),
-                rect.y,
-                rect.width - _layoutCalculator.GetTrackHeaderWidth(),
-                rect.height
-            );
-            
-            // 绘制播放头竖线
-            float playheadX = _layoutCalculator.FrameToPixel(currentFrame);
-            DrawPlayheadLine(contentRect, playheadX);
-            
-            // 绘制事件
-            foreach (TimelineEvent evt in events)
-            {
-                DrawEvent(contentRect, evt, track);
-            }
-            
-            // 分隔线
-            DrawHorizontalLine(new Vector2(rect.x, rect.yMax), rect.width, COLOR_TRACK_SEPARATOR);
-        }
+         /// <summary>
+         /// 绘制单个轨道
+         /// </summary>
+         public void DrawTrack(
+             Rect rect,
+             TimelineTrackConfig track,
+             List<TimelineEvent> events,
+             int trackIndex,
+             int currentFrame)
+         {
+             // 交替背景色
+             Color bgColor = (trackIndex % 2 == 0) ? COLOR_TRACK_BG_EVEN : COLOR_TRACK_BG_ODD;
+             EditorGUI.DrawRect(rect, bgColor);
+             
+             // 轨道标题区域
+             Rect headerRect = new Rect(rect.x, rect.y, _layoutCalculator.GetTrackHeaderWidth(), rect.height);
+             DrawTrackHeader(headerRect, track);
+             
+             // 轨道内容区域
+             Rect contentRect = new Rect(
+                 rect.x + _layoutCalculator.GetTrackHeaderWidth(),
+                 rect.y,
+                 rect.width - _layoutCalculator.GetTrackHeaderWidth(),
+                 rect.height
+             );
+             
+             // 绘制事件
+             foreach (TimelineEvent evt in events)
+             {
+                 DrawEvent(contentRect, evt, track);
+             }
+             
+             // 分隔线
+             DrawHorizontalLine(new Vector2(rect.x, rect.yMax), rect.width, COLOR_TRACK_SEPARATOR);
+         }
         
         /// <summary>
         /// 绘制轨道标题
@@ -252,19 +266,20 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 
                 if (isMajor)
                 {
-                    // 主刻度：全高，明显
-                    DrawVerticalLine(new Vector2(x, rect.y), rect.height, COLOR_FRAME_LINE_MAJOR);
+                    // 主刻度：从时间轴基线向下延伸
+                    float scaleLineHeight = rect.height * 0.7f; // 延伸到轨道区域
+                    DrawVerticalLine(new Vector2(x, rect.y + rect.height), scaleLineHeight, COLOR_FRAME_LINE_MAJOR);
                 }
                 else if (isMinor && drawMinorTicks)
                 {
-                    // 次刻度：半高，淡色
-                    DrawVerticalLine(new Vector2(x, rect.y + rect.height * 0.6f), rect.height * 0.4f, COLOR_FRAME_LINE_MINOR);
+                    // 次刻度：从基线开始，半高，淡色
+                    DrawVerticalLine(new Vector2(x, rect.y + rect.height), rect.height * 0.4f, COLOR_FRAME_LINE_MINOR);
                 }
                 else if (drawMinorTicks && pixelsPerFrame >= 5f)
                 {
-                    // 超细刻度：仅在放大时显示
+                    // 超细刻度：从基线开始，仅在放大时显示
                     Color veryMinorColor = new Color(0.28f, 0.28f, 0.28f);
-                    DrawVerticalLine(new Vector2(x, rect.y + rect.height * 0.8f), rect.height * 0.2f, veryMinorColor);
+                    DrawVerticalLine(new Vector2(x, rect.y + rect.height), rect.height * 0.2f, veryMinorColor);
                 }
             }
         }
@@ -314,41 +329,49 @@ namespace Astrum.Editor.RoleEditor.Timeline
             }
         }
         
-        private void DrawPlayheadMarker(Rect rect, int currentFrame)
-        {
-            // 三角形标记
-            Vector3[] points = new Vector3[]
-            {
-                new Vector3(rect.center.x, rect.y + 2),
-                new Vector3(rect.x, rect.y + 10),
-                new Vector3(rect.xMax, rect.y + 10)
-            };
-            
-            Handles.color = COLOR_PLAYHEAD_MARKER;
-            Handles.DrawAAConvexPolygon(points);
-            
-            // 帧号文本
-            GUIStyle labelStyle = new GUIStyle(EditorStyles.miniLabel);
-            labelStyle.normal.textColor = Color.white;
-            labelStyle.alignment = TextAnchor.MiddleCenter;
-            labelStyle.fontSize = 9;
-            labelStyle.fontStyle = FontStyle.Bold;
-            
-            // 时间信息 (50ms/帧)
-            float timeMs = currentFrame * 50f;
-            string timeText;
-            if (timeMs >= 1000)
-            {
-                timeText = $"F{currentFrame} ({timeMs / 1000f:F2}s)";
-            }
-            else
-            {
-                timeText = $"F{currentFrame} ({timeMs:F0}ms)";
-            }
-            
-            Rect labelRect = new Rect(rect.x - 10, rect.y + 12, rect.width + 20, 15);
-            GUI.Label(labelRect, timeText, labelStyle);
-        }
+         private void DrawPlayheadMarker(Rect rect, int currentFrame)
+         {
+             // 三角形标记
+             Vector3[] points = new Vector3[]
+             {
+                 new Vector3(rect.center.x, rect.y + 2),
+                 new Vector3(rect.x, rect.y + 10),
+                 new Vector3(rect.xMax, rect.y + 10)
+             };
+             
+             Handles.color = COLOR_PLAYHEAD_MARKER;
+             Handles.DrawAAConvexPolygon(points);
+             
+             // 帧号和时间信息
+             GUIStyle labelStyle = new GUIStyle(EditorStyles.miniLabel);
+             labelStyle.normal.textColor = Color.white;
+             labelStyle.alignment = TextAnchor.MiddleCenter;
+             labelStyle.fontSize = 9;
+             labelStyle.fontStyle = FontStyle.Bold;
+             
+             // 时间信息 (50ms/帧)
+             float timeMs = currentFrame * 50f;
+             string timeText;
+             if (timeMs >= 1000)
+             {
+                 timeText = $"F{currentFrame} ({timeMs / 1000f:F2}s)";
+             }
+             else
+             {
+                 timeText = $"F{currentFrame} ({timeMs:F0}ms)";
+             }
+             
+             // 计算文本大小
+             Vector2 textSize = labelStyle.CalcSize(new GUIContent(timeText));
+             
+             // 绘制背景框（确保文本可见）
+             Rect bgRect = new Rect(rect.x - textSize.x/2, rect.y + 12, textSize.x + 4, textSize.y + 2);
+             EditorGUI.DrawRect(bgRect, new Color(0, 0, 0, 0.7f));
+             
+             // 绘制文本
+             Rect labelRect = new Rect(rect.x - textSize.x/2 + 2, rect.y + 13, textSize.x, textSize.y);
+             GUI.Label(labelRect, timeText, labelStyle);
+         }
         
         private void DrawPlayheadLine(Rect contentRect, float x)
         {

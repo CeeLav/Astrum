@@ -102,6 +102,9 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Rect trackAreaRect = _layoutCalculator.GetTrackAreaRect();
             _renderer.DrawTracks(trackAreaRect, _tracks, _eventsByTrack, _currentFrame);
             
+            // 在轨道绘制完成后，重新绘制播放头竖线（确保在最上层）
+            _renderer.DrawPlayheadLines(trackAreaRect, _currentFrame);
+            
             // 处理交互
             _interaction.HandleInput(rect, Event.current, _tracks, _eventsByTrack, _currentFrame);
         }
