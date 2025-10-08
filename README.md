@@ -18,6 +18,8 @@ Astrum 是一个基于 Unity 的多人网络游戏项目，采用客户端-服�
 ### 🛠️ 开发工具
 - [Proto2CS 工具](AstrumTool/Proto2CS/README.md) - Protocol Buffers 代码生成工具
 - [UI 生成器](AstrumProj/UIGenerator_Enhancement_Test.md) - UI 代码自动生成工具
+- [Luban CSV框架](AstrumConfig/Doc/Luban_CSV框架使用指南.md) - 通用CSV表格读写框架
+- [角色编辑器](AstrumProj/Assets/Script/Editor/RoleEditor/SETUP.md) - 角色配置编辑工具（开发中）
 - [部分类生成指南](AstrumProj/Partial_Class_Generation_Guide.md) - 代码生成最佳实践
 
 ### 🖥️ 服务器相关
@@ -27,6 +29,7 @@ Astrum 是一个基于 Unity 的多人网络游戏项目，采用客户端-服�
 
 ### 🎮 游戏系统
 - [房间系统策划](AstrumConfig/Doc/房间系统策划案.md) - 房间系统设计文档
+- [技能系统策划](AstrumConfig/Doc/技能系统策划案.md) - 技能系统设计文档
 - [Unity LogHandler](AstrumProj/Assets/Script/AstrumClient/Examples/README_UnityLogHandler.md) - 日志系统使用指南
 
 ### 📊 架构图
@@ -36,7 +39,31 @@ Astrum 是一个基于 Unity 的多人网络游戏项目，采用客户端-服�
 - [游戏客户端流程](GameClientFlow.puml) - 客户端流程图
 - [逻辑核心架构](LogicCore.puml) - 逻辑核心架构图
 
-## 最新更新 (2024年12月)
+## 最新更新
+
+### 🆕 Luban CSV框架 (2025年10月)
+
+#### 新增功能
+1. **通用CSV读写框架**
+   - 使用 CsvHelper 实现的通用Luban表读写工具
+   - 支持自动空值处理、类型转换、字段映射
+   - 自动备份机制，保留最近5个历史版本
+   
+2. **角色编辑器基础框架**
+   - 统一编辑 EntityBaseTable 和 RoleBaseTable
+   - 使用 Odin Inspector 构建强大的编辑器UI
+   - 模块化设计，预留预览和时间轴系统接口
+
+#### 技术亮点
+- **零重复代码**: 添加新表支持只需定义映射类
+- **类型安全**: 强类型映射，编译期检查
+- **易扩展**: 通用框架可用于任意Luban表
+
+📖 **详细文档**: [Luban CSV框架使用指南](AstrumConfig/Doc/Luban_CSV框架使用指南.md)
+
+---
+
+## 历史更新 (2024年12月)
 
 ### 🚀 ASLogger 系统优化
 
