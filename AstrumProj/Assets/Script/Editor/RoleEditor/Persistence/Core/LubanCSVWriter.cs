@@ -40,7 +40,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                 // 确保目录存在
                 AstrumEditorUtility.EnsureDirectoryExists(fullPath);
                 
-                using (var writer = new StreamWriter(fullPath, false, System.Text.Encoding.UTF8))
+                using (var writer = new StreamWriter(fullPath, false, new System.Text.UTF8Encoding(false)))
                 {
                     // 写入Luban表头
                     if (config.Header != null)
