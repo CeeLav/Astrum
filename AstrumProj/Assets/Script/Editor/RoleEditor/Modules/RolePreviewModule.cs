@@ -121,6 +121,12 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 初始化Animancer
             _animancer = AnimationHelper.GetOrAddAnimancer(_previewInstance);
             
+            // 关闭Root Motion，防止动画产生位移
+            if (_animancer != null && _animancer.Animator != null)
+            {
+                _animancer.Animator.applyRootMotion = false;
+            }
+            
             // 获取可用动作列表
             _availableActions = ConfigTableHelper.GetAvailableActions(_currentRole);
             
@@ -174,6 +180,13 @@ namespace Astrum.Editor.RoleEditor.Modules
         public void PlayAction(int actionId)
         {
             if (_animancer == null || actionId <= 0) return;
+            
+            // 重置模型位置，防止累积位移
+            if (_previewInstance != null)
+            {
+                _previewInstance.transform.position = -_modelCenter;
+                _previewInstance.transform.rotation = Quaternion.identity;
+            }
             
             // 使用Helper播放动画
             _currentAnimState = AnimationHelper.PlayAnimationByActionId(_animancer, actionId, fadeTime: 0.25f);

@@ -26,6 +26,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         // === UI状态 ===
         private Vector2 _detailScrollPosition;
+        private int _selectedAnimationIndex = 0;
         
         // === 布局常量 ===
         private const float LIST_WIDTH = 250f;
@@ -235,6 +236,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                 _propertyTree = PropertyTree.Create(_selectedRole);
                 _propertyTree.UpdateTree(); // 确保树结构更新
             }
+            
+            // 重置动画选择
+            _selectedAnimationIndex = 0;
             
             // 更新预览
             _previewModule?.SetRole(role);
@@ -454,15 +458,25 @@ namespace Astrum.Editor.RoleEditor.Windows
                     var actions = ConfigTableHelper.GetAvailableActions(_selectedRole);
                     if (actions != null && actions.Count > 0)
                     {
-                        string[] actionNames = actions.Select(a => $"{a.ActionName} (ID:{a.ActionId})").ToArray();
-                        int selectedIndex = EditorGUILayout.Popup(0, actionNames, GUILayout.ExpandWidth(true));
-                        
-                        if (selectedIndex >= 0 && selectedIndex < actions.Count)
+                        // 确保索引有效
+                        if (_selectedAnimationIndex >= actions.Count)
                         {
-                            if (GUILayout.Button("播放选中", GUILayout.Width(60)))
-                            {
-                                _previewModule?.PlayAction(actions[selectedIndex].ActionId);
-                            }
+                            _selectedAnimationIndex = 0;
+                        }
+                        
+                        string[] actionNames = actions.Select(a => $"{a.ActionName} (ID:{a.ActionId})").ToArray();
+                        int newIndex = EditorGUILayout.Popup(_selectedAnimationIndex, actionNames, GUILayout.ExpandWidth(true));
+                        
+                        // 检测选择改变
+                        if (newIndex != _selectedAnimationIndex && newIndex >= 0 && newIndex < actions.Count)
+                        {
+                            _selectedAnimationIndex = newIndex;
+                            _previewModule?.PlayAction(actions[_selectedAnimationIndex].ActionId);
+                        }
+                        
+                        if (GUILayout.Button("播放", GUILayout.Width(60)))
+                        {
+                            _previewModule?.PlayAction(actions[_selectedAnimationIndex].ActionId);
                         }
                     }
                 }
