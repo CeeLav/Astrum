@@ -32,8 +32,15 @@ namespace Astrum.Editor.RoleEditor.Data
         public string ActionType = "idle";
         
         [TitleGroup("基础信息")]
-        [LabelText("总帧数"), ReadOnly]
-        [InfoBox("总帧数从动画自动计算", InfoMessageType.None)]
+        [LabelText("动画总帧数"), ReadOnly]
+        [InfoBox("从动画文件自动计算，只读", InfoMessageType.None)]
+        public int AnimationDuration = 60;
+        
+        [TitleGroup("基础信息")]
+        [LabelText("动作总帧数")]
+        [InfoBox("可以小于动画总帧数，用于提前结束动作", InfoMessageType.Info)]
+        [ValidateInput("ValidateDuration", "动作总帧数不能超过动画总帧数")]
+        [PropertyRange(1, "AnimationDuration")]
         public int Duration = 60;
         
         [TitleGroup("基础信息")]
@@ -92,6 +99,7 @@ namespace Astrum.Editor.RoleEditor.Data
             data.ActionId = id;
             data.ActionName = $"action_{id}";
             data.ActionType = "idle";
+            data.AnimationDuration = 60;
             data.Duration = 60;
             data.AnimationPath = "";
             data.Priority = 10;
@@ -116,6 +124,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.ActionId = this.ActionId;
             clone.ActionName = this.ActionName;
             clone.ActionType = this.ActionType;
+            clone.AnimationDuration = this.AnimationDuration;
             clone.Duration = this.Duration;
             clone.AnimationPath = this.AnimationPath;
             clone.Priority = this.Priority;
@@ -222,6 +231,15 @@ namespace Astrum.Editor.RoleEditor.Data
         private IEnumerable<string> GetCommandOptions()
         {
             return new[] { "", "Move", "NormalAttack", "HeavyAttack", "Skill1", "Skill2", "Jump", "Interact" };
+        }
+        
+        private bool ValidateDuration(int duration)
+        {
+            if (string.IsNullOrEmpty(AnimationPath))
+            {
+                return duration > 0;
+            }
+            return duration > 0 && duration <= AnimationDuration;
         }
     }
 }
