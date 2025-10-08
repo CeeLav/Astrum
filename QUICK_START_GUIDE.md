@@ -83,6 +83,11 @@ cd AstrumServer && dotnet run
 2. 运行协议生成工具: `cd AstrumTool/Proto2CS && dotnet run`
 3. 代码自动生成到客户端和服务器端
 
+### 7. 编辑配置表（新功能）
+1. 使用角色编辑器：`Tools > Role & Skill Editor > Character Editor`（开发中）
+2. 或直接编辑CSV文件并通过框架读写
+3. 详见 [Luban CSV框架使用指南](AstrumConfig/Doc/Luban_CSV框架使用指南.md)
+
 ## 编译和测试
 
 ```bash

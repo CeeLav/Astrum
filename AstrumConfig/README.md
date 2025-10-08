@@ -19,8 +19,23 @@ AstrumConfig/
 │   ├── gen.sh          # Linux/Mac生成脚本
 │   ├── gen_client.bat  # 客户端生成脚本
 │   └── luban.conf      # Luban配置文件
+├── Doc/                # 文档目录
+│   ├── 房间系统策划案.md                 # 房间系统设计
+│   ├── 技能系统策划案.md                 # 技能系统设计
+│   ├── Luban_CSV框架使用指南.md          # CSV框架完整指南 🆕
+│   └── CSV框架快速参考.md                # CSV框架快速参考 🆕
 └── README.md           # 本文件
 ```
+
+## 文档导航
+
+### 开发工具文档
+- [Luban CSV框架使用指南](Doc/Luban_CSV框架使用指南.md) - 完整的CSV读写框架文档 🆕
+- [CSV框架快速参考](Doc/CSV框架快速参考.md) - 一分钟上手指南 🆕
+
+### 游戏系统文档
+- [房间系统策划案](Doc/房间系统策划案.md) - 房间系统设计
+- [技能系统策划案](Doc/技能系统策划案.md) - 技能系统设计
 
 ## Proto文件命名规范
 
