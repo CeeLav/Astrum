@@ -169,6 +169,22 @@ namespace Astrum.Editor.RoleEditor.Timeline
             );
         }
         
+        /// <summary>
+        /// 获取播放头的命中区域（用于检测点击）
+        /// </summary>
+        public Rect GetPlayheadHitRect(int currentFrame, Rect trackAreaRect)
+        {
+            float playheadX = _trackHeaderWidth + FrameToPixel(currentFrame);
+            const float PLAYHEAD_HIT_TOLERANCE = 5f; // 播放头点击容差（±5px）
+            
+            return new Rect(
+                playheadX - PLAYHEAD_HIT_TOLERANCE,
+                trackAreaRect.y,
+                PLAYHEAD_HIT_TOLERANCE * 2,
+                trackAreaRect.height
+            );
+        }
+        
         // === 坐标转换 ===
         
         /// <summary>

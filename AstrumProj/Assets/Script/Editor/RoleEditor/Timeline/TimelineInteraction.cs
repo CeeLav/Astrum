@@ -29,6 +29,9 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private Vector2 _dragStartPosition;
         private int _dragStartFrame;
         
+        // === 剪贴板 ===
+        private static TimelineEvent _clipboardEvent;
+        
         // === 构造函数 ===
         public TimelineInteraction(TimelineLayoutCalculator layoutCalculator)
         {
@@ -54,6 +57,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Dictionary<string, List<TimelineEvent>> eventsByTrack,
             int currentFrame)
         {
+            _currentFrame = currentFrame; // 保存当前帧用于碰撞检测
             EventType eventType = evt.type;
             
             switch (eventType)
@@ -223,8 +227,22 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 int currentFrame = _layoutCalculator.PixelToFrame(mousePos.x);
                 int frameDelta = currentFrame - _dragStartFrame;
                 
-                _draggingEvent.StartFrame = Mathf.Max(0, _draggingEvent.StartFrame + frameDelta);
-                _draggingEvent.EndFrame = Mathf.Max(_draggingEvent.StartFrame, _draggingEvent.EndFrame + frameDelta);
+                int newStartFrame = _draggingEvent.StartFrame + frameDelta;
+                int newEndFrame = _draggingEvent.EndFrame + frameDelta;
+                
+                // 边界约束
+                if (newStartFrame < 0)
+                {
+                    int offset = -newStartFrame;
+                    newStartFrame = 0;
+                    newEndFrame += offset;
+                }
+                
+                // TODO: 添加 totalFrames 边界约束（需要传入 totalFrames）
+                
+                // 更新事件
+                _draggingEvent.StartFrame = newStartFrame;
+                _draggingEvent.EndFrame = newEndFrame;
                 _dragStartFrame = currentFrame;
                 
                 OnEventMoved?.Invoke(_draggingEvent);
@@ -236,7 +254,11 @@ namespace Astrum.Editor.RoleEditor.Timeline
             if (_isResizingEventStart && _draggingEvent != null)
             {
                 int newStartFrame = _layoutCalculator.PixelToFrame(mousePos.x);
-                _draggingEvent.StartFrame = Mathf.Clamp(newStartFrame, 0, _draggingEvent.EndFrame);
+                
+                // 约束：不能小于0，不能超过结束帧
+                newStartFrame = Mathf.Clamp(newStartFrame, 0, _draggingEvent.EndFrame);
+                
+                _draggingEvent.StartFrame = newStartFrame;
                 
                 OnEventResized?.Invoke(_draggingEvent);
                 evt.Use();
@@ -247,7 +269,13 @@ namespace Astrum.Editor.RoleEditor.Timeline
             if (_isResizingEventEnd && _draggingEvent != null)
             {
                 int newEndFrame = _layoutCalculator.PixelToFrame(mousePos.x);
-                _draggingEvent.EndFrame = Mathf.Max(newEndFrame, _draggingEvent.StartFrame);
+                
+                // 约束：不能小于起始帧
+                newEndFrame = Mathf.Max(newEndFrame, _draggingEvent.StartFrame);
+                
+                // TODO: 添加 totalFrames 边界约束
+                
+                _draggingEvent.EndFrame = newEndFrame;
                 
                 OnEventResized?.Invoke(_draggingEvent);
                 evt.Use();
@@ -338,10 +366,24 @@ namespace Astrum.Editor.RoleEditor.Timeline
         
         private bool HitTestPlayhead(Vector2 mousePos, Rect rect)
         {
-            // 简化：检测鼠标是否在播放头附近（10像素范围）
-            // 实际位置需要根据 layoutCalculator 计算
-            return false; // 占位实现
+            // 注意：这里的 rect 是整个时间轴区域，需要获取轨道区域
+            // 但由于我们没有直接传入 trackAreaRect，我们需要重新计算
+            // 简化方案：只检测播放头的X坐标范围
+            
+            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
+            float playheadX = trackHeaderWidth + _layoutCalculator.FrameToPixel(_currentFrame);
+            const float PLAYHEAD_HIT_TOLERANCE = 5f;
+            
+            // 检测鼠标X坐标是否在播放头附近
+            if (Mathf.Abs(mousePos.x - playheadX) <= PLAYHEAD_HIT_TOLERANCE)
+            {
+                return true;
+            }
+            
+            return false;
         }
+        
+        private int _currentFrame; // 需要从外部传入当前帧
         
         private TimelineEvent HitTestEvents(
             Vector2 mousePos,
@@ -354,8 +396,63 @@ namespace Astrum.Editor.RoleEditor.Timeline
             isStartEdge = false;
             isEndEdge = false;
             
-            // 遍历所有轨道的所有事件
-            // 占位实现，实际需要根据轨道和事件位置计算
+            const float EDGE_HIT_TOLERANCE = 4f; // 边缘点击容差（±4px）
+            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
+            
+            // 从后往前遍历轨道（优先检测上层轨道）
+            float currentY = 0;
+            
+            for (int trackIndex = 0; trackIndex < tracks.Count; trackIndex++)
+            {
+                TimelineTrackConfig track = tracks[trackIndex];
+                
+                if (!track.IsVisible)
+                    continue;
+                
+                // 检测鼠标是否在当前轨道的Y范围内
+                if (mousePos.y >= currentY && mousePos.y < currentY + track.TrackHeight)
+                {
+                    // 在当前轨道中，检测所有事件
+                    if (eventsByTrack.ContainsKey(track.TrackType))
+                    {
+                        List<TimelineEvent> events = eventsByTrack[track.TrackType];
+                        
+                        // 从后往前遍历事件（优先检测后添加的事件）
+                        for (int i = events.Count - 1; i >= 0; i--)
+                        {
+                            TimelineEvent timelineEvent = events[i];
+                            
+                            // 计算事件矩形
+                            float eventStartX = trackHeaderWidth + _layoutCalculator.FrameToPixel(timelineEvent.StartFrame);
+                            float eventEndX = trackHeaderWidth + _layoutCalculator.FrameToPixel(timelineEvent.EndFrame + 1);
+                            float eventY = currentY + 2; // 上边距
+                            float eventHeight = track.TrackHeight - 4; // 上下边距
+                            
+                            Rect eventRect = new Rect(eventStartX, eventY, eventEndX - eventStartX, eventHeight);
+                            
+                            if (eventRect.Contains(mousePos))
+                            {
+                                // 检测是否点击在边缘
+                                if (mousePos.x >= eventStartX && mousePos.x <= eventStartX + EDGE_HIT_TOLERANCE)
+                                {
+                                    isStartEdge = true;
+                                }
+                                else if (mousePos.x >= eventEndX - EDGE_HIT_TOLERANCE && mousePos.x <= eventEndX)
+                                {
+                                    isEndEdge = true;
+                                }
+                                
+                                return timelineEvent;
+                            }
+                        }
+                    }
+                    
+                    // 找到轨道但没有事件命中
+                    break;
+                }
+                
+                currentY += track.TrackHeight;
+            }
             
             return null;
         }
@@ -363,7 +460,24 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private string HitTestTrack(Vector2 mousePos, Rect rect, List<TimelineTrackConfig> tracks)
         {
             // 检测鼠标在哪个轨道上
-            // 占位实现
+            float currentY = 0;
+            
+            for (int trackIndex = 0; trackIndex < tracks.Count; trackIndex++)
+            {
+                TimelineTrackConfig track = tracks[trackIndex];
+                
+                if (!track.IsVisible)
+                    continue;
+                
+                // 检测鼠标Y坐标是否在当前轨道范围内
+                if (mousePos.y >= currentY && mousePos.y < currentY + track.TrackHeight)
+                {
+                    return track.TrackType;
+                }
+                
+                currentY += track.TrackHeight;
+            }
+            
             return null;
         }
         
@@ -373,15 +487,90 @@ namespace Astrum.Editor.RoleEditor.Timeline
         {
             GenericMenu menu = new GenericMenu();
             
+            // 添加事件
             menu.AddItem(new GUIContent($"在帧 {frame} 添加事件"), false, () =>
             {
                 OnAddEventRequested?.Invoke(frame, trackType);
             });
             
             menu.AddSeparator("");
-            menu.AddItem(new GUIContent("粘贴事件"), false, () => { });
+            
+            // 复制选中事件
+            if (_selectedEvent != null)
+            {
+                menu.AddItem(new GUIContent("复制事件"), false, () =>
+                {
+                    CopySelectedEvent();
+                });
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent("复制事件"));
+            }
+            
+            // 粘贴事件
+            if (_clipboardEvent != null)
+            {
+                menu.AddItem(new GUIContent($"粘贴事件（帧 {frame}）"), false, () =>
+                {
+                    PasteEvent(frame, trackType);
+                });
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent("粘贴事件"));
+            }
+            
+            menu.AddSeparator("");
+            
+            // 删除选中事件
+            if (_selectedEvent != null)
+            {
+                menu.AddItem(new GUIContent("删除事件"), false, () =>
+                {
+                    DeleteSelectedEvent();
+                });
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent("删除事件"));
+            }
             
             menu.ShowAsContext();
+        }
+        
+        // === 剪贴板操作 ===
+        
+        private void CopySelectedEvent()
+        {
+            if (_selectedEvent != null)
+            {
+                _clipboardEvent = _selectedEvent.Clone();
+                Debug.Log($"{LOG_PREFIX} Copied event: {_selectedEvent.EventId}");
+            }
+        }
+        
+        private void PasteEvent(int frame, string trackType)
+        {
+            if (_clipboardEvent != null)
+            {
+                TimelineEvent newEvent = _clipboardEvent.Clone();
+                newEvent.StartFrame = frame;
+                newEvent.EndFrame = frame + _clipboardEvent.GetDuration() - 1;
+                newEvent.TrackType = trackType; // 使用目标轨道类型
+                
+                OnAddEventRequested?.Invoke(frame, trackType); // 触发外部添加逻辑
+                Debug.Log($"{LOG_PREFIX} Pasted event at frame {frame}");
+            }
+        }
+        
+        private void DeleteSelectedEvent()
+        {
+            if (_selectedEvent != null)
+            {
+                Debug.Log($"{LOG_PREFIX} Delete event requested: {_selectedEvent.EventId}");
+                // 实际删除由外部处理（通过监听 Delete 键或右键菜单）
+            }
         }
     }
 }

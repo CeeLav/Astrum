@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Newtonsoft.Json;
 using Astrum.Editor.RoleEditor.Timeline;
 using Astrum.Editor.RoleEditor.Timeline.EventData;
 
@@ -63,45 +64,67 @@ namespace Astrum.Editor.RoleEditor.Persistence
         {
             var result = new List<(int, int, string, BeCancelTagEventData)>();
             
-            // 简化实现：假设格式固定
-            // 实际应该使用JSON库或手写完整解析器
-            
-            // 占位实现：创建一个默认的被取消标签
-            if (json.Contains("tags"))
+            try
             {
-                var data = BeCancelTagEventData.CreateDefault();
-                result.Add((0, totalFrames - 1, data.GetDisplayName(), data));
+                // 使用 Newtonsoft.Json 解析
+                var jsonDataList = JsonConvert.DeserializeObject<List<BeCancelledTagJsonData>>(json);
+                
+                if (jsonDataList != null)
+                {
+                    foreach (var jsonData in jsonDataList)
+                    {
+                        // 创建事件数据
+                        var eventData = new BeCancelTagEventData
+                        {
+                            Tags = jsonData.Tags ?? new List<string>(),
+                            BlendOutFrames = jsonData.BlendOutFrames,
+                            Priority = jsonData.Priority,
+                            Note = ""
+                        };
+                        
+                        // 解析帧范围
+                        int startFrame = 0;
+                        int endFrame = totalFrames - 1;
+                        
+                        if (jsonData.RangeFrames != null && jsonData.RangeFrames.Count >= 2)
+                        {
+                            startFrame = jsonData.RangeFrames[0];
+                            endFrame = jsonData.RangeFrames[1];
+                        }
+                        
+                        result.Add((startFrame, endFrame, eventData.GetDisplayName(), eventData));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"{LOG_PREFIX} JSON parse error: {ex.Message}");
             }
             
             return result;
         }
         
-        // === TempBeCancelledTags 解析 ===
-        
         /// <summary>
-        /// 解析临时被取消标签（JSON格式）
+        /// BeCancelledTag JSON 数据结构（用于反序列化）
         /// </summary>
-        public static List<TimelineEvent> ParseTempBeCancelledTags(string json, int actionId)
+        [Serializable]
+        private class BeCancelledTagJsonData
         {
-            var events = new List<TimelineEvent>();
+            public List<string> tags { get; set; }
+            public List<int> rangeFrames { get; set; }
+            public int blendOutFrames { get; set; }
+            public int priority { get; set; }
             
-            if (string.IsNullOrEmpty(json))
-                return events;
-            
-            try
-            {
-                // 占位实现
-                // 实际需要完整的JSON解析
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"{LOG_PREFIX} Failed to parse TempBeCancelledTags for action {actionId}: {ex.Message}");
-            }
-            
-            return events;
+            // 属性映射（首字母大写）
+            public List<string> Tags => tags;
+            public List<int> RangeFrames => rangeFrames;
+            public int BlendOutFrames => blendOutFrames;
+            public int Priority => priority;
         }
         
         // === CancelTags 解析 ===
+        
+        // 注意：TempBeCancelledTags 是运行时数据，不从静态表解析
         
         /// <summary>
         /// 解析取消标签（JSON格式）

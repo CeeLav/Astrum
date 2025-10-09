@@ -1,0 +1,19 @@
+##var,actionId,actionName,actionType,duration,AnimationName,autoNextActionId,keepPlayingAnim,AutoTerminate,Command,Priority,CancelTags,BeCancelledTags
+##type,int,string,string,int,string,int,bool,bool,string,int,string,string
+##group,,,,,,,,,,,,,
+##desc,����ID,��������,��������,֡,,��Ȼ��һ������ID,�Ƿ񱣳ֶ���������·��,�Ƿ���Ȼ��ֹ������Ҫ���뱣��״̬,����������Ҫ������,���ȼ���ԽСԽ��,,
+,1001,idle_01,idle,20,Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_B_1.anim,1001,TRUE,,,10,,"[
+  {""tags"":[""move"",""skill"",""jump"",""interact""],""rangeFrames"":[0,60],""blendOutFrames"":3,""priority"":0}
+]"
+,1002,walk_01,walk,20,Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim,1001,TRUE,TRUE,Move,9,"[
+  {""tag"":""move"",""startFromFrames"":12,""blendInFrames"":4,""priority"":0}
+]","[
+  {""tags"":[""skill"",""jump""],""rangeFrames"":[0,60],""blendOutFrames"":4,""priority"":0},
+]"
+,,,,,,,,,,,,
+,3001,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,,,NormalAttack,5,"[
+  {""tag"":""skill"",""startFromFrames"":12,""blendInFrames"":4,""priority"":0}
+]",
+,3002,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,,,NormalAttack,5,"[
+  {""tag"":""skill"",""startFromFrames"":12,""blendInFrames"":4,""priority"":0}
+]",

@@ -28,7 +28,6 @@ public sealed partial class ActionTable : Luban.BeanBase
         Priority = _buf.ReadInt();
         CancelTags = _buf.ReadString();
         BeCancelledTags = _buf.ReadString();
-        TempBeCancelledTags = _buf.ReadString();
     }
 
     public static ActionTable DeserializeActionTable(ByteBuf _buf)
@@ -37,45 +36,44 @@ public sealed partial class ActionTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// 动作ID
+    /// ����ID
     /// </summary>
     public readonly int ActionId;
     /// <summary>
-    /// 动作名称
+    /// ��������
     /// </summary>
     public readonly string ActionName;
     /// <summary>
-    /// 动作类型
+    /// ��������
     /// </summary>
     public readonly string ActionType;
     /// <summary>
-    /// 帧
+    /// ֡
     /// </summary>
     public readonly int Duration;
     public readonly string AnimationName;
     /// <summary>
-    /// 自然下一个动作ID
+    /// ��Ȼ��һ������ID
     /// </summary>
     public readonly int AutoNextActionId;
     /// <summary>
-    /// 是否保持动画（如走路）
+    /// �Ƿ&#465139;ֶ���������&#183;��
     /// </summary>
     public readonly bool KeepPlayingAnim;
     /// <summary>
-    /// 是否自然终止，即需要输入保持状态
+    /// �Ƿ���Ȼ��ֹ������Ҫ���뱣��״̬
     /// </summary>
     public readonly bool AutoTerminate;
     /// <summary>
-    /// 触发动作需要的输入
+    /// ����������Ҫ������
     /// </summary>
     public readonly string Command;
     /// <summary>
-    /// 优先级，越小越高
+    /// ���ȼ���ԽСԽ��
     /// </summary>
     public readonly int Priority;
     public readonly string CancelTags;
     public readonly string BeCancelledTags;
-    public readonly string TempBeCancelledTags;
    
     public const int __ID__ = -320110163;
     public override int GetTypeId() => __ID__;
@@ -99,7 +97,6 @@ public sealed partial class ActionTable : Luban.BeanBase
         + "Priority:" + Priority + ","
         + "CancelTags:" + CancelTags + ","
         + "BeCancelledTags:" + BeCancelledTags + ","
-        + "TempBeCancelledTags:" + TempBeCancelledTags + ","
         + "}";
     }
 }

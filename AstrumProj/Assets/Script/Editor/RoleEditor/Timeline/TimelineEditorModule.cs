@@ -100,7 +100,12 @@ namespace Astrum.Editor.RoleEditor.Timeline
             
             // 绘制轨道区域
             Rect trackAreaRect = _layoutCalculator.GetTrackAreaRect();
-            _renderer.DrawTracks(trackAreaRect, _tracks, _eventsByTrack, _currentFrame);
+            
+            // 传递选中和悬停事件用于高亮显示
+            TimelineEvent selectedEvent = _interaction.GetSelectedEvent();
+            TimelineEvent hoverEvent = _interaction.GetHoverEvent();
+            
+            _renderer.DrawTracks(trackAreaRect, _tracks, _eventsByTrack, _currentFrame, selectedEvent, hoverEvent);
             
             // 在轨道绘制完成后，重新绘制播放头竖线（确保在最上层）
             _renderer.DrawPlayheadLines(trackAreaRect, _currentFrame);
@@ -301,8 +306,78 @@ namespace Astrum.Editor.RoleEditor.Timeline
         
         private void HandleAddEventRequested(int frame, string trackType)
         {
-            // 创建新事件（需要在外部实现具体逻辑）
-            Debug.Log($"{LOG_PREFIX} Add event requested at frame {frame}, track {trackType}");
+            // 创建新事件
+            TimelineEvent newEvent = CreateDefaultEvent(frame, trackType);
+            
+            if (newEvent != null)
+            {
+                AddEvent(newEvent);
+                Debug.Log($"{LOG_PREFIX} Added new event: {trackType} at frame {frame}");
+            }
+        }
+        
+        /// <summary>
+        /// 创建默认事件（根据轨道类型）
+        /// </summary>
+        private TimelineEvent CreateDefaultEvent(int frame, string trackType)
+        {
+            TimelineEvent evt = new TimelineEvent
+            {
+                EventId = System.Guid.NewGuid().ToString(),
+                TrackType = trackType,
+                StartFrame = frame,
+                EndFrame = Mathf.Min(frame + 10, _totalFrames - 1), // 默认10帧长度
+                DisplayName = GetDefaultEventName(trackType)
+            };
+            
+            // 根据轨道类型设置默认数据
+            switch (trackType)
+            {
+                case "BeCancelTag":
+                    var beCancelData = Timeline.EventData.BeCancelTagEventData.CreateDefault();
+                    evt.SetEventData(beCancelData);
+                    evt.DisplayName = beCancelData.GetDisplayName();
+                    break;
+                    
+                case "VFX":
+                    var vfxData = Timeline.EventData.VFXEventData.CreateDefault();
+                    evt.SetEventData(vfxData);
+                    evt.DisplayName = vfxData.GetDisplayName();
+                    break;
+                    
+                case "SFX":
+                    var sfxData = Timeline.EventData.SFXEventData.CreateDefault();
+                    evt.SetEventData(sfxData);
+                    evt.DisplayName = sfxData.GetDisplayName();
+                    break;
+                    
+                case "CameraShake":
+                    var shakeData = Timeline.EventData.CameraShakeEventData.CreateDefault();
+                    evt.SetEventData(shakeData);
+                    evt.DisplayName = shakeData.GetDisplayName();
+                    break;
+                    
+                default:
+                    evt.DisplayName = "新事件";
+                    break;
+            }
+            
+            return evt;
+        }
+        
+        /// <summary>
+        /// 获取默认事件名称
+        /// </summary>
+        private string GetDefaultEventName(string trackType)
+        {
+            switch (trackType)
+            {
+                case "BeCancelTag": return "被取消标签";
+                case "VFX": return "特效";
+                case "SFX": return "音效";
+                case "CameraShake": return "相机震动";
+                default: return "新事件";
+            }
         }
     }
 }

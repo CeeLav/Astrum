@@ -47,38 +47,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
             return "[" + string.Join(",", jsonObjects) + "]";
         }
         
-        // === TempBeCancelledTags 序列化 ===
-        
-        /// <summary>
-        /// 序列化临时被取消标签为 JSON 字符串
-        /// </summary>
-        public static string SerializeTempBeCancelledTags(List<TimelineEvent> events)
-        {
-            var tempCancelEvents = events.Where(e => e.TrackType == "TempBeCancelTag").ToList();
-            
-            if (tempCancelEvents.Count == 0)
-                return "";
-            
-            var jsonObjects = new List<string>();
-            
-            foreach (var evt in tempCancelEvents)
-            {
-                var data = evt.GetEventData<TempBeCancelTagEventData>();
-                if (data == null) continue;
-                
-                string tagsJson = SerializeStringArray(data.Tags);
-                
-                string jsonObj = $"{{\"id\":\"{data.Id}\",\"tags\":{tagsJson},\"durationFrames\":{data.DurationFrames},\"blendOutFrames\":{data.BlendOutFrames},\"priority\":{data.Priority}}}";
-                jsonObjects.Add(jsonObj);
-            }
-            
-            if (jsonObjects.Count == 0)
-                return "";
-            
-            return "[" + string.Join(",", jsonObjects) + "]";
-        }
-        
         // === CancelTags 序列化 ===
+        
+        // 注意：TempBeCancelledTags 是运行时数据，不写入静态表
         
         /// <summary>
         /// 序列化取消标签为 JSON 字符串

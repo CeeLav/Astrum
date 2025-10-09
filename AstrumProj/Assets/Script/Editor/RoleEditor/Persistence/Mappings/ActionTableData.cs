@@ -45,9 +45,6 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(11, "BeCancelledTags")]
         public string BeCancelledTags { get; set; }
         
-        [TableField(12, "TempBeCancelledTags")]
-        public string TempBeCancelledTags { get; set; }
-        
         /// <summary>
         /// 获取表配置
         /// </summary>
@@ -64,25 +61,25 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                     {
                         "actionId", "actionName", "actionType", "duration", "AnimationName",
                         "autoNextActionId", "keepPlayingAnim", "AutoTerminate", "Command", "Priority",
-                        "CancelTags", "BeCancelledTags", "TempBeCancelledTags"
+                        "CancelTags", "BeCancelledTags"
                     },
                     Types = new List<string>
                     {
                         "int", "string", "string", "int", "string",
                         "int", "bool", "bool", "string", "int",
-                        "string", "string", "string"
+                        "string", "string"
                     },
                     Groups = new List<string>
                     {
                         "", "", "", "", "",
                         "", "", "", "", "",
-                        "", "", ""
+                        "", ""
                     },
                     Descriptions = new List<string>
                     {
                         "动作ID", "动作名称", "动作类型", "帧数", "动画路径",
                         "自动下一动作ID", "保持播放动画", "自动终止", "命令", "优先级",
-                        "取消标签", "被取消标签", "临时被取消标签"
+                        "取消标签", "被取消标签"
                     }
                 }
             };
