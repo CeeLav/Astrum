@@ -1,19 +1,15 @@
-##var,actionId,actionName,actionType,duration,AnimationName,autoNextActionId,keepPlayingAnim,AutoTerminate,Command,Priority,CancelTags,BeCancelledTags,TempBeCancelledTags
-##type,int,string,string,int,string,int,bool,bool,string,int,string,string,string
-##group,,,,,,,,,,,,,
-##desc,¶¯×÷ID,¶¯×÷Ãû³Æ,¶¯×÷ÀàĞÍ,Ö¡,,×ÔÈ»ÏÂÒ»¸ö¶¯×÷ID,ÊÇ·ñ±£³Ö¶¯»­£¨Èç×ßÂ·£©,ÊÇ·ñ×ÔÈ»ÖÕÖ¹£¬¼´ĞèÒªÊäÈë±£³Ö×´Ì¬,´¥·¢¶¯×÷ĞèÒªµÄÊäÈë,ÓÅÏÈ¼¶£¬Ô½Ğ¡Ô½¸ß,,,
-,1001,idle_01,idle,20,Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_B_1.anim,1001,TRUE,,,10,,"[
-  {""tags"":[""move"",""skill"",""jump"",""interact""],""rangeFrames"":[0,60],""blendOutFrames"":3,""priority"":0}
-]",
-,1002,walk_01,walk,20,Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim,1001,TRUE,TRUE,Move,9,"[
+##var,actionId,actionName,actionType,duration,AnimationName,autoNextActionId,keepPlayingAnim,AutoTerminate,Command,Priority,CancelTags,BeCancelledTags
+##type,int,string,string,int,string,int,bool,bool,string,int,string,string
+##group,,,,,,,,,,,,
+##desc,åŠ¨ä½œID,åŠ¨ä½œåç§°,åŠ¨ä½œç±»å‹,å¸§æ•°,åŠ¨ç”»è·¯å¾„,è‡ªåŠ¨ä¸‹ä¸€åŠ¨ä½œID,ä¿æŒæ’­æ”¾åŠ¨ç”»,è‡ªåŠ¨ç»ˆæ­¢,å‘½ä»¤,ä¼˜å…ˆçº§,å–æ¶ˆæ ‡ç­¾,è¢«å–æ¶ˆæ ‡ç­¾
+,1001,idle_01,idle,40,Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_B_1.anim,1001,True,False,,10,,"[{""tags"":[""move"",""skill"",""jump"",""interact""],""rangeFrames"":[0,60],""blendOutFrames"":3,""priority"":0}]"
+,1002,walk_01,walk,20,Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim,1001,True,True,Move,9,"[
   {""tag"":""move"",""startFromFrames"":12,""blendInFrames"":4,""priority"":0}
-]","[
-  {""tags"":[""skill"",""jump""],""rangeFrames"":[0,60],""blendOutFrames"":4,""priority"":0},
+]","[{""tags"":[""skill"",""jump""],""rangeFrames"":[0,60],""blendOutFrames"":4,""priority"":0}]"
+,0,,,0,,0,False,False,,0,,
+,3001,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,False,False,NormalAttack,5,"[
+  {""tag"":""skill"",""startFromFrames"":12,""blendInFrames"":4,""priority"":0}
 ]",
-,,,,,,,,,,,,,
-,3001,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,,,NormalAttack,5,"[
+,3002,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,False,False,NormalAttack,5,"[
   {""tag"":""skill"",""startFromFrames"":12,""blendInFrames"":4,""priority"":0}
-]",,
-,3002,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,,,NormalAttack,5,"[
-  {""tag"":""skill"",""startFromFrames"":12,""blendInFrames"":4,""priority"":0}
-]",,
+]",

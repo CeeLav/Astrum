@@ -96,7 +96,9 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Rect rect,
             List<TimelineTrackConfig> tracks,
             Dictionary<string, List<TimelineEvent>> eventsByTrack,
-            int currentFrame)
+            int currentFrame,
+            TimelineEvent selectedEvent = null,
+            TimelineEvent hoverEvent = null)
         {
             // 背景
             EditorGUI.DrawRect(rect, COLOR_BACKGROUND);
@@ -128,7 +130,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
                     : new List<TimelineEvent>();
                 
                 // 绘制轨道
-                DrawTrack(trackRect, track, events, i, currentFrame);
+                DrawTrack(trackRect, track, events, i, currentFrame, selectedEvent, hoverEvent);
                 
                 currentY += track.TrackHeight;
             }
@@ -144,7 +146,9 @@ namespace Astrum.Editor.RoleEditor.Timeline
              TimelineTrackConfig track,
              List<TimelineEvent> events,
              int trackIndex,
-             int currentFrame)
+             int currentFrame,
+             TimelineEvent selectedEvent = null,
+             TimelineEvent hoverEvent = null)
          {
              // 交替背景色
              Color bgColor = (trackIndex % 2 == 0) ? COLOR_TRACK_BG_EVEN : COLOR_TRACK_BG_ODD;
@@ -166,6 +170,16 @@ namespace Astrum.Editor.RoleEditor.Timeline
              foreach (TimelineEvent evt in events)
              {
                  DrawEvent(contentRect, evt, track);
+                 
+                 // 绘制选中/悬停高亮
+                 if (selectedEvent != null && evt.EventId == selectedEvent.EventId)
+                 {
+                     DrawEventHighlight(contentRect, evt, new Color(1f, 0.8f, 0f, 1f), 2f); // 金色高亮，2px边框
+                 }
+                 else if (hoverEvent != null && evt.EventId == hoverEvent.EventId)
+                 {
+                     DrawEventHighlight(contentRect, evt, new Color(1f, 1f, 1f, 0.5f), 1f); // 半透明白色，1px边框
+                 }
              }
              
              // 分隔线
@@ -237,6 +251,49 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 labelStyle.alignment = TextAnchor.MiddleCenter;
                 GUI.Label(rect, evt.DisplayName, labelStyle);
             }
+        }
+        
+        /// <summary>
+        /// 绘制事件高亮边框
+        /// </summary>
+        private void DrawEventHighlight(Rect trackContentRect, TimelineEvent evt, Color highlightColor, float borderWidth)
+        {
+            Rect eventRect = _layoutCalculator.GetEventRect(evt, trackContentRect);
+            
+            // 扩展矩形用于绘制边框
+            Rect highlightRect = new Rect(
+                eventRect.x - borderWidth,
+                eventRect.y - borderWidth,
+                eventRect.width + borderWidth * 2,
+                eventRect.height + borderWidth * 2
+            );
+            
+            // 绘制边框（使用 Handles）
+            Handles.color = highlightColor;
+            
+            // 上边框
+            Handles.DrawLine(
+                new Vector2(highlightRect.x, highlightRect.y),
+                new Vector2(highlightRect.xMax, highlightRect.y)
+            );
+            
+            // 下边框
+            Handles.DrawLine(
+                new Vector2(highlightRect.x, highlightRect.yMax),
+                new Vector2(highlightRect.xMax, highlightRect.yMax)
+            );
+            
+            // 左边框
+            Handles.DrawLine(
+                new Vector2(highlightRect.x, highlightRect.y),
+                new Vector2(highlightRect.x, highlightRect.yMax)
+            );
+            
+            // 右边框
+            Handles.DrawLine(
+                new Vector2(highlightRect.xMax, highlightRect.y),
+                new Vector2(highlightRect.xMax, highlightRect.yMax)
+            );
         }
         
         // === 辅助绘制方法 ===

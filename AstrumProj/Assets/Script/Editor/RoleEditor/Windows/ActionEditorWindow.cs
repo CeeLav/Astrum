@@ -84,8 +84,53 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 处理分隔线拖拽
             _layoutManager.HandleSeparatorDrag(Event.current, position);
             
+            // 处理全局快捷键
+            HandleGlobalHotkeys(Event.current);
+            
             // 如果动画正在播放，同步播放头到时间轴
             SyncAnimationToTimeline();
+        }
+        
+        /// <summary>
+        /// 处理全局快捷键
+        /// </summary>
+        private void HandleGlobalHotkeys(Event evt)
+        {
+            if (evt.type == EventType.KeyDown)
+            {
+                switch (evt.keyCode)
+                {
+                    case KeyCode.Delete:
+                        // 删除选中的时间轴事件
+                        if (_timelineModule != null)
+                        {
+                            TimelineEvent selectedEvent = _timelineModule.GetSelectedEvent();
+                            if (selectedEvent != null)
+                            {
+                                bool confirm = EditorUtility.DisplayDialog(
+                                    "删除事件",
+                                    $"确定要删除事件 [{selectedEvent.TrackType}] {selectedEvent.DisplayName} 吗？",
+                                    "删除", "取消"
+                                );
+                                
+                                if (confirm)
+                                {
+                                    _timelineModule.RemoveSelectedEvent();
+                                    
+                                    // 标记动作为已修改
+                                    if (_selectedAction != null)
+                                    {
+                                        _selectedAction.MarkDirty();
+                                    }
+                                    
+                                    evt.Use();
+                                    Repaint();
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
         }
         
         /// <summary>
@@ -138,6 +183,7 @@ namespace Astrum.Editor.RoleEditor.Windows
             _timelineModule.Initialize(60);
             _timelineModule.OnEventModified += OnTimelineEventModified;
             _timelineModule.OnCurrentFrameChanged += OnTimelineFrameChanged;
+            _timelineModule.OnEventSelected += OnTimelineEventSelected;
         }
         
         private void CleanupModules()
@@ -163,21 +209,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                 IsVisible = true,
                 IsLocked = false,
                 SortOrder = 0,
-                AllowOverlap = false
-            });
-            
-            // 注册临时取消标签轨道
-            TimelineTrackRegistry.RegisterTrack(new TimelineTrackConfig
-            {
-                TrackType = "TempBeCancelTag",
-                TrackName = "临时取消",
-                TrackIcon = "⏱",
-                TrackColor = new Color(0.8f, 0.6f, 0.3f),
-                TrackHeight = 45f,
-                IsVisible = true,
-                IsLocked = false,
-                SortOrder = 1,
-                AllowOverlap = true
+                AllowOverlap = false,
+                EventRenderer = Timeline.Renderers.BeCancelTagTrackRenderer.RenderEvent,
+                EventEditor = Timeline.Renderers.BeCancelTagTrackRenderer.EditEvent
             });
             
             // 注册特效轨道
@@ -190,8 +224,10 @@ namespace Astrum.Editor.RoleEditor.Windows
                 TrackHeight = 45f,
                 IsVisible = true,
                 IsLocked = false,
-                SortOrder = 2,
-                AllowOverlap = true
+                SortOrder = 1,
+                AllowOverlap = true,
+                EventRenderer = Timeline.Renderers.VFXTrackRenderer.RenderEvent,
+                EventEditor = Timeline.Renderers.VFXTrackRenderer.EditEvent
             });
             
             // 注册音效轨道
@@ -204,8 +240,10 @@ namespace Astrum.Editor.RoleEditor.Windows
                 TrackHeight = 45f,
                 IsVisible = true,
                 IsLocked = false,
-                SortOrder = 3,
-                AllowOverlap = true
+                SortOrder = 2,
+                AllowOverlap = true,
+                EventRenderer = Timeline.Renderers.SFXTrackRenderer.RenderEvent,
+                EventEditor = Timeline.Renderers.SFXTrackRenderer.EditEvent
             });
             
             // 注册相机震动轨道
@@ -218,9 +256,15 @@ namespace Astrum.Editor.RoleEditor.Windows
                 TrackHeight = 45f,
                 IsVisible = true,
                 IsLocked = false,
-                SortOrder = 4,
-                AllowOverlap = true
+                SortOrder = 3,
+                AllowOverlap = true,
+                EventRenderer = Timeline.Renderers.CameraShakeTrackRenderer.RenderEvent,
+                EventEditor = Timeline.Renderers.CameraShakeTrackRenderer.EditEvent
             });
+            
+            // 注意：TempBeCancelTag 轨道已移除，因为它是运行时数据
+            
+            Debug.Log("[ActionEditor] Registered 4 timeline tracks with renderers");
         }
         
         // === 数据加载和保存 ===
@@ -480,6 +524,17 @@ namespace Astrum.Editor.RoleEditor.Windows
             {
                 _selectedAction.MarkDirty();
             }
+        }
+        
+        private void OnTimelineEventSelected(TimelineEvent evt)
+        {
+            // 时间轴事件被选中，通知配置面板
+            if (_configModule != null)
+            {
+                _configModule.SetSelectedEvent(evt);
+            }
+            
+            Repaint();
         }
         
         private void OnJumpToTimeline()

@@ -110,7 +110,10 @@ namespace Astrum.LogicCore.Managers
             // 解析复杂字段（JSON 字符串）
             actionInfo.CancelTags = ParseCancelTagsJson(actionTable.CancelTags);
             actionInfo.BeCancelledTags = ParseBeCancelledTagsJson(actionTable.BeCancelledTags);
-            actionInfo.TempBeCancelledTags = ParseTempBeCancelledTagsJson(actionTable.TempBeCancelledTags);
+            
+            // TempBeCancelledTags 是运行时数据，初始化为空列表（由技能系统动态添加）
+            actionInfo.TempBeCancelledTags = new List<TempBeCancelledTag>();
+            
             actionInfo.Commands = ParseCommandString(actionTable.Command);
             
             // 默认值处理
@@ -188,6 +191,7 @@ namespace Astrum.LogicCore.Managers
         
         /// <summary>
         /// 解析TempBeCancelledTags JSON字符串
+        /// 注意：此方法保留用于运行时动态解析（如技能系统调用），不从静态表读取
         /// </summary>
         private List<TempBeCancelledTag> ParseTempBeCancelledTagsJson(string jsonString)
         {

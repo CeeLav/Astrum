@@ -89,11 +89,11 @@ namespace Astrum.Editor.RoleEditor.Persistence
             
             // 序列化时间轴事件
             tableData.BeCancelledTags = ActionCancelTagSerializer.SerializeBeCancelledTags(editorData.TimelineEvents);
-            tableData.TempBeCancelledTags = ActionCancelTagSerializer.SerializeTempBeCancelledTags(editorData.TimelineEvents);
             
-            // CancelTags 保持原样（从原始数据读取）
-            // TODO: 如果需要编辑 CancelTags，需要在 ActionEditorData 中添加对应字段
-            tableData.CancelTags = "";
+            // CancelTags 保持原样（从编辑器数据透传）
+            tableData.CancelTags = editorData.CancelTags ?? "";
+            
+            // TempBeCancelledTags 是运行时数据，不写入静态表
             
             return tableData;
         }

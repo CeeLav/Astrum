@@ -23,11 +23,15 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 实体选择 ===
         private int _selectedEntityId = 0;
         
+        // === 事件编辑 ===
+        private Timeline.TimelineEvent _selectedEvent;
+        
         // === 折叠状态 ===
         private bool _basicInfoFoldout = true;
         private bool _actionConfigFoldout = true;
         private bool _cancelTagFoldout = true;
         private bool _eventStatsFoldout = true;
+        private bool _eventDetailFoldout = true;
         
         // === 事件 ===
         public event Action<ActionEditorData> OnActionModified;
@@ -65,6 +69,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 EditorGUILayout.Space(5);
                 DrawCancelTagSection();
                 DrawEventStatisticsSection();
+                EditorGUILayout.Space(5);
+                DrawEventDetailSection();
             }
             EditorGUILayout.EndScrollView();
             
@@ -77,6 +83,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         public void SetAction(ActionEditorData action)
         {
             _currentAction = action;
+            _selectedEvent = null; // 切换动作时清除事件选中
             
             // 重建PropertyTree
             _propertyTree?.Dispose();
@@ -84,6 +91,14 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 _propertyTree = PropertyTree.Create(_currentAction);
             }
+        }
+        
+        /// <summary>
+        /// 设置选中的时间轴事件
+        /// </summary>
+        public void SetSelectedEvent(Timeline.TimelineEvent evt)
+        {
+            _selectedEvent = evt;
         }
         
         /// <summary>
@@ -222,16 +237,7 @@ namespace Astrum.Editor.RoleEditor.Modules
                         OnJumpToTimeline?.Invoke();
                     }
                     
-                    EditorGUILayout.Space(5);
-                    
-                    EditorGUILayout.LabelField("TempBeCancelledTags:", EditorStyles.boldLabel);
-                    int tempCancelCount = _currentAction.GetEventCount("TempBeCancelTag");
-                    EditorGUILayout.LabelField($"共 {tempCancelCount} 个临时点");
-                    
-                    if (GUILayout.Button("在时间轴编辑", GUILayout.Height(25)))
-                    {
-                        OnJumpToTimeline?.Invoke();
-                    }
+                    // 注意：TempBeCancelledTags 是运行时数据，不在静态表编辑
                 }
                 EditorGUILayout.EndVertical();
             }
@@ -250,10 +256,11 @@ namespace Astrum.Editor.RoleEditor.Modules
                     var stats = _currentAction.GetEventStatistics();
                     
                     DrawEventStat("🚫 被取消标签", GetStatValue(stats, "BeCancelTag"));
-                    DrawEventStat("⏱ 临时取消", GetStatValue(stats, "TempBeCancelTag"));
                     DrawEventStat("✨ 特效", GetStatValue(stats, "VFX"));
                     DrawEventStat("🔊 音效", GetStatValue(stats, "SFX"));
                     DrawEventStat("📷 相机震动", GetStatValue(stats, "CameraShake"));
+                    
+                    // 注意：TempBeCancelledTags 不显示（运行时数据）
                     
                     EditorGUILayout.Space(5);
                     
@@ -284,6 +291,53 @@ namespace Astrum.Editor.RoleEditor.Modules
         private int GetStatValue(Dictionary<string, int> dict, string key)
         {
             return dict != null && dict.ContainsKey(key) ? dict[key] : 0;
+        }
+        
+        // === 事件详情编辑 ===
+        
+        private void DrawEventDetailSection()
+        {
+            _eventDetailFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_eventDetailFoldout, "选中事件详情");
+            
+            if (_eventDetailFoldout)
+            {
+                EditorGUILayout.BeginVertical("box");
+                {
+                    if (_selectedEvent == null)
+                    {
+                        EditorGUILayout.HelpBox("请在时间轴中选择一个事件", MessageType.Info);
+                    }
+                    else
+                    {
+                        EditorGUILayout.LabelField($"事件类型: {_selectedEvent.TrackType}", EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField($"事件ID: {_selectedEvent.EventId}");
+                        EditorGUILayout.LabelField($"帧范围: {_selectedEvent.StartFrame} - {_selectedEvent.EndFrame}");
+                        
+                        EditorGUILayout.Space(10);
+                        
+                        // 调用对应轨道的编辑器
+                        var track = Timeline.TimelineTrackRegistry.GetTrack(_selectedEvent.TrackType);
+                        if (track != null && track.EventEditor != null)
+                        {
+                            bool modified = track.EventEditor(_selectedEvent);
+                            
+                            if (modified)
+                            {
+                                // 标记动作为已修改
+                                _currentAction?.MarkDirty();
+                                OnActionModified?.Invoke(_currentAction);
+                            }
+                        }
+                        else
+                        {
+                            EditorGUILayout.HelpBox("此事件类型没有编辑器", MessageType.Warning);
+                        }
+                    }
+                }
+                EditorGUILayout.EndVertical();
+            }
+            
+            EditorGUILayout.EndFoldoutHeaderGroup();
         }
     }
 }
