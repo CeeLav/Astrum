@@ -44,16 +44,12 @@ namespace Astrum.Editor.RoleEditor.Data
         [PropertyRange(1, "AnimationDuration")]
         public int Duration = 60;
         
-        [TitleGroup("基础信息")]
-        [LabelText("动画路径")]
-        [Sirenix.OdinInspector.FilePath(Extensions = "anim")]
+        [HideInInspector] // 使用自定义绘制
         [OnValueChanged("OnAnimationPathChanged")]
         public string AnimationPath = "";
         
-        [TitleGroup("基础信息")]
-        [LabelText("动画文件")]
+        [HideInInspector] // 使用自定义绘制
         [OnValueChanged("OnAnimationClipChanged")]
-        [InfoBox("拖拽 AnimationClip 到此处自动更新路径", InfoMessageType.None)]
         public AnimationClip AnimationClip;
         
         // === 动作配置字段 ===
@@ -267,18 +263,32 @@ namespace Astrum.Editor.RoleEditor.Data
             return duration > 0 && duration <= AnimationDuration;
         }
         
+        // 防止循环触发的标志
+        [HideInInspector]
+        private bool _isUpdatingAnimation = false;
+        
         /// <summary>
         /// 动画路径改变时，同步加载 AnimationClip
         /// </summary>
         private void OnAnimationPathChanged()
         {
-            if (!string.IsNullOrEmpty(AnimationPath))
+            if (_isUpdatingAnimation) return;
+            
+            _isUpdatingAnimation = true;
+            try
             {
-                AnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimationPath);
+                if (!string.IsNullOrEmpty(AnimationPath))
+                {
+                    AnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimationPath);
+                }
+                else
+                {
+                    AnimationClip = null;
+                }
             }
-            else
+            finally
             {
-                AnimationClip = null;
+                _isUpdatingAnimation = false;
             }
         }
         
@@ -287,17 +297,27 @@ namespace Astrum.Editor.RoleEditor.Data
         /// </summary>
         private void OnAnimationClipChanged()
         {
-            if (AnimationClip != null)
+            if (_isUpdatingAnimation) return;
+            
+            _isUpdatingAnimation = true;
+            try
             {
-                string newPath = AssetDatabase.GetAssetPath(AnimationClip);
-                if (AnimationPath != newPath)
+                if (AnimationClip != null)
                 {
-                    AnimationPath = newPath;
+                    string newPath = AssetDatabase.GetAssetPath(AnimationClip);
+                    if (AnimationPath != newPath)
+                    {
+                        AnimationPath = newPath;
+                    }
+                }
+                else
+                {
+                    AnimationPath = "";
                 }
             }
-            else
+            finally
             {
-                AnimationPath = "";
+                _isUpdatingAnimation = false;
             }
         }
     }

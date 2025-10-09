@@ -61,6 +61,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             {
                 DrawOdinInspector();
+                DrawAnimationSection();
                 DrawAnimationStatusCheck();
                 EditorGUILayout.Space(5);
                 DrawCancelTagSection();
@@ -135,6 +136,58 @@ namespace Astrum.Editor.RoleEditor.Modules
                 EditorUtility.SetDirty(_currentAction);
                 OnActionModified?.Invoke(_currentAction);
             }
+        }
+        
+        /// <summary>
+        /// 绘制动画配置区域（垂直布局）
+        /// </summary>
+        private void DrawAnimationSection()
+        {
+            if (_currentAction == null) return;
+            
+            EditorGUILayout.Space(5);
+            
+            // 绘制分组框
+            EditorGUILayout.BeginVertical("box");
+            {
+                // 动画路径 - Label在上，内容在下
+                EditorGUILayout.LabelField("动画路径", EditorStyles.boldLabel);
+                EditorGUI.BeginChangeCheck();
+                string newPath = EditorGUILayout.TextField(_currentAction.AnimationPath);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _currentAction.AnimationPath = newPath;
+                    _currentAction.MarkDirty();
+                    EditorUtility.SetDirty(_currentAction);
+                    OnActionModified?.Invoke(_currentAction);
+                }
+                
+                EditorGUILayout.Space(3);
+                
+                // 动画文件 - Label在上，ObjectField在下
+                EditorGUILayout.LabelField("动画文件", EditorStyles.boldLabel);
+                EditorGUI.BeginChangeCheck();
+                var newClip = EditorGUILayout.ObjectField(_currentAction.AnimationClip, typeof(AnimationClip), false) as AnimationClip;
+                if (EditorGUI.EndChangeCheck())
+                {
+                    string oldAnimPath = _currentAction.AnimationPath;
+                    _currentAction.AnimationClip = newClip;
+                    _currentAction.MarkDirty();
+                    EditorUtility.SetDirty(_currentAction);
+                    
+                    // 检查路径是否改变（AnimationClip 的 OnValueChanged 会更新路径）
+                    string newAnimPath = _currentAction.AnimationPath;
+                    Debug.Log($"[ActionConfigModule] Animation changed: {oldAnimPath} -> {newAnimPath}");
+                    
+                    OnActionModified?.Invoke(_currentAction);
+                }
+                
+                // 提示信息
+                EditorGUILayout.HelpBox("💡 拖拽 AnimationClip 到上方字段自动更新路径", MessageType.None);
+            }
+            EditorGUILayout.EndVertical();
+            
+            EditorGUILayout.Space(5);
         }
         
         private void DrawAnimationStatusCheck()
