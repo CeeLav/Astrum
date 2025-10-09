@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEditor;
 using Astrum.Editor.RoleEditor.Timeline;
 
 namespace Astrum.Editor.RoleEditor.Data
@@ -45,8 +46,15 @@ namespace Astrum.Editor.RoleEditor.Data
         
         [TitleGroup("基础信息")]
         [LabelText("动画路径")]
-        [FilePath(Extensions = "anim")]
+        [Sirenix.OdinInspector.FilePath(Extensions = "anim")]
+        [OnValueChanged("OnAnimationPathChanged")]
         public string AnimationPath = "";
+        
+        [TitleGroup("基础信息")]
+        [LabelText("动画文件")]
+        [OnValueChanged("OnAnimationClipChanged")]
+        [InfoBox("拖拽 AnimationClip 到此处自动更新路径", InfoMessageType.None)]
+        public AnimationClip AnimationClip;
         
         // === 动作配置字段 ===
         
@@ -113,6 +121,7 @@ namespace Astrum.Editor.RoleEditor.Data
             data.AnimationDuration = 60;
             data.Duration = 60;
             data.AnimationPath = "";
+            data.AnimationClip = null;
             data.Priority = 10;
             data.AutoNextActionId = id;
             data.KeepPlayingAnim = false;
@@ -140,6 +149,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.AnimationDuration = this.AnimationDuration;
             clone.Duration = this.Duration;
             clone.AnimationPath = this.AnimationPath;
+            clone.AnimationClip = this.AnimationClip;
             clone.Priority = this.Priority;
             clone.AutoNextActionId = this.AutoNextActionId;
             clone.KeepPlayingAnim = this.KeepPlayingAnim;
@@ -255,6 +265,40 @@ namespace Astrum.Editor.RoleEditor.Data
                 return duration > 0;
             }
             return duration > 0 && duration <= AnimationDuration;
+        }
+        
+        /// <summary>
+        /// 动画路径改变时，同步加载 AnimationClip
+        /// </summary>
+        private void OnAnimationPathChanged()
+        {
+            if (!string.IsNullOrEmpty(AnimationPath))
+            {
+                AnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(AnimationPath);
+            }
+            else
+            {
+                AnimationClip = null;
+            }
+        }
+        
+        /// <summary>
+        /// AnimationClip 改变时，同步更新路径
+        /// </summary>
+        private void OnAnimationClipChanged()
+        {
+            if (AnimationClip != null)
+            {
+                string newPath = AssetDatabase.GetAssetPath(AnimationClip);
+                if (AnimationPath != newPath)
+                {
+                    AnimationPath = newPath;
+                }
+            }
+            else
+            {
+                AnimationPath = "";
+            }
         }
     }
 }

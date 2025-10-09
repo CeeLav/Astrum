@@ -523,6 +523,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                 }
                 
                 _timelineModule.SetTotalFrames(action.Duration);
+                
+                // 检查动画是否改变，如果改变则重新加载
+                LoadAnimationForAction(action);
             }
         }
         
