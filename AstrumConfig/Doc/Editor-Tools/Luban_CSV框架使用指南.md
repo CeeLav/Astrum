@@ -580,8 +580,8 @@ TypeConverterException: The conversion cannot be performed
 
 ## 相关文档
 
-- [角色编辑器设置说明](../../AstrumProj/Assets/Script/Editor/RoleEditor/SETUP.md)
-- [技能系统策划案](./技能系统策划案.md)
+- [角色编辑器设置说明](../../../AstrumProj/Assets/Script/Editor/RoleEditor/SETUP.md)
+- [技能系统策划案](../../Combat-System/技能系统策划案.md)
 
 ---
 
