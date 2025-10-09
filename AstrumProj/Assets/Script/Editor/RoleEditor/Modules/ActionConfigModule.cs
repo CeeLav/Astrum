@@ -197,9 +197,6 @@ namespace Astrum.Editor.RoleEditor.Modules
                     _currentAction.MarkDirty();
                     EditorUtility.SetDirty(_currentAction);
                     
-                    string newAnimPath = _currentAction.AnimationPath;
-                    Debug.Log($"[ActionConfigModule] Animation changed: {oldAnimPath} -> {newAnimPath}");
-                    
                     OnActionModified?.Invoke(_currentAction);
                 }
                 

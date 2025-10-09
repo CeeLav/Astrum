@@ -20,7 +20,7 @@
     ""Priority"": 0
   }
 ]",
-,3002,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_7_InPlace.anim,1001,False,False,NormalAttack,5,"[
+,3002,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,False,False,NormalAttack,5,"[
   {
     ""Tag"": ""skill"",
     ""StartFromFrames"": 0,
