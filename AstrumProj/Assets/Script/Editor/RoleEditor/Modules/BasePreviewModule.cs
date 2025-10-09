@@ -22,8 +22,8 @@ namespace Astrum.Editor.RoleEditor.Modules
         protected double _lastUpdateTime = 0;
         
         // === 相机控制 ===
-        protected Vector2 _dragRotation = Vector2.zero;
-        protected float _zoomLevel = 3f;
+        protected Vector2 _dragRotation = new Vector2(0f, 30f);  // 默认30度俯视角（斜上方）
+        protected float _zoomLevel = 2f;  // 默认距离更近
         protected Vector3 _modelCenter = Vector3.zero;
         protected float _orbitRadius = 3f;
         
@@ -239,8 +239,8 @@ namespace Astrum.Editor.RoleEditor.Modules
         /// </summary>
         public void ResetCamera()
         {
-            _dragRotation = Vector2.zero;
-            _zoomLevel = 3f;
+            _dragRotation = new Vector2(0f, 30f);  // 30度俯视角
+            _zoomLevel = 2f;  // 距离更近
         }
         
         // === 渲染 ===

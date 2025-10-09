@@ -20,11 +20,15 @@ namespace Astrum.Editor.RoleEditor.Modules
         private Vector2 _scrollPosition;
         private ActionEditorData _selectedAction;
         
+        // === 实体选择 ===
+        private int _selectedEntityId = 0;
+        
         // === 事件 ===
         public event Action<ActionEditorData> OnActionSelected;
         public event Action OnCreateNew;
         public event Action<ActionEditorData> OnDuplicate;
         public event Action<ActionEditorData> OnDelete;
+        public event Action<int> OnEntitySelected;
         
         // === 核心方法 ===
         
@@ -37,6 +41,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             EditorGUILayout.BeginVertical();
             {
                 DrawHeader();
+                DrawEntitySelection();  // 实体选择移到最上方
                 DrawSearchBar();
                 DrawFilterBar();
                 DrawToolbar();
@@ -74,6 +79,41 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             EditorGUILayout.LabelField("动作编辑器", headerStyle, GUILayout.Height(25));
             EditorGUILayout.Space(2);
+        }
+        
+        private void DrawEntitySelection()
+        {
+            EditorGUILayout.BeginVertical("box");
+            {
+                var allEntities = Services.ConfigTableHelper.GetAllEntities();
+                if (allEntities.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("没有可用的实体数据", MessageType.Warning);
+                }
+                else
+                {
+                    string[] entityNames = allEntities.Select(e => $"[{e.EntityId}] {e.ArchetypeName}").ToArray();
+                    int[] entityIds = allEntities.Select(e => e.EntityId).ToArray();
+                    
+                    int currentIndex = System.Array.IndexOf(entityIds, _selectedEntityId);
+                    if (currentIndex < 0) currentIndex = 0;
+                    
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        EditorGUILayout.LabelField("预览角色", GUILayout.Width(60));
+                        int newIndex = EditorGUILayout.Popup(currentIndex, entityNames);  // 占满剩余宽度
+                        
+                        if (newIndex != currentIndex && newIndex >= 0 && newIndex < entityIds.Length)
+                        {
+                            _selectedEntityId = entityIds[newIndex];
+                            OnEntitySelected?.Invoke(_selectedEntityId);
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(5);
         }
         
         private void DrawSearchBar()

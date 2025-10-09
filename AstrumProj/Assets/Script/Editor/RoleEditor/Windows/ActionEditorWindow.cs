@@ -56,9 +56,9 @@ namespace Astrum.Editor.RoleEditor.Windows
         private void OnDisable()
         {
             // 取消事件订阅
-            if (_configModule != null)
+            if (_listModule != null)
             {
-                _configModule.OnEntitySelected -= OnEntitySelected;
+                _listModule.OnEntitySelected -= OnEntitySelected;
             }
             
             CheckUnsavedChanges();
@@ -167,12 +167,12 @@ namespace Astrum.Editor.RoleEditor.Windows
             _listModule.OnCreateNew += OnCreateNewAction;
             _listModule.OnDuplicate += OnDuplicateAction;
             _listModule.OnDelete += OnDeleteAction;
+            _listModule.OnEntitySelected += OnEntitySelected;  // 实体选择事件
             
             // 配置模块
             _configModule = new ActionConfigModule();
             _configModule.OnActionModified += OnActionModified;
             _configModule.OnJumpToTimeline += OnJumpToTimeline;
-            _configModule.OnEntitySelected += OnEntitySelected;
             
             // 预览模块（使用简化的动画预览）
             _previewModule = new AnimationPreviewModule();
@@ -278,6 +278,15 @@ namespace Astrum.Editor.RoleEditor.Windows
                 if (_allActions.Count > 0)
                 {
                     _listModule.SelectAction(_allActions[0]);
+                }
+                
+                // 自动选择第一个实体并加载模型
+                var allEntities = ConfigTableHelper.GetAllEntities();
+                if (allEntities.Count > 0)
+                {
+                    int firstEntityId = allEntities[0].EntityId;
+                    _previewModule.SetEntity(firstEntityId);
+                    Debug.Log($"[ActionEditor] Auto-loaded first entity model: {firstEntityId}");
                 }
                 
                 Debug.Log($"[ActionEditor] Loaded {_allActions.Count} actions");
