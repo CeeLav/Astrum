@@ -75,6 +75,14 @@ namespace Astrum.Editor.RoleEditor.Data
         [ValueDropdown("GetCommandOptions")]
         public string Command = "";
         
+        // === 取消标签配置 ===
+        
+        [TitleGroup("取消标签配置")]
+        [LabelText("CancelTags (JSON)"), ReadOnly]
+        [InfoBox("主动取消标签，保持只读（从CSV读取）", InfoMessageType.Info)]
+        [MultiLineProperty(3)]
+        public string CancelTags = "";
+        
         // === 时间轴事件 ===
         
         [HideInInspector]
@@ -107,6 +115,7 @@ namespace Astrum.Editor.RoleEditor.Data
             data.KeepPlayingAnim = false;
             data.AutoTerminate = false;
             data.Command = "";
+            data.CancelTags = "";
             data.TimelineEvents = new List<TimelineEvent>();
             data.IsNew = true;
             data.IsDirty = true;
@@ -132,6 +141,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.KeepPlayingAnim = this.KeepPlayingAnim;
             clone.AutoTerminate = this.AutoTerminate;
             clone.Command = this.Command;
+            clone.CancelTags = this.CancelTags;
             
             // 深拷贝时间轴事件
             clone.TimelineEvents = new List<TimelineEvent>();

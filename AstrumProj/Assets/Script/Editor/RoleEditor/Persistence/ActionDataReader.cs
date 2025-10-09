@@ -92,6 +92,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
             editorData.AutoTerminate = tableData.AutoTerminate;
             editorData.Command = tableData.Command ?? "";
             editorData.Priority = tableData.Priority;
+            editorData.CancelTags = tableData.CancelTags ?? "";
             
             // 解析时间轴事件
             editorData.TimelineEvents = ParseTimelineEvents(tableData);
@@ -118,14 +119,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
             );
             events.AddRange(beCancelEvents);
             
-            // 解析 TempBeCancelledTags
-            var tempCancelEvents = ActionCancelTagParser.ParseTempBeCancelledTags(
-                tableData.TempBeCancelledTags,
-                tableData.ActionId
-            );
-            events.AddRange(tempCancelEvents);
-            
             // CancelTags 不需要解析为时间轴事件（它们是动作属性）
+            // TempBeCancelledTags 是运行时数据，不从静态表读取
             
             // TODO: 后续可以从其他字段解析特效、音效等事件
             

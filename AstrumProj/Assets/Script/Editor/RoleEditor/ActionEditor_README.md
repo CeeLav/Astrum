@@ -78,17 +78,17 @@ Unity菜单 > Tools > Action Editor
 
 **事件数据结构**:
 - ✅ BeCancelTagEventData - 被取消标签数据
-- ✅ TempBeCancelTagEventData - 临时取消标签数据
 - ✅ VFXEventData - 特效数据
 - ✅ SFXEventData - 音效数据
 - ✅ CameraShakeEventData - 相机震动数据
 
 **轨道渲染器**:
 - ✅ BeCancelTagTrackRenderer - 被取消标签渲染器
-- ✅ TempBeCancelTagTrackRenderer - 临时取消标签渲染器
 - ✅ VFXTrackRenderer - 特效渲染器
 - ✅ SFXTrackRenderer - 音效渲染器
 - ✅ CameraShakeTrackRenderer - 相机震动渲染器
+
+> **注意**：TempBeCancelTag 相关类已移除，因为它是运行时数据，不在静态表配置中
 
 ---
 
@@ -141,10 +141,11 @@ ActionTable.csv (更新)
 
 **轨道类型**:
 1. 🚫 **被取消标签** - BeCancelledTags（动作可被取消的时间范围）
-2. ⏱ **临时取消标签** - TempBeCancelledTags（临时开启的取消点）
-3. ✨ **特效** - 视觉特效播放
-4. 🔊 **音效** - 音效播放
-5. 📷 **相机震动** - 相机震动效果
+2. ✨ **特效** - 视觉特效播放
+3. 🔊 **音效** - 音效播放
+4. 📷 **相机震动** - 相机震动效果
+
+> **说明**：TempBeCancelledTags 是运行时数据，由技能系统动态触发，不在此编辑器配置
 
 **时间轴功能**:
 - 区间事件支持（StartFrame - EndFrame）
