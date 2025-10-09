@@ -20,9 +20,6 @@ namespace Astrum.Editor.RoleEditor.Modules
         private Vector2 _scrollPosition;
         private PropertyTree _propertyTree;
         
-        // === 实体选择 ===
-        private int _selectedEntityId = 0;
-        
         // === 事件编辑 ===
         private Timeline.TimelineEvent _selectedEvent;
         
@@ -36,7 +33,6 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 事件 ===
         public event Action<ActionEditorData> OnActionModified;
         public event Action OnJumpToTimeline;
-        public event Action<int> OnEntitySelected;
         
         // === 核心方法 ===
         
@@ -62,8 +58,6 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             {
-                DrawEntitySelection();
-                EditorGUILayout.Space(5);
                 DrawOdinInspector();
                 DrawAnimationStatusCheck();
                 EditorGUILayout.Space(5);
@@ -111,38 +105,6 @@ namespace Astrum.Editor.RoleEditor.Modules
         }
         
         // === 私有绘制方法 ===
-        
-        private void DrawEntitySelection()
-        {
-            EditorGUILayout.BeginVertical("box");
-            {
-                EditorGUILayout.LabelField("预览角色选择", EditorStyles.boldLabel);
-                
-                var allEntities = Services.ConfigTableHelper.GetAllEntities();
-                if (allEntities.Count == 0)
-                {
-                    EditorGUILayout.HelpBox("没有可用的实体数据", MessageType.Warning);
-                }
-                else
-                {
-                    string[] entityNames = allEntities.Select(e => $"[{e.EntityId}] {e.ArchetypeName}").ToArray();
-                    int[] entityIds = allEntities.Select(e => e.EntityId).ToArray();
-                    
-                    int currentIndex = System.Array.IndexOf(entityIds, _selectedEntityId);
-                    if (currentIndex < 0) currentIndex = 0;
-                    
-                    int newIndex = EditorGUILayout.Popup("选择实体", currentIndex, entityNames);
-                    
-                    if (newIndex != currentIndex && newIndex >= 0 && newIndex < entityIds.Length)
-                    {
-                        _selectedEntityId = entityIds[newIndex];
-                        OnEntitySelected?.Invoke(_selectedEntityId);
-                        Debug.Log($"[ActionConfigModule] Entity selected: {_selectedEntityId}");
-                    }
-                }
-            }
-            EditorGUILayout.EndVertical();
-        }
         
         private void DrawOdinInspector()
         {
@@ -223,21 +185,53 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 EditorGUILayout.BeginVertical("box");
                 {
-                    EditorGUILayout.LabelField("CancelTags:", EditorStyles.boldLabel);
-                    EditorGUILayout.HelpBox("当前版本暂不支持编辑，请在时间轴查看", MessageType.Info);
+                    // CancelTags 编辑
+                    EditorGUILayout.LabelField("CancelTags (取消其他动作的标签):", EditorStyles.boldLabel);
+                    EditorGUILayout.HelpBox("此动作可以取消带有这些标签的其他动作", MessageType.Info);
                     
-                    EditorGUILayout.Space(5);
+                    EditorGUI.BeginChangeCheck();
+                    string newCancelTags = EditorGUILayout.TextField("标签列表 (逗号分隔)", _currentAction.CancelTags ?? "");
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        _currentAction.CancelTags = newCancelTags;
+                        _currentAction.MarkDirty();
+                        OnActionModified?.Invoke(_currentAction);
+                    }
                     
-                    EditorGUILayout.LabelField("BeCancelledTags:", EditorStyles.boldLabel);
+                    // 显示标签预览
+                    if (!string.IsNullOrEmpty(_currentAction.CancelTags))
+                    {
+                        string[] tags = _currentAction.CancelTags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries);
+                        if (tags.Length > 0)
+                        {
+                            EditorGUILayout.LabelField($"当前标签: {string.Join(", ", tags.Select(t => t.Trim()))}");
+                        }
+                    }
+                    
+                    EditorGUILayout.Space(10);
+                    
+                    // BeCancelledTags 提示
+                    EditorGUILayout.LabelField("BeCancelledTags (被取消标签区间):", EditorStyles.boldLabel);
+                    EditorGUILayout.HelpBox("此动作在哪些区间可以被其他动作取消", MessageType.Info);
+                    
                     int beCancelCount = _currentAction.GetEventCount("BeCancelTag");
-                    EditorGUILayout.LabelField($"共 {beCancelCount} 个区间");
+                    EditorGUILayout.LabelField($"共 {beCancelCount} 个被取消标签区间");
                     
-                    if (GUILayout.Button("在时间轴编辑", GUILayout.Height(25)))
+                    if (GUILayout.Button("📋 在时间轴编辑被取消标签", GUILayout.Height(30)))
                     {
                         OnJumpToTimeline?.Invoke();
                     }
                     
-                    // 注意：TempBeCancelledTags 是运行时数据，不在静态表编辑
+                    EditorGUILayout.Space(5);
+                    
+                    // 说明
+                    EditorGUILayout.HelpBox(
+                        "💡 提示：\n" +
+                        "• CancelTags：此动作可以取消的标签（静态配置）\n" +
+                        "• BeCancelledTags：此动作可被取消的区间（时间轴编辑）\n" +
+                        "• TempBeCancelledTags：运行时动态数据（不在编辑器配置）",
+                        MessageType.None
+                    );
                 }
                 EditorGUILayout.EndVertical();
             }
