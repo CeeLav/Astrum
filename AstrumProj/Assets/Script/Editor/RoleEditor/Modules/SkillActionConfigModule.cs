@@ -11,23 +11,35 @@ namespace Astrum.Editor.RoleEditor.Modules
 {
     /// <summary>
     /// 技能动作配置面板模块
-    /// 继承自 ActionConfigModule，扩展技能专属配置
+    /// 不继承 ActionConfigModule，直接独立实现
     /// </summary>
-    public class SkillActionConfigModule : ActionConfigModule
+    public class SkillActionConfigModule
     {
         // === 数据 ===
         private SkillActionEditorData _currentSkillAction;
+        private Vector2 _scrollPosition;
+        private PropertyTree _propertyTree;
+        
+        // === 事件编辑 ===
+        private Timeline.TimelineEvent _selectedEvent;
         
         // === 折叠状态 ===
         private bool _skillInfoFoldout = true;
         private bool _skillCostFoldout = true;
         private bool _attackBoxFoldout = true;
         private bool _triggerFramesFoldout = true;
+        private bool _cancelTagFoldout = true;
+        private bool _eventStatsFoldout = true;
+        private bool _eventDetailFoldout = true;
+        
+        // === 事件 ===
+        public event Action<ActionEditorData> OnActionModified;
+        public event Action OnJumpToTimeline;
         
         // === 核心方法 ===
         
         /// <summary>
-        /// 绘制配置面板（重写）
+        /// 绘制配置面板
         /// </summary>
         public void DrawConfig(Rect rect, SkillActionEditorData skillAction)
         {
@@ -46,18 +58,31 @@ namespace Astrum.Editor.RoleEditor.Modules
                 SetSkillAction(skillAction);
             }
             
-            var scrollPosition = EditorGUILayout.BeginScrollView(Vector2.zero);
+            _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             {
-                // 绘制基类内容（基础信息、动作配置等）
-                base.DrawConfig(rect, skillAction);
+                // 绘制基础信息（使用 Odin Inspector）
+                DrawOdinInspector();
+                DrawAnimationSection();
+                DrawAnimationStatusCheck();
                 
-                EditorGUILayout.Space(10);
+                EditorGUILayout.Space(5);
                 
                 // 绘制技能专属内容
                 DrawSkillInfo();
                 DrawSkillCost();
                 DrawAttackBoxes();
                 DrawTriggerFramesRaw();
+                
+                EditorGUILayout.Space(5);
+                
+                // 绘制取消标签和时间轴统计
+                DrawCancelTagSection();
+                DrawEventStatisticsSection();
+                
+                EditorGUILayout.Space(5);
+                
+                // 绘制事件详情
+                DrawEventDetailSection();
             }
             EditorGUILayout.EndScrollView();
             
@@ -70,7 +95,274 @@ namespace Astrum.Editor.RoleEditor.Modules
         public void SetSkillAction(SkillActionEditorData skillAction)
         {
             _currentSkillAction = skillAction;
-            base.SetAction(skillAction);
+            _selectedEvent = null;
+            
+            // 重建PropertyTree
+            _propertyTree?.Dispose();
+            if (_currentSkillAction != null)
+            {
+                _propertyTree = PropertyTree.Create(_currentSkillAction);
+            }
+        }
+        
+        /// <summary>
+        /// 设置选中的时间轴事件
+        /// </summary>
+        public void SetSelectedEvent(Timeline.TimelineEvent evt)
+        {
+            _selectedEvent = evt;
+        }
+        
+        /// <summary>
+        /// 清理资源
+        /// </summary>
+        public void Cleanup()
+        {
+            _propertyTree?.Dispose();
+            _propertyTree = null;
+        }
+        
+        // === 私有绘制方法（基础部分，复制自 ActionConfigModule） ===
+        
+        private void DrawOdinInspector()
+        {
+            if (_propertyTree == null) return;
+            
+            _propertyTree.UpdateTree();
+            _propertyTree.BeginDraw(true);
+            
+            foreach (var property in _propertyTree.EnumerateTree(false))
+            {
+                // 只绘制带 TitleGroup 的属性
+                if (property.Info.GetAttribute<TitleGroupAttribute>() != null || 
+                    property.Parent?.Info.GetAttribute<TitleGroupAttribute>() != null)
+                {
+                    property.Draw();
+                }
+            }
+            
+            _propertyTree.EndDraw();
+            
+            // 应用修改
+            if (_propertyTree.ApplyChanges())
+            {
+                _currentSkillAction.MarkDirty();
+                EditorUtility.SetDirty(_currentSkillAction);
+                OnActionModified?.Invoke(_currentSkillAction);
+            }
+        }
+        
+        private void DrawAnimationSection()
+        {
+            if (_currentSkillAction == null) return;
+            
+            EditorGUILayout.Space(5);
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("动画路径", EditorStyles.boldLabel);
+                EditorGUI.BeginChangeCheck();
+                string newPath = EditorGUILayout.TextField(_currentSkillAction.AnimationPath);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _currentSkillAction.AnimationPath = newPath;
+                    
+                    if (!string.IsNullOrEmpty(newPath))
+                    {
+                        _currentSkillAction.AnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(newPath);
+                    }
+                    else
+                    {
+                        _currentSkillAction.AnimationClip = null;
+                    }
+                    
+                    _currentSkillAction.MarkDirty();
+                    EditorUtility.SetDirty(_currentSkillAction);
+                    OnActionModified?.Invoke(_currentSkillAction);
+                }
+                
+                EditorGUILayout.Space(3);
+                
+                EditorGUILayout.LabelField("动画文件", EditorStyles.boldLabel);
+                EditorGUI.BeginChangeCheck();
+                var newClip = EditorGUILayout.ObjectField(_currentSkillAction.AnimationClip, typeof(AnimationClip), false) as AnimationClip;
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _currentSkillAction.AnimationClip = newClip;
+                    
+                    if (newClip != null)
+                    {
+                        _currentSkillAction.AnimationPath = AssetDatabase.GetAssetPath(newClip);
+                    }
+                    else
+                    {
+                        _currentSkillAction.AnimationPath = "";
+                    }
+                    
+                    _currentSkillAction.MarkDirty();
+                    EditorUtility.SetDirty(_currentSkillAction);
+                    OnActionModified?.Invoke(_currentSkillAction);
+                }
+                
+                EditorGUILayout.HelpBox("💡 拖拽 AnimationClip 到上方字段自动更新路径", MessageType.None);
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(5);
+        }
+        
+        private void DrawAnimationStatusCheck()
+        {
+            if (_currentSkillAction == null) return;
+            
+            if (string.IsNullOrEmpty(_currentSkillAction.AnimationPath))
+            {
+                EditorGUILayout.HelpBox(
+                    "⚠️ 未设置动画路径，请先配置动画文件才能正常使用此技能动作", 
+                    MessageType.Warning
+                );
+                return;
+            }
+            
+            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(_currentSkillAction.AnimationPath);
+            if (clip == null)
+            {
+                EditorGUILayout.HelpBox(
+                    $"⚠️ 动画文件不存在: {_currentSkillAction.AnimationPath}", 
+                    MessageType.Error
+                );
+                return;
+            }
+            
+            if (_currentSkillAction.Duration > _currentSkillAction.AnimationDuration)
+            {
+                EditorGUILayout.HelpBox(
+                    $"⚠️ 动作总帧数({_currentSkillAction.Duration})超过了动画总帧数({_currentSkillAction.AnimationDuration})", 
+                    MessageType.Warning
+                );
+                
+                if (GUILayout.Button("自动修正为动画总帧数"))
+                {
+                    _currentSkillAction.Duration = _currentSkillAction.AnimationDuration;
+                    _currentSkillAction.MarkDirty();
+                    OnActionModified?.Invoke(_currentSkillAction);
+                }
+            }
+        }
+        
+        private void DrawCancelTagSection()
+        {
+            _cancelTagFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_cancelTagFoldout, "取消标签配置");
+            
+            if (_cancelTagFoldout)
+            {
+                EditorGUILayout.LabelField("BeCancelledTags (被取消标签区间):", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("此动作在哪些区间可以被其他动作取消", MessageType.Info);
+                
+                int beCancelCount = _currentSkillAction.GetEventCount("BeCancelTag");
+                EditorGUILayout.LabelField($"共 {beCancelCount} 个被取消标签区间");
+                
+                if (GUILayout.Button("📋 在时间轴编辑被取消标签", GUILayout.Height(30)))
+                {
+                    OnJumpToTimeline?.Invoke();
+                }
+                
+                EditorGUILayout.Space(10);
+                
+                EditorGUILayout.HelpBox(
+                    "💡 提示：\n" +
+                    "• CancelTags：此动作可以取消的标签（在 Odin Inspector 中编辑）\n" +
+                    "• BeCancelledTags：此动作可被取消的区间（在时间轴编辑，自动生成 JSON）\n" +
+                    "• 数据自动与 CSV 同步，保存时写入 JSON 格式",
+                    MessageType.None
+                );
+            }
+            
+            EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+        
+        private void DrawEventStatisticsSection()
+        {
+            _eventStatsFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_eventStatsFoldout, "时间轴事件统计");
+            
+            if (_eventStatsFoldout)
+            {
+                EditorGUILayout.BeginVertical("box");
+                {
+                    var stats = _currentSkillAction.GetEventStatistics();
+                    
+                    DrawEventStat("🚫 被取消标签", GetStatValue(stats, "BeCancelTag"));
+                    DrawEventStat("✨ 特效", GetStatValue(stats, "VFX"));
+                    DrawEventStat("🔊 音效", GetStatValue(stats, "SFX"));
+                    DrawEventStat("📷 相机震动", GetStatValue(stats, "CameraShake"));
+                    
+                    EditorGUILayout.Space(5);
+                    
+                    if (GUILayout.Button("跳转到时间轴", GUILayout.Height(30)))
+                    {
+                        OnJumpToTimeline?.Invoke();
+                    }
+                }
+                EditorGUILayout.EndVertical();
+            }
+            
+            EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+        
+        private void DrawEventStat(string label, int count)
+        {
+            EditorGUILayout.BeginHorizontal();
+            {
+                EditorGUILayout.LabelField(label, GUILayout.Width(120));
+                EditorGUILayout.LabelField(count.ToString(), EditorStyles.boldLabel, GUILayout.Width(40));
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+        
+        private int GetStatValue(Dictionary<string, int> dict, string key)
+        {
+            return dict != null && dict.ContainsKey(key) ? dict[key] : 0;
+        }
+        
+        private void DrawEventDetailSection()
+        {
+            _eventDetailFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_eventDetailFoldout, "选中事件详情");
+            
+            if (_eventDetailFoldout)
+            {
+                EditorGUILayout.BeginVertical("box");
+                {
+                    if (_selectedEvent == null)
+                    {
+                        EditorGUILayout.HelpBox("请在时间轴中选择一个事件", MessageType.Info);
+                    }
+                    else
+                    {
+                        EditorGUILayout.LabelField($"事件类型: {_selectedEvent.TrackType}", EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField($"事件ID: {_selectedEvent.EventId}");
+                        EditorGUILayout.LabelField($"帧范围: {_selectedEvent.StartFrame} - {_selectedEvent.EndFrame}");
+                        
+                        EditorGUILayout.Space(10);
+                        
+                        var track = Timeline.TimelineTrackRegistry.GetTrack(_selectedEvent.TrackType);
+                        if (track != null && track.EventEditor != null)
+                        {
+                            bool modified = track.EventEditor(_selectedEvent);
+                            
+                            if (modified)
+                            {
+                                _currentSkillAction?.MarkDirty();
+                                OnActionModified?.Invoke(_currentSkillAction);
+                            }
+                        }
+                        else
+                        {
+                            EditorGUILayout.HelpBox("此事件类型没有编辑器", MessageType.Warning);
+                        }
+                    }
+                }
+                EditorGUILayout.EndVertical();
+            }
+            
+            EditorGUILayout.EndFoldoutHeaderGroup();
         }
         
         // === 私有绘制方法（技能专属） ===
