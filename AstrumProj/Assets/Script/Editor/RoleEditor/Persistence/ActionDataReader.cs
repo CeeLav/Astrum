@@ -142,7 +142,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
         /// <summary>
         /// 解析 CancelTags JSON 字符串为编辑器数据结构
         /// </summary>
-        private static List<EditorCancelTag> ParseCancelTagsFromJson(string json)
+        internal static List<EditorCancelTag> ParseCancelTagsFromJson(string json)
         {
             if (string.IsNullOrEmpty(json))
                 return new List<EditorCancelTag>();
