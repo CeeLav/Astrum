@@ -9,4 +9,20 @@
 - 原型：`RoleArchetype` 已集成技能组件与能力；从 `RoleBaseTable` 的 `LightAttackSkillId`、`HeavyAttackSkillId`、`Skill1Id`、`Skill2Id` 自动学习。
 - 序列化：`BaseComponent.MemoryPack.cs`/`Capability.MemoryPack.cs` 已注册对应 Union。
 
+### 编辑器工具
+
+#### 动作编辑器
+- **入口**: `Tools > Action Editor`
+- **功能**: 编辑 `ActionTable`，管理角色动作、动画、取消标签等
+- **详细文档**: `../AstrumConfig/Doc/Editor-Tools/动作编辑器/`
+
+#### 技能动作编辑器
+- **入口**: `Tools > Astrum > Editors > Skill Action Editor`
+- **功能**: 编辑 `SkillActionTable`，继承动作编辑器功能并扩展技能专属配置
+  - 技能信息关联（SkillId、成本、冷却）
+  - 攻击碰撞盒配置
+  - 触发帧效果配置（后续支持时间轴可视化）
+- **详细文档**: `../AstrumConfig/Doc/Editor-Tools/技能动作编辑器/`
+- **开发状态**: Phase 1 完成（基础框架）
+
 

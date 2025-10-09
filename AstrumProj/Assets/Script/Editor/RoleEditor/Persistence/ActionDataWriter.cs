@@ -134,7 +134,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
         /// <summary>
         /// 序列化 CancelTags 为 JSON 字符串
         /// </summary>
-        private static string SerializeCancelTagsToJson(List<EditorCancelTag> cancelTags)
+        internal static string SerializeCancelTagsToJson(List<EditorCancelTag> cancelTags)
         {
             if (cancelTags == null || cancelTags.Count == 0)
                 return "";
