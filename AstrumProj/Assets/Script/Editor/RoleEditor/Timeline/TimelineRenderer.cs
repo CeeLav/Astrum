@@ -30,6 +30,9 @@ namespace Astrum.Editor.RoleEditor.Timeline
         // === 滚动 ===
         private Vector2 _scrollPosition;
         
+        // === 公开属性 ===
+        public Vector2 GetScrollPosition() => _scrollPosition;
+        
         // === 构造函数 ===
         public TimelineRenderer(TimelineLayoutCalculator layoutCalculator)
         {
@@ -472,13 +475,6 @@ namespace Astrum.Editor.RoleEditor.Timeline
             if (pixelsPerFrame >= 5) return 20;   // 1000ms (1s)
             if (pixelsPerFrame >= 3) return 40;   // 2000ms (2s)
             return 100;                            // 5000ms (5s)
-        }
-        
-        // === 属性 ===
-        
-        public Vector2 GetScrollPosition()
-        {
-            return _scrollPosition;
         }
         
         public void SetScrollPosition(Vector2 scrollPosition)

@@ -55,9 +55,13 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Event evt,
             List<TimelineTrackConfig> tracks,
             Dictionary<string, List<TimelineEvent>> eventsByTrack,
-            int currentFrame)
+            int currentFrame,
+            int totalFrames,
+            Vector2 scrollPosition = default)
         {
             _currentFrame = currentFrame; // 保存当前帧用于碰撞检测
+            _totalFrames = totalFrames; // 保存总帧数用于边界约束
+            _scrollPosition = scrollPosition; // 保存滚动位置
             EventType eventType = evt.type;
             
             switch (eventType)
@@ -84,6 +88,10 @@ namespace Astrum.Editor.RoleEditor.Timeline
                     
                 case EventType.ContextClick:
                     HandleContextClick(evt, rect, tracks);
+                    break;
+                    
+                case EventType.Repaint:
+                    HandleRepaint(evt, rect, tracks, eventsByTrack);
                     break;
             }
         }
@@ -142,7 +150,12 @@ namespace Astrum.Editor.RoleEditor.Timeline
         public void SetSelectedEvent(TimelineEvent evt)
         {
             _selectedEvent = evt;
-            OnEventSelected?.Invoke(evt);
+            // 使用 delayCall 延迟触发回调，避免打断当前 GUI 流程
+            TimelineEvent selectedEvent = evt;
+            EditorApplication.delayCall += () =>
+            {
+                OnEventSelected?.Invoke(selectedEvent);
+            };
         }
         
         /// <summary>
@@ -154,6 +167,82 @@ namespace Astrum.Editor.RoleEditor.Timeline
         }
         
         // === 私有处理方法 ===
+        
+        private void HandleRepaint(Event evt, Rect rect, List<TimelineTrackConfig> tracks, Dictionary<string, List<TimelineEvent>> eventsByTrack)
+        {
+            // 在 Repaint 阶段直接检测鼠标位置并设置光标样式
+            Vector2 mousePos = Event.current.mousePosition;
+            const float FRAME_SCALE_HEIGHT = 30f;
+            const float PLAYHEAD_HEIGHT = 20f;
+            const float EDGE_WIDTH = 8f;
+            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
+            float trackAreaStartY = rect.y + FRAME_SCALE_HEIGHT + PLAYHEAD_HEIGHT;
+            
+            // 转换为 ScrollView 内部坐标
+            Vector2 localMousePos = new Vector2(
+                mousePos.x - rect.x + _scrollPosition.x,
+                mousePos.y - trackAreaStartY + _scrollPosition.y
+            );
+            
+            float currentY = 0;
+            
+            // 快速检测：只检测鼠标所在的轨道
+            for (int trackIndex = 0; trackIndex < tracks.Count; trackIndex++)
+            {
+                TimelineTrackConfig track = tracks[trackIndex];
+                if (!track.IsVisible) continue;
+                
+                if (localMousePos.y >= currentY && localMousePos.y < currentY + track.TrackHeight)
+                {
+                    if (eventsByTrack.ContainsKey(track.TrackType))
+                    {
+                        List<TimelineEvent> events = eventsByTrack[track.TrackType];
+                        
+                        foreach (TimelineEvent timelineEvent in events)
+                        {
+                            // 计算事件矩形（在 ScrollView 内部坐标系中）
+                            float eventStartX = trackHeaderWidth + _layoutCalculator.FrameToPixel(timelineEvent.StartFrame);
+                            float eventEndX = trackHeaderWidth + _layoutCalculator.FrameToPixel(timelineEvent.EndFrame + 1);
+                            float eventY = currentY + 2;
+                            float eventHeight = track.TrackHeight - 4;
+                            
+                            Rect eventRect = new Rect(eventStartX, eventY, eventEndX - eventStartX, eventHeight);
+                            
+                            if (eventRect.Contains(localMousePos))
+                            {
+                                // 检测是否在边缘
+                                bool isStartEdge = localMousePos.x >= eventStartX && localMousePos.x <= eventStartX + EDGE_WIDTH;
+                                bool isEndEdge = localMousePos.x >= eventEndX - EDGE_WIDTH && localMousePos.x <= eventEndX;
+                                
+                                // 计算窗口坐标的矩形（复用已计算的像素值）
+                                float screenEventStartX = rect.x + eventStartX - _scrollPosition.x;
+                                float screenEventEndX = rect.x + eventEndX - _scrollPosition.x;
+                                float screenEventY = trackAreaStartY + currentY - _scrollPosition.y;
+                                
+                                if (isStartEdge || isEndEdge)
+                                {
+                                    // 在边缘，设置调整大小光标
+                                    Rect leftEdgeRect = new Rect(screenEventStartX, screenEventY, EDGE_WIDTH, eventHeight);
+                                    Rect rightEdgeRect = new Rect(screenEventEndX - EDGE_WIDTH, screenEventY, EDGE_WIDTH, eventHeight);
+                                    EditorGUIUtility.AddCursorRect(leftEdgeRect, MouseCursor.ResizeHorizontal);
+                                    EditorGUIUtility.AddCursorRect(rightEdgeRect, MouseCursor.ResizeHorizontal);
+                                }
+                                else
+                                {
+                                    // 在中心，设置移动光标
+                                    Rect screenEventRect = new Rect(screenEventStartX, screenEventY, screenEventEndX - screenEventStartX, eventHeight);
+                                    EditorGUIUtility.AddCursorRect(screenEventRect, MouseCursor.MoveArrow);
+                                }
+                                return; // 找到悬停事件，立即返回
+                            }
+                        }
+                    }
+                    break; // 找到轨道但没有命中事件，跳出循环
+                }
+                
+                currentY += track.TrackHeight;
+            }
+        }
         
         private void HandleMouseDown(
             Event evt,
@@ -181,7 +270,10 @@ namespace Astrum.Editor.RoleEditor.Timeline
             {
                 _selectedEvent = hitEvent;
                 _draggingEvent = hitEvent;
-                _dragStartFrame = hitEvent.StartFrame;
+                
+                // 记录鼠标点击时的帧位置（用于计算拖拽偏移）
+                float relativeX = mousePos.x - rect.x;
+                _dragStartFrame = _layoutCalculator.PixelToFrame(relativeX);
                 
                 if (isStartEdge)
                 {
@@ -196,14 +288,22 @@ namespace Astrum.Editor.RoleEditor.Timeline
                     _isDraggingEvent = true;
                 }
                 
-                OnEventSelected?.Invoke(hitEvent);
+                // 使用 delayCall 延迟触发回调，避免打断当前 GUI 流程
+                TimelineEvent selectedEvent = hitEvent;
+                EditorApplication.delayCall += () =>
+                {
+                    OnEventSelected?.Invoke(selectedEvent);
+                };
                 evt.Use();
                 return;
             }
             
             // 未点击任何内容，取消选中
             _selectedEvent = null;
-            OnEventSelected?.Invoke(null);
+            EditorApplication.delayCall += () =>
+            {
+                OnEventSelected?.Invoke(null);
+            };
         }
         
         private void HandleMouseDrag(Event evt, Rect rect)
@@ -215,7 +315,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 拖拽播放头
             if (_isDraggingPlayhead)
             {
-                int frame = _layoutCalculator.PixelToFrame(mousePos.x);
+                float relativeX = mousePos.x - rect.x;
+                int frame = _layoutCalculator.PixelToFrame(relativeX);
                 OnPlayheadMoved?.Invoke(frame);
                 evt.Use();
                 return;
@@ -224,21 +325,34 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 拖拽事件
             if (_isDraggingEvent && _draggingEvent != null)
             {
-                int currentFrame = _layoutCalculator.PixelToFrame(mousePos.x);
+                float relativeX = mousePos.x - rect.x;
+                int currentFrame = _layoutCalculator.PixelToFrame(relativeX);
                 int frameDelta = currentFrame - _dragStartFrame;
                 
+                // 如果没有移动，直接返回
+                if (frameDelta == 0)
+                {
+                    evt.Use();
+                    return;
+                }
+                
+                int eventLength = _draggingEvent.EndFrame - _draggingEvent.StartFrame;
                 int newStartFrame = _draggingEvent.StartFrame + frameDelta;
                 int newEndFrame = _draggingEvent.EndFrame + frameDelta;
                 
-                // 边界约束
+                // 边界约束：限制移动，保持事件在 [0, totalFrames-1] 范围内
                 if (newStartFrame < 0)
                 {
-                    int offset = -newStartFrame;
+                    // 左边界限制
                     newStartFrame = 0;
-                    newEndFrame += offset;
+                    newEndFrame = eventLength;
                 }
-                
-                // TODO: 添加 totalFrames 边界约束（需要传入 totalFrames）
+                else if (newEndFrame > _totalFrames - 1)
+                {
+                    // 右边界限制
+                    newEndFrame = _totalFrames - 1;
+                    newStartFrame = newEndFrame - eventLength;
+                }
                 
                 // 更新事件
                 _draggingEvent.StartFrame = newStartFrame;
@@ -253,7 +367,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 调整事件起始帧
             if (_isResizingEventStart && _draggingEvent != null)
             {
-                int newStartFrame = _layoutCalculator.PixelToFrame(mousePos.x);
+                float relativeX = mousePos.x - rect.x;
+                int newStartFrame = _layoutCalculator.PixelToFrame(relativeX);
                 
                 // 约束：不能小于0，不能超过结束帧
                 newStartFrame = Mathf.Clamp(newStartFrame, 0, _draggingEvent.EndFrame);
@@ -268,12 +383,11 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 调整事件结束帧
             if (_isResizingEventEnd && _draggingEvent != null)
             {
-                int newEndFrame = _layoutCalculator.PixelToFrame(mousePos.x);
+                float relativeX = mousePos.x - rect.x;
+                int newEndFrame = _layoutCalculator.PixelToFrame(relativeX);
                 
-                // 约束：不能小于起始帧
-                newEndFrame = Mathf.Max(newEndFrame, _draggingEvent.StartFrame);
-                
-                // TODO: 添加 totalFrames 边界约束
+                // 约束：不能小于起始帧，不能超过总帧数-1
+                newEndFrame = Mathf.Clamp(newEndFrame, _draggingEvent.StartFrame, _totalFrames - 1);
                 
                 _draggingEvent.EndFrame = newEndFrame;
                 
@@ -304,8 +418,13 @@ namespace Astrum.Editor.RoleEditor.Timeline
         {
             Vector2 mousePos = evt.mousePosition;
             
-            // 更新悬停事件
-            TimelineEvent newHoverEvent = HitTestEvents(mousePos, rect, tracks, eventsByTrack, out _, out _);
+            // 更新悬停事件并检测是否在边缘
+            TimelineEvent newHoverEvent = HitTestEvents(mousePos, rect, tracks, eventsByTrack, out bool isStartEdge, out bool isEndEdge);
+            
+            // 缓存悬停信息供 Repaint 使用
+            _cachedHoverEvent = newHoverEvent;
+            _cachedIsStartEdge = isStartEdge;
+            _cachedIsEndEdge = isEndEdge;
             
             if (newHoverEvent != _hoverEvent)
             {
@@ -322,7 +441,6 @@ namespace Astrum.Editor.RoleEditor.Timeline
                     // 删除选中事件（需要在外部处理）
                     if (_selectedEvent != null)
                     {
-                        Debug.Log($"{LOG_PREFIX} Delete key pressed for event {_selectedEvent.EventId}");
                         evt.Use();
                     }
                     break;
@@ -356,7 +474,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
             
             if (!string.IsNullOrEmpty(trackType))
             {
-                int frame = _layoutCalculator.PixelToFrame(mousePos.x);
+                float relativeX = mousePos.x - rect.x;
+                int frame = _layoutCalculator.PixelToFrame(relativeX);
                 ShowContextMenu(frame, trackType);
                 evt.Use();
             }
@@ -384,6 +503,13 @@ namespace Astrum.Editor.RoleEditor.Timeline
         }
         
         private int _currentFrame; // 需要从外部传入当前帧
+        private int _totalFrames; // 总帧数（用于边界约束）
+        private Vector2 _scrollPosition; // 滚动位置
+        
+        // 缓存的悬停信息（用于 Repaint）
+        private TimelineEvent _cachedHoverEvent;
+        private bool _cachedIsStartEdge;
+        private bool _cachedIsEndEdge;
         
         private TimelineEvent HitTestEvents(
             Vector2 mousePos,
@@ -396,10 +522,23 @@ namespace Astrum.Editor.RoleEditor.Timeline
             isStartEdge = false;
             isEndEdge = false;
             
-            const float EDGE_HIT_TOLERANCE = 4f; // 边缘点击容差（±4px）
+            const float EDGE_HIT_TOLERANCE = 8f; // 边缘点击容差（±8px）
+            const float FRAME_SCALE_HEIGHT = 30f;  // 帧刻度高度
+            const float PLAYHEAD_HEIGHT = 20f;     // 播放头高度
             float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
             
             // 从后往前遍历轨道（优先检测上层轨道）
+            // 注意：因为 ScrollView 内部坐标从 (0,0) 开始，需要转换鼠标坐标
+            // 轨道区域起始Y = rect.y + 帧刻度高度 + 播放头高度
+            float trackAreaStartY = rect.y + FRAME_SCALE_HEIGHT + PLAYHEAD_HEIGHT;
+            
+            // 将鼠标坐标转换为 ScrollView 内部坐标
+            Vector2 localMousePos = new Vector2(
+                mousePos.x - rect.x + _scrollPosition.x,  // 减去 rect 偏移，加上滚动偏移
+                mousePos.y - trackAreaStartY + _scrollPosition.y
+            );
+            
+            // currentY 在 ScrollView 内部坐标系中从 0 开始
             float currentY = 0;
             
             for (int trackIndex = 0; trackIndex < tracks.Count; trackIndex++)
@@ -409,8 +548,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 if (!track.IsVisible)
                     continue;
                 
-                // 检测鼠标是否在当前轨道的Y范围内
-                if (mousePos.y >= currentY && mousePos.y < currentY + track.TrackHeight)
+                // 检测鼠标是否在当前轨道的Y范围内（使用本地坐标）
+                if (localMousePos.y >= currentY && localMousePos.y < currentY + track.TrackHeight)
                 {
                     // 在当前轨道中，检测所有事件
                     if (eventsByTrack.ContainsKey(track.TrackType))
@@ -422,7 +561,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
                         {
                             TimelineEvent timelineEvent = events[i];
                             
-                            // 计算事件矩形
+                            // 计算事件矩形（在 ScrollView 内部坐标系中）
                             float eventStartX = trackHeaderWidth + _layoutCalculator.FrameToPixel(timelineEvent.StartFrame);
                             float eventEndX = trackHeaderWidth + _layoutCalculator.FrameToPixel(timelineEvent.EndFrame + 1);
                             float eventY = currentY + 2; // 上边距
@@ -430,14 +569,14 @@ namespace Astrum.Editor.RoleEditor.Timeline
                             
                             Rect eventRect = new Rect(eventStartX, eventY, eventEndX - eventStartX, eventHeight);
                             
-                            if (eventRect.Contains(mousePos))
+                            if (eventRect.Contains(localMousePos))
                             {
-                                // 检测是否点击在边缘
-                                if (mousePos.x >= eventStartX && mousePos.x <= eventStartX + EDGE_HIT_TOLERANCE)
+                                // 检测是否点击在边缘（使用本地坐标）
+                                if (localMousePos.x >= eventStartX && localMousePos.x <= eventStartX + EDGE_HIT_TOLERANCE)
                                 {
                                     isStartEdge = true;
                                 }
-                                else if (mousePos.x >= eventEndX - EDGE_HIT_TOLERANCE && mousePos.x <= eventEndX)
+                                else if (localMousePos.x >= eventEndX - EDGE_HIT_TOLERANCE && localMousePos.x <= eventEndX)
                                 {
                                     isEndEdge = true;
                                 }
@@ -460,6 +599,17 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private string HitTestTrack(Vector2 mousePos, Rect rect, List<TimelineTrackConfig> tracks)
         {
             // 检测鼠标在哪个轨道上
+            const float FRAME_SCALE_HEIGHT = 30f;  // 帧刻度高度
+            const float PLAYHEAD_HEIGHT = 20f;     // 播放头高度
+            
+            // 转换为 ScrollView 内部坐标
+            float trackAreaStartY = rect.y + FRAME_SCALE_HEIGHT + PLAYHEAD_HEIGHT;
+            Vector2 localMousePos = new Vector2(
+                mousePos.x - rect.x + _scrollPosition.x,
+                mousePos.y - trackAreaStartY + _scrollPosition.y
+            );
+            
+            // currentY 在 ScrollView 内部坐标系中从 0 开始
             float currentY = 0;
             
             for (int trackIndex = 0; trackIndex < tracks.Count; trackIndex++)
@@ -469,8 +619,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 if (!track.IsVisible)
                     continue;
                 
-                // 检测鼠标Y坐标是否在当前轨道范围内
-                if (mousePos.y >= currentY && mousePos.y < currentY + track.TrackHeight)
+                // 检测鼠标Y坐标是否在当前轨道范围内（使用本地坐标）
+                if (localMousePos.y >= currentY && localMousePos.y < currentY + track.TrackHeight)
                 {
                     return track.TrackType;
                 }

@@ -237,11 +237,17 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 EditorGUILayout.LabelField($"总计: {totalCount}", EditorStyles.miniLabel, GUILayout.Width(80));
                 
+                // 始终绘制修改计数，确保 Layout 和 Repaint 事件中控件数量一致
+                var style = new GUIStyle(EditorStyles.miniLabel);
                 if (modifiedCount > 0)
                 {
-                    var style = new GUIStyle(EditorStyles.miniLabel);
                     style.normal.textColor = Color.yellow;
                     EditorGUILayout.LabelField($"已修改: {modifiedCount}", style, GUILayout.Width(80));
+                }
+                else
+                {
+                    // 即使没有修改也绘制，保持 GUI 一致性
+                    EditorGUILayout.LabelField("", style, GUILayout.Width(80));
                 }
             }
             EditorGUILayout.EndHorizontal();

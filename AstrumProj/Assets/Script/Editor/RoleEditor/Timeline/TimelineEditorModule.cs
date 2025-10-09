@@ -113,8 +113,9 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 处理刻度尺区域的交互（在其他交互之前处理，优先级更高）
             _interaction.HandleFrameScaleInput(frameScaleRect, Event.current);
             
-            // 处理其他交互
-            _interaction.HandleInput(rect, Event.current, _tracks, _eventsByTrack, _currentFrame);
+            // 处理其他交互（传递滚动位置和总帧数）
+            Vector2 scrollPosition = _renderer.GetScrollPosition();
+            _interaction.HandleInput(rect, Event.current, _tracks, _eventsByTrack, _currentFrame, _totalFrames, scrollPosition);
         }
         
         // === 数据设置方法 ===
