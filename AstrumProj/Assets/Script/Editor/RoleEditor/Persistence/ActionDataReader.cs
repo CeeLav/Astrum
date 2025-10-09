@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEditor;
 using Astrum.Editor.RoleEditor.Data;
 using Astrum.Editor.RoleEditor.Persistence.Core;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
@@ -98,6 +99,12 @@ namespace Astrum.Editor.RoleEditor.Persistence
             editorData.Priority = tableData.Priority;
             editorData.CancelTagsJson = tableData.CancelTags ?? "";
             editorData.CancelTags = ParseCancelTagsFromJson(tableData.CancelTags ?? "");
+            
+            // 从路径加载 AnimationClip
+            if (!string.IsNullOrEmpty(editorData.AnimationPath))
+            {
+                editorData.AnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(editorData.AnimationPath);
+            }
             
             // 解析时间轴事件
             editorData.TimelineEvents = ParseTimelineEvents(tableData);
