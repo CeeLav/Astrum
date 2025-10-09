@@ -61,14 +61,22 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             // 触发帧
             if (evt.IsSingleFrame())
             {
-                evt.StartFrame = EditorGUILayout.IntField("触发帧:", evt.StartFrame);
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("触发帧:", GUILayout.Width(60));
+                evt.StartFrame = EditorGUILayout.IntField(evt.StartFrame, GUILayout.Width(60));
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndHorizontal();
                 evt.EndFrame = evt.StartFrame;
             }
             else
             {
                 EditorGUILayout.BeginHorizontal();
-                evt.StartFrame = EditorGUILayout.IntField("起始帧:", evt.StartFrame);
-                evt.EndFrame = EditorGUILayout.IntField("结束帧:", evt.EndFrame);
+                EditorGUILayout.LabelField("起始帧:", GUILayout.Width(60));
+                evt.StartFrame = EditorGUILayout.IntField(evt.StartFrame, GUILayout.Width(60));
+                GUILayout.Space(10);
+                EditorGUILayout.LabelField("结束帧:", GUILayout.Width(60));
+                evt.EndFrame = EditorGUILayout.IntField(evt.EndFrame, GUILayout.Width(60));
+                GUILayout.FlexibleSpace();
                 EditorGUILayout.EndHorizontal();
             }
             
