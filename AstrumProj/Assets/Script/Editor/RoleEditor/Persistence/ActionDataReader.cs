@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Astrum.Editor.RoleEditor.Data;
 using Astrum.Editor.RoleEditor.Persistence.Core;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
+using Astrum.LogicCore.ActionSystem;
+using Newtonsoft.Json;
 
 namespace Astrum.Editor.RoleEditor.Persistence
 {
@@ -92,7 +96,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
             editorData.AutoTerminate = tableData.AutoTerminate;
             editorData.Command = tableData.Command ?? "";
             editorData.Priority = tableData.Priority;
-            editorData.CancelTags = tableData.CancelTags ?? "";
+            editorData.CancelTagsJson = tableData.CancelTags ?? "";
+            editorData.CancelTags = ParseCancelTagsFromJson(tableData.CancelTags ?? "");
             
             // 解析时间轴事件
             editorData.TimelineEvents = ParseTimelineEvents(tableData);
@@ -125,6 +130,43 @@ namespace Astrum.Editor.RoleEditor.Persistence
             // TODO: 后续可以从其他字段解析特效、音效等事件
             
             return events;
+        }
+        
+        /// <summary>
+        /// 解析 CancelTags JSON 字符串为编辑器数据结构
+        /// </summary>
+        private static List<EditorCancelTag> ParseCancelTagsFromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json))
+                return new List<EditorCancelTag>();
+                
+            try
+            {
+                var jsonData = JsonConvert.DeserializeObject<List<CancelTagJsonData>>(json);
+                return jsonData?.Select(ct => new EditorCancelTag(
+                    ct.Tag,
+                    ct.StartFromFrames,
+                    ct.BlendInFrames,
+                    ct.Priority
+                )).ToList() ?? new List<EditorCancelTag>();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ActionDataReader] Failed to parse CancelTags JSON: {ex.Message}");
+                return new List<EditorCancelTag>();
+            }
+        }
+        
+        /// <summary>
+        /// CancelTag JSON 数据结构
+        /// </summary>
+        [Serializable]
+        private class CancelTagJsonData
+        {
+            public string Tag { get; set; } = string.Empty;
+            public int StartFromFrames { get; set; }
+            public int BlendInFrames { get; set; }
+            public int Priority { get; set; }
         }
     }
 }

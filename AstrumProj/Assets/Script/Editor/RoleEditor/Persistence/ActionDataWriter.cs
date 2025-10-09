@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Astrum.Editor.RoleEditor.Data;
 using Astrum.Editor.RoleEditor.Persistence.Core;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
+using Astrum.LogicCore.ActionSystem;
+using Newtonsoft.Json;
 
 namespace Astrum.Editor.RoleEditor.Persistence
 {
@@ -90,8 +94,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
             // 序列化时间轴事件
             tableData.BeCancelledTags = ActionCancelTagSerializer.SerializeBeCancelledTags(editorData.TimelineEvents);
             
-            // CancelTags 保持原样（从编辑器数据透传）
-            tableData.CancelTags = editorData.CancelTags ?? "";
+            // CancelTags 从运行时数据结构序列化为 JSON
+            tableData.CancelTags = SerializeCancelTagsToJson(editorData.CancelTags ?? new List<EditorCancelTag>());
             
             // TempBeCancelledTags 是运行时数据，不写入静态表
             
@@ -125,6 +129,45 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 Debug.LogError($"{LOG_PREFIX} Failed to write ActionTable CSV: {ex.Message}");
                 return false;
             }
+        }
+        
+        /// <summary>
+        /// 序列化 CancelTags 为 JSON 字符串
+        /// </summary>
+        private static string SerializeCancelTagsToJson(List<EditorCancelTag> cancelTags)
+        {
+            if (cancelTags == null || cancelTags.Count == 0)
+                return "";
+                
+            try
+            {
+                var jsonData = cancelTags.Select(ct => new CancelTagJsonData
+                {
+                    Tag = ct.tag,
+                    StartFromFrames = ct.startFrame,
+                    BlendInFrames = ct.blendFrame,
+                    Priority = ct.priority
+                }).ToList();
+                
+                return JsonConvert.SerializeObject(jsonData, Formatting.Indented);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ActionDataWriter] Failed to serialize CancelTags: {ex.Message}");
+                return "";
+            }
+        }
+        
+        /// <summary>
+        /// CancelTag JSON 数据结构
+        /// </summary>
+        [Serializable]
+        private class CancelTagJsonData
+        {
+            public string Tag { get; set; } = string.Empty;
+            public int StartFromFrames { get; set; }
+            public int BlendInFrames { get; set; }
+            public int Priority { get; set; }
         }
     }
 }

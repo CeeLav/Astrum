@@ -6,6 +6,8 @@ using UnityEditor;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Astrum.Editor.RoleEditor.Data;
+using Astrum.Editor.RoleEditor.Persistence;
+using Astrum.LogicCore.ActionSystem;
 
 namespace Astrum.Editor.RoleEditor.Modules
 {
@@ -183,61 +185,33 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             if (_cancelTagFoldout)
             {
-                EditorGUILayout.BeginVertical("box");
+                // BeCancelledTags 提示（从时间轴事件生成）
+                EditorGUILayout.LabelField("BeCancelledTags (被取消标签区间):", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("此动作在哪些区间可以被其他动作取消", MessageType.Info);
+                
+                int beCancelCount = _currentAction.GetEventCount("BeCancelTag");
+                EditorGUILayout.LabelField($"共 {beCancelCount} 个被取消标签区间");
+                
+                if (GUILayout.Button("📋 在时间轴编辑被取消标签", GUILayout.Height(30)))
                 {
-                    // CancelTags 编辑
-                    EditorGUILayout.LabelField("CancelTags (取消其他动作的标签):", EditorStyles.boldLabel);
-                    EditorGUILayout.HelpBox("此动作可以取消带有这些标签的其他动作", MessageType.Info);
-                    
-                    EditorGUI.BeginChangeCheck();
-                    string newCancelTags = EditorGUILayout.TextField("标签列表 (逗号分隔)", _currentAction.CancelTags ?? "");
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        _currentAction.CancelTags = newCancelTags;
-                        _currentAction.MarkDirty();
-                        OnActionModified?.Invoke(_currentAction);
-                    }
-                    
-                    // 显示标签预览
-                    if (!string.IsNullOrEmpty(_currentAction.CancelTags))
-                    {
-                        string[] tags = _currentAction.CancelTags.Split(new[] { ',' }, System.StringSplitOptions.RemoveEmptyEntries);
-                        if (tags.Length > 0)
-                        {
-                            EditorGUILayout.LabelField($"当前标签: {string.Join(", ", tags.Select(t => t.Trim()))}");
-                        }
-                    }
-                    
-                    EditorGUILayout.Space(10);
-                    
-                    // BeCancelledTags 提示
-                    EditorGUILayout.LabelField("BeCancelledTags (被取消标签区间):", EditorStyles.boldLabel);
-                    EditorGUILayout.HelpBox("此动作在哪些区间可以被其他动作取消", MessageType.Info);
-                    
-                    int beCancelCount = _currentAction.GetEventCount("BeCancelTag");
-                    EditorGUILayout.LabelField($"共 {beCancelCount} 个被取消标签区间");
-                    
-                    if (GUILayout.Button("📋 在时间轴编辑被取消标签", GUILayout.Height(30)))
-                    {
-                        OnJumpToTimeline?.Invoke();
-                    }
-                    
-                    EditorGUILayout.Space(5);
-                    
-                    // 说明
-                    EditorGUILayout.HelpBox(
-                        "💡 提示：\n" +
-                        "• CancelTags：此动作可以取消的标签（静态配置）\n" +
-                        "• BeCancelledTags：此动作可被取消的区间（时间轴编辑）\n" +
-                        "• TempBeCancelledTags：运行时动态数据（不在编辑器配置）",
-                        MessageType.None
-                    );
+                    OnJumpToTimeline?.Invoke();
                 }
-                EditorGUILayout.EndVertical();
+                
+                EditorGUILayout.Space(10);
+                
+                // 说明
+                EditorGUILayout.HelpBox(
+                    "💡 提示：\n" +
+                    "• CancelTags：此动作可以取消的标签（在 Odin Inspector 中编辑）\n" +
+                    "• BeCancelledTags：此动作可被取消的区间（在时间轴编辑，自动生成 JSON）\n" +
+                    "• 数据自动与 CSV 同步，保存时写入 JSON 格式",
+                    MessageType.None
+                );
             }
             
             EditorGUILayout.EndFoldoutHeaderGroup();
         }
+        
         
         private void DrawEventStatisticsSection()
         {

@@ -36,43 +36,52 @@ public sealed partial class ActionTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// ����ID
+    /// 动作ID
     /// </summary>
     public readonly int ActionId;
     /// <summary>
-    /// ��������
+    /// 动作名称
     /// </summary>
     public readonly string ActionName;
     /// <summary>
-    /// ��������
+    /// 动作类型
     /// </summary>
     public readonly string ActionType;
     /// <summary>
-    /// ֡
+    /// 帧数
     /// </summary>
     public readonly int Duration;
+    /// <summary>
+    /// 动画路径
+    /// </summary>
     public readonly string AnimationName;
     /// <summary>
-    /// ��Ȼ��һ������ID
+    /// 自动下一动作ID
     /// </summary>
     public readonly int AutoNextActionId;
     /// <summary>
-    /// �Ƿ&#465139;ֶ���������&#183;��
+    /// 保持播放动画
     /// </summary>
     public readonly bool KeepPlayingAnim;
     /// <summary>
-    /// �Ƿ���Ȼ��ֹ������Ҫ���뱣��״̬
+    /// 自动终止
     /// </summary>
     public readonly bool AutoTerminate;
     /// <summary>
-    /// ����������Ҫ������
+    /// 命令
     /// </summary>
     public readonly string Command;
     /// <summary>
-    /// ���ȼ���ԽСԽ��
+    /// 优先级
     /// </summary>
     public readonly int Priority;
+    /// <summary>
+    /// 取消标签
+    /// </summary>
     public readonly string CancelTags;
+    /// <summary>
+    /// 被取消标签
+    /// </summary>
     public readonly string BeCancelledTags;
    
     public const int __ID__ = -320110163;
