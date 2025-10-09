@@ -53,8 +53,12 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             
             // 帧范围
             EditorGUILayout.BeginHorizontal();
-            evt.StartFrame = EditorGUILayout.IntField("起始帧:", evt.StartFrame);
-            evt.EndFrame = EditorGUILayout.IntField("结束帧:", evt.EndFrame);
+            EditorGUILayout.LabelField("起始帧:", GUILayout.Width(60));
+            evt.StartFrame = EditorGUILayout.IntField(evt.StartFrame, GUILayout.Width(60));
+            GUILayout.Space(10);
+            EditorGUILayout.LabelField("结束帧:", GUILayout.Width(60));
+            evt.EndFrame = EditorGUILayout.IntField(evt.EndFrame, GUILayout.Width(60));
+            GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.Space(5);
