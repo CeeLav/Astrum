@@ -377,11 +377,8 @@ namespace Astrum.Editor.RoleEditor.Windows
             {
                 // 路径为空时停止播放
                 _previewModule.Stop();
-                Debug.Log("[ActionEditor] Animation path is empty, stopped preview");
                 return;
             }
-            
-            Debug.Log($"[ActionEditor] Loading animation: {action.AnimationPath}");
             
             // 加载动画片段（无论路径是否与之前相同，都重新加载以确保即时更新）
             _previewModule.LoadAnimationFromPath(action.AnimationPath);
@@ -401,8 +398,6 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 // 时间轴使用动作总帧数
                 _timelineModule.SetTotalFrames(action.Duration);
-                
-                Debug.Log($"[ActionEditor] Animation loaded successfully, total frames: {animationTotalFrames}");
             }
         }
         
