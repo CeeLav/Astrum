@@ -157,6 +157,17 @@ namespace Astrum.Editor.RoleEditor.Modules
                 if (EditorGUI.EndChangeCheck())
                 {
                     _currentAction.AnimationPath = newPath;
+                    
+                    // 手动同步 AnimationClip（不依赖 OnValueChanged）
+                    if (!string.IsNullOrEmpty(newPath))
+                    {
+                        _currentAction.AnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(newPath);
+                    }
+                    else
+                    {
+                        _currentAction.AnimationClip = null;
+                    }
+                    
                     _currentAction.MarkDirty();
                     EditorUtility.SetDirty(_currentAction);
                     OnActionModified?.Invoke(_currentAction);
@@ -172,10 +183,20 @@ namespace Astrum.Editor.RoleEditor.Modules
                 {
                     string oldAnimPath = _currentAction.AnimationPath;
                     _currentAction.AnimationClip = newClip;
+                    
+                    // 手动同步路径（不依赖 OnValueChanged，因为在自定义绘制中可能不会立即触发）
+                    if (newClip != null)
+                    {
+                        _currentAction.AnimationPath = AssetDatabase.GetAssetPath(newClip);
+                    }
+                    else
+                    {
+                        _currentAction.AnimationPath = "";
+                    }
+                    
                     _currentAction.MarkDirty();
                     EditorUtility.SetDirty(_currentAction);
                     
-                    // 检查路径是否改变（AnimationClip 的 OnValueChanged 会更新路径）
                     string newAnimPath = _currentAction.AnimationPath;
                     Debug.Log($"[ActionConfigModule] Animation changed: {oldAnimPath} -> {newAnimPath}");
                     
