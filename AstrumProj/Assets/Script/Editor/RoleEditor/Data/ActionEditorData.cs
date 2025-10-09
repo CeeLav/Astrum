@@ -78,10 +78,13 @@ namespace Astrum.Editor.RoleEditor.Data
         // === 取消标签配置 ===
         
         [TitleGroup("取消标签配置")]
-        [LabelText("CancelTags (JSON)"), ReadOnly]
-        [InfoBox("主动取消标签，保持只读（从CSV读取）", InfoMessageType.Info)]
-        [MultiLineProperty(3)]
-        public string CancelTags = "";
+        [LabelText("CancelTags (取消其他动作的标签)")]
+        [InfoBox("此动作可以取消带有这些标签的其他动作", InfoMessageType.Info)]
+        [TableList(ShowIndexLabels = true, ShowPaging = true)]
+        public List<EditorCancelTag> CancelTags = new List<EditorCancelTag>();
+        
+        [HideInInspector] // 隐藏原始 JSON 字符串，只用于数据持久化
+        public string CancelTagsJson = "";
         
         // === 时间轴事件 ===
         
@@ -115,7 +118,8 @@ namespace Astrum.Editor.RoleEditor.Data
             data.KeepPlayingAnim = false;
             data.AutoTerminate = false;
             data.Command = "";
-            data.CancelTags = "";
+            data.CancelTags = new List<EditorCancelTag>();
+            data.CancelTagsJson = "";
             data.TimelineEvents = new List<TimelineEvent>();
             data.IsNew = true;
             data.IsDirty = true;
@@ -141,7 +145,8 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.KeepPlayingAnim = this.KeepPlayingAnim;
             clone.AutoTerminate = this.AutoTerminate;
             clone.Command = this.Command;
-            clone.CancelTags = this.CancelTags;
+            clone.CancelTags = new List<EditorCancelTag>(this.CancelTags);
+            clone.CancelTagsJson = this.CancelTagsJson;
             
             // 深拷贝时间轴事件
             clone.TimelineEvents = new List<TimelineEvent>();
