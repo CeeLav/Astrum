@@ -25,10 +25,10 @@ namespace Astrum.LogicCore.Physics
         public TSVector HalfSize { get; set; }
         
         /// <summary>Sphere/Capsule 半径</summary>
-        public float Radius { get; set; }
+        public FP Radius { get; set; }
         
         /// <summary>Capsule 高度（端到端）</summary>
-        public float Height { get; set; }
+        public FP Height { get; set; }
     }
 }
 
