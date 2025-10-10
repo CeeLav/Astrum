@@ -1,30 +1,116 @@
+using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.LogicCore.SkillSystem;
+using Astrum.LogicCore.SkillSystem.EffectHandlers;
+using cfg.Skill;
 
 namespace Astrum.LogicCore.Managers
 {
     /// <summary>
     /// 技能效果管理器 - 统一处理所有技能效果（单例）
-    /// Phase 2 将完善此类的实现
     /// </summary>
     public class SkillEffectManager : Singleton<SkillEffectManager>
     {
+        // 效果队列
+        private readonly Queue<SkillEffectData> _effectQueue = new Queue<SkillEffectData>();
+        
+        // 效果类型 -> Handler 映射
+        private readonly Dictionary<int, IEffectHandler> _handlers = new Dictionary<int, IEffectHandler>();
+        
         /// <summary>
-        /// 将技能效果加入队列（Phase 2 实现）
+        /// 注册效果处理器
         /// </summary>
-        public void QueueSkillEffect(SkillEffectData effectData)
+        /// <param name="effectType">效果类型（1=伤害, 2=治疗, 3=击退, 4=Buff, 5=Debuff）</param>
+        /// <param name="handler">效果处理器实例</param>
+        public void RegisterHandler(int effectType, IEffectHandler handler)
         {
-            // TODO: Phase 2 实现
-            ASLogger.Instance.Debug($"SkillEffectManager.QueueSkillEffect: Effect {effectData.EffectId} " +
-                $"from {effectData.CasterEntity?.UniqueId} to {effectData.TargetEntity?.UniqueId}");
+            if (handler == null)
+            {
+                ASLogger.Instance.Error($"SkillEffectManager.RegisterHandler: Handler is null for type {effectType}");
+                return;
+            }
+            
+            _handlers[effectType] = handler;
+            ASLogger.Instance.Info($"SkillEffectManager: Registered handler for effect type {effectType}");
         }
         
         /// <summary>
-        /// 每帧更新（Phase 2 实现）
+        /// 将技能效果加入队列
+        /// </summary>
+        public void QueueSkillEffect(SkillEffectData effectData)
+        {
+            if (effectData == null)
+            {
+                ASLogger.Instance.Error("SkillEffectManager.QueueSkillEffect: effectData is null");
+                return;
+            }
+            
+            _effectQueue.Enqueue(effectData);
+            
+            ASLogger.Instance.Debug($"Queued effect {effectData.EffectId}: " +
+                $"{effectData.CasterEntity?.UniqueId} → {effectData.TargetEntity?.UniqueId}");
+        }
+        
+        /// <summary>
+        /// 每帧更新：处理效果队列
         /// </summary>
         public void Update()
         {
-            // TODO: Phase 2 实现
+            // 处理当前帧的所有效果
+            while (_effectQueue.Count > 0)
+            {
+                var effectData = _effectQueue.Dequeue();
+                ProcessEffect(effectData);
+            }
+        }
+        
+        /// <summary>
+        /// 处理单个效果
+        /// </summary>
+        private void ProcessEffect(SkillEffectData effectData)
+        {
+            // 1. 从配置表读取效果配置
+            var effectConfig = SkillConfigManager.Instance.GetSkillEffect(effectData.EffectId);
+            if (effectConfig == null)
+            {
+                ASLogger.Instance.Error($"Effect config not found: {effectData.EffectId}");
+                return;
+            }
+            
+            // 2. 获取对应的处理器
+            if (!_handlers.TryGetValue(effectConfig.EffectType, out var handler))
+            {
+                ASLogger.Instance.Warning($"No handler registered for effect type: {effectConfig.EffectType}");
+                return;
+            }
+            
+            // 3. 执行效果
+            try
+            {
+                handler.Handle(effectData.CasterEntity, effectData.TargetEntity, effectConfig);
+                
+                ASLogger.Instance.Debug($"Processed effect {effectData.EffectId} " +
+                    $"(type {effectConfig.EffectType}) successfully");
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Error($"Failed to process effect {effectData.EffectId}: {ex.Message}");
+                ASLogger.Instance.LogException(ex);
+            }
+        }
+        
+        /// <summary>
+        /// 获取当前队列中的效果数量
+        /// </summary>
+        public int QueuedEffectCount => _effectQueue.Count;
+        
+        /// <summary>
+        /// 清空效果队列（用于测试或重置）
+        /// </summary>
+        public void ClearQueue()
+        {
+            _effectQueue.Clear();
+            ASLogger.Instance.Debug("SkillEffectManager: Cleared effect queue");
         }
     }
 }

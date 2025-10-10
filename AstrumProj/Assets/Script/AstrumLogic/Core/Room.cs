@@ -4,6 +4,7 @@ using System.Linq;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Managers;
 using UnityEngine.EventSystems;
 using EventSystem = Astrum.CommonBase.EventSystem;
 
@@ -166,6 +167,12 @@ namespace Astrum.LogicCore.Core
                 world.Update();
             }
             
+            TickManagers();
+        }
+        
+        public void TickManagers()
+        {
+            SkillEffectManager.Instance.Update();
         }
 
         /// <summary>
