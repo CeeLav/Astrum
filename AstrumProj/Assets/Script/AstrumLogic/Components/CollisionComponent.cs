@@ -39,26 +39,14 @@ namespace Astrum.LogicCore.Components
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public CollisionComponent(long entityId, bool isActive, List<CollisionShape> shapes, 
+        public CollisionComponent(long entityId, List<CollisionShape> shapes, 
             int collisionLayer, int collisionMask, bool isTrigger)
-            : base(entityId, isActive)
         {
+            EntityId = entityId;
             Shapes = shapes ?? new List<CollisionShape>();
             CollisionLayer = collisionLayer;
             CollisionMask = collisionMask;
             IsTrigger = isTrigger;
-        }
-        
-        public override void Initialize()
-        {
-            base.Initialize();
-            // TODO: 注册到 BEPU Simulation
-        }
-        
-        public override void Dispose()
-        {
-            // TODO: 从 BEPU Simulation 移除
-            base.Dispose();
         }
     }
 }
