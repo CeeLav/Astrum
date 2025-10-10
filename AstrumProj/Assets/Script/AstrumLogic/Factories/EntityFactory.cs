@@ -303,7 +303,7 @@ namespace Astrum.LogicCore.Factories
             try
             {
                 var entityConfig = ConfigManager.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
-                return entityConfig?.ModelName ?? $"Entity_{entityConfigId}";
+                return entityConfig?.EntityName ?? $"Entity_{entityConfigId}";
             }
             catch
             {
