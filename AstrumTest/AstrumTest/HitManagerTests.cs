@@ -97,7 +97,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者和命中盒
             var caster = CreateBoxEntity(2, new TSVector((FP)2, FP.Zero, FP.Zero), TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)2); // 大命中盒，应该能命中目标
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)2); // 大命中盒，应该能命中目标
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
@@ -115,7 +115,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者和命中盒
             var caster = CreateBoxEntity(2, TSVector.zero, TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one); // 小命中盒，不应该命中远处目标
+            var hitBox = CollisionShape.CreateBox(TSVector.one); // 小命中盒，不应该命中远处目标
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
@@ -134,7 +134,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者和大范围命中盒
             var caster = CreateBoxEntity(4, TSVector.zero, TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3); // 大命中盒
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)3); // 大命中盒
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
@@ -151,7 +151,7 @@ namespace AstrumTest.PhysicsTests
         {
             // Arrange - 创建施法者
             var caster = CreateBoxEntity(1, TSVector.zero, TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)2);
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)2);
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
@@ -172,7 +172,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者和命中盒
             var caster = CreateSphereEntity(2, TSVector.zero, FP.One);
-            var hitBox = HitBoxData.CreateSphere((FP)2); // 大半径，应该能命中
+            var hitBox = CollisionShape.CreateSphere((FP)2); // 大半径，应该能命中
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
@@ -190,7 +190,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者和命中盒
             var caster = CreateSphereEntity(2, TSVector.zero, FP.One);
-            var hitBox = HitBoxData.CreateSphere(FP.One); // 小半径，不应该命中
+            var hitBox = CollisionShape.CreateSphere(FP.One); // 小半径，不应该命中
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
@@ -212,7 +212,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者和过滤器
             var caster = CreateBoxEntity(3, TSVector.zero, TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)3);
             var filter = new CollisionFilter
             {
                 ExcludedEntityIds = new HashSet<long> { target1.UniqueId } // 排除 target1
@@ -235,7 +235,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者和自定义过滤器（只允许 target2，排除 target1）
             var caster = CreateBoxEntity(3, TSVector.zero, TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)3);
             var filter = new CollisionFilter
             {
                 CustomFilter = (entity) => entity.UniqueId == target2.UniqueId // 只允许 target2
@@ -261,7 +261,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者
             var caster = CreateBoxEntity(2, new TSVector(FP.One, FP.Zero, FP.Zero), TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)3);
             var skillInstanceId = 1001;
 
             // Act - 第一次查询
@@ -283,7 +283,7 @@ namespace AstrumTest.PhysicsTests
 
             // Arrange - 创建施法者
             var caster = CreateBoxEntity(2, new TSVector(FP.One, FP.Zero, FP.Zero), TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)3);
             var skillInstanceId = 1001;
 
             // Act - 第一次查询
@@ -308,7 +308,7 @@ namespace AstrumTest.PhysicsTests
         public void Test_Null_Caster()
         {
             // Arrange
-            var hitBox = HitBoxData.CreateBox(TSVector.one);
+            var hitBox = CollisionShape.CreateBox(TSVector.one);
 
             // Act
             var hits = _hitManager.QueryHits(null, hitBox);
@@ -326,7 +326,7 @@ namespace AstrumTest.PhysicsTests
             var posComp = new PositionComponent { Position = TSVector.zero };
             caster.AddComponent(posComp);
 
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)100);
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)100);
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
@@ -347,7 +347,7 @@ namespace AstrumTest.PhysicsTests
             var target1 = CreateBoxEntity(1, new TSVector(FP.One, FP.Zero, FP.Zero), TSVector.one);
             var target2 = CreateBoxEntity(2, new TSVector((FP)(-1), FP.Zero, FP.Zero), TSVector.one);
             var caster = CreateBoxEntity(3, TSVector.zero, TSVector.one);
-            var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
+            var hitBox = CollisionShape.CreateBox(TSVector.one * (FP)3);
 
             // Act - 多次执行相同查询
             var hits1 = _hitManager.QueryHits(caster, hitBox);

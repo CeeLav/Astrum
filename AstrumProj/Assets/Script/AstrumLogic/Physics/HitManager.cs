@@ -53,11 +53,11 @@ namespace Astrum.LogicCore.Physics
         /// 即时命中查询（主入口）
         /// </summary>
         /// <param name="caster">施法者实体</param>
-        /// <param name="hitBoxData">命中盒数据</param>
+        /// <param name="shape">碰撞形状数据</param>
         /// <param name="filter">碰撞过滤器（可选）</param>
         /// <param name="skillInstanceId">技能实例ID（用于去重，可选）</param>
         /// <returns>命中的实体列表</returns>
-        public List<AstrumEntity> QueryHits(AstrumEntity caster, HitBoxData hitBoxData, CollisionFilter filter = null, int skillInstanceId = 0)
+        public List<AstrumEntity> QueryHits(AstrumEntity caster, CollisionShape shape, CollisionFilter filter = null, int skillInstanceId = 0)
         {
             if (caster == null)
             {
@@ -70,20 +70,20 @@ namespace Astrum.LogicCore.Physics
             var casterRot = TSQuaternion.identity; // TODO: 从 RotationComponent 获取
 
             // 计算世界空间的命中盒姿态（使用四元数变换向量）
-            var worldCenter = casterPos + casterRot * hitBoxData.LocalOffset;
-            var worldRotation = casterRot * hitBoxData.LocalRotation;
+            var worldCenter = casterPos + casterRot * shape.LocalOffset;
+            var worldRotation = casterRot * shape.LocalRotation;
 
             // 根据形状类型进行查询
             List<AstrumEntity> candidates = null;
 
-            switch (hitBoxData.ShapeType)
+            switch (shape.ShapeType)
             {
                 case HitBoxShape.Box:
-                    candidates = _physicsWorld.QueryBoxOverlap(worldCenter, hitBoxData.HalfSize, worldRotation);
+                    candidates = _physicsWorld.QueryBoxOverlap(worldCenter, shape.HalfSize, worldRotation);
                     break;
 
                 case HitBoxShape.Sphere:
-                    candidates = _physicsWorld.QuerySphereOverlap(worldCenter, hitBoxData.Radius);
+                    candidates = _physicsWorld.QuerySphereOverlap(worldCenter, shape.Radius);
                     break;
 
                 case HitBoxShape.Capsule:
@@ -93,7 +93,7 @@ namespace Astrum.LogicCore.Physics
                     break;
 
                 default:
-                    ASLogger.Instance.Warning($"HitManager: Unknown shape type: {hitBoxData.ShapeType}");
+                    ASLogger.Instance.Warning($"HitManager: Unknown shape type: {shape.ShapeType}");
                     candidates = new List<AstrumEntity>();
                     break;
             }
