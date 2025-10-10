@@ -8,6 +8,7 @@ using BEPUphysics.Entities.Prefabs;
 using BEPUutilities;
 using TrueSync;
 using Astrum.LogicCore.Components;
+using Astrum.CommonBase;
 using FixMath.NET;
 // 使用别名避免命名冲突：BEPU 也有 Entity 类
 using AstrumEntity = Astrum.LogicCore.Core.Entity;
@@ -47,16 +48,26 @@ namespace Astrum.LogicCore.Physics
         }
 
         /// <summary>
-        /// 注册实体到物理世界
+        /// 注册实体到物理世界（从 CollisionComponent 获取碰撞盒）
         /// </summary>
-        public void RegisterEntity(AstrumEntity entity, CollisionShape shape)
+        public void RegisterEntity(AstrumEntity entity)
         {
             if (entity == null || _entityBodies.ContainsKey(entity.UniqueId))
                 return;
 
+            // 从 CollisionComponent 获取碰撞盒
+            var collisionComponent = entity.GetComponent<CollisionComponent>();
+            if (collisionComponent == null || collisionComponent.Shapes == null || collisionComponent.Shapes.Count == 0)
+            {
+                ASLogger.Instance.Warning($"[BepuPhysicsWorld] Entity {entity.UniqueId} has no collision shapes");
+                return;
+            }
+
             var position = entity.GetComponent<PositionComponent>()?.Position ?? TSVector.zero;
             var bepuPos = position.ToBepuVector();
 
+            // TODO: 目前只注册第一个碰撞盒，后续可支持多个
+            var shape = collisionComponent.Shapes[0];
             BepuEntity bepuEntity = null;
 
             switch (shape.ShapeType)
