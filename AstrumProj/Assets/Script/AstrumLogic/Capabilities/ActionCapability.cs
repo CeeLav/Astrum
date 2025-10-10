@@ -75,17 +75,20 @@ namespace Astrum.LogicCore.Capabilities
                 var actionInfo = ActionConfigManager.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
                 if (actionInfo != null)
                 {
-                    actionComponent.AvailableActions.Add(actionInfo);
+                    actionComponent.AvailableActions[actionId] = actionInfo;
                 }
             }
             
-            var initialAction = GetActionInfo(availableActionIds[0]);
-            actionComponent.CurrentAction = initialAction;
-            
-            if (initialAction != null)
+            // 设置初始动作ID（自动通过访问器查找）
+            if (actionComponent.AvailableActions.Count > 0 && availableActionIds.Count > 0)
             {
-                ASLogger.Instance.Debug($"ActionCapability.LoadAvailableActions: Set initial action ActionId={initialAction.Id} " +
+                actionComponent.CurrentActionId = availableActionIds[0];
+                ASLogger.Instance.Debug($"ActionCapability.LoadAvailableActions: Set initial action ActionId={actionComponent.CurrentActionId} " +
                     $"on entity {OwnerEntity?.UniqueId}");
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"ActionCapability.LoadAvailableActions: No available actions found for entity {OwnerEntity?.UniqueId}");
             }
         }
         
@@ -137,9 +140,8 @@ namespace Astrum.LogicCore.Capabilities
                 var nextActionId = actionComponent.CurrentAction.AutoNextActionId;
                 if (nextActionId > 0)
                 {
-                    // 从可用动作列表中查找下一个动作的数据
-                    var nextAction = actionComponent.AvailableActions.Find(a => a.Id == nextActionId);
-                    if (nextAction != null)
+                    // 从可用动作字典中查找下一个动作的数据
+                    if (actionComponent.AvailableActions.TryGetValue(nextActionId, out var nextAction))
                     {
                         actionComponent.PreorderActions.Add(new PreorderActionInfo
                         {
@@ -192,9 +194,9 @@ namespace Astrum.LogicCore.Capabilities
             
             // 选择优先级最高的动作
             var selectedAction = actionComponent.PreorderActions[0];
-            var actionInfo = ActionConfigManager.Instance?.GetAction(selectedAction.ActionId, OwnerEntity?.UniqueId ?? 0);
             
-            if (actionInfo != null)
+            // 从 AvailableActions 字典中查找
+            if (actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out var actionInfo))
             {
                 ASLogger.Instance.Debug($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
                     $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {OwnerEntity?.UniqueId}");
@@ -204,8 +206,8 @@ namespace Astrum.LogicCore.Capabilities
             }
             else
             {
-                ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: Failed to get ActionInfo for ActionId={selectedAction.ActionId} " +
-                    $"on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
+                    $"not found in AvailableActions dictionary on entity {OwnerEntity?.UniqueId}");
             }
             
             // 清空候选列表
@@ -281,7 +283,7 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 获取可用动作列表
         /// </summary>
-        private List<ActionInfo> GetAvailableActions()
+        private IEnumerable<ActionInfo> GetAvailableActions()
         {
             // 从ActionComponent获取所有可用的ActionInfo
             var actionComponent = GetOwnerComponent<ActionComponent>();
@@ -290,7 +292,7 @@ namespace Astrum.LogicCore.Capabilities
                 ASLogger.Instance.Error($"ActionCapability.GetAvailableActions: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
                 return new List<ActionInfo>();
             }
-            return actionComponent.AvailableActions ?? new List<ActionInfo>();
+            return actionComponent.AvailableActions?.Values ?? (IEnumerable<ActionInfo>)new List<ActionInfo>();
         }
         
         /// <summary>

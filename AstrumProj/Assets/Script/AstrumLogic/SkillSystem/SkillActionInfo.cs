@@ -1,6 +1,7 @@
 using Astrum.LogicCore.ActionSystem;
 using MemoryPack;
 using System.Collections.Generic;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.SkillSystem
 {

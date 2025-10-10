@@ -127,6 +127,8 @@ namespace Astrum.LogicCore.Managers
                 skillActionInfo.AttackBoxInfo,
                 skillLevel
             );
+            ASLogger.Instance.Info($"Parse SkillID:{skillActionInfo.SkillId} TriggerEffects count: {skillActionInfo.TriggerEffects.Count}");
+            
             
             ASLogger.Instance.Debug($"SkillConfigManager: Built SkillActionInfo {actionId} for skill level {skillLevel}");
             

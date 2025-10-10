@@ -234,8 +234,8 @@ namespace Astrum.View.Components
 
             try
             {
-                // 从ActionComponent的AvailableActions中收集动画名称
-                foreach (var actionInfo in actionComponent.AvailableActions)
+                // 从ActionComponent的AvailableActions字典中收集动画名称
+                foreach (var actionInfo in actionComponent.AvailableActions.Values)
                 {
                     if (actionInfo?.Id > 0)
                     {
