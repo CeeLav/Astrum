@@ -123,9 +123,9 @@ namespace Astrum.LogicCore.Capabilities
 			{
 				var action = SkillConfigManager.Instance.CreateSkillActionInstance(actionId, skill.CurrentLevel);
 				if (action == null) continue;
-				if (!actionComponent.AvailableActions.Exists(a => a.Id == action.Id))
+				if (!actionComponent.AvailableActions.ContainsKey(action.Id))
 				{
-					actionComponent.AvailableActions.Add(action);
+					actionComponent.AvailableActions[action.Id] = action;
 					ASLogger.Instance.Debug($"SkillCapability: Registered action {action.Id} for skill {skill.SkillId}");
 				}
 			}
