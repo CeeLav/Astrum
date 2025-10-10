@@ -4,6 +4,8 @@ using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Managers;
 using Astrum.CommonBase;
 using MemoryPack;
+// 使用别名避免与 BEPU 的 Entity 类冲突
+using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
 namespace Astrum.LogicCore.Components
 {
@@ -89,6 +91,13 @@ namespace Astrum.LogicCore.Components
             else
             {
                 ASLogger.Instance.Debug($"CollisionComponent: No collision data for Entity {entity.UniqueId} (Model {entityConfig.ModelId})");
+            }
+            
+            // 【物理世界注册】注册实体到 HitManager
+            if (entity is AstrumEntity astrumEntity && Shapes != null && Shapes.Count > 0)
+            {
+                HitManager.Instance.RegisterEntity(astrumEntity);
+                ASLogger.Instance.Info($"[CollisionComponent] Registered entity {entity.UniqueId} to HitManager");
             }
         }
     }
