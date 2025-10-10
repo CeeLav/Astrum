@@ -31,7 +31,7 @@ namespace Astrum.LogicCore.Physics
     /// 命中管理器
     /// 负责技能碰撞检测的即时查询
     /// </summary>
-    public class HitManager
+    public class HitManager :Singleton<HitManager>
     {
         private readonly BepuPhysicsWorld _physicsWorld;
         

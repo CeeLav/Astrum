@@ -26,9 +26,9 @@ namespace Astrum.LogicCore.SkillSystem
         /// <summary>触发帧信息（字符串格式，用于序列化）</summary>
         public string TriggerFrames { get; set; } = string.Empty;
         
-        /// <summary>已解析的触发帧效果列表（运行时数据，根据技能等级构造）</summary>
+        /// <summary>已解析的触发帧信息列表（运行时数据，根据技能等级构造，包含CollisionShape）</summary>
         [MemoryPackAllowSerialize]
-        public List<TriggerFrameEffect> TriggerEffects { get; set; } = new();
+        public List<TriggerFrameInfo> TriggerEffects { get; set; } = new();
         
         /// <summary>
         /// 默认构造函数
@@ -49,7 +49,7 @@ namespace Astrum.LogicCore.SkillSystem
             bool keepPlayingAnim, bool autoTerminate, int priority, int duration,
             // 派生类SkillActionInfo的参数
             int skillId, string attackBoxInfo, int actualCost, int actualCooldown, 
-            string triggerFrames, List<TriggerFrameEffect> triggerEffects)
+            string triggerFrames, List<TriggerFrameInfo> triggerEffects)
             : base(id, catalog, cancelTags, beCancelledTags, tempBeCancelledTags, commands,
                    autoNextActionId, keepPlayingAnim, autoTerminate, priority, duration)
         {
@@ -58,7 +58,7 @@ namespace Astrum.LogicCore.SkillSystem
             ActualCost = actualCost;
             ActualCooldown = actualCooldown;
             TriggerFrames = triggerFrames ?? string.Empty;
-            TriggerEffects = triggerEffects ?? new List<TriggerFrameEffect>();
+            TriggerEffects = triggerEffects ?? new List<TriggerFrameInfo>();
         }
     }
 }
