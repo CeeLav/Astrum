@@ -9,7 +9,11 @@ namespace Astrum.View.Archetypes
         private static readonly Type[] _comps =
         {
             typeof(ModelViewComponent),
-            typeof(TransViewComponent)
+            typeof(TransViewComponent),
+#if UNITY_EDITOR
+            typeof(CollisionDebugViewComponent)
+#endif
+            
         };
 
         public override Type[] ViewComponents => _comps;
