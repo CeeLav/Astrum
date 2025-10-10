@@ -121,9 +121,10 @@ namespace Astrum.LogicCore.Managers
             // 5. 填充技能专属字段
             ActionConfigManager.Instance.PopulateSkillActionFields(skillActionInfo, skillActionTable);
             
-            // 6. 解析触发帧（关键：应用技能等级）
+            // 6. 解析触发帧（关键：应用技能等级，同时解析碰撞形状）
             skillActionInfo.TriggerEffects = ParseTriggerFrames(
-                skillActionInfo.TriggerFrames, 
+                skillActionInfo.TriggerFrames,
+                skillActionInfo.AttackBoxInfo,
                 skillLevel
             );
             
@@ -192,16 +193,29 @@ namespace Astrum.LogicCore.Managers
         // ========== 触发帧解析 ==========
         
         /// <summary>
-        /// 解析触发帧信息（应用等级映射）
+        /// 解析触发帧信息（应用等级映射，并解析碰撞形状）
         /// 格式：Frame5:Collision:10000,Frame8:Direct:10100
         /// </summary>
-        public List<TriggerFrameEffect> ParseTriggerFrames(string triggerFramesStr, int skillLevel)
+        public List<TriggerFrameInfo> ParseTriggerFrames(string triggerFramesStr, string attackBoxInfo, int skillLevel)
         {
-            var results = new List<TriggerFrameEffect>();
+            var results = new List<TriggerFrameInfo>();
             
             if (string.IsNullOrEmpty(triggerFramesStr))
                 return results;
             
+            // 1. 预先解析 AttackBoxInfo，得到碰撞形状列表
+            List<Physics.CollisionShape> collisionShapes = new List<Physics.CollisionShape>();
+            if (!string.IsNullOrEmpty(attackBoxInfo))
+            {
+                collisionShapes = Physics.CollisionDataParser.Parse(attackBoxInfo);
+                if (collisionShapes == null)
+                {
+                    ASLogger.Instance.Warning($"Failed to parse AttackBoxInfo: {attackBoxInfo}");
+                    collisionShapes = new List<Physics.CollisionShape>();
+                }
+            }
+            
+            // 2. 解析触发帧字符串
             var parts = triggerFramesStr.Split(',');
             foreach (var part in parts)
             {
@@ -220,30 +234,87 @@ namespace Astrum.LogicCore.Managers
                     if (!int.TryParse(segments[2].Trim(), out var baseEffectId))
                         continue;
                     
-                    // 应用等级映射获取实际效果值
+                    // 应用等级映射获取实际效果ID
                     var effectResult = GetEffectValue(baseEffectId, skillLevel);
                     
                     if (effectResult.EffectData != null)
                     {
-                        results.Add(new TriggerFrameEffect
+                        // 3. 构造 TriggerFrameInfo
+                        TriggerFrameInfo triggerInfo = new TriggerFrameInfo
                         {
                             Frame = frame,
                             TriggerType = triggerType,
-                            EffectId = effectResult.EffectId,
-                            EffectValue = effectResult.Value
-                        });
+                            EffectId = effectResult.EffectId
+                        };
                         
-                        ASLogger.Instance.Debug($"SkillConfigManager: Parsed trigger Frame{frame}:{triggerType} " +
-                            $"→ Effect {effectResult.EffectId} (value={effectResult.Value})");
+                        // 4. 如果是 Collision 类型，附加碰撞形状
+                        if (triggerType.Equals("Collision", System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (collisionShapes.Count > 0)
+                            {
+                                // 使用第一个碰撞形状（简化实现）
+                                triggerInfo.CollisionShape = collisionShapes[0];
+                            }
+                            else
+                            {
+                                ASLogger.Instance.Warning($"Collision trigger at frame {frame} but no collision shape available");
+                            }
+                        }
+                        
+                        // 5. 如果是 Condition 类型，解析条件（可选）
+                        if (triggerType.Equals("Condition", System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (segments.Length >= 4)
+                            {
+                                triggerInfo.Condition = ParseCondition(segments[3]);
+                            }
+                        }
+                        
+                        results.Add(triggerInfo);
+                        
+                        ASLogger.Instance.Debug($"Parsed trigger Frame{frame}:{triggerType} → Effect {effectResult.EffectId}");
                     }
                     else
                     {
-                        ASLogger.Instance.Warning($"SkillConfigManager: Failed to get effect for base {baseEffectId} level {skillLevel}");
+                        ASLogger.Instance.Warning($"Failed to get effect for base {baseEffectId} level {skillLevel}");
                     }
                 }
             }
             
             return results;
+        }
+        
+        /// <summary>
+        /// 解析触发条件字符串
+        /// 格式：EnergyMin=50,Tag=Charged
+        /// </summary>
+        private TriggerCondition ParseCondition(string conditionStr)
+        {
+            var condition = new TriggerCondition();
+            
+            var parts = conditionStr.Split(',');
+            foreach (var part in parts)
+            {
+                var kv = part.Split('=');
+                if (kv.Length != 2) continue;
+                
+                var key = kv[0].Trim();
+                var value = kv[1].Trim();
+                
+                switch (key.ToLower())
+                {
+                    case "energymin":
+                        if (float.TryParse(value, out var energy))
+                            condition.EnergyMin = energy;
+                        break;
+                        
+                    case "tag":
+                        condition.RequiredTag = value;
+                        break;
+                }
+            }
+            
+            return condition;
         }
     }
 }
