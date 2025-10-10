@@ -18,6 +18,34 @@ namespace Astrum.LogicCore.Managers
         private readonly Dictionary<int, IEffectHandler> _handlers = new Dictionary<int, IEffectHandler>();
         
         /// <summary>
+        /// 单例初始化
+        /// </summary>
+        protected override void Awake()
+        {
+            base.Awake();
+            RegisterAllHandlers();
+        }
+        
+        /// <summary>
+        /// 注册所有效果处理器
+        /// </summary>
+        private void RegisterAllHandlers()
+        {
+            // 注册伤害处理器 (EffectType = 1)
+            RegisterHandler(1, new DamageEffectHandler());
+            
+            // 注册治疗处理器 (EffectType = 2)
+            RegisterHandler(2, new HealEffectHandler());
+            
+            // TODO: 注册其他处理器
+            // RegisterHandler(3, new KnockbackEffectHandler());
+            // RegisterHandler(4, new BuffEffectHandler());
+            // RegisterHandler(5, new DebuffEffectHandler());
+            
+            ASLogger.Instance.Info("SkillEffectManager: All handlers registered successfully");
+        }
+        
+        /// <summary>
         /// 注册效果处理器
         /// </summary>
         /// <param name="effectType">效果类型（1=伤害, 2=治疗, 3=击退, 4=Buff, 5=Debuff）</param>
