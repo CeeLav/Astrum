@@ -23,7 +23,9 @@ namespace AstrumTest
         /// <summary>
         /// 测试GameNetworkMessage序列化和反序列化
         /// </summary>
-        [Fact(Skip = "Temporarily disabled for robustness tests")]
+        [Fact]
+        [Trait("Category", "Unit")]
+        [Trait("Module", "Network")]
         public void GameNetworkMessage_SerializeDeserialize_ShouldWork()
         {
             // Arrange
@@ -56,7 +58,9 @@ namespace AstrumTest
         /// <summary>
         /// 测试LoginRequest序列化和反序列化
         /// </summary>
-        [Fact(Skip = "Temporarily disabled for robustness tests")]
+        [Fact]
+        [Trait("Category", "Unit")]
+        [Trait("Module", "Network")]
         public void LoginRequest_SerializeDeserialize_ShouldWork()
         {
             // Arrange
