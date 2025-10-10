@@ -14,7 +14,8 @@ namespace Astrum.LogicCore.Archetypes
 
         private static readonly Type[] _caps =
         {
-            typeof(ActionCapability)
+            typeof(ActionCapability),
+            typeof(SkillExecutorCapability)
         };
 
         public override Type[] Components => _comps;
