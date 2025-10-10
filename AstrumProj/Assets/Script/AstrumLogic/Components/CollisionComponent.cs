@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using Astrum.LogicCore.Physics;
+using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Managers;
+using Astrum.CommonBase;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Components
@@ -47,6 +50,46 @@ namespace Astrum.LogicCore.Components
             CollisionLayer = collisionLayer;
             CollisionMask = collisionMask;
             IsTrigger = isTrigger;
+        }
+
+        /// <summary>
+        /// 当组件附加到实体时调用
+        /// 自动从配置表加载碰撞形状数据
+        /// </summary>
+        public override void OnAttachToEntity(Entity entity)
+        {
+            base.OnAttachToEntity(entity);
+            
+            // 如果 Shapes 已经有数据（例如反序列化后），则不再加载
+            if (Shapes != null && Shapes.Count > 0)
+                return;
+            
+            // 从实体配置获取模型ID
+            var entityConfig = entity.EntityConfig;
+            if (entityConfig == null)
+            {
+                ASLogger.Instance.Warning($"CollisionComponent: Entity {entity.UniqueId} has no EntityConfig");
+                return;
+            }
+            
+            // 获取模型配置
+            var modelConfig = ConfigManager.Instance.Tables.TbEntityModelTable.Get(entityConfig.ModelId);
+            if (modelConfig == null)
+            {
+                ASLogger.Instance.Warning($"CollisionComponent: ModelId {entityConfig.ModelId} not found in EntityModelTable");
+                return;
+            }
+            
+            // 解析碰撞数据
+            if (!string.IsNullOrEmpty(modelConfig.CollisionData))
+            {
+                Shapes = CollisionDataParser.Parse(modelConfig.CollisionData);
+                ASLogger.Instance.Debug($"CollisionComponent: Loaded {Shapes.Count} collision shapes for Entity {entity.UniqueId} (Model {entityConfig.ModelId})");
+            }
+            else
+            {
+                ASLogger.Instance.Debug($"CollisionComponent: No collision data for Entity {entity.UniqueId} (Model {entityConfig.ModelId})");
+            }
         }
     }
 }
