@@ -490,6 +490,25 @@ namespace Astrum.Editor.RoleEditor.Windows
                     _previewModule?.SetAnimationSpeed(speed);
                 }
                 EditorGUILayout.EndHorizontal();
+                
+                // 碰撞盒显示开关
+                EditorGUILayout.BeginHorizontal();
+                {
+                    bool showCollision = _previewModule?.ShowCollisionShape ?? false;
+                    bool newShowCollision = EditorGUILayout.Toggle("显示碰撞盒", showCollision);
+                    
+                    if (_previewModule != null)
+                    {
+                        _previewModule.ShowCollisionShape = newShowCollision;
+                    }
+                    
+                    // 碰撞盒信息提示
+                    if (newShowCollision && string.IsNullOrEmpty(_selectedRole?.CollisionData))
+                    {
+                        GUILayout.Label("(未配置)", EditorStyles.miniLabel);
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
             }
             EditorGUILayout.EndVertical();
         }
