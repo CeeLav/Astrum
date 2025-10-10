@@ -188,18 +188,22 @@ namespace AstrumTest.PhysicsTests
         [Fact]
         public void Test_TSMatrix_BepuMatrix_RoundTrip()
         {
-            // Arrange
+            // Arrange - TSMatrix 是 3x3 旋转矩阵
             var original = TSMatrix.Identity;
 
             // Act
-            var bepu = original.ToBepuMatrix();
-            var result = bepu.ToTSMatrix();
+            var bepu = original.ToBepuMatrix3x3();
+            var result = bepu.ToTSMatrix3x3();
 
-            // Assert
+            // Assert - 只比较 3x3 部分
             Assert.Equal(original.M11._serializedValue, result.M11._serializedValue);
             Assert.Equal(original.M22._serializedValue, result.M22._serializedValue);
             Assert.Equal(original.M33._serializedValue, result.M33._serializedValue);
-            Assert.Equal(original.M44._serializedValue, result.M44._serializedValue);
+            
+            // 验证是单位矩阵
+            Assert.Equal(FP.One._serializedValue, result.M11._serializedValue);
+            Assert.Equal(FP.One._serializedValue, result.M22._serializedValue);
+            Assert.Equal(FP.One._serializedValue, result.M33._serializedValue);
         }
 
         #endregion

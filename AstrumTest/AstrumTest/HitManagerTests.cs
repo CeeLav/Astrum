@@ -12,6 +12,9 @@ namespace AstrumTest.PhysicsTests
     /// HitManager 测试
     /// 验证碰撞检测功能的正确性
     /// </summary>
+    [Trait("Category", "Unit")]
+    [Trait("Module", "Physics")]
+    [Trait("Priority", "High")]
     public class HitManagerTests : IDisposable
     {
         private readonly HitManager _hitManager;
@@ -31,13 +34,13 @@ namespace AstrumTest.PhysicsTests
         /// <summary>
         /// 创建测试用实体
         /// </summary>
-        private Entity CreateTestEntity(long id, TSVector position, CollisionShape shape)
+        private Entity CreateTestEntity(long uniqueId, TSVector position, CollisionShape shape)
         {
-            var entity = new Entity { Id = id };
+            // 创建实体
+            var entity = new Entity();
             
             // 添加位置组件
             var posComp = new PositionComponent { Position = position };
-            posComp.SetEntityId(id);
             entity.AddComponent(posComp);
 
             // 注册到物理世界
@@ -101,7 +104,7 @@ namespace AstrumTest.PhysicsTests
 
             // Assert
             Assert.NotEmpty(hits);
-            Assert.Contains(hits, e => e.Id == target.Id);
+            Assert.Contains(hits, e => e.UniqueId == target.UniqueId);
         }
 
         [Fact]
@@ -118,7 +121,7 @@ namespace AstrumTest.PhysicsTests
             var hits = _hitManager.QueryHits(caster, hitBox);
 
             // Assert
-            Assert.DoesNotContain(hits, e => e.Id == target.Id);
+            Assert.DoesNotContain(hits, e => e.UniqueId == target.UniqueId);
         }
 
         [Fact]
@@ -138,9 +141,9 @@ namespace AstrumTest.PhysicsTests
 
             // Assert
             Assert.True(hits.Count >= 3);
-            Assert.Contains(hits, e => e.Id == target1.Id);
-            Assert.Contains(hits, e => e.Id == target2.Id);
-            Assert.Contains(hits, e => e.Id == target3.Id);
+            Assert.Contains(hits, e => e.UniqueId == target1.UniqueId);
+            Assert.Contains(hits, e => e.UniqueId == target2.UniqueId);
+            Assert.Contains(hits, e => e.UniqueId == target3.UniqueId);
         }
 
         [Fact]
@@ -154,7 +157,7 @@ namespace AstrumTest.PhysicsTests
             var hits = _hitManager.QueryHits(caster, hitBox);
 
             // Assert - 施法者不应该命中自己
-            Assert.DoesNotContain(hits, e => e.Id == caster.Id);
+            Assert.DoesNotContain(hits, e => e.UniqueId == caster.UniqueId);
         }
 
         #endregion
@@ -176,7 +179,7 @@ namespace AstrumTest.PhysicsTests
 
             // Assert
             Assert.NotEmpty(hits);
-            Assert.Contains(hits, e => e.Id == target.Id);
+            Assert.Contains(hits, e => e.UniqueId == target.UniqueId);
         }
 
         [Fact]
@@ -193,7 +196,7 @@ namespace AstrumTest.PhysicsTests
             var hits = _hitManager.QueryHits(caster, hitBox);
 
             // Assert
-            Assert.DoesNotContain(hits, e => e.Id == target.Id);
+            Assert.DoesNotContain(hits, e => e.UniqueId == target.UniqueId);
         }
 
         #endregion
@@ -212,15 +215,15 @@ namespace AstrumTest.PhysicsTests
             var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
             var filter = new CollisionFilter
             {
-                ExcludedEntityIds = new HashSet<long> { target1.Id } // 排除 target1
+                ExcludedEntityIds = new HashSet<long> { target1.UniqueId } // 排除 target1
             };
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox, filter);
 
             // Assert
-            Assert.DoesNotContain(hits, e => e.Id == target1.Id);
-            Assert.Contains(hits, e => e.Id == target2.Id);
+            Assert.DoesNotContain(hits, e => e.UniqueId == target1.UniqueId);
+            Assert.Contains(hits, e => e.UniqueId == target2.UniqueId);
         }
 
         [Fact]
@@ -235,15 +238,15 @@ namespace AstrumTest.PhysicsTests
             var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
             var filter = new CollisionFilter
             {
-                CustomFilter = (entity) => entity.Id % 2 == 0
+                CustomFilter = (entity) => entity.UniqueId % 2 == 0
             };
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox, filter);
 
             // Assert
-            Assert.DoesNotContain(hits, e => e.Id == target1.Id); // 奇数ID被过滤
-            Assert.Contains(hits, e => e.Id == target2.Id); // 偶数ID通过
+            Assert.DoesNotContain(hits, e => e.UniqueId == target1.UniqueId); // 奇数ID被过滤
+            Assert.Contains(hits, e => e.UniqueId == target2.UniqueId); // 偶数ID通过
         }
 
         #endregion
@@ -268,8 +271,8 @@ namespace AstrumTest.PhysicsTests
             var hits2 = _hitManager.QueryHits(caster, hitBox, null, skillInstanceId);
 
             // Assert - 第一次应该命中，第二次因为去重不应该命中
-            Assert.Contains(hits1, e => e.Id == target.Id);
-            Assert.DoesNotContain(hits2, e => e.Id == target.Id);
+            Assert.Contains(hits1, e => e.UniqueId == target.UniqueId);
+            Assert.DoesNotContain(hits2, e => e.UniqueId == target.UniqueId);
         }
 
         [Fact]
@@ -293,8 +296,8 @@ namespace AstrumTest.PhysicsTests
             var hits2 = _hitManager.QueryHits(caster, hitBox, null, skillInstanceId);
 
             // Assert - 清除缓存后应该能再次命中
-            Assert.Contains(hits1, e => e.Id == target.Id);
-            Assert.Contains(hits2, e => e.Id == target.Id);
+            Assert.Contains(hits1, e => e.UniqueId == target.UniqueId);
+            Assert.Contains(hits2, e => e.UniqueId == target.UniqueId);
         }
 
         #endregion
@@ -318,10 +321,9 @@ namespace AstrumTest.PhysicsTests
         [Fact]
         public void Test_Empty_World()
         {
-            // Arrange - 不创建任何实体
-            var caster = new Entity { Id = 999 };
+            // Arrange - 不创建任何实体，只创建施法者
+            var caster = new Entity();
             var posComp = new PositionComponent { Position = TSVector.zero };
-            posComp.SetEntityId(999);
             caster.AddComponent(posComp);
 
             var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)100);
@@ -329,7 +331,7 @@ namespace AstrumTest.PhysicsTests
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox);
 
-            // Assert - 应该返回空列表
+            // Assert - 应该返回空列表（物理世界是空的）
             Assert.NotNull(hits);
             Assert.Empty(hits);
         }
@@ -358,8 +360,8 @@ namespace AstrumTest.PhysicsTests
 
             foreach (var hit in hits1)
             {
-                Assert.Contains(hits2, e => e.Id == hit.Id);
-                Assert.Contains(hits3, e => e.Id == hit.Id);
+                Assert.Contains(hits2, e => e.UniqueId == hit.UniqueId);
+                Assert.Contains(hits3, e => e.UniqueId == hit.UniqueId);
             }
         }
 
