@@ -54,7 +54,7 @@ namespace Astrum.View.Components
             if (_ownerEntityView.GameObject != null)
                 _modelObject.transform.SetParent(_ownerEntityView.GameObject.transform, false);
             _transform = _modelObject.transform;
-            _gameObject = _modelObject;
+            //_gameObject = _modelObject;
             _isEnabled = true;
         }
 
