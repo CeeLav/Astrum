@@ -40,6 +40,32 @@ namespace Astrum.LogicCore.Core
                 return ConfigManager.Instance.Tables.TbEntityBaseTable.Get(EntityConfigId);
             }
         }
+        
+        /// <summary>
+        /// 模型配置ID（从 EntityConfig 获取，可为0表示无模型）
+        /// </summary>
+        [MemoryPackIgnore]
+        public int ModelId
+        {
+            get
+            {
+                var config = EntityConfig;
+                return config?.ModelId ?? 0;
+            }
+        }
+        
+        /// <summary>
+        /// 模型配置（从 EntityModelTable 获取）
+        /// </summary>
+        [MemoryPackIgnore]
+        public cfg.Entity.EntityModelTable ModelConfig
+        {
+            get
+            {
+                if (ModelId == 0) return null;
+                return ConfigManager.Instance.Tables.TbEntityModelTable?.Get(ModelId);
+            }
+        }
 
         /// <summary>
         /// 实体是否激活，控制逻辑执行

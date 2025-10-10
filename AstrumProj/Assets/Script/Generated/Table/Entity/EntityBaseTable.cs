@@ -17,9 +17,9 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     public EntityBaseTable(ByteBuf _buf) 
     {
         EntityId = _buf.ReadInt();
+        EntityName = _buf.ReadString();
         ArchetypeName = _buf.ReadString();
-        ModelName = _buf.ReadString();
-        ModelPath = _buf.ReadString();
+        ModelId = _buf.ReadInt();
         IdleAction = _buf.ReadInt();
         WalkAction = _buf.ReadInt();
         RunAction = _buf.ReadInt();
@@ -38,17 +38,17 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     /// </summary>
     public readonly int EntityId;
     /// <summary>
+    /// 实体名称
+    /// </summary>
+    public readonly string EntityName;
+    /// <summary>
     /// 原型名
     /// </summary>
     public readonly string ArchetypeName;
     /// <summary>
-    /// 模型名字
+    /// 模型ID
     /// </summary>
-    public readonly string ModelName;
-    /// <summary>
-    /// 模型路径
-    /// </summary>
-    public readonly string ModelPath;
+    public readonly int ModelId;
     /// <summary>
     /// 静止动作
     /// </summary>
@@ -85,9 +85,9 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     {
         return "{ "
         + "entityId:" + EntityId + ","
+        + "entityName:" + EntityName + ","
         + "archetypeName:" + ArchetypeName + ","
-        + "modelName:" + ModelName + ","
-        + "modelPath:" + ModelPath + ","
+        + "modelId:" + ModelId + ","
         + "idleAction:" + IdleAction + ","
         + "walkAction:" + WalkAction + ","
         + "runAction:" + RunAction + ","
