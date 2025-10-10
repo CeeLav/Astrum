@@ -81,10 +81,11 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     roleData.BirthAction = entityData.BirthAction;
                     roleData.DeathAction = entityData.DeathAction;
                     
-                    // 从 EntityModelTable 获取模型路径
+                    // 从 EntityModelTable 获取模型路径和碰撞数据
                     if (entityData.ModelId > 0 && modelDataDict.TryGetValue(entityData.ModelId, out var modelData))
                     {
                         roleData.ModelPath = modelData.ModelPath;
+                        roleData.CollisionData = modelData.CollisionData ?? string.Empty;  // 加载碰撞数据
                         
                         // 尝试加载模型Prefab
                         if (!string.IsNullOrEmpty(modelData.ModelPath))
