@@ -197,7 +197,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 for (int i = 0; i < Mathf.Min(3, _entityTableCache.Count); i++)
                 {
                     var record = _entityTableCache[i];
-                    Debug.Log($"{LOG_PREFIX} Entity {i}: Id={record.EntityId}, ArchetypeName={record.ArchetypeName}, ModelPath={record.ModelPath}");
+                    Debug.Log($"{LOG_PREFIX} Entity {i}: Id={record.EntityId}, EntityName={record.EntityName}, ArchetypeName={record.ArchetypeName}, ModelId={record.ModelId}");
                 }
             }
             catch (System.Exception ex)

@@ -33,8 +33,11 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 var roleDataList = LubanCSVReader.ReadTable<RoleTableData>(RoleTableData.GetTableConfig());
                 var roleDataDict = roleDataList.ToDictionary(r => r.RoleId);
                 
-                // 3. 合并数据
-                result = MergeData(entityDataDict, roleDataDict);
+                // 3. 读取 EntityModelTable
+                var modelDataDict = EntityModelDataReader.ReadAsDictionary();
+                
+                // 4. 合并数据
+                result = MergeData(entityDataDict, roleDataDict, modelDataDict);
                 
                 Debug.Log($"{LOG_PREFIX} Successfully loaded {result.Count} roles");
             }
@@ -51,7 +54,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
         /// </summary>
         private static List<RoleEditorData> MergeData(
             Dictionary<int, EntityTableData> entityDataDict,
-            Dictionary<int, RoleTableData> roleDataDict)
+            Dictionary<int, RoleTableData> roleDataDict,
+            Dictionary<int, EntityModelTableData> modelDataDict)
         {
             var result = new List<RoleEditorData>();
             
@@ -69,8 +73,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 {
                     roleData.EntityId = entityData.EntityId;
                     roleData.ArchetypeName = entityData.ArchetypeName;
-                    roleData.ModelName = entityData.ModelName;
-                    roleData.ModelPath = entityData.ModelPath;
+                    roleData.ModelName = entityData.EntityName;  // 使用 EntityName 作为 ModelName
                     roleData.IdleAction = entityData.IdleAction;
                     roleData.WalkAction = entityData.WalkAction;
                     roleData.RunAction = entityData.RunAction;
@@ -78,10 +81,16 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     roleData.BirthAction = entityData.BirthAction;
                     roleData.DeathAction = entityData.DeathAction;
                     
-                    // 尝试加载模型Prefab
-                    if (!string.IsNullOrEmpty(entityData.ModelPath))
+                    // 从 EntityModelTable 获取模型路径
+                    if (entityData.ModelId > 0 && modelDataDict.TryGetValue(entityData.ModelId, out var modelData))
                     {
-                        roleData.ModelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(entityData.ModelPath);
+                        roleData.ModelPath = modelData.ModelPath;
+                        
+                        // 尝试加载模型Prefab
+                        if (!string.IsNullOrEmpty(modelData.ModelPath))
+                        {
+                            roleData.ModelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelData.ModelPath);
+                        }
                     }
                 }
                 else

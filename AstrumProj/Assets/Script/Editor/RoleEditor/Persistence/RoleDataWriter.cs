@@ -16,14 +16,15 @@ namespace Astrum.Editor.RoleEditor.Persistence
         private const string LOG_PREFIX = "[RoleEditor]";
         
         /// <summary>
-        /// 写入角色数据（拆分并写入EntityBaseTable和RoleBaseTable）
+        /// 写入角色数据（拆分并写入EntityBaseTable、EntityModelTable和RoleBaseTable）
         /// </summary>
         public static bool WriteRoleData(List<RoleEditorData> roles)
         {
             try
             {
-                // 1. 拆分数据为Entity和Role
+                // 1. 拆分数据为Entity、Model和Role
                 var entityDataList = ConvertToEntityData(roles);
+                var modelDataList = ConvertToModelData(roles);
                 var roleTableDataList = ConvertToRoleTableData(roles);
                 
                 // 2. 使用通用写入器写入EntityBaseTable
@@ -33,14 +34,21 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     enableBackup: true
                 );
                 
-                // 3. 使用通用写入器写入RoleBaseTable
+                // 3. 写入 EntityModelTable（如果有模型数据）
+                bool modelSuccess = true;
+                if (modelDataList.Count > 0)
+                {
+                    modelSuccess = EntityModelDataWriter.WriteAll(modelDataList, enableBackup: true);
+                }
+                
+                // 4. 使用通用写入器写入RoleBaseTable
                 bool roleSuccess = LubanCSVWriter.WriteTable(
                     RoleTableData.GetTableConfig(),
                     roleTableDataList,
                     enableBackup: true
                 );
                 
-                if (entitySuccess && roleSuccess)
+                if (entitySuccess && modelSuccess && roleSuccess)
                 {
                     Debug.Log($"{LOG_PREFIX} Successfully saved {roles.Count} roles");
                     return true;
@@ -66,9 +74,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
             return roles.OrderBy(r => r.EntityId).Select(r => new EntityTableData
             {
                 EntityId = r.EntityId,
+                EntityName = r.ModelName,  // 使用 ModelName 作为 EntityName
                 ArchetypeName = r.ArchetypeName,
-                ModelName = r.ModelName,
-                ModelPath = r.ModelPath,
+                ModelId = r.EntityId + 1000,  // 临时方案：EntityId + 1000 作为 ModelId（后续可优化）
                 IdleAction = r.IdleAction,
                 WalkAction = r.WalkAction,
                 RunAction = r.RunAction,
@@ -76,6 +84,44 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 BirthAction = r.BirthAction,
                 DeathAction = r.DeathAction
             }).ToList();
+        }
+        
+        /// <summary>
+        /// 转换为 EntityModelTableData 列表
+        /// </summary>
+        private static List<EntityModelTableData> ConvertToModelData(List<RoleEditorData> roles)
+        {
+            // 合并现有的 EntityModelTable 数据
+            var existingModels = EntityModelDataReader.ReadAsDictionary();
+            var modelDataList = new List<EntityModelTableData>();
+            
+            foreach (var role in roles.OrderBy(r => r.EntityId))
+            {
+                if (string.IsNullOrEmpty(role.ModelPath))
+                    continue;
+                
+                var modelId = role.EntityId + 1000;  // 临时方案：EntityId + 1000 作为 ModelId
+                
+                // 检查是否已存在
+                if (existingModels.TryGetValue(modelId, out var existingModel))
+                {
+                    // 更新现有数据
+                    existingModel.ModelPath = role.ModelPath;
+                    modelDataList.Add(existingModel);
+                }
+                else
+                {
+                    // 创建新数据
+                    modelDataList.Add(new EntityModelTableData
+                    {
+                        ModelId = modelId,
+                        ModelPath = role.ModelPath,
+                        CollisionData = string.Empty  // 碰撞盒数据由其他工具填充
+                    });
+                }
+            }
+            
+            return modelDataList;
         }
         
         /// <summary>
