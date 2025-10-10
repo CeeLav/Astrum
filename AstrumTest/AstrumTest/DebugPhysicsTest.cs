@@ -33,7 +33,7 @@ namespace AstrumTest.PhysicsTests
             var posComp = new PositionComponent { Position = new TSVector(FP.Zero, FP.Zero, FP.Zero) };
             entity.AddComponent(posComp);
 
-            // 注册到物理世界
+            // 添加碰撞组件
             var shape = new CollisionShape
             {
                 ShapeType = HitBoxShape.Box,
@@ -43,7 +43,12 @@ namespace AstrumTest.PhysicsTests
                 Radius = FP.Zero,
                 Height = FP.Zero
             };
-            _physicsWorld.RegisterEntity(entity, shape);
+            var collisionComp = new CollisionComponent();
+            collisionComp.Shapes = new System.Collections.Generic.List<CollisionShape> { shape };
+            entity.AddComponent(collisionComp);
+
+            // 注册到物理世界（自动从 CollisionComponent 获取）
+            _physicsWorld.RegisterEntity(entity);
 
             // 检查 Space 中是否有实体
             var spaceEntitiesCount = _physicsWorld.Space.Entities.Count;
