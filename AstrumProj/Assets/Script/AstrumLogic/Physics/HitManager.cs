@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TrueSync;
-using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
 using Astrum.CommonBase;
+// 使用别名避免与 BEPU 的 Entity 类冲突
+using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
 namespace Astrum.LogicCore.Physics
 {
@@ -23,7 +24,7 @@ namespace Astrum.LogicCore.Physics
         public bool OnlyEnemies { get; set; } = true;
 
         /// <summary>自定义过滤函数</summary>
-        public Func<Entity, bool> CustomFilter { get; set; }
+        public Func<AstrumEntity, bool> CustomFilter { get; set; }
     }
 
     /// <summary>
@@ -56,12 +57,12 @@ namespace Astrum.LogicCore.Physics
         /// <param name="filter">碰撞过滤器（可选）</param>
         /// <param name="skillInstanceId">技能实例ID（用于去重，可选）</param>
         /// <returns>命中的实体列表</returns>
-        public List<Entity> QueryHits(Entity caster, HitBoxData hitBoxData, CollisionFilter filter = null, int skillInstanceId = 0)
+        public List<AstrumEntity> QueryHits(AstrumEntity caster, HitBoxData hitBoxData, CollisionFilter filter = null, int skillInstanceId = 0)
         {
             if (caster == null)
             {
                 ASLogger.Instance.Warning("HitManager: Caster is null");
-                return new List<Entity>();
+                return new List<AstrumEntity>();
             }
 
             // 获取施法者位置和朝向
@@ -73,7 +74,7 @@ namespace Astrum.LogicCore.Physics
             var worldRotation = casterRot * hitBoxData.LocalRotation;
 
             // 根据形状类型进行查询
-            List<Entity> candidates = null;
+            List<AstrumEntity> candidates = null;
 
             switch (hitBoxData.ShapeType)
             {
@@ -88,12 +89,12 @@ namespace Astrum.LogicCore.Physics
                 case HitBoxShape.Capsule:
                     // TODO: 实现 Capsule 查询
                     ASLogger.Instance.Warning("HitManager: Capsule query not implemented yet");
-                    candidates = new List<Entity>();
+                    candidates = new List<AstrumEntity>();
                     break;
 
                 default:
                     ASLogger.Instance.Warning($"HitManager: Unknown shape type: {hitBoxData.ShapeType}");
-                    candidates = new List<Entity>();
+                    candidates = new List<AstrumEntity>();
                     break;
             }
 
@@ -112,7 +113,7 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// 应用过滤规则
         /// </summary>
-        private List<Entity> ApplyFilter(Entity caster, List<Entity> candidates, CollisionFilter filter)
+        private List<AstrumEntity> ApplyFilter(AstrumEntity caster, List<AstrumEntity> candidates, CollisionFilter filter)
         {
             if (filter == null)
             {
@@ -120,7 +121,7 @@ namespace Astrum.LogicCore.Physics
                 return candidates.Where(e => e.UniqueId != caster.UniqueId).ToList();
             }
 
-            var results = new List<Entity>();
+            var results = new List<AstrumEntity>();
 
             foreach (var candidate in candidates)
             {
@@ -148,7 +149,7 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// 应用去重逻辑（同一技能实例不会重复命中同一目标）
         /// </summary>
-        private List<Entity> ApplyDeduplication(int skillInstanceId, List<Entity> hits)
+        private List<AstrumEntity> ApplyDeduplication(int skillInstanceId, List<AstrumEntity> hits)
         {
             if (!_hitCache.TryGetValue(skillInstanceId, out var hitTargets))
             {
@@ -156,7 +157,7 @@ namespace Astrum.LogicCore.Physics
                 _hitCache[skillInstanceId] = hitTargets;
             }
 
-            var results = new List<Entity>();
+            var results = new List<AstrumEntity>();
             var currentFrame = 0; // TODO: 从 TimeManager 获取当前帧
 
             foreach (var hit in hits)
@@ -191,7 +192,7 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// 注册可命中实体
         /// </summary>
-        public void RegisterEntity(Entity entity, CollisionShape shape)
+        public void RegisterEntity(AstrumEntity entity, CollisionShape shape)
         {
             _physicsWorld.RegisterEntity(entity, shape);
         }
@@ -199,7 +200,7 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// 移除实体
         /// </summary>
-        public void UnregisterEntity(Entity entity)
+        public void UnregisterEntity(AstrumEntity entity)
         {
             _physicsWorld.UnregisterEntity(entity);
         }
@@ -207,7 +208,7 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// 更新实体位置
         /// </summary>
-        public void UpdateEntityPosition(Entity entity)
+        public void UpdateEntityPosition(AstrumEntity entity)
         {
             _physicsWorld.UpdateEntityPosition(entity);
         }

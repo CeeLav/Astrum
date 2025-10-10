@@ -7,9 +7,11 @@ using BEPUphysics.CollisionShapes.ConvexShapes;
 using BEPUphysics.Entities.Prefabs;
 using BEPUutilities;
 using TrueSync;
-using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
 using FixMath.NET;
+// 使用别名避免命名冲突：BEPU 也有 Entity 类
+using AstrumEntity = Astrum.LogicCore.Core.Entity;
+using BepuEntity = BEPUphysics.Entities.Entity;
 
 namespace Astrum.LogicCore.Physics
 {
@@ -20,7 +22,8 @@ namespace Astrum.LogicCore.Physics
     public class BepuPhysicsWorld
     {
         private Space _space;
-        private readonly Dictionary<long, BroadPhaseEntry> _entityBodies = new Dictionary<long, BroadPhaseEntry>();
+        // 修复：存储 BEPU Entity 而不是 BroadPhaseEntry
+        private readonly Dictionary<long, BepuEntity> _entityBodies = new Dictionary<long, BepuEntity>();
 
         /// <summary>
         /// 获取 BEPU Space 实例
@@ -46,7 +49,7 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// 注册实体到物理世界
         /// </summary>
-        public void RegisterEntity(Entity entity, CollisionShape shape)
+        public void RegisterEntity(AstrumEntity entity, CollisionShape shape)
         {
             if (entity == null || _entityBodies.ContainsKey(entity.UniqueId))
                 return;
@@ -54,74 +57,63 @@ namespace Astrum.LogicCore.Physics
             var position = entity.GetComponent<PositionComponent>()?.Position ?? TSVector.zero;
             var bepuPos = position.ToBepuVector();
 
-            BroadPhaseEntry body = null;
+            BepuEntity bepuEntity = null;
 
             switch (shape.ShapeType)
             {
                 case HitBoxShape.Box:
                     var halfSize = shape.HalfSize.ToBepuVector();
                     var box = new Box(bepuPos, halfSize.X * (Fix64)2, halfSize.Y * (Fix64)2, halfSize.Z * (Fix64)2);
-                    box.Tag = entity; // 存储实体引用
-                    body = box.CollisionInformation;
+                    box.Tag = entity; // 存储我们的实体引用
+                    bepuEntity = box;
                     _space.Add(box);
                     break;
 
                 case HitBoxShape.Sphere:
                     var sphere = new Sphere(bepuPos, shape.Radius.ToFix64());
                     sphere.Tag = entity;
-                    body = sphere.CollisionInformation;
+                    bepuEntity = sphere;
                     _space.Add(sphere);
                     break;
 
                 case HitBoxShape.Capsule:
                     var capsule = new Capsule(bepuPos, shape.Height.ToFix64(), shape.Radius.ToFix64());
                     capsule.Tag = entity;
-                    body = capsule.CollisionInformation;
+                    bepuEntity = capsule;
                     _space.Add(capsule);
                     break;
             }
 
-            if (body != null)
+            if (bepuEntity != null)
             {
-                _entityBodies[entity.UniqueId] = body;
+                _entityBodies[entity.UniqueId] = bepuEntity;
             }
         }
 
         /// <summary>
         /// 从物理世界移除实体
         /// </summary>
-        public void UnregisterEntity(Entity entity)
+        public void UnregisterEntity(AstrumEntity entity)
         {
-            if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var body))
+            if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var bepuEntity))
                 return;
 
-            // 从 Tag 中获取对应的 BEPU Entity
-            var bepuEntity = body.Tag as BEPUphysics.Entities.Entity;
-            if (bepuEntity != null)
-            {
-                _space.Remove(bepuEntity);
-            }
-
+            _space.Remove(bepuEntity);
             _entityBodies.Remove(entity.UniqueId);
         }
 
         /// <summary>
         /// 更新实体位置（如果实体移动了）
         /// </summary>
-        public void UpdateEntityPosition(Entity entity)
+        public void UpdateEntityPosition(AstrumEntity entity)
         {
-            if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var body))
+            if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var bepuEntity))
                 return;
 
             var position = entity.GetComponent<PositionComponent>()?.Position ?? TSVector.zero;
             var bepuPos = position.ToBepuVector();
-
-            // 从 Tag 中获取对应的 BEPU Entity
-            var bepuEntity = body.Tag as BEPUphysics.Entities.Entity;
-            if (bepuEntity != null)
-            {
-                bepuEntity.Position = bepuPos;
-            }
+            
+            bepuEntity.Position = bepuPos;
         }
 
         /// <summary>
@@ -129,14 +121,9 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         public void Clear()
         {
-            foreach (var body in _entityBodies.Values)
+            foreach (var bepuEntity in _entityBodies.Values)
             {
-                // 从 Tag 中获取对应的 BEPU Entity
-                var bepuEntity = body.Tag as BEPUphysics.Entities.Entity;
-                if (bepuEntity != null)
-                {
-                    _space.Remove(bepuEntity);
-                }
+                _space.Remove(bepuEntity);
             }
             _entityBodies.Clear();
         }
@@ -153,9 +140,9 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// Box 重叠查询
         /// </summary>
-        public List<Entity> QueryBoxOverlap(TSVector center, TSVector halfSize, TSQuaternion rotation)
+        public List<AstrumEntity> QueryBoxOverlap(TSVector center, TSVector halfSize, TSQuaternion rotation)
         {
-            var results = new List<Entity>();
+            var results = new List<AstrumEntity>();
             var bepuCenter = center.ToBepuVector();
             var bepuHalfSize = halfSize.ToBepuVector();
             var bepuRotation = rotation.ToBepuQuaternion();
@@ -176,11 +163,14 @@ namespace Astrum.LogicCore.Physics
             // 遍历候选者，提取实体
             foreach (var candidate in candidates)
             {
-                // 从 BroadPhaseEntry 的 Tag 获取实体
-                var bepuEntity = candidate.Tag as BEPUphysics.Entities.Entity;
-                if (bepuEntity != null && bepuEntity.Tag is Entity entity)
+                // 从 EntityCollidable 中获取 Entity
+                if (candidate is EntityCollidable collidable && collidable.Entity != null)
                 {
-                    results.Add(entity);
+                    var bepuEntity = collidable.Entity;
+                    if (bepuEntity.Tag is AstrumEntity entity)
+                    {
+                        results.Add(entity);
+                    }
                 }
             }
 
@@ -190,9 +180,9 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// Sphere 重叠查询
         /// </summary>
-        public List<Entity> QuerySphereOverlap(TSVector center, FP radius)
+        public List<AstrumEntity> QuerySphereOverlap(TSVector center, FP radius)
         {
-            var results = new List<Entity>();
+            var results = new List<AstrumEntity>();
             var bepuCenter = center.ToBepuVector();
             var bepuRadius = radius.ToFix64();
 
@@ -211,11 +201,15 @@ namespace Astrum.LogicCore.Physics
             // 遍历候选者，提取实体
             foreach (var candidate in candidates)
             {
-                // 从 BroadPhaseEntry 的 Tag 获取实体
-                var bepuEntity = candidate.Tag as BEPUphysics.Entities.Entity;
-                if (bepuEntity != null && bepuEntity.Tag is Entity entity)
+                // candidate 是 BroadPhaseEntry (CollisionInformation)
+                // 需要获取所属的 BEPU Entity，然后从其 Tag 获取我们的 Entity
+                if (candidate is EntityCollidable collidable)
                 {
-                    results.Add(entity);
+                    var bepuEntity = collidable.Entity;
+                    if (bepuEntity != null && bepuEntity.Tag is AstrumEntity entity)
+                    {
+                        results.Add(entity);
+                    }
                 }
             }
 
