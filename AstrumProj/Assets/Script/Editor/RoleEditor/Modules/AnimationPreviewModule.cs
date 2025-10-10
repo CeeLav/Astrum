@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using Animancer;
 using Astrum.Editor.RoleEditor.Services;
+using Astrum.Editor.RoleEditor.Persistence;
 
 namespace Astrum.Editor.RoleEditor.Modules
 {
@@ -36,17 +37,26 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             _currentEntityId = entityId;
             
-            // 从EntityBaseTable获取模型路径
+            // 从EntityBaseTable获取模型ID
             var entityData = ConfigTableHelper.GetEntityById(entityId);
-            if (entityData == null || string.IsNullOrEmpty(entityData.ModelPath))
+            if (entityData == null || entityData.ModelId == 0)
             {
-                Debug.LogWarning($"{LogPrefix} No model path for entity {entityId}");
+                Debug.LogWarning($"{LogPrefix} No model for entity {entityId}");
+                CleanupPreviewInstance();
+                return;
+            }
+            
+            // 从 EntityModelTable 获取模型路径
+            var modelData = EntityModelDataReader.ReadById(entityData.ModelId);
+            if (modelData == null || string.IsNullOrEmpty(modelData.ModelPath))
+            {
+                Debug.LogWarning($"{LogPrefix} No model path for modelId {entityData.ModelId}");
                 CleanupPreviewInstance();
                 return;
             }
             
             // 加载模型（使用基类方法）
-            LoadModel(entityData.ModelPath);
+            LoadModel(modelData.ModelPath);
         }
         
         // === 动画加载 ===
