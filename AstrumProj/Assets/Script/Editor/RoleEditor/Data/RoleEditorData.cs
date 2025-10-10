@@ -71,10 +71,10 @@ namespace Astrum.Editor.RoleEditor.Data
         public string CollisionData = "";
         
         [TitleGroup("实体配置/物理碰撞")]
-        [LabelText("半径缩放"), Range(0.5f, 1.0f)]
-        [InfoBox("调整碰撞盒半径：0.5=紧身 | 0.8=标准 | 1.0=宽松", InfoMessageType.None)]
+        [LabelText("半径缩放"), Range(0.3f, 1.0f)]
+        [InfoBox("调整碰撞盒半径：0.3=极窄 | 0.5=标准 | 0.7=宽松 | 1.0=完全包裹", InfoMessageType.None)]
         [OnValueChanged("OnRadiusScaleChanged")]
-        public float RadiusScale = 0.8f;
+        public float RadiusScale = 0.5f;
         
         [TitleGroup("实体配置/物理碰撞")]
         [Button("生成胶囊体碰撞盒", ButtonSizes.Medium)]
