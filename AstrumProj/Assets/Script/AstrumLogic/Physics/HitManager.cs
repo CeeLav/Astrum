@@ -50,6 +50,22 @@ namespace Astrum.LogicCore.Physics
         }
 
         /// <summary>
+        /// 构造函数（接收外部物理世界实例）
+        /// </summary>
+        public HitManager(BepuPhysicsWorld physicsWorld)
+        {
+            _physicsWorld = physicsWorld ?? throw new ArgumentNullException(nameof(physicsWorld));
+        }
+
+        /// <summary>
+        /// 注册实体到物理世界（代理方法）
+        /// </summary>
+        public void RegisterEntity(AstrumEntity entity)
+        {
+            _physicsWorld.RegisterEntity(entity);
+        }
+
+        /// <summary>
         /// 即时命中查询（主入口）
         /// </summary>
         /// <param name="caster">施法者实体</param>
@@ -189,13 +205,7 @@ namespace Astrum.LogicCore.Physics
             _hitCache.Clear();
         }
 
-        /// <summary>
-        /// 注册可命中实体
-        /// </summary>
-        public void RegisterEntity(AstrumEntity entity, CollisionShape shape)
-        {
-            _physicsWorld.RegisterEntity(entity, shape);
-        }
+        // RegisterEntity 方法已移到前面统一定义
 
         /// <summary>
         /// 移除实体
