@@ -12,6 +12,7 @@ namespace Astrum.LogicCore.Components
     [MemoryPackUnion(4, typeof(ActionComponent))]
     [MemoryPackUnion(5, typeof(RoleInfoComponent))]
     [MemoryPackUnion(6, typeof(SkillComponent))]
+    [MemoryPackUnion(7, typeof(CollisionComponent))]
     [MemoryPackable]
     public abstract partial class BaseComponent
     {
