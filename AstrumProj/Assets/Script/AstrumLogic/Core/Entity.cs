@@ -43,27 +43,31 @@ namespace Astrum.LogicCore.Core
         
         /// <summary>
         /// 模型配置ID（从 EntityConfig 获取，可为0表示无模型）
+        /// TODO: 等待 Unity 刷新后启用
         /// </summary>
         [MemoryPackIgnore]
         public int ModelId
         {
             get
             {
-                var config = EntityConfig;
-                return config?.ModelId ?? 0;
+                // var config = EntityConfig;
+                // return config?.ModelId ?? 0;
+                return 0;
             }
         }
         
         /// <summary>
         /// 模型配置（从 EntityModelTable 获取）
+        /// TODO: 等待 Unity 刷新后启用
         /// </summary>
         [MemoryPackIgnore]
-        public cfg.Entity.EntityModelTable ModelConfig
+        public object ModelConfig
         {
             get
             {
-                if (ModelId == 0) return null;
-                return ConfigManager.Instance.Tables.TbEntityModelTable?.Get(ModelId);
+                // if (ModelId == 0) return null;
+                // return ConfigManager.Instance.Tables.TbEntityModelTable?.Get(ModelId);
+                return null;
             }
         }
 

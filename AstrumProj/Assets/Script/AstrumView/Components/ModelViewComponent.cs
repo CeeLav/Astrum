@@ -13,13 +13,24 @@ namespace Astrum.View.Components
         protected override void OnInitialize()
         {
             var entityConfig = OwnerEntity.EntityConfig;
-            var modelPath = entityConfig.ModelPath;
-            // 可在此初始化模型资源
-            // 初始化一个立方体模型资源
-            var prefab =
-                ResourceManager.Instance.LoadResource<GameObject>(modelPath);//GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Initialize(prefab);
+            var modelConfig = OwnerEntity.ModelConfig;
             
+            // 从 ModelConfig 获取模型路径
+            string modelPath = null;
+            if (modelConfig != null && modelConfig is cfg.Entity.EntityModelTable modelTable)
+            {
+                modelPath = modelTable.ModelPath;
+            }
+            
+            if (string.IsNullOrEmpty(modelPath))
+            {
+                // 无模型路径，跳过
+                return;
+            }
+            
+            // 可在此初始化模型资源
+            var prefab = ResourceManager.Instance.LoadResource<GameObject>(modelPath);
+            Initialize(prefab);
         }
 
         public void Initialize(GameObject modelPrefab)

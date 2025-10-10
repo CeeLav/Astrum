@@ -38,6 +38,21 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         public int DeathAction { get; set; }
         
         /// <summary>
+        /// 临时属性：ModelName（向后兼容，使用 EntityName）
+        /// </summary>
+        public string ModelName
+        {
+            get => EntityName;
+            set => EntityName = value;
+        }
+        
+        /// <summary>
+        /// 临时属性：ModelPath（向后兼容，需要从 EntityModelTable 查询）
+        /// TODO: 重构编辑器代码使用 ModelId 查询 EntityModelTable
+        /// </summary>
+        public string ModelPath { get; set; } = string.Empty;
+        
+        /// <summary>
         /// 获取表配置
         /// </summary>
         public static LubanTableConfig GetTableConfig()

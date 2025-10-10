@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Astrum.CommonBase;
-using Astrum.CommonBase.Structure.TrueSync;
+using TrueSync;
 
 namespace Astrum.LogicCore.Physics
 {
@@ -91,14 +91,15 @@ namespace Astrum.LogicCore.Physics
                             ParseFloat(halfSizeParts[1]),
                             ParseFloat(halfSizeParts[2])
                         );
-                        return new CollisionShape(
-                            HitBoxShape.Box,
-                            offset,
-                            rotation,
-                            halfSize,
-                            0f,
-                            0f
-                        );
+                        return new CollisionShape
+                        {
+                            ShapeType = HitBoxShape.Box,
+                            LocalOffset = offset,
+                            LocalRotation = rotation,
+                            HalfSize = halfSize,
+                            Radius = 0f,
+                            Height = 0f
+                        };
                     
                     case "sphere":
                         if (parts.Length < 4)
@@ -108,14 +109,15 @@ namespace Astrum.LogicCore.Physics
                         }
                         // parts[3]: 半径
                         var radius = ParseFloat(parts[3]);
-                        return new CollisionShape(
-                            HitBoxShape.Sphere,
-                            offset,
-                            rotation,
-                            TSVector.zero,
-                            radius,
-                            0f
-                        );
+                        return new CollisionShape
+                        {
+                            ShapeType = HitBoxShape.Sphere,
+                            LocalOffset = offset,
+                            LocalRotation = rotation,
+                            HalfSize = TSVector.zero,
+                            Radius = radius,
+                            Height = 0f
+                        };
                     
                     case "capsule":
                         if (parts.Length < 5)
@@ -126,14 +128,15 @@ namespace Astrum.LogicCore.Physics
                         // parts[3]: 半径, parts[4]: 高度
                         var capsuleRadius = ParseFloat(parts[3]);
                         var height = ParseFloat(parts[4]);
-                        return new CollisionShape(
-                            HitBoxShape.Capsule,
-                            offset,
-                            rotation,
-                            TSVector.zero,
-                            capsuleRadius,
-                            height
-                        );
+                        return new CollisionShape
+                        {
+                            ShapeType = HitBoxShape.Capsule,
+                            LocalOffset = offset,
+                            LocalRotation = rotation,
+                            HalfSize = TSVector.zero,
+                            Radius = capsuleRadius,
+                            Height = height
+                        };
                     
                     default:
                         ASLogger.Instance.Warning($"CollisionDataParser: Unknown shape type: {shapeType}");
