@@ -233,20 +233,20 @@ namespace AstrumTest.PhysicsTests
             var target1 = CreateBoxEntity(1, new TSVector(FP.One, FP.Zero, FP.Zero), TSVector.one);
             var target2 = CreateBoxEntity(2, new TSVector((FP)(-1), FP.Zero, FP.Zero), TSVector.one);
 
-            // Arrange - 创建施法者和自定义过滤器（只允许偶数ID）
+            // Arrange - 创建施法者和自定义过滤器（只允许 target2，排除 target1）
             var caster = CreateBoxEntity(3, TSVector.zero, TSVector.one);
             var hitBox = HitBoxData.CreateBox(TSVector.one * (FP)3);
             var filter = new CollisionFilter
             {
-                CustomFilter = (entity) => entity.UniqueId % 2 == 0
+                CustomFilter = (entity) => entity.UniqueId == target2.UniqueId // 只允许 target2
             };
 
             // Act
             var hits = _hitManager.QueryHits(caster, hitBox, filter);
 
             // Assert
-            Assert.DoesNotContain(hits, e => e.UniqueId == target1.UniqueId); // 奇数ID被过滤
-            Assert.Contains(hits, e => e.UniqueId == target2.UniqueId); // 偶数ID通过
+            Assert.DoesNotContain(hits, e => e.UniqueId == target1.UniqueId); // target1 被自定义过滤器排除
+            Assert.Contains(hits, e => e.UniqueId == target2.UniqueId); // target2 通过过滤器
         }
 
         #endregion
