@@ -13,15 +13,24 @@ namespace Astrum.View.Components
         protected override void OnInitialize()
         {
             var entityConfig = OwnerEntity.EntityConfig;
-            var modelConfig = OwnerEntity.ModelConfig;
+            if (entityConfig == null)
+                return;
             
-            // 从 ModelConfig 获取模型路径
-            string modelPath = null;
-            if (modelConfig != null && modelConfig is cfg.Entity.EntityModelTable modelTable)
+            var modelId = entityConfig.ModelId;
+            
+            // 无模型，跳过
+            if (modelId == 0)
+                return;
+            
+            // 从 EntityModelTable 获取模型配置
+            var modelConfig = Astrum.LogicCore.Managers.ConfigManager.Instance.Tables.TbEntityModelTable?.Get(modelId);
+            if (modelConfig == null)
             {
-                modelPath = modelTable.ModelPath;
+                Debug.LogWarning($"ModelViewComponent: EntityModelTable not found for modelId={modelId}");
+                return;
             }
             
+            var modelPath = modelConfig.ModelPath;
             if (string.IsNullOrEmpty(modelPath))
             {
                 // 无模型路径，跳过
