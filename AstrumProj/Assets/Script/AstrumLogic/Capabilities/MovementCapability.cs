@@ -79,6 +79,16 @@ namespace Astrum.LogicCore.Capabilities
                 var pos = positionComponent.Position;
                 positionComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
                 
+                // 更新朝向（根据移动方向）
+                if (inputMagnitude > MovementThreshold)
+                {
+                    TSVector moveDirection = new TSVector(moveX, FP.Zero, moveY);
+                    if (moveDirection.sqrMagnitude > FP.EN4)  // 避免零向量
+                    {
+                        positionComponent.Rotation = TSQuaternion.LookRotation(moveDirection, TSVector.up);
+                    }
+                }
+                
                 // 调试日志
                 ASLogger.Instance.Debug($"MovementCapability: 移动执行 - 输入:({moveX}, {moveY}), 速度:{speed}, 增量:({deltaX}, {deltaY}), 新位置:({positionComponent.Position.x}, {positionComponent.Position.z})", "Logic.Movement");
             }
