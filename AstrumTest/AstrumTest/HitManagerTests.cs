@@ -32,7 +32,7 @@ namespace AstrumTest.PhysicsTests
         #region 辅助方法
 
         /// <summary>
-        /// 创建测试用实体
+        /// 创建测试用实体（带 CollisionComponent）
         /// </summary>
         private Entity CreateTestEntity(long uniqueId, TSVector position, CollisionShape shape)
         {
@@ -43,8 +43,13 @@ namespace AstrumTest.PhysicsTests
             var posComp = new PositionComponent { Position = position };
             entity.AddComponent(posComp);
 
-            // 注册到物理世界
-            _hitManager.RegisterEntity(entity, shape);
+            // 添加碰撞组件
+            var collisionComp = new CollisionComponent();
+            collisionComp.Shapes = new List<CollisionShape> { shape };
+            entity.AddComponent(collisionComp);
+
+            // 注册到物理世界（现在会自动从 CollisionComponent 获取）
+            _hitManager.RegisterEntity(entity);
 
             return entity;
         }
