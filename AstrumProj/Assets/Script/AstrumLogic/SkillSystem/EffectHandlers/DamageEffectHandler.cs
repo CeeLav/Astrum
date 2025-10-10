@@ -12,21 +12,26 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
     {
         public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
         {
+            ASLogger.Instance.Info($"[DamageEffect] START - Caster: {caster.UniqueId}, Target: {target.UniqueId}, EffectId: {effectConfig.SkillEffectId}");
+            
             // 1. 计算伤害
             var damageResult = DamageCalculator.Calculate(caster, target, effectConfig);
+            ASLogger.Instance.Info($"[DamageEffect] Calculated damage: {damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
             
             // 2. 应用伤害到目标
             var healthComponent = target.GetComponent<HealthComponent>();
             if (healthComponent == null)
             {
-                ASLogger.Instance.Warning($"Target {target.UniqueId} has no HealthComponent, cannot apply damage");
+                ASLogger.Instance.Warning($"[DamageEffect] Target {target.UniqueId} has no HealthComponent, cannot apply damage");
                 return;
             }
             
-            healthComponent.CurrentHealth -= (int)damageResult.FinalDamage;
+            int beforeHP = healthComponent.CurrentHealth;
+            int damage = (int)damageResult.FinalDamage;
+            healthComponent.CurrentHealth -= damage;
+            int afterHP = healthComponent.CurrentHealth;
             
-            ASLogger.Instance.Info($"Damage applied: {damageResult.FinalDamage} to {target.UniqueId}, " +
-                $"Critical: {damageResult.IsCritical}, Remaining HP: {healthComponent.CurrentHealth}");
+            ASLogger.Instance.Info($"[DamageEffect] HP Change - Target {target.UniqueId}: {beforeHP} → {afterHP} (-{damage})");
             
             // 3. TODO: 触发伤害事件
             // EventSystem.Trigger(new DamageEvent { ... });
