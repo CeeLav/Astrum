@@ -6,7 +6,7 @@ namespace Astrum.LogicCore.Components
     /// BaseComponent 的 MemoryPack 序列化特性定义
     /// </summary>
     [MemoryPackUnion(0, typeof(HealthComponent))]
-    [MemoryPackUnion(1, typeof(PositionComponent))]
+    [MemoryPackUnion(1, typeof(TransComponent))]
     [MemoryPackUnion(2, typeof(MovementComponent))]
     [MemoryPackUnion(3, typeof(Astrum.LogicCore.FrameSync.LSInputComponent))]
     [MemoryPackUnion(4, typeof(ActionComponent))]

@@ -35,7 +35,7 @@ namespace Astrum.LogicCore.Capabilities
             // 获取必需的组件
             var inputComponent = GetOwnerComponent<LSInputComponent>();
             var movementComponent = GetOwnerComponent<MovementComponent>();
-            var positionComponent = GetOwnerComponent<PositionComponent>();
+            var positionComponent = GetOwnerComponent<TransComponent>();
 
             // 检查必需组件是否存在
             if (inputComponent?.CurrentInput == null || movementComponent == null || positionComponent == null)
@@ -96,7 +96,7 @@ namespace Astrum.LogicCore.Capabilities
             // 检查必需的组件是否存在
             return OwnerHasComponent<LSInputComponent>() && 
                    OwnerHasComponent<MovementComponent>() && 
-                   OwnerHasComponent<PositionComponent>();
+                   OwnerHasComponent<TransComponent>();
         }
         
     }
