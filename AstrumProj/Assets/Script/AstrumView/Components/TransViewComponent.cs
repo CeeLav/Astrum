@@ -73,7 +73,7 @@ namespace Astrum.View.Components
                 return;
             }
             
-            var posC = ownerEntity.GetComponent<PositionComponent>();
+            var posC = ownerEntity.GetComponent<TransComponent>();
             if (posC == null)
             {
                 ASLogger.Instance.Log(LogLevel.Error,$"TransViewComponent: 实体缺少PositionComponent，无法更新位置，实体ID: {ownerEntity.UniqueId}", "View.Transform");

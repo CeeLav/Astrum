@@ -63,7 +63,7 @@ namespace Astrum.LogicCore.Physics
                 return;
             }
 
-            var position = entity.GetComponent<PositionComponent>()?.Position ?? TSVector.zero;
+            var position = entity.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
             var bepuPos = position.ToBepuVector();
 
             // TODO: 目前只注册第一个碰撞盒，后续可支持多个
@@ -121,7 +121,7 @@ namespace Astrum.LogicCore.Physics
             if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var bepuEntity))
                 return;
 
-            var position = entity.GetComponent<PositionComponent>()?.Position ?? TSVector.zero;
+            var position = entity.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
             var bepuPos = position.ToBepuVector();
             
             bepuEntity.Position = bepuPos;

@@ -9,7 +9,7 @@ namespace Astrum.LogicCore.Archetypes
     {
         private static readonly Type[] _comps =
         {
-            typeof(PositionComponent),
+            typeof(TransComponent),  // 包含 Position + Rotation
             typeof(MovementComponent),
             typeof(CollisionComponent)
         };

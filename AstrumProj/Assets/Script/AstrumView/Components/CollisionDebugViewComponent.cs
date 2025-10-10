@@ -69,7 +69,7 @@ namespace Astrum.View.Components
             if (!ShowEntityCollision || OwnerEntity == null) return;
             
             var collisionComp = OwnerEntity.GetComponent<CollisionComponent>();
-            var positionComp = OwnerEntity.GetComponent<PositionComponent>();
+            var positionComp = OwnerEntity.GetComponent<TransComponent>();
             
             if (collisionComp == null || positionComp == null || collisionComp.Shapes == null) return;
             
@@ -77,7 +77,7 @@ namespace Astrum.View.Components
             
             foreach (var shape in collisionComp.Shapes)
             {
-                DrawCollisionShape(shape, positionComp.Position, TrueSync.TSQuaternion.identity);
+                DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
             }
         }
         
@@ -89,7 +89,7 @@ namespace Astrum.View.Components
             if (!ShowAttackBox || OwnerEntity == null) return;
             
             var actionComp = OwnerEntity.GetComponent<ActionComponent>();
-            var positionComp = OwnerEntity.GetComponent<PositionComponent>();
+            var positionComp = OwnerEntity.GetComponent<TransComponent>();
             
             if (actionComp == null || positionComp == null) return;
             
@@ -116,12 +116,12 @@ namespace Astrum.View.Components
                     Gizmos.color = new Color(1f, 1f, 0f, 0.8f); // 黄色高亮
                 }
                 
-                DrawCollisionShape(shape, positionComp.Position, TrueSync.TSQuaternion.identity);
+                DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
                 
-                // 绘制标签
+                // 绘制标签（考虑旋转后的世界位置）
                 if (ShowLabels && isNearTriggerFrame)
                 {
-                    Vector3 worldPos = TSVectorToVector3(positionComp.Position + shape.LocalOffset);
+                    Vector3 worldPos = TSVectorToVector3(positionComp.Position + positionComp.Rotation * shape.LocalOffset);
                     DrawLabel(worldPos, $"Frame {trigger.Frame}\nEffect {trigger.EffectId}");
                 }
                 
