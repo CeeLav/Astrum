@@ -84,10 +84,10 @@ namespace Astrum.LogicCore.SkillSystem
         /// </summary>
         private static float ApplyDefense(float baseDamage, float defense)
         {
-            // 简单的防御公式：伤害 - (防御 * 0.5)
-            // TODO: 可以替换为更复杂的公式
-            float reduction = defense * 0.5f;
-            return baseDamage - reduction;
+            // 简单的防御公式：减伤百分比 = 防御 / (防御 + 100)
+            // 防御20时约17%减伤，防御100时约50%减伤
+            float damageReduction = defense / (defense + 100f);
+            return baseDamage * (1f - damageReduction);
         }
         
         /// <summary>
