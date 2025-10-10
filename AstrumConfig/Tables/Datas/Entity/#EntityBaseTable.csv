@@ -1,9 +1,9 @@
-ï»¿##var,entityId,archetypeName,modelName,modelPath,idleAction,walkAction,runAction,jumpAction,birthAction,deathAction
-##type,int,string,string,string,int,int,int,int,int,int
+##var,entityId,entityName,archetypeName,modelId,idleAction,walkAction,runAction,jumpAction,birthAction,deathAction
+##type,int,string,string,int,int,int,int,int,int,int
 ##group,,,,,,,,,,
-##desc,å®ä½“ID,åŸå‹å,æ¨¡å‹åå­—,æ¨¡å‹è·¯å¾„,é™æ­¢åŠ¨ä½œ,èµ°è·¯åŠ¨ä½œ,è·‘æ­¥åŠ¨ä½œ,è·³è·ƒåŠ¨ä½œ,å‡ºç”ŸåŠ¨ä½œ,æ­»äº¡åŠ¨ä½œ
-,1001,Role,éª‘å£«,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,1001,1002,1002,0,0,0
-,1002,Role,,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,1001,1002,1002,0,0,0
-,1003,Role,,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,1001,1002,1002,0,0,0
-,1004,RoleArchetype,,,0,0,0,0,0,0
-,1005,RoleArchetype,,,0,0,0,0,0,0
+##desc,ÊµÌåID,ÊµÌåÃû³Æ,Ô­ĞÍÃû,Ä£ĞÍID,¾²Ö¹¶¯×÷,×ßÂ·¶¯×÷,ÅÜ²½¶¯×÷,ÌøÔ¾¶¯×÷,³öÉú¶¯×÷,ËÀÍö¶¯×÷
+,1001,ÆïÊ¿,Role,2001,1001,1002,1002,0,0,0
+,1002,½ÇÉ«2,Role,2001,1001,1002,1002,0,0,0
+,1003,½ÇÉ«3,Role,2001,1001,1002,1002,0,0,0
+,1004,½ÇÉ«Ô­ĞÍ1,RoleArchetype,0,0,0,0,0,0,0
+,1005,½ÇÉ«Ô­ĞÍ2,RoleArchetype,0,0,0,0,0,0,0
