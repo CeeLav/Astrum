@@ -10,14 +10,14 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(0, "EntityId")]
         public int EntityId { get; set; }
         
-        [TableField(1, "ArchetypeName")]
+        [TableField(1, "EntityName")]
+        public string EntityName { get; set; }
+        
+        [TableField(2, "ArchetypeName")]
         public string ArchetypeName { get; set; }
         
-        [TableField(2, "ModelName")]
-        public string ModelName { get; set; }
-        
-        [TableField(3, "ModelPath")]
-        public string ModelPath { get; set; }
+        [TableField(3, "ModelId")]
+        public int ModelId { get; set; }
         
         [TableField(4, "IdleAction")]
         public int IdleAction { get; set; }
@@ -51,13 +51,13 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 {
                     VarNames = new System.Collections.Generic.List<string>
                     {
-                        "entityId", "archetypeName", "modelName", "modelPath",
+                        "entityId", "entityName", "archetypeName", "modelId",
                         "idleAction", "walkAction", "runAction", "jumpAction",
                         "birthAction", "deathAction"
                     },
                     Types = new System.Collections.Generic.List<string>
                     {
-                        "int", "string", "string", "string",
+                        "int", "string", "string", "int",
                         "int", "int", "int", "int",
                         "int", "int"
                     },
@@ -67,7 +67,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                     },
                     Descriptions = new System.Collections.Generic.List<string>
                     {
-                        "实体ID", "原型名", "模型名字", "模型路径",
+                        "实体ID", "实体名称", "原型名", "模型ID",
                         "静止动作", "走路动作", "跑步动作", "跳跃动作",
                         "出生动作", "死亡动作"
                     }

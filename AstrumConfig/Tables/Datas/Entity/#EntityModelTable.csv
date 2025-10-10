@@ -1,0 +1,6 @@
+##var,modelId,modelPath,collisionData,,,,,
+##type,int,string,string,,,,,
+##group,,,,,,,,
+##desc,模型ID,模型路径,碰撞盒数据,,,,,
+,2001,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,,,,,,
+,2002,Assets/ArtRes/Unit/Monster/Goblin/Goblin.prefab,,,,,,
