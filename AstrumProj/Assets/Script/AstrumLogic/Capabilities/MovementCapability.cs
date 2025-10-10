@@ -3,8 +3,13 @@ using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Physics;
 using TrueSync;
 using MemoryPack;
+// 使用别名避免与 BEPU 的 Entity 类冲突
+using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
 namespace Astrum.LogicCore.Capabilities
 {
@@ -87,6 +92,12 @@ namespace Astrum.LogicCore.Capabilities
                     {
                         positionComponent.Rotation = TSQuaternion.LookRotation(moveDirection, TSVector.up);
                     }
+                }
+                
+                // 【物理世界同步】更新实体在物理世界中的位置
+                if (OwnerEntity is AstrumEntity astrumEntity)
+                {
+                    HitManager.Instance.UpdateEntityPosition(astrumEntity);
                 }
                 
                 // 调试日志
