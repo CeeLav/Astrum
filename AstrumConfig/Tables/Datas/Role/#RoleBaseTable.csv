@@ -1,4 +1,4 @@
-﻿##var,id,name,description,roleType,baseAttack,baseDefense,baseHealth,baseSpeed,attackGrowth,defenseGrowth,healthGrowth,speedGrowth,lightAttackSkillId,heavyAttackSkillId,skill1Id,skill2Id
+##var,id,name,description,roleType,baseAttack,baseDefense,baseHealth,baseSpeed,attackGrowth,defenseGrowth,healthGrowth,speedGrowth,lightAttackSkillId,heavyAttackSkillId,skill1Id,skill2Id
 ##type,int,string,string,int,float,float,float,float,float,float,float,float,int,int,int,int
 ##group,c,s,e,,,,,,,,,,,,,
 ##desc,角色ID,角色名称,角色描述,角色类型,基础攻击力,基础防御力,基础生命值,基础移动速度,攻击力成长,防御力成长,生命值成长,移动速度成长,轻击技能ID,重击技能ID,技能1ID,技能2ID

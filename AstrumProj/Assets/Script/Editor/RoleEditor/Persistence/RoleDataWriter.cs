@@ -107,6 +107,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 {
                     // 更新现有数据
                     existingModel.ModelPath = role.ModelPath;
+                    existingModel.CollisionData = role.CollisionData ?? string.Empty;  // 更新碰撞数据
                     modelDataList.Add(existingModel);
                 }
                 else
@@ -116,7 +117,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     {
                         ModelId = modelId,
                         ModelPath = role.ModelPath,
-                        CollisionData = string.Empty  // 碰撞盒数据由其他工具填充
+                        CollisionData = role.CollisionData ?? string.Empty  // 保存碰撞盒数据
                     });
                 }
             }

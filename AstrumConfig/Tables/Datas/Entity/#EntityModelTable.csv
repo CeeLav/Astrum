@@ -2,5 +2,6 @@
 ##type,int,string,string
 ##group,,,
 ##desc,模型ID,模型路径,碰撞盒数据
-,2001,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,Box:0,1,0:0,0,0,1:0.5,1,0.5
-,2002,Assets/ArtRes/Unit/Monster/Goblin/Goblin.prefab,Sphere:0,0.8,0:0,0,0,1:0.6
+,2001,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,Box:0
+,2002,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,Sphere:0
+,2003,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,
