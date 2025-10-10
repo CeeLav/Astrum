@@ -113,15 +113,11 @@ namespace Astrum.LogicCore.Capabilities
                 OnlyEnemies = true
             };
             
-            // 3. 获取 HitManager 进行碰撞检测（临时引用）
-            // TODO: HitManager 需要从 World 或其他合适的地方获取
-            // 临时方案：假设有全局访问方式
-            HitManager hitManager = null; // TODO: 实现获取逻辑
-            // 示例: var world = OwnerEntity?.OwnerWorld; var hitManager = world?.HitManager;
-            
+            // 3. 获取 HitManager 单例进行碰撞检测（临时引用）
+            var hitManager = HitManager.Instance;
             if (hitManager == null)
             {
-                ASLogger.Instance.Warning("HitManager not available, skipping collision trigger");
+                ASLogger.Instance.Warning("HitManager instance not available, skipping collision trigger");
                 return;
             }
             
