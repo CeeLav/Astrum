@@ -13,9 +13,9 @@ namespace Astrum.Editor.RoleEditor.Services
         /// 从模型自动生成胶囊体碰撞盒
         /// </summary>
         /// <param name="prefab">模型 Prefab</param>
-        /// <param name="radiusScale">半径缩放因子 (0.5-1.0)</param>
+        /// <param name="radiusScale">半径缩放因子 (0.3-1.0)，默认 0.5 为标准人形</param>
         /// <returns>CollisionData 字符串，格式: Capsule:偏移x,y,z:旋转x,y,z,w:半径:高度</returns>
-        public static string GenerateCapsuleFromModel(GameObject prefab, float radiusScale = 0.8f)
+        public static string GenerateCapsuleFromModel(GameObject prefab, float radiusScale = 0.5f)
         {
             if (prefab == null)
             {
@@ -34,7 +34,8 @@ namespace Astrum.Editor.RoleEditor.Services
             
             // 计算胶囊体参数
             float height = bounds.size.y * 0.95f;  // 略小于实际高度
-            float radius = Mathf.Max(bounds.size.x, bounds.size.z) / 2f * Mathf.Clamp(radiusScale, 0.5f, 1.0f);
+            // 使用最小值（更贴近身体实际宽度，避免武器/装备影响）
+            float radius = Mathf.Min(bounds.size.x, bounds.size.z) / 2f * Mathf.Clamp(radiusScale, 0.3f, 1.0f);
             
             // 偏移：胶囊体底部在模型脚下，中心在模型中央
             Vector3 offset = new Vector3(0, bounds.size.y / 2f, 0);
