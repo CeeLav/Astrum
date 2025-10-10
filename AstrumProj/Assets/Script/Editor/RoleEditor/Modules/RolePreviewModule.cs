@@ -36,6 +36,18 @@ namespace Astrum.Editor.RoleEditor.Modules
         private Vector3 _modelCenter = Vector3.zero;
         private float _orbitRadius = 3f;
         
+        // === 碰撞盒预览 ===
+        private bool _showCollisionShape = false;
+        
+        /// <summary>
+        /// 是否显示碰撞盒（可通过外部控制）
+        /// </summary>
+        public bool ShowCollisionShape
+        {
+            get => _showCollisionShape;
+            set => _showCollisionShape = value;
+        }
+        
         // === 常量 ===
         private const float MIN_ZOOM = 1f;
         private const float MAX_ZOOM = 10f;
@@ -310,6 +322,12 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 // 渲染
                 _previewRenderUtility.camera.Render();
+                
+                // 绘制碰撞盒（在 camera.Render() 后，EndPreview() 前）
+                if (_showCollisionShape && _currentRole != null && !string.IsNullOrEmpty(_currentRole.CollisionData))
+                {
+                    CollisionShapePreview.DrawCollisionData(_currentRole.CollisionData, _previewRenderUtility.camera);
+                }
             }
             
             Texture resultTexture = _previewRenderUtility.EndPreview();

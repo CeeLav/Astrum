@@ -64,6 +64,39 @@ namespace Astrum.Editor.RoleEditor.Data
         [LabelText("死亡动作ID")]
         public int DeathAction = 0;
         
+        [TitleGroup("实体配置/物理碰撞")]
+        [LabelText("碰撞盒数据")]
+        [MultiLineProperty(3)]
+        [InfoBox("格式: Capsule:偏移x,y,z:旋转x,y,z,w:半径:高度\n例如: Capsule:0,1,0:0,0,0,1:0.4:2.0", InfoMessageType.None)]
+        public string CollisionData = "";
+        
+        [TitleGroup("实体配置/物理碰撞")]
+        [LabelText("半径缩放"), Range(0.5f, 1.0f)]
+        [InfoBox("调整碰撞盒半径：0.5=紧身 | 0.8=标准 | 1.0=宽松", InfoMessageType.None)]
+        [OnValueChanged("OnRadiusScaleChanged")]
+        public float RadiusScale = 0.8f;
+        
+        [TitleGroup("实体配置/物理碰撞")]
+        [Button("生成胶囊体碰撞盒", ButtonSizes.Medium)]
+        [EnableIf("@ModelPrefab != null")]
+        [InfoBox("必须先配置模型", InfoMessageType.Warning, "@ModelPrefab == null")]
+        private void GenerateCapsuleCollision()
+        {
+            if (ModelPrefab == null)
+            {
+                UnityEngine.Debug.LogWarning("请先配置模型！");
+                return;
+            }
+            
+            CollisionData = Services.CollisionShapeGenerator.GenerateCapsuleFromModel(ModelPrefab, RadiusScale);
+            MarkDirty();
+            
+            if (!string.IsNullOrEmpty(CollisionData))
+            {
+                UnityEngine.Debug.Log($"[{ModelName}] 已生成碰撞盒: {CollisionData}");
+            }
+        }
+        
         // ===== RoleBaseTable 数据 =====
         
         [TitleGroup("角色配置")]
@@ -173,6 +206,8 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.JumpAction = this.JumpAction;
             clone.BirthAction = this.BirthAction;
             clone.DeathAction = this.DeathAction;
+            clone.CollisionData = this.CollisionData;
+            clone.RadiusScale = this.RadiusScale;
             
             // 复制RoleBaseTable字段
             clone.RoleId = this.RoleId;
@@ -222,6 +257,15 @@ namespace Astrum.Editor.RoleEditor.Data
             else
             {
                 ModelPrefab = null;
+            }
+        }
+        
+        private void OnRadiusScaleChanged()
+        {
+            // 半径缩放改变时，如果已有碰撞数据，提示重新生成
+            if (!string.IsNullOrEmpty(CollisionData) && ModelPrefab != null)
+            {
+                UnityEngine.Debug.Log($"[{ModelName}] 半径缩放已改变为 {RadiusScale:F2}，建议点击\"生成胶囊体碰撞盒\"按钮重新生成");
             }
         }
         
