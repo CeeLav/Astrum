@@ -159,8 +159,8 @@ namespace Astrum.LogicCore.Managers
             // 计算实际效果ID：BaseEffectId + Level
             int actualEffectId = baseEffectId + level;
             
-            // 精确查找
-            var effect = configManager.Tables.TbSkillEffectTable.Get(actualEffectId);
+            // 精确查找对应等级的效果
+            var effect = configManager.Tables.TbSkillEffectTable.GetOrDefault(actualEffectId);
             if (effect != null)
             {
                 return new EffectValueResult
@@ -172,9 +172,24 @@ namespace Astrum.LogicCore.Managers
                 };
             }
             
+            // 如果找不到对应等级的效果，回退使用基础效果
+            var baseEffect = configManager.Tables.TbSkillEffectTable.GetOrDefault(baseEffectId);
+            if (baseEffect != null)
+            {
+                ASLogger.Instance.Warning($"SkillConfigManager.GetEffectValue: Effect {actualEffectId} not found, " +
+                    $"falling back to base effect {baseEffectId}");
+                return new EffectValueResult
+                {
+                    EffectId = baseEffectId,
+                    Value = baseEffect.EffectValue,
+                    IsInterpolated = false,
+                    EffectData = baseEffect
+                };
+            }
+            
             // TODO: 后续阶段实现插值逻辑
-            ASLogger.Instance.Warning($"SkillConfigManager.GetEffectValue: Effect {actualEffectId} " +
-                $"(base={baseEffectId}, level={level}) not found. Interpolation not implemented yet.");
+            ASLogger.Instance.Error($"SkillConfigManager.GetEffectValue: Neither effect {actualEffectId} " +
+                $"nor base effect {baseEffectId} found!");
             
             return new EffectValueResult { Value = 0f };
         }
