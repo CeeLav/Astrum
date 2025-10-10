@@ -11,6 +11,7 @@ namespace Astrum.LogicCore.Archetypes
         {
             typeof(PositionComponent),
             typeof(MovementComponent),
+            typeof(CollisionComponent)
         };
 
         private static readonly Type[] _caps =
