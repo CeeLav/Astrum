@@ -82,8 +82,9 @@ namespace Astrum.LogicCore.Physics
             }
 
             // 获取施法者位置和朝向
-            var casterPos = caster.GetComponent<PositionComponent>()?.Position ?? TSVector.zero;
-            var casterRot = TSQuaternion.identity; // TODO: 从 RotationComponent 获取
+            var posComp = caster.GetComponent<TransComponent>();
+            var casterPos = posComp?.Position ?? TSVector.zero;
+            var casterRot = posComp?.Rotation ?? TSQuaternion.identity;
 
             // 计算世界空间的命中盒姿态（使用四元数变换向量）
             var worldCenter = casterPos + casterRot * shape.LocalOffset;
