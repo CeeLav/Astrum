@@ -62,18 +62,18 @@ namespace Astrum.LogicCore.Physics
                 // 解析偏移（parts[1]: x,y,z）
                 var offsetParts = parts[1].Split(',');
                 var offset = new TSVector(
-                    ParseFloat(offsetParts[0]),
-                    ParseFloat(offsetParts[1]),
-                    ParseFloat(offsetParts[2])
+                    ParseFP(offsetParts[0]),
+                    ParseFP(offsetParts[1]),
+                    ParseFP(offsetParts[2])
                 );
                 
                 // 解析旋转（parts[2]: x,y,z,w）
                 var rotationParts = parts[2].Split(',');
                 var rotation = new TSQuaternion(
-                    ParseFloat(rotationParts[0]),
-                    ParseFloat(rotationParts[1]),
-                    ParseFloat(rotationParts[2]),
-                    ParseFloat(rotationParts[3])
+                    ParseFP(rotationParts[0]),
+                    ParseFP(rotationParts[1]),
+                    ParseFP(rotationParts[2]),
+                    ParseFP(rotationParts[3])
                 );
                 
                 switch (shapeType.ToLower())
@@ -87,9 +87,9 @@ namespace Astrum.LogicCore.Physics
                         // parts[3]: 半尺寸 x,y,z
                         var halfSizeParts = parts[3].Split(',');
                         var halfSize = new TSVector(
-                            ParseFloat(halfSizeParts[0]),
-                            ParseFloat(halfSizeParts[1]),
-                            ParseFloat(halfSizeParts[2])
+                            ParseFP(halfSizeParts[0]),
+                            ParseFP(halfSizeParts[1]),
+                            ParseFP(halfSizeParts[2])
                         );
                         return new CollisionShape
                         {
@@ -97,8 +97,8 @@ namespace Astrum.LogicCore.Physics
                             LocalOffset = offset,
                             LocalRotation = rotation,
                             HalfSize = halfSize,
-                            Radius = 0f,
-                            Height = 0f
+                            Radius = FP.Zero,
+                            Height = FP.Zero
                         };
                     
                     case "sphere":
@@ -108,7 +108,7 @@ namespace Astrum.LogicCore.Physics
                             return null;
                         }
                         // parts[3]: 半径
-                        var radius = ParseFloat(parts[3]);
+                        var radius = ParseFP(parts[3]);
                         return new CollisionShape
                         {
                             ShapeType = HitBoxShape.Sphere,
@@ -116,7 +116,7 @@ namespace Astrum.LogicCore.Physics
                             LocalRotation = rotation,
                             HalfSize = TSVector.zero,
                             Radius = radius,
-                            Height = 0f
+                            Height = FP.Zero
                         };
                     
                     case "capsule":
@@ -126,8 +126,8 @@ namespace Astrum.LogicCore.Physics
                             return null;
                         }
                         // parts[3]: 半径, parts[4]: 高度
-                        var capsuleRadius = ParseFloat(parts[3]);
-                        var height = ParseFloat(parts[4]);
+                        var capsuleRadius = ParseFP(parts[3]);
+                        var height = ParseFP(parts[4]);
                         return new CollisionShape
                         {
                             ShapeType = HitBoxShape.Capsule,
@@ -150,13 +150,21 @@ namespace Astrum.LogicCore.Physics
             }
         }
         
-        private static float ParseFloat(string value)
+        /// <summary>
+        /// 解析定点数（FP）
+        /// </summary>
+        private static FP ParseFP(string value)
         {
-            if (float.TryParse(value.Trim(), out var result))
-                return result;
+            value = value.Trim();
             
-            ASLogger.Instance.Warning($"CollisionDataParser: Failed to parse float value: {value}, using 0");
-            return 0f;
+            // 尝试解析为 decimal，再转为 FP
+            if (decimal.TryParse(value, out var result))
+            {
+                return (FP)result;
+            }
+            
+            ASLogger.Instance.Warning($"CollisionDataParser: Failed to parse FP value: {value}, using 0");
+            return FP.Zero;
         }
     }
 }
