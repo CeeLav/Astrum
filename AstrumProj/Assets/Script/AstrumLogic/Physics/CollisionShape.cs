@@ -17,6 +17,15 @@ namespace Astrum.LogicCore.Physics
     }
 
     /// <summary>
+    /// 世界空间变换结果
+    /// </summary>
+    public struct WorldTransform
+    {
+        public TSVector WorldCenter;
+        public TSQuaternion WorldRotation;
+    }
+
+    /// <summary>
     /// 碰撞形状数据（统一用于配置和查询）
     /// </summary>
     [MemoryPackable]
@@ -102,6 +111,21 @@ namespace Astrum.LogicCore.Physics
                 Radius = radius,
                 Height = height,
                 QueryMode = HitQueryMode.Overlap
+            };
+        }
+
+        /// <summary>
+        /// 计算世界空间变换（统一的坐标转换方法）
+        /// </summary>
+        /// <param name="entityPos">实体世界位置</param>
+        /// <param name="entityRot">实体世界旋转</param>
+        /// <returns>变换后的世界空间中心和旋转</returns>
+        public WorldTransform ToWorldTransform(TSVector entityPos, TSQuaternion entityRot)
+        {
+            return new WorldTransform
+            {
+                WorldCenter = entityPos + entityRot * LocalOffset,
+                WorldRotation = entityRot * LocalRotation
             };
         }
     }

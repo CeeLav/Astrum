@@ -86,9 +86,15 @@ namespace Astrum.LogicCore.Physics
             var casterPos = posComp?.Position ?? TSVector.zero;
             var casterRot = posComp?.Rotation ?? TSQuaternion.identity;
 
-            // 计算世界空间的命中盒姿态（使用四元数变换向量）
-            var worldCenter = casterPos + casterRot * shape.LocalOffset;
-            var worldRotation = casterRot * shape.LocalRotation;
+            // 【统一坐标转换】使用 CollisionShape.ToWorldTransform
+            var worldTransform = shape.ToWorldTransform(casterPos, casterRot);
+            
+            // 调试日志
+            ASLogger.Instance.Info($"[HitManager.QueryHits] Caster={caster.UniqueId} " +
+                $"Pos=({casterPos.x:F2},{casterPos.y:F2},{casterPos.z:F2}) " +
+                $"Rot=({casterRot.x:F2},{casterRot.y:F2},{casterRot.z:F2},{casterRot.w:F2}) " +
+                $"LocalOffset=({shape.LocalOffset.x:F2},{shape.LocalOffset.y:F2},{shape.LocalOffset.z:F2}) " +
+                $"→ WorldCenter=({worldTransform.WorldCenter.x:F2},{worldTransform.WorldCenter.y:F2},{worldTransform.WorldCenter.z:F2})");
 
             // 根据形状类型进行查询
             List<AstrumEntity> candidates = null;
@@ -96,11 +102,11 @@ namespace Astrum.LogicCore.Physics
             switch (shape.ShapeType)
             {
                 case HitBoxShape.Box:
-                    candidates = _physicsWorld.QueryBoxOverlap(worldCenter, shape.HalfSize, worldRotation);
+                    candidates = _physicsWorld.QueryBoxOverlap(worldTransform.WorldCenter, shape.HalfSize, worldTransform.WorldRotation);
                     break;
 
                 case HitBoxShape.Sphere:
-                    candidates = _physicsWorld.QuerySphereOverlap(worldCenter, shape.Radius);
+                    candidates = _physicsWorld.QuerySphereOverlap(worldTransform.WorldCenter, shape.Radius);
                     break;
 
                 case HitBoxShape.Capsule:

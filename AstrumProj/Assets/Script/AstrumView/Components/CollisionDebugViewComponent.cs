@@ -118,10 +118,11 @@ namespace Astrum.View.Components
                 
                 DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
                 
-                // 绘制标签（考虑旋转后的世界位置）
+                // 绘制标签（使用统一转换方法）
                 if (ShowLabels && isNearTriggerFrame)
                 {
-                    Vector3 worldPos = TSVectorToVector3(positionComp.Position + positionComp.Rotation * shape.LocalOffset);
+                    var worldTransform = shape.ToWorldTransform(positionComp.Position, positionComp.Rotation);
+                    Vector3 worldPos = TSVectorToVector3(worldTransform.WorldCenter);
                     DrawLabel(worldPos, $"Frame {trigger.Frame}\nEffect {trigger.EffectId}");
                 }
                 
@@ -134,8 +135,10 @@ namespace Astrum.View.Components
         /// </summary>
         private void DrawCollisionShape(CollisionShape shape, TrueSync.TSVector entityPos, TrueSync.TSQuaternion entityRot)
         {
-            Vector3 worldCenter = TSVectorToVector3(entityPos + shape.LocalOffset);
-            Quaternion worldRotation = TSQuaternionToQuaternion(entityRot * shape.LocalRotation);
+            // 【统一坐标转换】使用 CollisionShape.ToWorldTransform
+            var worldTransform = shape.ToWorldTransform(entityPos, entityRot);
+            Vector3 worldCenter = TSVectorToVector3(worldTransform.WorldCenter);
+            Quaternion worldRotation = TSQuaternionToQuaternion(worldTransform.WorldRotation);
             
             switch (shape.ShapeType)
             {
