@@ -28,18 +28,26 @@ namespace Astrum.LogicCore.SkillSystem
             float casterCritRate = GetEntityCritRate(caster);
             float casterCritDamage = GetEntityCritDamage(caster);
             
+            ASLogger.Instance.Debug($"[DamageCalc] Input - CasterATK: {casterAttack}, TargetDEF: {targetDefense}, " +
+                $"CritRate: {casterCritRate:P1}, CritDmg: {casterCritDamage:F2}x, EffectValue: {effectConfig.EffectValue}");
+            
             // 1. 计算基础伤害
             float baseDamage = CalculateBaseDamage(casterAttack, effectConfig);
+            ASLogger.Instance.Debug($"[DamageCalc] Base damage: {baseDamage:F2}");
             
             // 2. 暴击判定
             bool isCritical = CheckCritical(casterCritRate);
             if (isCritical)
             {
+                float beforeCrit = baseDamage;
                 baseDamage *= casterCritDamage;
+                ASLogger.Instance.Info($"[DamageCalc] 💥 CRITICAL HIT! {beforeCrit:F2} × {casterCritDamage:F2} = {baseDamage:F2}");
             }
             
             // 3. 应用防御减免
-            float finalDamage = ApplyDefense(baseDamage, targetDefense);
+            float afterDefense = ApplyDefense(baseDamage, targetDefense);
+            ASLogger.Instance.Debug($"[DamageCalc] After defense: {baseDamage:F2} → {afterDefense:F2} (DEF: {targetDefense})");
+            float finalDamage = afterDefense;
             
             // 4. 应用属性克制（简化版）
             finalDamage = ApplyElementalModifier(finalDamage, caster, target, effectConfig);
@@ -49,6 +57,8 @@ namespace Astrum.LogicCore.SkillSystem
             
             // 6. 确保伤害非负
             finalDamage = Math.Max(0, finalDamage);
+            
+            ASLogger.Instance.Info($"[DamageCalc] RESULT - Final damage: {finalDamage:F2} (Critical: {isCritical})");
             
             // 7. 构造结果
             return new DamageResult

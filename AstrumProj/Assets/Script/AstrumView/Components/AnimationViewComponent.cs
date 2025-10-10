@@ -61,7 +61,7 @@ namespace Astrum.View.Components
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Info($"AnimationViewComponent.OnInitialize: 初始化动画组件，EntityId={OwnerEntity?.UniqueId}");
+            ASLogger.Instance.Debug($"AnimationViewComponent.OnInitialize: 初始化动画组件，EntityId={OwnerEntity?.UniqueId}");
             
             // 初始化Animancer组件
             InitializeAnimancer();
@@ -83,7 +83,7 @@ namespace Astrum.View.Components
         
         protected override void OnDestroy()
         {
-            ASLogger.Instance.Info($"AnimationViewComponent.OnDestroy: 销毁动画组件，EntityId={OwnerEntity?.UniqueId}");
+            ASLogger.Instance.Debug($"AnimationViewComponent.OnDestroy: 销毁动画组件，EntityId={OwnerEntity?.UniqueId}");
             
             // 停止当前动画
             StopCurrentAnimation();
@@ -132,11 +132,11 @@ namespace Astrum.View.Components
             {
                 // 2. 如果没有则添加AnimancerComponent
                 _animancerComponent = model.AddComponent<Animancer.AnimancerComponent>();
-                ASLogger.Instance.Info($"AnimationViewComponent.InitializeAnimancer: Added AnimancerComponent to entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Debug($"AnimationViewComponent.InitializeAnimancer: Added AnimancerComponent to entity {OwnerEntity?.UniqueId}");
             }
             else
             {
-                ASLogger.Instance.Info($"AnimationViewComponent.InitializeAnimancer: Found existing AnimancerComponent on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Debug($"AnimationViewComponent.InitializeAnimancer: Found existing AnimancerComponent on entity {OwnerEntity?.UniqueId}");
             }
 
             // 3. 配置Animancer设置
@@ -146,7 +146,7 @@ namespace Astrum.View.Components
                 if (!_animancerComponent.IsGraphInitialized)
                 {
                     _animancerComponent.InitializeGraph();
-                    ASLogger.Instance.Info($"AnimationViewComponent.InitializeAnimancer: Initialized AnimancerGraph for entity {OwnerEntity?.UniqueId}");
+                    ASLogger.Instance.Debug($"AnimationViewComponent.InitializeAnimancer: Initialized AnimancerGraph for entity {OwnerEntity?.UniqueId}");
                 }
 
                 // 检查是否有Animator组件
@@ -157,7 +157,7 @@ namespace Astrum.View.Components
                 }
                 else
                 {
-                    ASLogger.Instance.Info($"AnimationViewComponent.InitializeAnimancer: Animancer setup complete for entity {OwnerEntity?.UniqueId} " +
+                    ASLogger.Instance.Debug($"AnimationViewComponent.InitializeAnimancer: Animancer setup complete for entity {OwnerEntity?.UniqueId} " +
                         $"with Animator: {_animancerComponent.Animator.name}");
                 }
 
@@ -299,7 +299,7 @@ namespace Astrum.View.Components
                 if (_isPlaying)
                 {
                     StopCurrentAnimation();
-                    ASLogger.Instance.Info($"AnimationViewComponent.SyncWithActionSystem: Stopped animation due to null action on entity {OwnerEntity.UniqueId}");
+                    ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Stopped animation due to null action on entity {OwnerEntity.UniqueId}");
                 }
                 return;
             }
@@ -313,7 +313,7 @@ namespace Astrum.View.Components
                 _lastActionFrame = currentFrame;
                 SyncAnimationTime(currentAction, currentFrame);
                 
-                ASLogger.Instance.Info($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentAction.Id} on entity {OwnerEntity.UniqueId}");
+                ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentAction.Id} on entity {OwnerEntity.UniqueId}");
                 return;
             }
             else
@@ -470,7 +470,7 @@ namespace Astrum.View.Components
                     _currentAnimationName = animationName;
                     _isPlaying = true;
                     
-                    ASLogger.Instance.Info($"AnimationViewComponent.PlayAnimationByActionId: Started playing animation '{animationName}' " +
+                    ASLogger.Instance.Debug($"AnimationViewComponent.PlayAnimationByActionId: Started playing animation '{animationName}' " +
                         $"(actionId: {actionId}, fadeTime: {fadeTime:F2}s) for entity {OwnerEntity?.UniqueId}");
                 }
                 else
@@ -543,7 +543,7 @@ namespace Astrum.View.Components
             // 直接设置绝对时间（秒）- Animancer 支持直接使用绝对时间
             _currentAnimationState.Time = animTime;
             
-            ASLogger.Instance.Info($"AnimationViewComponent.SyncAnimationTime: Synced to frame {targetFrame} " +
+            ASLogger.Instance.Debug($"AnimationViewComponent.SyncAnimationTime: Synced to frame {targetFrame} " +
                 $"(animTime: {animTime:F3}s) for action {actionInfo.Id} on entity {OwnerEntity?.UniqueId}");
         }
         
@@ -630,7 +630,7 @@ namespace Astrum.View.Components
             if (_currentAnimationState.NormalizedTime >= 1.0f)
             {
                 _currentAnimationState.NormalizedTime = 0f;
-                ASLogger.Instance.Info($"AnimationViewComponent.HandleLoopingAnimation: Looped animation {_currentAnimationName} on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Debug($"AnimationViewComponent.HandleLoopingAnimation: Looped animation {_currentAnimationName} on entity {OwnerEntity?.UniqueId}");
             }
         }
         

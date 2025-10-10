@@ -84,7 +84,7 @@ namespace Astrum.LogicCore.Capabilities
             
             if (initialAction != null)
             {
-                ASLogger.Instance.Info($"ActionCapability.LoadAvailableActions: Set initial action ActionId={initialAction.Id} " +
+                ASLogger.Instance.Debug($"ActionCapability.LoadAvailableActions: Set initial action ActionId={initialAction.Id} " +
                     $"on entity {OwnerEntity?.UniqueId}");
             }
         }
@@ -196,7 +196,7 @@ namespace Astrum.LogicCore.Capabilities
             
             if (actionInfo != null)
             {
-                ASLogger.Instance.Info($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
+                ASLogger.Instance.Debug($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
                     $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {OwnerEntity?.UniqueId}");
                 
                 // 切换到新动作
@@ -232,7 +232,7 @@ namespace Astrum.LogicCore.Capabilities
             actionComponent.CurrentFrame = preorderInfo.FromFrame;
             
             // 记录切换成功的日志
-            ASLogger.Instance.Info($"ActionCapability.SwitchToAction: Successfully switched action on entity {OwnerEntity?.UniqueId} " +
+            ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {OwnerEntity?.UniqueId} " +
                 $"from ActionId={previousActionId}(Frame={previousFrame}) to ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame}) " +
                 $"[Priority={preorderInfo.Priority}, TransitionFrames={preorderInfo.TransitionFrames}]");
         }
