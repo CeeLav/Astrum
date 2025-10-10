@@ -124,8 +124,8 @@ namespace Astrum.LogicCore.Capabilities
             var hits = hitManager.QueryHits(
                 caster, 
                 shape, 
-                filter, 
-                skillInstanceId: skillAction.Id
+                filter
+                //skillInstanceId: skillAction.Id
             );
             
             ASLogger.Instance.Debug($"Collision trigger hit {hits.Count} targets");
