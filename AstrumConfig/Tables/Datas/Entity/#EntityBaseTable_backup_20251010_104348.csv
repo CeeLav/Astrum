@@ -1,9 +1,0 @@
-﻿##var,entityId,archetypeName,modelName,modelPath,idleAction,walkAction,runAction,jumpAction,birthAction,deathAction
-##type,int,string,string,string,int,int,int,int,int,int
-##group,,,,,,,,,,
-##desc,实体ID,原型名,模型名字,模型路径,静止动作,走路动作,跑步动作,跳跃动作,出生动作,死亡动作
-,1001,Role,骑士,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,1001,1002,1002,0,0,0
-,1002,Role,,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,1001,1002,1002,0,0,0
-,1003,Role,,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,1001,1002,1002,0,0,0
-,1004,RoleArchetype,,,0,0,0,0,0,0
-,1005,RoleArchetype,,,0,0,0,0,0,0
