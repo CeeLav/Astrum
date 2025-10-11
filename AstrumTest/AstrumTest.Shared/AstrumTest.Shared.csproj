@@ -18,12 +18,8 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     
-    <!-- MemoryPack 序列化支持 -->
-    <PackageReference Include="MemoryPack" Version="1.21.4" />
-    <PackageReference Include="MemoryPack.Generator" Version="1.21.4">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <!-- MemoryPack 序列化支持 - 使用Unity项目的DLL，确保版本一致 -->
+    <!-- 注意：不使用NuGet包，直接引用Unity项目的DLL -->
     
     <!-- Unity 项目依赖的库 -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
@@ -35,31 +31,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
   </ItemGroup>
 
-  <!-- 直接包含 Unity 项目的共享源代码（参考 ET 框架的做法） -->
-  <ItemGroup>
-    <!-- CommonBase 源代码（排除 Editor 和依赖 Unity 的文件） -->
-    <Compile Include="..\..\AstrumProj\Assets\Script\CommonBase\**\*.cs" 
-             Exclude="..\..\AstrumProj\Assets\Script\CommonBase\Editor\**\*.cs;
-                      ..\..\AstrumProj\Assets\Script\CommonBase\**\MonoBehaviour*.cs;
-                      ..\..\AstrumProj\Assets\Script\CommonBase\**\*Mono.cs">
-      <Link>_Unity\CommonBase\%(RecursiveDir)%(FileName)%(Extension)</Link>
-    </Compile>
-    
-    <!-- AstrumLogic 源代码（排除依赖 Unity 的文件） -->
-    <Compile Include="..\..\AstrumProj\Assets\Script\AstrumLogic\**\*.cs"
-             Exclude="..\..\AstrumProj\Assets\Script\AstrumLogic\Core\LSController.cs;
-                      ..\..\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs;
-                      ..\..\AstrumProj\Assets\Script\AstrumLogic\Core\LSInputSystem.cs">
-      <Link>_Unity\AstrumLogic\%(RecursiveDir)%(FileName)%(Extension)</Link>
-    </Compile>
-    
-    <!-- Generated 源代码 -->
-    <Compile Include="..\..\AstrumProj\Assets\Script\Generated\**\*.cs">
-      <Link>_Unity\Generated\%(RecursiveDir)%(FileName)%(Extension)</Link>
-    </Compile>
-  </ItemGroup>
-  
-  <!-- 引用 Unity 编译的 DLL -->
+  <!-- 引用 Unity 编译的 DLL（使用DLL而不是源代码，避免Unity依赖问题） -->
   <ItemGroup>
     <Reference Include="Network">
       <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Network.dll</HintPath>
@@ -67,10 +39,28 @@
     <Reference Include="Luban.Runtime">
       <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Luban.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="AstrumLogic">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\AstrumLogic.dll</HintPath>
+    </Reference>
+    <Reference Include="CommonBase">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\CommonBase.dll</HintPath>
+    </Reference>
+    <Reference Include="Generated">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Generated.dll</HintPath>
+    </Reference>
+    <!-- MemoryPack.Core - 使用Unity项目的DLL -->
+    <Reference Include="MemoryPack.Core">
+      <HintPath>..\..\AstrumProj\Assets\Packages\MemoryPack.Core.1.21.4\lib\netstandard2.1\MemoryPack.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- 将测试数据复制到输出目录 -->
+  <ItemGroup>
+    <None Include="Integration\Data\Scenarios\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
