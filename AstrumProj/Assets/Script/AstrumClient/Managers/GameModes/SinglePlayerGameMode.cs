@@ -1,0 +1,262 @@
+using System;
+using Astrum.CommonBase;
+using Astrum.Client.Core;
+using Astrum.LogicCore.Core;
+using Astrum.View.Core;
+using UnityEngine;
+
+namespace Astrum.Client.Managers.GameModes
+{
+    /// <summary>
+    /// 单机游戏模式 - 本地游戏，无需网络连接
+    /// </summary>
+    public class SinglePlayerGameMode : IGameMode
+    {
+        // 核心属性
+        public Room MainRoom { get; private set; }
+        public Stage MainStage { get; private set; }
+        public long PlayerId { get; private set; }
+        public string ModeName => "SinglePlayer";
+        public bool IsRunning { get; private set; }
+        
+        /// <summary>
+        /// 初始化单机游戏模式
+        /// </summary>
+        public void Initialize()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 初始化单机游戏模式");
+            IsRunning = false;
+        }
+        
+        /// <summary>
+        /// 启动单机游戏
+        /// </summary>
+        /// <param name="sceneName">游戏场景名称</param>
+        public void StartGame(string sceneName)
+        {
+            ASLogger.Instance.Info($"SinglePlayerGameMode: 启动单机游戏 - 场景: {sceneName}");
+            
+            try
+            {
+                // 1. 创建本地 Room 和 World
+                CreateRoom();
+                
+                // 2. 创建 Stage
+                CreateStage();
+                
+                // 3. 切换到游戏场景
+                SwitchToGameScene(sceneName);
+                
+                // 4. 创建玩家（在场景加载完成后）
+                // CreatePlayer() 会在 OnGameSceneLoaded() 中调用
+                
+                IsRunning = true;
+                ASLogger.Instance.Info("SinglePlayerGameMode: 单机游戏启动成功");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"SinglePlayerGameMode: 启动游戏失败 - {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// 更新游戏逻辑（本地帧循环）
+        /// </summary>
+        /// <param name="deltaTime">时间差</param>
+        public void Update(float deltaTime)
+        {
+            if (!IsRunning) return;
+            
+            // 更新 Room 和 Stage
+            MainRoom?.Update(deltaTime);
+            MainStage?.Update(deltaTime);
+        }
+        
+        /// <summary>
+        /// 关闭单机游戏模式
+        /// </summary>
+        public void Shutdown()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 关闭单机游戏模式");
+            
+            // 取消订阅事件
+            if (MainStage != null)
+            {
+                MainStage.OnEntityViewAdded -= OnEntityViewAdded;
+            }
+            
+            // 清理资源
+            MainRoom = null;
+            MainStage = null;
+            PlayerId = -1;
+            IsRunning = false;
+        }
+        
+        #region 私有方法 - Room/Stage/Player 创建
+        
+        /// <summary>
+        /// 创建本地 Room
+        /// </summary>
+        private void CreateRoom()
+        {
+            var room = new Room(1, "SinglePlayerRoom");
+            var world = new World();
+            room.MainWorld = world;
+            room.Initialize(); // 初始化 Room，但不启动帧同步（本地模式）
+            
+            MainRoom = room;
+            ASLogger.Instance.Info($"SinglePlayerGameMode: 创建本地Room，ID: {room.RoomId}");
+        }
+        
+        /// <summary>
+        /// 创建 Stage
+        /// </summary>
+        private void CreateStage()
+        {
+            var stage = new Stage("GameStage", "游戏场景");
+            stage.Initialize();
+            stage.SetRoom(MainRoom);
+            
+            MainStage = stage;
+            ASLogger.Instance.Info("SinglePlayerGameMode: 创建Stage");
+        }
+        
+        /// <summary>
+        /// 切换到游戏场景
+        /// </summary>
+        /// <param name="sceneName">场景名称</param>
+        private void SwitchToGameScene(string sceneName)
+        {
+            ASLogger.Instance.Info($"SinglePlayerGameMode: 切换到游戏场景 {sceneName}");
+            
+            var sceneManager = GameApplication.Instance?.SceneManager;
+            if (sceneManager == null)
+            {
+                throw new Exception("SceneManager不存在");
+            }
+            
+            // 设置当前Stage
+            StageManager.Instance.SetCurrentStage(MainStage);
+            
+            // 异步加载游戏场景
+            sceneManager.LoadSceneAsync(sceneName, () => { OnGameSceneLoaded(); });
+        }
+        
+        /// <summary>
+        /// 游戏场景加载完成回调
+        /// </summary>
+        private void OnGameSceneLoaded()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 游戏场景加载完成");
+            
+            // 关闭Login UI
+            CloseLoginUI();
+            
+            // 激活Stage
+            MainStage.SetActive(true);
+            MainStage.OnEnter();
+            
+            // 订阅EntityView创建事件，用于设置相机跟随
+            MainStage.OnEntityViewAdded += OnEntityViewAdded;
+            
+            // 创建玩家
+            CreatePlayer();
+            
+            ASLogger.Instance.Info("SinglePlayerGameMode: 游戏准备完成");
+        }
+        
+        /// <summary>
+        /// 创建玩家
+        /// </summary>
+        private void CreatePlayer()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 创建Player");
+            
+            var playerID = MainRoom.AddPlayer();
+            PlayerId = playerID;
+            
+            // 设置相机跟随主玩家（如果 EntityView 已创建）
+            SetCameraFollowMainPlayer();
+            
+            ASLogger.Instance.Info($"SinglePlayerGameMode: Player创建完成，ID: {PlayerId}");
+        }
+        
+        /// <summary>
+        /// 关闭Login UI
+        /// </summary>
+        private void CloseLoginUI()
+        {
+            try
+            {
+                var uiManager = GameApplication.Instance?.UIManager;
+                if (uiManager != null)
+                {
+                    uiManager.HideUI("Login");
+                    uiManager.DestroyUI("Login");
+                    ASLogger.Instance.Info("SinglePlayerGameMode: Login UI已关闭");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"SinglePlayerGameMode: 关闭Login UI失败 - {ex.Message}");
+            }
+        }
+        
+        #endregion
+        
+        #region 相机跟随逻辑
+        
+        /// <summary>
+        /// 设置相机跟随主玩家
+        /// </summary>
+        private void SetCameraFollowMainPlayer()
+        {
+            if (MainStage == null || PlayerId <= 0) return;
+            
+            // 尝试从Stage中获取主玩家的EntityView
+            if (MainStage.EntityViews.TryGetValue(PlayerId, out var entityView))
+            {
+                var cameraManager = GameApplication.Instance?.CameraManager;
+                if (cameraManager != null)
+                {
+                    cameraManager.SetFollowTarget(entityView.Transform);
+                    ASLogger.Instance.Info($"SinglePlayerGameMode: 设置相机跟随主玩家，ID: {PlayerId}");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning("SinglePlayerGameMode: CameraManager未找到");
+                }
+            }
+            else
+            {
+                ASLogger.Instance.Debug($"SinglePlayerGameMode: 主玩家EntityView尚未创建，ID: {PlayerId}");
+            }
+        }
+        
+        /// <summary>
+        /// EntityView创建事件处理
+        /// </summary>
+        private void OnEntityViewAdded(EntityView entityView)
+        {
+            if (entityView == null) return;
+            
+            // 检查是否是主玩家的EntityView
+            if (entityView.EntityId == PlayerId)
+            {
+                ASLogger.Instance.Info($"SinglePlayerGameMode: 主玩家EntityView创建完成，ID: {entityView.EntityId}");
+                
+                // 设置相机跟随目标
+                var cameraManager = GameApplication.Instance?.CameraManager;
+                if (cameraManager != null)
+                {
+                    cameraManager.SetFollowTarget(entityView.Transform);
+                    ASLogger.Instance.Info("SinglePlayerGameMode: 设置相机跟随主玩家");
+                }
+            }
+        }
+        
+        #endregion
+    }
+}
+
