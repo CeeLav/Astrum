@@ -236,6 +236,12 @@ namespace Astrum.Client.UI.Generated
                 Debug.Log("LoginView: 正在连接中，请稍候...");
                 return;
             }
+            
+            // 设置联机模式
+            Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(false);
+            
+            // 提前创建 MultiplayerGameMode 以注册网络消息
+            GameApplication.Instance?.GamePlayManager.PrepareGameMode();
 
             ConnectToServer();
         }

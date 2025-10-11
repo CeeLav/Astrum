@@ -44,25 +44,14 @@ namespace Astrum.Client.Managers
             UserManager.Instance?.Initialize();
             RoomSystemManager.Instance?.Initialize();
 
-            // 根据 GameConfig 创建对应的 GameMode
-            if (Astrum.Client.Core.GameConfig.Instance.IsSinglePlayerMode)
-            {
-                _currentGameMode = new SinglePlayerGameMode();
-                ASLogger.Instance.Info("GamePlayManager: 创建单机游戏模式");
-            }
-            else
-            {
-                _currentGameMode = new MultiplayerGameMode();
-                ASLogger.Instance.Info("GamePlayManager: 创建联机游戏模式");
-            }
-            
-            // 初始化 GameMode
-            _currentGameMode.Initialize();
+            // 不在这里创建 GameMode，延迟到开始游戏时再创建
+            // 这样可以根据用户选择（单机/联机）创建对应的模式
+            _currentGameMode = null;
 
             // 注册网络消息处理器（Login/Room 相关）
             RegisterNetworkMessageHandlers();
             
-            ASLogger.Instance.Info($"GamePlayManager: 初始化完成 - 模式: {_currentGameMode.ModeName}");
+            ASLogger.Instance.Info("GamePlayManager: 初始化完成，等待游戏模式选择");
         }
 
         /// <summary>
@@ -309,36 +298,55 @@ namespace Astrum.Client.Managers
         #region 游戏模式切换和启动
         
         /// <summary>
-        /// 切换游戏模式（如果需要）
+        /// 确保使用正确的游戏模式（如果需要，创建或切换）
         /// </summary>
         private void EnsureCorrectGameMode()
         {
             bool shouldBeSinglePlayer = Astrum.Client.Core.GameConfig.Instance.IsSinglePlayerMode;
-            bool isSinglePlayer = _currentGameMode is SinglePlayerGameMode;
             
-            // 如果当前模式与配置不匹配，需要切换
-            if (shouldBeSinglePlayer != isSinglePlayer)
+            // 如果还没有创建 GameMode，或者模式不匹配，需要创建/切换
+            if (_currentGameMode == null)
             {
-                ASLogger.Instance.Info($"GamePlayManager: 游戏模式不匹配，切换模式 - 目标: {(shouldBeSinglePlayer ? "单机" : "联机")}");
-                
-                // 关闭旧模式
-                _currentGameMode?.Shutdown();
-                
-                // 创建新模式
-                if (shouldBeSinglePlayer)
-                {
-                    _currentGameMode = new SinglePlayerGameMode();
-                    ASLogger.Instance.Info("GamePlayManager: 切换到单机游戏模式");
-                }
-                else
-                {
-                    _currentGameMode = new MultiplayerGameMode();
-                    ASLogger.Instance.Info("GamePlayManager: 切换到联机游戏模式");
-                }
-                
-                // 初始化新模式
-                _currentGameMode.Initialize();
+                // 第一次创建 GameMode
+                CreateGameMode(shouldBeSinglePlayer);
             }
+            else
+            {
+                bool isSinglePlayer = _currentGameMode is SinglePlayerGameMode;
+                
+                // 如果当前模式与配置不匹配，需要切换
+                if (shouldBeSinglePlayer != isSinglePlayer)
+                {
+                    ASLogger.Instance.Info($"GamePlayManager: 游戏模式不匹配，切换模式 - 目标: {(shouldBeSinglePlayer ? "单机" : "联机")}");
+                    
+                    // 关闭旧模式
+                    _currentGameMode.Shutdown();
+                    
+                    // 创建新模式
+                    CreateGameMode(shouldBeSinglePlayer);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 创建游戏模式
+        /// </summary>
+        /// <param name="isSinglePlayer">是否为单机模式</param>
+        private void CreateGameMode(bool isSinglePlayer)
+        {
+            if (isSinglePlayer)
+            {
+                _currentGameMode = new SinglePlayerGameMode();
+                ASLogger.Instance.Info("GamePlayManager: 创建单机游戏模式");
+            }
+            else
+            {
+                _currentGameMode = new MultiplayerGameMode();
+                ASLogger.Instance.Info("GamePlayManager: 创建联机游戏模式");
+            }
+            
+            // 初始化新模式
+            _currentGameMode.Initialize();
         }
         
         /// <summary>
@@ -360,6 +368,15 @@ namespace Astrum.Client.Managers
         public void StartSinglePlayerGame(string gameSceneName)
         {
             StartGame(gameSceneName);
+        }
+        
+        /// <summary>
+        /// 准备游戏模式（不启动游戏，只创建和初始化 GameMode）
+        /// 用于联机模式在连接服务器时提前创建 MultiplayerGameMode 以注册消息
+        /// </summary>
+        public void PrepareGameMode()
+        {
+            EnsureCorrectGameMode();
         }
         
         #endregion
