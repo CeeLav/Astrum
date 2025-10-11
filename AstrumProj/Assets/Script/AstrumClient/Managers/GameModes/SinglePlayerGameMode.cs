@@ -2,6 +2,7 @@ using System;
 using Astrum.CommonBase;
 using Astrum.Client.Core;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
 using UnityEngine;
 
@@ -67,6 +68,15 @@ namespace Astrum.Client.Managers.GameModes
         public void Update(float deltaTime)
         {
             if (!IsRunning) return;
+            
+            // 单机模式：模拟服务器的权威帧推进
+            // 在联机模式下，AuthorityFrame 由服务器通过 FrameSyncData 更新
+            // 在单机模式下，我们让 AuthorityFrame 跟随 PredictionFrame
+            if (MainRoom?.LSController != null && MainRoom.LSController.IsRunning)
+            {
+                // 让权威帧等于预测帧（本地模式下无延迟，它们应该相等）
+                MainRoom.LSController.AuthorityFrame = MainRoom.LSController.PredictionFrame;
+            }
             
             // 更新 Room 和 Stage
             MainRoom?.Update(deltaTime);
@@ -175,6 +185,20 @@ namespace Astrum.Client.Managers.GameModes
             
             var playerID = MainRoom.AddPlayer();
             PlayerId = playerID;
+            
+            // 设置 MainPlayerId（LSController 需要检查这个值）
+            MainRoom.MainPlayerId = playerID;
+            
+            // 启动本地帧同步控制器
+            if (MainRoom?.LSController != null && !MainRoom.LSController.IsRunning)
+            {
+                // 设置本地创建时间
+                MainRoom.LSController.CreationTime = TimeInfo.Instance.ServerNow();
+                
+                // 启动控制器
+                MainRoom.LSController.Start();
+                ASLogger.Instance.Info("SinglePlayerGameMode: 本地帧同步控制器已启动");
+            }
             
             // 设置相机跟随主玩家（如果 EntityView 已创建）
             SetCameraFollowMainPlayer();
