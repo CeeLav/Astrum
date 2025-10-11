@@ -1,309 +1,301 @@
-# 集成测试框架开发进展
+# 集成测试开发进展
 
-> 📅 创建时间: 2025-10-11  
-> 🎯 目标: 实现基于帧的集成测试框架，完全数据驱动，测试 AstrumLogic 层
-> 📖 设计文档: [集成测试框架设计方案](../../AstrumTest/集成测试框架设计方案.md)
-
----
-
-## 一、开发阶段
-
-### 阶段1：核心框架搭建 🔄 进行中
-
-**目标**: 实现核心测试引擎，支持基本的逐帧测试流程
-
-#### 1.1 数据结构定义 ⏳ 待开始
-
-- [ ] `TestCaseData` - 测试用例数据结构
-- [ ] `EntityTemplate` - 实体模板定义
-- [ ] `FrameData` - 帧数据结构
-- [ ] `InputCommand` - 输入指令
-- [ ] `QueryCommand` - 查询指令
-
-**文件**: `AstrumTest/AstrumTest.Shared/Integration/Core/TestCaseData.cs`
-
-#### 1.2 核心测试引擎 ⏳ 待开始
-
-- [ ] `LogicTestExecutor` - 测试执行引擎
-  - [ ] `RunTestCase()` - 运行测试用例
-  - [ ] `LoadTestCaseFromJson()` - 从JSON加载
-  - [ ] `InitializeManagers()` - 初始化Managers
-  - [ ] `CreateRoomAndWorld()` - 创建Room+World
-  - [ ] `ExecuteFrames()` - 逐帧执行
-
-**文件**: `AstrumTest/AstrumTest.Shared/Integration/Core/LogicTestExecutor.cs`
-
-#### 1.3 输入指令执行器 ⏳ 待开始
-
-- [ ] `CreateEntity` - 创建实体
-- [ ] `DestroyEntity` - 销毁实体
-- [ ] `CastSkill` - 释放技能
-- [ ] `Move` - 移动
-- [ ] `Teleport` - 传送
-
-**方法**: `LogicTestExecutor.ExecuteInput()`
-
-#### 1.4 查询指令执行器 ⏳ 待开始
-
-- [ ] `EntityHealth` - 查询血量
-- [ ] `EntityPosition` - 查询位置
-- [ ] `EntityIsAlive` - 查询存活状态
-- [ ] `EntityAction` - 查询当前动作
-- [ ] `EntityDistance` - 查询距离
-
-**方法**: `LogicTestExecutor.ExecuteQuery()`
-
-#### 1.5 结果验证器 ⏳ 待开始
-
-- [ ] 精确匹配验证
-- [ ] 范围验证（min/max）
-- [ ] 错误信息输出
-
-**方法**: `LogicTestExecutor.VerifyExpectedOutputs()`
+**最后更新**: 2025-10-11  
+**状态**: ✅ **第一阶段完成 - 测试框架可用**
 
 ---
 
-### 阶段2：测试用例编写 ⏳ 待开始
+## 📋 当前状态
 
-**目标**: 编写第一批测试用例，验证框架可用性
+### ✅ 已完成
+1. **测试项目重构** - 创建 `AstrumTest.Shared` 项目
+2. **核心框架代码** - `LogicTestExecutor` 完整实现
+   - 固定流程：JSON加载 → Manager初始化 → Room/World创建 → 逐帧执行 → 结果验证
+   - 帧驱动架构：每帧支持输入指令、查询指令、预期输出验证
+   - 动态实体管理：CreateEntity/DestroyEntity 作为输入指令执行
+3. **数据结构定义** - `TestCaseData`, `FrameData`, `InputCommand`, `QueryCommand`
+4. **第一个测试场景** - `TwoKnightsFight.json` ✅ **已通过**
+5. **测试集合配置** - `LogicTestCollection` 和 `ConfigFixture` 集成
+6. **伤害计算验证** - 创建 `Integration-Test-DamageCalculation.md` 详细分析文档
 
-#### 2.1 第一个测试用例 ⏳ 待开始
+### ✅ 已解决问题
 
-- [ ] 创建 `TwoKnightsFight.json`
-- [ ] 定义实体模板
-- [ ] 编写5个关键帧测试点
-- [ ] 验证框架运行
+#### MemoryPack 兼容性问题 ✓
 
-**文件**: `AstrumTest/AstrumTest.Shared/Data/Scenarios/TwoKnightsFight.json`
-
-#### 2.2 测试类编写 ⏳ 待开始
-
-- [ ] 创建 `IntegrationTests.cs`
-- [ ] 使用 `LogicTestExecutor.RunTestCase()`
-- [ ] 验证测试通过/失败
-
-**文件**: `AstrumTest/AstrumTest.Shared/Integration/IntegrationTests.cs`
-
----
-
-### 阶段3：功能扩展 ⏳ 待开始
-
-**目标**: 扩展支持更多查询类型和输入类型
-
-#### 3.1 更多输入类型
-
-- [ ] `UseItem` - 使用物品
-- [ ] `AddBuff` - 添加Buff
-- [ ] `RemoveBuff` - 移除Buff
-
-#### 3.2 更多查询类型
-
-- [ ] `EntityBuffCount` - Buff数量
-- [ ] `EntityVelocity` - 速度
-- [ ] `RoomState` - Room状态
-
----
-
-## 二、核心设计要点
-
-### 2.1 以帧为单位
-
-```plaintext
-每一帧的执行流程：
-  [1] 执行输入指令（inputs）      ← CreateEntity, CastSkill等
-  [2] 更新游戏逻辑一帧            ← Room.Update()
-  [3] 执行查询指令（queries）     ← 查询实体状态
-  [4] 验证预期输出（expectedOutputs）← 断言验证
+**问题描述**:
+```
+System.TypeLoadException: Virtual static method 'Serialize' is not implemented on type 
+'Astrum.LogicCore.Core.Entity/World' from assembly 'AstrumLogic'
 ```
 
-### 2.2 完全数据驱动
+**最终解决方案**: 
+- 问题根源不是版本不兼容，而是**目标框架不匹配**
+- Unity 使用：`MemoryPack.Core 1.21.4 for netstandard2.1`
+- 测试项目误用：`MemoryPack 1.21.4 for net9.0` (从NuGet)
+
+**修复方法**:
+```xml
+<!-- AstrumTest.Shared.csproj -->
+<Reference Include="MemoryPack.Core">
+  <HintPath>..\..\AstrumProj\Assets\Packages\MemoryPack.Core.1.21.4\lib\netstandard2.1\MemoryPack.Core.dll</HintPath>
+</Reference>
+```
+
+**验证结果**: ✅ 测试完全通过
+- Room 和 World 成功创建
+- ArchetypeManager 正常初始化
+- 实体创建、技能施放、伤害计算全部正常
+- Exit code: 0
+
+---
+
+## 📊 测试结果
+
+### TwoKnights_BasicFight ✅
+```
+✅ 已通过 - 失败: 0, 通过: 1, 持续时间: 260ms
+
+Frame 0:  ✓ 创建两个骑士 (HP: 500, 500)
+Frame 10: ✓ 骑士1施放技能 → 骑士2
+Frame 30: ✓ 验证伤害 (500 → 492, -8点)
+Frame 60: ✓ 最终状态验证
+```
+
+**伤害计算验证**:
+- **预期伤害**: 7.9 ~ 8.7 点（不暴击）或 15.8 ~ 17.5 点（暴击20%）
+- **实际伤害**: 8 点 ✓
+- **计算公式**: `100 ATK × 10% × (1 - 16.67% DEF) × [0.95, 1.05] = 7.9~8.7`
+- **结论**: **伤害逻辑完全正确** ✓
+
+详细分析请参考：[Integration-Test-DamageCalculation.md](./Integration-Test-DamageCalculation.md)
+
+---
+
+## ⚠️ 发现的游戏逻辑问题
+
+### 1. 硬编码属性值
+
+**位置**: `AstrumProj/Assets/Script/AstrumLogic/SkillSystem/DamageCalculator.cs`
 
 ```csharp
-// 用户代码（只需2行）
-using var executor = new LogicTestExecutor(_output, _configFixture);
-var result = executor.RunTestCase("TwoKnightsFight.json");
-Assert.True(result.Success);
+// 当前使用的是硬编码临时值（简化版）
+private static float GetEntityAttack(Entity entity)    => 100f;  // 配置表值：10.0
+private static float GetEntityDefense(Entity entity)   => 20f;   // 配置表值：8.0
+private static float GetEntityCritRate(Entity entity)  => 0.2f;  // 配置表值：0.1
+private static float GetEntityCritDamage(Entity entity) => 2.0f;
 ```
 
-### 2.3 实体动态创建
+**影响**: 
+- 伤害计算未使用实体配置表数据
+- 所有实体使用相同属性值
 
-- 实体通过 `CreateEntity` 输入指令在指定帧创建
-- 支持运行时动态召唤（Frame 100创建新实体）
-- 每个实体有唯一的字符串ID（"entity_0", "boss_1"）
-
----
-
-## 三、实施计划
-
-### 第1周：核心框架（当前）
-
-- [x] 完成设计方案文档
-- [ ] 实现数据结构类
-- [ ] 实现核心测试引擎
-- [ ] 实现基础输入/查询指令
-
-### 第2周：测试用例
-
-- [ ] 编写第一个测试用例
-- [ ] 运行测试验证框架
-- [ ] 修复发现的问题
-
-### 第3周：功能扩展
-
-- [ ] 添加更多输入/查询类型
-- [ ] 优化错误信息输出
-- [ ] 编写使用文档
-
----
-
-## 四、技术难点与解决方案
-
-### 4.1 实体ID映射
-
-**问题**: 如何在测试中引用实体？
+**优先级**: 🟡 中 (测试可以继续，但需要后续实现真实属性系统)
 
 **解决方案**: 
-```csharp
-// 字符串ID映射
-Dictionary<string, Entity> _entities;
+1. 实现完整的属性系统 (StatComponent)
+2. 从配置表读取实体属性值
+3. 更新 `DamageCalculator` 使用真实属性
 
-// 创建时分配ID
-_entities["entity_0"] = entity;
+### 2. 反击技能未命中问题
 
-// 引用时使用ID
-var entity = _entities["entity_0"];
-```
+**现象**: 
+- Frame 60: 骑士2施放反击技能 → 骑士1
+- Frame 90: 骑士1血量依然是 500（未受到伤害）
 
-### 4.2 帧同步模拟
+**可能原因**:
+- ✅ 技能碰撞判定问题
+- ⚠️ 技能朝向/距离问题
+- ⚠️ Team 限制（只能攻击不同队伍？）
+- ⚠️ 攻击动画/碰撞时机问题
 
-**问题**: 如何模拟真实的帧同步？
+**优先级**: 🔴 高 (影响战斗系统的双向攻击)
 
-**解决方案**:
-```csharp
-// 模拟单人模式：AuthorityFrame = PredictionFrame
-LSController.AuthorityFrame = LSController.PredictionFrame;
-Room.Update(0.016f);  // 60FPS
-```
+**下一步**: 需要调查技能系统的碰撞检测逻辑
 
-### 4.3 范围验证
+---
 
-**问题**: 伤害有随机性，如何验证？
+## 🎯 测试框架特性
 
-**解决方案**:
+### 已实现功能
+
+#### 1. 数据驱动测试
+- JSON格式定义测试场景
+- 自动加载和解析
+- 支持多个测试用例并行运行
+
+#### 2. 帧驱动架构
 ```json
-"expectedOutputs": {
-  "knight2_hp": {"min": 400, "max": 470}  // 支持范围
+{
+  "frameNumber": 30,
+  "inputs": [...],      // 输入指令
+  "queries": [...],     // 查询指令
+  "expectedOutputs": {} // 预期输出
+}
+```
+
+#### 3. 支持的输入指令
+- ✅ `CreateEntity` - 动态创建实体
+- ✅ `DestroyEntity` - 销毁实体
+- ✅ `CastSkill` - 施放技能
+- ✅ `Move` - 移动
+- ✅ `Teleport` - 瞬移
+- ✅ `Wait` - 等待（无操作）
+
+#### 4. 支持的查询指令
+- ✅ `EntityHealth` - 查询生命值
+- ✅ `EntityPosition` - 查询位置
+- ✅ `EntityIsAlive` - 查询存活状态
+- ✅ `EntityAction` - 查询当前动作
+- ✅ `EntityDistance` - 查询两实体间距离
+
+#### 5. 灵活的预期值验证
+```json
+{
+  "knight_hp": 500,                    // 精确值
+  "knight_hp": {"min": 482, "max": 493}, // 范围值
+  "knight_alive": "True"               // 字符串比较
 }
 ```
 
 ---
 
-## 五、测试覆盖计划
+## 📂 文件结构
 
-### 战斗系统
-
-- [ ] 基础攻击
-- [ ] 技能释放
-- [ ] 多目标技能
-- [ ] AOE技能
-- [ ] Buff/Debuff
-
-### 移动系统
-
-- [ ] 基础移动
-- [ ] 传送
-- [ ] 冲刺
-- [ ] 碰撞检测
-
-### 物理系统
-
-- [ ] 碰撞检测
-- [ ] 击退
-- [ ] 穿透
-
----
-
-## 六、已知问题
-
-### 6.1 MemoryPack 版本兼容性问题 ❌ 关键问题
-
-**问题描述**：
 ```
-TypeLoadException: Virtual static method 'Serialize' is not implemented on type 
-'Astrum.LogicCore.Core.Entity/World' from assembly 'AstrumLogic.dll'
-```
-
-**原因分析**：
-- Unity编译的DLL（AstrumLogic.dll, CommonBase.dll等）使用了旧版本的 MemoryPack
-- 测试项目 `AstrumTest.Shared` 使用 MemoryPack 1.21.4
-- 两个版本的接口不兼容（虚拟静态方法签名不同）
-
-**影响范围**：
-- 无法创建 `World` 对象（MemoryPack序列化错误）
-- 无法创建 `Entity` 对象（MemoryPack序列化错误）
-- 无法初始化 `ArchetypeManager`（触发Component序列化）
-
-**解决方案**：
-
-**方案A：Unity重新编译（推荐）**
-1. 在Unity项目中升级 MemoryPack 到 1.21.4
-2. 激活Unity编辑器，重新编译所有DLL
-3. 测试项目引用新编译的DLL
-
-**方案B：测试项目降级**
-1. 降级测试项目的MemoryPack到Unity使用的版本
-2. 需要找到Unity使用的MemoryPack确切版本
-
-**方案C：使用源代码而非DLL（临时方案）**
-1. 测试项目直接包含源代码文件
-2. 排除所有依赖Unity的文件
-3. 但会遇到Unity API依赖问题（Room, World依赖Unity）
-
-**当前状态**：
-- ✅ 框架代码已完成（LogicTestExecutor, TestCaseData等）
-- ✅ JSON测试用例已创建（TwoKnightsFight.json）
-- ✅ 测试类已创建（IntegrationTests.cs）
-- ❌ 无法运行测试（MemoryPack版本冲突）
-
-**测试输出**（部分成功）：
-```
-========================================
-运行测试用例: TwoKnightsFight.json
-========================================
-  测试用例: 两个骑士对战
-  实体模板数量: 2
-  测试帧数: 5
-    模板: knight1 (RoleId=1001)
-    模板: knight2 (RoleId=1001)
-[1/4] ✓ 读取测试用例: 两个骑士对战
-  ⚠ ArchetypeManager 跳过初始化（MemoryPack 兼容性问题）
-  ✓ ConfigManager already initialized
-  ✓ SkillEffectManager initialized
-  ✓ HitManager ready
-[2/4] ✓ Manager 初始化完成
-❌ 测试执行异常: MemoryPack版本冲突
+AstrumTest/
+├── AstrumTest.Shared/
+│   ├── Integration/
+│   │   ├── Core/
+│   │   │   ├── LogicTestExecutor.cs          # 核心测试引擎
+│   │   │   ├── LogicTestExecutor.Executors.cs # 输入/查询执行器
+│   │   │   └── TestCaseData.cs                # 数据结构定义
+│   │   ├── Data/
+│   │   │   └── Scenarios/
+│   │   │       └── TwoKnightsFight.json       # 测试场景数据
+│   │   ├── LogicTestCollection.cs             # xUnit 测试集合
+│   │   └── IntegrationTests.cs                # 测试入口
+│   ├── Fixtures/
+│   │   └── ConfigFixture.cs                   # 配置初始化Fixture
+│   └── AstrumTest.Shared.csproj
+└── README-NEW-STRUCTURE.md
 ```
 
 ---
 
-## 七、下一步计划
+## 🔜 下一步计划
 
-1. ✅ 创建开发进展文档
-2. ✅ 创建数据结构类
-3. ✅ 实现核心测试引擎
-4. ✅ 编写第一个测试用例
-5. ❌ **解决 MemoryPack 版本兼容性问题** ← 关键阻塞
-6. ⏳ 运行完整测试验证框架
+### 短期 (本周)
+1. **扩展测试用例**:
+   - ✅ 基础攻击测试（已完成）
+   - 🔲 暴击测试用例（验证20%暴击率）
+   - 🔲 双向攻击测试（修复反击问题后）
+   - 🔲 移动测试
+   - 🔲 距离验证测试
+
+2. **调查反击问题**:
+   - 🔲 检查技能碰撞检测代码
+   - 🔲 验证Team限制逻辑
+   - 🔲 测试不同距离的攻击
+
+### 中期 (本月)
+3. **游戏逻辑改进**:
+   - 🔲 实现属性系统 (StatComponent)
+   - 🔲 从配置表读取属性值
+   - 🔲 修复反击技能问题
+
+4. **更多测试场景**:
+   - 🔲 技能CD测试
+   - 🔲 多目标技能测试
+   - 🔲 法师vs弓箭手场景
+   - 🔲 持续伤害 (DOT) 测试
+
+### 长期
+5. **框架增强**:
+   - 🔲 支持条件断言（if-then验证）
+   - 🔲 支持循环场景（重复动作直到条件满足）
+   - 🔲 支持并发测试（多个场景并行）
+   - 🔲 性能测试支持（帧率、内存监控）
+
+6. **工具改进**:
+   - 🔲 JSON Schema 验证
+   - 🔲 测试场景可视化编辑器
+   - 🔲 测试报告HTML生成
+   - 🔲 CI/CD集成
 
 ---
 
-## 八、参考资料
+## 📝 使用指南
+
+### 运行测试
+```bash
+# 运行所有集成测试
+cd AstrumTest
+dotnet test AstrumTest.Shared/AstrumTest.Shared.csproj --filter "TestLevel=Integration"
+
+# 运行特定测试
+dotnet test AstrumTest.Shared/AstrumTest.Shared.csproj --filter "FullyQualifiedName~TwoKnights_BasicFight"
+```
+
+### 创建新测试场景
+1. 在 `Integration/Data/Scenarios/` 创建新的 JSON 文件
+2. 定义实体模板和帧序列
+3. 在 `IntegrationTests.cs` 添加测试方法或使用 `[Theory]` 数据驱动
+
+### JSON 场景模板
+```json
+{
+  "name": "测试场景名称",
+  "description": "场景描述",
+  "entityTemplates": [
+    {
+      "templateId": "entity_id",
+      "roleId": 1001,
+      "team": 1,
+      "customHealth": 500
+    }
+  ],
+  "frames": [
+    {
+      "frameNumber": 0,
+      "comment": "帧说明",
+      "inputs": [...],
+      "queries": [...],
+      "expectedOutputs": {...}
+    }
+  ]
+}
+```
+
+---
+
+## 🎓 经验总结
+
+### 关键教训
+
+1. **MemoryPack 跨项目引用**:
+   - ⚠️ 确保目标框架一致（netstandard2.1 vs net9.0）
+   - ✅ 直接引用 Unity 编译的 DLL，而不是 NuGet 包
+   - ✅ 测试项目应该尽量使用与 Unity 相同的依赖版本
+
+2. **测试数据设计**:
+   - ✅ 基于帧的数据结构非常适合游戏逻辑测试
+   - ✅ 范围验证 (`{"min": x, "max": y}`) 对于有随机性的系统很重要
+   - ✅ 注释（comment）在调试时非常有用
+
+3. **测试策略**:
+   - ✅ 从简单场景开始（单次攻击）
+   - ✅ 逐步增加复杂度（双向攻击、多实体、多技能）
+   - ✅ 保持测试场景独立，避免状态泄漏
+
+4. **框架设计**:
+   - ✅ 固定流程减少用户误用
+   - ✅ 数据驱动降低维护成本
+   - ✅ 清晰的日志输出简化调试
+
+---
+
+## 📖 相关文档
 
 - [集成测试框架设计方案](../../AstrumTest/集成测试框架设计方案.md)
-- [测试项目结构说明](../../AstrumTest/README-NEW-STRUCTURE.md)
-- [单机模式文档](../09-GameModes 游戏模式/Single-Player 单机模式.md)
-
----
-
-**最后更新**: 2025-10-11
-
+- [伤害计算分析](./Integration-Test-DamageCalculation.md)
+- [测试项目新结构说明](../../AstrumTest/README-NEW-STRUCTURE.md)
