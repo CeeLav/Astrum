@@ -318,16 +318,87 @@ public class GamePlayManager : Singleton<GamePlayManager>
 
 **完成时间**: 2025-10-11  
 **代码行数变化**:
-- GamePlayManager.cs: 931 行 → 417 行 (减少 55%)
-- 新增 SinglePlayerGameMode.cs: 263 行
-- 新增 MultiplayerGameMode.cs: 207 行
-- 新增 NetworkGameHandler.cs: 246 行
-- 新增 FrameSyncHandler.cs: 168 行
-- 新增 IGameMode.cs: 58 行
+- GamePlayManager.cs: 931 行 → 460 行 (减少 51%)
+- 新增 SinglePlayerGameMode.cs: 287 行
+- 新增 MultiplayerGameMode.cs: 286 行
+- 新增 NetworkGameHandler.cs: 265 行
+- 新增 FrameSyncHandler.cs: 169 行
+- 新增 IGameMode.cs: 59 行
 
 **编译状态**: ✅ 成功编译，0 个错误
 
-**测试状态**: ⚠️ 需要在 Unity 中测试单机和联机模式
+**测试状态**: ✅ Unity 测试通过
+- ✅ 单机模式正常运行
+- ✅ 联机模式正常运行
+- ✅ 模式切换正常工作
+
+### 🐛 修复的关键问题
+
+#### 问题 1: 联机模式输入无响应 ✅
+
+**根本原因**: `MultiplayerGameMode.OnPlayerCreated()` 中没有设置 `MainRoom.MainPlayerId`
+
+**影响**: `LSController.Tick()` 中有判断：
+```csharp
+if (Room.MainPlayerId > 0)  // ← 检查失败
+{
+    Publish(FrameDataUploadEventData);  // 不会执行
+}
+```
+
+**修复**:
+```csharp
+// 在 OnPlayerCreated() 中添加
+MainRoom.MainPlayerId = eventData.PlayerID;
+```
+
+#### 问题 2: 单机模式 LSController 未启动 ✅
+
+**根本原因**: `SinglePlayerGameMode` 创建 Room 后没有调用 `LSController.Start()`
+
+**影响**: `LSController.Tick()` 中第一行检查：
+```csharp
+if (!IsRunning || IsPaused || Room == null) return;  // ← IsRunning = false，直接返回
+```
+
+**修复**:
+```csharp
+// 在 CreatePlayer() 中添加
+MainRoom.LSController.Start();
+```
+
+#### 问题 3: 单机模式权威帧不更新 ✅
+
+**根本原因**: 单机模式下 `AuthorityFrame` 永远是 0，`PredictionFrame` 持续增长
+
+**影响**: 
+```csharp
+if (PredictionFrame - AuthorityFrame > MaxPredictionFrames)
+    return;  // ← 6 - 0 > 5，停止执行帧循环
+```
+
+**修复**:
+```csharp
+// 在 SinglePlayerGameMode.Update() 中每帧同步
+MainRoom.LSController.AuthorityFrame = MainRoom.LSController.PredictionFrame;
+```
+
+#### 问题 4: GameMode 延迟创建 ✅
+
+**优化**: 在 `GamePlayManager.Initialize()` 时不创建 GameMode，延迟到用户选择游戏模式时再创建
+
+**优点**:
+- 避免创建后又切换的浪费
+- 根据用户实际选择创建对应模式
+
+**实现**:
+```csharp
+// Initialize() 中
+_currentGameMode = null;  // 不创建
+
+// StartGame() 中
+EnsureCorrectGameMode();  // 按需创建或切换
+```
 
 ---
 

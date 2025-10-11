@@ -1,8 +1,8 @@
 # 🎯 单机模式设计文档
 
-**版本**: v0.1.0  
-**状态**: 🚧 开发中  
-**最后更新**: 2025-10-10
+**版本**: v0.3.0  
+**状态**: ✅ 核心功能完成  
+**最后更新**: 2025-10-11
 
 ---
 
@@ -119,28 +119,33 @@ public void SetDifficulty(GameDifficulty difficulty);
 **路径**: `AstrumClient/Managers/GamePlayManager.cs`
 
 **职责**:
-- 游戏生命周期管理
-- Room 和 Stage 的创建和销毁
-- 单机/联机模式的统一入口
+- 轻量级入口，委托给具体的 GameMode
+- 模式选择和切换
+- 统一的对外接口
 
 **关键接口**:
 ```csharp
-public void StartSinglePlayerGame(string gameSceneName);
-public Stage MainStage { get; }
-public Room MainRoom { get; }
+public void StartGame(string gameSceneName);
+public void StartSinglePlayerGame(string gameSceneName);  // 兼容接口
+public Stage MainStage { get; }  // 委托给 GameMode
+public Room MainRoom { get; }    // 委托给 GameMode
 ```
 
-#### 3. GameLauncher
-**路径**: `AstrumClient/Core/GameLauncher.cs`
+#### 3. SinglePlayerGameMode
+**路径**: `AstrumClient/Managers/GameModes/SinglePlayerGameMode.cs`
 
 **职责**:
-- 单机游戏的启动逻辑
-- Room、World、Stage 的初始化
+- 单机游戏的完整启动和运行逻辑
+- Room、World、Stage 的创建和初始化
 - 玩家角色的创建
+- 本地帧循环驱动
+- 权威帧模拟（模拟服务器推进）
 
-**关键接口**:
+**关键方法**:
 ```csharp
-public void StartSinglePlayerGame(string gameSceneName);
+public void Initialize();
+public void StartGame(string sceneName);
+public void Update(float deltaTime);  // 本地帧循环
 ```
 
 #### 4. Room (逻辑层)
@@ -181,43 +186,46 @@ public string RoomName { get; }
 ### 完整流程图
 
 ```
-玩家点击"开始游戏"
+玩家点击"单机游戏"按钮
         ↓
 [1] GameConfig.SetSinglePlayerMode(true)
         ↓
-[2] GamePlayManager.StartSinglePlayerGame("GameScene")
+[2] GamePlayManager.StartSinglePlayerGame("DungeonsGame")
         ↓
-[3] 创建 Room(id=1, "SinglePlayerRoom")
+[3] EnsureCorrectGameMode()
+    - 检测到需要创建 SinglePlayerGameMode
+    - 创建并初始化 SinglePlayerGameMode
         ↓
-[4] 创建 World 并关联到 Room
+[4] SinglePlayerGameMode.StartGame("DungeonsGame")
         ↓
-[5] Room.Initialize()
-    - 初始化 FrameSyncManager（本地模式）
-    - 注册系统（移动、战斗、物理等）
+[5] 创建 Room(id=1, "SinglePlayerRoom")
+    - 创建 World 并关联到 Room
+    - Room.Initialize() 创建 LSController
         ↓
 [6] 创建 Stage("GameStage")
+    - Stage.Initialize()
+    - Stage.SetRoom(room)
         ↓
-[7] Stage.Initialize()
-    - 初始化 ViewWorld
-    - 注册 ViewComponent 类型
+[7] 切换到游戏场景 (LoadSceneAsync)
         ↓
-[8] 切换到游戏场景 (LoadSceneAsync)
-        ↓
-[9] 场景加载完成回调
+[8] 场景加载完成回调 OnGameSceneLoaded()
+    - 关闭 Login UI
     - Stage.SetActive(true)
     - Stage.OnEnter()
+    - 订阅 EntityView 创建事件
         ↓
-[10] 创建玩家实体
-    - Room.AddPlayer(playerId)
-    - 加载角色配置
-    - 创建 Entity + Components
+[9] 创建玩家实体 CreatePlayer()
+    - Room.AddPlayer() 创建 Entity
+    - 设置 PlayerId 和 MainPlayerId
+    - LSController.Start() ← 启动帧同步
     - 创建对应的 EntityView
         ↓
-[11] 开始本地帧循环
+[10] 开始本地帧循环
     - Unity Update() 驱动
-    - 每帧收集本地输入
-    - 执行帧逻辑
-    - 同步到表现层
+    - SinglePlayerGameMode.Update()
+        - AuthorityFrame = PredictionFrame ← 模拟服务器
+        - Room.Update() → LSController.Tick()
+        - Stage.Update() → 更新表现层
         ↓
 游戏运行中...
 ```
@@ -226,50 +234,63 @@ public string RoomName { get; }
 
 #### Step 1-2: 模式设置和启动入口
 ```csharp
-// 在主菜单或游戏启动时
+// 在 LoginView 中点击"单机游戏"按钮
 GameConfig.Instance.SetSinglePlayerMode(true);
-GamePlayManager.Instance.StartSinglePlayerGame("GameScene");
+GamePlayManager.Instance.StartSinglePlayerGame("DungeonsGame");
 ```
 
-#### Step 3-5: 创建逻辑层环境
+#### Step 3-4: 创建 SinglePlayerGameMode
 ```csharp
-// GamePlayManager.StartSinglePlayerGame()
+// GamePlayManager.StartGame() 内部
+EnsureCorrectGameMode();  // 检测并创建 SinglePlayerGameMode
+_currentGameMode.StartGame("DungeonsGame");  // 委托给 SinglePlayerGameMode
+```
+
+#### Step 5-6: 创建逻辑层环境
+```csharp
+// SinglePlayerGameMode.StartGame()
 var room = new Room(1, "SinglePlayerRoom");
 var world = new World();
 room.MainWorld = world;
-room.Initialize(); // 初始化帧同步和系统
+room.Initialize();  // 创建 LSController（但未启动）
+
+Stage gameStage = new Stage("GameStage", "游戏场景");
+gameStage.Initialize();
+gameStage.SetRoom(room);
 ```
 
 **关键点**:
 - Room 不连接服务器，使用本地帧同步
-- FrameSyncManager 设置为本地模式（无网络延迟）
+- LSController 创建但未启动（等待玩家创建后再启动）
 - 所有输入直接在本地处理
 
-#### Step 6-8: 创建表现层和场景切换
+#### Step 7-8: 场景切换和加载
 ```csharp
-Stage gameStage = new Stage("GameStage", "游戏场景");
-gameStage.Initialize();
-gameStage.SetRoom(room);
-
-SceneManager.LoadSceneAsync("GameScene", () => {
-    gameStage.SetActive(true);
-    gameStage.OnEnter();
+SceneManager.LoadSceneAsync("DungeonsGame", () => {
+    OnGameSceneLoaded();
 });
+
+// OnGameSceneLoaded()
+gameStage.SetActive(true);
+gameStage.OnEnter();
 ```
 
-#### Step 9-10: 创建玩家角色
+#### Step 9-10: 创建玩家并启动帧同步
 ```csharp
-// 场景加载完成后
-long playerId = room.AddPlayer();
-Vector3 spawnPosition = new Vector3(-5f, 0.5f, 0f);
+// CreatePlayer()
+long playerId = room.AddPlayer();  // 创建玩家实体
+room.MainPlayerId = playerId;  // 设置主玩家ID
 
-// 从配置表加载角色数据
-var roleConfig = ConfigManager.Instance.GetRoleConfig(1001); // 骑士
-var entity = EntityFactory.CreateRoleEntity(world, roleConfig, spawnPosition);
+// 启动本地帧同步控制器（关键！）
+room.LSController.CreationTime = TimeInfo.Instance.ServerNow();
+room.LSController.Start();  // IsRunning = true
 
-// 创建对应的表现层视图
-var entityView = gameStage.CreateEntityView(entity);
+// EntityView 会自动创建（通过事件）
 ```
+
+**关键点**:
+- ✅ 必须启动 LSController，否则帧循环不会执行
+- ✅ 必须设置 MainPlayerId，否则输入不会被处理
 
 ---
 
@@ -317,25 +338,32 @@ Unity Update()
 ### 代码示例
 
 ```csharp
-// 简化的帧循环伪代码
-public class GameLoop : MonoBehaviour
+// SinglePlayerGameMode.Update() - 实际的帧循环代码
+public void Update(float deltaTime)
 {
-    private Room _room;
-    private Stage _stage;
+    if (!IsRunning) return;
     
-    void Update()
+    // 单机模式：模拟服务器的权威帧推进（关键！）
+    // 联机模式下，AuthorityFrame 由服务器通过 FrameSyncData 更新
+    // 单机模式下，让 AuthorityFrame 跟随 PredictionFrame
+    if (MainRoom?.LSController != null && MainRoom.LSController.IsRunning)
     {
-        if (_room == null) return;
-        
-        // 1. 收集输入
-        var input = InputManager.Instance.GetCurrentInput();
-        
-        // 2. 执行逻辑帧
-        _room.Tick(input);
-        
-        // 3. 同步到表现层
-        _stage.Tick();
+        MainRoom.LSController.AuthorityFrame = MainRoom.LSController.PredictionFrame;
     }
+    
+    // 1. 更新 Room（执行逻辑帧）
+    MainRoom?.Update(deltaTime);
+    //   ├─ LSController.Tick()
+    //   │   ├─ InputManager 已设置输入到 LSController
+    //   │   ├─ PredictionFrame++
+    //   │   ├─ GetOneFrameMessages() → 获取输入
+    //   │   └─ Room.FrameTick(inputs) → 执行逻辑
+    //   │       ├─ World.Update() → 更新所有实体
+    //   │       └─ SkillEffectManager.Update()
+    
+    // 2. 更新 Stage（同步到表现层）
+    MainStage?.Update(deltaTime);
+    //   └─ 更新所有 EntityView
 }
 ```
 
@@ -597,6 +625,85 @@ else
 
 ## 技术限制和注意事项
 
+### 关键实现细节（v0.3.0）
+
+#### 1. LSController 的启动时机 ⚠️
+
+**联机模式**:
+```csharp
+// 服务器通知帧同步开始时启动
+OnFrameSyncStartNotification(notification)
+{
+    MainRoom.LSController.CreationTime = notification.startTime;  // 服务器时间
+    MainRoom.LSController.Start();
+}
+```
+
+**单机模式**:
+```csharp
+// 创建玩家时立即启动
+CreatePlayer()
+{
+    MainRoom.LSController.CreationTime = TimeInfo.Instance.ServerNow();  // 本地时间
+    MainRoom.LSController.Start();
+}
+```
+
+#### 2. 权威帧的更新机制 ⚠️
+
+**联机模式**:
+```csharp
+// 服务器通过 FrameSyncData 下发
+OnFrameSyncData(frameData)
+{
+    MainRoom.LSController.AuthorityFrame = frameData.authorityFrame;
+}
+```
+
+**单机模式**:
+```csharp
+// 每帧手动同步，模拟服务器推进
+Update(deltaTime)
+{
+    MainRoom.LSController.AuthorityFrame = MainRoom.LSController.PredictionFrame;
+}
+```
+
+**为什么需要这样做？**
+
+`LSController.Tick()` 中有预测上限检查：
+```csharp
+if (PredictionFrame - AuthorityFrame > MaxPredictionFrames)
+    return;  // 停止执行
+```
+
+- 联机模式：允许预测 5 帧（网络延迟补偿）
+- 单机模式：差距应该是 0（无延迟，立即确认）
+
+#### 3. 输入处理流程
+
+**共享部分**（单机和联机相同）:
+```csharp
+InputManager.Update()
+    ↓
+CollectLSInput(playerId) → 收集键盘输入
+    ↓
+LSController.SetPlayerInput(playerId, input)
+    ↓
+LSController.Tick()
+    ↓
+Room.FrameTick(inputs)
+```
+
+**差异部分**:
+
+**联机**: `FrameDataUploadEventData` → `MultiplayerGameMode` 订阅 → 发送到服务器
+**单机**: `FrameDataUploadEventData` → 无人订阅 → 自动忽略 ✅
+
+这是**事件驱动架构的优势**：逻辑层只负责发布事件，客户端层决定是否处理。
+
+---
+
 ### 确定性要求
 
 即使是单机模式，也必须保持逻辑的**确定性**，原因：
@@ -628,37 +735,54 @@ else
 
 ---
 
+## 架构改进（v0.3.0）
+
+### GameMode 模式分离架构
+
+**核心改进**:
+- ✅ 单机和联机逻辑完全解耦
+- ✅ GamePlayManager 职责清晰（只做委托）
+- ✅ 延迟创建 GameMode（按需加载）
+- ✅ 支持模式动态切换
+
+**新文件结构**:
+```
+AstrumClient/Managers/
+├── GamePlayManager.cs          (460 行，轻量级入口)
+└── GameModes/
+    ├── IGameMode.cs            (游戏模式接口)
+    ├── SinglePlayerGameMode.cs (单机模式实现)
+    └── MultiplayerGameMode.cs  (联机模式实现)
+```
+
+**详细设计**: 查看 [GamePlayManager 重构方案](../../07-Development%20开发指南/GamePlayManager-Refactoring%20重构方案.md)
+
+---
+
 ## 下一步开发计划
 
 ### Phase 1: 基础架构 ✅
 - ✅ GameConfig 单机模式标记
-- ✅ GameLauncher 启动流程
+- ✅ SinglePlayerGameMode 完整实现
 - ✅ Room/World 本地创建
 - ✅ Stage 表现层同步
+- ✅ LSController 本地驱动
+- ✅ 权威帧模拟
 
 ### Phase 2: 核心玩法 ✅
 - ✅ 玩家角色创建
 - ✅ 移动和操作
 - ✅ 战斗系统
 - ✅ 技能效果
+- ✅ 帧循环驱动
+- ✅ 完整测试通过
 
-### Phase 3: AI系统 🚧
-- 🚧 AIController 框架
-- 📝 基础AI决策树
-- 📝 AI行为库
-- 📝 难度分级
+### Phase 3-5: 暂不开发 📝
+- 📝 AI系统 - 暂不开发
+- 📝 关卡系统 - 暂不开发
+- 📝 存档系统 - 暂不开发
 
-### Phase 4: 关卡系统 📝
-- 📝 关卡配置表设计
-- 📝 关卡加载器
-- 📝 敌人生成器
-- 📝 关卡事件系统
-
-### Phase 5: 存档系统 📝
-- 📝 存档数据结构
-- 📝 序列化/反序列化
-- 📝 自动保存机制
-- 📝 存档管理UI
+**当前状态**: 单机模式核心功能已完成，可进行完整的游戏测试和玩法验证。
 
 ---
 
@@ -672,8 +796,26 @@ else
 
 ---
 
-**最后更新**: 2025-10-10  
-**维护者**: 开发团队
+**最后更新**: 2025-10-11  
+**维护者**: 开发团队  
+**版本**: v0.3.0
+
+---
+
+## 更新日志
+
+### v0.3.0 (2025-10-11)
+- ✅ 架构重构：GameMode 模式分离
+- ✅ 修复 LSController 启动问题
+- ✅ 修复权威帧驱动问题
+- ✅ 完整测试通过
+
+### v0.2.0 (2025-10-10)
+- ✅ 战斗系统完整集成
+- ✅ 物理系统完善
+
+### v0.1.0
+- ✅ 基础架构搭建
 
 
 
