@@ -35,15 +35,13 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 
                 Debug.Log($"{LOG_PREFIX} 读取到 {skillActionTableList.Count} 条 SkillActionTable 记录");
                 
-                // 3. 按SkillId分组SkillActionTable
-                var actionsBySkillId = skillActionTableList
-                    .GroupBy(a => a.SkillId)
-                    .ToDictionary(g => g.Key, g => g.ToList());
+                // 3. 按ActionId索引SkillActionTable（SkillAction不再包含SkillId）
+                var actionsById = skillActionTableList.ToDictionary(a => a.ActionId);
                 
                 // 4. 组装 SkillEditorData
                 foreach (var skillTable in skillTableList)
                 {
-                    var editorData = ConvertToEditorData(skillTable, actionsBySkillId);
+                    var editorData = ConvertToEditorData(skillTable, actionsById);
                     if (editorData != null)
                     {
                         result.Add(editorData);
@@ -74,7 +72,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
         /// </summary>
         private static SkillEditorData ConvertToEditorData(
             SkillTableData skillTable, 
-            Dictionary<int, List<SkillActionTableData>> actionsBySkillId)
+            Dictionary<int, SkillActionTableData> actionsById)
         {
             var data = SkillEditorData.CreateInstance<SkillEditorData>();
             
@@ -89,18 +87,17 @@ namespace Astrum.Editor.RoleEditor.Persistence
             data.MaxLevel = skillTable.MaxLevel;
             data.IconId = skillTable.IconId;
             
-            // 映射 SkillActionTable 数据
+            // 映射 SkillActionTable 数据（通过 SkillTable 的 skillActionIds 关联）
             data.SkillActions = new List<SkillActionData>();
             
-            if (actionsBySkillId.TryGetValue(skillTable.Id, out var actions))
+            var actionIds = skillTable.GetSkillActionIds();
+            foreach (var actionId in actionIds)
             {
-                foreach (var actionTable in actions)
+                if (actionsById.TryGetValue(actionId, out var actionTable))
                 {
                     var actionData = new SkillActionData
                     {
                         ActionId = actionTable.ActionId,
-                        SkillId = actionTable.SkillId,
-                        AttackBoxInfo = actionTable.AttackBoxInfo ?? "",
                         ActualCost = actionTable.ActualCost,
                         ActualCooldown = actionTable.ActualCooldown,
                         TriggerFrames = actionTable.ParseTriggerFrames(),
@@ -109,40 +106,25 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     
                     data.SkillActions.Add(actionData);
                 }
-                
-                Debug.Log($"{LOG_PREFIX} 技能 [{skillTable.Id}] {skillTable.Name} 包含 {actions.Count} 个动作");
-            }
-            else
-            {
-                // 技能没有动作，使用SkillTable中的skillActionIds
-                var actionIds = skillTable.GetSkillActionIds();
-                if (actionIds.Count > 0)
-                {
-                    Debug.LogWarning($"{LOG_PREFIX} 技能 [{skillTable.Id}] {skillTable.Name} 在 SkillActionTable 中没有记录，" +
-                                   $"但在 SkillTable 中配置了 {actionIds.Count} 个动作ID");
-                    
-                    // 创建占位符动作数据
-                    foreach (var actionId in actionIds)
-                    {
-                        var actionData = new SkillActionData
-                        {
-                            ActionId = actionId,
-                            SkillId = skillTable.Id,
-                            AttackBoxInfo = "",
-                            ActualCost = skillTable.DisplayCost,
-                            ActualCooldown = (int)(skillTable.DisplayCooldown * 60), // 转换为帧数
-                            TriggerFrames = new List<TriggerFrameInfo>(),
-                            ParentSkillData = data // 设置父级引用
-                        };
-                        
-                        data.SkillActions.Add(actionData);
-                    }
-                }
                 else
                 {
-                    Debug.LogWarning($"{LOG_PREFIX} 技能 [{skillTable.Id}] {skillTable.Name} 没有配置任何技能动作");
+                    // SkillActionTable 中没有该动作的配置，创建占位符
+                    Debug.LogWarning($"{LOG_PREFIX} 技能 [{skillTable.Id}] {skillTable.Name} 引用的动作 {actionId} 在 SkillActionTable 中不存在");
+                    
+                    var actionData = new SkillActionData
+                    {
+                        ActionId = actionId,
+                        ActualCost = skillTable.DisplayCost,
+                        ActualCooldown = (int)(skillTable.DisplayCooldown * 60), // 转换为帧数
+                        TriggerFrames = new List<TriggerFrameInfo>(),
+                        ParentSkillData = data // 设置父级引用
+                    };
+                    
+                    data.SkillActions.Add(actionData);
                 }
             }
+            
+            Debug.Log($"{LOG_PREFIX} 技能 [{skillTable.Id}] {skillTable.Name} 包含 {data.SkillActions.Count} 个动作");
             
             // 初始化编辑器状态
             data.IsNew = false;

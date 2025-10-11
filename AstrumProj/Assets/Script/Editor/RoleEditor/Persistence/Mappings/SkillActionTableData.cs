@@ -11,19 +11,13 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(0, "actionId")]
         public int ActionId { get; set; }
         
-        [TableField(1, "skillId")]
-        public int SkillId { get; set; }
-        
-        [TableField(2, "attackBoxInfo")]
-        public string AttackBoxInfo { get; set; }
-        
-        [TableField(3, "actualCost")]
+        [TableField(1, "actualCost")]
         public int ActualCost { get; set; }
         
-        [TableField(4, "actualCooldown")]
+        [TableField(2, "actualCooldown")]
         public int ActualCooldown { get; set; }
         
-        [TableField(5, "triggerFrames")]
+        [TableField(3, "triggerFrames")]
         public string TriggerFrames { get; set; }
         
         /// <summary>
@@ -99,21 +93,21 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 {
                     VarNames = new List<string>
                     {
-                        "actionId", "skillId", "attackBoxInfo", "actualCost",
+                        "actionId", "actualCost",
                         "actualCooldown", "triggerFrames"
                     },
                     Types = new List<string>
                     {
-                        "int", "int", "string", "int", "int", "string"
+                        "int", "int", "int", "string"
                     },
                     Groups = new List<string>
                     {
-                        "", "", "", "", "", ""
+                        "", "", "", ""
                     },
                     Descriptions = new List<string>
                     {
-                        "动作ID", "技能ID", "攻击碰撞盒信息", "实际法力消耗",
-                        "实际冷却时间(帧)", "触发帧信息"
+                        "动作ID", "实际法力消耗",
+                        "实际冷却时间(帧)", "触发帧信息(含碰撞盒)"
                     }
                 }
             };

@@ -185,8 +185,6 @@ namespace Astrum.Editor.RoleEditor.Data
             var actionData = new SkillActionData
             {
                 ActionId = actionId,
-                SkillId = this.SkillId,
-                AttackBoxInfo = "",
                 ActualCost = this.DisplayCost,
                 ActualCooldown = (int)(this.DisplayCooldown * 60), // 转换为帧数
                 TriggerFrames = new List<TriggerFrameInfo>(),
@@ -233,7 +231,6 @@ namespace Astrum.Editor.RoleEditor.Data
                 {
                     ActionId = action.ActionId,
                     ActionName = action.ActionName,
-                    SkillId = action.SkillId,
                     ParentSkillData = this
                 });
             }
@@ -291,9 +288,6 @@ namespace Astrum.Editor.RoleEditor.Data
         // ===== 详细配置（隐藏，通过编辑按钮访问） =====
         
         [HideInInspector]
-        public string AttackBoxInfo = "";
-        
-        [HideInInspector]
         public int ActualCost = 15;
         
         [HideInInspector]
@@ -316,8 +310,6 @@ namespace Astrum.Editor.RoleEditor.Data
             var clone = new SkillActionData
             {
                 ActionId = this.ActionId,
-                SkillId = this.SkillId,
-                AttackBoxInfo = this.AttackBoxInfo,
                 ActualCost = this.ActualCost,
                 ActualCooldown = this.ActualCooldown,
                 TriggerFrames = new List<TriggerFrameInfo>()
@@ -403,16 +395,11 @@ namespace Astrum.Editor.RoleEditor.Data
         
         private void OnActionIdChanged()
         {
-            // 更新对应的 SkillActionData
+            // ActionId 改变时标记父级为脏
             if (ParentSkillData != null)
             {
-                var action = ParentSkillData.SkillActions.FirstOrDefault(a => a.SkillId == SkillId && a.ActionId != ActionId);
-                if (action != null)
-                {
-                    action.ActionId = ActionId;
-                    ParentSkillData.MarkDirty();
-                    Debug.Log($"[SkillActionCard] ActionId 已更改为: {ActionId}");
-                }
+                ParentSkillData.MarkDirty();
+                Debug.Log($"[SkillActionCard] ActionId 已更改为: {ActionId}");
             }
         }
     }

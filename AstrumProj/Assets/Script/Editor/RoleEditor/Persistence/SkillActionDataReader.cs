@@ -177,14 +177,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
         /// </summary>
         private static void FillSkillActionData(SkillActionEditorData editorData, SkillActionTableData skillActionData)
         {
-            editorData.SkillId = skillActionData.SkillId;
             editorData.ActualCost = skillActionData.ActualCost;
             editorData.ActualCooldown = skillActionData.ActualCooldown;
-            editorData.AttackBoxInfo = skillActionData.AttackBoxInfo ?? "";
             editorData.TriggerFrames = skillActionData.TriggerFrames ?? "";
-            
-            // TODO: 从 SkillTable 查询技能名称
-            editorData.SkillName = $"技能_{skillActionData.SkillId}";
         }
         
         /// <summary>

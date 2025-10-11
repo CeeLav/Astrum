@@ -17,8 +17,6 @@ public sealed partial class SkillActionTable : Luban.BeanBase
     public SkillActionTable(ByteBuf _buf) 
     {
         ActionId = _buf.ReadInt();
-        SkillId = _buf.ReadInt();
-        AttackBoxInfo = _buf.ReadString();
         ActualCost = _buf.ReadInt();
         ActualCooldown = _buf.ReadInt();
         TriggerFrames = _buf.ReadString();
@@ -34,14 +32,6 @@ public sealed partial class SkillActionTable : Luban.BeanBase
     /// </summary>
     public readonly int ActionId;
     /// <summary>
-    /// 技能ID
-    /// </summary>
-    public readonly int SkillId;
-    /// <summary>
-    /// 攻击碰撞盒信息
-    /// </summary>
-    public readonly string AttackBoxInfo;
-    /// <summary>
     /// 实际法力消耗
     /// </summary>
     public readonly int ActualCost;
@@ -50,7 +40,7 @@ public sealed partial class SkillActionTable : Luban.BeanBase
     /// </summary>
     public readonly int ActualCooldown;
     /// <summary>
-    /// 触发帧信息
+    /// 触发帧信息(含碰撞盒)
     /// </summary>
     public readonly string TriggerFrames;
    
@@ -65,8 +55,6 @@ public sealed partial class SkillActionTable : Luban.BeanBase
     {
         return "{ "
         + "actionId:" + ActionId + ","
-        + "skillId:" + SkillId + ","
-        + "attackBoxInfo:" + AttackBoxInfo + ","
         + "actualCost:" + ActualCost + ","
         + "actualCooldown:" + ActualCooldown + ","
         + "triggerFrames:" + TriggerFrames + ","

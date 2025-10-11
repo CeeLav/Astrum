@@ -126,7 +126,7 @@ namespace Astrum.LogicCore.Capabilities
 				if (!actionComponent.AvailableActions.ContainsKey(action.Id))
 				{
 					actionComponent.AvailableActions[action.Id] = action;
-					ASLogger.Instance.Debug($"SkillCapability: Registered action {action.Id} for skill {skill.SkillId}");
+					ASLogger.Instance.Debug($"SkillCapability: Registered action {action.Id} for skill");
 				}
 			}
 		}
@@ -139,7 +139,7 @@ namespace Astrum.LogicCore.Capabilities
 			foreach (var action in skill.SkillActions)
 			{
 				actionComponent.AvailableActions.RemoveAll(a => a.Id == action.Id);
-				ASLogger.Instance.Debug($"SkillCapability: Unregistered action {action.Id} for skill {skill.SkillId}");
+				ASLogger.Instance.Debug($"SkillCapability: Unregistered action {action.Id} for skill");
 			}*/
 		}
 	}

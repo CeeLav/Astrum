@@ -642,7 +642,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 if (_selectedSkillAction != null)
                 {
-                    string info = $"技能动作 {_selectedSkillAction.ActionId}: {_selectedSkillAction.ActionName} (技能ID: {_selectedSkillAction.SkillId})";
+                    string info = $"技能动作 {_selectedSkillAction.ActionId}: {_selectedSkillAction.ActionName}";
                     EditorGUILayout.LabelField(info, EditorStyles.toolbarButton);
                 }
                 

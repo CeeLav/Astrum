@@ -94,11 +94,21 @@
 |--------|------|------|--------|
 | ActionId | int | 对应ActionTable中的ActionId | 3001 |
 | SkillId | int | 所属技能ID | 2001 |
-| AttackBoxInfo | string | 攻击碰撞盒信息 | "Box1:5x2,Box2:3x3" |
 | ActualCost | int | 实际法力消耗 | 15 |
 | ActualCooldown | int | 实际冷却时间（帧） | 270 |
-| TriggerFrames | string | 触发帧信息 | "Frame5:Collision:4001,Frame10:Direct:4002" |
-|（结构说明）| — | `Frame`/`Type`/`EffectId`，可选 `HitBox`/`Condition` | "Frame15:Condition(EnergyMin=50):4003" |
+| TriggerFrames | string | 触发帧信息（含碰撞盒） | "Frame5:Collision(Box:5x2x1):4001,Frame10:Direct:4002" |
+
+**TriggerFrames 格式说明**：
+- 基本格式：`Frame{帧号}:{触发类型}:{效果ID}`
+- 碰撞触发：`Frame5:Collision(Box:5x2x1):4001` - 包含内联碰撞盒信息
+- 直接触发：`Frame10:Direct:4002` - 无需额外参数
+- 条件触发：`Frame15:Condition(Energy>50):4003` - 包含条件表达式
+
+**支持的碰撞盒类型**：
+- `Box:宽x高x深` - 盒子碰撞盒，例如：`Collision(Box:5x2x1):4001`
+- `Sphere:半径` - 球形碰撞盒，例如：`Collision(Sphere:3.0):4002`
+- `Capsule:半径x高` - 胶囊碰撞盒，例如：`Collision(Capsule:2x5):4003`
+- `Point` - 点碰撞盒，例如：`Collision(Point):4004`
 
 #### 3.2.3 SkillEffectTable (技能效果表)
 **作用**：定义技能产生的各种效果
@@ -142,22 +152,34 @@
 5. 技能动作可通过动作切换逻辑正常执行
 ```
 
-### 4.2 触发帧信息格式
+### 4.2 触发帧信息格式（更新版）
 
 **triggerFrames字段格式**：
 ```
-"Frame{帧号}:{触发条件}:{SkillEffectId},{Frame{帧号}:{触发条件}:{SkillEffectId}"
+"Frame{帧号}:{触发类型}({参数}):{SkillEffectId}"
 ```
 
-**触发条件类型**：
-- `Collision` - 碰撞盒触发
-- `Direct` - 特定帧直接触发
-- `Condition` - 条件触发（即时检测自定义条件，如能量/状态）
+**触发类型说明**：
+- `Collision(碰撞盒)` - 碰撞盒触发，需内联碰撞盒信息
+- `Direct` - 特定帧直接触发，无需参数
+- `Condition(条件)` - 条件触发，需内联条件表达式
 
-**示例**：
+**碰撞盒格式**：
+- `Box:宽x高x深` - 例如：`Collision(Box:5x2x1):4001`
+- `Sphere:半径` - 例如：`Collision(Sphere:3.0):4002`
+- `Capsule:半径x高` - 例如：`Collision(Capsule:2x5):4003`
+- `Point` - 例如：`Collision(Point):4004`
+
+**完整示例**：
 ```
-"Frame5:Collision:4001,Frame10:Direct:4002,Frame15:Condition:4003"
+"Frame5:Collision(Box:5x2x1):4001,Frame10:Direct:4002,Frame15:Collision(Sphere:3.0):4003,Frame20:Condition(Energy>50):4004"
 ```
+
+**设计优势**：
+- ✅ 每个碰撞触发都有独立的碰撞盒，灵活性高
+- ✅ 一目了然，易于理解和维护
+- ✅ 不同帧可以使用不同碰撞形状
+- ✅ 无需维护单独的 `AttackBoxInfo` 字段
 
 ## 5. 与现有系统集成
 
@@ -204,10 +226,9 @@
 {
   "ActionId": 3001,
   "SkillId": 2001,
-  "AttackBoxInfo": "Box1:5x2x1",
   "ActualCost": 15,
   "ActualCooldown": 270,
-  "TriggerFrames": "Frame5:Collision:4001,Frame8:Direct:4002"
+  "TriggerFrames": "Frame5:Collision(Box:5x2x1):4001,Frame8:Direct:4002"
 }
 ```
 
