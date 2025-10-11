@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RootNamespace>AstrumTest.Client</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 测试框架 -->
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 引用共享测试项目 -->
+    <ProjectReference Include="..\AstrumTest.Shared\AstrumTest.Shared.csproj" />
+  </ItemGroup>
+
+  <!-- 引用 Unity 客户端程序集 -->
+  <ItemGroup>
+    <Reference Include="AstrumClient">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\AstrumClient.dll</HintPath>
+    </Reference>
+    <Reference Include="AstrumView">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\AstrumView.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
+
