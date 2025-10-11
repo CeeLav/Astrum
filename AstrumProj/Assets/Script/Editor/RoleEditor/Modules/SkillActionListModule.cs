@@ -71,17 +71,13 @@ namespace Astrum.Editor.RoleEditor.Modules
                     GUI.Label(new Rect(cardRect.xMax - 20, y, 15, 15), "*", dirtyStyle);
                 }
                 
-                // 第二行：技能信息
-                var skillInfoStyle = new GUIStyle(EditorStyles.miniLabel);
-                skillInfoStyle.normal.textColor = new Color(1f, 0.6f, 0.2f); // 橙色
+                // 第二行：动作类型
+                var typeStyle = new GUIStyle(EditorStyles.miniLabel);
+                typeStyle.normal.textColor = new Color(0.6f, 0.8f, 1f); // 淡蓝色
                 
-                string skillInfo = $"技能 {skillAction.SkillId}";
-                if (!string.IsNullOrEmpty(skillAction.SkillName))
-                {
-                    skillInfo += $" - {skillAction.SkillName}";
-                }
+                string typeInfo = $"类型: {skillAction.ActionType}";
                 
-                GUI.Label(new Rect(x, y + 20, cardRect.width - 10, 16), skillInfo, skillInfoStyle);
+                GUI.Label(new Rect(x, y + 20, cardRect.width - 10, 16), typeInfo, typeStyle);
                 
                 // 第三行：类型描述
                 var subtitleStyle = new GUIStyle(EditorStyles.miniLabel);

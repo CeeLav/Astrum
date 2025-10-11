@@ -86,7 +86,7 @@ namespace Astrum.LogicCore.Managers
             // 填充派生类特有字段
             PopulateSkillActionFields(skillActionInfo, skillActionTable);
             
-            ASLogger.Instance.Debug($"ActionConfigManager: Constructed SkillActionInfo for actionId={actionId}, skillId={skillActionInfo.SkillId}");
+            ASLogger.Instance.Debug($"ActionConfigManager: Constructed SkillActionInfo for actionId={actionId}");
             
             return skillActionInfo;
         }
@@ -130,8 +130,6 @@ namespace Astrum.LogicCore.Managers
         /// <param name="skillActionTable">SkillActionTable 配置数据</param>
         public void PopulateSkillActionFields(SkillActionInfo skillActionInfo, cfg.Skill.SkillActionTable skillActionTable)
         {
-            skillActionInfo.SkillId = skillActionTable.SkillId;
-            skillActionInfo.AttackBoxInfo = skillActionTable.AttackBoxInfo ?? string.Empty;
             skillActionInfo.ActualCost = skillActionTable.ActualCost;
             skillActionInfo.ActualCooldown = skillActionTable.ActualCooldown;
             skillActionInfo.TriggerFrames = skillActionTable.TriggerFrames ?? string.Empty;

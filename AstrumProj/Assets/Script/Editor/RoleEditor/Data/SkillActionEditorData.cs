@@ -17,16 +17,6 @@ namespace Astrum.Editor.RoleEditor.Data
     {
         // === 技能专属字段 ===
         
-        [TitleGroup("技能信息")]
-        [LabelText("所属技能ID"), ReadOnly]
-        [InfoBox("该技能动作所属的技能ID", InfoMessageType.Info)]
-        public int SkillId;
-        
-        [TitleGroup("技能信息")]
-        [LabelText("技能名称"), ReadOnly]
-        [InfoBox("从技能表自动读取", InfoMessageType.None)]
-        public string SkillName = "";
-        
         [TitleGroup("技能成本")]
         [LabelText("实际法力消耗"), Range(0, 1000)]
         [InfoBox("释放该技能动作实际消耗的法力值", InfoMessageType.Info)]
@@ -42,19 +32,10 @@ namespace Astrum.Editor.RoleEditor.Data
         [ShowInInspector]
         public float ActualCooldownSeconds => ActualCooldown / 60f;
         
-        [TitleGroup("攻击碰撞盒")]
-        [LabelText("碰撞盒信息")]
-        [InfoBox("碰撞盒配置字符串，格式待定", InfoMessageType.None)]
-        [MultiLineProperty(3)]
-        public string AttackBoxInfo = "";
+        // === 触发帧数据（不在配置面板显示，在时间轴编辑） ===
         
-        [TitleGroup("触发帧配置")]
-        [LabelText("触发帧字符串")]
-        [InfoBox("格式: Frame5:Collision:4001,Frame10:Direct:4002", InfoMessageType.Info)]
-        [MultiLineProperty(5)]
+        [HideInInspector]
         public string TriggerFrames = "";
-        
-        // === 解析后的触发帧数据 ===
         
         [HideInInspector]
         public List<TriggerFrameData> TriggerEffects = new List<TriggerFrameData>();
@@ -86,11 +67,8 @@ namespace Astrum.Editor.RoleEditor.Data
             data.TimelineEvents = new List<TimelineEvent>();
             
             // 技能专属字段
-            data.SkillId = 0;
-            data.SkillName = "";
             data.ActualCost = 0;
             data.ActualCooldown = 60;
-            data.AttackBoxInfo = "";
             data.TriggerFrames = "";
             data.TriggerEffects = new List<TriggerFrameData>();
             
@@ -131,11 +109,8 @@ namespace Astrum.Editor.RoleEditor.Data
             }
             
             // 技能专属字段
-            clone.SkillId = this.SkillId;
-            clone.SkillName = this.SkillName;
             clone.ActualCost = this.ActualCost;
             clone.ActualCooldown = this.ActualCooldown;
-            clone.AttackBoxInfo = this.AttackBoxInfo;
             clone.TriggerFrames = this.TriggerFrames;
             
             // 深拷贝触发帧数据
@@ -146,6 +121,7 @@ namespace Astrum.Editor.RoleEditor.Data
                 {
                     Frame = effect.Frame,
                     TriggerType = effect.TriggerType,
+                    CollisionInfo = effect.CollisionInfo,
                     EffectId = effect.EffectId
                 });
             }
@@ -236,11 +212,12 @@ namespace Astrum.Editor.RoleEditor.Data
     {
         public int Frame;
         public string TriggerType; // Collision, Direct, Condition
+        public string CollisionInfo; // 碰撞盒信息（仅Collision类型使用）格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point
         public int EffectId;
         
         /// <summary>
         /// 解析字符串为触发帧列表
-        /// 格式: "Frame5:Collision:4001,Frame10:Direct:4002"
+        /// 格式: "Frame5:Collision(Box:5x2x1):4001,Frame10:Direct:4002"
         /// </summary>
         public static List<TriggerFrameData> ParseFromString(string triggerFramesStr)
         {
@@ -259,7 +236,7 @@ namespace Astrum.Editor.RoleEditor.Data
                         continue;
                     
                     string[] parts = trimmed.Split(':');
-                    if (parts.Length != 3)
+                    if (parts.Length < 3)
                     {
                         Debug.LogWarning($"[TriggerFrameData] 格式错误: {trimmed}");
                         continue;
@@ -273,8 +250,23 @@ namespace Astrum.Editor.RoleEditor.Data
                         continue;
                     }
                     
-                    // 解析触发类型
-                    string triggerType = parts[1].Trim();
+                    // 解析触发类型和碰撞盒信息
+                    string triggerPart = parts[1].Trim();
+                    string triggerType = triggerPart;
+                    string collisionInfo = "";
+                    
+                    // 检查是否包含碰撞盒信息 (格式：Collision(Box:5x2x1))
+                    if (triggerPart.Contains("(") && triggerPart.Contains(")"))
+                    {
+                        int startIndex = triggerPart.IndexOf('(');
+                        int endIndex = triggerPart.IndexOf(')');
+                        
+                        if (startIndex >= 0 && endIndex > startIndex)
+                        {
+                            triggerType = triggerPart.Substring(0, startIndex).Trim();
+                            collisionInfo = triggerPart.Substring(startIndex + 1, endIndex - startIndex - 1).Trim();
+                        }
+                    }
                     
                     // 解析效果ID
                     if (!int.TryParse(parts[2].Trim(), out int effectId))
@@ -287,6 +279,7 @@ namespace Astrum.Editor.RoleEditor.Data
                     {
                         Frame = frameNum,
                         TriggerType = triggerType,
+                        CollisionInfo = collisionInfo,
                         EffectId = effectId
                     });
                 }
@@ -309,7 +302,16 @@ namespace Astrum.Editor.RoleEditor.Data
             
             var parts = triggerEffects
                 .OrderBy(t => t.Frame)
-                .Select(t => $"Frame{t.Frame}:{t.TriggerType}:{t.EffectId}");
+                .Select(t => 
+                {
+                    // 如果有碰撞盒信息，格式化为 Collision(Box:5x2x1)
+                    string triggerPart = t.TriggerType;
+                    if (!string.IsNullOrEmpty(t.CollisionInfo))
+                    {
+                        triggerPart = $"{t.TriggerType}({t.CollisionInfo})";
+                    }
+                    return $"Frame{t.Frame}:{triggerPart}:{t.EffectId}";
+                });
             
             return string.Join(",", parts);
         }

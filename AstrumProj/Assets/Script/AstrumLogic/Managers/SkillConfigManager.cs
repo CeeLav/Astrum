@@ -124,10 +124,9 @@ namespace Astrum.LogicCore.Managers
             // 6. 解析触发帧（关键：应用技能等级，同时解析碰撞形状）
             skillActionInfo.TriggerEffects = ParseTriggerFrames(
                 skillActionInfo.TriggerFrames,
-                skillActionInfo.AttackBoxInfo,
                 skillLevel
             );
-            ASLogger.Instance.Info($"Parse SkillID:{skillActionInfo.SkillId} TriggerEffects count: {skillActionInfo.TriggerEffects.Count}");
+            ASLogger.Instance.Info($"Parse SkillAction:{actionId} TriggerEffects count: {skillActionInfo.TriggerEffects.Count}");
             
             
             ASLogger.Instance.Debug($"SkillConfigManager: Built SkillActionInfo {actionId} for skill level {skillLevel}");
@@ -211,90 +210,113 @@ namespace Astrum.LogicCore.Managers
         
         /// <summary>
         /// 解析触发帧信息（应用等级映射，并解析碰撞形状）
-        /// 格式：Frame5:Collision:10000,Frame8:Direct:10100
+        /// 新格式：Frame5:Collision(Box:5x2x1):10000,Frame8:Direct:10100
         /// </summary>
-        public List<TriggerFrameInfo> ParseTriggerFrames(string triggerFramesStr, string attackBoxInfo, int skillLevel)
+        public List<TriggerFrameInfo> ParseTriggerFrames(string triggerFramesStr, int skillLevel)
         {
             var results = new List<TriggerFrameInfo>();
             
             if (string.IsNullOrEmpty(triggerFramesStr))
                 return results;
             
-            // 1. 预先解析 AttackBoxInfo，得到碰撞形状列表
-            List<Physics.CollisionShape> collisionShapes = new List<Physics.CollisionShape>();
-            if (!string.IsNullOrEmpty(attackBoxInfo))
-            {
-                collisionShapes = Physics.CollisionDataParser.Parse(attackBoxInfo);
-                if (collisionShapes == null)
-                {
-                    ASLogger.Instance.Warning($"Failed to parse AttackBoxInfo: {attackBoxInfo}");
-                    collisionShapes = new List<Physics.CollisionShape>();
-                }
-            }
-            
-            // 2. 解析触发帧字符串
+            // 解析触发帧字符串
             var parts = triggerFramesStr.Split(',');
             foreach (var part in parts)
             {
-                var segments = part.Trim().Split(':');
-                if (segments.Length >= 3)
+                string trimmed = part.Trim();
+                if (string.IsNullOrEmpty(trimmed))
+                    continue;
+                
+                var segments = trimmed.Split(':');
+                if (segments.Length < 3)
                 {
-                    // 解析帧号
-                    var frameStr = segments[0].Replace("Frame", "").Trim();
-                    if (!int.TryParse(frameStr, out var frame))
-                        continue;
+                    ASLogger.Instance.Warning($"Invalid trigger frame format: {trimmed}");
+                    continue;
+                }
+                
+                // 解析帧号 (移除 "Frame" 前缀)
+                var frameStr = segments[0].Replace("Frame", "").Trim();
+                if (!int.TryParse(frameStr, out var frame))
+                {
+                    ASLogger.Instance.Warning($"Failed to parse frame number: {segments[0]}");
+                    continue;
+                }
+                
+                // 解析触发类型和碰撞盒信息
+                string triggerPart = segments[1].Trim();
+                string triggerType = triggerPart;
+                string collisionInfo = "";
+                
+                // 检查是否包含碰撞盒信息 (格式：Collision(Box:5x2x1))
+                if (triggerPart.Contains("(") && triggerPart.Contains(")"))
+                {
+                    int startIndex = triggerPart.IndexOf('(');
+                    int endIndex = triggerPart.IndexOf(')');
                     
-                    // 解析触发类型
-                    var triggerType = segments[1].Trim();
-                    
-                    // 解析基础效果ID
-                    if (!int.TryParse(segments[2].Trim(), out var baseEffectId))
-                        continue;
+                    if (startIndex >= 0 && endIndex > startIndex)
+                    {
+                        triggerType = triggerPart.Substring(0, startIndex).Trim();
+                        collisionInfo = triggerPart.Substring(startIndex + 1, endIndex - startIndex - 1).Trim();
+                    }
+                }
+                
+                // 解析基础效果ID
+                if (!int.TryParse(segments[2].Trim(), out var baseEffectId))
+                {
+                    ASLogger.Instance.Warning($"Failed to parse effect ID: {segments[2]}");
+                    continue;
+                }
                     
                     // 应用等级映射获取实际效果ID
                     var effectResult = GetEffectValue(baseEffectId, skillLevel);
                     
-                    if (effectResult.EffectData != null)
+                if (effectResult.EffectData != null)
+                {
+                    // 构造 TriggerFrameInfo
+                    TriggerFrameInfo triggerInfo = new TriggerFrameInfo
                     {
-                        // 3. 构造 TriggerFrameInfo
-                        TriggerFrameInfo triggerInfo = new TriggerFrameInfo
+                        Frame = frame,
+                        TriggerType = triggerType,
+                        EffectId = effectResult.EffectId
+                    };
+                    
+                    // 如果是 Collision 类型，从内联的碰撞盒信息解析 CollisionShape
+                    if (triggerType.Equals("Collision", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!string.IsNullOrEmpty(collisionInfo))
                         {
-                            Frame = frame,
-                            TriggerType = triggerType,
-                            EffectId = effectResult.EffectId
-                        };
-                        
-                        // 4. 如果是 Collision 类型，附加碰撞形状
-                        if (triggerType.Equals("Collision", System.StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (collisionShapes.Count > 0)
+                            var collisionShape = SkillSystem.CollisionInfoParser.Parse(collisionInfo);
+                            if (collisionShape.HasValue)
                             {
-                                // 使用第一个碰撞形状（简化实现）
-                                triggerInfo.CollisionShape = collisionShapes[0];
+                                triggerInfo.CollisionShape = collisionShape.Value;
                             }
                             else
                             {
-                                ASLogger.Instance.Warning($"Collision trigger at frame {frame} but no collision shape available");
+                                ASLogger.Instance.Warning($"Failed to parse collision info: {collisionInfo} at frame {frame}");
                             }
                         }
-                        
-                        // 5. 如果是 Condition 类型，解析条件（可选）
-                        if (triggerType.Equals("Condition", System.StringComparison.OrdinalIgnoreCase))
+                        else
                         {
-                            if (segments.Length >= 4)
-                            {
-                                triggerInfo.Condition = ParseCondition(segments[3]);
-                            }
+                            ASLogger.Instance.Warning($"Collision trigger at frame {frame} but no collision info provided");
                         }
-                        
-                        results.Add(triggerInfo);
-                        
-                        ASLogger.Instance.Debug($"Parsed trigger Frame{frame}:{triggerType} → Effect {effectResult.EffectId}");
                     }
-                    else
+                    
+                    // 如果是 Condition 类型，解析条件（可选）
+                    if (triggerType.Equals("Condition", System.StringComparison.OrdinalIgnoreCase))
                     {
-                        ASLogger.Instance.Warning($"Failed to get effect for base {baseEffectId} level {skillLevel}");
+                        if (!string.IsNullOrEmpty(collisionInfo))
+                        {
+                            triggerInfo.Condition = ParseCondition(collisionInfo);
+                        }
                     }
+                    
+                    results.Add(triggerInfo);
+                    
+                    ASLogger.Instance.Debug($"Parsed trigger Frame{frame}:{triggerType} → Effect {effectResult.EffectId}");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"Failed to get effect for base {baseEffectId} level {skillLevel}");
                 }
             }
             

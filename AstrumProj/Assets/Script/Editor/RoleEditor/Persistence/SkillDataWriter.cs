@@ -156,8 +156,6 @@ namespace Astrum.Editor.RoleEditor.Persistence
             var data = new SkillActionTableData
             {
                 ActionId = action.ActionId,
-                SkillId = action.SkillId,
-                AttackBoxInfo = action.AttackBoxInfo ?? "",
                 ActualCost = action.ActualCost,
                 ActualCooldown = action.ActualCooldown
             };

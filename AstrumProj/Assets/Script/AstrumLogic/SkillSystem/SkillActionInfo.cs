@@ -12,12 +12,6 @@ namespace Astrum.LogicCore.SkillSystem
     [MemoryPackable]
     public partial class SkillActionInfo : NormalActionInfo
     {
-        /// <summary>所属技能ID</summary>
-        public int SkillId { get; set; } = 0;
-        
-        /// <summary>攻击碰撞盒信息（字符串格式，后续可解析）</summary>
-        public string AttackBoxInfo { get; set; } = string.Empty;
-        
         /// <summary>实际法力消耗（暂不使用，预留）</summary>
         public int ActualCost { get; set; } = 0;
         
@@ -49,13 +43,11 @@ namespace Astrum.LogicCore.SkillSystem
             List<TempBeCancelledTag> tempBeCancelledTags, List<ActionCommand> commands, int autoNextActionId,
             bool keepPlayingAnim, bool autoTerminate, int priority, int duration,
             // 派生类SkillActionInfo的参数
-            int skillId, string attackBoxInfo, int actualCost, int actualCooldown, 
+            int actualCost, int actualCooldown, 
             string triggerFrames, List<TriggerFrameInfo> triggerEffects)
             : base(id, catalog, cancelTags, beCancelledTags, tempBeCancelledTags, commands,
                    autoNextActionId, keepPlayingAnim, autoTerminate, priority, duration)
         {
-            SkillId = skillId;
-            AttackBoxInfo = attackBoxInfo ?? string.Empty;
             ActualCost = actualCost;
             ActualCooldown = actualCooldown;
             TriggerFrames = triggerFrames ?? string.Empty;
