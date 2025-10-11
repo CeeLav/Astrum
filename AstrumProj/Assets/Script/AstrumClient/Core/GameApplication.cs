@@ -89,8 +89,6 @@ namespace Astrum.Client.Core
             }
         }
         
-        //public GameLauncher gameLauncher;
-        
         public void StartGame()
         {
             // 设置目标帧率
