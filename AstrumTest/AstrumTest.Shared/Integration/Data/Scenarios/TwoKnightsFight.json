@@ -1,0 +1,167 @@
+{
+  "name": "两个骑士对战",
+  "description": "测试基础战斗逻辑 - 逐帧验证",
+  
+  "entityTemplates": [
+    {
+      "templateId": "knight1",
+      "roleId": 1001,
+      "team": 1,
+      "customHealth": 500
+    },
+    {
+      "templateId": "knight2",
+      "roleId": 1001,
+      "team": 2,
+      "customHealth": 500
+    }
+  ],
+  
+  "frames": [
+    {
+      "frameNumber": 0,
+      "comment": "创建两个骑士并验证初始状态",
+      "inputs": [
+        {
+          "type": "CreateEntity",
+          "templateId": "knight1",
+          "position": {"x": 0, "y": 0, "z": 0},
+          "entityId": "entity_0"
+        },
+        {
+          "type": "CreateEntity",
+          "templateId": "knight2",
+          "position": {"x": 1.2, "y": 0, "z": 0},
+          "entityId": "entity_1"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "entity_0",
+          "resultKey": "knight1_hp"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "entity_1",
+          "resultKey": "knight2_hp"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "entity_0",
+          "resultKey": "knight1_alive"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "entity_1",
+          "resultKey": "knight2_alive"
+        }
+      ],
+      "expectedOutputs": {
+        "knight1_hp": "500",
+        "knight2_hp": "500",
+        "knight1_alive": "True",
+        "knight2_alive": "True"
+      }
+    },
+    {
+      "frameNumber": 10,
+      "comment": "骑士1开始攻击骑士2",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "entity_0",
+          "skillId": 3001,
+          "targetId": "entity_1"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityAction",
+          "entityId": "entity_0",
+          "resultKey": "knight1_action"
+        }
+      ],
+      "expectedOutputs": {
+        "knight1_action": "CastingSkill"
+      }
+    },
+    {
+      "frameNumber": 30,
+      "comment": "技能命中，验证骑士2受到伤害",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "entity_1",
+          "resultKey": "knight2_hp"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "entity_1",
+          "resultKey": "knight2_alive"
+        }
+      ],
+      "expectedOutputs": {
+        "knight2_hp": {"min": 400, "max": 470},
+        "knight2_alive": "True"
+      }
+    },
+    {
+      "frameNumber": 60,
+      "comment": "骑士2反击",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "entity_1",
+          "skillId": 3001,
+          "targetId": "entity_0"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityAction",
+          "entityId": "entity_1",
+          "resultKey": "knight2_action"
+        }
+      ],
+      "expectedOutputs": {
+        "knight2_action": "CastingSkill"
+      }
+    },
+    {
+      "frameNumber": 80,
+      "comment": "反击命中，验证双方血量",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "entity_0",
+          "resultKey": "knight1_hp"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "entity_1",
+          "resultKey": "knight2_hp"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "entity_0",
+          "resultKey": "knight1_alive"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "entity_1",
+          "resultKey": "knight2_alive"
+        }
+      ],
+      "expectedOutputs": {
+        "knight1_hp": {"min": 400, "max": 470},
+        "knight2_hp": {"min": 400, "max": 470},
+        "knight1_alive": "True",
+        "knight2_alive": "True"
+      }
+    }
+  ]
+}
+
