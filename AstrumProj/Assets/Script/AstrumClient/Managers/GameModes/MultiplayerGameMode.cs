@@ -176,7 +176,18 @@ namespace Astrum.Client.Managers.GameModes
             if (eventData.BornInfo == UserManager.Instance.UserId.GetHashCode())
             {
                 PlayerId = eventData.PlayerID;
-                MainRoom.LSController.MaxPredictionFrames = 5;
+                
+                // 关键：设置 Room.MainPlayerId，否则 LSController 不会发布输入事件
+                if (MainRoom != null)
+                {
+                    MainRoom.MainPlayerId = eventData.PlayerID;
+                }
+                
+                if (MainRoom?.LSController != null)
+                {
+                    MainRoom.LSController.MaxPredictionFrames = 5;
+                }
+                
                 ASLogger.Instance.Info("MultiplayerGameMode: 主玩家创建完成, ID: " + PlayerId);
                 
                 // 设置相机跟随主玩家
