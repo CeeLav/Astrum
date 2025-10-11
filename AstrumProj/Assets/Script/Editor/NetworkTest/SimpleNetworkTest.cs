@@ -17,7 +17,7 @@ namespace Astrum.Editor
         /// 运行简单网络测试
         /// 可通过命令行调用: Unity.exe -batchmode -quit -executeMethod Astrum.Editor.SimpleNetworkTest.RunSimpleNetworkTest
         /// </summary>
-        [MenuItem("Tests/Run Simple Network Test")]
+        [MenuItem("Astrum/Testing 测试/Network 网络测试/Full Test Suite 完整测试套件", false, 202)]
         public static async void RunSimpleNetworkTest()
         {
             Debug.Log("=== 开始简单网络测试 ===");
@@ -162,7 +162,7 @@ namespace Astrum.Editor
         /// <summary>
         /// 运行连接性能测试
         /// </summary>
-        [MenuItem("Tests/Run Connection Performance Test")]
+        [MenuItem("Astrum/Testing 测试/Network 网络测试/Connection Performance Test 连接性能测试", false, 201)]
         public static async void RunPerformanceTest()
         {
             Debug.Log("=== 开始连接性能测试 ===");

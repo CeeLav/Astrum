@@ -32,7 +32,7 @@ namespace Astrum.Editor.ASLogger
         private int _totalLogs = 0;
         private int _enabledLogs = 0;
         
-        [MenuItem("Tools/ASLogger Manager")]
+        [MenuItem("Astrum/Tools 工具/ASLogger Manager 日志管理器", false, 50)]
         public static void ShowWindow()
         {
             var window = GetWindow<ASLoggerManagerWindow>("ASLogger Manager");
