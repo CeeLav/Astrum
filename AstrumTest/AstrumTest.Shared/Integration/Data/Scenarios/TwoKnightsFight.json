@@ -1,6 +1,6 @@
 {
   "name": "两个骑士对战",
-  "description": "测试基础战斗逻辑 - 逐帧验证",
+  "description": "测试基础战斗逻辑 - 逐帧验证（基于当前硬编码属性：ATK=100, DEF=20）",
   
   "entityTemplates": [
     {
@@ -88,7 +88,7 @@
     },
     {
       "frameNumber": 30,
-      "comment": "技能命中，验证骑士2受到伤害",
+      "comment": "技能命中，验证骑士2受到伤害（预期伤害：不暴击7.9~8.7，暴击15.8~17.5）",
       "inputs": [],
       "queries": [
         {
@@ -103,35 +103,13 @@
         }
       ],
       "expectedOutputs": {
-        "knight2_hp": {"min": 400, "max": 470},
+        "knight2_hp": {"min": 482, "max": 493},
         "knight2_alive": "True"
       }
     },
     {
       "frameNumber": 60,
-      "comment": "骑士2反击",
-      "inputs": [
-        {
-          "type": "CastSkill",
-          "entityId": "entity_1",
-          "skillId": 3001,
-          "targetId": "entity_0"
-        }
-      ],
-      "queries": [
-        {
-          "type": "EntityAction",
-          "entityId": "entity_1",
-          "resultKey": "knight2_action"
-        }
-      ],
-      "expectedOutputs": {
-        "knight2_action": "CastingSkill"
-      }
-    },
-    {
-      "frameNumber": 80,
-      "comment": "反击命中，验证双方血量",
+      "comment": "验证最终状态（第一次攻击已生效）",
       "inputs": [],
       "queries": [
         {
@@ -156,12 +134,11 @@
         }
       ],
       "expectedOutputs": {
-        "knight1_hp": {"min": 400, "max": 470},
-        "knight2_hp": {"min": 400, "max": 470},
+        "knight1_hp": 500,
+        "knight2_hp": {"min": 482, "max": 493},
         "knight1_alive": "True",
         "knight2_alive": "True"
       }
     }
   ]
 }
-

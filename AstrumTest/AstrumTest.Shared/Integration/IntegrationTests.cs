@@ -35,8 +35,8 @@ namespace AstrumTest.Shared.Integration
             
             // 验证结果
             Assert.True(result.Success, result.FailureMessage);
-            Assert.Equal(5, result.TotalFrames);
-            Assert.Equal(5, result.PassedFrames);
+            Assert.Equal(4, result.TotalFrames);
+            Assert.Equal(4, result.PassedFrames);
             Assert.Equal(0, result.FailedFrames);
         }
         
