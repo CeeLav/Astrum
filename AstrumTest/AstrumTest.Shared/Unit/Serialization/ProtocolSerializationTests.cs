@@ -11,6 +11,9 @@ namespace AstrumTest
     /// <summary>
     /// 协议序列化/反序列化测试
     /// </summary>
+    [Trait("TestLevel", "Unit")]        // 纯单元测试：序列化/反序列化
+    [Trait("Category", "Unit")]
+    [Trait("Module", "Network")]
     public class ProtocolSerializationTests
     {
         private readonly ITestOutputHelper _output;

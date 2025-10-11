@@ -12,6 +12,7 @@ namespace AstrumTest.PhysicsTests
     /// HitManager 测试
     /// 验证碰撞检测功能的正确性
     /// </summary>
+    [Trait("TestLevel", "Component")]   // 组件测试：单模块 + 物理引擎依赖
     [Trait("Category", "Unit")]
     [Trait("Module", "Physics")]
     [Trait("Priority", "High")]

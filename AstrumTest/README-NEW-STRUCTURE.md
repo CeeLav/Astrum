@@ -1,6 +1,6 @@
 # Astrum 测试项目 - 新结构
 
-> 🧪 按部署单元和测试类型组织的测试框架
+> 🧪 按部署单元和测试层级组织的测试框架
 
 ---
 
@@ -9,111 +9,131 @@
 ```plaintext
 AstrumTest/
 ├── AstrumTest.Shared/          # 共享逻辑测试（最重要）
-│   ├── Unit/                   # 单元测试
+│   ├── Unit/                   # 单元测试 + 组件测试
 │   │   ├── Physics/           # 物理系统测试
-│   │   ├── Components/        # 组件测试
+│   │   │   ├── TypeConverterTests.cs      [TestLevel=Unit]
+│   │   │   └── HitManagerTests.cs         [TestLevel=Component]
 │   │   ├── Serialization/     # 序列化测试
-│   │   ├── ECS/              # ECS系统测试
-│   │   └── Network/          # 网络基础测试
-│   ├── Integration/           # 集成测试
-│   │   ├── Physics/          # 物理集成测试
-│   │   ├── Skill/            # 技能系统集成测试
-│   │   └── Config/           # 配置系统集成测试
+│   │   │   └── ProtocolSerializationTests.cs [TestLevel=Unit]
+│   │   ├── Skill/             # 技能系统测试
+│   │   ├── Config/            # 配置系统测试
+│   │   ├── ECS/               # ECS系统测试
+│   │   └── Network/           # 网络基础测试
+│   ├── Integration/           # 集成测试（完整游戏流程）
+│   │   └── [留空，等待真正的集成测试]
 │   └── Fixtures/             # 测试基础设施
 │       ├── ConfigFixture.cs
 │       └── SharedTestScenario.cs
 │
 ├── AstrumTest.Client/          # 客户端测试
-│   ├── Unit/                  # 客户端单元测试
-│   │   ├── Managers/         # 管理器测试
-│   │   └── View/             # 视图层测试
-│   └── Integration/          # 客户端集成测试
+│   ├── Unit/
+│   └── Integration/
 │
 ├── AstrumTest.Server/          # 服务器测试
-│   ├── Unit/                  # 服务器单元测试
-│   │   ├── Managers/         # 管理器测试
-│   │   └── Handlers/         # 消息处理器测试
-│   └── Integration/          # 服务器集成测试
+│   ├── Unit/
+│   └── Integration/
 │
-└── AstrumTest.E2E/            # 端到端测试
-    ├── LoginE2ETests.cs      # 登录流程测试
-    ├── RoomE2ETests.cs       # 房间系统测试
-    └── CombatE2ETests.cs     # 战斗流程测试
+└── AstrumTest.E2E/            # 端到端测试（客户端-服务器）
 ```
 
 ---
 
-## 🚀 快速开始
+## 🎯 测试层级定义
 
-### 运行所有测试
+### TestLevel 分类
+
+| TestLevel | 特点 | 依赖 | 速度 | 示例 |
+|-----------|------|------|------|------|
+| **Unit** | 纯函数，无外部依赖 | 无 | <10ms | TypeConverterTests |
+| **Component** | 单个模块+少量依赖 | 单模块 | 10-100ms | HitManagerTests |
+| **Integration** | 完整游戏流程 | 多模块 | 100ms+ | 完整战斗流程 |
+
+### 使用 Trait 标记
+
+```csharp
+// 纯单元测试
+[Trait("TestLevel", "Unit")]
+[Trait("Category", "Unit")]
+[Trait("Module", "Physics")]
+public class TypeConverterTests { }
+
+// 组件测试
+[Trait("TestLevel", "Component")]
+[Trait("Category", "Unit")]
+[Trait("Module", "Physics")]
+public class HitManagerTests { }
+
+// 集成测试（未来）
+[Trait("TestLevel", "Integration")]
+[Trait("Category", "Integration")]
+[Trait("Flow", "Combat")]
+public class CombatFlowTests { }
+```
+
+---
+
+## 🚀 运行测试
+
+### 按测试层级运行
 
 ```bash
-# 运行所有测试项目
-.\run-test-new.ps1 -Project All
+# 只运行纯单元测试（最快）
+dotnet test AstrumTest.Shared --filter "TestLevel=Unit"
 
-# 或分别运行
+# 只运行组件测试
+dotnet test AstrumTest.Shared --filter "TestLevel=Component"
+
+# 运行单元 + 组件测试（推荐日常使用）
+dotnet test AstrumTest.Shared --filter "TestLevel=Unit|TestLevel=Component"
+
+# 运行完整流程集成测试（未来）
+dotnet test AstrumTest.Shared --filter "TestLevel=Integration"
+```
+
+### 按项目运行
+
+```bash
+# 运行所有共享代码测试（推荐）
 dotnet test AstrumTest.Shared
+
+# 运行所有客户端测试
 dotnet test AstrumTest.Client
+
+# 运行所有服务器测试
 dotnet test AstrumTest.Server
+
+# 运行所有E2E测试
 dotnet test AstrumTest.E2E
 ```
 
-### 运行特定项目的测试
+### 使用便捷脚本
 
 ```bash
-# 只运行共享代码测试（推荐优先运行）
+# 运行共享代码测试
 .\run-test-new.ps1 -Project Shared
 
-# 只运行客户端测试
-.\run-test-new.ps1 -Project Client
-
-# 只运行服务器测试
-.\run-test-new.ps1 -Project Server
-
-# 只运行端到端测试
-.\run-test-new.ps1 -Project E2E
-```
-
-### 按类别运行
-
-```bash
-# 只运行共享代码的单元测试
-.\run-test-new.ps1 -Project Shared -Category Unit
-
-# 只运行共享代码的集成测试
-.\run-test-new.ps1 -Project Shared -Category Integration
-```
-
-### 按模块运行
-
-```bash
-# 只运行物理模块的单元测试
-.\run-test-new.ps1 -Project Shared -Category Unit -Module Physics
-
-# 运行技能模块的集成测试
-.\run-test-new.ps1 -Project Shared -Category Integration -Module Skill
+# 运行所有项目测试
+.\run-test-new.ps1 -Project All
 ```
 
 ---
 
-## 📊 测试分类
+## 📊 当前测试统计
 
-### 按项目分类
+### AstrumTest.Shared 测试覆盖
 
-| 项目 | 包含内容 | 测试对象 |
-|------|----------|----------|
-| **Shared** | 共享逻辑代码测试 | AstrumLogic, CommonBase, Network |
-| **Client** | 客户端专属测试 | AstrumClient, AstrumView |
-| **Server** | 服务器专属测试 | AstrumServer |
-| **E2E** | 端到端测试 | 完整的客户端-服务器流程 |
+| 测试类 | TestLevel | 测试数 | 状态 | 功能 |
+|--------|-----------|--------|------|------|
+| TypeConverterTests | Unit | 20 | ✅ | TrueSync ↔ BEPU 类型转换 |
+| ProtocolSerializationTests | Unit | 8 | ✅ | 网络协议序列化 |
+| HitManagerTests | Component | 14 | ✅ | 碰撞检测和命中管理 |
+| EntityConfigTests | Component | 4 | ✅ | 实体配置和创建 |
+| SkillEffectTests | Component | 5 | ✅ | 技能效果处理 |
 
-### 按测试类型分类
-
-| 类型 | 特点 | 运行速度 | 依赖 |
-|------|------|----------|------|
-| **Unit** | 单元测试 | 快速 | 最小依赖 |
-| **Integration** | 集成测试 | 中等 | 多个模块 |
-| **E2E** | 端到端测试 | 较慢 | 完整环境 |
+**总计**: 51个测试
+- **Unit (纯单元)**: 28个测试
+- **Component (组件)**: 23个测试  
+- **Integration (流程)**: 0个测试（待创建）
 
 ---
 
@@ -121,9 +141,11 @@ dotnet test AstrumTest.E2E
 
 ```plaintext
 AstrumTest.Shared
-  ├── AstrumLogic.dll (Unity程序集)
-  ├── CommonBase.dll (Unity程序集)
-  └── Network.dll (Unity程序集)
+  ├── AstrumLogic (直接包含源代码)
+  ├── CommonBase (直接包含源代码)
+  ├── Generated (直接包含源代码)
+  ├── Network.dll (Unity程序集)
+  └── Luban.Runtime.dll (Unity程序集)
 
 AstrumTest.Client
   ├── AstrumTest.Shared (项目引用)
@@ -132,7 +154,7 @@ AstrumTest.Client
 
 AstrumTest.Server
   ├── AstrumTest.Shared (项目引用)
-  └── AstrumServer (项目引用)
+  └── AstrumServer.csproj (项目引用)
 
 AstrumTest.E2E
   ├── AstrumTest.Shared (项目引用)
@@ -142,139 +164,78 @@ AstrumTest.E2E
 
 ---
 
-## 📝 编写测试指南
+## 💡 测试分类原则
 
-### 共享代码测试（最重要）
+### Unit（纯单元测试）
+- ✅ 纯函数，无外部依赖
+- ✅ 确定性输出
+- ✅ 速度极快（<10ms）
+- ✅ 示例：数学计算、类型转换、序列化
 
-共享代码是核心逻辑，测试要求最严格：
+### Component（组件测试）
+- ✅ 测试单个模块或系统
+- ✅ 可以有少量依赖（如物理引擎、配置系统）
+- ✅ 速度较快（10-100ms）
+- ✅ 示例：碰撞检测、技能效果、实体创建
 
-```csharp
-// AstrumTest.Shared/Unit/Physics/MyPhysicsTest.cs
-using Xunit;
-using TrueSync;
-
-namespace AstrumTest.Shared.Unit.Physics
-{
-    [Trait("TestCategory", "Unit")]
-    [Trait("Module", "Physics")]
-    [Trait("Priority", "High")]
-    public class MyPhysicsTest
-    {
-        [Fact]
-        public void Test_PhysicsCalculation()
-        {
-            // 测试纯函数，无依赖
-            var result = TSVector.Dot(TSVector.one, TSVector.up);
-            Assert.Equal(FP.One, result);
-        }
-    }
-}
-```
-
-### 集成测试示例
-
-```csharp
-// AstrumTest.Shared/Integration/Skill/SkillFlowTest.cs
-using Xunit;
-using AstrumTest.Shared.Fixtures;
-
-namespace AstrumTest.Shared.Integration.Skill
-{
-    [Collection("Shared Test Collection")]
-    [Trait("TestCategory", "Integration")]
-    [Trait("Module", "Skill")]
-    public class SkillFlowTest
-    {
-        private readonly SharedTestScenario _scenario;
-        
-        public SkillFlowTest(SharedTestScenario scenario)
-        {
-            _scenario = scenario;
-        }
-        
-        [Fact]
-        public void Test_SkillExecution_CompleteFlow()
-        {
-            // 使用预初始化的测试环境
-            var caster = _scenario.EntityFactory.CreateEntity(1001, _scenario.World);
-            var target = _scenario.EntityFactory.CreateEntity(1001, _scenario.World);
-            
-            // 执行技能
-            // ...
-            
-            // 验证结果
-            Assert.True(target.GetComponent<HealthComponent>().CurrentHealth < 100);
-        }
-    }
-}
-```
+### Integration（集成测试）
+- ✅ 测试完整的游戏流程
+- ✅ 模拟真实游戏环境
+- ✅ 多个系统协同工作
+- ✅ 速度较慢（100ms+）
+- ✅ 示例：完整战斗流程、房间匹配流程、登录流程
 
 ---
 
-## 🎯 CI/CD 集成
+## 🎯 开发工作流
 
-推荐的 CI/CD 流程：
+### 开发新功能时
+
+```bash
+# 1. 先写纯单元测试（TDD）
+dotnet test --filter "TestLevel=Unit&Module=Physics"
+
+# 2. 再写组件测试
+dotnet test --filter "TestLevel=Component&Module=Physics"
+
+# 3. 提交前运行所有相关测试
+dotnet test AstrumTest.Shared --filter "Module=Physics"
+```
+
+### CI/CD 流水线
 
 ```yaml
-# .github/workflows/test.yml
-jobs:
-  test-shared:
-    name: 共享代码测试
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Test Shared
-        run: dotnet test AstrumTest.Shared
+# 分阶段运行
+Stage 1: 纯单元测试 (最快，每次提交都跑)
+  dotnet test --filter "TestLevel=Unit"
   
-  test-client:
-    name: 客户端测试
-    needs: test-shared
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Test Client
-        run: dotnet test AstrumTest.Client
+Stage 2: 组件测试 (中速，每次提交都跑)
+  dotnet test --filter "TestLevel=Component"
   
-  test-server:
-    name: 服务器测试
-    needs: test-shared
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Test Server
-        run: dotnet test AstrumTest.Server
-  
-  test-e2e:
-    name: 端到端测试
-    needs: [test-client, test-server]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Test E2E
-        run: dotnet test AstrumTest.E2E
+Stage 3: 集成测试 (慢速，重要改动时跑)
+  dotnet test --filter "TestLevel=Integration"
 ```
 
 ---
 
-## 🆚 新旧结构对比
+## 📚 当前测试文件
 
-| 方面 | 旧结构 | 新结构 |
-|------|--------|--------|
-| **组织方式** | 单一项目 | 4个独立项目 |
-| **职责划分** | 混合 | 按部署单元明确划分 |
-| **编译隔离** | 无 | 完全隔离 |
-| **运行速度** | 需运行全部 | 可按需运行 |
-| **依赖管理** | 混乱 | 清晰的依赖关系 |
-| **CI/CD** | 一次性全跑 | 分阶段并行 |
+### Unit/Physics/
+- `TypeConverterTests.cs` - FP/Fix64/TSVector 类型转换测试
+- `HitManagerTests.cs` - 碰撞检测管理器测试
 
----
+### Unit/Serialization/
+- `ProtocolSerializationTests.cs` - MemoryPack 序列化测试
 
-## 💡 最佳实践
+### Unit/Skill/ (空)
+- 将来放置技能系统的组件测试
 
-1. **优先测试共享代码** - Shared 是核心，保证其质量最重要
-2. **频繁运行单元测试** - 开发时持续运行单元测试
-3. **定期运行集成测试** - 提交前运行相关集成测试
-4. **谨慎运行 E2E 测试** - E2E 测试较慢，重大改动时运行
+### Unit/Config/ (空)
+- 将来放置配置系统的组件测试
+
+### Integration/ (空)
+- 留给真正的完整流程集成测试
+- 如：完整战斗流程、房间匹配流程等
 
 ---
 
@@ -282,10 +243,8 @@ jobs:
 
 - [旧测试结构 README](./README.md)
 - [测试快速开始](../Docs/07-Development%20开发指南/Test-Quick-Start%20测试快速开始.md)
-- [测试常用命令](../Docs/07-Development%20开发指南/Test-Commands%20测试常用命令.md)
 
 ---
 
 **最后更新**: 2025-10-11  
-**版本**: 2.0 (新测试结构)
-
+**版本**: 2.1 (重新分类测试层级)

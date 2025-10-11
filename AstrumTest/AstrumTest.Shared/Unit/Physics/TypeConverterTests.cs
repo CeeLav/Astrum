@@ -10,6 +10,7 @@ namespace AstrumTest.PhysicsTests
     /// 类型转换器测试
     /// 验证 TrueSync ↔ BEPU 类型转换的正确性和确定性
     /// </summary>
+    [Trait("TestLevel", "Unit")]        // 纯单元测试：无依赖，纯函数
     [Trait("Category", "Unit")]
     [Trait("Module", "Physics")]
     [Trait("Priority", "High")]
