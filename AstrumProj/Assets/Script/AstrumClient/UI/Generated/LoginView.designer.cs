@@ -41,6 +41,15 @@ namespace Astrum.Client.UI.Generated
         // Login/ButtonContainer/ConnectButton/ButtonContent/ButtonText
         private Text buttonTextText;
 
+        // Login/ButtonContainer/SinglePlayButton
+        private Button singlePlayButtonButton;
+
+        // Login/ButtonContainer/SinglePlayButton/SingleButtonBackground
+        private Image singleButtonBackgroundImage;
+
+        // Login/ButtonContainer/SinglePlayButton/SingleButtonContent/SingleButtonText
+        private Text singleButtonTextText;
+
         #endregion
 
         #region Properties
@@ -73,6 +82,9 @@ namespace Astrum.Client.UI.Generated
             connectButtonButton = uiRefs.GetComponent<Button>("Login/ButtonContainer/ConnectButton");
             buttonBackgroundImage = uiRefs.GetComponent<Image>("Login/ButtonContainer/ConnectButton/ButtonBackground");
             buttonTextText = uiRefs.GetComponent<Text>("Login/ButtonContainer/ConnectButton/ButtonContent/ButtonText");
+            singlePlayButtonButton = uiRefs.GetComponent<Button>("Login/ButtonContainer/SinglePlayButton");
+            singleButtonBackgroundImage = uiRefs.GetComponent<Image>("Login/ButtonContainer/SinglePlayButton/SingleButtonBackground");
+            singleButtonTextText = uiRefs.GetComponent<Text>("Login/ButtonContainer/SinglePlayButton/SingleButtonContent/SingleButtonText");
         }
 
         #endregion
