@@ -38,6 +38,12 @@ namespace Astrum.Client.UI.Generated
             {
                 connectButtonButton.onClick.AddListener(OnConnectButtonClicked);
             }
+            
+            // 绑定单机游戏按钮事件
+            if (singlePlayButtonButton != null)
+            {
+                singlePlayButtonButton.onClick.AddListener(OnSinglePlayButtonClicked);
+            }
 
             // 订阅网络事件
             SubscribeToNetworkEvents();
@@ -45,6 +51,12 @@ namespace Astrum.Client.UI.Generated
             // 初始化UI状态
             UpdateConnectionStatus("未连接");
             UpdateConnectButtonText("连接服务器");
+            
+            // 初始化单机按钮文本
+            if (singleButtonTextText != null)
+            {
+                singleButtonTextText.text = "单机游戏";
+            }
         }
 
         /// <summary>
@@ -226,6 +238,42 @@ namespace Astrum.Client.UI.Generated
             }
 
             ConnectToServer();
+        }
+        
+        /// <summary>
+        /// 单机游戏按钮点击事件
+        /// </summary>
+        private void OnSinglePlayButtonClicked()
+        {
+            try
+            {
+                Debug.Log("LoginView: 启动单机游戏");
+                
+                // 1. 设置单机模式
+                Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(true);
+                
+                // 2. 启动单机游戏
+                var gamePlayManager = GameApplication.Instance?.GamePlayManager;
+                if (gamePlayManager != null)
+                {
+                    // 关闭 Login UI
+                    var uiManager = GameApplication.Instance?.UIManager;
+                    uiManager?.HideUI("Login");
+                    
+                    // 启动单机游戏（场景名称可以从配置读取，这里暂时硬编码）
+                    gamePlayManager.StartSinglePlayerGame("DungeonsGame");
+                    
+                    Debug.Log("LoginView: 单机游戏启动成功");
+                }
+                else
+                {
+                    Debug.LogError("LoginView: GamePlayManager 不存在，无法启动单机游戏");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"LoginView: 启动单机游戏失败 - {ex.Message}");
+            }
         }
 
         #endregion

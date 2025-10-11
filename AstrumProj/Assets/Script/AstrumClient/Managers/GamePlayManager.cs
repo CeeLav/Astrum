@@ -306,7 +306,40 @@ namespace Astrum.Client.Managers
         #endregion
 
 
-        #region 游戏启动方法
+        #region 游戏模式切换和启动
+        
+        /// <summary>
+        /// 切换游戏模式（如果需要）
+        /// </summary>
+        private void EnsureCorrectGameMode()
+        {
+            bool shouldBeSinglePlayer = Astrum.Client.Core.GameConfig.Instance.IsSinglePlayerMode;
+            bool isSinglePlayer = _currentGameMode is SinglePlayerGameMode;
+            
+            // 如果当前模式与配置不匹配，需要切换
+            if (shouldBeSinglePlayer != isSinglePlayer)
+            {
+                ASLogger.Instance.Info($"GamePlayManager: 游戏模式不匹配，切换模式 - 目标: {(shouldBeSinglePlayer ? "单机" : "联机")}");
+                
+                // 关闭旧模式
+                _currentGameMode?.Shutdown();
+                
+                // 创建新模式
+                if (shouldBeSinglePlayer)
+                {
+                    _currentGameMode = new SinglePlayerGameMode();
+                    ASLogger.Instance.Info("GamePlayManager: 切换到单机游戏模式");
+                }
+                else
+                {
+                    _currentGameMode = new MultiplayerGameMode();
+                    ASLogger.Instance.Info("GamePlayManager: 切换到联机游戏模式");
+                }
+                
+                // 初始化新模式
+                _currentGameMode.Initialize();
+            }
+        }
         
         /// <summary>
         /// 启动游戏（统一入口，委托给 GameMode）
@@ -314,6 +347,10 @@ namespace Astrum.Client.Managers
         /// <param name="gameSceneName">游戏场景名称</param>
         public void StartGame(string gameSceneName)
         {
+            // 确保使用正确的游戏模式
+            EnsureCorrectGameMode();
+            
+            // 委托给当前模式启动游戏
             _currentGameMode?.StartGame(gameSceneName);
         }
         
