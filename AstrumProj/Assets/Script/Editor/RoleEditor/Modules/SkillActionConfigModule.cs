@@ -29,8 +29,6 @@ namespace Astrum.Editor.RoleEditor.Modules
         private bool _attackBoxFoldout = true;
         private bool _triggerFramesFoldout = true;
         private bool _cancelTagFoldout = true;
-        private bool _eventStatsFoldout = true;
-        private bool _eventDetailFoldout = true;
         
         // === 事件 ===
         public event Action<ActionEditorData> OnActionModified;
@@ -75,14 +73,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 EditorGUILayout.Space(5);
                 
-                // 绘制取消标签和时间轴统计
+                // 绘制取消标签
                 DrawCancelTagSection();
-                DrawEventStatisticsSection();
-                
-                EditorGUILayout.Space(5);
-                
-                // 绘制事件详情
-                DrawEventDetailSection();
             }
             EditorGUILayout.EndScrollView();
             
@@ -274,92 +266,6 @@ namespace Astrum.Editor.RoleEditor.Modules
                     "• 数据自动与 CSV 同步，保存时写入 JSON 格式",
                     MessageType.None
                 );
-            }
-            
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-        
-        private void DrawEventStatisticsSection()
-        {
-            _eventStatsFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_eventStatsFoldout, "时间轴事件统计");
-            
-            if (_eventStatsFoldout)
-            {
-                EditorGUILayout.BeginVertical("box");
-                {
-                    var stats = _currentSkillAction.GetEventStatistics();
-                    
-                    DrawEventStat("🚫 被取消标签", GetStatValue(stats, "BeCancelTag"));
-                    DrawEventStat("✨ 特效", GetStatValue(stats, "VFX"));
-                    DrawEventStat("🔊 音效", GetStatValue(stats, "SFX"));
-                    DrawEventStat("📷 相机震动", GetStatValue(stats, "CameraShake"));
-                    
-                    EditorGUILayout.Space(5);
-                    
-                    if (GUILayout.Button("跳转到时间轴", GUILayout.Height(30)))
-                    {
-                        OnJumpToTimeline?.Invoke();
-                    }
-                }
-                EditorGUILayout.EndVertical();
-            }
-            
-            EditorGUILayout.EndFoldoutHeaderGroup();
-        }
-        
-        private void DrawEventStat(string label, int count)
-        {
-            EditorGUILayout.BeginHorizontal();
-            {
-                EditorGUILayout.LabelField(label, GUILayout.Width(120));
-                EditorGUILayout.LabelField(count.ToString(), EditorStyles.boldLabel, GUILayout.Width(40));
-            }
-            EditorGUILayout.EndHorizontal();
-        }
-        
-        private int GetStatValue(Dictionary<string, int> dict, string key)
-        {
-            return dict != null && dict.ContainsKey(key) ? dict[key] : 0;
-        }
-        
-        private void DrawEventDetailSection()
-        {
-            _eventDetailFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_eventDetailFoldout, "选中事件详情");
-            
-            if (_eventDetailFoldout)
-            {
-                EditorGUILayout.BeginVertical("box");
-                {
-                    if (_selectedEvent == null)
-                    {
-                        EditorGUILayout.HelpBox("请在时间轴中选择一个事件", MessageType.Info);
-                    }
-                    else
-                    {
-                        EditorGUILayout.LabelField($"事件类型: {_selectedEvent.TrackType}", EditorStyles.boldLabel);
-                        EditorGUILayout.LabelField($"事件ID: {_selectedEvent.EventId}");
-                        EditorGUILayout.LabelField($"帧范围: {_selectedEvent.StartFrame} - {_selectedEvent.EndFrame}");
-                        
-                        EditorGUILayout.Space(10);
-                        
-                        var track = Timeline.TimelineTrackRegistry.GetTrack(_selectedEvent.TrackType);
-                        if (track != null && track.EventEditor != null)
-                        {
-                            bool modified = track.EventEditor(_selectedEvent);
-                            
-                            if (modified)
-                            {
-                                _currentSkillAction?.MarkDirty();
-                                OnActionModified?.Invoke(_currentSkillAction);
-                            }
-                        }
-                        else
-                        {
-                            EditorGUILayout.HelpBox("此事件类型没有编辑器", MessageType.Warning);
-                        }
-                    }
-                }
-                EditorGUILayout.EndVertical();
             }
             
             EditorGUILayout.EndFoldoutHeaderGroup();
