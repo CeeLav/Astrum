@@ -17,7 +17,7 @@ namespace Astrum.Editor
     {
         private const string DEFAULT_PACKAGE_NAME = "DefaultPackage";
         
-        [MenuItem("Astrum/资源管理/生成资源清单")]
+        [MenuItem("Astrum/Asset 资源管理/Generate Manifest 生成资源清单", false, 100)]
         public static void GenerateResourceManifest()
         {
 #if YOO_ASSET_2
@@ -75,7 +75,7 @@ namespace Astrum.Editor
 #endif
         }
         
-        [MenuItem("Astrum/资源管理/清理资源清单")]
+        [MenuItem("Astrum/Asset 资源管理/Clear Manifest 清理资源清单", false, 101)]
         public static void CleanResourceManifest()
         {
 #if YOO_ASSET_2
@@ -123,7 +123,7 @@ namespace Astrum.Editor
 #endif
         }
         
-        [MenuItem("Astrum/资源管理/打开资源清单目录")]
+        [MenuItem("Astrum/Asset 资源管理/Open Manifest Directory 打开资源清单目录", false, 102)]
         public static void OpenResourceManifestDirectory()
         {
 #if YOO_ASSET_2

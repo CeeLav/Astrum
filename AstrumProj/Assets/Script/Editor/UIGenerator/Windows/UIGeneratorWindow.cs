@@ -151,7 +151,7 @@ namespace Astrum.Editor.UIGenerator.Windows
         private UIGenerationResult lastGenerationResult;
         private bool showResult = false;
         
-        [MenuItem("Tools/UI Generator")]
+        [MenuItem("Astrum/Editor 编辑器/UI Generator UI生成器", false, 4)]
         public static void ShowWindow()
         {
             var window = GetWindow<UIGeneratorWindow>("UI Generator");

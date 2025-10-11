@@ -19,7 +19,7 @@ namespace Astrum.Editor
         private string logText = "";
         private Vector2 scrollPosition;
         
-        [MenuItem("Astrum/网络连接测试")]
+        [MenuItem("Astrum/Testing 测试/Network 网络测试/Simple Connection Test 简单连接测试", false, 200)]
         public static void ShowWindow()
         {
             GetWindow<NetworkConnectionTest>("网络连接测试");

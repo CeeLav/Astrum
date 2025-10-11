@@ -40,7 +40,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         // === Unity生命周期 ===
         
-        [MenuItem("Tools/Role & Skill Editor/Role Editor")]
+        [MenuItem("Astrum/Editor 编辑器/Role Editor 角色编辑器", false, 0)]
         public static void ShowWindow()
         {
             var window = GetWindow<RoleEditorWindow>("角色编辑器");

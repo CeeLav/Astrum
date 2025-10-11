@@ -9,7 +9,7 @@ namespace Astrum.Editor.RoleEditor.Test
     /// </summary>
     public static class CSVTest
     {
-        [MenuItem("Tools/Role & Skill Editor/Test/Test CSV Read")]
+        [MenuItem("Astrum/Testing 测试/CSV Test CSV测试/CSV Read Test CSV读取测试", false, 220)]
         public static void TestRead()
         {
             Debug.Log("=== Testing CSV Read (Generic Framework) ===");
@@ -30,7 +30,7 @@ namespace Astrum.Editor.RoleEditor.Test
             Debug.Log("=== CSV Read Test Complete ===");
         }
         
-        [MenuItem("Tools/Role & Skill Editor/Test/Test CSV Write")]
+        [MenuItem("Astrum/Testing 测试/CSV Test CSV测试/CSV Write Test CSV写入测试", false, 221)]
         public static void TestWrite()
         {
             Debug.Log("=== Testing CSV Write (Generic Framework) ===");
@@ -57,7 +57,7 @@ namespace Astrum.Editor.RoleEditor.Test
             Debug.Log("=== CSV Write Test Complete ===");
         }
         
-        [MenuItem("Tools/Role & Skill Editor/Test/Test Round Trip")]
+        [MenuItem("Astrum/Testing 测试/CSV Test CSV测试/CSV Round Trip Test CSV往返测试", false, 222)]
         public static void TestRoundTrip()
         {
             Debug.Log("=== Testing Round Trip (Read -> Write -> Read) ===");

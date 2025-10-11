@@ -16,7 +16,7 @@ namespace Astrum.Editor
         /// 运行网络连接测试
         /// 可通过命令行调用: Unity.exe -batchmode -quit -executeMethod NetworkTestRunner.RunNetworkTests
         /// </summary>
-        [MenuItem("Tests/Run Network Tests")]
+        [MenuItem("Astrum/Testing 测试/Network 网络测试/Network Tests 网络测试", false, 206)]
         public static async void RunNetworkTests()
         {
             Debug.Log("=== 开始网络测试 ===");
@@ -149,7 +149,7 @@ namespace Astrum.Editor
         /// <summary>
         /// 检查编译错误
         /// </summary>
-        [MenuItem("Tests/Check Compile Errors")]
+        [MenuItem("Astrum/Testing 测试/Network 网络测试/Check Compile Errors 检查编译错误", false, 203)]
         public static void CheckForErrors()
         {
             Debug.Log("=== 检查编译错误 ===");
@@ -197,7 +197,7 @@ namespace Astrum.Editor
         /// <summary>
         /// 运行性能测试
         /// </summary>
-        [MenuItem("Tests/Run Performance Tests")]
+        [MenuItem("Astrum/Testing 测试/Network 网络测试/Performance Test 性能测试", false, 204)]
         public static void RunPerformanceTests()
         {
             Debug.Log("=== 开始性能测试 ===");
@@ -225,7 +225,7 @@ namespace Astrum.Editor
         /// <summary>
         /// 清理测试环境
         /// </summary>
-        [MenuItem("Tests/Cleanup Test Environment")]
+        [MenuItem("Astrum/Testing 测试/Network 网络测试/Cleanup Environment 清理测试环境", false, 205)]
         public static void CleanupTestEnvironment()
         {
             Debug.Log("=== 清理测试环境 ===");

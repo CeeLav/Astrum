@@ -22,6 +22,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         private SkillActionConfigModule _configModule;
         private AnimationPreviewModule _previewModule;
         private TimelineEditorModule _timelineModule;
+        private EventDetailModule _eventDetailModule;
         private ActionEditorLayout _layoutManager;
         
         // === 数据 ===
@@ -34,7 +35,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         // === Unity生命周期 ===
         
-        [MenuItem("Tools/Astrum/Editors/Skill Action Editor")]
+        [MenuItem("Astrum/Editor 编辑器/Skill Action Editor 技能动作编辑器", false, 2)]
         public static void ShowWindow()
         {
             var window = GetWindow<SkillActionEditorWindow>("技能动作编辑器");
@@ -120,6 +121,10 @@ namespace Astrum.Editor.RoleEditor.Windows
             _timelineModule.OnEventModified += OnTimelineEventModified;
             _timelineModule.OnCurrentFrameChanged += OnTimelineFrameChanged;
             _timelineModule.OnEventSelected += OnTimelineEventSelected;
+            
+            // 事件详情模块
+            _eventDetailModule = new EventDetailModule();
+            _eventDetailModule.OnActionModified += OnActionModified;
         }
         
         private void CleanupModules()
@@ -584,9 +589,9 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private void OnTimelineEventSelected(TimelineEvent evt)
         {
-            if (_configModule != null)
+            if (_eventDetailModule != null)
             {
-                _configModule.SetSelectedEvent(evt);
+                _eventDetailModule.SetSelectedEvent(evt);
             }
             Repaint();
         }
@@ -662,9 +667,13 @@ namespace Astrum.Editor.RoleEditor.Windows
             Rect configRect = _layoutManager.GetConfigPanelRect();
             _configModule.DrawConfig(configRect, _selectedSkillAction);
             
-            // 右上右：预览面板
+            // 右上中：预览面板
             Rect previewRect = _layoutManager.GetPreviewPanelRect();
             DrawPreviewPanel(previewRect);
+            
+            // 右上右：事件详情面板
+            Rect eventDetailRect = _layoutManager.GetEventDetailPanelRect();
+            _eventDetailModule.DrawEventDetail(eventDetailRect, _selectedSkillAction, _timelineModule.GetSelectedEvent());
             
             // 右下：时间轴
             Rect timelineRect = _layoutManager.GetTimelineRect();

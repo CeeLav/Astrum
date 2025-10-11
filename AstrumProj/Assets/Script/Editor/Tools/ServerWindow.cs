@@ -25,7 +25,7 @@ namespace Astrum.Editor
 
 
 
-        [MenuItem("Astrum/服务器控制")]
+        [MenuItem("Astrum/Tools 工具/Server Control 服务器控制", false, 51)]
         public static void ShowWindow()
         {
             var window = GetWindow<ServerWindow>("服务器控制");
