@@ -12,7 +12,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private const float TRACK_HEADER_WIDTH = 120f;    // 轨道标题宽度
         private const float FRAME_SCALE_HEIGHT = 30f;      // 帧刻度高度
         private const float PLAYHEAD_HEIGHT = 20f;         // 播放头高度
-        private const float MIN_PIXELS_PER_FRAME = 2f;     // 最小缩放
+        private const float MIN_PIXELS_PER_FRAME = 0.5f;   // 最小缩放（允许更小以容纳长动画）
         private const float MAX_PIXELS_PER_FRAME = 20f;    // 最大缩放
         private const float DEFAULT_PIXELS_PER_FRAME = 5f; // 默认缩放
         
@@ -73,6 +73,39 @@ namespace Astrum.Editor.RoleEditor.Timeline
         public void ZoomOut(float delta = 1f)
         {
             SetZoomLevel(_pixelsPerFrame - delta);
+        }
+        
+        /// <summary>
+        /// 自动适应：计算合适的缩放级别，使时间轴填满可用宽度
+        /// </summary>
+        public void FitToWidth(float availableWidth, int totalFrames)
+        {
+            if (totalFrames <= 0) return;
+            
+            // 计算内容区域宽度（排除轨道标题）
+            float contentWidth = availableWidth - _trackHeaderWidth;
+            
+            // 计算合适的缩放级别
+            float idealPixelsPerFrame = contentWidth / totalFrames;
+            
+            // 限制在合理范围内，但对于自动适应，优先填满宽度
+            if (idealPixelsPerFrame < MIN_PIXELS_PER_FRAME)
+            {
+                // 如果计算出的缩放太小，使用最小缩放，但允许横向滚动
+                _pixelsPerFrame = MIN_PIXELS_PER_FRAME;
+            }
+            else if (idealPixelsPerFrame > MAX_PIXELS_PER_FRAME)
+            {
+                // 如果计算出的缩放太大，使用最大缩放
+                _pixelsPerFrame = MAX_PIXELS_PER_FRAME;
+            }
+            else
+            {
+                // 在合理范围内，使用计算出的值（优先填满）
+                _pixelsPerFrame = idealPixelsPerFrame;
+            }
+            
+            Debug.Log($"[TimelineLayoutCalculator] FitToWidth: availableWidth={availableWidth}, totalFrames={totalFrames}, idealPixelsPerFrame={idealPixelsPerFrame:F2}, finalPixelsPerFrame={_pixelsPerFrame:F2}");
         }
         
         // === 区域获取方法 ===

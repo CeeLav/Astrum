@@ -88,35 +88,36 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 return;
             }
             
-            // 计算布局
+            // 先计算一次布局以获取轨道区域（使用默认缩放）
+            _layoutCalculator.CalculateLayout(rect, _totalFrames, _tracks.Count);
+            Rect trackAreaRect = _layoutCalculator.GetTrackAreaRect();
+            
+            // 根据轨道区域宽度自动调整缩放
+            _layoutCalculator.FitToWidth(trackAreaRect.width, _totalFrames);
+            
+            // 重新计算布局（使用调整后的缩放）
             _layoutCalculator.CalculateLayout(rect, _totalFrames, _tracks.Count);
             
             // 绘制帧刻度
             Rect frameScaleRect = _layoutCalculator.GetFrameScaleRect();
             _renderer.DrawFrameScale(frameScaleRect, _totalFrames, _currentFrame);
             
-            // 绘制可编辑范围边界线（如果小于总帧数）
-            if (_maxEditableFrame < _totalFrames)
-            {
-                Rect trackAreaRect = _layoutCalculator.GetTrackAreaRect();
-                _renderer.DrawEditableBoundary(trackAreaRect, _maxEditableFrame);
-            }
-            
             // 绘制播放头区域
             Rect playheadRect = _layoutCalculator.GetPlayheadRect();
             _renderer.DrawPlayhead(playheadRect, _currentFrame);
             
-            // 绘制轨道区域
-            Rect trackAreaRect2 = _layoutCalculator.GetTrackAreaRect();
+            // 获取最终的轨道区域
+            trackAreaRect = _layoutCalculator.GetTrackAreaRect();
             
             // 传递选中和悬停事件用于高亮显示
             TimelineEvent selectedEvent = _interaction.GetSelectedEvent();
             TimelineEvent hoverEvent = _interaction.GetHoverEvent();
             
-            _renderer.DrawTracks(trackAreaRect2, _tracks, _eventsByTrack, _currentFrame, selectedEvent, hoverEvent);
+            bool showBoundary = _maxEditableFrame < _totalFrames;
+            _renderer.DrawTracks(trackAreaRect, _tracks, _eventsByTrack, _currentFrame, selectedEvent, hoverEvent, showBoundary, _maxEditableFrame);
             
             // 在轨道绘制完成后，重新绘制播放头竖线（确保在最上层）
-            _renderer.DrawPlayheadLines(trackAreaRect2, _currentFrame);
+            _renderer.DrawPlayheadLines(trackAreaRect, _currentFrame);
             
             // 处理刻度尺区域的交互（在其他交互之前处理，优先级更高）
             _interaction.HandleFrameScaleInput(frameScaleRect, Event.current);
