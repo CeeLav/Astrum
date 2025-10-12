@@ -31,11 +31,11 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
             
             try
             {
-                // 备份原文件
-                if (enableBackup && File.Exists(fullPath))
-                {
-                    AstrumEditorUtility.BackupFile(fullPath, 5);
-                }
+                // 备份原文件（已注释：使用Git备份，不需要编辑器再备份）
+                // if (enableBackup && File.Exists(fullPath))
+                // {
+                //     AstrumEditorUtility.BackupFile(fullPath, 5);
+                // }
                 
                 // 确保目录存在
                 AstrumEditorUtility.EnsureDirectoryExists(fullPath);
