@@ -119,7 +119,8 @@ namespace Astrum.Editor.RoleEditor.Data
             {
                 clone.TriggerEffects.Add(new TriggerFrameData
                 {
-                    Frame = effect.Frame,
+                    StartFrame = effect.StartFrame,
+                    EndFrame = effect.EndFrame,
                     TriggerType = effect.TriggerType,
                     CollisionInfo = effect.CollisionInfo,
                     EffectId = effect.EffectId
@@ -206,18 +207,26 @@ namespace Astrum.Editor.RoleEditor.Data
     /// <summary>
     /// 触发帧数据结构
     /// 用于解析和序列化 TriggerFrames 字符串
+    /// 支持单帧和多帧范围
     /// </summary>
     [Serializable]
     public class TriggerFrameData
     {
-        public int Frame;
-        public string TriggerType; // Collision, Direct, Condition
+        public int StartFrame;       // 起始帧
+        public int EndFrame;         // 结束帧（单帧时 StartFrame == EndFrame）
+        public string TriggerType;   // Collision, Direct, Condition
         public string CollisionInfo; // 碰撞盒信息（仅Collision类型使用）格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point
-        public int EffectId;
+        public int EffectId;         // 效果ID
+        
+        // 辅助属性
+        public bool IsSingleFrame => StartFrame == EndFrame;
+        public int Duration => EndFrame - StartFrame + 1;
         
         /// <summary>
         /// 解析字符串为触发帧列表
-        /// 格式: "Frame5:Collision(Box:5x2x1):4001,Frame10:Direct:4002"
+        /// 支持单帧和多帧格式
+        /// 单帧: "Frame5:Collision(Box:5x2x1):4001"
+        /// 多帧: "Frame5-10:Collision(Box:5x2x1):4001"
         /// </summary>
         public static List<TriggerFrameData> ParseFromString(string triggerFramesStr)
         {
@@ -242,12 +251,38 @@ namespace Astrum.Editor.RoleEditor.Data
                         continue;
                     }
                     
-                    // 解析帧号 (移除 "Frame" 前缀)
-                    string frameNumStr = parts[0].Replace("Frame", "").Trim();
-                    if (!int.TryParse(frameNumStr, out int frameNum))
+                    // 解析帧范围 (移除 "Frame" 前缀)
+                    // 支持格式：Frame5 或 Frame5-10
+                    string framePart = parts[0].Replace("Frame", "").Trim();
+                    int startFrame, endFrame;
+                    
+                    if (framePart.Contains("-"))
                     {
-                        Debug.LogWarning($"[TriggerFrameData] 帧号解析失败: {parts[0]}");
-                        continue;
+                        // 多帧格式：Frame5-10
+                        string[] frameRange = framePart.Split('-');
+                        if (frameRange.Length != 2 || 
+                            !int.TryParse(frameRange[0].Trim(), out startFrame) ||
+                            !int.TryParse(frameRange[1].Trim(), out endFrame))
+                        {
+                            Debug.LogWarning($"[TriggerFrameData] 帧范围解析失败: {parts[0]}");
+                            continue;
+                        }
+                        
+                        if (startFrame > endFrame)
+                        {
+                            Debug.LogWarning($"[TriggerFrameData] 起始帧({startFrame})大于结束帧({endFrame}): {parts[0]}");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        // 单帧格式：Frame5
+                        if (!int.TryParse(framePart, out startFrame))
+                        {
+                            Debug.LogWarning($"[TriggerFrameData] 帧号解析失败: {parts[0]}");
+                            continue;
+                        }
+                        endFrame = startFrame;
                     }
                     
                     // 解析触发类型和碰撞盒信息
@@ -277,7 +312,8 @@ namespace Astrum.Editor.RoleEditor.Data
                     
                     result.Add(new TriggerFrameData
                     {
-                        Frame = frameNum,
+                        StartFrame = startFrame,
+                        EndFrame = endFrame,
                         TriggerType = triggerType,
                         CollisionInfo = collisionInfo,
                         EffectId = effectId
@@ -294,6 +330,7 @@ namespace Astrum.Editor.RoleEditor.Data
         
         /// <summary>
         /// 序列化触发帧列表为字符串
+        /// 自动判断单帧/多帧格式
         /// </summary>
         public static string SerializeToString(List<TriggerFrameData> triggerEffects)
         {
@@ -301,16 +338,22 @@ namespace Astrum.Editor.RoleEditor.Data
                 return "";
             
             var parts = triggerEffects
-                .OrderBy(t => t.Frame)
+                .OrderBy(t => t.StartFrame)
                 .Select(t => 
                 {
-                    // 如果有碰撞盒信息，格式化为 Collision(Box:5x2x1)
+                    // 帧范围部分
+                    string framePart = t.IsSingleFrame 
+                        ? $"Frame{t.StartFrame}" 
+                        : $"Frame{t.StartFrame}-{t.EndFrame}";
+                    
+                    // 触发类型部分（如果有碰撞盒信息，格式化为 Collision(Box:5x2x1)）
                     string triggerPart = t.TriggerType;
                     if (!string.IsNullOrEmpty(t.CollisionInfo))
                     {
                         triggerPart = $"{t.TriggerType}({t.CollisionInfo})";
                     }
-                    return $"Frame{t.Frame}:{triggerPart}:{t.EffectId}";
+                    
+                    return $"{framePart}:{triggerPart}:{t.EffectId}";
                 });
             
             return string.Join(",", parts);

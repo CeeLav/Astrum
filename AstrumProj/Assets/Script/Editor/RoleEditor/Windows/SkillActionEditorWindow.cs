@@ -221,7 +221,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         /// </summary>
         private void RegisterSkillEffectTrack()
         {
-            // 注册技能效果轨道
+            // 注册技能效果轨道（使用新的独立渲染器）
             TimelineTrackRegistry.RegisterTrack(new TimelineTrackConfig
             {
                 TrackType = "SkillEffect",
@@ -233,89 +233,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                 IsLocked = false,
                 SortOrder = 4,
                 AllowOverlap = true,
-                EventRenderer = RenderSkillEffectEvent,
-                EventEditor = EditSkillEffectEvent
+                EventRenderer = Timeline.Renderers.SkillEffectTrackRenderer.RenderEvent,
+                EventEditor = Timeline.Renderers.SkillEffectTrackRenderer.EditEvent
             });
-        }
-        
-        // === 技能效果数据类 ===
-        
-        [System.Serializable]
-        private class SkillEffectEventData
-        {
-            public int EffectId;
-            public string TriggerType = "Direct"; // Direct, Collision, Condition
-        }
-        
-        // === 技能效果轨道渲染器（临时实现，Phase 3 会移到独立文件）===
-        
-        private static void RenderSkillEffectEvent(Rect rect, TimelineEvent evt)
-        {
-            var effectData = evt.GetEventData<SkillEffectEventData>();
-            
-            // 绘制菱形标记
-            GUI.color = new Color(1f, 0.3f, 0.3f);
-            
-            // 简单绘制：用字符代替菱形（Phase 3 会改为真正的菱形）
-            Rect markerRect = new Rect(rect.x + 5, rect.y + 10, 25, 25);
-            GUI.Label(markerRect, "◆", EditorStyles.boldLabel);
-            
-            // 显示效果ID和触发类型
-            GUI.color = Color.white;
-            if (effectData != null)
-            {
-                Rect labelRect = new Rect(rect.x + 30, rect.y + 12, rect.width - 35, 20);
-                string triggerIcon = effectData.TriggerType == "Direct" ? "→" : 
-                                    effectData.TriggerType == "Collision" ? "💥" : "❓";
-                GUI.Label(labelRect, $"{triggerIcon} {effectData.EffectId}", EditorStyles.miniLabel);
-            }
-            
-            GUI.color = Color.white;
-        }
-        
-        private static bool EditSkillEffectEvent(TimelineEvent evt)
-        {
-            bool modified = false;
-            
-            // 获取或创建效果数据
-            var effectData = evt.GetEventData<SkillEffectEventData>();
-            if (effectData == null)
-            {
-                effectData = new SkillEffectEventData();
-            }
-            
-            // 临时编辑器：显示基本信息（Phase 3 会实现完整的选择器）
-            EditorGUILayout.LabelField("技能效果配置", EditorStyles.boldLabel);
-            
-            // 效果ID
-            int newEffectId = EditorGUILayout.IntField("效果ID", effectData.EffectId);
-            if (newEffectId != effectData.EffectId)
-            {
-                effectData.EffectId = newEffectId;
-                modified = true;
-            }
-            
-            // 触发类型
-            string[] triggerTypes = new string[] { "Direct", "Collision", "Condition" };
-            int selectedIndex = System.Array.IndexOf(triggerTypes, effectData.TriggerType);
-            if (selectedIndex < 0) selectedIndex = 0;
-            
-            int newIndex = EditorGUILayout.Popup("触发类型", selectedIndex, triggerTypes);
-            if (newIndex != selectedIndex)
-            {
-                effectData.TriggerType = triggerTypes[newIndex];
-                modified = true;
-            }
-            
-            if (modified)
-            {
-                evt.SetEventData(effectData);
-                evt.DisplayName = $"效果:{effectData.EffectId} ({effectData.TriggerType})";
-            }
-            
-            EditorGUILayout.HelpBox("Phase 3 将实现完整的效果选择器", MessageType.Info);
-            
-            return modified;
         }
         
         // === 数据加载和保存 ===
@@ -411,7 +331,15 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 更新时间轴
             if (_selectedSkillAction != null)
             {
-                _timelineModule.SetTotalFrames(_selectedSkillAction.Duration);
+                // 时间轴显示范围 = 动画完整帧数（AnimationDuration）
+                // 可编辑范围 = 技能有效帧数（Duration）
+                // 这样用户可以滚动查看整个动画作为参考，但只能在有效帧数内配置技能效果
+                int timelineFrames = _selectedSkillAction.AnimationDuration > 0 
+                    ? _selectedSkillAction.AnimationDuration 
+                    : _selectedSkillAction.Duration;
+                int maxEditableFrame = _selectedSkillAction.Duration;
+                
+                _timelineModule.SetFrameRange(timelineFrames, maxEditableFrame);
                 _timelineModule.SetEvents(_selectedSkillAction.TimelineEvents);
                 _timelineModule.SetTracks(TimelineTrackRegistry.GetAllTracks());
                 
@@ -449,7 +377,8 @@ namespace Astrum.Editor.RoleEditor.Windows
                     action.Duration = animationTotalFrames;
                 }
                 
-                _timelineModule.SetTotalFrames(action.Duration);
+                // 时间轴显示完整动画帧数，可编辑范围为Duration
+                _timelineModule.SetFrameRange(animationTotalFrames, action.Duration);
             }
         }
         
@@ -574,7 +503,11 @@ namespace Astrum.Editor.RoleEditor.Windows
                     skillAction.Duration = skillAction.AnimationDuration;
                 }
                 
-                _timelineModule.SetTotalFrames(skillAction.Duration);
+                // 时间轴显示完整动画帧数，可编辑范围为Duration
+                int timelineFrames = skillAction.AnimationDuration > 0 
+                    ? skillAction.AnimationDuration 
+                    : skillAction.Duration;
+                _timelineModule.SetFrameRange(timelineFrames, skillAction.Duration);
                 LoadAnimationForAction(skillAction);
             }
         }

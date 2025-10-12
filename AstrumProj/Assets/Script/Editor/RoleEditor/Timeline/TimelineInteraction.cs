@@ -57,10 +57,12 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Dictionary<string, List<TimelineEvent>> eventsByTrack,
             int currentFrame,
             int totalFrames,
+            int maxEditableFrame,
             Vector2 scrollPosition = default)
         {
             _currentFrame = currentFrame; // 保存当前帧用于碰撞检测
-            _totalFrames = totalFrames; // 保存总帧数用于边界约束
+            _totalFrames = totalFrames; // 保存总帧数用于显示范围
+            _maxEditableFrame = maxEditableFrame; // 保存可编辑帧数用于限制
             _scrollPosition = scrollPosition; // 保存滚动位置
             EventType eventType = evt.type;
             
@@ -340,17 +342,17 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 int newStartFrame = _draggingEvent.StartFrame + frameDelta;
                 int newEndFrame = _draggingEvent.EndFrame + frameDelta;
                 
-                // 边界约束：限制移动，保持事件在 [0, totalFrames-1] 范围内
+                // 边界约束：限制移动，保持事件在 [0, maxEditableFrame-1] 范围内
                 if (newStartFrame < 0)
                 {
                     // 左边界限制
                     newStartFrame = 0;
                     newEndFrame = eventLength;
                 }
-                else if (newEndFrame > _totalFrames - 1)
+                else if (newEndFrame > _maxEditableFrame - 1)
                 {
                     // 右边界限制
-                    newEndFrame = _totalFrames - 1;
+                    newEndFrame = _maxEditableFrame - 1;
                     newStartFrame = newEndFrame - eventLength;
                 }
                 
@@ -386,8 +388,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 float relativeX = mousePos.x - rect.x;
                 int newEndFrame = _layoutCalculator.PixelToFrame(relativeX);
                 
-                // 约束：不能小于起始帧，不能超过总帧数-1
-                newEndFrame = Mathf.Clamp(newEndFrame, _draggingEvent.StartFrame, _totalFrames - 1);
+                // 约束：不能小于起始帧，不能超过可编辑帧数-1
+                newEndFrame = Mathf.Clamp(newEndFrame, _draggingEvent.StartFrame, _maxEditableFrame - 1);
                 
                 _draggingEvent.EndFrame = newEndFrame;
                 
@@ -503,7 +505,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
         }
         
         private int _currentFrame; // 需要从外部传入当前帧
-        private int _totalFrames; // 总帧数（用于边界约束）
+        private int _totalFrames; // 总帧数（时间轴显示范围）
+        private int _maxEditableFrame; // 可编辑帧数（技能Duration）
         private Vector2 _scrollPosition; // 滚动位置
         
         // 缓存的悬停信息（用于 Repaint）

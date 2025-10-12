@@ -442,6 +442,51 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Handles.DrawLine(start, end);
         }
         
+        /// <summary>
+        /// 绘制可编辑范围边界线（Duration分界线）
+        /// </summary>
+        public void DrawEditableBoundary(Rect rect, int maxEditableFrame)
+        {
+            // 计算边界线位置
+            float x = _layoutCalculator.FrameToPixel(maxEditableFrame) + _layoutCalculator.GetTrackHeaderWidth();
+            
+            // 绘制虚线
+            Handles.BeginGUI();
+            Handles.color = new Color(1f, 0.7f, 0.2f, 0.8f); // 橙色
+            
+            // 绘制虚线效果
+            float dashLength = 10f;
+            float gapLength = 5f;
+            float currentY = rect.y;
+            
+            while (currentY < rect.yMax)
+            {
+                float endY = Mathf.Min(currentY + dashLength, rect.yMax);
+                Handles.DrawAAPolyLine(3f, new Vector3(x, currentY), new Vector3(x, endY));
+                currentY = endY + gapLength;
+            }
+            
+            Handles.EndGUI();
+            
+            // 绘制标签
+            GUIStyle labelStyle = new GUIStyle(EditorStyles.miniLabel);
+            labelStyle.normal.textColor = new Color(1f, 0.7f, 0.2f);
+            labelStyle.padding = new RectOffset(3, 3, 1, 1);
+            labelStyle.fontSize = 9;
+            
+            string labelText = $"Duration:{maxEditableFrame}";
+            Vector2 labelSize = labelStyle.CalcSize(new GUIContent(labelText));
+            Rect labelRect = new Rect(x + 5, rect.y + 5, labelSize.x, labelSize.y);
+            
+            // 绘制半透明背景
+            Color oldColor = GUI.color;
+            GUI.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+            EditorGUI.DrawRect(new Rect(labelRect.x - 2, labelRect.y - 1, labelRect.width + 4, labelRect.height + 2), new Color(0.1f, 0.1f, 0.1f, 0.9f));
+            GUI.color = oldColor;
+            
+            GUI.Label(labelRect, labelText, labelStyle);
+        }
+        
         private void DrawBorder(Rect rect, Color color)
         {
             Handles.color = color;
