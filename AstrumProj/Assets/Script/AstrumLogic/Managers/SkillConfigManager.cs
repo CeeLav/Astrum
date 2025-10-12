@@ -234,12 +234,38 @@ namespace Astrum.LogicCore.Managers
                     continue;
                 }
                 
-                // 解析帧号 (移除 "Frame" 前缀)
-                var frameStr = segments[0].Replace("Frame", "").Trim();
-                if (!int.TryParse(frameStr, out var frame))
+                // 解析帧范围 (移除 "Frame" 前缀)
+                // 支持格式：Frame5 或 Frame5-10
+                string framePart = segments[0].Replace("Frame", "").Trim();
+                int startFrame, endFrame;
+                
+                if (framePart.Contains("-"))
                 {
-                    ASLogger.Instance.Warning($"Failed to parse frame number: {segments[0]}");
-                    continue;
+                    // 多帧格式：Frame5-10
+                    string[] frameRange = framePart.Split('-');
+                    if (frameRange.Length != 2 || 
+                        !int.TryParse(frameRange[0].Trim(), out startFrame) ||
+                        !int.TryParse(frameRange[1].Trim(), out endFrame))
+                    {
+                        ASLogger.Instance.Warning($"Failed to parse frame range: {segments[0]}");
+                        continue;
+                    }
+                    
+                    if (startFrame > endFrame)
+                    {
+                        ASLogger.Instance.Warning($"Start frame ({startFrame}) > end frame ({endFrame}): {segments[0]}");
+                        continue;
+                    }
+                }
+                else
+                {
+                    // 单帧格式：Frame5
+                    if (!int.TryParse(framePart, out startFrame))
+                    {
+                        ASLogger.Instance.Warning($"Failed to parse frame number: {segments[0]}");
+                        continue;
+                    }
+                    endFrame = startFrame;
                 }
                 
                 // 解析触发类型和碰撞盒信息
@@ -272,47 +298,53 @@ namespace Astrum.LogicCore.Managers
                     
                 if (effectResult.EffectData != null)
                 {
-                    // 构造 TriggerFrameInfo
-                    TriggerFrameInfo triggerInfo = new TriggerFrameInfo
+                    // 多帧展开为单帧列表
+                    for (int frame = startFrame; frame <= endFrame; frame++)
                     {
-                        Frame = frame,
-                        TriggerType = triggerType,
-                        EffectId = effectResult.EffectId
-                    };
-                    
-                    // 如果是 Collision 类型，从内联的碰撞盒信息解析 CollisionShape
-                    if (triggerType.Equals("Collision", System.StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (!string.IsNullOrEmpty(collisionInfo))
+                        // 构造 TriggerFrameInfo
+                        TriggerFrameInfo triggerInfo = new TriggerFrameInfo
                         {
-                            var collisionShape = SkillSystem.CollisionInfoParser.Parse(collisionInfo);
-                            if (collisionShape.HasValue)
+                            Frame = frame,
+                            TriggerType = triggerType,
+                            EffectId = effectResult.EffectId
+                        };
+                        
+                        // 如果是 Collision 类型，从内联的碰撞盒信息解析 CollisionShape
+                        if (triggerType.Equals("Collision", System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!string.IsNullOrEmpty(collisionInfo))
                             {
-                                triggerInfo.CollisionShape = collisionShape.Value;
+                                var collisionShape = SkillSystem.CollisionInfoParser.Parse(collisionInfo);
+                                if (collisionShape.HasValue)
+                                {
+                                    triggerInfo.CollisionShape = collisionShape.Value;
+                                }
+                                else
+                                {
+                                    ASLogger.Instance.Warning($"Failed to parse collision info: {collisionInfo} at frame {frame}");
+                                }
                             }
                             else
                             {
-                                ASLogger.Instance.Warning($"Failed to parse collision info: {collisionInfo} at frame {frame}");
+                                ASLogger.Instance.Warning($"Collision trigger at frame {frame} but no collision info provided");
                             }
                         }
-                        else
+                        
+                        // 如果是 Condition 类型，解析条件（可选）
+                        if (triggerType.Equals("Condition", System.StringComparison.OrdinalIgnoreCase))
                         {
-                            ASLogger.Instance.Warning($"Collision trigger at frame {frame} but no collision info provided");
+                            if (!string.IsNullOrEmpty(collisionInfo))
+                            {
+                                triggerInfo.Condition = ParseCondition(collisionInfo);
+                            }
                         }
+                        
+                        results.Add(triggerInfo);
                     }
                     
-                    // 如果是 Condition 类型，解析条件（可选）
-                    if (triggerType.Equals("Condition", System.StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (!string.IsNullOrEmpty(collisionInfo))
-                        {
-                            triggerInfo.Condition = ParseCondition(collisionInfo);
-                        }
-                    }
-                    
-                    results.Add(triggerInfo);
-                    
-                    ASLogger.Instance.Debug($"Parsed trigger Frame{frame}:{triggerType} → Effect {effectResult.EffectId}");
+                    // 日志（显示帧范围）
+                    string frameRange = startFrame == endFrame ? $"Frame{startFrame}" : $"Frame{startFrame}-{endFrame}";
+                    ASLogger.Instance.Debug($"Parsed trigger {frameRange}:{triggerType} → Effect {effectResult.EffectId} (expanded to {endFrame - startFrame + 1} frames)");
                 }
                 else
                 {

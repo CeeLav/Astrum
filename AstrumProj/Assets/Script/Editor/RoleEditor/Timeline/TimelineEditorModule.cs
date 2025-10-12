@@ -24,7 +24,8 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private Dictionary<string, List<TimelineEvent>> _eventsByTrack = new Dictionary<string, List<TimelineEvent>>();
         
         private int _currentFrame = 0;
-        private int _totalFrames = 60;
+        private int _totalFrames = 60;          // 时间轴显示范围（动画总帧数）
+        private int _maxEditableFrame = 60;     // 可编辑范围（技能Duration）
         private bool _isInitialized = false;
         
         // === 事件 ===
@@ -94,28 +95,35 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Rect frameScaleRect = _layoutCalculator.GetFrameScaleRect();
             _renderer.DrawFrameScale(frameScaleRect, _totalFrames, _currentFrame);
             
+            // 绘制可编辑范围边界线（如果小于总帧数）
+            if (_maxEditableFrame < _totalFrames)
+            {
+                Rect trackAreaRect = _layoutCalculator.GetTrackAreaRect();
+                _renderer.DrawEditableBoundary(trackAreaRect, _maxEditableFrame);
+            }
+            
             // 绘制播放头区域
             Rect playheadRect = _layoutCalculator.GetPlayheadRect();
             _renderer.DrawPlayhead(playheadRect, _currentFrame);
             
             // 绘制轨道区域
-            Rect trackAreaRect = _layoutCalculator.GetTrackAreaRect();
+            Rect trackAreaRect2 = _layoutCalculator.GetTrackAreaRect();
             
             // 传递选中和悬停事件用于高亮显示
             TimelineEvent selectedEvent = _interaction.GetSelectedEvent();
             TimelineEvent hoverEvent = _interaction.GetHoverEvent();
             
-            _renderer.DrawTracks(trackAreaRect, _tracks, _eventsByTrack, _currentFrame, selectedEvent, hoverEvent);
+            _renderer.DrawTracks(trackAreaRect2, _tracks, _eventsByTrack, _currentFrame, selectedEvent, hoverEvent);
             
             // 在轨道绘制完成后，重新绘制播放头竖线（确保在最上层）
-            _renderer.DrawPlayheadLines(trackAreaRect, _currentFrame);
+            _renderer.DrawPlayheadLines(trackAreaRect2, _currentFrame);
             
             // 处理刻度尺区域的交互（在其他交互之前处理，优先级更高）
             _interaction.HandleFrameScaleInput(frameScaleRect, Event.current);
             
-            // 处理其他交互（传递滚动位置和总帧数）
+            // 处理其他交互（传递滚动位置、总帧数和可编辑帧数）
             Vector2 scrollPosition = _renderer.GetScrollPosition();
-            _interaction.HandleInput(rect, Event.current, _tracks, _eventsByTrack, _currentFrame, _totalFrames, scrollPosition);
+            _interaction.HandleInput(rect, Event.current, _tracks, _eventsByTrack, _currentFrame, _totalFrames, _maxEditableFrame, scrollPosition);
         }
         
         // === 数据设置方法 ===
@@ -143,12 +151,12 @@ namespace Astrum.Editor.RoleEditor.Timeline
         }
         
         /// <summary>
-        /// 设置当前帧
+        /// 设置当前帧（限制在可编辑范围内）
         /// </summary>
         public void SetCurrentFrame(int frame)
         {
             int oldFrame = _currentFrame;
-            _currentFrame = Mathf.Clamp(frame, 0, _totalFrames - 1);
+            _currentFrame = Mathf.Clamp(frame, 0, _maxEditableFrame - 1);
             
             if (_currentFrame != oldFrame)
             {
@@ -157,12 +165,31 @@ namespace Astrum.Editor.RoleEditor.Timeline
         }
         
         /// <summary>
-        /// 设置总帧数
+        /// 设置总帧数（时间轴显示范围）
         /// </summary>
         public void SetTotalFrames(int totalFrames)
         {
             _totalFrames = Mathf.Max(totalFrames, 1);
-            _currentFrame = Mathf.Min(_currentFrame, _totalFrames - 1);
+            _currentFrame = Mathf.Min(_currentFrame, _maxEditableFrame - 1);
+        }
+        
+        /// <summary>
+        /// 设置可编辑的最大帧数（技能Duration）
+        /// </summary>
+        public void SetMaxEditableFrame(int maxFrame)
+        {
+            _maxEditableFrame = Mathf.Max(maxFrame, 1);
+            _currentFrame = Mathf.Min(_currentFrame, _maxEditableFrame - 1);
+        }
+        
+        /// <summary>
+        /// 同时设置总帧数和可编辑帧数
+        /// </summary>
+        public void SetFrameRange(int totalFrames, int maxEditableFrame)
+        {
+            _totalFrames = Mathf.Max(totalFrames, 1);
+            _maxEditableFrame = Mathf.Max(maxEditableFrame, 1);
+            _currentFrame = Mathf.Min(_currentFrame, _maxEditableFrame - 1);
         }
         
         // === 事件管理 ===
@@ -238,6 +265,11 @@ namespace Astrum.Editor.RoleEditor.Timeline
         public int GetTotalFrames()
         {
             return _totalFrames;
+        }
+        
+        public int GetMaxEditableFrame()
+        {
+            return _maxEditableFrame;
         }
         
         public float GetPixelsPerFrame()
@@ -327,7 +359,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 EventId = System.Guid.NewGuid().ToString(),
                 TrackType = trackType,
                 StartFrame = frame,
-                EndFrame = Mathf.Min(frame + 10, _totalFrames - 1), // 默认10帧长度
+                EndFrame = Mathf.Min(frame + 10, _maxEditableFrame - 1), // 默认10帧长度，限制在可编辑范围内
                 DisplayName = GetDefaultEventName(trackType)
             };
             
