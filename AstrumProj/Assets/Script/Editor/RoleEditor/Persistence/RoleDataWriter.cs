@@ -51,6 +51,10 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 if (entitySuccess && modelSuccess && roleSuccess)
                 {
                     Debug.Log($"{LOG_PREFIX} Successfully saved {roles.Count} roles");
+                    
+                    // 自动打表
+                    Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
+                    
                     return true;
                 }
                 else

@@ -48,6 +48,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 if (success)
                 {
                     Debug.Log($"{LOG_PREFIX} Successfully wrote {skillActions.Count} skill actions to CSV");
+                    
+                    // 自动打表
+                    Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
                 }
                 else
                 {

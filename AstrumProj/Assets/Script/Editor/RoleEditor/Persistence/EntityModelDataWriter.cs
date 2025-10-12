@@ -15,7 +15,15 @@ namespace Astrum.Editor.RoleEditor.Persistence
         public static bool WriteAll(List<EntityModelTableData> dataList, bool enableBackup = true)
         {
             var config = EntityModelTableData.GetTableConfig();
-            return LubanCSVWriter.WriteTable(config, dataList, enableBackup);
+            bool success = LubanCSVWriter.WriteTable(config, dataList, enableBackup);
+            
+            if (success)
+            {
+                // 自动打表
+                Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
+            }
+            
+            return success;
         }
         
         /// <summary>
