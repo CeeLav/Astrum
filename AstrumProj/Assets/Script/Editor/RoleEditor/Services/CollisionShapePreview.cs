@@ -41,7 +41,8 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <param name="collisionData">碰撞数据字符串</param>
         /// <param name="camera">预览相机</param>
         /// <param name="color">线框颜色（默认绿色）</param>
-        public static void DrawCollisionData(string collisionData, Camera camera, Color? color = null)
+        /// <param name="modelPosition">模型在预览场景中的位置（默认为原点）</param>
+        public static void DrawCollisionData(string collisionData, Camera camera, Color? color = null, Vector3? modelPosition = null)
         {
             if (string.IsNullOrEmpty(collisionData) || camera == null)
                 return;
@@ -52,6 +53,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 return;
             
             Color wireColor = color ?? new Color(0f, 1f, 0f, 0.8f);  // 默认半透明绿色
+            Vector3 basePosition = modelPosition ?? Vector3.zero;
             
             // 设置 GL 绘制上下文
             GetLineMaterial().SetPass(0);
@@ -60,10 +62,10 @@ namespace Astrum.Editor.RoleEditor.Services
             GL.LoadProjectionMatrix(camera.projectionMatrix);
             GL.modelview = camera.worldToCameraMatrix;
             
-            // 绘制每个碰撞形状
+            // 绘制每个碰撞形状（考虑模型位置）
             foreach (var shape in shapes)
             {
-                DrawShape(shape, wireColor);
+                DrawShape(shape, wireColor, basePosition);
             }
             
             GL.PopMatrix();
@@ -76,7 +78,8 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <param name="collisionInfo">碰撞盒信息字符串（简化格式）</param>
         /// <param name="camera">预览相机</param>
         /// <param name="color">线框颜色（默认黄色）</param>
-        public static void DrawCollisionInfo(string collisionInfo, Camera camera, Color? color = null)
+        /// <param name="modelPosition">模型在预览场景中的位置（默认为原点）</param>
+        public static void DrawCollisionInfo(string collisionInfo, Camera camera, Color? color = null, Vector3? modelPosition = null)
         {
             if (string.IsNullOrEmpty(collisionInfo) || camera == null)
                 return;
@@ -87,6 +90,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 return;
             
             Color wireColor = color ?? new Color(1f, 1f, 0f, 0.8f);  // 默认半透明黄色（技能碰撞盒）
+            Vector3 basePosition = modelPosition ?? Vector3.zero;
             
             // 设置 GL 绘制上下文
             GetLineMaterial().SetPass(0);
@@ -95,8 +99,8 @@ namespace Astrum.Editor.RoleEditor.Services
             GL.LoadProjectionMatrix(camera.projectionMatrix);
             GL.modelview = camera.worldToCameraMatrix;
             
-            // 绘制碰撞形状
-            DrawShape(shape.Value, wireColor);
+            // 绘制碰撞形状（考虑模型位置）
+            DrawShape(shape.Value, wireColor, basePosition);
             
             GL.PopMatrix();
         }
@@ -104,7 +108,10 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <summary>
         /// 绘制单个碰撞形状
         /// </summary>
-        private static void DrawShape(CollisionShape shape, Color color)
+        /// <param name="shape">碰撞形状</param>
+        /// <param name="color">绘制颜色</param>
+        /// <param name="basePosition">基准位置（模型在预览场景中的位置）</param>
+        private static void DrawShape(CollisionShape shape, Color color, Vector3 basePosition = default)
         {
             // 将 TrueSync 类型转换为 Unity 类型
             Vector3 offset = new Vector3(
@@ -112,6 +119,9 @@ namespace Astrum.Editor.RoleEditor.Services
                 (float)shape.LocalOffset.y,
                 (float)shape.LocalOffset.z
             );
+            
+            // 碰撞盒的实际中心位置 = 模型位置 + 相对偏移
+            Vector3 center = basePosition + offset;
             
             Quaternion rotation = new Quaternion(
                 (float)shape.LocalRotation.x,
@@ -125,7 +135,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 case HitBoxShape.Capsule:
                     float radius = (float)shape.Radius;
                     float height = (float)shape.Height;
-                    DrawCapsuleWireframe(offset, rotation, radius, height, color);
+                    DrawCapsuleWireframe(center, rotation, radius, height, color);
                     break;
                 
                 case HitBoxShape.Box:
@@ -134,11 +144,11 @@ namespace Astrum.Editor.RoleEditor.Services
                         (float)shape.HalfSize.y,
                         (float)shape.HalfSize.z
                     );
-                    DrawBoxWireframe(offset, rotation, halfSize, color);
+                    DrawBoxWireframe(center, rotation, halfSize, color);
                     break;
                 
                 case HitBoxShape.Sphere:
-                    DrawSphereWireframe(offset, (float)shape.Radius, color);
+                    DrawSphereWireframe(center, (float)shape.Radius, color);
                     break;
             }
         }

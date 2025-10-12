@@ -174,16 +174,15 @@ namespace Astrum.Editor.RoleEditor.Modules
                 bounds.Encapsulate(renderer.bounds);
             }
             
-            // 设置模型中心点
+            // 设置模型中心点（保持模型在原点，相机环绕模型中心）
             _modelCenter = bounds.center;
             _orbitRadius = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * 1.5f;
             
-            // 调整模型位置，使其中心在原点
-            Vector3 offset = _modelCenter;
-            _previewInstance.transform.position = -offset;
-            _modelCenter = Vector3.zero;
+            // 确保模型位置在原点（不移动模型，让相机适应）
+            _previewInstance.transform.position = Vector3.zero;
+            _previewInstance.transform.rotation = Quaternion.identity;
             
-            Debug.Log($"[RolePreviewModule] Model bounds: {bounds.size}, Center: {_modelCenter}, Orbit radius: {_orbitRadius}");
+            Debug.Log($"[RolePreviewModule] Model bounds: center={_modelCenter}, size={bounds.size}, orbitRadius={_orbitRadius}");
         }
         
         /// <summary>
@@ -196,7 +195,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 重置模型位置，防止累积位移
             if (_previewInstance != null)
             {
-                _previewInstance.transform.position = -_modelCenter;
+                _previewInstance.transform.position = Vector3.zero;
                 _previewInstance.transform.rotation = Quaternion.identity;
             }
             
@@ -324,6 +323,7 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _previewRenderUtility.camera.Render();
                 
                 // 绘制碰撞盒（在 camera.Render() 后，EndPreview() 前）
+                // 模型在原点，碰撞盒相对偏移直接绘制
                 if (_showCollisionShape && _currentRole != null && !string.IsNullOrEmpty(_currentRole.CollisionData))
                 {
                     CollisionShapePreview.DrawCollisionData(_currentRole.CollisionData, _previewRenderUtility.camera);
