@@ -24,6 +24,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 事件 ===
         public event Action<ActionEditorData> OnActionModified;
+        public event Action<TimelineEvent> OnEventModified;
         
         // === 核心方法 ===
         
@@ -293,6 +294,7 @@ namespace Astrum.Editor.RoleEditor.Modules
                     {
                         _currentAction?.MarkDirty();
                         OnActionModified?.Invoke(_currentAction);
+                        OnEventModified?.Invoke(_selectedEvent);
                     }
                 }
                 else
