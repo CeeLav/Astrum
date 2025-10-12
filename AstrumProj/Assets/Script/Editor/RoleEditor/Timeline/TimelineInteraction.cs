@@ -44,6 +44,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
         public event Action<TimelineEvent> OnEventResized;
         public event Action<int> OnPlayheadMoved;
         public event Action<int, string> OnAddEventRequested; // 参数：帧号，轨道类型
+        public event Action<TimelineEvent> OnEventDeleteRequested; // 删除事件请求
         
         // === 核心方法 ===
         
@@ -441,9 +442,10 @@ namespace Astrum.Editor.RoleEditor.Timeline
             switch (evt.keyCode)
             {
                 case KeyCode.Delete:
-                    // 删除选中事件（需要在外部处理）
+                    // 删除选中事件
                     if (_selectedEvent != null)
                     {
+                        DeleteSelectedEvent();
                         evt.Use();
                     }
                     break;
@@ -723,7 +725,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
             if (_selectedEvent != null)
             {
                 Debug.Log($"{LOG_PREFIX} Delete event requested: {_selectedEvent.EventId}");
-                // 实际删除由外部处理（通过监听 Delete 键或右键菜单）
+                OnEventDeleteRequested?.Invoke(_selectedEvent);
             }
         }
     }
