@@ -156,19 +156,44 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 写入 ActionTable CSV
+        /// 写入 ActionTable CSV（只更新技能动作，保留其他动作）
         /// </summary>
-        private static bool WriteActionTableCSV(List<ActionTableData> tableData)
+        private static bool WriteActionTableCSV(List<ActionTableData> skillActionTableData)
         {
             var config = ActionTableData.GetTableConfig();
             
             try
             {
-                bool success = LubanCSVWriter.WriteTable(config, tableData, enableBackup: true);
+                // 1. 读取现有的所有动作
+                var existingActions = ActionTableData.ReadAllActions();
+                
+                // 2. 过滤出非技能动作
+                var nonSkillActions = existingActions
+                    .Where(a => !string.Equals(a.ActionType, "skill", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                
+                // 3. 获取技能动作的 ActionId 集合（用于去重）
+                var skillActionIds = new HashSet<int>(skillActionTableData.Select(a => a.ActionId));
+                
+                // 4. 移除现有技能动作中已存在的 ActionId（避免重复）
+                nonSkillActions = nonSkillActions
+                    .Where(a => !skillActionIds.Contains(a.ActionId))
+                    .ToList();
+                
+                // 5. 合并：非技能动作 + 新的技能动作
+                var mergedActions = new List<ActionTableData>();
+                mergedActions.AddRange(nonSkillActions);
+                mergedActions.AddRange(skillActionTableData);
+                
+                // 6. 按 ActionId 排序
+                mergedActions = mergedActions.OrderBy(a => a.ActionId).ToList();
+                
+                // 7. 写入合并后的完整列表
+                bool success = LubanCSVWriter.WriteTable(config, mergedActions, enableBackup: true);
                 
                 if (success)
                 {
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote ActionTable to {config.FilePath}");
+                    Debug.Log($"{LOG_PREFIX} Successfully wrote ActionTable: {nonSkillActions.Count} non-skill actions + {skillActionTableData.Count} skill actions = {mergedActions.Count} total");
                 }
                 else
                 {
