@@ -471,7 +471,39 @@ namespace Astrum.Editor.RoleEditor.Windows
             if (_previewModule != null)
             {
                 _previewModule.SetFrame(frame);
+                
+                // 获取当前帧的碰撞盒信息并传递给预览模块
+                UpdateFrameCollisionInfo(frame);
+                
                 Repaint();
+            }
+        }
+        
+        /// <summary>
+        /// 更新当前帧的碰撞盒信息到预览模块
+        /// </summary>
+        private void UpdateFrameCollisionInfo(int frame)
+        {
+            if (_selectedSkillAction == null || _previewModule == null)
+            {
+                _previewModule?.ClearCollisionInfo();
+                return;
+            }
+            
+            // 从 TriggerEffects 中查找当前帧的碰撞盒信息
+            var frameData = _selectedSkillAction.TriggerEffects
+                .FirstOrDefault(t => frame >= t.StartFrame && frame <= t.EndFrame && 
+                                     !string.IsNullOrEmpty(t.CollisionInfo));
+            
+            if (frameData != null)
+            {
+                // 设置碰撞盒信息到预览模块
+                _previewModule.SetFrameCollisionInfo(frameData.CollisionInfo);
+            }
+            else
+            {
+                // 当前帧没有碰撞盒，清除显示
+                _previewModule.ClearCollisionInfo();
             }
         }
         

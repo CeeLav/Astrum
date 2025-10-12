@@ -24,6 +24,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         private int _currentFrame = 0;
         private float _accumulatedTime = 0f;             // 累积时间，用于逐帧播放
         
+        // === 碰撞盒显示 ===
+        private string _currentFrameCollisionInfo = null; // 当前帧的碰撞盒信息
+        
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
         // === 实体管理 ===
@@ -176,6 +179,23 @@ namespace Astrum.Editor.RoleEditor.Modules
             return Mathf.RoundToInt(_currentClip.length * LOGIC_FRAME_RATE);
         }
         
+        /// <summary>
+        /// 设置当前帧的碰撞盒信息（从编辑器传入）
+        /// </summary>
+        /// <param name="collisionInfo">碰撞盒信息字符串，格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point</param>
+        public void SetFrameCollisionInfo(string collisionInfo)
+        {
+            _currentFrameCollisionInfo = collisionInfo;
+        }
+        
+        /// <summary>
+        /// 清除碰撞盒显示
+        /// </summary>
+        public void ClearCollisionInfo()
+        {
+            _currentFrameCollisionInfo = null;
+        }
+        
         // === 绘制 ===
         
         public override void DrawPreview(Rect rect)
@@ -185,11 +205,45 @@ namespace Astrum.Editor.RoleEditor.Modules
                 Initialize();
             }
             
-            // 使用基类的渲染方法
-            RenderPreview(rect);
+            // 使用自定义的渲染方法（包含碰撞盒绘制）
+            RenderPreviewWithCollision(rect);
             
             // 处理输入
             HandleInput(rect);
+        }
+        
+        /// <summary>
+        /// 渲染预览场景（包含碰撞盒）
+        /// </summary>
+        private void RenderPreviewWithCollision(Rect rect)
+        {
+            if (_previewRenderUtility == null || _previewInstance == null)
+            {
+                DrawEmptyPreview(rect);
+                return;
+            }
+            
+            // 更新相机位置（球面坐标）
+            UpdateCamera();
+            
+            // 更新动画
+            UpdateAnimation();
+            
+            // 渲染
+            _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
+            _previewRenderUtility.camera.Render();
+            
+            // 在相机渲染后，绘制碰撞盒
+            if (!string.IsNullOrEmpty(_currentFrameCollisionInfo))
+            {
+                Services.CollisionShapePreview.DrawCollisionInfo(
+                    _currentFrameCollisionInfo, 
+                    _previewRenderUtility.camera
+                );
+            }
+            
+            Texture texture = _previewRenderUtility.EndPreview();
+            GUI.DrawTexture(rect, texture);
         }
         
         // === 更新动画（重写以支持逐帧）===
