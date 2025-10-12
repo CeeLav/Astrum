@@ -101,16 +101,21 @@ namespace Astrum.Editor.RoleEditor.Timeline
             Dictionary<string, List<TimelineEvent>> eventsByTrack,
             int currentFrame,
             TimelineEvent selectedEvent = null,
-            TimelineEvent hoverEvent = null)
+            TimelineEvent hoverEvent = null,
+            bool showBoundary = false,
+            int maxEditableFrame = 0)
         {
             // 背景
             EditorGUI.DrawRect(rect, COLOR_BACKGROUND);
+            
+            // 计算内容宽度，至少填满整个可用宽度
+            float contentWidth = Mathf.Max(_layoutCalculator.GetContentWidth() + _layoutCalculator.GetTrackHeaderWidth(), rect.width);
             
             // 开始滚动视图
             Rect viewRect = new Rect(
                 0,
                 0,
-                _layoutCalculator.GetContentWidth() + _layoutCalculator.GetTrackHeaderWidth(),
+                contentWidth,
                 rect.height
             );
             
@@ -136,6 +141,12 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 DrawTrack(trackRect, track, events, i, currentFrame, selectedEvent, hoverEvent);
                 
                 currentY += track.TrackHeight;
+            }
+            
+            // 绘制可编辑范围边界线（在所有轨道绘制完成后绘制，确保在最上层）
+            if (showBoundary && maxEditableFrame > 0)
+            {
+                DrawEditableBoundaryInScrollView(viewRect, maxEditableFrame);
             }
             
             GUI.EndScrollView();
@@ -443,11 +454,11 @@ namespace Astrum.Editor.RoleEditor.Timeline
         }
         
         /// <summary>
-        /// 绘制可编辑范围边界线（Duration分界线）
+        /// 在ScrollView内部绘制可编辑范围边界线
         /// </summary>
-        public void DrawEditableBoundary(Rect rect, int maxEditableFrame)
+        private void DrawEditableBoundaryInScrollView(Rect viewRect, int maxEditableFrame)
         {
-            // 计算边界线位置
+            // 计算边界线位置（ScrollView内部坐标系）
             float x = _layoutCalculator.FrameToPixel(maxEditableFrame) + _layoutCalculator.GetTrackHeaderWidth();
             
             // 绘制虚线
@@ -457,11 +468,11 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 绘制虚线效果
             float dashLength = 10f;
             float gapLength = 5f;
-            float currentY = rect.y;
+            float currentY = 0;
             
-            while (currentY < rect.yMax)
+            while (currentY < viewRect.height)
             {
-                float endY = Mathf.Min(currentY + dashLength, rect.yMax);
+                float endY = Mathf.Min(currentY + dashLength, viewRect.height);
                 Handles.DrawAAPolyLine(3f, new Vector3(x, currentY), new Vector3(x, endY));
                 currentY = endY + gapLength;
             }
@@ -476,7 +487,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
             
             string labelText = $"Duration:{maxEditableFrame}";
             Vector2 labelSize = labelStyle.CalcSize(new GUIContent(labelText));
-            Rect labelRect = new Rect(x + 5, rect.y + 5, labelSize.x, labelSize.y);
+            Rect labelRect = new Rect(x + 5, 5, labelSize.x, labelSize.y);
             
             // 绘制半透明背景
             Color oldColor = GUI.color;
