@@ -84,5 +84,14 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 }
             };
         }
+        
+        /// <summary>
+        /// 读取所有动作数据
+        /// </summary>
+        public static List<ActionTableData> ReadAllActions()
+        {
+            var config = GetTableConfig();
+            return LubanCSVReader.ReadTable<ActionTableData>(config);
+        }
     }
 }

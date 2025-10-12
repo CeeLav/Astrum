@@ -11,7 +11,6 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""skill"",""jump""],""rangeFrames"":[0,19],""blendOutFrames"":4,""priority"":0}]"
-,0,,,0,,0,False,False,,0,,
 ,3001,attack_01,skill,20,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim,1001,False,False,NormalAttack,5,"[
   {
     ""Tag"": ""skill"",
