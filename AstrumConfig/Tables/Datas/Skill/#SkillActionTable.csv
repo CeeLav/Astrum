@@ -2,5 +2,5 @@
 ##type,int,int,int,string
 ##group,,,,
 ##desc,动作ID,实际法力消耗,实际冷却时间(帧),触发帧信息(含碰撞盒)
-,3001,20,300,Frame6-7:Collision(Box:1x1x0.5):4022
+,3001,20,300,Frame6-7:Collision(Box:0.6x1.2x2):4022
 ,3002,0,0,Frame12:Direct:4003

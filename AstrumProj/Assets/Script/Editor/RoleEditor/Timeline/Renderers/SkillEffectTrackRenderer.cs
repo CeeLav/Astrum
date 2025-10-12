@@ -226,34 +226,19 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 EditorGUILayout.BeginVertical("box");
                 {
                     EditorGUILayout.LabelField("碰撞盒配置", EditorStyles.boldLabel);
+                    EditorGUILayout.Space(3);
                     
-                    EditorGUI.BeginChangeCheck();
-                    string newCollisionInfo = EditorGUILayout.TextField("碰撞盒信息", effectData.CollisionInfo);
-                    if (EditorGUI.EndChangeCheck())
+                    // 使用可视化碰撞盒编辑器
+                    string newCollisionInfo = UI.CollisionInfoEditor.DrawCollisionInfoEditor(
+                        effectData.CollisionInfo, 
+                        out bool collisionModified
+                    );
+                    
+                    if (collisionModified)
                     {
                         effectData.CollisionInfo = newCollisionInfo;
                         effectData.ParseCollisionInfo();
                         modified = true;
-                    }
-                    
-                    EditorGUILayout.HelpBox(
-                        "格式示例：\n" +
-                        "• Box:5x2x1\n" +
-                        "• Sphere:3.0\n" +
-                        "• Capsule:2x5\n" +
-                        "• Point",
-                        MessageType.Info
-                    );
-                    
-                    // 显示解析结果
-                    if (!string.IsNullOrEmpty(effectData.CollisionShapeType))
-                    {
-                        EditorGUILayout.Space(3);
-                        EditorGUILayout.LabelField($"类型: {effectData.CollisionShapeType}", EditorStyles.miniLabel);
-                        if (!string.IsNullOrEmpty(effectData.CollisionShapeSize))
-                        {
-                            EditorGUILayout.LabelField($"尺寸: {effectData.CollisionShapeSize}", EditorStyles.miniLabel);
-                        }
                     }
                 }
                 EditorGUILayout.EndVertical();

@@ -159,6 +159,7 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 事件详情模块
             _eventDetailModule = new EventDetailModule();
             _eventDetailModule.OnActionModified += OnActionModified;
+            _eventDetailModule.OnEventModified += OnTimelineEventModified;
         }
         
         private void CleanupModules()
@@ -481,6 +482,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         /// <summary>
         /// 更新当前帧的碰撞盒信息到预览模块
+        /// 优先从 TimelineEvents 读取最新数据（支持实时编辑），回退到 TriggerEffects
         /// </summary>
         private void UpdateFrameCollisionInfo(int frame)
         {
@@ -490,14 +492,37 @@ namespace Astrum.Editor.RoleEditor.Windows
                 return;
             }
             
-            // 从 TriggerEffects 中查找当前帧的碰撞盒信息
+            // 优先从 TimelineEvents 中查找当前帧的碰撞盒信息（最新数据）
+            var timelineEvent = _selectedSkillAction.TimelineEvents
+                ?.FirstOrDefault(evt => evt.TrackType == "SkillEffect" && 
+                                       frame >= evt.StartFrame && 
+                                       frame <= evt.EndFrame);
+            
+            if (timelineEvent != null)
+            {
+                try
+                {
+                    var eventData = timelineEvent.GetEventData<Timeline.EventData.SkillEffectEventData>();
+                    if (eventData != null && eventData.TriggerType == "Collision" && 
+                        !string.IsNullOrEmpty(eventData.CollisionInfo))
+                    {
+                        _previewModule.SetFrameCollisionInfo(eventData.CollisionInfo);
+                        return;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[SkillActionEditor] 从 TimelineEvent 读取碰撞盒失败: {ex.Message}");
+                }
+            }
+            
+            // 回退：从 TriggerEffects 中查找（兼容旧数据）
             var frameData = _selectedSkillAction.TriggerEffects
                 .FirstOrDefault(t => frame >= t.StartFrame && frame <= t.EndFrame && 
                                      !string.IsNullOrEmpty(t.CollisionInfo));
             
             if (frameData != null)
             {
-                // 设置碰撞盒信息到预览模块
                 _previewModule.SetFrameCollisionInfo(frameData.CollisionInfo);
             }
             else
@@ -505,6 +530,30 @@ namespace Astrum.Editor.RoleEditor.Windows
                 // 当前帧没有碰撞盒，清除显示
                 _previewModule.ClearCollisionInfo();
             }
+        }
+        
+        /// <summary>
+        /// 从指定事件更新碰撞盒预览（用于事件修改时的立即响应）
+        /// </summary>
+        private void UpdateFrameCollisionInfoFromEvent(TimelineEvent evt)
+        {
+            if (evt == null || _previewModule == null)
+            {
+                _previewModule?.ClearCollisionInfo();
+                return;
+            }
+            
+            // 只处理技能效果事件
+            if (evt.TrackType != "SkillEffect")
+            {
+                return;
+            }
+            
+            // 使用统一的更新方法（已优化为优先从 TimelineEvents 读取）
+            int currentFrame = _timelineModule.GetCurrentFrame();
+            UpdateFrameCollisionInfo(currentFrame);
+            
+            Debug.Log($"[SkillActionEditor] 事件修改触发碰撞盒更新 (Frame: {currentFrame})");
         }
         
         private void OnCreateNewSkillAction()
@@ -583,6 +632,15 @@ namespace Astrum.Editor.RoleEditor.Windows
             if (_selectedSkillAction != null)
             {
                 _selectedSkillAction.MarkDirty();
+                
+                // 如果修改的是当前帧范围内的事件，立即更新预览的碰撞盒显示
+                int currentFrame = _timelineModule.GetCurrentFrame();
+                if (evt != null && currentFrame >= evt.StartFrame && currentFrame <= evt.EndFrame)
+                {
+                    // 直接从修改的事件中获取最新的碰撞盒信息
+                    UpdateFrameCollisionInfoFromEvent(evt);
+                    Repaint();
+                }
             }
         }
         
@@ -592,6 +650,24 @@ namespace Astrum.Editor.RoleEditor.Windows
             {
                 _eventDetailModule.SetSelectedEvent(evt);
             }
+            
+            // 选中事件时，立即更新当前帧的碰撞盒显示
+            if (_timelineModule != null && _previewModule != null)
+            {
+                int currentFrame = _timelineModule.GetCurrentFrame();
+                
+                // 如果当前帧在选中事件的范围内，优先从事件读取最新数据
+                if (evt != null && currentFrame >= evt.StartFrame && currentFrame <= evt.EndFrame)
+                {
+                    UpdateFrameCollisionInfoFromEvent(evt);
+                }
+                else
+                {
+                    // 否则从 TriggerEffects 读取
+                    UpdateFrameCollisionInfo(currentFrame);
+                }
+            }
+            
             Repaint();
         }
         
