@@ -85,8 +85,12 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 计算内容区域宽度（排除轨道标题）
             float contentWidth = availableWidth - _trackHeaderWidth;
             
-            // 计算合适的缩放级别
-            float idealPixelsPerFrame = contentWidth / totalFrames;
+            // 为右侧数字留出显示空间，增加额外的虚拟帧数
+            // 这样计算出的 pixelsPerFrame 会稍小，右侧就有额外空间
+            const int extraDisplayFrames = 2;
+            
+            // 计算合适的缩放级别（使用增加后的帧数，让每帧稍微小一点）
+            float idealPixelsPerFrame = contentWidth / (totalFrames + extraDisplayFrames);
             
             // 只限制最小值，不限制最大值（自动适应优先填满宽度）
             if (idealPixelsPerFrame < MIN_PIXELS_PER_FRAME)
@@ -100,7 +104,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 _pixelsPerFrame = idealPixelsPerFrame;
             }
             
-            // Debug.Log($"[TimelineLayoutCalculator] FitToWidth: availableWidth={availableWidth}, totalFrames={totalFrames}, idealPixelsPerFrame={idealPixelsPerFrame:F2}, finalPixelsPerFrame={_pixelsPerFrame:F2}");
+            // Debug.Log($"[TimelineLayoutCalculator] FitToWidth: availableWidth={availableWidth}, totalFrames={totalFrames}, extraFrames={extraDisplayFrames}, idealPixelsPerFrame={idealPixelsPerFrame:F2}, finalPixelsPerFrame={_pixelsPerFrame:F2}");
         }
         
         // === 区域获取方法 ===

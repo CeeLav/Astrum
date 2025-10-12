@@ -300,12 +300,13 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 return;
             }
             
-            // 未点击任何内容，取消选中
-            _selectedEvent = null;
-            EditorApplication.delayCall += () =>
-            {
-                OnEventSelected?.Invoke(null);
-            };
+            // 未点击任何内容，保持上一个选中状态（避免误操作取消选中）
+            // 注释掉自动取消选中的逻辑
+            // _selectedEvent = null;
+            // EditorApplication.delayCall += () =>
+            // {
+            //     OnEventSelected?.Invoke(null);
+            // };
         }
         
         private void HandleMouseDrag(Event evt, Rect rect)
