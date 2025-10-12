@@ -88,24 +88,19 @@ namespace Astrum.Editor.RoleEditor.Timeline
             // 计算合适的缩放级别
             float idealPixelsPerFrame = contentWidth / totalFrames;
             
-            // 限制在合理范围内，但对于自动适应，优先填满宽度
+            // 只限制最小值，不限制最大值（自动适应优先填满宽度）
             if (idealPixelsPerFrame < MIN_PIXELS_PER_FRAME)
             {
-                // 如果计算出的缩放太小，使用最小缩放，但允许横向滚动
+                // 如果计算出的缩放太小，使用最小缩放，允许横向滚动
                 _pixelsPerFrame = MIN_PIXELS_PER_FRAME;
-            }
-            else if (idealPixelsPerFrame > MAX_PIXELS_PER_FRAME)
-            {
-                // 如果计算出的缩放太大，使用最大缩放
-                _pixelsPerFrame = MAX_PIXELS_PER_FRAME;
             }
             else
             {
-                // 在合理范围内，使用计算出的值（优先填满）
+                // 使用计算出的值，优先填满宽度（不受MAX_PIXELS_PER_FRAME限制）
                 _pixelsPerFrame = idealPixelsPerFrame;
             }
             
-            Debug.Log($"[TimelineLayoutCalculator] FitToWidth: availableWidth={availableWidth}, totalFrames={totalFrames}, idealPixelsPerFrame={idealPixelsPerFrame:F2}, finalPixelsPerFrame={_pixelsPerFrame:F2}");
+            // Debug.Log($"[TimelineLayoutCalculator] FitToWidth: availableWidth={availableWidth}, totalFrames={totalFrames}, idealPixelsPerFrame={idealPixelsPerFrame:F2}, finalPixelsPerFrame={_pixelsPerFrame:F2}");
         }
         
         // === 区域获取方法 ===
