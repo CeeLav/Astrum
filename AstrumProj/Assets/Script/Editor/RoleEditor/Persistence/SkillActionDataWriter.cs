@@ -248,29 +248,59 @@ namespace Astrum.Editor.RoleEditor.Persistence
             
             try
             {
-                string[] frames = triggerFramesStr.Split(',');
+                // 使用智能分割（忽略括号内的逗号）
+                string[] frames = SplitIgnoringParentheses(triggerFramesStr, ',');
                 foreach (string frameStr in frames)
                 {
                     string trimmed = frameStr.Trim();
                     if (string.IsNullOrEmpty(trimmed))
                         continue;
                     
-                    string[] parts = trimmed.Split(':');
-                    if (parts.Length != 3)
+                    // 智能解析三部分：Frame / Trigger+Collision / EffectID
+                    int firstColonIndex = trimmed.IndexOf(':');
+                    if (firstColonIndex < 0)
                         return false;
                     
-                    // 验证帧号
-                    string frameNumStr = parts[0].Replace("Frame", "").Trim();
-                    if (!int.TryParse(frameNumStr, out int frameNum) || frameNum < 0)
+                    // 找到右括号位置（如果有）
+                    int lastParenIndex = trimmed.LastIndexOf(')');
+                    
+                    // 在右括号之后查找最后一个冒号
+                    int searchStartIndex = lastParenIndex > 0 ? lastParenIndex : firstColonIndex + 1;
+                    int lastColonIndex = trimmed.IndexOf(':', searchStartIndex);
+                    
+                    if (lastColonIndex < 0)
                         return false;
+                    
+                    // 分割三部分
+                    string framePart = trimmed.Substring(0, firstColonIndex).Trim();
+                    string triggerPart = trimmed.Substring(firstColonIndex + 1, lastColonIndex - firstColonIndex - 1).Trim();
+                    string effectIdPart = trimmed.Substring(lastColonIndex + 1).Trim();
+                    
+                    // 验证帧号（支持范围：Frame5-10）
+                    string frameNumStr = framePart.Replace("Frame", "").Trim();
+                    if (frameNumStr.Contains("-"))
+                    {
+                        // 多帧格式：Frame5-10
+                        string[] frameRange = frameNumStr.Split('-');
+                        if (frameRange.Length != 2 || 
+                            !int.TryParse(frameRange[0].Trim(), out int startFrame) ||
+                            !int.TryParse(frameRange[1].Trim(), out int endFrame) ||
+                            startFrame < 0 || endFrame < 0 || startFrame > endFrame)
+                            return false;
+                    }
+                    else
+                    {
+                        // 单帧格式：Frame5
+                        if (!int.TryParse(frameNumStr, out int frameNum) || frameNum < 0)
+                            return false;
+                    }
                     
                     // 验证触发类型
-                    string triggerType = parts[1].Trim();
-                    if (string.IsNullOrEmpty(triggerType))
+                    if (string.IsNullOrEmpty(triggerPart))
                         return false;
                     
                     // 验证效果ID
-                    if (!int.TryParse(parts[2].Trim(), out int effectId) || effectId < 0)
+                    if (!int.TryParse(effectIdPart, out int effectId) || effectId < 0)
                         return false;
                 }
                 
@@ -281,6 +311,51 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 Debug.LogError($"{LOG_PREFIX} Validation error: {ex.Message}");
                 return false;
             }
+        }
+        
+        /// <summary>
+        /// 智能分割字符串，忽略括号内的分隔符
+        /// </summary>
+        private static string[] SplitIgnoringParentheses(string input, char separator)
+        {
+            var result = new List<string>();
+            var current = new System.Text.StringBuilder();
+            int parenthesesDepth = 0;
+            
+            foreach (char c in input)
+            {
+                if (c == '(')
+                {
+                    parenthesesDepth++;
+                    current.Append(c);
+                }
+                else if (c == ')')
+                {
+                    parenthesesDepth--;
+                    current.Append(c);
+                }
+                else if (c == separator && parenthesesDepth == 0)
+                {
+                    // 只在括号外的分隔符才分割
+                    if (current.Length > 0)
+                    {
+                        result.Add(current.ToString().Trim());
+                        current.Clear();
+                    }
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            
+            // 添加最后一个片段
+            if (current.Length > 0)
+            {
+                result.Add(current.ToString().Trim());
+            }
+            
+            return result.ToArray();
         }
     }
 }
