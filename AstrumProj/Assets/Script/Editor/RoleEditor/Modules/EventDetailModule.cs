@@ -317,3 +317,4 @@ namespace Astrum.Editor.RoleEditor.Modules
     }
 }
 
+
