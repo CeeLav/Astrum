@@ -373,8 +373,9 @@ namespace Astrum.Editor.RoleEditor.Data
         [GUIColor(0.4f, 0.8f, 1f)]
         private void EditAction()
         {
-            // TODO: 打开 SkillActionEditor 窗口
-            Debug.Log($"[SkillActionCard] 编辑动作 {ActionId}: {ActionName}");
+            // 打开技能动作编辑器窗口并选中该动作
+            Windows.SkillActionEditorWindow.OpenAndSelectAction(ActionId);
+            Debug.Log($"[SkillActionCard] 正在打开技能动作编辑器，动作ID: {ActionId}");
         }
         
         [HorizontalGroup("按钮组")]

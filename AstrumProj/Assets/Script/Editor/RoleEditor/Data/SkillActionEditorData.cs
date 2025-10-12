@@ -141,25 +141,51 @@ namespace Astrum.Editor.RoleEditor.Data
         /// </summary>
         public void SyncFromTimelineEvents(List<TimelineEvent> events)
         {
-            // TODO: Phase 4 - 实现双向同步
-            // TriggerEffects.Clear();
-            // foreach (var evt in events)
-            // {
-            //     if (evt.TrackType == "SkillEffects")
-            //     {
-            //         TriggerEffects.Add(new TriggerFrameData
-            //         {
-            //             Frame = evt.StartFrame,
-            //             TriggerType = (string)evt.EventData["TriggerType"],
-            //             EffectId = (int)evt.EventData["EffectId"]
-            //         });
-            //     }
-            // }
-            // 
-            // // 更新 TriggerFrames 字符串
-            // TriggerFrames = TriggerFrameData.SerializeToString(TriggerEffects);
+            TriggerEffects.Clear();
             
-            Debug.Log("[SkillActionData] SyncFromTimelineEvents (待 Phase 4 实现)");
+            if (events == null || events.Count == 0)
+            {
+                TriggerFrames = "";
+                return;
+            }
+            
+            foreach (var evt in events)
+            {
+                // 只处理技能效果轨道的事件
+                if (evt.TrackType != "SkillEffect")
+                    continue;
+                
+                try
+                {
+                    // 反序列化事件数据
+                    var eventData = evt.GetEventData<Timeline.EventData.SkillEffectEventData>();
+                    
+                    if (eventData == null)
+                    {
+                        Debug.LogWarning($"[SkillActionData] 无法解析事件数据: {evt.EventId}");
+                        continue;
+                    }
+                    
+                    // 创建触发帧数据
+                    TriggerEffects.Add(new TriggerFrameData
+                    {
+                        StartFrame = evt.StartFrame,
+                        EndFrame = evt.EndFrame,
+                        TriggerType = eventData.TriggerType,
+                        CollisionInfo = eventData.CollisionInfo,
+                        EffectId = eventData.EffectId
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[SkillActionData] 处理事件失败 {evt.EventId}: {ex.Message}");
+                }
+            }
+            
+            // 更新 TriggerFrames 字符串
+            TriggerFrames = TriggerFrameData.SerializeToString(TriggerEffects);
+            
+            Debug.Log($"[SkillActionData] SyncFromTimelineEvents: 同步 {TriggerEffects.Count} 个触发帧, TriggerFrames=\"{TriggerFrames}\"");
         }
         
         /// <summary>
@@ -168,31 +194,40 @@ namespace Astrum.Editor.RoleEditor.Data
         /// </summary>
         public List<TimelineEvent> BuildTimelineFromTriggerEffects()
         {
-            // TODO: Phase 4 - 实现双向同步
-            // var timelineEvents = new List<TimelineEvent>();
-            // 
-            // foreach (var effect in TriggerEffects)
-            // {
-            //     var evt = new TimelineEvent
-            //     {
-            //         EventId = System.Guid.NewGuid().ToString(),
-            //         TrackType = "SkillEffects",
-            //         StartFrame = effect.Frame,
-            //         EndFrame = effect.Frame,
-            //         DisplayName = $"效果 {effect.EffectId}",
-            //         EventData = new Dictionary<string, object>
-            //         {
-            //             { "TriggerType", effect.TriggerType },
-            //             { "EffectId", effect.EffectId }
-            //         }
-            //     };
-            //     timelineEvents.Add(evt);
-            // }
-            // 
-            // return timelineEvents;
+            var timelineEvents = new List<TimelineEvent>();
             
-            Debug.Log("[SkillActionData] BuildTimelineFromTriggerEffects (待 Phase 4 实现)");
-            return new List<TimelineEvent>();
+            foreach (var effect in TriggerEffects)
+            {
+                // 创建技能效果事件数据
+                var eventData = new Timeline.EventData.SkillEffectEventData
+                {
+                    EffectId = effect.EffectId,
+                    TriggerType = effect.TriggerType,
+                    CollisionInfo = effect.CollisionInfo
+                };
+                
+                // 刷新效果详情（从配置表读取）
+                eventData.RefreshFromTable();
+                eventData.ParseCollisionInfo();
+                
+                // 创建时间轴事件
+                var evt = new TimelineEvent
+                {
+                    EventId = System.Guid.NewGuid().ToString(),
+                    TrackType = "SkillEffect",
+                    StartFrame = effect.StartFrame,
+                    EndFrame = effect.EndFrame,
+                    DisplayName = eventData.GetDisplayName()
+                };
+                
+                // 序列化事件数据
+                evt.SetEventData(eventData);
+                
+                timelineEvents.Add(evt);
+            }
+            
+            Debug.Log($"[SkillActionData] BuildTimelineFromTriggerEffects: 创建 {timelineEvents.Count} 个时间轴事件");
+            return timelineEvents;
         }
         
         /// <summary>
@@ -244,16 +279,27 @@ namespace Astrum.Editor.RoleEditor.Data
                     if (string.IsNullOrEmpty(trimmed))
                         continue;
                     
-                    string[] parts = trimmed.Split(':');
-                    if (parts.Length < 3)
+                    // 改进的解析逻辑：考虑碰撞盒信息中可能包含冒号
+                    // 格式: "Frame10:Collision(Box:1x1x0.5):4022"
+                    // 策略：找到第一个冒号（帧号后）和最后一个冒号（效果ID前）
+                    
+                    int firstColonIndex = trimmed.IndexOf(':');
+                    int lastColonIndex = trimmed.LastIndexOf(':');
+                    
+                    if (firstColonIndex < 0 || lastColonIndex < 0 || firstColonIndex == lastColonIndex)
                     {
-                        Debug.LogWarning($"[TriggerFrameData] 格式错误: {trimmed}");
+                        Debug.LogWarning($"[TriggerFrameData] 格式错误，缺少必要的分隔符: {trimmed}");
                         continue;
                     }
                     
+                    // 分割三部分
+                    string framePart = trimmed.Substring(0, firstColonIndex).Trim();
+                    string triggerPart = trimmed.Substring(firstColonIndex + 1, lastColonIndex - firstColonIndex - 1).Trim();
+                    string effectIdPart = trimmed.Substring(lastColonIndex + 1).Trim();
+                    
                     // 解析帧范围 (移除 "Frame" 前缀)
                     // 支持格式：Frame5 或 Frame5-10
-                    string framePart = parts[0].Replace("Frame", "").Trim();
+                    framePart = framePart.Replace("Frame", "").Trim();
                     int startFrame, endFrame;
                     
                     if (framePart.Contains("-"))
@@ -264,13 +310,13 @@ namespace Astrum.Editor.RoleEditor.Data
                             !int.TryParse(frameRange[0].Trim(), out startFrame) ||
                             !int.TryParse(frameRange[1].Trim(), out endFrame))
                         {
-                            Debug.LogWarning($"[TriggerFrameData] 帧范围解析失败: {parts[0]}");
+                            Debug.LogWarning($"[TriggerFrameData] 帧范围解析失败: {framePart}");
                             continue;
                         }
                         
                         if (startFrame > endFrame)
                         {
-                            Debug.LogWarning($"[TriggerFrameData] 起始帧({startFrame})大于结束帧({endFrame}): {parts[0]}");
+                            Debug.LogWarning($"[TriggerFrameData] 起始帧({startFrame})大于结束帧({endFrame}): {framePart}");
                             continue;
                         }
                     }
@@ -279,18 +325,17 @@ namespace Astrum.Editor.RoleEditor.Data
                         // 单帧格式：Frame5
                         if (!int.TryParse(framePart, out startFrame))
                         {
-                            Debug.LogWarning($"[TriggerFrameData] 帧号解析失败: {parts[0]}");
+                            Debug.LogWarning($"[TriggerFrameData] 帧号解析失败: {framePart}");
                             continue;
                         }
                         endFrame = startFrame;
                     }
                     
                     // 解析触发类型和碰撞盒信息
-                    string triggerPart = parts[1].Trim();
                     string triggerType = triggerPart;
                     string collisionInfo = "";
                     
-                    // 检查是否包含碰撞盒信息 (格式：Collision(Box:5x2x1))
+                    // 检查是否包含碰撞盒信息 (格式：Collision(Box:1x1x0.5))
                     if (triggerPart.Contains("(") && triggerPart.Contains(")"))
                     {
                         int startIndex = triggerPart.IndexOf('(');
@@ -304,9 +349,9 @@ namespace Astrum.Editor.RoleEditor.Data
                     }
                     
                     // 解析效果ID
-                    if (!int.TryParse(parts[2].Trim(), out int effectId))
+                    if (!int.TryParse(effectIdPart, out int effectId))
                     {
-                        Debug.LogWarning($"[TriggerFrameData] 效果ID解析失败: {parts[2]}");
+                        Debug.LogWarning($"[TriggerFrameData] 效果ID解析失败: {effectIdPart}");
                         continue;
                     }
                     

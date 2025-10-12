@@ -43,6 +43,40 @@ namespace Astrum.Editor.RoleEditor.Windows
             window.Show();
         }
         
+        /// <summary>
+        /// 打开窗口并选中指定动作
+        /// </summary>
+        public static void OpenAndSelectAction(int actionId)
+        {
+            var window = GetWindow<SkillActionEditorWindow>("技能动作编辑器");
+            window.minSize = new Vector2(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
+            window.Show();
+            window.Focus();
+            
+            // 延迟选中，确保数据已加载
+            EditorApplication.delayCall += () =>
+            {
+                window.SelectActionById(actionId);
+            };
+        }
+        
+        /// <summary>
+        /// 根据ActionId选中动作
+        /// </summary>
+        private void SelectActionById(int actionId)
+        {
+            var action = _allSkillActions.FirstOrDefault(a => a.ActionId == actionId);
+            if (action != null)
+            {
+                _listModule.SelectAction(action);
+                Debug.Log($"[SkillActionEditor] 已选中动作 {actionId}");
+            }
+            else
+            {
+                Debug.LogWarning($"[SkillActionEditor] 未找到动作 {actionId}");
+            }
+        }
+        
         private void OnEnable()
         {
             // 初始化配置表Helper
