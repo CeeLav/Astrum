@@ -137,6 +137,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
             // 解析触发帧字符串为触发效果列表
             editorData.ParseTriggerFrames();
             
+            // 从触发效果列表构建时间轴事件
+            editorData.TimelineEvents = editorData.BuildTimelineFromTriggerEffects();
+            
             // 清除新建和脏标记（从文件读取的数据是干净的）
             editorData.IsNew = false;
             editorData.IsDirty = false;

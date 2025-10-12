@@ -128,15 +128,16 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             try
             {
                 var effectConfig = Services.SkillEffectDataReader.GetSkillEffect(EffectId);
-                if (effectConfig != null)
-                {
-                    EffectName = $"效果_{EffectId}"; // TODO: 从配置表读取名称
-                    EffectType = effectConfig.EffectType;
-                    EffectValue = effectConfig.EffectValue;
-                    EffectRange = effectConfig.EffectRange;
-                    TargetType = effectConfig.TargetType;
-                    EffectDuration = effectConfig.EffectDuration;
-                }
+                       if (effectConfig != null)
+                       {
+                           // 根据效果类型和数值生成友好的名称
+                           EffectName = GenerateEffectName(effectConfig);
+                           EffectType = effectConfig.EffectType;
+                           EffectValue = effectConfig.EffectValue;
+                           EffectRange = effectConfig.EffectRange;
+                           TargetType = effectConfig.TargetType;
+                           EffectDuration = effectConfig.EffectDuration;
+                       }
                 else
                 {
                     Debug.LogWarning($"[SkillEffectEventData] 效果ID {EffectId} 在配置表中不存在");
@@ -184,22 +185,39 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             }
         }
         
-        /// <summary>
-        /// 获取显示名称
-        /// </summary>
-        public string GetDisplayName()
-        {
-            if (EffectId == 0) return "[未设置效果]";
-            
-            string name = !string.IsNullOrEmpty(EffectName) ? EffectName : $"效果_{EffectId}";
-            
-            if (EffectValue > 0)
-            {
-                name += $" ({EffectValue})";
-            }
-            
-            return name;
-        }
+               /// <summary>
+               /// 根据效果配置生成友好的名称
+               /// </summary>
+               private static string GenerateEffectName(Persistence.Mappings.SkillEffectTableData config)
+               {
+                   string typeName = config.EffectType switch
+                   {
+                       1 => "伤害",
+                       2 => "治疗", 
+                       3 => "击退",
+                       4 => "Buff",
+                       5 => "Debuff",
+                       _ => "效果"
+                   };
+                   
+                   // 格式：类型 + 数值
+                   if (config.EffectValue > 0)
+                   {
+                       return $"{typeName} {config.EffectValue}";
+                   }
+                   
+                   return $"{typeName}_{config.SkillEffectId}";
+               }
+               
+               /// <summary>
+               /// 获取显示名称
+               /// </summary>
+               public string GetDisplayName()
+               {
+                   if (EffectId == 0) return "[未设置效果]";
+                   
+                   return !string.IsNullOrEmpty(EffectName) ? EffectName : $"效果_{EffectId}";
+               }
         
         /// <summary>
         /// 获取详细信息文本

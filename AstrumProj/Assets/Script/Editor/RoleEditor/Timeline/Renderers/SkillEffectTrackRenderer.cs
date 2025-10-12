@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using Astrum.Editor.RoleEditor.Timeline.EventData;
+using Astrum.Editor.RoleEditor.Windows;
 
 namespace Astrum.Editor.RoleEditor.Timeline.Renderers
 {
@@ -179,8 +180,18 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 
                 if (GUILayout.Button("📋 选择效果...", GUILayout.Height(25)))
                 {
-                    // TODO: Phase 3B - 打开效果选择器
-                    EditorUtility.DisplayDialog("提示", "效果选择器将在 Phase 3B 实现", "确定");
+                    // 打开效果选择器
+                    SkillEffectSelectorWindow.ShowWindow((selectedEffectId) =>
+                    {
+                        effectData.EffectId = selectedEffectId;
+                        effectData.RefreshFromTable();
+                        effectData.ParseCollisionInfo();
+                        modified = true;
+                        
+                        // 更新事件数据
+                        evt.SetEventData(effectData);
+                        evt.DisplayName = effectData.GetDisplayName();
+                    });
                 }
             }
             EditorGUILayout.EndVertical();
