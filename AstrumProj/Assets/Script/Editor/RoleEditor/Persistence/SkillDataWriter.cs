@@ -70,6 +70,10 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 Debug.Log($"{LOG_PREFIX} 成功写入 {skillActionTableList.Count} 条 SkillActionTable 记录");
                 
                 Debug.Log($"{LOG_PREFIX} 成功写入 {skills.Count} 个技能数据");
+                
+                // 自动打表
+                Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
+                
                 return true;
             }
             catch (System.Exception ex)

@@ -40,6 +40,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 if (success)
                 {
                     Debug.Log($"{LOG_PREFIX} Successfully wrote {actions.Count} actions to CSV");
+                    
+                    // 自动打表
+                    Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
                 }
                 
                 return success;
