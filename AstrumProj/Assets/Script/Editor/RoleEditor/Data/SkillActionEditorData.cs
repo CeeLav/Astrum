@@ -272,23 +272,35 @@ namespace Astrum.Editor.RoleEditor.Data
             
             try
             {
-                string[] frames = triggerFramesStr.Split(',');
+                // 智能分割：忽略括号内的逗号
+                string[] frames = SplitIgnoringParentheses(triggerFramesStr, ',');
                 foreach (string frameStr in frames)
                 {
                     string trimmed = frameStr.Trim();
                     if (string.IsNullOrEmpty(trimmed))
                         continue;
                     
-                    // 改进的解析逻辑：考虑碰撞盒信息中可能包含冒号
-                    // 格式: "Frame10:Collision(Box:1x1x0.5):4022"
-                    // 策略：找到第一个冒号（帧号后）和最后一个冒号（效果ID前）
+                    // 改进的解析逻辑：考虑碰撞盒信息中可能包含冒号和@符号
+                    // 格式: "Frame10:Collision(Box:2.1x0.9x1.3@0,1,0):4022"
+                    // 策略：找到第一个冒号（帧号后）和右括号外的最后一个冒号（效果ID前）
                     
                     int firstColonIndex = trimmed.IndexOf(':');
-                    int lastColonIndex = trimmed.LastIndexOf(':');
-                    
-                    if (firstColonIndex < 0 || lastColonIndex < 0 || firstColonIndex == lastColonIndex)
+                    if (firstColonIndex < 0)
                     {
                         Debug.LogWarning($"[TriggerFrameData] 格式错误，缺少必要的分隔符: {trimmed}");
+                        continue;
+                    }
+                    
+                    // 找到右括号位置（如果有）
+                    int lastParenIndex = trimmed.LastIndexOf(')');
+                    
+                    // 在右括号之后查找最后一个冒号，如果没有括号则查找整个字符串
+                    int searchStartIndex = lastParenIndex > 0 ? lastParenIndex : firstColonIndex + 1;
+                    int lastColonIndex = trimmed.IndexOf(':', searchStartIndex);
+                    
+                    if (lastColonIndex < 0)
+                    {
+                        Debug.LogWarning($"[TriggerFrameData] 格式错误，缺少效果ID分隔符: {trimmed}");
                         continue;
                     }
                     
@@ -371,6 +383,51 @@ namespace Astrum.Editor.RoleEditor.Data
             }
             
             return result;
+        }
+        
+        /// <summary>
+        /// 智能分割字符串，忽略括号内的分隔符
+        /// </summary>
+        private static string[] SplitIgnoringParentheses(string input, char separator)
+        {
+            var result = new List<string>();
+            var current = new System.Text.StringBuilder();
+            int parenthesesDepth = 0;
+            
+            foreach (char c in input)
+            {
+                if (c == '(')
+                {
+                    parenthesesDepth++;
+                    current.Append(c);
+                }
+                else if (c == ')')
+                {
+                    parenthesesDepth--;
+                    current.Append(c);
+                }
+                else if (c == separator && parenthesesDepth == 0)
+                {
+                    // 只在括号外的分隔符才分割
+                    if (current.Length > 0)
+                    {
+                        result.Add(current.ToString().Trim());
+                        current.Clear();
+                    }
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            
+            // 添加最后一个片段
+            if (current.Length > 0)
+            {
+                result.Add(current.ToString().Trim());
+            }
+            
+            return result.ToArray();
         }
         
         /// <summary>

@@ -49,6 +49,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
             _interaction.OnEventResized += HandleEventResized;
             _interaction.OnPlayheadMoved += HandlePlayheadMoved;
             _interaction.OnAddEventRequested += HandleAddEventRequested;
+            _interaction.OnEventDeleteRequested += HandleEventDeleteRequested;
         }
         
         // === 初始化 ===
@@ -355,6 +356,15 @@ namespace Astrum.Editor.RoleEditor.Timeline
             {
                 AddEvent(newEvent);
                 Debug.Log($"{LOG_PREFIX} Added new event: {trackType} at frame {frame}");
+            }
+        }
+        
+        private void HandleEventDeleteRequested(TimelineEvent evt)
+        {
+            if (evt != null)
+            {
+                RemoveEvent(evt);
+                Debug.Log($"{LOG_PREFIX} Deleted event: {evt.EventId}");
             }
         }
         
