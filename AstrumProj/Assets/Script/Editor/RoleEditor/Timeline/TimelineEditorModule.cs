@@ -27,6 +27,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private int _totalFrames = 60;          // 时间轴显示范围（动画总帧数）
         private int _maxEditableFrame = 60;     // 可编辑范围（技能Duration）
         private bool _isInitialized = false;
+        private float _lastRectWidth = 0;       // 用于检测窗口大小变化
         
         // === 事件 ===
         public event Action<TimelineEvent> OnEventSelected;
@@ -92,15 +93,18 @@ namespace Astrum.Editor.RoleEditor.Timeline
             _layoutCalculator.CalculateLayout(rect, _totalFrames, _tracks.Count);
             Rect trackAreaRect = _layoutCalculator.GetTrackAreaRect();
             
+            // 调试：检测窗口大小变化（已禁用）
+            // if (Event.current.type == EventType.Repaint && Mathf.Abs(rect.width - _lastRectWidth) > 1f)
+            // {
+            //     Debug.Log($"[TimelineModule] 窗口大小变化: {_lastRectWidth:F1} → {rect.width:F1}, trackArea.width={trackAreaRect.width:F1}");
+            //     _lastRectWidth = rect.width;
+            // }
+            
             // 根据轨道区域宽度自动调整缩放
             _layoutCalculator.FitToWidth(trackAreaRect.width, _totalFrames);
             
             // 重新计算布局（使用调整后的缩放）
             _layoutCalculator.CalculateLayout(rect, _totalFrames, _tracks.Count);
-            
-            // 绘制帧刻度
-            Rect frameScaleRect = _layoutCalculator.GetFrameScaleRect();
-            _renderer.DrawFrameScale(frameScaleRect, _totalFrames, _currentFrame);
             
             // 绘制播放头区域
             Rect playheadRect = _layoutCalculator.GetPlayheadRect();
@@ -116,14 +120,18 @@ namespace Astrum.Editor.RoleEditor.Timeline
             bool showBoundary = _maxEditableFrame < _totalFrames;
             _renderer.DrawTracks(trackAreaRect, _tracks, _eventsByTrack, _currentFrame, selectedEvent, hoverEvent, showBoundary, _maxEditableFrame);
             
-            // 在轨道绘制完成后，重新绘制播放头竖线（确保在最上层）
+            // 在轨道绘制完成后，获取滚动位置并绘制帧刻度（确保使用同步的滚动位置）
+            Vector2 scrollPosition = _renderer.GetScrollPosition();
+            Rect frameScaleRect = _layoutCalculator.GetFrameScaleRect();
+            _renderer.DrawFrameScale(frameScaleRect, _totalFrames, _currentFrame, scrollPosition);
+            
+            // 重新绘制播放头竖线（确保在最上层）
             _renderer.DrawPlayheadLines(trackAreaRect, _currentFrame);
             
             // 处理刻度尺区域的交互（在其他交互之前处理，优先级更高）
             _interaction.HandleFrameScaleInput(frameScaleRect, Event.current);
             
             // 处理其他交互（传递滚动位置、总帧数和可编辑帧数）
-            Vector2 scrollPosition = _renderer.GetScrollPosition();
             _interaction.HandleInput(rect, Event.current, _tracks, _eventsByTrack, _currentFrame, _totalFrames, _maxEditableFrame, scrollPosition);
         }
         

@@ -44,16 +44,31 @@ namespace Astrum.Editor.RoleEditor.Timeline
         /// <summary>
         /// 绘制帧刻度
         /// </summary>
-        public void DrawFrameScale(Rect rect, int totalFrames, int currentFrame)
+        public void DrawFrameScale(Rect rect, int totalFrames, int currentFrame, Vector2 scrollPosition)
         {
             // 背景
             EditorGUI.DrawRect(rect, COLOR_FRAME_SCALE_BG);
             
-            // 刻度线和数字
-            DrawFrameLines(rect, totalFrames);
-            DrawFrameNumbers(rect, totalFrames);
+            // 绘制左侧轨道标题背景区域
+            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
+            Rect headerBgRect = new Rect(rect.x, rect.y, trackHeaderWidth, rect.height);
+            EditorGUI.DrawRect(headerBgRect, COLOR_TRACK_HEADER);
             
-            // 边框（使用更明显的颜色）
+            // 绘制分隔线
+            DrawVerticalLine(new Vector2(rect.x + trackHeaderWidth, rect.y), rect.height, COLOR_TRACK_SEPARATOR);
+            
+            // 使用裁剪区域限制绘制范围（防止内容绘制到左侧标题区域）
+            Rect contentRect = new Rect(rect.x + trackHeaderWidth, rect.y, rect.width - trackHeaderWidth, rect.height);
+            GUI.BeginGroup(contentRect);
+            
+            // 绘制刻度线和数字（使用传入的滚动位置）
+            Rect offsetRect = new Rect(-scrollPosition.x, 0, contentRect.width + scrollPosition.x, contentRect.height);
+            DrawFrameLines(offsetRect, totalFrames);
+            DrawFrameNumbers(offsetRect, totalFrames);
+            
+            GUI.EndGroup();
+            
+            // 边框
             DrawBorder(rect, COLOR_TIMELINE_BORDER);
         }
         
@@ -315,8 +330,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private void DrawFrameLines(Rect rect, int totalFrames)
         {
             float pixelsPerFrame = _layoutCalculator.GetPixelsPerFrame();
-            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
-            float startX = rect.x + trackHeaderWidth; // 从轨道标题宽度之后开始绘制
+            float startX = rect.x; // Group内部坐标系，rect.x包含了滚动偏移
             
             // 确定主刻度和次刻度间隔
             int majorInterval = GetFrameInterval(pixelsPerFrame);
@@ -329,8 +343,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
             {
                 float x = startX + _layoutCalculator.FrameToPixel(frame);
                 
-                if (x < rect.x || x > rect.xMax)
-                    continue;
+                // Group会自动裁剪，不需要边界检查
                 
                 bool isMajor = (frame % majorInterval == 0);
                 bool isMinor = (frame % minorInterval == 0) && !isMajor;
@@ -338,19 +351,19 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 if (isMajor)
                 {
                     // 主刻度：从时间轴基线向下延伸
-                    float scaleLineHeight = rect.height * 0.7f; // 延伸到轨道区域
-                    DrawVerticalLine(new Vector2(x, rect.y + rect.height), scaleLineHeight, COLOR_FRAME_LINE_MAJOR);
+                    float scaleLineHeight = rect.height * 0.7f;
+                    DrawVerticalLine(new Vector2(x, rect.height), scaleLineHeight, COLOR_FRAME_LINE_MAJOR);
                 }
                 else if (isMinor && drawMinorTicks)
                 {
                     // 次刻度：从基线开始，半高，淡色
-                    DrawVerticalLine(new Vector2(x, rect.y + rect.height), rect.height * 0.4f, COLOR_FRAME_LINE_MINOR);
+                    DrawVerticalLine(new Vector2(x, rect.height), rect.height * 0.4f, COLOR_FRAME_LINE_MINOR);
                 }
                 else if (drawMinorTicks && pixelsPerFrame >= 5f)
                 {
                     // 超细刻度：从基线开始，仅在放大时显示
                     Color veryMinorColor = new Color(0.28f, 0.28f, 0.28f);
-                    DrawVerticalLine(new Vector2(x, rect.y + rect.height), rect.height * 0.2f, veryMinorColor);
+                    DrawVerticalLine(new Vector2(x, rect.height), rect.height * 0.2f, veryMinorColor);
                 }
             }
         }
@@ -358,8 +371,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
         private void DrawFrameNumbers(Rect rect, int totalFrames)
         {
             float pixelsPerFrame = _layoutCalculator.GetPixelsPerFrame();
-            float trackHeaderWidth = _layoutCalculator.GetTrackHeaderWidth();
-            float startX = rect.x + trackHeaderWidth; // 从轨道标题宽度之后开始绘制
+            float startX = rect.x; // Group内部坐标系，rect.x包含了滚动偏移
             int frameInterval = GetFrameInterval(pixelsPerFrame);
             
             GUIStyle labelStyle = new GUIStyle(EditorStyles.miniLabel);
@@ -376,11 +388,10 @@ namespace Astrum.Editor.RoleEditor.Timeline
             {
                 float x = startX + _layoutCalculator.FrameToPixel(frame);
                 
-                if (x < rect.x || x > rect.xMax)
-                    continue;
+                // Group会自动裁剪，不需要边界检查
                 
                 // 帧号
-                Rect labelRect = new Rect(x - 20, rect.y + 2, 40, 12);
+                Rect labelRect = new Rect(x - 20, 2, 40, 12);
                 GUI.Label(labelRect, frame.ToString(), labelStyle);
                 
                 // 时间 (50ms/帧)
@@ -395,7 +406,7 @@ namespace Astrum.Editor.RoleEditor.Timeline
                     timeLabel = $"{timeMs:F0}ms";
                 }
                 
-                Rect timeRect = new Rect(x - 20, rect.y + 14, 40, 10);
+                Rect timeRect = new Rect(x - 20, 14, 40, 10);
                 GUI.Label(timeRect, timeLabel, timeStyle);
             }
         }
