@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using Astrum.LogicCore.Physics;
+using Astrum.LogicCore.SkillSystem;
 using System.Collections.Generic;
 
 namespace Astrum.Editor.RoleEditor.Services
@@ -64,6 +65,38 @@ namespace Astrum.Editor.RoleEditor.Services
             {
                 DrawShape(shape, wireColor);
             }
+            
+            GL.PopMatrix();
+        }
+        
+        /// <summary>
+        /// 从简化格式的 CollisionInfo 字符串绘制碰撞盒
+        /// 格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point
+        /// </summary>
+        /// <param name="collisionInfo">碰撞盒信息字符串（简化格式）</param>
+        /// <param name="camera">预览相机</param>
+        /// <param name="color">线框颜色（默认黄色）</param>
+        public static void DrawCollisionInfo(string collisionInfo, Camera camera, Color? color = null)
+        {
+            if (string.IsNullOrEmpty(collisionInfo) || camera == null)
+                return;
+            
+            // 使用 CollisionInfoParser 解析简化格式
+            var shape = CollisionInfoParser.Parse(collisionInfo);
+            if (shape == null)
+                return;
+            
+            Color wireColor = color ?? new Color(1f, 1f, 0f, 0.8f);  // 默认半透明黄色（技能碰撞盒）
+            
+            // 设置 GL 绘制上下文
+            GetLineMaterial().SetPass(0);
+            
+            GL.PushMatrix();
+            GL.LoadProjectionMatrix(camera.projectionMatrix);
+            GL.modelview = camera.worldToCameraMatrix;
+            
+            // 绘制碰撞形状
+            DrawShape(shape.Value, wireColor);
             
             GL.PopMatrix();
         }
