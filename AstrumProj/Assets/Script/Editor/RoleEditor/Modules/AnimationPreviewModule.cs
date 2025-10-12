@@ -233,7 +233,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
             _previewRenderUtility.camera.Render();
             
-            // 在相机渲染后，绘制碰撞盒
+            // 在相机渲染后，绘制碰撞盒（模型在原点，相对偏移直接绘制）
             if (!string.IsNullOrEmpty(_currentFrameCollisionInfo))
             {
                 Services.CollisionShapePreview.DrawCollisionInfo(

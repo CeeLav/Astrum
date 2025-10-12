@@ -145,16 +145,15 @@ namespace Astrum.Editor.RoleEditor.Modules
                 bounds.Encapsulate(renderer.bounds);
             }
             
-            // 设置模型中心点
+            // 设置模型中心点（保持模型在原点，相机环绕模型中心）
             _modelCenter = bounds.center;
             _orbitRadius = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * 1.5f;
             
-            // 调整模型位置，使其中心在原点
-            Vector3 offset = _modelCenter;
-            _previewInstance.transform.position = -offset;
-            _modelCenter = Vector3.zero;
+            // 确保模型位置在原点（不移动模型，让相机适应）
+            _previewInstance.transform.position = Vector3.zero;
+            _previewInstance.transform.rotation = Quaternion.identity;
             
-            Debug.Log($"{LogPrefix} Model bounds calculated: size={bounds.size}, orbitRadius={_orbitRadius}");
+            Debug.Log($"{LogPrefix} Model bounds calculated: center={_modelCenter}, size={bounds.size}, orbitRadius={_orbitRadius}");
         }
         
         /// <summary>

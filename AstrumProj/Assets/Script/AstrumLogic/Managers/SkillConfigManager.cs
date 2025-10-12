@@ -219,24 +219,43 @@ namespace Astrum.LogicCore.Managers
             if (string.IsNullOrEmpty(triggerFramesStr))
                 return results;
             
-            // 解析触发帧字符串
-            var parts = triggerFramesStr.Split(',');
+            // 智能分割触发帧字符串（忽略括号内的逗号）
+            var parts = SplitIgnoringParentheses(triggerFramesStr, ',');
             foreach (var part in parts)
             {
                 string trimmed = part.Trim();
                 if (string.IsNullOrEmpty(trimmed))
                     continue;
                 
-                var segments = trimmed.Split(':');
-                if (segments.Length < 3)
+                // 智能解析三部分：Frame / Trigger+Collision / EffectID
+                // 考虑碰撞盒信息中可能包含冒号和@符号
+                int firstColonIndex = trimmed.IndexOf(':');
+                if (firstColonIndex < 0)
                 {
-                    ASLogger.Instance.Warning($"Invalid trigger frame format: {trimmed}");
+                    ASLogger.Instance.Warning($"Invalid trigger frame format (missing colon): {trimmed}");
                     continue;
                 }
                 
-                // 解析帧范围 (移除 "Frame" 前缀)
+                // 找到右括号位置（如果有）
+                int lastParenIndex = trimmed.LastIndexOf(')');
+                
+                // 在右括号之后查找最后一个冒号
+                int searchStartIndex = lastParenIndex > 0 ? lastParenIndex : firstColonIndex + 1;
+                int lastColonIndex = trimmed.IndexOf(':', searchStartIndex);
+                
+                if (lastColonIndex < 0)
+                {
+                    ASLogger.Instance.Warning($"Invalid trigger frame format (missing effect ID separator): {trimmed}");
+                    continue;
+                }
+                
+                // 分割三部分
+                string framePart = trimmed.Substring(0, firstColonIndex).Trim().Replace("Frame", "").Trim();
+                string triggerPart = trimmed.Substring(firstColonIndex + 1, lastColonIndex - firstColonIndex - 1).Trim();
+                string effectIdPart = trimmed.Substring(lastColonIndex + 1).Trim();
+                
+                // 解析帧范围
                 // 支持格式：Frame5 或 Frame5-10
-                string framePart = segments[0].Replace("Frame", "").Trim();
                 int startFrame, endFrame;
                 
                 if (framePart.Contains("-"))
@@ -247,13 +266,13 @@ namespace Astrum.LogicCore.Managers
                         !int.TryParse(frameRange[0].Trim(), out startFrame) ||
                         !int.TryParse(frameRange[1].Trim(), out endFrame))
                     {
-                        ASLogger.Instance.Warning($"Failed to parse frame range: {segments[0]}");
+                        ASLogger.Instance.Warning($"Failed to parse frame range: {framePart}");
                         continue;
                     }
                     
                     if (startFrame > endFrame)
                     {
-                        ASLogger.Instance.Warning($"Start frame ({startFrame}) > end frame ({endFrame}): {segments[0]}");
+                        ASLogger.Instance.Warning($"Start frame ({startFrame}) > end frame ({endFrame}): {framePart}");
                         continue;
                     }
                 }
@@ -262,18 +281,17 @@ namespace Astrum.LogicCore.Managers
                     // 单帧格式：Frame5
                     if (!int.TryParse(framePart, out startFrame))
                     {
-                        ASLogger.Instance.Warning($"Failed to parse frame number: {segments[0]}");
+                        ASLogger.Instance.Warning($"Failed to parse frame number: {framePart}");
                         continue;
                     }
                     endFrame = startFrame;
                 }
                 
                 // 解析触发类型和碰撞盒信息
-                string triggerPart = segments[1].Trim();
                 string triggerType = triggerPart;
                 string collisionInfo = "";
                 
-                // 检查是否包含碰撞盒信息 (格式：Collision(Box:5x2x1))
+                // 检查是否包含碰撞盒信息 (格式：Collision(Box:5x2x1@0,1,0))
                 if (triggerPart.Contains("(") && triggerPart.Contains(")"))
                 {
                     int startIndex = triggerPart.IndexOf('(');
@@ -287,9 +305,9 @@ namespace Astrum.LogicCore.Managers
                 }
                 
                 // 解析基础效果ID
-                if (!int.TryParse(segments[2].Trim(), out var baseEffectId))
+                if (!int.TryParse(effectIdPart, out var baseEffectId))
                 {
-                    ASLogger.Instance.Warning($"Failed to parse effect ID: {segments[2]}");
+                    ASLogger.Instance.Warning($"Failed to parse effect ID: {effectIdPart}");
                     continue;
                 }
                     
@@ -386,6 +404,51 @@ namespace Astrum.LogicCore.Managers
             }
             
             return condition;
+        }
+        
+        /// <summary>
+        /// 智能分割字符串，忽略括号内的分隔符
+        /// </summary>
+        private static string[] SplitIgnoringParentheses(string input, char separator)
+        {
+            var result = new System.Collections.Generic.List<string>();
+            var current = new System.Text.StringBuilder();
+            int parenthesesDepth = 0;
+            
+            foreach (char c in input)
+            {
+                if (c == '(')
+                {
+                    parenthesesDepth++;
+                    current.Append(c);
+                }
+                else if (c == ')')
+                {
+                    parenthesesDepth--;
+                    current.Append(c);
+                }
+                else if (c == separator && parenthesesDepth == 0)
+                {
+                    // 只在括号外的分隔符才分割
+                    if (current.Length > 0)
+                    {
+                        result.Add(current.ToString().Trim());
+                        current.Clear();
+                    }
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            
+            // 添加最后一个片段
+            if (current.Length > 0)
+            {
+                result.Add(current.ToString().Trim());
+            }
+            
+            return result.ToArray();
         }
     }
 }
