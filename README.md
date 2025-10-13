@@ -12,6 +12,45 @@
 - **项目架构**: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 - **完整文档**: [Docs/](Docs/)
 
+### 📥 Git 拉取指引
+
+#### 1. 克隆主仓库
+
+```bash
+git clone https://github.com/CeeLav/Astrum.git
+cd Astrum
+```
+
+> ⚠️ **重要提示**：本仓库已移除 Git LFS，无需安装 `git-lfs` 即可完整克隆。
+
+#### 2. 拉取美术资源（AstrumArtRes）
+
+美术资源存放在独立仓库，需要拉取到 `AstrumProj/Assets/ArtRes` 目录：
+
+```bash
+cd AstrumProj/Assets
+git clone https://github.com/CeeLav/AstrumArtRes.git ArtRes
+```
+
+或使用 Git Submodule（推荐）：
+
+```bash
+# 在项目根目录执行
+cd Astrum
+git submodule add https://github.com/CeeLav/AstrumArtRes.git AstrumProj/Assets/ArtRes
+git submodule update --init --recursive
+```
+
+#### 3. 后续更新
+
+```bash
+# 更新主仓库
+git pull
+
+# 更新美术资源（如使用 submodule）
+git submodule update --remote
+```
+
 ---
 
 ## 📚 核心文档
