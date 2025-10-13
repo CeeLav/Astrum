@@ -23,6 +23,7 @@ message RoomInfo
     int32 Status = 8;          // 房间状态 (0=等待中, 1=游戏中, 2=已结束)
     int64 GameStartTime = 9;   // 游戏开始时间
     int64 GameEndTime = 10;    // 游戏结束时间
+    bool IsQuickMatch = 11;    // 是否为快速匹配房间
 }
 
 // 登录请求
@@ -137,4 +138,52 @@ message C2G_Ping
 message G2C_Ping
 {
     int64 Time = 1;            // 服务器当前时间戳（毫秒）
+}
+
+// ==================== 快速匹配系统 ====================
+
+// 快速匹配请求
+message QuickMatchRequest
+{
+    int64 Timestamp = 1;       // 时间戳
+}
+
+// 快速匹配响应
+message QuickMatchResponse
+{
+    bool Success = 1;          // 是否成功
+    string Message = 2;        // 响应消息
+    int64 Timestamp = 3;       // 时间戳
+    int32 QueuePosition = 4;   // 队列位置（0表示第一个）
+    int32 QueueSize = 5;       // 当前队列人数
+}
+
+// 取消匹配请求
+message CancelMatchRequest
+{
+    int64 Timestamp = 1;       // 时间戳
+}
+
+// 取消匹配响应
+message CancelMatchResponse
+{
+    bool Success = 1;          // 是否成功
+    string Message = 2;        // 响应消息
+    int64 Timestamp = 3;       // 时间戳
+}
+
+// 匹配成功通知
+message MatchFoundNotification
+{
+    RoomInfo Room = 1;         // 房间信息
+    int64 Timestamp = 2;       // 时间戳
+    repeated string PlayerIds = 3; // 所有匹配到的玩家ID列表
+}
+
+// 匹配超时通知
+message MatchTimeoutNotification
+{
+    string Message = 1;        // 超时消息
+    int64 Timestamp = 2;       // 时间戳
+    int32 WaitTimeSeconds = 3; // 等待时长（秒）
 }

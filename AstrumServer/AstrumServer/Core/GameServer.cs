@@ -20,6 +20,7 @@ namespace AstrumServer.Core
         private readonly UserManager _userManager;
         private readonly RoomManager _roomManager;
         private readonly FrameSyncManager _frameSyncManager;
+        private readonly MatchmakingManager _matchmakingManager;
         
         // 系统状态记录，用于检测变化
         private int _lastUserCount = -1;
@@ -38,6 +39,7 @@ namespace AstrumServer.Core
             _userManager = new UserManager();
             _roomManager = new RoomManager();
             _frameSyncManager = new FrameSyncManager(_roomManager, _networkManager, _userManager);
+            _matchmakingManager = new MatchmakingManager(_roomManager, _userManager, _networkManager);
             
             _networkManager.SetLogger(ASLogger.Instance);
         }
@@ -80,6 +82,9 @@ namespace AstrumServer.Core
                         
                         // 帧同步推进（基于时间计算应到达的帧）
                         _frameSyncManager.Update();
+                        
+                        // 更新匹配系统（检查匹配和超时）
+                        _matchmakingManager.Update();
 
                         // 处理客户端消息
                         await ProcessClientMessages();
@@ -139,6 +144,9 @@ namespace AstrumServer.Core
                 var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
                 if (userInfo != null)
                 {
+                    // 从匹配队列移除（如果在队列中）
+                    _matchmakingManager.DequeuePlayer(userInfo.Id);
+                    
                     // 若在房间内，先从房间移除
                     if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
                     {
@@ -199,6 +207,12 @@ namespace AstrumServer.Core
                         break;
                     case C2G_Ping c2gPing:
                         HandlePing(client, c2gPing);
+                        break;
+                    case QuickMatchRequest quickMatchRequest:
+                        HandleQuickMatchRequest(client, quickMatchRequest);
+                        break;
+                    case CancelMatchRequest cancelMatchRequest:
+                        HandleCancelMatchRequest(client, cancelMatchRequest);
                         break;
                     default:
                         ASLogger.Instance.Warning($"未处理的消息类型: {message.GetType().Name}");
@@ -842,6 +856,137 @@ namespace AstrumServer.Core
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"处理单帧输入时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理快速匹配请求
+        /// </summary>
+        private void HandleQuickMatchRequest(Session client, QuickMatchRequest request)
+        {
+            try
+            {
+                var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
+                if (userInfo == null)
+                {
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试快速匹配但未登录");
+                    SendQuickMatchResponse(client.Id.ToString(), false, "请先登录", 0, 0);
+                    return;
+                }
+                
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 请求快速匹配");
+                
+                // 检查用户是否已在房间中
+                if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 已在房间中，无法加入匹配队列");
+                    SendQuickMatchResponse(client.Id.ToString(), false, "您已在房间中", 0, 0);
+                    return;
+                }
+                
+                // 加入匹配队列
+                var success = _matchmakingManager.EnqueuePlayer(userInfo.Id, userInfo.DisplayName);
+                if (!success)
+                {
+                    SendQuickMatchResponse(client.Id.ToString(), false, "加入匹配队列失败", 0, 0);
+                    return;
+                }
+                
+                // 获取队列信息
+                var (position, total) = _matchmakingManager.GetQueueInfo(userInfo.Id);
+                
+                // 发送成功响应
+                SendQuickMatchResponse(client.Id.ToString(), true, "已加入匹配队列", position, total);
+                
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 加入匹配队列成功，队列位置: {position + 1}/{total}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理快速匹配请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                SendQuickMatchResponse(client.Id.ToString(), false, "服务器错误: " + ex.Message, 0, 0);
+            }
+        }
+
+        /// <summary>
+        /// 发送快速匹配响应
+        /// </summary>
+        private void SendQuickMatchResponse(string sessionId, bool success, string message, int position, int total)
+        {
+            try
+            {
+                var response = QuickMatchResponse.Create();
+                response.Success = success;
+                response.Message = message;
+                response.Timestamp = TimeInfo.Instance.ClientNow();
+                response.QueuePosition = position;
+                response.QueueSize = total;
+                
+                _networkManager.SendMessage(sessionId, response);
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"发送快速匹配响应时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 处理取消匹配请求
+        /// </summary>
+        private void HandleCancelMatchRequest(Session client, CancelMatchRequest request)
+        {
+            try
+            {
+                var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
+                if (userInfo == null)
+                {
+                    ASLogger.Instance.Warning($"客户端 {client.Id} 尝试取消匹配但未登录");
+                    SendCancelMatchResponse(client.Id.ToString(), false, "请先登录");
+                    return;
+                }
+                
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 请求取消匹配");
+                
+                // 从匹配队列移除
+                var success = _matchmakingManager.DequeuePlayer(userInfo.Id);
+                if (!success)
+                {
+                    SendCancelMatchResponse(client.Id.ToString(), false, "您不在匹配队列中");
+                    return;
+                }
+                
+                // 发送成功响应
+                SendCancelMatchResponse(client.Id.ToString(), true, "已取消匹配");
+                
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 取消匹配成功");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理取消匹配请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                SendCancelMatchResponse(client.Id.ToString(), false, "服务器错误: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 发送取消匹配响应
+        /// </summary>
+        private void SendCancelMatchResponse(string sessionId, bool success, string message)
+        {
+            try
+            {
+                var response = CancelMatchResponse.Create();
+                response.Success = success;
+                response.Message = message;
+                response.Timestamp = TimeInfo.Instance.ClientNow();
+                
+                _networkManager.SendMessage(sessionId, response);
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"发送取消匹配响应时出错: {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }

@@ -26,6 +26,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Unity 编译的程序集 -->
+    <Reference Include="CommonBase">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\CommonBase.dll</HintPath>
+    </Reference>
+    <Reference Include="Network">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Network.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

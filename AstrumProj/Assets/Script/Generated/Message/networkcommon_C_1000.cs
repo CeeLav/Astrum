@@ -126,6 +126,12 @@ namespace Astrum.Generated
         [MemoryPackOrder(9)]
         public long GameEndTime { get; set; }
 
+        /// <summary>
+        /// 是否为快速匹配房间
+        /// </summary>
+        [MemoryPackOrder(10)]
+        public bool IsQuickMatch { get; set; }
+
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -143,6 +149,7 @@ namespace Astrum.Generated
             this.Status = default;
             this.GameStartTime = default;
             this.GameEndTime = default;
+            this.IsQuickMatch = default;
 
             ObjectPool.Instance.Recycle(this);
         }
@@ -751,6 +758,251 @@ namespace Astrum.Generated
         }
     }
 
+    // ==================== 快速匹配系统 ====================
+    // 快速匹配请求
+    [MemoryPackable]
+    [MessageAttribute(1018)]
+    public partial class QuickMatchRequest : MessageObject
+    {
+        public static QuickMatchRequest Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(QuickMatchRequest), isFromPool) as QuickMatchRequest;
+        }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public long Timestamp { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.Timestamp = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 快速匹配响应
+    [MemoryPackable]
+    [MessageAttribute(1019)]
+    public partial class QuickMatchResponse : MessageObject
+    {
+        public static QuickMatchResponse Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(QuickMatchResponse), isFromPool) as QuickMatchResponse;
+        }
+
+        /// <summary>
+        /// 是否成功
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// 响应消息
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public string Message { get; set; }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public long Timestamp { get; set; }
+
+        /// <summary>
+        /// 队列位置（0表示第一个）
+        /// </summary>
+        [MemoryPackOrder(3)]
+        public int QueuePosition { get; set; }
+
+        /// <summary>
+        /// 当前队列人数
+        /// </summary>
+        [MemoryPackOrder(4)]
+        public int QueueSize { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.Success = default;
+            this.Message = default;
+            this.Timestamp = default;
+            this.QueuePosition = default;
+            this.QueueSize = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 取消匹配请求
+    [MemoryPackable]
+    [MessageAttribute(1020)]
+    public partial class CancelMatchRequest : MessageObject
+    {
+        public static CancelMatchRequest Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(CancelMatchRequest), isFromPool) as CancelMatchRequest;
+        }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public long Timestamp { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.Timestamp = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 取消匹配响应
+    [MemoryPackable]
+    [MessageAttribute(1021)]
+    public partial class CancelMatchResponse : MessageObject
+    {
+        public static CancelMatchResponse Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(CancelMatchResponse), isFromPool) as CancelMatchResponse;
+        }
+
+        /// <summary>
+        /// 是否成功
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// 响应消息
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public string Message { get; set; }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public long Timestamp { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.Success = default;
+            this.Message = default;
+            this.Timestamp = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 匹配成功通知
+    [MemoryPackable]
+    [MessageAttribute(1022)]
+    public partial class MatchFoundNotification : MessageObject
+    {
+        public static MatchFoundNotification Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(MatchFoundNotification), isFromPool) as MatchFoundNotification;
+        }
+
+        /// <summary>
+        /// 房间信息
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public RoomInfo Room { get; set; }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public long Timestamp { get; set; }
+
+        /// <summary>
+        /// 所有匹配到的玩家ID列表
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public List<string> PlayerIds { get; set; } = new();
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.Room = default;
+            this.Timestamp = default;
+            this.PlayerIds.Clear();
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 匹配超时通知
+    [MemoryPackable]
+    [MessageAttribute(1023)]
+    public partial class MatchTimeoutNotification : MessageObject
+    {
+        public static MatchTimeoutNotification Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(MatchTimeoutNotification), isFromPool) as MatchTimeoutNotification;
+        }
+
+        /// <summary>
+        /// 超时消息
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string Message { get; set; }
+
+        /// <summary>
+        /// 时间戳
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public long Timestamp { get; set; }
+
+        /// <summary>
+        /// 等待时长（秒）
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public int WaitTimeSeconds { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.Message = default;
+            this.Timestamp = default;
+            this.WaitTimeSeconds = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
     public static class networkcommon
     {
         public const ushort UserInfo = 1001;
@@ -770,5 +1022,11 @@ namespace Astrum.Generated
         public const ushort HeartbeatResponse = 1015;
         public const ushort C2G_Ping = 1016;
         public const ushort G2C_Ping = 1017;
+        public const ushort QuickMatchRequest = 1018;
+        public const ushort QuickMatchResponse = 1019;
+        public const ushort CancelMatchRequest = 1020;
+        public const ushort CancelMatchResponse = 1021;
+        public const ushort MatchFoundNotification = 1022;
+        public const ushort MatchTimeoutNotification = 1023;
     }
 }
