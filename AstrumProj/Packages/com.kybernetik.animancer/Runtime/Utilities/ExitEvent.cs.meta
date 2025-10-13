@@ -9,3 +9,10 @@ MonoImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 293524
+  packageName: Animancer Lite v8
+  packageVersion: 8.2.3
+  assetPath: Packages/com.kybernetik.animancer/Runtime/Utilities/ExitEvent.cs
+  uploadId: 803366

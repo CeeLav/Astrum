@@ -9,3 +9,10 @@ NativeFormatImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 293524
+  packageName: Animancer Lite v8
+  packageVersion: 8.2.3
+  assetPath: Packages/com.kybernetik.animancer/Samples~/05 Events/01 Golf Events/Hit.asset
+  uploadId: 803366

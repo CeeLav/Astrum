@@ -86,24 +86,11 @@ namespace Animancer
         /// </summary>
         public int SetByName(string name, T value)
         {
-            var bestDirection = -1;
-            var bestDirectionIndex = -1;
+            var direction = GetDirection(name);
+            if (direction >= 0)
+                Set(direction, value);
 
-            var directionCount = DirectionCount;
-            for (int i = 0; i < directionCount; i++)
-            {
-                var index = name.LastIndexOf(GetDirectionName(i));
-                if (bestDirectionIndex < index)
-                {
-                    bestDirectionIndex = index;
-                    bestDirection = i;
-                }
-            }
-
-            if (bestDirection >= 0)
-                Set(bestDirection, value);
-
-            return bestDirection;
+            return direction;
         }
 
         /// <summary>[Editor-Only]
@@ -120,6 +107,11 @@ namespace Animancer
 
         /// <summary>Returns a vector representing the specified `direction`.</summary>
         public abstract Vector2 GetDirection(int direction);
+
+        /************************************************************************************************************************/
+
+        /// <summary>Returns the index of the direction which best matches the given `name`.</summary>
+        public abstract int GetDirection(string name);
 
         /************************************************************************************************************************/
 

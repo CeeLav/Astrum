@@ -1520,6 +1520,22 @@
         <member name="M:Animancer.AnimancerUtilities.AsHtmlLink(System.String,System.String)">
             <summary>[Animancer Extension] Returns the `url` in a HTML <c>&lt;a&gt;</c> tag.</summary>
         </member>
+        <member name="M:Animancer.AnimancerUtilities.GetDirection(System.String)">
+            <summary>
+            Attempts to interpret the `name` as a direction
+            based on the presence of the characters <c>RLUD</c>
+            corresponding to Right, Left, Up, and Down.
+            </summary>
+        </member>
+        <member name="M:Animancer.AnimancerUtilities.GetDirection(System.String,System.Char,System.Char)">
+            <summary>
+            Returns <c>1</c> if the `name` contains the `positive` value
+            or <c>-1</c> for `negative`. Otherwise returns <c>0</c>.
+            </summary>
+        </member>
+        <member name="M:Animancer.AnimancerUtilities.ContainsCaseInsensitive(System.String,System.Char)">
+            <summary>Does the `text` contain the `character` (ignoring case)?</summary>
+        </member>
         <member name="M:Animancer.AnimancerUtilities.TryGet``1(System.Collections.Generic.IList{``0},System.Int32,``0@)">
             <summary>
             If the `index` is within the `list`,
@@ -9537,8 +9553,8 @@
         </member>
         <member name="F:Animancer.Editor.TransitionDrawer.MainPropertyName">
             <summary>
-            If set, the field with this name will be drawn on the header line with the foldout arrow instead of in its
-            regular place.
+            If set, the field with this name will be drawn on the header line
+            with the foldout arrow instead of in its regular place.
             </summary>
         </member>
         <member name="F:Animancer.Editor.TransitionDrawer.MainPropertyPathSuffix">

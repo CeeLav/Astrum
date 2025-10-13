@@ -180,6 +180,42 @@ namespace Animancer
         /************************************************************************************************************************/
 
         /// <inheritdoc/>
+        public override int GetDirection(string name)
+        {
+            var direction = AnimancerUtilities.GetDirection(name);
+
+            if (direction.x == 0)
+            {
+                if (direction.y > 0)
+                    return (int)Direction8.Up;
+                else if (direction.y < 0)
+                    return (int)Direction8.Down;
+                else
+                    return -1;
+            }
+            else if (direction.x > 0)
+            {
+                if (direction.y > 0)
+                    return (int)Direction8.UpRight;
+                else if (direction.y < 0)
+                    return (int)Direction8.DownRight;
+                else
+                    return (int)Direction8.Right;
+            }
+            else
+            {
+                if (direction.y > 0)
+                    return (int)Direction8.UpLeft;
+                else if (direction.y < 0)
+                    return (int)Direction8.DownLeft;
+                else
+                    return (int)Direction8.Left;
+            }
+        }
+
+        /************************************************************************************************************************/
+
+        /// <inheritdoc/>
         public override Vector2 Snap(Vector2 vector)
             => Directions.SnapToDirection8(vector);
 

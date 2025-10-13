@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: 8ccceda7244b0394c9b25f4100ecd458
 timeCreated: 1515060256
-licenseType: Free
+licenseType: Store
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -11,3 +11,11 @@ MonoImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 293524
+  packageName: Animancer Lite v8
+  packageVersion: 8.2.3
+  assetPath: Packages/com.kybernetik.animancer/Runtime/Utilities/Transitions/Transition
+    Types/ClipTransitionSequence.cs
+  uploadId: 803366
