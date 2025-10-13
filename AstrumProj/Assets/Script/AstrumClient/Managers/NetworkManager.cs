@@ -47,6 +47,12 @@ namespace Astrum.Client.Managers
         public event Action<FrameSyncData> OnFrameSyncData;
         public event Action<OneFrameInputs> OnFrameInputs;
         
+        // 快速匹配相关事件
+        public event Action<QuickMatchResponse> OnQuickMatchResponse;
+        public event Action<CancelMatchResponse> OnCancelMatchResponse;
+        public event Action<MatchFoundNotification> OnMatchFoundNotification;
+        public event Action<MatchTimeoutNotification> OnMatchTimeoutNotification;
+        
         // 客户端代码期望的属性
         public ConnectionStatus ConnectionStatus => GetConnectionStatus();
         public string ClientId => currentSession?.Id.ToString() ?? "-1";
@@ -511,6 +517,25 @@ namespace Astrum.Client.Managers
                 case OneFrameInputs oneFrameInputs:
                     OnFrameInputs?.Invoke(oneFrameInputs);
                     break;
+                
+                // 快速匹配相关消息
+                case QuickMatchResponse quickMatchResponse:
+                    ASLogger.Instance.Info($"[NetworkManager] Received QuickMatchResponse: {quickMatchResponse.Success}, {quickMatchResponse.Message}");
+                    OnQuickMatchResponse?.Invoke(quickMatchResponse);
+                    break;
+                case CancelMatchResponse cancelMatchResponse:
+                    ASLogger.Instance.Info($"[NetworkManager] Received CancelMatchResponse: {cancelMatchResponse.Success}, {cancelMatchResponse.Message}");
+                    OnCancelMatchResponse?.Invoke(cancelMatchResponse);
+                    break;
+                case MatchFoundNotification matchFoundNotification:
+                    ASLogger.Instance.Info($"[NetworkManager] Received MatchFoundNotification: Room={matchFoundNotification.Room?.Id}");
+                    OnMatchFoundNotification?.Invoke(matchFoundNotification);
+                    break;
+                case MatchTimeoutNotification matchTimeoutNotification:
+                    ASLogger.Instance.Info($"[NetworkManager] Received MatchTimeoutNotification: {matchTimeoutNotification.Message}");
+                    OnMatchTimeoutNotification?.Invoke(matchTimeoutNotification);
+                    break;
+                    
                 default:
                     ASLogger.Instance.Warning($"未处理的消息类型: {messageObject.GetType().Name}");
                     break;

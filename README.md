@@ -58,6 +58,7 @@ git submodule update --remote
 ### 🎮 游戏设计
 - [游戏主策划案](Docs/01-GameDesign%20游戏设计/Game-Design%20游戏主策划案.md) - 游戏类型、玩法、操作
 - [房间系统](Docs/01-GameDesign%20游戏设计/Room-System%20房间系统.md) - 多人房间管理
+- [快速联机系统](Docs/01-GameDesign%20游戏设计/Quick-Match-System%20快速联机系统.md) - 快速匹配系统 ✨NEW
 
 ### ⚔️ 战斗系统
 - [技能系统](Docs/02-CombatSystem%20战斗系统/Skill-System%20技能系统.md) - 技能设计架构
@@ -85,6 +86,7 @@ git submodule update --remote
 | **技能效果运行时** | ✅ 完成 | 90% | [查看](Docs/02-CombatSystem%20战斗系统/_status%20开发进展/Skill-Effect-Progress%20技能效果开发进展.md) |
 | **物理系统** | ✅ 完成 | 80% | [查看](Docs/03-PhysicsSystem%20物理系统/Physics-Progress%20物理系统开发进展.md) |
 | **房间系统** | ✅ 完成 | 100% | [查看](Docs/01-GameDesign%20游戏设计/Room-System%20房间系统.md) |
+| **快速联机系统** | ✅ 完成 | 90% | [查看](Docs/01-GameDesign%20游戏设计/Quick-Match-Progress%20快速联机开发进展.md) |
 | **动作系统** | ✅ 完成 | 80% | - |
 | **测试工程（单机）** | ⏳ 计划中 | 0% | - |
 | **技能动作编辑器** | 📝 策划完成 | 0% | - |

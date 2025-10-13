@@ -23,6 +23,16 @@ namespace Astrum.Client.UI.Generated
         private bool isConnecting = false;
         private string serverAddress = "127.0.0.1";
         private int serverPort = 8888;
+        
+        // 匹配状态
+        private enum MatchState
+        {
+            None,           // 未登录/未连接
+            LoggedIn,       // 已登录，未匹配
+            Matching,       // 正在匹配中
+            MatchFound      // 匹配成功
+        }
+        private MatchState currentMatchState = MatchState.None;
 
         #endregion
 
@@ -94,6 +104,12 @@ namespace Astrum.Client.UI.Generated
                 networkManager.OnConnectionStatusChanged += OnConnectionStatusChanged;
                 networkManager.OnConnectResponse += OnConnectResponse;
                 networkManager.OnLoginResponse += OnLoginResponse;
+                
+                // 订阅快速匹配事件
+                networkManager.OnQuickMatchResponse += OnQuickMatchResponse;
+                networkManager.OnCancelMatchResponse += OnCancelMatchResponse;
+                networkManager.OnMatchFoundNotification += OnMatchFoundNotification;
+                networkManager.OnMatchTimeoutNotification += OnMatchTimeoutNotification;
             }
         }
 
@@ -110,6 +126,12 @@ namespace Astrum.Client.UI.Generated
                 networkManager.OnConnectionStatusChanged -= OnConnectionStatusChanged;
                 networkManager.OnConnectResponse -= OnConnectResponse;
                 networkManager.OnLoginResponse -= OnLoginResponse;
+                
+                // 取消订阅快速匹配事件
+                networkManager.OnQuickMatchResponse -= OnQuickMatchResponse;
+                networkManager.OnCancelMatchResponse -= OnCancelMatchResponse;
+                networkManager.OnMatchFoundNotification -= OnMatchFoundNotification;
+                networkManager.OnMatchTimeoutNotification -= OnMatchTimeoutNotification;
             }
         }
 
@@ -132,6 +154,7 @@ namespace Astrum.Client.UI.Generated
         {
             Debug.Log("LoginView: 连接断开");
             isConnecting = false;
+            currentMatchState = MatchState.None; // 重置匹配状态
             UpdateConnectionStatus("连接断开");
             UpdateConnectButtonText("重新连接");
             SetConnectButtonInteractable(true);
@@ -191,35 +214,101 @@ namespace Astrum.Client.UI.Generated
             Debug.Log($"LoginView: 收到登录响应: {response.Success}, {response.Message}");
             if (response.Success)
             {
+                // 更新状态为已登录
+                currentMatchState = MatchState.LoggedIn;
                 UpdateConnectionStatus($"登录成功: {response.Message}");
-                UpdateConnectButtonText("已登录");
-                SetConnectButtonInteractable(false);
+                UpdateConnectButtonText("快速联机");
+                SetConnectButtonInteractable(true); // 允许点击快速匹配
                 
-                // 登录成功后切换到房间列表
-                try
-                {
-                    var uiManager = GameApplication.Instance?.UIManager;
-                    if (uiManager != null)
-                    {
-                        Debug.Log("LoginView: 切换到房间列表");
-                        uiManager.ShowUI("RoomList");
-                    }
-                    else
-                    {
-                        Debug.LogError("LoginView: 无法获取UIManager");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"LoginView: 切换到房间列表失败 - {ex.Message}");
-                }
+                // 注意：不再自动切换到房间列表，而是等待玩家点击快速匹配
             }
             else
             {
                 UpdateConnectionStatus($"登录失败: {response.Message}");
                 UpdateConnectButtonText("重新登录");
                 SetConnectButtonInteractable(true);
+                currentMatchState = MatchState.None;
             }
+        }
+        
+        /// <summary>
+        /// 快速匹配响应事件
+        /// </summary>
+        private void OnQuickMatchResponse(QuickMatchResponse response)
+        {
+            Debug.Log($"LoginView: 收到快速匹配响应: {response.Success}, {response.Message}");
+            if (response.Success)
+            {
+                currentMatchState = MatchState.Matching;
+                UpdateConnectionStatus($"匹配中... (队列位置: {response.QueuePosition + 1}/{response.QueueSize})");
+                UpdateConnectButtonText("取消匹配");
+                SetConnectButtonInteractable(true);
+            }
+            else
+            {
+                UpdateConnectionStatus($"匹配失败: {response.Message}");
+                UpdateConnectButtonText("快速联机");
+                SetConnectButtonInteractable(true);
+                currentMatchState = MatchState.LoggedIn;
+            }
+        }
+        
+        /// <summary>
+        /// 取消匹配响应事件
+        /// </summary>
+        private void OnCancelMatchResponse(CancelMatchResponse response)
+        {
+            Debug.Log($"LoginView: 收到取消匹配响应: {response.Success}, {response.Message}");
+            if (response.Success)
+            {
+                currentMatchState = MatchState.LoggedIn;
+                UpdateConnectionStatus($"已取消匹配: {response.Message}");
+                UpdateConnectButtonText("快速联机");
+                SetConnectButtonInteractable(true);
+            }
+        }
+        
+        /// <summary>
+        /// 匹配成功通知事件
+        /// </summary>
+        private void OnMatchFoundNotification(MatchFoundNotification notification)
+        {
+            Debug.Log($"LoginView: 匹配成功！房间ID: {notification.Room?.Id}");
+            currentMatchState = MatchState.MatchFound;
+            UpdateConnectionStatus($"匹配成功！正在进入房间...");
+            UpdateConnectButtonText("匹配成功");
+            SetConnectButtonInteractable(false);
+            
+            // 切换到房间列表或直接进入游戏
+            try
+            {
+                var uiManager = GameApplication.Instance?.UIManager;
+                if (uiManager != null)
+                {
+                    Debug.Log("LoginView: 匹配成功，切换到房间列表");
+                    uiManager.ShowUI("RoomList");
+                }
+                else
+                {
+                    Debug.LogError("LoginView: 无法获取UIManager");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"LoginView: 切换到房间列表失败 - {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 匹配超时通知事件
+        /// </summary>
+        private void OnMatchTimeoutNotification(MatchTimeoutNotification notification)
+        {
+            Debug.Log($"LoginView: 匹配超时: {notification.Message}");
+            currentMatchState = MatchState.LoggedIn;
+            UpdateConnectionStatus($"匹配超时: {notification.Message} (等待时长: {notification.WaitTimeSeconds}秒)");
+            UpdateConnectButtonText("快速联机");
+            SetConnectButtonInteractable(true);
         }
 
         #endregion
@@ -231,19 +320,41 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void OnConnectButtonClicked()
         {
-            if (isConnecting)
+            // 根据当前匹配状态执行不同的操作
+            switch (currentMatchState)
             {
-                Debug.Log("LoginView: 正在连接中，请稍候...");
-                return;
-            }
-            
-            // 设置联机模式
-            Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(false);
-            
-            // 提前创建 MultiplayerGameMode 以注册网络消息
-            GameApplication.Instance?.GamePlayManager.PrepareGameMode();
+                case MatchState.None:
+                    // 未连接状态，执行连接
+                    if (isConnecting)
+                    {
+                        Debug.Log("LoginView: 正在连接中，请稍候...");
+                        return;
+                    }
+                    
+                    // 设置联机模式
+                    Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(false);
+                    
+                    // 提前创建 MultiplayerGameMode 以注册网络消息
+                    GameApplication.Instance?.GamePlayManager.PrepareGameMode();
 
-            ConnectToServer();
+                    ConnectToServer();
+                    break;
+                    
+                case MatchState.LoggedIn:
+                    // 已登录状态，执行快速匹配
+                    SendQuickMatchRequest();
+                    break;
+                    
+                case MatchState.Matching:
+                    // 匹配中状态，执行取消匹配
+                    SendCancelMatchRequest();
+                    break;
+                    
+                case MatchState.MatchFound:
+                    // 匹配成功状态，不允许操作
+                    Debug.Log("LoginView: 匹配已成功，正在进入房间");
+                    break;
+            }
         }
         
         /// <summary>
@@ -413,6 +524,78 @@ namespace Astrum.Client.UI.Generated
         {
             serverAddress = address;
             serverPort = port;
+        }
+        
+        /// <summary>
+        /// 发送快速匹配请求
+        /// </summary>
+        private void SendQuickMatchRequest()
+        {
+            try
+            {
+                var networkManager = GameApplication.Instance?.NetworkManager;
+                if (networkManager == null)
+                {
+                    Debug.LogError("LoginView: NetworkManager不存在，无法发送快速匹配请求");
+                    return;
+                }
+                
+                // 创建快速匹配请求
+                var quickMatchRequest = QuickMatchRequest.Create();
+                quickMatchRequest.Timestamp = Astrum.CommonBase.TimeInfo.Instance.ClientNow();
+                
+                // 发送请求
+                networkManager.Send(quickMatchRequest);
+                Debug.Log("LoginView: 快速匹配请求已发送");
+                
+                // 更新UI状态
+                UpdateConnectionStatus("正在请求快速匹配...");
+                UpdateConnectButtonText("请求中...");
+                SetConnectButtonInteractable(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"LoginView: 发送快速匹配请求失败: {ex.Message}");
+                UpdateConnectionStatus($"快速匹配请求失败: {ex.Message}");
+                UpdateConnectButtonText("快速联机");
+                SetConnectButtonInteractable(true);
+            }
+        }
+        
+        /// <summary>
+        /// 发送取消匹配请求
+        /// </summary>
+        private void SendCancelMatchRequest()
+        {
+            try
+            {
+                var networkManager = GameApplication.Instance?.NetworkManager;
+                if (networkManager == null)
+                {
+                    Debug.LogError("LoginView: NetworkManager不存在，无法发送取消匹配请求");
+                    return;
+                }
+                
+                // 创建取消匹配请求
+                var cancelMatchRequest = CancelMatchRequest.Create();
+                cancelMatchRequest.Timestamp = Astrum.CommonBase.TimeInfo.Instance.ClientNow();
+                
+                // 发送请求
+                networkManager.Send(cancelMatchRequest);
+                Debug.Log("LoginView: 取消匹配请求已发送");
+                
+                // 更新UI状态
+                UpdateConnectionStatus("正在取消匹配...");
+                UpdateConnectButtonText("取消中...");
+                SetConnectButtonInteractable(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"LoginView: 发送取消匹配请求失败: {ex.Message}");
+                UpdateConnectionStatus($"取消匹配请求失败: {ex.Message}");
+                UpdateConnectButtonText("取消匹配");
+                SetConnectButtonInteractable(true);
+            }
         }
 
         #endregion
