@@ -55,15 +55,7 @@ MonoBehaviour:
       GroupDesc: 
       AssetTags: 
       ActiveRuleName: EnableGroup
-      Collectors:
-      - CollectPath: Assets/ArtRes/ThirdPart/PolygonDungeon
-        CollectorGUID: 56a35bcbe6fb7ec43bed20fea5f0f39c
-        CollectorType: 0
-        AddressRuleName: AddressByFileName
-        PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+      Collectors: []
     - GroupName: Unit
       GroupDesc: 
       AssetTags: 
