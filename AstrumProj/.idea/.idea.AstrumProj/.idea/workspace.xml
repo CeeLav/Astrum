@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="11d5567a-68d0-4036-a8f1-cf4d0bcc669a" name="更改" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DpaMonitoringSettings">
+    <option name="firstShow" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$USER_HOME$/AppData/Local/Temp/SourceGeneratedDocuments/6F747B5C61D32198510B49D3/MemoryPack.Generator/MemoryPack.Generator.MemoryPackGenerator/Astrum.LogicCore.Core.Entity.MemoryPackFormatter.g.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/AppData/Local/Temp/SourceGeneratedDocuments/6F747B5C61D32198510B49D3/MemoryPack.Generator/MemoryPack.Generator.MemoryPackGenerator/Astrum.LogicCore.SkillSystem.SkillActionInfo.MemoryPackFormatter.g.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/1b842a5280044defb4c43cb068ca39df1f5a00/30/4bb02085/MonoBehaviour.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/1b842a5280044defb4c43cb068ca39df1f5a00/47/66ea9bc4/SetupCoroutine.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/1b842a5280044defb4c43cb068ca39df1f5a00/55/bc35d60a/UnitySynchronizationContext.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/1b842a5280044defb4c43cb068ca39df1f5a00/57/ec726607/Object.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/1b842a5280044defb4c43cb068ca39df1f5a00/ad/a098fcfd/Application.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/1b842a5280044defb4c43cb068ca39df1f5a00/c4/98d735ca/GameObject.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/3789ee403a53437cbb6b5d9ab6311f51573620/e4/91da590a/Dictionary`2.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5a41d6b7189842eca409fd0b1c3e3dcf17bf78/0b/65960d28/Dictionary`2.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5a41d6b7189842eca409fd0b1c3e3dcf17bf78/77/4230ea42/Object.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5a41d6b7189842eca409fd0b1c3e3dcf17bf78/79/407d3c2f/DateTime.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5a41d6b7189842eca409fd0b1c3e3dcf17bf78/9c/19d53609/MemoryStream.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5a41d6b7189842eca409fd0b1c3e3dcf17bf78/d7/c7e9543c/Action`1.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/6b7261027c98466aa231b7b11776e996ac00/95/1ad7dd0c/Entity.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/8c1963fe95f34218bb2d21bb9323c90e168a30/9a/368a8c8e/Socket.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/96c3e96b41e44c92bc6fc2c9b3d4af9c9a00/0c/6a0c739c/Capability.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/9ac0682aa4f74ee59eb5d5c917c9f1c98a000/a9/1e7a07c7/JsonSerializer.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/a3c91ce317d34ad180564c2b7f9a068730400/e8/d91d3313/MemoryPackableAttribute.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/abe01abe40dc4ab49d129ec754a8e2de17a200/b8/fdea5a39/AnimancerStateDictionary.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/abe01abe40dc4ab49d129ec754a8e2de17a200/d4/0294065b/AnimancerState.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/ad1a64c3b255432786cbd7dae12a5a295000/cb/e19bc6f1/Logger.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/b16416f189654ccfad1d01eeeec2b38d5400/53/60f38a86/Singleton`1.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c3b15ab091f84c5581b6bc93b4cf796c5200/19/34abd107/Singleton`1.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/31/202b8883/BitConverter.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/43/58710246/ExceptionDispatchInfo.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/7c/b333ee39/Buffer.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/7d/4563411c/Object.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/a5/2340e0b4/String.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/a6/4c777d21/MemoryStream.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/d5/14320bf4/List`1.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e887908fdf9b4028bc879f0c1572eba446ae00/eb/98d686f6/StackFrame.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f02d82ccb3384ccc8391faca929700275000/27/80db105b/ASLogger.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f02d82ccb3384ccc8391faca929700275000/5c/3ad7e78a/ILogHandler.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f02d82ccb3384ccc8391faca929700275000/83/a73534ca/Singleton`1.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f02d82ccb3384ccc8391faca929700275000/90/71c7b7d2/EventSystem.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f02d82ccb3384ccc8391faca929700275000/ff/b4019e01/LogLevel.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f1a56c4dfe6248aaac8f2e21148d5143a800/16/ab97c233/MovementComponent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f1a56c4dfe6248aaac8f2e21148d5143a800/29/36eaf21d/VelocityComponent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f1a56c4dfe6248aaac8f2e21148d5143a800/ef/d7f7aaf7/PositionComponent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f1a56c4dfe6248aaac8f2e21148d5143a800/f7/4e80f8c6/BaseComponent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/f577cd9686154d6ab10efd7e65e6436647400/e8/dd632167/AssemblyHelper.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/metadata/f1a56c4dfe6248aaac8f2e21148d5143a800/bd/97908f23/LogicCore.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/239089d02da69d69e56662a2cf32e6931643dc9/Astrum.LogicCore.SkillSystem.SkillActionInfo.MemoryPackFormatter.g.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/4cb8b669d1a4a223c8aa38aa7f9bbd2679df758/Astrum.LogicCore.Core.Entity.MemoryPackFormatter.g.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/5611179c2ffbfdfff87e71d7d96e3b191d2568ec/Astrum.LogicCore.ActionSystem.ActionInfo.MemoryPackFormatter.g.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/6f2970ef808f5fc49ec9ff7383e62c1970ecafafc80cbadf6463174dba4e2d7/System.Resources.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/9384495d2a482ac7341d67ca84e16d267d16c62458a9d67a92b119199a9/System.Threading.Tasks.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/98a525feb6dd8c9e4627193b8eb9f1d1215af6/Astrum.LogicCore.Components.BaseComponent.MemoryPackFormatter.g.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/d546f24631fa972dece3e3edda6b7880392ab/Astrum.LogicCore.Core.World.MemoryPackFormatter.g.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/e44bda2a9ad658a0f190ef19d3e558937b38bb/Astrum.LogicCore.Components.BaseComponent.MemoryPackFormatter.g.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/f430ec6af721e9235424155c4f155cd81ae4db/Astrum.LogicCore.Components.ActionComponent.MemoryPackFormatter.g.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/AstrumClient/Core/GameApplication.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/AstrumClient/Managers/GamePlayManager.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/Network/MessageDispatcher.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Script/Network/NetworkHelper.cs" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="30G4r6bBVRP7H0es54W3p1rJCbj" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "XThreadsFramesViewSplitterKey": "0.57793105",
+    "git-widget-placeholder": "Astrum",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true",
+    "附加到 Unity 编辑器.附加到 Unity 编辑器.executor": "Debug"
+  }
+}]]></component>
+  <component name="RunManager" selected="附加到 Unity 编辑器.附加到 Unity 编辑器">
+    <configuration name="启动 Unity" type="RunUnityExe" factoryName="Unity Executable">
+      <option name="EXE_PATH" value="D:\Develop\Unity\6000.2.0b7\Editor\Unity.exe" />
+      <option name="PROGRAM_PARAMETERS" value="-projectPath D:\Develop\Projects\Astrum\AstrumProj -debugCodeOptimization" />
+      <option name="WORKING_DIRECTORY" value="D:\Develop\Projects\Astrum\AstrumProj" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <option name="ENV_FILE_PATHS" value="" />
+      <option name="REDIRECT_INPUT_PATH" value="" />
+      <option name="PTY_MODE" value="Auto" />
+      <method v="2" />
+    </configuration>
+    <configuration name="单元测试(批处理模式)" type="RunUnityExe" factoryName="Unity Executable">
+      <option name="EXE_PATH" value="D:\Develop\Unity\6000.2.0b7\Editor\Unity.exe" />
+      <option name="PROGRAM_PARAMETERS" value="-runTests -batchmode -projectPath D:\Develop\Projects\Astrum\AstrumProj -testResults Logs/results.xml -logFile Logs/Editor.log -testPlatform EditMode -debugCodeOptimization" />
+      <option name="WORKING_DIRECTORY" value="D:\Develop\Projects\Astrum\AstrumProj" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <option name="ENV_FILE_PATHS" value="" />
+      <option name="REDIRECT_INPUT_PATH" value="" />
+      <option name="PTY_MODE" value="Auto" />
+      <method v="2" />
+    </configuration>
+    <configuration name="附加到 Unity 编辑器" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost">
+      <option name="allowRunningInParallel" value="false" />
+      <option name="listenPortForConnections" value="false" />
+      <option name="pid" />
+      <option name="projectPathOnTarget" />
+      <option name="runtimes">
+        <list />
+      </option>
+      <option name="selectedOptions">
+        <list />
+      </option>
+      <option name="useMixedMode" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration name="附加到 Unity 编辑器并运行" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="UNITY_ATTACH_AND_PLAY" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost">
+      <option name="allowRunningInParallel" value="false" />
+      <option name="listenPortForConnections" value="false" />
+      <option name="pid" />
+      <option name="projectPathOnTarget" />
+      <option name="runtimes">
+        <list />
+      </option>
+      <option name="selectedOptions">
+        <list />
+      </option>
+      <option name="useMixedMode" value="false" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="11d5567a-68d0-4036-a8f1-cf4d0bcc669a" name="更改" comment="" />
+      <created>1753240772507</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1753240772507</updated>
+      <workItem from="1753240773970" duration="2118000" />
+      <workItem from="1753243926919" duration="365000" />
+      <workItem from="1753244309100" duration="2032000" />
+      <workItem from="1753348054710" duration="4034000" />
+      <workItem from="1753594857064" duration="585000" />
+      <workItem from="1753672134029" duration="9982000" />
+      <workItem from="1753692721566" duration="6797000" />
+      <workItem from="1753792972046" duration="6554000" />
+      <workItem from="1753842956349" duration="20526000" />
+      <workItem from="1753961528272" duration="2865000" />
+      <workItem from="1754017385577" duration="15957000" />
+      <workItem from="1754289858724" duration="3301000" />
+      <workItem from="1754468858655" duration="7847000" />
+      <workItem from="1754561984793" duration="2720000" />
+      <workItem from="1754625219801" duration="2504000" />
+      <workItem from="1755053507071" duration="6555000" />
+      <workItem from="1755067385702" duration="7659000" />
+      <workItem from="1755248668805" duration="5929000" />
+      <workItem from="1755489855988" duration="9556000" />
+      <workItem from="1755761739164" duration="2479000" />
+      <workItem from="1755767892887" duration="4711000" />
+      <workItem from="1755832310144" duration="7534000" />
+      <workItem from="1755852035514" duration="3192000" />
+      <workItem from="1756977248789" duration="4522000" />
+      <workItem from="1757317529843" duration="3716000" />
+      <workItem from="1757401789879" duration="5981000" />
+      <workItem from="1757490511546" duration="3662000" />
+      <workItem from="1757562458872" duration="2505000" />
+      <workItem from="1757575291207" duration="13654000" />
+      <workItem from="1757650557582" duration="1931000" />
+      <workItem from="1757660458079" duration="484000" />
+      <workItem from="1757667544969" duration="8344000" />
+      <workItem from="1757917106051" duration="13813000" />
+      <workItem from="1757949742713" duration="3013000" />
+      <workItem from="1757990160708" duration="317000" />
+      <workItem from="1758074585618" duration="11216000" />
+      <workItem from="1758340488450" duration="7056000" />
+      <workItem from="1758437594795" duration="5952000" />
+      <workItem from="1758509593451" duration="24387000" />
+      <workItem from="1758681766978" duration="8177000" />
+      <workItem from="1758975307961" duration="5223000" />
+      <workItem from="1759038979864" duration="9652000" />
+      <workItem from="1759113446172" duration="2610000" />
+      <workItem from="1759195704133" duration="7167000" />
+      <workItem from="1759398976812" duration="764000" />
+      <workItem from="1759458021472" duration="25722000" />
+      <workItem from="1759665106971" duration="2578000" />
+      <workItem from="1759718383500" duration="5738000" />
+      <workItem from="1759807452276" duration="16247000" />
+      <workItem from="1759894358662" duration="6524000" />
+      <workItem from="1759979161594" duration="4863000" />
+      <workItem from="1760065491537" duration="21558000" />
+      <workItem from="1760148380235" duration="8351000" />
+      <workItem from="1760239708349" duration="1422000" />
+      <workItem from="1760324978307" duration="1182000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
+  <component name="UnityProjectConfiguration" hasMinimizedUI="true" />
+  <component name="UnityProjectDiscoverer">
+    <option name="hasUnityReference" value="true" />
+    <option name="unityProject" value="true" />
+    <option name="unityProjectFolder" value="true" />
+  </component>
+  <component name="UnityUnitTestConfiguration" currentTestLauncher="Both" />
+  <component name="VcsManagerConfiguration">
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.OperationCanceledException" breakIfHandledByOtherCode="false" displayValue="System.OperationCanceledException" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.Tasks.TaskCanceledException" breakIfHandledByOtherCode="false" displayValue="System.Threading.Tasks.TaskCanceledException" />
+          <option name="timeStamp" value="2" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
+          <option name="timeStamp" value="3" />
+        </breakpoint>
+      </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="DotNet_Exception_Breakpoints" />
+      </default-breakpoints>
+    </breakpoint-manager>
+    <pin-to-top-manager>
+      <pinned-members>
+        <PinnedItemInfo parentTag="Type#Astrum.CommonBase.LogManagerConfig" memberName="logEntries" />
+        <PinnedItemInfo parentTag="Type#Astrum.Generated.OneFrameInputs" memberName="Inputs" />
+        <PinnedItemInfo parentTag="Type#System.IO.MemoryStream" memberName="_buffer" />
+      </pinned-members>
+    </pin-to-top-manager>
+    <watches-manager>
+      <configuration name="UNITY_DEBUG_RUN_CONFIGURATION">
+        <watch expression="new System.Collections.Generic.ICollectionDebugView&lt;Astrum.CommonBase.LogEntry&gt;(((Astrum.Client.LogManagerConfigEditor) _config).logEntries).Items[17]" />
+      </configuration>
+    </watches-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>
