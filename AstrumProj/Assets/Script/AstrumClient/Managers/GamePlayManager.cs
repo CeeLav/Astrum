@@ -143,9 +143,11 @@ namespace Astrum.Client.Managers
                     // 使用用户管理器处理登录响应
                     UserManager.Instance?.HandleLoginResponse(response);
                     
-                    // 登录成功后关闭Login UI并显示RoomList UI
-                    CloseLoginUI();
-                    ShowRoomListUI();
+                    // 注意：不再自动跳转到房间列表
+                    // 现在的流程是：登录成功 → 显示"快速联机"按钮 → 玩家点击快速联机 → 匹配成功后跳转
+                    // 如果想要恢复旧的直接跳转到房间列表的行为，可以取消下面两行的注释：
+                    // CloseLoginUI();
+                    // ShowRoomListUI();
                 }
                 else
                 {

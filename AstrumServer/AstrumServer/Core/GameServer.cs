@@ -39,7 +39,7 @@ namespace AstrumServer.Core
             _userManager = new UserManager();
             _roomManager = new RoomManager();
             _frameSyncManager = new FrameSyncManager(_roomManager, _networkManager, _userManager);
-            _matchmakingManager = new MatchmakingManager(_roomManager, _userManager, _networkManager);
+            _matchmakingManager = new MatchmakingManager(_roomManager, _userManager, _networkManager, _frameSyncManager);
             
             _networkManager.SetLogger(ASLogger.Instance);
         }

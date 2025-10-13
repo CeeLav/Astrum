@@ -269,17 +269,25 @@ namespace Astrum.Client.UI.Generated
         }
         
         /// <summary>
-        /// 匹配成功通知事件
+        /// 匹配成功通知事件（注意：快速匹配流程已改为服务器直接发送 GameStartNotification）
+        /// 此方法现在不会被调用，客户端将直接收到 GameStartNotification 并进入游戏
         /// </summary>
         private void OnMatchFoundNotification(MatchFoundNotification notification)
         {
-            Debug.Log($"LoginView: 匹配成功！房间ID: {notification.Room?.Id}");
+            // 快速匹配流程已修改：服务器在匹配成功后直接开始游戏并发送 GameStartNotification
+            // 客户端通过 MultiplayerGameMode/NetworkGameHandler 接收 GameStartNotification 并自动进入游戏
+            // 此方法保留是为了兼容性，但在快速匹配流程中不会被触发
+            
+            Debug.Log($"LoginView: [已废弃] 收到 MatchFoundNotification，房间ID: {notification.Room?.Id}");
+            Debug.Log("LoginView: 快速匹配流程已改为直接接收 GameStartNotification，此通知不应该被收到");
+            
             currentMatchState = MatchState.MatchFound;
-            UpdateConnectionStatus($"匹配成功！正在进入房间...");
+            UpdateConnectionStatus($"匹配成功！等待游戏开始...");
             UpdateConnectButtonText("匹配成功");
             SetConnectButtonInteractable(false);
             
-            // 切换到房间列表或直接进入游戏
+            // 注释掉跳转房间列表的逻辑，等待 GameStartNotification
+            /*
             try
             {
                 var uiManager = GameApplication.Instance?.UIManager;
@@ -297,6 +305,7 @@ namespace Astrum.Client.UI.Generated
             {
                 Debug.LogError($"LoginView: 切换到房间列表失败 - {ex.Message}");
             }
+            */
         }
         
         /// <summary>

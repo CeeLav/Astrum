@@ -38,16 +38,18 @@ namespace AstrumServer.Managers
         private readonly RoomManager _roomManager;
         private readonly UserManager _userManager;
         private readonly IServerNetworkManager _networkManager;
+        private readonly FrameSyncManager _frameSyncManager;
         
         // 上次检查超时的时间
         private long _lastTimeoutCheckTime = 0;
         private const long TIMEOUT_CHECK_INTERVAL_MS = 5000; // 5秒检查一次超时
         
-        public MatchmakingManager(RoomManager roomManager, UserManager userManager, IServerNetworkManager networkManager)
+        public MatchmakingManager(RoomManager roomManager, UserManager userManager, IServerNetworkManager networkManager, FrameSyncManager frameSyncManager)
         {
             _roomManager = roomManager;
             _userManager = userManager;
             _networkManager = networkManager;
+            _frameSyncManager = frameSyncManager;
             _lastTimeoutCheckTime = TimeInfo.Instance.ClientNow();
         }
 
@@ -264,10 +266,10 @@ namespace AstrumServer.Managers
                     _userManager.UpdateUserRoom(player.UserId, room.Id);
                 }
                 
-                // 通知所有匹配玩家
-                NotifyMatchFound(players, room);
+                // 快速匹配直接开始游戏（不再发送中间通知）
+                AutoStartQuickMatchGame(room, players);
                 
-                ASLogger.Instance.Info($"MatchmakingManager: 创建快速匹配房间成功: {room.Id}, 玩家数: {players.Count}");
+                ASLogger.Instance.Info($"MatchmakingManager: 创建快速匹配房间成功并自动开始游戏: {room.Id}, 玩家数: {players.Count}");
             }
             catch (Exception ex)
             {
@@ -277,10 +279,16 @@ namespace AstrumServer.Managers
         }
 
         /// <summary>
-        /// 通知匹配成功
+        /// 通知匹配成功（已废弃：快速匹配直接发送 GameStartNotification）
         /// </summary>
         private void NotifyMatchFound(List<MatchmakingEntry> players, RoomInfo room)
         {
+            // 快速匹配流程改为直接开始游戏，不再发送 MatchFoundNotification
+            // 客户端将直接收到 GameStartNotification 并进入游戏
+            ASLogger.Instance.Debug($"MatchmakingManager: 跳过发送 MatchFoundNotification，将在 AutoStartQuickMatchGame 中发送 GameStartNotification");
+            
+            // 旧逻辑已注释：
+            /*
             try
             {
                 var notification = MatchFoundNotification.Create();
@@ -302,6 +310,73 @@ namespace AstrumServer.Managers
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"MatchmakingManager: 通知匹配成功时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+            */
+        }
+
+        /// <summary>
+        /// 快速匹配自动开始游戏
+        /// </summary>
+        private void AutoStartQuickMatchGame(RoomInfo room, List<MatchmakingEntry> players)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"MatchmakingManager: 快速匹配自动开始游戏 - 房间: {room.Id}");
+                
+                // 1. 调用房间管理器开始游戏
+                if (!_roomManager.StartGame(room.Id, room.CreatorName))
+                {
+                    ASLogger.Instance.Warning($"MatchmakingManager: 房间管理器开始游戏失败: {room.Id}");
+                    return;
+                }
+                
+                // 2. 构建游戏配置（参考 GameServer.NotifyGameStart）
+                var gameConfig = GameConfig.Create();
+                gameConfig.maxPlayers = QUICK_MATCH_MAX_PLAYERS;
+                gameConfig.minPlayers = MIN_MATCH_PLAYERS;
+                gameConfig.roundTime = 300; // 5分钟
+                gameConfig.maxRounds = 3;
+                gameConfig.allowSpectators = true;
+                gameConfig.gameModes = new List<string> { "快速匹配模式" };
+
+                // 3. 构建游戏房间状态
+                var roomState = GameRoomState.Create();
+                roomState.roomId = room.Id;
+                roomState.currentRound = 1;
+                roomState.maxRounds = gameConfig.maxRounds;
+                roomState.roundStartTime = TimeInfo.Instance.ClientNow();
+                roomState.activePlayers = new List<string>(room.PlayerNames);
+
+                // 4. 创建游戏开始通知
+                var notification = GameStartNotification.Create();
+                notification.roomId = room.Id;
+                notification.config = gameConfig;
+                notification.roomState = roomState;
+                notification.startTime = room.GameStartTime;
+                notification.playerIds = new List<string>(room.PlayerNames);
+
+                // 5. 发送 GameStartNotification 给房间内所有玩家
+                foreach (var player in players)
+                {
+                    var sessionId = _userManager.GetSessionIdByUserId(player.UserId);
+                    if (!string.IsNullOrEmpty(sessionId))
+                    {
+                        _networkManager.SendMessage(sessionId, notification);
+                        ASLogger.Instance.Debug($"MatchmakingManager: 发送 GameStartNotification 给: {player.UserId}");
+                    }
+                }
+                
+                ASLogger.Instance.Info($"MatchmakingManager: 已通知房间 {room.Id} 的所有玩家游戏开始 (Players: {room.CurrentPlayers})");
+                
+                // 6. 启动房间帧同步
+                _frameSyncManager.StartRoomFrameSync(room.Id);
+                
+                ASLogger.Instance.Info($"MatchmakingManager: 房间 {room.Id} 帧同步已启动");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"MatchmakingManager: 自动开始游戏时出错: {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }

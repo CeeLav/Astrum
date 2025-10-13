@@ -72,10 +72,11 @@ message PlayerResult
 message GameConfig
 {
     int32 maxPlayers = 1;      // 最大玩家数
-    int32 roundTime = 2;       // 回合时间（秒）
-    int32 maxRounds = 3;       // 最大回合数
-    bool allowSpectators = 4;  // 是否允许观战
-    repeated string gameModes = 5; // 游戏模式列表
+    int32 minPlayers = 2;      // 最小玩家数
+    int32 roundTime = 3;       // 回合时间（秒）
+    int32 maxRounds = 4;       // 最大回合数
+    bool allowSpectators = 5;  // 是否允许观战
+    repeated string gameModes = 6; // 游戏模式列表
 }
 
 // 游戏开始通知

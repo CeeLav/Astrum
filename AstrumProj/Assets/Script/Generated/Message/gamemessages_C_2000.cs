@@ -386,27 +386,33 @@ namespace Astrum.Generated
         public int maxPlayers { get; set; }
 
         /// <summary>
-        /// 回合时间（秒）
+        /// 最小玩家数
         /// </summary>
         [MemoryPackOrder(1)]
+        public int minPlayers { get; set; }
+
+        /// <summary>
+        /// 回合时间（秒）
+        /// </summary>
+        [MemoryPackOrder(2)]
         public int roundTime { get; set; }
 
         /// <summary>
         /// 最大回合数
         /// </summary>
-        [MemoryPackOrder(2)]
+        [MemoryPackOrder(3)]
         public int maxRounds { get; set; }
 
         /// <summary>
         /// 是否允许观战
         /// </summary>
-        [MemoryPackOrder(3)]
+        [MemoryPackOrder(4)]
         public bool allowSpectators { get; set; }
 
         /// <summary>
         /// 游戏模式列表
         /// </summary>
-        [MemoryPackOrder(4)]
+        [MemoryPackOrder(5)]
         public List<string> gameModes { get; set; } = new();
 
         public override void Dispose()
@@ -417,6 +423,7 @@ namespace Astrum.Generated
             }
 
             this.maxPlayers = default;
+            this.minPlayers = default;
             this.roundTime = default;
             this.maxRounds = default;
             this.allowSpectators = default;
