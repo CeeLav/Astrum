@@ -38,22 +38,41 @@ namespace Astrum.Editor
             EditorGUILayout.Space(10);
             EditorGUILayout.LabelField("ThirdPart资源提取工具", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "此工具会分析YooAsset清单，找出ThirdPart中实际被使用的资源，\n" +
+                "此工具会分析YooAsset清单，找出ThirdPart中实际被使用的资源（排除场景），\n" +
                 "复制到GameAssets目录并自动更新所有引用。", 
                 MessageType.Info);
             
             EditorGUILayout.Space(10);
             
-            // 步骤1：分析依赖
-            EditorGUILayout.LabelField("步骤 1: 分析依赖关系", EditorStyles.boldLabel);
-            if (GUILayout.Button("分析ThirdPart依赖", GUILayout.Height(30)))
+            // 一键提取按钮
+            EditorGUILayout.LabelField("一键提取ThirdPart资源", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "此操作会：\n" +
+                "1. 分析依赖关系（排除场景文件）\n" +
+                "2. 复制资源到GameAssets\n" +
+                "3. 更新所有引用\n\n" +
+                "⚠️ 建议先备份项目或提交git！",
+                MessageType.Warning);
+            
+            if (GUILayout.Button("一键提取并更新引用", GUILayout.Height(40)))
             {
-                AnalyzeDependencies();
+                if (EditorUtility.DisplayDialog("确认执行", 
+                    "此操作会：\n" +
+                    "1. 分析并复制ThirdPart资源到GameAssets\n" +
+                    "2. 更新所有引用（排除场景文件）\n\n" +
+                    "建议先备份项目！确定继续？", 
+                    "确定", "取消"))
+                {
+                    ExecuteFullProcess();
+                }
             }
             
+            EditorGUILayout.Space(20);
+            
+            // 分步操作（折叠）
             if (_isAnalyzed)
             {
-                EditorGUILayout.Space(5);
+                EditorGUILayout.LabelField("分析结果", EditorStyles.boldLabel);
                 EditorGUILayout.LabelField($"找到 {_sourceAssets.Count} 个源头资源");
                 EditorGUILayout.LabelField($"找到 {_thirdPartDependencies.Count} 个ThirdPart依赖资源");
                 
@@ -67,40 +86,6 @@ namespace Astrum.Editor
                     EditorGUILayout.LabelField($"  {asset}");
                 }
                 EditorGUILayout.EndScrollView();
-                
-                // 步骤2：复制资源
-                EditorGUILayout.Space(10);
-                EditorGUILayout.LabelField("步骤 2: 复制资源到GameAssets", EditorStyles.boldLabel);
-                
-                if (!_isCopied)
-                {
-                    if (GUILayout.Button("复制资源", GUILayout.Height(30)))
-                    {
-                        CopyAssets();
-                    }
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox("资源已复制完成！", MessageType.Info);
-                    
-                    // 步骤3：更新引用
-                    EditorGUILayout.Space(10);
-                    EditorGUILayout.LabelField("步骤 3: 更新引用", EditorStyles.boldLabel);
-                    EditorGUILayout.HelpBox(
-                        $"将更新所有资源文件中的引用，替换 {_guidMapping.Count} 个GUID引用。\n" +
-                        "此操作会直接修改场景、预制体等文件，建议先备份或提交当前更改。",
-                        MessageType.Warning);
-                    
-                    if (GUILayout.Button("更新所有引用", GUILayout.Height(30)))
-                    {
-                        if (EditorUtility.DisplayDialog("确认更新引用", 
-                            "此操作会修改所有资源文件中的GUID引用，确定继续？\n建议先备份项目！", 
-                            "确定", "取消"))
-                        {
-                            UpdateReferences();
-                        }
-                    }
-                }
             }
             
             EditorGUILayout.Space(10);
@@ -113,9 +98,45 @@ namespace Astrum.Editor
         }
         
         /// <summary>
+        /// 执行完整流程
+        /// </summary>
+        private void ExecuteFullProcess()
+        {
+            try
+            {
+                // 步骤1: 分析依赖
+                if (!AnalyzeDependencies())
+                {
+                    return;
+                }
+                
+                // 步骤2: 复制资源
+                if (!CopyAssets())
+                {
+                    return;
+                }
+                
+                // 步骤3: 更新引用
+                UpdateReferences();
+                
+                EditorUtility.DisplayDialog("完成", 
+                    $"ThirdPart资源提取完成！\n" +
+                    $"提取了 {_thirdPartDependencies.Count} 个资源到 {TARGET_PATH}\n" +
+                    $"已更新所有引用。", 
+                    "确定");
+            }
+            catch (Exception ex)
+            {
+                EditorUtility.ClearProgressBar();
+                Debug.LogError($"[ThirdPartExtractor] 执行失败: {ex.Message}\n{ex.StackTrace}");
+                EditorUtility.DisplayDialog("错误", $"执行失败：{ex.Message}", "确定");
+            }
+        }
+        
+        /// <summary>
         /// 分析依赖关系
         /// </summary>
-        private void AnalyzeDependencies()
+        private bool AnalyzeDependencies()
         {
             try
             {
@@ -127,7 +148,7 @@ namespace Astrum.Editor
                 {
                     EditorUtility.ClearProgressBar();
                     EditorUtility.DisplayDialog("错误", $"找不到资源清单文件：{jsonPath}\n请先生成资源清单！", "确定");
-                    return;
+                    return false;
                 }
                 
                 string jsonContent = File.ReadAllText(jsonPath);
@@ -137,20 +158,20 @@ namespace Astrum.Editor
                 {
                     EditorUtility.ClearProgressBar();
                     EditorUtility.DisplayDialog("错误", "无法解析资源清单！", "确定");
-                    return;
+                    return false;
                 }
                 
-                // 2. 提取源头资源路径
+                // 2. 提取源头资源路径（排除场景文件）
                 _sourceAssets.Clear();
                 foreach (var asset in manifest.AssetList)
                 {
-                    if (!string.IsNullOrEmpty(asset.AssetPath))
+                    if (!string.IsNullOrEmpty(asset.AssetPath) && !asset.AssetPath.EndsWith(".unity"))
                     {
                         _sourceAssets.Add(asset.AssetPath);
                     }
                 }
                 
-                Debug.Log($"[ThirdPartExtractor] 找到 {_sourceAssets.Count} 个源头资源");
+                Debug.Log($"[ThirdPartExtractor] 找到 {_sourceAssets.Count} 个源头资源（已排除场景）");
                 
                 // 3. 分析所有依赖
                 EditorUtility.DisplayProgressBar("分析依赖", "正在分析依赖关系...", 0.3f);
@@ -191,24 +212,21 @@ namespace Astrum.Editor
                 _isCopied = false;
                 
                 EditorUtility.ClearProgressBar();
-                EditorUtility.DisplayDialog("分析完成", 
-                    $"分析完成！\n" +
-                    $"源头资源: {_sourceAssets.Count}\n" +
-                    $"ThirdPart依赖: {_thirdPartDependencies.Count}", 
-                    "确定");
+                return true;
             }
             catch (Exception ex)
             {
                 EditorUtility.ClearProgressBar();
                 Debug.LogError($"[ThirdPartExtractor] 分析失败: {ex.Message}\n{ex.StackTrace}");
                 EditorUtility.DisplayDialog("错误", $"分析失败：{ex.Message}", "确定");
+                return false;
             }
         }
         
         /// <summary>
         /// 复制资源到GameAssets目录
         /// </summary>
-        private void CopyAssets()
+        private bool CopyAssets()
         {
             try
             {
@@ -272,30 +290,30 @@ namespace Astrum.Editor
                 _isCopied = true;
                 
                 EditorUtility.ClearProgressBar();
-                EditorUtility.DisplayDialog("复制完成", 
-                    $"成功复制 {_thirdPartDependencies.Count} 个资源到 {TARGET_PATH}", 
-                    "确定");
+                return true;
             }
             catch (Exception ex)
             {
                 EditorUtility.ClearProgressBar();
                 Debug.LogError($"[ThirdPartExtractor] 复制失败: {ex.Message}\n{ex.StackTrace}");
                 EditorUtility.DisplayDialog("错误", $"复制失败：{ex.Message}", "确定");
+                return false;
             }
         }
         
         /// <summary>
-        /// 更新所有引用
+        /// 更新所有引用（排除场景文件）
         /// </summary>
         private void UpdateReferences()
         {
             try
             {
-                // 获取所有需要更新引用的文件类型
+                // 获取所有需要更新引用的文件类型（排除.unity场景文件）
                 string[] assetPaths = AssetDatabase.GetAllAssetPaths()
                     .Where(p => p.StartsWith("Assets/") && 
-                               (p.EndsWith(".unity") || p.EndsWith(".prefab") || 
-                                p.EndsWith(".mat") || p.EndsWith(".asset") ||
+                               (p.EndsWith(".prefab") || 
+                                p.EndsWith(".mat") || 
+                                p.EndsWith(".asset") ||
                                 p.EndsWith(".controller")))
                     .ToArray();
                 
@@ -336,12 +354,8 @@ namespace Astrum.Editor
                 AssetDatabase.Refresh();
                 
                 EditorUtility.ClearProgressBar();
-                EditorUtility.DisplayDialog("更新完成", 
-                    $"成功更新 {updatedCount} 个文件的引用！\n" +
-                    $"替换了 {_guidMapping.Count} 个GUID引用。", 
-                    "确定");
                 
-                Debug.Log($"[ThirdPartExtractor] 引用更新完成！更新了 {updatedCount} 个文件");
+                Debug.Log($"[ThirdPartExtractor] 引用更新完成！更新了 {updatedCount} 个文件（已排除场景文件）");
             }
             catch (Exception ex)
             {
