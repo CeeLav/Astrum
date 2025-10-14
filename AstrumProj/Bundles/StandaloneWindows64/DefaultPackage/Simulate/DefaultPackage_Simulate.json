@@ -9,19 +9,11 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/10/13 10:39:39",
+    "PackageNote": "2025/10/14 21:07:29",
     "AssetList": [
         {
             "Address": "",
             "AssetPath": "Assets/ArtRes/UI/Login.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 0,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/New GUISkin.guiskin",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 0,
@@ -45,7 +37,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_1.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -53,7 +45,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_1_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -61,7 +53,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_2.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -69,7 +61,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_2_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -77,7 +69,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_3.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -85,7 +77,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_3_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_3_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -93,7 +85,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_4.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_4.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -101,7 +93,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_4_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_4_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -109,7 +101,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_5.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_5.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -117,7 +109,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_5_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_5_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -125,7 +117,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_6.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_6.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -133,7 +125,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_6_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_6_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -141,7 +133,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_7.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_7.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -149,7 +141,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_7_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_7_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -157,7 +149,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_8.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_8.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -165,103 +157,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_8_InPlace.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_1.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_1_InPlace.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_2.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_2_InPlace.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_3.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_3_InPlace.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_4.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_4_InPlace.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_5.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_5_InPlace.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_6.anim",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 2,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_6_InPlace.anim",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_8_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -286,6 +182,14 @@
         {
             "Address": "",
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Knight.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/SM_Wep_Sword_03.fbx",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 1,
@@ -338,7 +242,7 @@
             "UnityCRC": 0,
             "FileHash": "119f15bc2f772e65240d209586ba9c17",
             "FileCRC": 0,
-            "FileSize": 268857,
+            "FileSize": 182709,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -348,7 +252,7 @@
             "UnityCRC": 0,
             "FileHash": "7f2680e23cb3ca8b769edddcbb428fa2",
             "FileCRC": 0,
-            "FileSize": 136565,
+            "FileSize": 169870,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -358,7 +262,7 @@
             "UnityCRC": 0,
             "FileHash": "95fa6045a9eb8f94224b208b6b95911e",
             "FileCRC": 0,
-            "FileSize": 38189680,
+            "FileSize": 25132275,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
