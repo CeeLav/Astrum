@@ -32,6 +32,7 @@ Unity 编辑器工具链
 
 ### 🏗️ [05-CoreArchitecture 核心架构](05-CoreArchitecture%20核心架构/)
 项目核心架构设计
+- [数值系统](05-CoreArchitecture%20核心架构/Stats-System%20数值系统.md) - 属性、战斗、成长、Buff ⭐ 新增
 - [ECC结构说明](05-CoreArchitecture%20核心架构/ECC-System%20ECC结构说明.md) - Entity-Component-Capability
 - [Archetype结构说明](05-CoreArchitecture%20核心架构/Archetype-System%20Archetype结构说明.md)
 - [序列化最佳实践](05-CoreArchitecture%20核心架构/Serialization-Best-Practices%20序列化最佳实践.md)
