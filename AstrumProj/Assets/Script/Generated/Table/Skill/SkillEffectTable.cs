@@ -18,12 +18,15 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     {
         SkillEffectId = _buf.ReadInt();
         EffectType = _buf.ReadInt();
-        EffectValue = _buf.ReadFloat();
+        EffectValue = _buf.ReadInt();
         TargetType = _buf.ReadInt();
         EffectDuration = _buf.ReadFloat();
         EffectRange = _buf.ReadFloat();
         CastTime = _buf.ReadFloat();
         EffectParams = _buf.ReadString();
+        DamageType = _buf.ReadInt();
+        ScalingStat = _buf.ReadInt();
+        ScalingRatio = _buf.ReadInt();
         VisualEffectId = _buf.ReadInt();
         SoundEffectId = _buf.ReadInt();
     }
@@ -42,9 +45,9 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     /// </summary>
     public readonly int EffectType;
     /// <summary>
-    /// 效果数值
+    /// 效果数值*1000
     /// </summary>
-    public readonly float EffectValue;
+    public readonly int EffectValue;
     /// <summary>
     /// 目标类型
     /// </summary>
@@ -65,6 +68,18 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     /// 效果参数
     /// </summary>
     public readonly string EffectParams;
+    /// <summary>
+    /// 伤害类型(1=物理/2=魔法/3=真实)
+    /// </summary>
+    public readonly int DamageType;
+    /// <summary>
+    /// 缩放属性(1=攻击/2=防御/3=生命)
+    /// </summary>
+    public readonly int ScalingStat;
+    /// <summary>
+    /// 缩放比例*1000
+    /// </summary>
+    public readonly int ScalingRatio;
     /// <summary>
     /// 视觉效果ID
     /// </summary>
@@ -92,6 +107,9 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
         + "effectRange:" + EffectRange + ","
         + "castTime:" + CastTime + ","
         + "effectParams:" + EffectParams + ","
+        + "damageType:" + DamageType + ","
+        + "scalingStat:" + ScalingStat + ","
+        + "scalingRatio:" + ScalingRatio + ","
         + "visualEffectId:" + VisualEffectId + ","
         + "soundEffectId:" + SoundEffectId + ","
         + "}";

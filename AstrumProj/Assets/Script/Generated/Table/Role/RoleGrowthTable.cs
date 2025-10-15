@@ -17,12 +17,15 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
     public RoleGrowthTable(ByteBuf _buf) 
     {
         Id = _buf.ReadInt();
+        RoleId = _buf.ReadInt();
+        Level = _buf.ReadInt();
         RequiredExp = _buf.ReadInt();
-        LightAttackBonus = _buf.ReadFloat();
-        HeavyAttackBonus = _buf.ReadFloat();
-        DefenseBonus = _buf.ReadFloat();
-        HealthBonus = _buf.ReadFloat();
-        SpeedBonus = _buf.ReadFloat();
+        AttackBonus = _buf.ReadInt();
+        DefenseBonus = _buf.ReadInt();
+        HealthBonus = _buf.ReadInt();
+        SpeedBonus = _buf.ReadInt();
+        CritRateBonus = _buf.ReadInt();
+        CritDamageBonus = _buf.ReadInt();
         UnlockSkillId = _buf.ReadInt();
         SkillPoint = _buf.ReadInt();
     }
@@ -37,29 +40,41 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
     /// </summary>
     public readonly int Id;
     /// <summary>
+    /// 角色ID
+    /// </summary>
+    public readonly int RoleId;
+    /// <summary>
+    /// 等级
+    /// </summary>
+    public readonly int Level;
+    /// <summary>
     /// 升级所需经验值
     /// </summary>
     public readonly int RequiredExp;
     /// <summary>
-    /// 轻击攻击力加成
+    /// 攻击力加成
     /// </summary>
-    public readonly float LightAttackBonus;
-    /// <summary>
-    /// 重击攻击力加成
-    /// </summary>
-    public readonly float HeavyAttackBonus;
+    public readonly int AttackBonus;
     /// <summary>
     /// 防御力加成
     /// </summary>
-    public readonly float DefenseBonus;
+    public readonly int DefenseBonus;
     /// <summary>
     /// 生命值加成
     /// </summary>
-    public readonly float HealthBonus;
+    public readonly int HealthBonus;
     /// <summary>
-    /// 移动速度加成
+    /// 移动速度加成*1000
     /// </summary>
-    public readonly float SpeedBonus;
+    public readonly int SpeedBonus;
+    /// <summary>
+    /// 暴击率加成*1000
+    /// </summary>
+    public readonly int CritRateBonus;
+    /// <summary>
+    /// 暴击伤害加成*1000
+    /// </summary>
+    public readonly int CritDamageBonus;
     /// <summary>
     /// 解锁的技能ID
     /// </summary>
@@ -80,12 +95,15 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
     {
         return "{ "
         + "id:" + Id + ","
+        + "roleId:" + RoleId + ","
+        + "level:" + Level + ","
         + "requiredExp:" + RequiredExp + ","
-        + "lightAttackBonus:" + LightAttackBonus + ","
-        + "heavyAttackBonus:" + HeavyAttackBonus + ","
+        + "attackBonus:" + AttackBonus + ","
         + "defenseBonus:" + DefenseBonus + ","
         + "healthBonus:" + HealthBonus + ","
         + "speedBonus:" + SpeedBonus + ","
+        + "critRateBonus:" + CritRateBonus + ","
+        + "critDamageBonus:" + CritDamageBonus + ","
         + "unlockSkillId:" + UnlockSkillId + ","
         + "skillPoint:" + SkillPoint + ","
         + "}";

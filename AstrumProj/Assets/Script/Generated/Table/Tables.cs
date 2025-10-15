@@ -14,6 +14,7 @@ namespace cfg
 public partial class Tables
 {
     public TbItem TbItem {get; }
+    public Buff.TbBuffTable TbBuffTable {get; }
     public Entity.TbActionTable TbActionTable {get; }
     public Entity.TbEntityBaseTable TbEntityBaseTable {get; }
     public Entity.TbEntityModelTable TbEntityModelTable {get; }
@@ -26,6 +27,7 @@ public partial class Tables
     public Tables(System.Func<string, ByteBuf> loader)
     {
         TbItem = new TbItem(loader("tbitem"));
+        TbBuffTable = new Buff.TbBuffTable(loader("buff_tbbufftable"));
         TbActionTable = new Entity.TbActionTable(loader("entity_tbactiontable"));
         TbEntityBaseTable = new Entity.TbEntityBaseTable(loader("entity_tbentitybasetable"));
         TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
@@ -40,6 +42,7 @@ public partial class Tables
     private void ResolveRef()
     {
         TbItem.ResolveRef(this);
+        TbBuffTable.ResolveRef(this);
         TbActionTable.ResolveRef(this);
         TbEntityBaseTable.ResolveRef(this);
         TbEntityModelTable.ResolveRef(this);
