@@ -15,8 +15,10 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             ASLogger.Instance.Info($"[DamageEffect] START - Caster: {caster.UniqueId}, Target: {target.UniqueId}, EffectId: {effectConfig.SkillEffectId}");
             
             // 1. 计算伤害
-            var damageResult = DamageCalculator.Calculate(caster, target, effectConfig);
-            ASLogger.Instance.Info($"[DamageEffect] Calculated damage: {damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
+            // TODO: 传入真实的currentFrame（需要从World或Room获取）
+            int currentFrame = 0; // 临时使用0，待后续接入帧同步系统
+            var damageResult = DamageCalculator.Calculate(caster, target, effectConfig, currentFrame);
+            ASLogger.Instance.Info($"[DamageEffect] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
             
             // 2. 应用伤害到目标
             var healthComponent = target.GetComponent<HealthComponent>();
@@ -27,7 +29,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             }
             
             int beforeHP = healthComponent.CurrentHealth;
-            int damage = (int)damageResult.FinalDamage;
+            int damage = (int)(float)damageResult.FinalDamage;
             healthComponent.CurrentHealth -= damage;
             int afterHP = healthComponent.CurrentHealth;
             

@@ -1,192 +1,233 @@
 using System;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Stats;
 using Astrum.CommonBase;
 using cfg.Skill;
+using TrueSync;
 
 namespace Astrum.LogicCore.SkillSystem
 {
     /// <summary>
-    /// 伤害计算模块
-    /// 负责根据配置和属性计算最终伤害
+    /// 伤害计算模块 - 使用完整属性系统和确定性计算
     /// </summary>
     public static class DamageCalculator
     {
         /// <summary>
-        /// 计算伤害
+        /// 计算伤害（完整版：接入属性系统 + 确定性计算）
         /// </summary>
         /// <param name="caster">施法者实体</param>
         /// <param name="target">目标实体</param>
         /// <param name="effectConfig">效果配置</param>
+        /// <param name="currentFrame">当前逻辑帧号（用于确定性随机）</param>
         /// <returns>伤害结果</returns>
-        public static DamageResult Calculate(Entity caster, Entity target, SkillEffectTable effectConfig)
+        public static DamageResult Calculate(Entity caster, Entity target, SkillEffectTable effectConfig, int currentFrame)
         {
-            // 获取施法者和目标的属性（简化版）
-            // TODO: 接入完整的属性系统
-            float casterAttack = GetEntityAttack(caster);
-            float targetDefense = GetEntityDefense(target);
-            float casterCritRate = GetEntityCritRate(caster);
-            float casterCritDamage = GetEntityCritDamage(caster);
+            // 1. 获取施法者和目标的派生属性
+            var casterDerived = caster.GetComponent<DerivedStatsComponent>();
+            var targetDerived = target.GetComponent<DerivedStatsComponent>();
+            var targetState = target.GetComponent<StateComponent>();
             
-            ASLogger.Instance.Debug($"[DamageCalc] Input - CasterATK: {casterAttack}, TargetDEF: {targetDefense}, " +
-                $"CritRate: {casterCritRate:P1}, CritDmg: {casterCritDamage:F2}x, EffectValue: {effectConfig.EffectValue}");
-            
-            // 1. 计算基础伤害
-            float baseDamage = CalculateBaseDamage(casterAttack, effectConfig);
-            ASLogger.Instance.Debug($"[DamageCalc] Base damage: {baseDamage:F2}");
-            
-            // 2. 暴击判定
-            bool isCritical = CheckCritical(casterCritRate);
-            if (isCritical)
+            // 2. 检查是否可以受伤
+            if (targetState != null && !targetState.CanTakeDamage())
             {
-                float beforeCrit = baseDamage;
-                baseDamage *= casterCritDamage;
-                ASLogger.Instance.Info($"[DamageCalc] 💥 CRITICAL HIT! {beforeCrit:F2} × {casterCritDamage:F2} = {baseDamage:F2}");
+                ASLogger.Instance.Debug($"[DamageCalc] Target {target.UniqueId} is immune to damage");
+                return new DamageResult { FinalDamage = FP.Zero, IsCritical = false };
             }
             
-            // 3. 应用防御减免
-            float afterDefense = ApplyDefense(baseDamage, targetDefense);
-            ASLogger.Instance.Debug($"[DamageCalc] After defense: {baseDamage:F2} → {afterDefense:F2} (DEF: {targetDefense})");
-            float finalDamage = afterDefense;
+            // 3. 获取属性值（定点数）
+            FP casterAttack = casterDerived?.Get(StatType.ATK) ?? (FP)100;
+            FP casterAccuracy = casterDerived?.Get(StatType.ACCURACY) ?? (FP)0.95;
+            FP casterCritRate = casterDerived?.Get(StatType.CRIT_RATE) ?? (FP)0.05;
+            FP casterCritDamage = casterDerived?.Get(StatType.CRIT_DMG) ?? (FP)2.0;
             
-            // 4. 应用属性克制（简化版）
-            finalDamage = ApplyElementalModifier(finalDamage, caster, target, effectConfig);
+            FP targetDefense = targetDerived?.Get(StatType.DEF) ?? (FP)20;
+            FP targetEvasion = targetDerived?.Get(StatType.EVASION) ?? (FP)0.05;
+            FP targetBlockRate = targetDerived?.Get(StatType.BLOCK_RATE) ?? (FP)0.1;
+            FP targetBlockValue = targetDerived?.Get(StatType.BLOCK_VALUE) ?? (FP)50;
             
-            // 5. 应用随机浮动
-            finalDamage = ApplyRandomVariance(finalDamage);
+            ASLogger.Instance.Debug($"[DamageCalc] Caster ATK={casterAttack}, CRIT={casterCritRate}, Target DEF={targetDefense}");
             
-            // 6. 确保伤害非负
-            finalDamage = Math.Max(0, finalDamage);
+            // 4. 计算基础伤害
+            FP baseDamage = CalculateBaseDamage(casterAttack, effectConfig);
+            ASLogger.Instance.Debug($"[DamageCalc] Base damage: {(float)baseDamage:F2}");
             
-            ASLogger.Instance.Info($"[DamageCalc] RESULT - Final damage: {finalDamage:F2} (Critical: {isCritical})");
+            // 5. 命中判定
+            int seed1 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 1);
+            if (!CheckHit(casterAccuracy, targetEvasion, seed1))
+            {
+                ASLogger.Instance.Info($"[DamageCalc] ❌ MISS! (Accuracy={casterAccuracy}, Evasion={targetEvasion})");
+                return new DamageResult { FinalDamage = FP.Zero, IsCritical = false, IsMiss = true };
+            }
             
-            // 7. 构造结果
+            // 6. 格挡判定
+            int seed2 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 2);
+            bool isBlocked = CheckBlock(targetBlockRate, seed2);
+            if (isBlocked)
+            {
+                FP beforeBlock = baseDamage;
+                baseDamage = TSMath.Max(FP.Zero, baseDamage - targetBlockValue);
+                ASLogger.Instance.Info($"[DamageCalc] 🛡️ BLOCKED! {(float)beforeBlock:F2} - {(float)targetBlockValue:F2} = {(float)baseDamage:F2}");
+            }
+            
+            // 7. 暴击判定
+            int seed3 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 3);
+            bool isCritical = CheckCritical(casterCritRate, seed3);
+            if (isCritical)
+            {
+                FP beforeCrit = baseDamage;
+                baseDamage *= casterCritDamage;
+                ASLogger.Instance.Info($"[DamageCalc] 💥 CRITICAL HIT! {(float)beforeCrit:F2} × {(float)casterCritDamage:F2} = {(float)baseDamage:F2}");
+            }
+            
+            // 8. 应用防御减免
+            Stats.DamageType damageType = (Stats.DamageType)effectConfig.DamageType;
+            FP afterDefense = ApplyDefense(baseDamage, targetDefense, damageType);
+            ASLogger.Instance.Debug($"[DamageCalc] After defense: {(float)baseDamage:F2} → {(float)afterDefense:F2}");
+            
+            // 9. 应用抗性
+            FP afterResistance = ApplyResistance(afterDefense, targetDerived, damageType);
+            ASLogger.Instance.Debug($"[DamageCalc] After resistance: {(float)afterDefense:F2} → {(float)afterResistance:F2}");
+            
+            // 10. 应用随机浮动（注意：使用确定性随机）
+            int seed4 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 4);
+            FP finalDamage = ApplyDeterministicVariance(afterResistance, seed4);
+            
+            // 11. 确保非负
+            finalDamage = TSMath.Max(FP.Zero, finalDamage);
+            
+            ASLogger.Instance.Info($"[DamageCalc] RESULT - Final damage: {(float)finalDamage:F2} (Crit: {isCritical}, Block: {isBlocked})");
+            
             return new DamageResult
             {
                 FinalDamage = finalDamage,
                 IsCritical = isCritical,
-                DamageType = ParseDamageType(effectConfig.EffectParams)
+                IsBlocked = isBlocked,
+                IsMiss = false,
+                DamageType = damageType
             };
         }
+        
+        // ========== 伤害计算辅助方法 ==========
         
         /// <summary>
         /// 计算基础伤害
         /// </summary>
-        private static float CalculateBaseDamage(float casterAttack, SkillEffectTable effectConfig)
+        private static FP CalculateBaseDamage(FP attack, SkillEffectTable effectConfig)
         {
-            // EffectValue 通常是百分比（如150表示150%攻击力）
-            float ratio = effectConfig.EffectValue / 100f;
-            return casterAttack * ratio;
+            // effectValue 通常是百分比*1000（如1500表示150%攻击力）
+            FP ratio = (FP)effectConfig.EffectValue / (FP)1000;
+            return attack * ratio;
         }
         
         /// <summary>
-        /// 暴击判定
+        /// 命中判定（确定性）
         /// </summary>
-        private static bool CheckCritical(float critRate)
+        private static bool CheckHit(FP accuracy, FP evasion, int randomSeed)
         {
-            // 使用随机数判定是否暴击
-            var random = new Random();
-            return random.NextDouble() < critRate;
+            // 最终命中概率 = 命中率 - 闪避率
+            FP hitChance = accuracy - evasion;
+            
+            // 极限约束 [10%, 100%]
+            hitChance = TSMath.Clamp(hitChance, (FP)0.1, FP.One);
+            
+            FP roll = GenerateDeterministicRandom(randomSeed);
+            return roll < hitChance;
+        }
+        
+        /// <summary>
+        /// 格挡判定（确定性）
+        /// </summary>
+        private static bool CheckBlock(FP blockRate, int randomSeed)
+        {
+            FP roll = GenerateDeterministicRandom(randomSeed);
+            return roll < blockRate;
+        }
+        
+        /// <summary>
+        /// 暴击判定（确定性）
+        /// </summary>
+        private static bool CheckCritical(FP critRate, int randomSeed)
+        {
+            FP roll = GenerateDeterministicRandom(randomSeed);
+            return roll < critRate;
         }
         
         /// <summary>
         /// 应用防御减免
         /// </summary>
-        private static float ApplyDefense(float baseDamage, float defense)
+        private static FP ApplyDefense(FP baseDamage, FP defense, Stats.DamageType damageType)
         {
-            // 简单的防御公式：减伤百分比 = 防御 / (防御 + 100)
-            // 防御20时约17%减伤，防御100时约50%减伤
-            float damageReduction = defense / (defense + 100f);
-            return baseDamage * (1f - damageReduction);
+            // 真实伤害无视防御
+            if (damageType == Stats.DamageType.True)
+                return baseDamage;
+            
+            // 减伤公式：减伤百分比 = 防御 / (防御 + 100)
+            FP damageReduction = defense / (defense + (FP)100);
+            return baseDamage * (FP.One - damageReduction);
         }
         
         /// <summary>
-        /// 应用属性克制
+        /// 应用抗性减免
         /// </summary>
-        private static float ApplyElementalModifier(float damage, Entity caster, Entity target, SkillEffectTable effectConfig)
+        private static FP ApplyResistance(FP damage, DerivedStatsComponent targetDerived, Stats.DamageType damageType)
         {
-            // TODO: 实现属性克制逻辑
-            // 解析伤害类型
-            // var damageType = ParseDamageType(effectConfig.EffectParams);
+            if (targetDerived == null)
+                return damage;
             
-            // 根据属性克制关系调整伤害
-            // float multiplier = GetElementalMultiplier(casterElement, targetElement);
-            // return damage * multiplier;
+            FP resistance = FP.Zero;
             
-            // 当前简化：不做克制
-            return damage;
+            switch (damageType)
+            {
+                case Stats.DamageType.Physical:
+                    resistance = targetDerived.Get(StatType.PHYSICAL_RES);
+                    break;
+                case Stats.DamageType.Magical:
+                    resistance = targetDerived.Get(StatType.MAGICAL_RES);
+                    break;
+                case Stats.DamageType.True:
+                    return damage; // 真实伤害无视抗性
+            }
+            
+            return damage * (FP.One - resistance);
         }
         
         /// <summary>
-        /// 应用随机浮动（±5%）
+        /// 应用随机浮动（±5%，确定性）
         /// </summary>
-        private static float ApplyRandomVariance(float damage)
+        private static FP ApplyDeterministicVariance(FP damage, int randomSeed)
         {
-            var random = new Random();
-            float variance = (float)(random.NextDouble() * 0.1 + 0.95); // [0.95, 1.05]
+            FP variance = GenerateDeterministicRandom(randomSeed) * (FP)0.1 + (FP)0.95; // [0.95, 1.05]
             return damage * variance;
         }
         
         /// <summary>
-        /// 解析伤害类型
+        /// 生成确定性随机种子
         /// </summary>
-        private static DamageType ParseDamageType(string effectParams)
+        /// <param name="frame">当前逻辑帧号</param>
+        /// <param name="casterId">施法者ID</param>
+        /// <param name="targetId">目标ID</param>
+        /// <param name="sequence">序列号（同一帧多次随机判定时递增）</param>
+        /// <returns>确定性种子</returns>
+        private static int GenerateSeed(int frame, long casterId, long targetId, int sequence)
         {
-            if (string.IsNullOrEmpty(effectParams))
-                return DamageType.Physical;
+            // 确保所有客户端生成相同种子
+            return HashCode.Combine(frame, casterId, targetId, sequence);
+        }
+        
+        /// <summary>
+        /// 生成确定性随机数 [0, 1)（使用简单哈希算法）
+        /// </summary>
+        private static FP GenerateDeterministicRandom(int seed)
+        {
+            // LCG (Linear Congruential Generator) 算法
+            // 确保相同的种子产生相同的结果
+            uint state = (uint)seed;
+            state = state * 1664525u + 1013904223u;
             
-            // 解析格式："DamageType:Physical" 或 "DamageType:Magical"
-            if (effectParams.Contains("Physical"))
-                return DamageType.Physical;
-            else if (effectParams.Contains("Magical"))
-                return DamageType.Magical;
-            else if (effectParams.Contains("True"))
-                return DamageType.True;
-            
-            return DamageType.Physical;
-        }
-        
-        // ========== 属性获取（简化版）==========
-        
-        /// <summary>
-        /// 获取实体攻击力（简化版）
-        /// </summary>
-        private static float GetEntityAttack(Entity entity)
-        {
-            // TODO: 从属性系统获取
-            // var statComp = entity.GetComponent<StatComponent>();
-            // return statComp?.Attack ?? 10f;
-            
-            // 临时简化：固定返回
-            return 100f;
-        }
-        
-        /// <summary>
-        /// 获取实体防御力（简化版）
-        /// </summary>
-        private static float GetEntityDefense(Entity entity)
-        {
-            // TODO: 从属性系统获取
-            return 20f;
-        }
-        
-        /// <summary>
-        /// 获取实体暴击率（简化版）
-        /// </summary>
-        private static float GetEntityCritRate(Entity entity)
-        {
-            // TODO: 从属性系统获取
-            return 0.2f; // 20%暴击率
-        }
-        
-        /// <summary>
-        /// 获取实体暴击伤害（简化版）
-        /// </summary>
-        private static float GetEntityCritDamage(Entity entity)
-        {
-            // TODO: 从属性系统获取
-            return 2.0f; // 暴击2倍伤害
+            // 将 uint 映射到 [0, 1)
+            FP result = (FP)(state & 0x7FFFFFFF) / (FP)0x7FFFFFFF;
+            return result;
         }
     }
 }
-
