@@ -155,6 +155,166 @@ Assets/ArtRes/ThirdPart/PolygonDungeon/Models/ (Wall.fbx已删除)
 
 ---
 
+## 📊 数值系统设计
+
+### 背景
+当前游戏的数值体系不完善，伤害计算使用写死的固定值，没有运行时属性系统，Buff、成长、装备等系统无法接入。需要设计完整的数值体系，包括静态配置、运行时组件和计算公式。
+
+### 设计方案
+
+#### 三层属性架构
+```
+BaseStatsComponent（基础属性）
+    ↓
+DerivedStatsComponent（派生属性 = 基础 + 修饰器）
+    ↓
+DynamicStatsComponent（动态资源 = HP/MP等当前值）
+```
+
+#### 核心组件设计（7个）
+
+**属性组件**：
+1. **BaseStatsComponent** - 基础属性（配置表+成长+加点）
+2. **DerivedStatsComponent** - 最终属性（基础+Buff+装备）
+3. **DynamicStatsComponent** - 动态资源（当前HP/MP/能量/怒气等）
+
+**辅助组件**：
+4. **BuffComponent** - Buff管理（叠加、过期、修饰器提取）
+5. **StateComponent** - 状态标志（晕眩、无敌、死亡等）
+6. **LevelComponent** - 等级经验管理
+7. **GrowthComponent** - 自由加点系统
+
+#### 字典+枚举设计
+
+**优势**：
+- ✅ 灵活扩展：添加新属性只需扩展枚举
+- ✅ 紧凑存储：字典只存储有值的属性
+- ✅ 类型安全：通过枚举访问
+- ✅ 易于序列化：MemoryPack直接支持
+
+**核心代码**：
+```csharp
+// StatType枚举定义
+public enum StatType
+{
+    HP = 1, ATK = 2, DEF = 3, SPD = 4,
+    CRIT_RATE = 10, CRIT_DMG = 11,
+    ELEMENT_FIRE = 30, ELEMENT_ICE = 31, // 可扩展
+}
+
+// Stats通用属性容器
+public class Stats
+{
+    private Dictionary<StatType, float> _values = new();
+    
+    public float Get(StatType type) => _values.TryGetValue(type, out var v) ? v : 0f;
+    public void Set(StatType type, float value) => _values[type] = value;
+    public void Add(StatType type, float delta) { ... }
+}
+
+// 组件使用Stats容器
+public class BaseStatsComponent : BaseComponent
+{
+    public Stats BaseStats { get; set; } = new Stats();
+}
+```
+
+#### 修饰器系统
+
+**三种修饰器类型**：
+1. **Flat**（固定加成）：+50攻击
+2. **Percent**（百分比加成）：+20%攻击
+3. **FinalMultiplier**（最终乘数）：×1.5伤害
+
+**计算公式**：
+```
+最终属性 = (基础 + Flat) × (1 + Percent) × FinalMultiplier
+
+示例：
+基础攻击 = 100
+Buff1: +20攻击（Flat）
+Buff2: +30%攻击（Percent）
+Buff3: ×1.5伤害（FinalMultiplier）
+
+最终攻击 = (100 + 20) × (1 + 0.3) × 1.5 = 234
+```
+
+#### 完整伤害计算公式
+
+```
+1. 基础伤害 = 攻击力 × 技能倍率
+2. 命中判定（命中率 - 闪避率）
+3. 格挡判定（格挡率，减少固定值）
+4. 暴击判定（暴击率，倍率翻倍）
+5. 防御减免 = DEF / (DEF + 100)
+6. 抗性减免（物理/魔法抗性）
+7. 随机浮动（±5%）
+```
+
+#### 配置表扩展
+
+**RoleBaseTable扩展**（+11个字段）：
+```csv
+baseCritRate, baseCritDamage, baseAccuracy, baseEvasion,
+baseBlockRate, baseBlockValue, physicalRes, magicalRes,
+baseMaxMana, manaRegen, healthRegen
+```
+
+**新增BuffTable**：
+```csv
+buffId, buffName, buffType, duration, stackable, maxStack,
+modifiers, tickDamage, tickInterval
+
+# 示例：
+5001,力量祝福,1,600,true,3,ATK:Percent:0.2;SPD:Flat:1.0,0,0
+```
+
+**修饰器字符串格式**：
+```
+"ATK:Percent:0.2;SPD:Flat:1.0;CRIT_RATE:Flat:0.05"
+解析为：
+  - ATK +20%
+  - SPD +1.0
+  - CRIT_RATE +5%
+```
+
+### 技术亮点
+
+1. **字典+枚举架构**：灵活可扩展，易于维护
+2. **三层属性分离**：职责清晰，计算高效
+3. **修饰器系统**：支持复杂的加成计算
+4. **Buff叠加机制**：支持层数、时间刷新
+5. **完整伤害公式**：命中/闪避/格挡/暴击/防御/抗性全覆盖
+
+### 文档产出
+
+**主文档**：`Docs/05-CoreArchitecture 核心架构/Stats-System 数值系统.md`（约2000行）
+
+**包含内容**：
+- 系统概述和设计理念
+- 7个组件详细设计
+- 完整伤害计算公式
+- 配置表扩展方案
+- 成长和Buff系统设计
+- 数值平衡建议
+- 使用示例和集成方案
+- 实现清单（17个任务）
+
+---
+
 ## 总结
-成功开发了ThirdPart资源提取工具，解决了ArtRes仓库体积过大的问题。通过基于YooAsset清单的依赖分析，自动识别并移动实际使用的资源，大大减少了需要版本控制的资源数量。工具设计简洁，使用Unity原生API确保资源引用的完整性和准确性。
+今日完成两个重要工具/系统的设计：
+
+1. **ThirdPart资源提取工具**（+340行代码）
+   - 基于YooAsset清单的依赖分析
+   - 自动移动资源到GameAssets
+   - 解决了目录创建的Unity API问题
+
+2. **数值系统完整设计**（+2000行文档）
+   - 7个核心组件设计
+   - 字典+枚举灵活架构
+   - 完整伤害计算公式
+   - 配置表扩展方案
+
+这两个系统为后续的AI、音频、特效等功能奠定了坚实基础。
 
