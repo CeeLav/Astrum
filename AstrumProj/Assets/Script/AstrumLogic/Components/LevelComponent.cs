@@ -55,8 +55,16 @@ namespace Astrum.LogicCore.Components
             var roleInfo = owner.GetComponent<RoleInfoComponent>();
             if (roleInfo != null)
             {
-                int nextLevelId = roleInfo.RoleId * 1000 + (CurrentLevel + 1);
-                var growthConfig = ConfigManager.Instance.Tables.TbRoleGrowthTable.GetOrDefault(nextLevelId);
+                // 查找下一级的经验配置
+                cfg.Role.RoleGrowthTable growthConfig = null;
+                foreach (var config in ConfigManager.Instance.Tables.TbRoleGrowthTable.DataList)
+                {
+                    if (config.RoleId == roleInfo.RoleId && config.Level == CurrentLevel + 1)
+                    {
+                        growthConfig = config;
+                        break;
+                    }
+                }
                 ExpToNextLevel = growthConfig?.RequiredExp ?? ExpToNextLevel;
             }
             

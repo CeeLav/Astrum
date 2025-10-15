@@ -2,6 +2,7 @@ using System;
 using Astrum.LogicCore;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Stats;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.Physics;
@@ -34,12 +35,14 @@ namespace AstrumTest.Shared.Integration.Core
                     // 设置位置
                     entity.GetComponent<TransComponent>().Position = input.Position.ToTSVector();
                     
-                    // 设置自定义血量
+                    // 设置自定义血量（新数值系统）
                     if (template.CustomHealth.HasValue)
                     {
-                        var health = entity.GetComponent<HealthComponent>();
-                        health.MaxHealth = template.CustomHealth.Value;
-                        health.CurrentHealth = template.CustomHealth.Value;
+                        var dynamicStats = entity.GetComponent<DynamicStatsComponent>();
+                        if (dynamicStats != null)
+                        {
+                            dynamicStats.Set(DynamicResourceType.CURRENT_HP, (FP)template.CustomHealth.Value);
+                        }
                     }
                     
                     // 添加到 Room
@@ -125,14 +128,23 @@ namespace AstrumTest.Shared.Integration.Core
             switch (query.Type)
             {
                 case "EntityHealth":
-                    return entity.GetComponent<HealthComponent>().CurrentHealth;
+                    var dynStats = entity.GetComponent<DynamicStatsComponent>();
+                    if (dynStats != null)
+                        return (int)(float)dynStats.Get(DynamicResourceType.CURRENT_HP);
+                    else
+                        return 0;
                     
                 case "EntityPosition":
                     var pos = entity.GetComponent<TransComponent>().Position;
                     return new { x = (float)pos.x, y = (float)pos.y, z = (float)pos.z };
                     
                 case "EntityIsAlive":
-                    return entity.GetComponent<HealthComponent>().CurrentHealth > 0;
+                    var dynStats2 = entity.GetComponent<DynamicStatsComponent>();
+                    if (dynStats2 != null)
+                        return dynStats2.Get(DynamicResourceType.CURRENT_HP) > FP.Zero;
+                    
+                    var stateComp = entity.GetComponent<StateComponent>();
+                    return stateComp == null || !stateComp.Get(StateType.DEAD);
                     
                 case "EntityAction":
                     var actionComp = entity.GetComponent<ActionComponent>();

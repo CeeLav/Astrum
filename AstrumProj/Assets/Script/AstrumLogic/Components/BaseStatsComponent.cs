@@ -78,22 +78,37 @@ namespace Astrum.LogicCore.Components
         private void ApplyLevelGrowth(int roleId, int level)
         {
             var configManager = ConfigManager.Instance;
-            // 查找对应的成长配置（roleId*1000 + level 作为id）
-            int growthId = roleId * 1000 + level;
-            var growthConfig = configManager.Tables.TbRoleGrowthTable.GetOrDefault(growthId);
-            if (growthConfig == null) return;
             
-            FP levelDelta = (FP)(level - 1);
-            
-            // 配置表存int，需要转换
-            BaseStats.Add(StatType.ATK, (FP)growthConfig.AttackBonus * levelDelta);
-            BaseStats.Add(StatType.DEF, (FP)growthConfig.DefenseBonus * levelDelta);
-            BaseStats.Add(StatType.HP, (FP)growthConfig.HealthBonus * levelDelta);
-            
-            // 小数属性（配置表存1000倍）
-            BaseStats.Add(StatType.SPD, (FP)growthConfig.SpeedBonus / (FP)1000 * levelDelta);
-            BaseStats.Add(StatType.CRIT_RATE, (FP)growthConfig.CritRateBonus / (FP)1000 * levelDelta);
-            BaseStats.Add(StatType.CRIT_DMG, (FP)growthConfig.CritDamageBonus / (FP)1000 * levelDelta);
+            // 累计2到level的成长
+            for (int lv = 2; lv <= level; lv++)
+            {
+                // 查找对应等级的成长配置（通过遍历查找匹配roleId和level的记录）
+                cfg.Role.RoleGrowthTable growthConfig = null;
+                foreach (var config in configManager.Tables.TbRoleGrowthTable.DataList)
+                {
+                    if (config.RoleId == roleId && config.Level == lv)
+                    {
+                        growthConfig = config;
+                        break;
+                    }
+                }
+                
+                if (growthConfig == null)
+                {
+                    ASLogger.Instance.Warning($"[BaseStats] Growth config not found for roleId={roleId}, level={lv}");
+                    continue;
+                }
+                
+                // 每级增加对应的成长值
+                BaseStats.Add(StatType.ATK, (FP)growthConfig.AttackBonus);
+                BaseStats.Add(StatType.DEF, (FP)growthConfig.DefenseBonus);
+                BaseStats.Add(StatType.HP, (FP)growthConfig.HealthBonus);
+                
+                // 小数属性（配置表存1000倍）
+                BaseStats.Add(StatType.SPD, (FP)growthConfig.SpeedBonus / (FP)1000);
+                BaseStats.Add(StatType.CRIT_RATE, (FP)growthConfig.CritRateBonus / (FP)1000);
+                BaseStats.Add(StatType.CRIT_DMG, (FP)growthConfig.CritDamageBonus / (FP)1000);
+            }
         }
         
         /// <summary>应用自由加点</summary>
