@@ -10,8 +10,7 @@ namespace Astrum.LogicCore.Archetypes
         private static readonly Type[] _comps = 
         {
             typeof(RoleInfoComponent),
-            typeof(SkillComponent),
-            typeof(HealthComponent)
+            typeof(SkillComponent)
         };
         
         private static readonly Type[] _caps =

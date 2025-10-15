@@ -5,14 +5,17 @@ namespace Astrum.LogicCore.Components
     /// <summary>
     /// BaseComponent 的 MemoryPack 序列化特性定义
     /// </summary>
-    [MemoryPackUnion(0, typeof(HealthComponent))]
-    [MemoryPackUnion(1, typeof(TransComponent))]
-    [MemoryPackUnion(2, typeof(MovementComponent))]
-    [MemoryPackUnion(3, typeof(Astrum.LogicCore.FrameSync.LSInputComponent))]
-    [MemoryPackUnion(4, typeof(ActionComponent))]
-    [MemoryPackUnion(5, typeof(RoleInfoComponent))]
-    [MemoryPackUnion(6, typeof(SkillComponent))]
-    [MemoryPackUnion(7, typeof(CollisionComponent))]
+    [MemoryPackUnion(0, typeof(TransComponent))]
+    [MemoryPackUnion(1, typeof(MovementComponent))]
+    [MemoryPackUnion(2, typeof(Astrum.LogicCore.FrameSync.LSInputComponent))]
+    [MemoryPackUnion(3, typeof(ActionComponent))]
+    [MemoryPackUnion(4, typeof(RoleInfoComponent))]
+    [MemoryPackUnion(5, typeof(SkillComponent))]
+    [MemoryPackUnion(6, typeof(CollisionComponent))]
+    [MemoryPackUnion(7, typeof(BaseStatsComponent))]
+    [MemoryPackUnion(8, typeof(DerivedStatsComponent))]
+    [MemoryPackUnion(9, typeof(DynamicStatsComponent))]
+    [MemoryPackUnion(10, typeof(StateComponent))]
     [MemoryPackable]
     public abstract partial class BaseComponent
     {

@@ -1,7 +1,9 @@
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Stats;
 using Astrum.CommonBase;
 using cfg.Skill;
+using TrueSync;
 
 namespace Astrum.LogicCore.SkillSystem.EffectHandlers
 {
@@ -14,34 +16,59 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
         {
             ASLogger.Instance.Info($"[DamageEffect] START - Caster: {caster.UniqueId}, Target: {target.UniqueId}, EffectId: {effectConfig.SkillEffectId}");
             
-            // 1. 计算伤害
-            // TODO: 传入真实的currentFrame（需要从World或Room获取）
-            int currentFrame = 0; // 临时使用0，待后续接入帧同步系统
-            var damageResult = DamageCalculator.Calculate(caster, target, effectConfig, currentFrame);
-            ASLogger.Instance.Info($"[DamageEffect] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
+            // 1. 获取目标组件
+            var dynamicStats = target.GetComponent<DynamicStatsComponent>();
+            var derivedStats = target.GetComponent<DerivedStatsComponent>();
+            var stateComp = target.GetComponent<StateComponent>();
             
-            // 2. 应用伤害到目标
-            var healthComponent = target.GetComponent<HealthComponent>();
-            if (healthComponent == null)
+            if (dynamicStats == null || derivedStats == null)
             {
-                ASLogger.Instance.Warning($"[DamageEffect] Target {target.UniqueId} has no HealthComponent, cannot apply damage");
+                ASLogger.Instance.Warning($"[DamageEffect] Target {target.UniqueId} missing stats components");
                 return;
             }
             
-            int beforeHP = healthComponent.CurrentHealth;
-            int damage = (int)(float)damageResult.FinalDamage;
-            healthComponent.CurrentHealth -= damage;
-            int afterHP = healthComponent.CurrentHealth;
+            // 2. 检查是否可以受到伤害
+            if (stateComp != null && !stateComp.CanTakeDamage())
+            {
+                ASLogger.Instance.Info($"[DamageEffect] Target {target.UniqueId} cannot take damage (invincible or dead)");
+                return;
+            }
             
-            ASLogger.Instance.Info($"[DamageEffect] HP Change - Target {target.UniqueId}: {beforeHP} → {afterHP} (-{damage})");
+            // 3. 计算伤害
+            int currentFrame = 0; // TODO: 从World或Room获取真实帧号
+            var damageResult = DamageCalculator.Calculate(caster, target, effectConfig, currentFrame);
+            ASLogger.Instance.Info($"[DamageEffect] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
             
-            // 3. TODO: 触发伤害事件
-            // EventSystem.Trigger(new DamageEvent { ... });
+            // 4. 应用伤害
+            FP beforeHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
+            FP actualDamage = dynamicStats.TakeDamage(damageResult.FinalDamage, derivedStats);
+            FP afterHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
             
-            // 4. TODO: 播放视觉效果
+            ASLogger.Instance.Info($"[DamageEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
+            
+            // 5. 检查死亡
+            if (afterHP <= FP.Zero && stateComp != null && !stateComp.Get(StateType.DEAD))
+            {
+                // 设置死亡状态
+                stateComp.Set(StateType.DEAD, true);
+                
+                // 发布死亡事件
+                var diedEvent = new EntityDiedEventData(
+                    entity: target,
+                    worldId: 0,  // TODO: 从Room或World获取真实ID
+                    roomId: 0,   // TODO: 从Room获取真实ID
+                    killerId: caster.UniqueId,
+                    skillId: effectConfig.SkillEffectId
+                );
+                EventSystem.Instance.Publish(diedEvent);
+                
+                ASLogger.Instance.Info($"[DamageEffect] Target {target.UniqueId} DIED - Killer: {caster.UniqueId}, Skill: {effectConfig.SkillEffectId}");
+            }
+            
+            // 6. TODO: 播放视觉效果
             // if (effectConfig.VisualEffectId > 0) { ... }
             
-            // 5. TODO: 播放音效
+            // 7. TODO: 播放音效
             // if (effectConfig.SoundEffectId > 0) { ... }
         }
     }

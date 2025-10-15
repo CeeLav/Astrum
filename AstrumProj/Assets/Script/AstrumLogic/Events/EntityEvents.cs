@@ -337,4 +337,103 @@ namespace Astrum.CommonBase
             BornInfo = bornInfo;
         }
     }
+    
+    /// <summary>
+    /// 实体死亡事件数据
+    /// </summary>
+    public class EntityDiedEventData : EventData
+    {
+        /// <summary>
+        /// 实体ID
+        /// </summary>
+        public long EntityId { get; set; }
+        
+        /// <summary>
+        /// 实体名称
+        /// </summary>
+        public string EntityName { get; set; }
+        
+        /// <summary>
+        /// 实体类型
+        /// </summary>
+        public string EntityType { get; set; }
+        
+        /// <summary>
+        /// 世界ID
+        /// </summary>
+        public int WorldId { get; set; }
+        
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        public long RoomId { get; set; }
+        
+        /// <summary>
+        /// 击杀者ID（可空，-1表示环境/自杀）
+        /// </summary>
+        public long KillerId { get; set; } = -1;
+        
+        /// <summary>
+        /// 致死技能ID（可空，0表示非技能致死）
+        /// </summary>
+        public int SkillId { get; set; } = 0;
+        
+        /// <summary>
+        /// 死亡时间
+        /// </summary>
+        public DateTime DeathTime { get; set; }
+        
+        public EntityDiedEventData()
+        {
+            DeathTime = DateTime.Now;
+        }
+        
+        public EntityDiedEventData(Entity entity, int worldId, long roomId, long killerId = -1, int skillId = 0)
+        {
+            EntityId = entity.UniqueId;
+            EntityName = entity.Name;
+            EntityType = entity.GetType().Name;
+            WorldId = worldId;
+            RoomId = roomId;
+            KillerId = killerId;
+            SkillId = skillId;
+            DeathTime = DateTime.Now;
+        }
+    }
+    
+    /// <summary>
+    /// 实体复活事件数据（预留）
+    /// </summary>
+    public class EntityRevivedEventData : EventData
+    {
+        /// <summary>
+        /// 实体ID
+        /// </summary>
+        public long EntityId { get; set; }
+        
+        /// <summary>
+        /// 世界ID
+        /// </summary>
+        public int WorldId { get; set; }
+        
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        public long RoomId { get; set; }
+        
+        /// <summary>
+        /// 复活时生命值百分比
+        /// </summary>
+        public TrueSync.FP ReviveHealthPercent { get; set; } = (TrueSync.FP)1.0;
+        
+        /// <summary>
+        /// 复活时间
+        /// </summary>
+        public DateTime ReviveTime { get; set; }
+        
+        public EntityRevivedEventData()
+        {
+            ReviveTime = DateTime.Now;
+        }
+    }
 }

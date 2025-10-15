@@ -1,8 +1,9 @@
-using System;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Stats;
 using Astrum.CommonBase;
 using cfg.Skill;
+using TrueSync;
 
 namespace Astrum.LogicCore.SkillSystem.EffectHandlers
 {
@@ -13,30 +14,38 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
     {
         public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
         {
-            var healthComponent = target.GetComponent<HealthComponent>();
-            if (healthComponent == null)
+            ASLogger.Instance.Info($"[HealEffect] START - Caster: {caster.UniqueId}, Target: {target.UniqueId}, EffectId: {effectConfig.SkillEffectId}");
+            
+            // 1. 获取目标组件
+            var dynamicStats = target.GetComponent<DynamicStatsComponent>();
+            var derivedStats = target.GetComponent<DerivedStatsComponent>();
+            var stateComp = target.GetComponent<StateComponent>();
+            
+            if (dynamicStats == null || derivedStats == null)
             {
-                ASLogger.Instance.Warning($"Target {target.UniqueId} has no HealthComponent, cannot apply heal");
+                ASLogger.Instance.Warning($"[HealEffect] Target {target.UniqueId} missing stats components");
                 return;
             }
             
-            // 计算治疗量
-            int healAmount = (int)effectConfig.EffectValue;
+            // 2. 检查是否已死亡（死亡不可治疗）
+            if (stateComp != null && stateComp.Get(StateType.DEAD))
+            {
+                ASLogger.Instance.Info($"[HealEffect] Target {target.UniqueId} is dead, cannot heal");
+                return;
+            }
             
-            // 应用治疗，限制最大HP
-            int oldHP = healthComponent.CurrentHealth;
-            healthComponent.CurrentHealth = Math.Min(
-                healthComponent.MaxHealth, 
-                healthComponent.CurrentHealth + healAmount
-            );
+            // 3. 计算治疗量（TODO: 根据effectConfig配置计算）
+            FP healAmount = (FP)effectConfig.EffectValue; // 临时使用配置值
             
-            int actualHeal = healthComponent.CurrentHealth - oldHP;
+            // 4. 应用治疗
+            FP beforeHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
+            FP actualHeal = dynamicStats.Heal(healAmount, derivedStats);
+            FP afterHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
             
-            ASLogger.Instance.Info($"Heal applied: {actualHeal} to {target.UniqueId}, " +
-                $"Current HP: {healthComponent.CurrentHealth}/{healthComponent.MaxHealth}");
+            ASLogger.Instance.Info($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
             
-            // TODO: 触发治疗事件
-            // EventSystem.Trigger(new HealEvent { ... });
+            // 5. TODO: 播放视觉效果
+            // if (effectConfig.VisualEffectId > 0) { ... }
         }
     }
 }
