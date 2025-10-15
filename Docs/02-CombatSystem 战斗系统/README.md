@@ -37,6 +37,21 @@
 ### [动画系统](Animation-System%20动画系统.md)
 动画系统实现总结
 
+### [数值系统](数值系统/Stats-System%20数值系统.md) ⭐ 新增
+完整的数值体系设计：属性、战斗、成长、Buff
+
+**核心内容**:
+- 三层属性架构（Base → Derived → Dynamic）
+- 7个核心组件（BaseStats, DerivedStats, DynamicStats, Buff, State, Level, Growth）
+- 完整伤害计算公式（防御、抗性、暴击、命中、格挡）
+- Buff系统和成长系统
+- 配置表扩展方案（RoleBaseTable, RoleGrowthTable, BuffTable）
+
+**子文档**:
+- [属性组件详细设计](数值系统/Stats-Components%20属性组件.md) - 7个核心组件实现
+- [伤害计算公式](数值系统/Damage-Calculation%20伤害计算.md) - 完整伤害计算流程
+- [配置表设计](数值系统/Stats-Config-Tables%20配置表.md) - 配置表扩展和数值规则
+
 ---
 
 ## 🚀 开发进展
@@ -67,6 +82,7 @@
 | 动作系统 | ✅ 完成 | 80% |
 | 技能效果运行时 | ✅ 完成 | 90% |
 | 动画系统 | ✅ 完成 | 70% |
+| 数值系统 | 📝 设计完成 | 10% |
 
 ---
 

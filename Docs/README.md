@@ -16,6 +16,7 @@
 - [动作系统](02-CombatSystem%20战斗系统/Action-System%20动作系统.md) - 动作帧、取消标签
 - [技能效果运行时](02-CombatSystem%20战斗系统/Skill-Effect-Runtime%20技能效果运行时.md) - 效果触发、伤害计算
 - [动画系统](02-CombatSystem%20战斗系统/Animation-System%20动画系统.md)
+- [数值系统](02-CombatSystem%20战斗系统/数值系统/Stats-System%20数值系统.md) - 属性、战斗、成长、Buff ⭐ 新增
 - **开发进展**: [技能效果开发进展](_status%20开发进展/Skill-Effect-Progress%20技能效果开发进展.md) ✅ v0.6.0
 
 ### 🎯 [03-PhysicsSystem 物理系统](03-PhysicsSystem%20物理系统/)
@@ -32,7 +33,6 @@ Unity 编辑器工具链
 
 ### 🏗️ [05-CoreArchitecture 核心架构](05-CoreArchitecture%20核心架构/)
 项目核心架构设计
-- [数值系统](05-CoreArchitecture%20核心架构/Stats-System%20数值系统.md) - 属性、战斗、成长、Buff ⭐ 新增
 - [ECC结构说明](05-CoreArchitecture%20核心架构/ECC-System%20ECC结构说明.md) - Entity-Component-Capability
 - [Archetype结构说明](05-CoreArchitecture%20核心架构/Archetype-System%20Archetype结构说明.md)
 - [序列化最佳实践](05-CoreArchitecture%20核心架构/Serialization-Best-Practices%20序列化最佳实践.md)

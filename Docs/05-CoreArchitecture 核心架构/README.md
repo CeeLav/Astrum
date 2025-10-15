@@ -2,17 +2,6 @@
 
 ## 📖 文档列表
 
-### [数值系统](Stats-System%20数值系统.md) ⭐ 新增
-
-完整的数值体系设计：属性、战斗、成长、Buff
-
-**核心内容**:
-- 三层属性架构（Base → Derived → Dynamic）
-- 7个核心组件详细设计
-- 完整伤害计算公式
-- Buff系统和成长系统
-- 配置表扩展方案
-
 ### [ECC结构说明](ECC-System%20ECC结构说明.md)
 
 Entity-Component-Capability 架构设计
