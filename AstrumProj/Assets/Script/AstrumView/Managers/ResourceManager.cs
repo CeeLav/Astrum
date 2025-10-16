@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using Astrum.CommonBase;
 using UnityEngine.SceneManagement;
+using System.IO;
+
 
 #if YOO_ASSET_2
 using YooAsset;
@@ -126,17 +128,33 @@ namespace Astrum.View.Managers
         /// 异步初始化YooAsset包
         /// </summary>
         private IEnumerator InitPackage()
-        {  
-            //var buildResult = EditorSimulateModeHelper.SimulateBuild("DefaultPackage");
+        {
 
-            var packageRoot =
-                "D:\\Develop\\Projects\\Astrum\\AstrumProj\\Bundles\\StandaloneWindows64\\DefaultPackage\\Simulate";//buildResult.PackageRootDirectory;
+#if UNITY_EDITOR
+            //var buildResult = EditorSimulateModeHelper.SimulateBuild("DefaultPackage");
+            var projectRoot = Path.GetDirectoryName(Application.dataPath);
+            var packageRoot = Path.Combine(
+                projectRoot,
+                "Bundles",
+                "StandaloneWindows64",
+                "DefaultPackage",
+                "Simulate"
+            );
+
             var fileSystemParams = FileSystemParameters.CreateDefaultEditorFileSystemParameters(packageRoot);
-            
+
             var createParameters = new EditorSimulateModeParameters();
             createParameters.EditorFileSystemParameters = fileSystemParams;
             
             var initOperation = _defaultPackage.InitializeAsync(createParameters);
+#else
+            //var fileSystemParams = FileSystemParameters.CreateDefaultBuildinFileSystemParameters();
+
+            //var createParameters = new OfflinePlayModeParameters();
+            //createParameters.BuildinFileSystemParameters = fileSystemParams;
+
+            //var initOperation = _defaultPackage.InitializeAsync(createParameters);
+#endif
             yield return initOperation;
             
             if(initOperation.Status != EOperationStatus.Succeed)
@@ -157,14 +175,14 @@ namespace Astrum.View.Managers
             
         }
 #endif
-        
-        /// <summary>
-        /// 同步加载资源
-        /// </summary>
-        /// <typeparam name="T">资源类型</typeparam>
-        /// <param name="assetName">资源名称</param>
-        /// <returns>加载的资源</returns>
-        public T LoadResource<T>(string assetName) where T : UnityEngine.Object
+
+            /// <summary>
+            /// 同步加载资源
+            /// </summary>
+            /// <typeparam name="T">资源类型</typeparam>
+            /// <param name="assetName">资源名称</param>
+            /// <returns>加载的资源</returns>
+            public T LoadResource<T>(string assetName) where T : UnityEngine.Object
         {
             if (!_isInitialized)
             {
