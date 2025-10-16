@@ -1,0 +1,162 @@
+{
+  "name": "数值系统-连续攻击",
+  "description": "测试多次攻击的伤害累积效果",
+  
+  "entityTemplates": [
+    {
+      "templateId": "knight1",
+      "roleId": 1001,
+      "team": 1,
+      "customHealth": 500
+    },
+    {
+      "templateId": "knight2",
+      "roleId": 1001,
+      "team": 2,
+      "customHealth": 500
+    }
+  ],
+  
+  "frames": [
+    {
+      "frameNumber": 0,
+      "comment": "创建两个骑士",
+      "inputs": [
+        {
+          "type": "CreateEntity",
+          "templateId": "knight1",
+          "position": {"x": 0, "y": 0, "z": 0},
+          "entityId": "knight1"
+        },
+        {
+          "type": "CreateEntity",
+          "templateId": "knight2",
+          "position": {"x": 1.2, "y": 0, "z": 0},
+          "entityId": "knight2"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight2",
+          "resultKey": "knight2_hp_initial"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight2",
+          "resultKey": "knight2_alive_initial"
+        }
+      ],
+      "expectedOutputs": {
+        "knight2_hp_initial": 500,
+        "knight2_alive_initial": "True"
+      }
+    },
+    {
+      "frameNumber": 10,
+      "comment": "第一次攻击",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "knight1",
+          "skillId": 3001,
+          "targetId": "knight2"
+        }
+      ],
+      "queries": [],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 30,
+      "comment": "验证第一次攻击伤害",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight2",
+          "resultKey": "knight2_hp_after_first"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight2",
+          "resultKey": "knight2_alive_after_first"
+        }
+      ],
+      "expectedOutputs": {
+        "knight2_hp_after_first": {"min": 482, "max": 493},
+        "knight2_alive_after_first": "True"
+      }
+    },
+    {
+      "frameNumber": 50,
+      "comment": "第二次攻击",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "knight1",
+          "skillId": 3001,
+          "targetId": "knight2"
+        }
+      ],
+      "queries": [],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 70,
+      "comment": "验证第二次攻击伤害累积",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight2",
+          "resultKey": "knight2_hp_after_second"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight2",
+          "resultKey": "knight2_alive_after_second"
+        }
+      ],
+      "expectedOutputs": {
+        "knight2_hp_after_second": {"min": 464, "max": 486},
+        "knight2_alive_after_second": "True"
+      }
+    },
+    {
+      "frameNumber": 90,
+      "comment": "第三次攻击",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "knight1",
+          "skillId": 3001,
+          "targetId": "knight2"
+        }
+      ],
+      "queries": [],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 110,
+      "comment": "验证第三次攻击伤害累积",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight2",
+          "resultKey": "knight2_hp_after_third"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight2",
+          "resultKey": "knight2_alive_after_third"
+        }
+      ],
+      "expectedOutputs": {
+        "knight2_hp_after_third": {"min": 446, "max": 479},
+        "knight2_alive_after_third": "True"
+      }
+    }
+  ]
+}
+

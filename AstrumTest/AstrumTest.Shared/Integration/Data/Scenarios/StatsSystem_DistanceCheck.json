@@ -1,0 +1,101 @@
+{
+  "name": "数值系统-距离检测",
+  "description": "测试实体距离查询功能",
+  
+  "entityTemplates": [
+    {
+      "templateId": "knight1",
+      "roleId": 1001,
+      "team": 1,
+      "customHealth": 500
+    },
+    {
+      "templateId": "knight2",
+      "roleId": 1001,
+      "team": 2,
+      "customHealth": 500
+    }
+  ],
+  
+  "frames": [
+    {
+      "frameNumber": 0,
+      "comment": "创建两个骑士，相距1.2米",
+      "inputs": [
+        {
+          "type": "CreateEntity",
+          "templateId": "knight1",
+          "position": {"x": 0, "y": 0, "z": 0},
+          "entityId": "knight1"
+        },
+        {
+          "type": "CreateEntity",
+          "templateId": "knight2",
+          "position": {"x": 1.2, "y": 0, "z": 0},
+          "entityId": "knight2"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityDistance",
+          "entityId": "knight1",
+          "targetId": "knight2",
+          "resultKey": "initial_distance"
+        }
+      ],
+      "expectedOutputs": {
+        "initial_distance": 1.2
+      }
+    },
+    {
+      "frameNumber": 10,
+      "comment": "骑士1移动到(2, 0, 0)，距离变为0.8",
+      "inputs": [
+        {
+          "type": "Move",
+          "entityId": "knight1",
+          "targetPosition": {"x": 2.0, "y": 0, "z": 0}
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityDistance",
+          "entityId": "knight1",
+          "targetId": "knight2",
+          "resultKey": "distance_after_move"
+        },
+        {
+          "type": "EntityPosition",
+          "entityId": "knight1",
+          "resultKey": "knight1_pos"
+        }
+      ],
+      "expectedOutputs": {
+        "distance_after_move": 0.8
+      }
+    },
+    {
+      "frameNumber": 20,
+      "comment": "骑士2传送到(5, 0, 0)，距离变为3.0",
+      "inputs": [
+        {
+          "type": "Teleport",
+          "entityId": "knight2",
+          "targetPosition": {"x": 5.0, "y": 0, "z": 0}
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityDistance",
+          "entityId": "knight1",
+          "targetId": "knight2",
+          "resultKey": "distance_after_teleport"
+        }
+      ],
+      "expectedOutputs": {
+        "distance_after_teleport": 3.0
+      }
+    }
+  ]
+}
+

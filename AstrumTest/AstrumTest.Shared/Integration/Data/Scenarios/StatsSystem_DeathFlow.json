@@ -1,0 +1,127 @@
+{
+  "name": "数值系统-死亡流程",
+  "description": "测试角色受到致命伤害后的死亡状态变化（使用低血量目标）",
+  
+  "entityTemplates": [
+    {
+      "templateId": "attacker",
+      "roleId": 1004,
+      "team": 1,
+      "customHealth": 1000
+    },
+    {
+      "templateId": "victim",
+      "roleId": 1003,
+      "team": 2,
+      "customHealth": 50
+    }
+  ],
+  
+  "frames": [
+    {
+      "frameNumber": 0,
+      "comment": "创建攻击者（重锤者，高攻击）和受害者（法师，低血量50）",
+      "inputs": [
+        {
+          "type": "CreateEntity",
+          "templateId": "attacker",
+          "position": {"x": 0, "y": 0, "z": 0},
+          "entityId": "attacker"
+        },
+        {
+          "type": "CreateEntity",
+          "templateId": "victim",
+          "position": {"x": 1.2, "y": 0, "z": 0},
+          "entityId": "victim"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "victim",
+          "resultKey": "victim_hp_initial"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "victim",
+          "resultKey": "victim_alive_initial"
+        }
+      ],
+      "expectedOutputs": {
+        "victim_hp_initial": 50,
+        "victim_alive_initial": "True"
+      }
+    },
+    {
+      "frameNumber": 10,
+      "comment": "重锤者攻击低血量法师",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "attacker",
+          "skillId": 3001,
+          "targetId": "victim"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityAction",
+          "entityId": "attacker",
+          "resultKey": "attacker_action"
+        }
+      ],
+      "expectedOutputs": {
+        "attacker_action": "CastingSkill"
+      }
+    },
+    {
+      "frameNumber": 30,
+      "comment": "技能命中，验证目标死亡",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "victim",
+          "resultKey": "victim_hp_after"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "victim",
+          "resultKey": "victim_alive_after"
+        }
+      ],
+      "expectedOutputs": {
+        "victim_hp_after": {"min": 0, "max": 0},
+        "victim_alive_after": "False"
+      }
+    },
+    {
+      "frameNumber": 60,
+      "comment": "验证死亡状态持续",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "victim",
+          "resultKey": "victim_hp_final"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "victim",
+          "resultKey": "victim_alive_final"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "attacker",
+          "resultKey": "attacker_hp_final"
+        }
+      ],
+      "expectedOutputs": {
+        "victim_hp_final": 0,
+        "victim_alive_final": "False",
+        "attacker_hp_final": 1000
+      }
+    }
+  ]
+}
+

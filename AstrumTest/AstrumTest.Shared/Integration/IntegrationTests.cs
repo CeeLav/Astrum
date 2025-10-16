@@ -45,11 +45,77 @@ namespace AstrumTest.Shared.Integration
         /// </summary>
         [Theory]
         [InlineData("TwoKnightsFight.json")]
-        // 可以继续添加更多测试用例
-        // [InlineData("MageVsArcher.json")]
-        // [InlineData("MultiTargetSkill.json")]
         [Trait("Module", "Combat")]
         public void Combat_Scenarios(string scenarioFile)
+        {
+            using var executor = new LogicTestExecutor(_output, _configFixture);
+            var result = executor.RunTestCase(scenarioFile);
+            Assert.True(result.Success, result.FailureMessage);
+        }
+        
+        /// <summary>
+        /// 数值系统 - 死亡流程测试
+        /// </summary>
+        [Fact]
+        [Trait("Module", "StatsSystem")]
+        [Trait("Category", "Death")]
+        public void StatsSystem_DeathFlow()
+        {
+            using var executor = new LogicTestExecutor(_output, _configFixture);
+            var result = executor.RunTestCase("StatsSystem_DeathFlow.json");
+            Assert.True(result.Success, result.FailureMessage);
+        }
+        
+        /// <summary>
+        /// 数值系统 - 距离检测测试
+        /// </summary>
+        [Fact]
+        [Trait("Module", "StatsSystem")]
+        [Trait("Category", "Distance")]
+        public void StatsSystem_DistanceCheck()
+        {
+            using var executor = new LogicTestExecutor(_output, _configFixture);
+            var result = executor.RunTestCase("StatsSystem_DistanceCheck.json");
+            Assert.True(result.Success, result.FailureMessage);
+        }
+        
+        /// <summary>
+        /// 数值系统 - 连续攻击测试
+        /// </summary>
+        [Fact]
+        [Trait("Module", "StatsSystem")]
+        [Trait("Category", "Combat")]
+        public void StatsSystem_MultipleAttacks()
+        {
+            using var executor = new LogicTestExecutor(_output, _configFixture);
+            var result = executor.RunTestCase("StatsSystem_MultipleAttacks.json");
+            Assert.True(result.Success, result.FailureMessage);
+        }
+        
+        /// <summary>
+        /// 数值系统 - 不同职业对战测试
+        /// </summary>
+        [Fact]
+        [Trait("Module", "StatsSystem")]
+        [Trait("Category", "Combat")]
+        public void StatsSystem_DifferentRoles()
+        {
+            using var executor = new LogicTestExecutor(_output, _configFixture);
+            var result = executor.RunTestCase("StatsSystem_DifferentRoles.json");
+            Assert.True(result.Success, result.FailureMessage);
+        }
+        
+        /// <summary>
+        /// 数值系统 - 批量场景测试
+        /// </summary>
+        [Theory]
+        [InlineData("StatsSystem_DeathFlow.json")]
+        [InlineData("StatsSystem_DistanceCheck.json")]
+        [InlineData("StatsSystem_MultipleAttacks.json")]
+        [InlineData("StatsSystem_DifferentRoles.json")]
+        [Trait("Module", "StatsSystem")]
+        [Trait("Category", "Integration")]
+        public void StatsSystem_AllScenarios(string scenarioFile)
         {
             using var executor = new LogicTestExecutor(_output, _configFixture);
             var result = executor.RunTestCase(scenarioFile);

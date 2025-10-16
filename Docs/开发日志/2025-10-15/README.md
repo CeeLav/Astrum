@@ -51,6 +51,20 @@
 - ✅ `run-stats-tests.ps1` - 一键运行脚本
 - ✅ `TEST_REPORT_STATS_SYSTEM.md` - 详细测试报告
 
+### 集成测试框架说明
+**重要发现**：项目已有完善的数据驱动集成测试框架 (`LogicTestExecutor`)
+
+- ✅ 框架已更新支持新数值系统（`DynamicStatsComponent`, `StateComponent`）
+- ✅ 测试用例通过 JSON 文件定义（`Integration/Data/Scenarios/*.json`）
+- ✅ 测试代码只需调用 `executor.RunTestCase("file.json")`
+- 📝 数值系统的集成测试可通过创建 JSON 用例文件实现（如 `StatsSystem_CombatFlow.json`）
+
+**框架特点**：
+- 以帧为单位组织测试（inputs → 逻辑更新 → queries → 验证）
+- 支持动态创建实体（`CreateEntity`）、技能施放（`CastSkill`）等
+- 支持查询实体状态（`EntityHealth`, `EntityIsAlive`, `EntityAction`）
+- 支持范围验证（`{"min": 400, "max": 500}`）
+
 ---
 
 ## 🔧 修复的问题
@@ -219,4 +233,32 @@ dotnet test --filter "Category=Integration&Module=CombatSystem"
 所有测试都使用了**确定性随机数**和**定点数运算**，确保了帧同步环境下的一致性。
 
 **系统已准备好进入下一阶段的开发和集成。**
+
+---
+
+## 📝 关于集成测试
+
+### 重要发现
+项目已有完善的**数据驱动集成测试框架** (`LogicTestExecutor`)，不建议编写传统的集成测试代码。
+
+### 框架特点
+- ✅ **已支持新数值系统**（`DynamicStatsComponent`, `StateComponent`）
+- ✅ **JSON 定义测试用例**（`Integration/Data/Scenarios/*.json`）
+- ✅ **自动化流程**：读取 → 初始化 → 逐帧执行 → 验证 → 报告
+- ✅ **帧级控制**：inputs（输入指令）→ queries（查询状态）→ expectedOutputs（验证结果）
+
+### 正确做法
+1. 在 `AstrumTest.Shared/Integration/Data/Scenarios/` 创建 JSON 测试用例
+2. 在 `IntegrationTests.cs` 中调用 `executor.RunTestCase("file.json")`
+3. JSON 文件定义实体模板、逐帧输入、查询和验证
+
+### 参考文档
+详见：`AstrumTest/集成测试框架设计方案.md`
+
+### 本次测试说明
+本次**数值系统专项测试**重点是**单元测试**（71个），验证了所有核心组件和伤害计算逻辑。集成测试可通过框架的 JSON 文件方式补充（可选）。
+
+---
+
+**最后更新**: 2025-10-15
 

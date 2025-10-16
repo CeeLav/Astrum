@@ -1,0 +1,172 @@
+{
+  "name": "数值系统-不同职业对战",
+  "description": "测试不同职业的属性差异（骑士 vs 法师）",
+  
+  "entityTemplates": [
+    {
+      "templateId": "knight",
+      "roleId": 1001,
+      "team": 1,
+      "customHealth": 1000
+    },
+    {
+      "templateId": "mage",
+      "roleId": 1003,
+      "team": 2,
+      "customHealth": 700
+    }
+  ],
+  
+  "frames": [
+    {
+      "frameNumber": 0,
+      "comment": "创建骑士（高防御）和法师（低防御）",
+      "inputs": [
+        {
+          "type": "CreateEntity",
+          "templateId": "knight",
+          "position": {"x": 0, "y": 0, "z": 0},
+          "entityId": "knight"
+        },
+        {
+          "type": "CreateEntity",
+          "templateId": "mage",
+          "position": {"x": 1.2, "y": 0, "z": 0},
+          "entityId": "mage"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight",
+          "resultKey": "knight_hp_initial"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "mage",
+          "resultKey": "mage_hp_initial"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight",
+          "resultKey": "knight_alive"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "mage",
+          "resultKey": "mage_alive"
+        }
+      ],
+      "expectedOutputs": {
+        "knight_hp_initial": 1000,
+        "mage_hp_initial": 700,
+        "knight_alive": "True",
+        "mage_alive": "True"
+      }
+    },
+    {
+      "frameNumber": 10,
+      "comment": "法师攻击骑士",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "mage",
+          "skillId": 3001,
+          "targetId": "knight"
+        }
+      ],
+      "queries": [],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 30,
+      "comment": "验证骑士受到的伤害（高防御应该减少伤害）",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight",
+          "resultKey": "knight_hp_after_mage_attack"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight",
+          "resultKey": "knight_alive_after"
+        }
+      ],
+      "expectedOutputs": {
+        "knight_hp_after_mage_attack": {"min": 990, "max": 1000},
+        "knight_alive_after": "True"
+      }
+    },
+    {
+      "frameNumber": 50,
+      "comment": "骑士反击法师",
+      "inputs": [
+        {
+          "type": "CastSkill",
+          "entityId": "knight",
+          "skillId": 3001,
+          "targetId": "mage"
+        }
+      ],
+      "queries": [],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 70,
+      "comment": "验证法师受到的伤害（低防御应该受到更多伤害）",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "mage",
+          "resultKey": "mage_hp_after_knight_attack"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "mage",
+          "resultKey": "mage_alive_after"
+        }
+      ],
+      "expectedOutputs": {
+        "mage_hp_after_knight_attack": {"min": 680, "max": 695},
+        "mage_alive_after": "True"
+      }
+    },
+    {
+      "frameNumber": 100,
+      "comment": "验证最终状态",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight",
+          "resultKey": "knight_hp_final"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "mage",
+          "resultKey": "mage_hp_final"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight",
+          "resultKey": "knight_alive_final"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "mage",
+          "resultKey": "mage_alive_final"
+        }
+      ],
+      "expectedOutputs": {
+        "knight_hp_final": {"min": 990, "max": 1000},
+        "mage_hp_final": {"min": 680, "max": 695},
+        "knight_alive_final": "True",
+        "mage_alive_final": "True"
+      }
+    }
+  ]
+}
+
