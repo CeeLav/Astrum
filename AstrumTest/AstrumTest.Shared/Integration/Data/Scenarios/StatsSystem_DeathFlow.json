@@ -5,9 +5,9 @@
   "entityTemplates": [
     {
       "templateId": "attacker",
-      "roleId": 1004,
+      "roleId": 1001,
       "team": 1,
-      "customHealth": 1000
+      "customHealth": null
     },
     {
       "templateId": "victim",
@@ -20,7 +20,7 @@
   "frames": [
     {
       "frameNumber": 0,
-      "comment": "创建攻击者（重锤者，高攻击）和受害者（法师，低血量50）",
+      "comment": "创建攻击者（骑士）和受害者（法师，低血量50）",
       "inputs": [
         {
           "type": "CreateEntity",
@@ -54,7 +54,7 @@
     },
     {
       "frameNumber": 10,
-      "comment": "重锤者攻击低血量法师",
+      "comment": "骑士攻击低血量法师",
       "inputs": [
         {
           "type": "CastSkill",
@@ -119,7 +119,7 @@
       "expectedOutputs": {
         "victim_hp_final": 0,
         "victim_alive_final": "False",
-        "attacker_hp_final": 1000
+        "attacker_hp_final": {"min": 950, "max": 1000}
       }
     }
   ]

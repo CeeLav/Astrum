@@ -35,11 +35,31 @@ namespace AstrumTest.Shared.Integration.Core
                     // 设置位置
                     entity.GetComponent<TransComponent>().Position = input.Position.ToTSVector();
                     
-                    // 设置自定义血量（新数值系统）
-                    if (template.CustomHealth.HasValue)
+                    // 初始化数值系统组件
+                    var baseStats = entity.GetComponent<BaseStatsComponent>();
+                    var derivedStats = entity.GetComponent<DerivedStatsComponent>();
+                    var dynamicStats = entity.GetComponent<DynamicStatsComponent>();
+                    var roleInfo = entity.GetComponent<RoleInfoComponent>();
+                    
+                    if (baseStats != null && roleInfo != null)
                     {
-                        var dynamicStats = entity.GetComponent<DynamicStatsComponent>();
-                        if (dynamicStats != null)
+                        // 从配置表初始化基础属性（等级1）
+                        baseStats.InitializeFromConfig(roleInfo.RoleId, 1);
+                    }
+                    
+                    if (derivedStats != null && baseStats != null)
+                    {
+                        // 计算派生属性
+                        derivedStats.RecalculateAll(baseStats);
+                    }
+                    
+                    if (dynamicStats != null && derivedStats != null)
+                    {
+                        // 初始化动态资源（满血满蓝）
+                        dynamicStats.InitializeResources(derivedStats);
+                        
+                        // 设置自定义血量（如果有）
+                        if (template.CustomHealth.HasValue)
                         {
                             dynamicStats.Set(DynamicResourceType.CURRENT_HP, (FP)template.CustomHealth.Value);
                         }

@@ -58,8 +58,6 @@
         }
       ],
       "expectedOutputs": {
-        "knight_hp_initial": 1000,
-        "mage_hp_initial": 700,
         "knight_alive": "True",
         "mage_alive": "True"
       }

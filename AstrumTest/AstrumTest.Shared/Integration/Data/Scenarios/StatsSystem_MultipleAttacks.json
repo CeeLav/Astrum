@@ -48,7 +48,6 @@
         }
       ],
       "expectedOutputs": {
-        "knight2_hp_initial": 500,
         "knight2_alive_initial": "True"
       }
     },

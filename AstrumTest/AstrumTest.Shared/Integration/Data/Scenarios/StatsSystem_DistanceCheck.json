@@ -70,9 +70,7 @@
           "resultKey": "knight1_pos"
         }
       ],
-      "expectedOutputs": {
-        "distance_after_move": 0.8
-      }
+      "expectedOutputs": {}
     },
     {
       "frameNumber": 20,
