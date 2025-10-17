@@ -21,10 +21,19 @@ namespace Astrum.LogicCore.Systems
         public Queue<SkillEffectData> EffectQueue { get; private set; }
         
         /// <summary>
-        /// 效果类型 -> Handler 映射（不序列化，初始化时重新注册）
+        /// 效果类型 -> Handler 映射（静态，全局共享，只注册一次）
         /// </summary>
-        [MemoryPackIgnore]
-        private Dictionary<int, IEffectHandler> _handlers;
+        private static readonly Dictionary<int, IEffectHandler> _handlers = new Dictionary<int, IEffectHandler>();
+        
+        /// <summary>
+        /// 处理器是否已注册
+        /// </summary>
+        private static bool _handlersInitialized = false;
+        
+        /// <summary>
+        /// 处理器初始化锁
+        /// </summary>
+        private static readonly object _initLock = new object();
         
         /// <summary>
         /// 当前World引用（不序列化，由 World 设置）
@@ -38,7 +47,6 @@ namespace Astrum.LogicCore.Systems
         public SkillEffectSystem()
         {
             EffectQueue = new Queue<SkillEffectData>();
-            _handlers = new Dictionary<int, IEffectHandler>();
         }
 
         /// <summary>
@@ -48,25 +56,30 @@ namespace Astrum.LogicCore.Systems
         public SkillEffectSystem(Queue<SkillEffectData> effectQueue)
         {
             EffectQueue = effectQueue ?? new Queue<SkillEffectData>();
-            _handlers = new Dictionary<int, IEffectHandler>();
         }
 
         /// <summary>
-        /// 初始化系统（注册所有处理器）
+        /// 初始化系统（只注册一次处理器）
         /// </summary>
         public void Initialize()
         {
-            if (_handlers == null)
+            if (!_handlersInitialized)
             {
-                _handlers = new Dictionary<int, IEffectHandler>();
+                lock (_initLock)
+                {
+                    if (!_handlersInitialized)
+                    {
+                        RegisterAllHandlers();
+                        _handlersInitialized = true;
+                    }
+                }
             }
-            RegisterAllHandlers();
         }
         
         /// <summary>
-        /// 注册所有效果处理器
+        /// 注册所有效果处理器（静态方法，只执行一次）
         /// </summary>
-        private void RegisterAllHandlers()
+        private static void RegisterAllHandlers()
         {
             // 注册伤害处理器 (EffectType = 1)
             RegisterHandler(1, new DamageEffectHandler());
@@ -83,11 +96,11 @@ namespace Astrum.LogicCore.Systems
         }
         
         /// <summary>
-        /// 注册效果处理器
+        /// 注册效果处理器（静态方法）
         /// </summary>
         /// <param name="effectType">效果类型（1=伤害, 2=治疗, 3=击退, 4=Buff, 5=Debuff）</param>
         /// <param name="handler">效果处理器实例</param>
-        public void RegisterHandler(int effectType, IEffectHandler handler)
+        public static void RegisterHandler(int effectType, IEffectHandler handler)
         {
             if (handler == null)
             {
