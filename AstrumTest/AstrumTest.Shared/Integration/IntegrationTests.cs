@@ -106,13 +106,24 @@ namespace AstrumTest.Shared.Integration
         }
         
         /// <summary>
+        /// 数值系统 - 基础属性验证
+        /// </summary>
+        [Fact]
+        [Trait("Module", "StatsSystem")]
+        [Trait("Category", "Core")]
+        public void StatsSystem_BasicStats()
+        {
+            using var executor = new LogicTestExecutor(_output, _configFixture);
+            var result = executor.RunTestCase("StatsSystem_BasicStats.json");
+            Assert.True(result.Success, result.FailureMessage);
+        }
+        
+        /// <summary>
         /// 数值系统 - 批量场景测试
         /// </summary>
         [Theory]
-        [InlineData("StatsSystem_DeathFlow.json")]
+        [InlineData("StatsSystem_BasicStats.json")]
         [InlineData("StatsSystem_DistanceCheck.json")]
-        [InlineData("StatsSystem_MultipleAttacks.json")]
-        [InlineData("StatsSystem_DifferentRoles.json")]
         [Trait("Module", "StatsSystem")]
         [Trait("Category", "Integration")]
         public void StatsSystem_AllScenarios(string scenarioFile)

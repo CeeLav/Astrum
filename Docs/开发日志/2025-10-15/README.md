@@ -25,11 +25,25 @@
 - 确保确定性随机和定点数运算的正确性
 
 **测试结果**:
-- ✅ **71/71 全部通过**
-- 单元测试 60个，集成测试 11个
+- ✅ **71/71 单元测试全部通过**
 - 测试时间 ~50ms
 
 **详细报告**: [数值系统测试完成.md](./数值系统测试完成.md)
+
+### 2. 🔄 集成测试用例创建（进行中）
+
+**已完成**:
+- ✅ 创建 4 个 JSON 测试用例（死亡流程、距离检测、连续攻击、职业差异）
+- ✅ 更新 `IntegrationTests.cs` 添加测试方法
+- ✅ 修复 `LogicTestExecutor` 的数值系统初始化逻辑
+- ✅ 更新 `RoleArchetype` 添加数值系统组件
+- ✅ 更新 `BaseComponent.MemoryPack.cs` 注册新组件
+
+**当前阻碍**:
+- ⚠️ **需要在 Unity 中重新编译**以生成 MemoryPack 序列化代码
+- ⚠️ 所有集成测试因序列化错误而无法运行
+
+**详细报告**: [集成测试执行报告.md](./集成测试执行报告.md)
 
 ---
 
@@ -44,20 +58,31 @@
 6. ✅ `StateComponentTests.cs` - 状态管理测试 (9个)
 7. ✅ `DamageCalculatorTests.cs` - 伤害计算测试 (7个)
 
-### 集成测试 (Integration)
-1. ✅ `CombatIntegrationTests.cs` - 完整战斗流程测试 (11个)
+### 集成测试用例 (JSON)
+1. 📝 `StatsSystem_DeathFlow.json` - 死亡流程测试
+2. 📝 `StatsSystem_DistanceCheck.json` - 距离检测测试
+3. 📝 `StatsSystem_MultipleAttacks.json` - 连续攻击测试
+4. 📝 `StatsSystem_DifferentRoles.json` - 不同职业对战测试
+5. ✅ `IntegrationTests.cs` - 集成测试代码（添加5个测试方法）
 
 ### 辅助文件
-- ✅ `run-stats-tests.ps1` - 一键运行脚本
-- ✅ `TEST_REPORT_STATS_SYSTEM.md` - 详细测试报告
+- ✅ `run-stats-tests.ps1` - 单元测试运行脚本
+- ✅ `run-stats-integration-tests.ps1` - 集成测试运行脚本
+- ✅ `TEST_REPORT_STATS_SYSTEM.md` - 单元测试详细报告
+- 📝 `集成测试执行报告.md` - 集成测试报告
+
+### 修复的框架代码
+- ✅ `LogicTestExecutor.Executors.cs` - 添加数值系统初始化逻辑
+- ✅ `RoleArchetype.cs` - 添加数值系统组件到原型
+- ✅ `BaseComponent.MemoryPack.cs` - 注册新组件到序列化Union
 
 ### 集成测试框架说明
 **重要发现**：项目已有完善的数据驱动集成测试框架 (`LogicTestExecutor`)
 
-- ✅ 框架已更新支持新数值系统（`DynamicStatsComponent`, `StateComponent`）
+- ✅ 框架已更新支持新数值系统（实体创建时自动初始化）
 - ✅ 测试用例通过 JSON 文件定义（`Integration/Data/Scenarios/*.json`）
 - ✅ 测试代码只需调用 `executor.RunTestCase("file.json")`
-- 📝 数值系统的集成测试可通过创建 JSON 用例文件实现（如 `StatsSystem_CombatFlow.json`）
+- ✅ 已创建 4 个数值系统专项测试用例
 
 **框架特点**：
 - 以帧为单位组织测试（inputs → 逻辑更新 → queries → 验证）
@@ -105,6 +130,32 @@
 **问题**: 特定frame下命中判定必然失败，导致伤害为0
 
 **修复**: 测试改为容忍Miss（检查平均伤害或IsMiss标记）
+
+### 5. 集成测试-实体初始化问题 ✅
+**影响文件**:
+- `AstrumTest.Shared/Integration/Core/LogicTestExecutor.Executors.cs`
+
+**问题**: 集成测试中实体创建后 HP 始终为 0
+
+**修复**: 在 `CreateEntity` 流程中添加数值系统初始化逻辑
+
+### 6. RoleArchetype组件缺失 ✅  
+**影响文件**:
+- `AstrumProj/Assets/Script/AstrumLogic/Archetypes/Builtins/RoleArchetype.cs`
+
+**问题**: `RoleArchetype` 未包含数值系统组件
+
+**修复**: 添加所有7个数值系统组件（BaseStats, DerivedStats, DynamicStats, Buff, State, Level, Growth）
+
+### 7. MemoryPack序列化注册 ⏳
+**影响文件**:
+- `AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.MemoryPack.cs`
+
+**问题**: 新组件未在 `MemoryPackUnion` 中注册，导致序列化失败
+
+**修复**: 添加 `BuffComponent` (11), `LevelComponent` (12), `GrowthComponent` (13) 到序列化Union
+
+**状态**: ⚠️ **需要在 Unity 中重新编译项目**，让 MemoryPack Source Generator 重新生成序列化代码
 
 ---
 

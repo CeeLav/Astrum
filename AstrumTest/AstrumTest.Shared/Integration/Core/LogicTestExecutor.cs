@@ -284,6 +284,9 @@ namespace AstrumTest.Shared.Integration.Core
             
             // Room.Update() → LSController.Tick() → World.Update()
             Room.Update(0.016f);  // 60FPS
+            
+            // 处理技能效果队列（关键！）
+            SkillEffectManager.Instance.Update();
         }
         
         public void Dispose()

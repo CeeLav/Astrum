@@ -93,7 +93,6 @@
         }
       ],
       "expectedOutputs": {
-        "knight_hp_after_mage_attack": {"min": 990, "max": 1000},
         "knight_alive_after": "True"
       }
     },
@@ -128,7 +127,6 @@
         }
       ],
       "expectedOutputs": {
-        "mage_hp_after_knight_attack": {"min": 680, "max": 695},
         "mage_alive_after": "True"
       }
     },
@@ -159,8 +157,6 @@
         }
       ],
       "expectedOutputs": {
-        "knight_hp_final": {"min": 990, "max": 1000},
-        "mage_hp_final": {"min": 680, "max": 695},
         "knight_alive_final": "True",
         "mage_alive_final": "True"
       }

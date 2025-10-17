@@ -110,7 +110,7 @@ namespace Astrum.LogicCore.Capabilities
             var filter = new CollisionFilter
             {
                 ExcludedEntityIds = new System.Collections.Generic.HashSet<long> { caster.UniqueId },
-                OnlyEnemies = true
+                OnlyEnemies = false  // 暂时移除敌对过滤（team系统未实现）
             };
             
             // 3. 获取 HitManager 单例进行碰撞检测（临时引用）

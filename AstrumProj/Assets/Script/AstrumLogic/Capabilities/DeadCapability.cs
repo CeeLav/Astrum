@@ -172,3 +172,4 @@ namespace Astrum.LogicCore.Capabilities
     }
 }
 
+

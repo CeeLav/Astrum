@@ -4,18 +4,18 @@ using Astrum.LogicCore.Capabilities;
 
 namespace Astrum.LogicCore.Archetypes
 {
-    [Archetype("Role", "BaseUnit", "Action", "Controllable")]
+    [Archetype("Role", "BaseUnit", "Combat", "Controllable")]
     public class RoleArchetype : Archetype
     {
         private static readonly Type[] _comps = 
         {
             typeof(RoleInfoComponent),
-            typeof(SkillComponent)
+
         };
         
         private static readonly Type[] _caps =
         {
-            typeof(SkillCapability)
+            
         };
 
         public override Type[] Components => _comps;

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Astrum.LogicCore;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
@@ -6,6 +7,7 @@ using Astrum.LogicCore.Stats;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.Physics;
+using Astrum.LogicCore.SkillSystem;
 using TrueSync;
 
 namespace AstrumTest.Shared.Integration.Core
@@ -184,6 +186,56 @@ namespace AstrumTest.Shared.Integration.Core
                         return (float)TSVector.Distance(pos1, pos2);
                     }
                     return 0f;
+                    
+                case "SkillActionFrame":
+                    var actionComp2 = entity.GetComponent<ActionComponent>();
+                    if (actionComp2?.CurrentAction is SkillActionInfo skillAction)
+                        return actionComp2.CurrentFrame;
+                    return -1;
+                    
+                case "SkillTriggerCount":
+                    var actionComp3 = entity.GetComponent<ActionComponent>();
+                    if (actionComp3?.CurrentAction is SkillActionInfo skillAction2)
+                        return skillAction2.TriggerEffects?.Count ?? 0;
+                    return 0;
+                    
+                case "SkillTriggerDetails":
+                    var actionComp4 = entity.GetComponent<ActionComponent>();
+                    if (actionComp4?.CurrentAction is SkillActionInfo skillAction3)
+                    {
+                        if (skillAction3.TriggerEffects == null || skillAction3.TriggerEffects.Count == 0)
+                            return "无触发器";
+                        var triggers = skillAction3.TriggerEffects
+                            .Select(t => $"Frame{t.Frame}:{t.TriggerType}:Effect{t.EffectId}")
+                            .ToList();
+                        return string.Join("; ", triggers);
+                    }
+                    return "无技能动作";
+                    
+                case "HasSkillExecutorCapability":
+                    var hasCapability = entity.Capabilities.Any(c => c.GetType().Name == "SkillExecutorCapability");
+                    return hasCapability;
+                    
+                case "CapabilitiesList":
+                    var capNames = entity.Capabilities.Select(c => c.GetType().Name).ToList();
+                    return string.Join(", ", capNames);
+                    
+                case "HitManagerEntityCount":
+                    var hitMgr = HitManager.Instance;
+                    if (hitMgr == null) return -1;
+                    // 假设HitManager有一个方法或属性来获取注册的实体数量
+                    // 如果没有，我们返回一个占位符
+                    return "HitManager存在";
+                    
+                case "CollisionComponentExists":
+                    var collisionComp = entity.GetComponent<CollisionComponent>();
+                    return collisionComp != null;
+                    
+                case "EntityCollisionInfo":
+                    var collComp = entity.GetComponent<CollisionComponent>();
+                    if (collComp == null) return "无碰撞组件";
+                    // 返回碰撞组件的一些基本信息
+                    return $"CollisionComponent存在";
                     
                 default:
                     throw new NotImplementedException($"查询类型未实现: {query.Type}");

@@ -16,6 +16,9 @@ namespace Astrum.LogicCore.Components
     [MemoryPackUnion(8, typeof(DerivedStatsComponent))]
     [MemoryPackUnion(9, typeof(DynamicStatsComponent))]
     [MemoryPackUnion(10, typeof(StateComponent))]
+    [MemoryPackUnion(11, typeof(BuffComponent))]
+    [MemoryPackUnion(12, typeof(LevelComponent))]
+    [MemoryPackUnion(13, typeof(GrowthComponent))]
     [MemoryPackable]
     public abstract partial class BaseComponent
     {

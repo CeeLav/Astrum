@@ -1,0 +1,90 @@
+{
+  "name": "数值系统-基础属性验证",
+  "description": "仅验证数值系统组件的初始化和查询功能（不依赖技能系统）",
+  
+  "entityTemplates": [
+    {
+      "templateId": "knight",
+      "roleId": 1001,
+      "team": 1,
+      "customHealth": 500
+    },
+    {
+      "templateId": "mage",
+      "roleId": 1003,
+      "team": 2,
+      "customHealth": null
+    }
+  ],
+  
+  "frames": [
+    {
+      "frameNumber": 0,
+      "comment": "创建骑士和法师，验证HP正确初始化",
+      "inputs": [
+        {
+          "type": "CreateEntity",
+          "templateId": "knight",
+          "position": {"x": 0, "y": 0, "z": 0},
+          "entityId": "knight"
+        },
+        {
+          "type": "CreateEntity",
+          "templateId": "mage",
+          "position": {"x": 2, "y": 0, "z": 0},
+          "entityId": "mage"
+        }
+      ],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight",
+          "resultKey": "knight_hp"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "mage",
+          "resultKey": "mage_hp"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "knight",
+          "resultKey": "knight_alive"
+        },
+        {
+          "type": "EntityIsAlive",
+          "entityId": "mage",
+          "resultKey": "mage_alive"
+        }
+      ],
+      "expectedOutputs": {
+        "knight_hp": 500,
+        "mage_hp": 700,
+        "knight_alive": "True",
+        "mage_alive": "True"
+      }
+    },
+    {
+      "frameNumber": 20,
+      "comment": "等待20帧后验证HP保持不变",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "EntityHealth",
+          "entityId": "knight",
+          "resultKey": "knight_hp_20"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "mage",
+          "resultKey": "mage_hp_20"
+        }
+      ],
+      "expectedOutputs": {
+        "knight_hp_20": 500,
+        "mage_hp_20": 700
+      }
+    }
+  ]
+}
+

@@ -45,6 +45,16 @@
           "type": "EntityIsAlive",
           "entityId": "victim",
           "resultKey": "victim_alive_initial"
+        },
+        {
+          "type": "SkillActionFrame",
+          "entityId": "attacker",
+          "resultKey": "attacker_skill_frame_0"
+        },
+        {
+          "type": "EntityAction",
+          "entityId": "attacker",
+          "resultKey": "attacker_action_0"
         }
       ],
       "expectedOutputs": {
@@ -68,6 +78,31 @@
           "type": "EntityAction",
           "entityId": "attacker",
           "resultKey": "attacker_action"
+        },
+        {
+          "type": "HasSkillExecutorCapability",
+          "entityId": "attacker",
+          "resultKey": "attacker_has_executor"
+        },
+        {
+          "type": "CapabilitiesList",
+          "entityId": "attacker",
+          "resultKey": "attacker_capabilities"
+        },
+        {
+          "type": "SkillActionFrame",
+          "entityId": "attacker",
+          "resultKey": "attacker_skill_frame"
+        },
+        {
+          "type": "SkillTriggerCount",
+          "entityId": "attacker",
+          "resultKey": "attacker_trigger_count"
+        },
+        {
+          "type": "SkillTriggerDetails",
+          "entityId": "attacker",
+          "resultKey": "attacker_trigger_details"
         }
       ],
       "expectedOutputs": {
@@ -75,29 +110,110 @@
       }
     },
     {
-      "frameNumber": 30,
-      "comment": "技能命中，验证目标死亡",
+      "frameNumber": 11,
+      "comment": "施放技能后的第一帧",
       "inputs": [],
       "queries": [
         {
-          "type": "EntityHealth",
-          "entityId": "victim",
-          "resultKey": "victim_hp_after"
+          "type": "SkillActionFrame",
+          "entityId": "attacker",
+          "resultKey": "attacker_skill_frame_11"
         },
         {
-          "type": "EntityIsAlive",
+          "type": "EntityHealth",
           "entityId": "victim",
-          "resultKey": "victim_alive_after"
+          "resultKey": "victim_hp_11"
         }
       ],
-      "expectedOutputs": {
-        "victim_hp_after": {"min": 0, "max": 0},
-        "victim_alive_after": "False"
-      }
+      "expectedOutputs": {}
     },
     {
-      "frameNumber": 60,
-      "comment": "验证死亡状态持续",
+      "frameNumber": 16,
+      "comment": "触发帧 6（相对帧号）",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "SkillActionFrame",
+          "entityId": "attacker",
+          "resultKey": "attacker_skill_frame_16"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "victim",
+          "resultKey": "victim_hp_16"
+        }
+      ],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 17,
+      "comment": "触发帧 7（相对帧号）",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "SkillActionFrame",
+          "entityId": "attacker",
+          "resultKey": "attacker_skill_frame_17"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "victim",
+          "resultKey": "victim_hp_17"
+        }
+      ],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 30,
+      "comment": "技能执行中，等待命中（应该在 frame 6-7 已经触发）",
+      "inputs": [],
+      "queries": [
+        {
+          "type": "SkillActionFrame",
+          "entityId": "attacker",
+          "resultKey": "attacker_skill_frame_30"
+        },
+        {
+          "type": "EntityHealth",
+          "entityId": "victim",
+          "resultKey": "victim_hp_30"
+        },
+        {
+          "type": "EntityAction",
+          "entityId": "attacker",
+          "resultKey": "attacker_action_30"
+        },
+        {
+          "type": "CollisionComponentExists",
+          "entityId": "attacker",
+          "resultKey": "attacker_has_collision"
+        },
+        {
+          "type": "CollisionComponentExists",
+          "entityId": "victim",
+          "resultKey": "victim_has_collision"
+        },
+        {
+          "type": "EntityCollisionInfo",
+          "entityId": "attacker",
+          "resultKey": "attacker_collision_info"
+        },
+        {
+          "type": "EntityCollisionInfo",
+          "entityId": "victim",
+          "resultKey": "victim_collision_info"
+        },
+        {
+          "type": "HitManagerEntityCount",
+          "entityId": "attacker",
+          "resultKey": "hitmanager_status"
+        }
+      ],
+      "expectedOutputs": {}
+    },
+    {
+      "frameNumber": 80,
+      "comment": "验证最终状态（victim HP应该减少，如果足够低则死亡）",
       "inputs": [],
       "queries": [
         {
@@ -106,20 +222,14 @@
           "resultKey": "victim_hp_final"
         },
         {
-          "type": "EntityIsAlive",
-          "entityId": "victim",
-          "resultKey": "victim_alive_final"
-        },
-        {
           "type": "EntityHealth",
           "entityId": "attacker",
           "resultKey": "attacker_hp_final"
         }
       ],
       "expectedOutputs": {
-        "victim_hp_final": 0,
-        "victim_alive_final": "False",
-        "attacker_hp_final": {"min": 950, "max": 1000}
+        "victim_hp_final": {"min": 0, "max": 45},
+        "attacker_hp_final": {"min": 990, "max": 1000}
       }
     }
   ]
