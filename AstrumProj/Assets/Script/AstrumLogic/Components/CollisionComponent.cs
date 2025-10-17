@@ -75,7 +75,7 @@ namespace Astrum.LogicCore.Components
             }
             
             // 获取模型配置
-            var modelConfig = TableManager.Instance.Tables.TbEntityModelTable.Get(entityConfig.ModelId);
+            var modelConfig = TableConfig.Instance.Tables.TbEntityModelTable.Get(entityConfig.ModelId);
             if (modelConfig == null)
             {
                 ASLogger.Instance.Warning($"CollisionComponent: ModelId {entityConfig.ModelId} not found in EntityModelTable");
@@ -96,7 +96,7 @@ namespace Astrum.LogicCore.Components
             // 【物理世界注册】注册实体到 HitManager
             if (entity is AstrumEntity astrumEntity && Shapes != null && Shapes.Count > 0)
             {
-                HitManager.Instance.RegisterEntity(astrumEntity);
+                HitSystem.Instance.RegisterEntity(astrumEntity);
                 ASLogger.Instance.Info($"[CollisionComponent] Registered entity {entity.UniqueId} to HitManager");
             }
         }

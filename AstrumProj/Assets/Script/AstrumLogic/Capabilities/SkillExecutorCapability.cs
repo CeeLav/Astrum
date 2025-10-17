@@ -114,7 +114,7 @@ namespace Astrum.LogicCore.Capabilities
             };
             
             // 3. 获取 HitManager 单例进行碰撞检测（临时引用）
-            var hitManager = HitManager.Instance;
+            var hitManager = HitSystem.Instance;
             if (hitManager == null)
             {
                 ASLogger.Instance.Warning("HitManager instance not available, skipping collision trigger");
@@ -181,7 +181,7 @@ namespace Astrum.LogicCore.Capabilities
         private void TriggerSkillEffect(Entity caster, Entity target, int effectId)
         {
             // 获取 SkillEffectManager 单例（临时引用）
-            var effectManager = SkillEffectManager.Instance;
+            var effectManager = SkillEffectSystem.Instance;
             if (effectManager == null)
             {
                 ASLogger.Instance.Error("SkillEffectManager instance not available");

@@ -31,7 +31,7 @@ namespace Astrum.LogicCore.Physics
     /// 命中管理器
     /// 负责技能碰撞检测的即时查询
     /// </summary>
-    public class HitManager :Singleton<HitManager>
+    public class HitSystem :Singleton<HitSystem>
     {
         private readonly BepuPhysicsWorld _physicsWorld;
         
@@ -43,7 +43,7 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         public BepuPhysicsWorld PhysicsWorld => _physicsWorld;
 
-        public HitManager()
+        public HitSystem()
         {
             _physicsWorld = new BepuPhysicsWorld();
             _physicsWorld.Initialize();
@@ -52,7 +52,7 @@ namespace Astrum.LogicCore.Physics
         /// <summary>
         /// 构造函数（接收外部物理世界实例）
         /// </summary>
-        public HitManager(BepuPhysicsWorld physicsWorld)
+        public HitSystem(BepuPhysicsWorld physicsWorld)
         {
             _physicsWorld = physicsWorld ?? throw new ArgumentNullException(nameof(physicsWorld));
         }

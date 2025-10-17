@@ -23,7 +23,7 @@ namespace Astrum.View.Components
                 return;
             
             // 从 EntityModelTable 获取模型配置
-            var modelConfig = Astrum.LogicCore.Managers.TableManager.Instance.Tables.TbEntityModelTable?.Get(modelId);
+            var modelConfig = Astrum.LogicCore.Managers.TableConfig.Instance.Tables.TbEntityModelTable?.Get(modelId);
             if (modelConfig == null)
             {
                 Debug.LogWarning($"ModelViewComponent: EntityModelTable not found for modelId={modelId}");

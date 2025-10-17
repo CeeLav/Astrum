@@ -10,7 +10,7 @@ namespace Astrum.LogicCore.Managers
     /// <summary>
     /// 技能效果管理器 - 统一处理所有技能效果（单例）
     /// </summary>
-    public class SkillEffectManager : Singleton<SkillEffectManager>
+    public class SkillEffectSystem : Singleton<SkillEffectSystem>
     {
         // 效果队列
         private readonly Queue<SkillEffectData> _effectQueue = new Queue<SkillEffectData>();

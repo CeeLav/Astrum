@@ -77,7 +77,7 @@ namespace Astrum.LogicCore.Components
             foreach (var buff in Buffs)
             {
                 // 从Buff配置表读取修饰器
-                var buffConfig = TableManager.Instance.Tables.TbBuffTable.Get(buff.BuffId);
+                var buffConfig = TableConfig.Instance.Tables.TbBuffTable.Get(buff.BuffId);
                 if (buffConfig == null) continue;
                 
                 // 解析Buff的修饰器字符串

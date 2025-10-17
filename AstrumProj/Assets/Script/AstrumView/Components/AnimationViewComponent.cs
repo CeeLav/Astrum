@@ -556,7 +556,7 @@ namespace Astrum.View.Components
         private string GetAnimationNameByActionId(int actionId)
         {
             // 检查ConfigManager是否已初始化
-            if (TableManager.Instance == null)
+            if (TableConfig.Instance == null)
             {
                 ASLogger.Instance.Error($"AnimationViewComponent.GetAnimationNameByActionId: ConfigManager is not initialized for actionId {actionId}");
                 return $"Action_{actionId}"; // 返回默认格式
@@ -565,7 +565,7 @@ namespace Astrum.View.Components
             try
             {
                 // 通过ConfigManager获取ActionTable数据
-                var actionTable = TableManager.Instance.Tables.TbActionTable.Get(actionId);
+                var actionTable = TableConfig.Instance.Tables.TbActionTable.Get(actionId);
                 
                 if (actionTable == null)
                 {
