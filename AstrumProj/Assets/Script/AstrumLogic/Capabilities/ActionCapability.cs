@@ -72,7 +72,7 @@ namespace Astrum.LogicCore.Capabilities
             
             foreach (var actionId in availableActionIds)
             {
-                var actionInfo = ActionConfigManager.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
+                var actionInfo = ActionConfig.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
                 if (actionInfo != null)
                 {
                     actionComponent.AvailableActions[actionId] = actionInfo;
@@ -277,7 +277,7 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private ActionInfo? GetActionInfo(int actionId)
         {
-            return ActionConfigManager.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
+            return ActionConfig.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
         }
         
         /// <summary>

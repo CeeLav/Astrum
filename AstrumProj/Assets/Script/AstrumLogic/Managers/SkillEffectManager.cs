@@ -122,7 +122,7 @@ namespace Astrum.LogicCore.Managers
             }
             
             // 2. 从配置表读取效果配置
-            var effectConfig = SkillConfigManager.Instance.GetSkillEffect(effectData.EffectId);
+            var effectConfig = SkillConfig.Instance.GetSkillEffect(effectData.EffectId);
             if (effectConfig == null)
             {
                 ASLogger.Instance.Error($"Effect config not found: {effectData.EffectId}");

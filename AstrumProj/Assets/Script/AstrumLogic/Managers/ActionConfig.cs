@@ -12,7 +12,7 @@ namespace Astrum.LogicCore.Managers
     /// <summary>
     /// 动作配置管理器 - 工厂类，用于组装ActionInfo及其派生类（单例）
     /// </summary>
-    public class ActionConfigManager : Singleton<ActionConfigManager>
+    public class ActionConfig : Singleton<ActionConfig>
     {
         /// <summary>
         /// 获取动作信息（工厂方法）

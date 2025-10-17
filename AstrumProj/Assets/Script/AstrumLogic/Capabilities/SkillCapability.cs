@@ -57,7 +57,7 @@ namespace Astrum.LogicCore.Capabilities
 				return false;
 			}
 
-			var skillInfo = SkillConfigManager.Instance.GetSkillInfo(skillId, level);
+			var skillInfo = SkillConfig.Instance.GetSkillInfo(skillId, level);
 			if (skillInfo == null)
 			{
 				ASLogger.Instance.Error($"SkillCapability.LearnSkill: Skill {skillId} not found in config");
@@ -121,7 +121,7 @@ namespace Astrum.LogicCore.Capabilities
 			// 基于 SkillActionIds 动态构造新的 SkillActionInfo 实例
 			foreach (var actionId in skill.SkillActionIds)
 			{
-				var action = SkillConfigManager.Instance.CreateSkillActionInstance(actionId, skill.CurrentLevel);
+				var action = SkillConfig.Instance.CreateSkillActionInstance(actionId, skill.CurrentLevel);
 				if (action == null) continue;
 				if (!actionComponent.AvailableActions.ContainsKey(action.Id))
 				{

@@ -7,7 +7,7 @@ namespace Astrum.LogicCore.Managers
     /// <summary>
     /// 技能配置管理器 - 从Luban表组装技能数据（单例）
     /// </summary>
-    public class SkillConfigManager : Singleton<SkillConfigManager>
+    public class SkillConfig : Singleton<SkillConfig>
     {
         /// <summary>
         /// 技能信息缓存 <"skillId_level", SkillInfo>
@@ -116,10 +116,10 @@ namespace Astrum.LogicCore.Managers
             var skillActionInfo = new SkillActionInfo();
             
             // 4. 填充基类字段（复用 ActionConfigManager 的逻辑）
-            ActionConfigManager.Instance.PopulateBaseActionFields(skillActionInfo, actionTable);
+            ActionConfig.Instance.PopulateBaseActionFields(skillActionInfo, actionTable);
             
             // 5. 填充技能专属字段
-            ActionConfigManager.Instance.PopulateSkillActionFields(skillActionInfo, skillActionTable);
+            ActionConfig.Instance.PopulateSkillActionFields(skillActionInfo, skillActionTable);
             
             // 6. 解析触发帧（关键：应用技能等级，同时解析碰撞形状）
             skillActionInfo.TriggerEffects = ParseTriggerFrames(
