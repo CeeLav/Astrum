@@ -32,7 +32,7 @@ namespace Astrum.LogicCore.Factories
         /// <returns>创建的实体</returns>
         public Entity CreateByArchetype(string archetypeName, int entityConfigId, World world)
         {
-            if (!ArchetypeManager.Instance.TryGet(archetypeName, out var info))
+            if (!ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
             {
                 throw new Exception($"Archetype '{archetypeName}' not found");
             }
@@ -84,7 +84,7 @@ namespace Astrum.LogicCore.Factories
         
         public T CreateByArchetype<T>(string archetypeName, int entityConfigId, World world)  where T : Entity, new()
         {
-            if (!ArchetypeManager.Instance.TryGet(archetypeName, out var info))
+            if (!ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
             {
                 throw new Exception($"Archetype '{archetypeName}' not found");
             }

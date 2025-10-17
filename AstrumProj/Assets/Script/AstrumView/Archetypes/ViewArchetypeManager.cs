@@ -65,7 +65,7 @@ namespace Astrum.View.Archetypes
                 return false;
             }
 
-            var chain = ArchetypeManager.Instance.GetMergeChain(logicArchetypeName);
+            var chain = ArchetypeRegistry.Instance.GetMergeChain(logicArchetypeName);
             foreach (var name in chain)
             {
                 if (_logicNameToViewComponents.TryGetValue(name, out var set))

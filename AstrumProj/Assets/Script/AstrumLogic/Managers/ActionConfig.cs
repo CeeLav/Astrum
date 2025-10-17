@@ -24,7 +24,7 @@ namespace Astrum.LogicCore.Managers
         public ActionInfo? GetAction(int actionId, long entityId)
         {
             // 通过ConfigManager获取表格数据
-            var configManager = TableManager.Instance;
+            var configManager = TableConfig.Instance;
             if (!configManager.IsInitialized)
             {
                 ASLogger.Instance.Error($"ActionConfigManager.GetAction: ConfigManager not initialized, actionId={actionId}, entityId={entityId}");
@@ -68,7 +68,7 @@ namespace Astrum.LogicCore.Managers
         private SkillActionInfo? ConstructSkillActionInfo(int actionId, long entityId, cfg.Entity.ActionTable actionTable)
         {
             // 从 SkillActionTable 获取技能专属数据
-            var configManager = TableManager.Instance;
+            var configManager = TableConfig.Instance;
             var skillActionTable = configManager.Tables.TbSkillActionTable.Get(actionId);
             
             if (skillActionTable == null)

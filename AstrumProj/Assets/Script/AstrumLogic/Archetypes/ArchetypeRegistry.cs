@@ -2,20 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.Archetypes
 {
     /// <summary>
     /// Archetype 管理器（单例）- 负责扫描、注册和合并所有 Archetype。
     /// </summary>
-    public sealed class ArchetypeManager
+    public sealed class ArchetypeRegistry : Singleton<ArchetypeRegistry>
     {
-        private static readonly Lazy<ArchetypeManager> _instance = new Lazy<ArchetypeManager>(() => new ArchetypeManager());
-        public static ArchetypeManager Instance => _instance.Value;
+
 
         private readonly Dictionary<string, ArchetypeInfo> _nameToInfo = new Dictionary<string, ArchetypeInfo>(StringComparer.OrdinalIgnoreCase);
 
-        private ArchetypeManager()
+        public ArchetypeRegistry()
         {
         }
 

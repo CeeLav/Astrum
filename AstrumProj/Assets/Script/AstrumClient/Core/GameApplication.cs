@@ -32,7 +32,7 @@ namespace Astrum.Client.Core
         [SerializeField] private AudioManager audioManager;
         [SerializeField] private GamePlayManager gamePlayManager;
         [SerializeField] private CameraManager cameraManager;
-        [SerializeField] private TableManager _tableManager;
+        [SerializeField] private TableConfig _tableConfig;
         
         [Header("核心GameObject引用")]
         [SerializeField] private GameObject uiRoot;
@@ -64,7 +64,7 @@ namespace Astrum.Client.Core
         public AudioManager AudioManager => audioManager;
         public GamePlayManager GamePlayManager => gamePlayManager;
         public CameraManager CameraManager => cameraManager;
-        public TableManager TableManager => _tableManager;
+        public TableConfig TableConfig => _tableConfig;
         
         // 核心GameObject访问器
         public GameObject UIRoot => uiRoot;
@@ -146,7 +146,7 @@ namespace Astrum.Client.Core
             InitializeConfigManager();
 
             // 初始化原型管理器（逻辑与视图）
-            ArchetypeManager.Instance.Initialize();
+            ArchetypeRegistry.Instance.Initialize();
             ViewArchetypeManager.Instance.Initialize();
             
             // 初始化网络系统基础组件（必须在网络管理器之前初始化）
@@ -228,12 +228,12 @@ namespace Astrum.Client.Core
             try
             {
                 // 初始化配置管理器（单例赋值）
-                _tableManager = TableManager.Instance;
+                _tableConfig = TableConfig.Instance;
                 
                 // 初始化配置管理器，指定配置路径
                 // 配置文件位于 Astrum\AstrumConfig\Tables\output\Client 目录
                 var configPath = Path.Combine(Application.dataPath, "..","..", "AstrumConfig", "Tables", "output", "Client");
-                _tableManager.Initialize(configPath);
+                _tableConfig.Initialize(configPath);
                 
                 Debug.Log("GameApplication: 配置管理器初始化完成");
             }
@@ -354,7 +354,7 @@ namespace Astrum.Client.Core
             //audioManager?.Shutdown();
             gamePlayManager?.Shutdown();
             cameraManager?.Shutdown();
-            _tableManager?.Shutdown();
+            _tableConfig?.Shutdown();
             
             isRunning = false;
         }

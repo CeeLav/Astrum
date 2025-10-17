@@ -172,7 +172,7 @@ namespace Astrum.LogicCore.Core
         
         public void TickManagers()
         {
-            SkillEffectManager.Instance.Update();
+            SkillEffectSystem.Instance.Update();
         }
 
         /// <summary>
