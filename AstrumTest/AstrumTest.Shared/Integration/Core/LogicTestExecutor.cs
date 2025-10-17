@@ -159,7 +159,7 @@ namespace AstrumTest.Shared.Integration.Core
             // ConfigManager 已在 ConfigFixture 中初始化
             _output.WriteLine("  ✓ ConfigManager already initialized");
             
-            // 初始化 SkillEffectManager
+            // 初始化 SkillEffectManager 并设置World（在CreateRoomAndWorld后会更新）
             SkillEffectManager.Instance.ClearQueue();
             _output.WriteLine("  ✓ SkillEffectManager initialized");
             
@@ -182,9 +182,13 @@ namespace AstrumTest.Shared.Integration.Core
             // 初始化 Room（会创建 LSController）
             Room.Initialize();
             
+            // 设置 SkillEffectManager 的 CurrentWorld（重要！）
+            SkillEffectManager.Instance.CurrentWorld = world;
+            
             _output.WriteLine($"  ✓ Room created: ID={Room.RoomId}, Name={Room.Name}");
             _output.WriteLine($"  ✓ World created: ID={world.WorldId}, Name={world.Name}");
             _output.WriteLine($"  ✓ LSController created");
+            _output.WriteLine($"  ✓ SkillEffectManager.CurrentWorld set");
         }
         
         /// <summary>

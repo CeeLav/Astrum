@@ -1,4 +1,3 @@
-using Astrum.LogicCore.Core;
 using System.Collections.Generic;
 
 namespace Astrum.LogicCore.SkillSystem
@@ -9,11 +8,11 @@ namespace Astrum.LogicCore.SkillSystem
     /// </summary>
     public class SkillEffectData
     {
-        /// <summary>施法者实体</summary>
-        public Entity CasterEntity { get; set; }
+        /// <summary>施法者实体ID</summary>
+        public long CasterId { get; set; }
         
-        /// <summary>目标实体</summary>
-        public Entity TargetEntity { get; set; }
+        /// <summary>目标实体ID</summary>
+        public long TargetId { get; set; }
         
         /// <summary>效果ID</summary>
         public int EffectId { get; set; }

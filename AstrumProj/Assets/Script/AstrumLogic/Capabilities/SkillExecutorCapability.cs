@@ -190,8 +190,8 @@ namespace Astrum.LogicCore.Capabilities
             
             effectManager.QueueSkillEffect(new SkillEffectData
             {
-                CasterEntity = caster,
-                TargetEntity = target,
+                CasterId = caster.UniqueId,
+                TargetId = target.UniqueId,
                 EffectId = effectId
             });
             
