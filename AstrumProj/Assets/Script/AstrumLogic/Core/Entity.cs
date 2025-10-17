@@ -37,7 +37,7 @@ namespace Astrum.LogicCore.Core
             get
             {
                 if (EntityConfigId == 0) return null;
-                return ConfigManager.Instance.Tables.TbEntityBaseTable.Get(EntityConfigId);
+                return TableManager.Instance.Tables.TbEntityBaseTable.Get(EntityConfigId);
             }
         }
 

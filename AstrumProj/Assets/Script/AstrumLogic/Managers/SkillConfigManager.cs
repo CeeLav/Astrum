@@ -51,7 +51,7 @@ namespace Astrum.LogicCore.Managers
         /// </summary>
         private SkillInfo? BuildSkillInfo(int skillId, int level)
         {
-            var configManager = ConfigManager.Instance;
+            var configManager = TableManager.Instance;
             if (!configManager.IsInitialized)
             {
                 ASLogger.Instance.Error("SkillConfigManager.BuildSkillInfo: ConfigManager not initialized");
@@ -93,7 +93,7 @@ namespace Astrum.LogicCore.Managers
         /// </summary>
         private SkillActionInfo? BuildSkillActionInfo(int actionId, int skillLevel)
         {
-            var configManager = ConfigManager.Instance;
+            var configManager = TableManager.Instance;
             if (!configManager.IsInitialized) return null;
             
             // 1. 从 ActionTable 获取基础动作数据
@@ -150,7 +150,7 @@ namespace Astrum.LogicCore.Managers
         /// </summary>
         public EffectValueResult GetEffectValue(int baseEffectId, int level)
         {
-            var configManager = ConfigManager.Instance;
+            var configManager = TableManager.Instance;
             if (!configManager.IsInitialized)
             {
                 ASLogger.Instance.Error("SkillConfigManager.GetEffectValue: ConfigManager not initialized");
@@ -200,7 +200,7 @@ namespace Astrum.LogicCore.Managers
         /// </summary>
         public cfg.Skill.SkillEffectTable? GetSkillEffect(int effectId)
         {
-            var configManager = ConfigManager.Instance;
+            var configManager = TableManager.Instance;
             if (!configManager.IsInitialized) return null;
             
             return configManager.Tables.TbSkillEffectTable.Get(effectId);

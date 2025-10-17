@@ -32,7 +32,7 @@ namespace Astrum.LogicCore.Components
                     return null;
                 }
 
-                var cfg = ConfigManager.Instance.Tables.TbRoleBaseTable.Get(RoleId);
+                var cfg = TableManager.Instance.Tables.TbRoleBaseTable.Get(RoleId);
                 if (cfg == null)
                 {
                     ASLogger.Instance.Error($"RoleInfoComponent.RoleConfig: RoleBaseTable not found for RoleId={RoleId}");

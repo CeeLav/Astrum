@@ -75,7 +75,7 @@ namespace Astrum.LogicCore.Components
             }
             
             // 获取模型配置
-            var modelConfig = ConfigManager.Instance.Tables.TbEntityModelTable.Get(entityConfig.ModelId);
+            var modelConfig = TableManager.Instance.Tables.TbEntityModelTable.Get(entityConfig.ModelId);
             if (modelConfig == null)
             {
                 ASLogger.Instance.Warning($"CollisionComponent: ModelId {entityConfig.ModelId} not found in EntityModelTable");

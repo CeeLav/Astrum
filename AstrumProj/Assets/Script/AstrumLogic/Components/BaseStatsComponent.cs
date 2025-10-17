@@ -25,7 +25,7 @@ namespace Astrum.LogicCore.Components
             BaseStats.Clear();
             
             // 2. 从配置表读取基础值
-            var configManager = ConfigManager.Instance;
+            var configManager = TableManager.Instance;
             if (!configManager.IsInitialized)
             {
                 ASLogger.Instance.Error($"[BaseStats] ConfigManager not initialized");
@@ -77,7 +77,7 @@ namespace Astrum.LogicCore.Components
         /// <summary>应用等级成长</summary>
         private void ApplyLevelGrowth(int roleId, int level)
         {
-            var configManager = ConfigManager.Instance;
+            var configManager = TableManager.Instance;
             
             // 累计2到level的成长
             for (int lv = 2; lv <= level; lv++)

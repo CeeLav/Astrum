@@ -32,7 +32,7 @@ namespace Astrum.Client.Core
         [SerializeField] private AudioManager audioManager;
         [SerializeField] private GamePlayManager gamePlayManager;
         [SerializeField] private CameraManager cameraManager;
-        [SerializeField] private ConfigManager configManager;
+        [SerializeField] private TableManager _tableManager;
         
         [Header("核心GameObject引用")]
         [SerializeField] private GameObject uiRoot;
@@ -64,7 +64,7 @@ namespace Astrum.Client.Core
         public AudioManager AudioManager => audioManager;
         public GamePlayManager GamePlayManager => gamePlayManager;
         public CameraManager CameraManager => cameraManager;
-        public ConfigManager ConfigManager => configManager;
+        public TableManager TableManager => _tableManager;
         
         // 核心GameObject访问器
         public GameObject UIRoot => uiRoot;
@@ -228,12 +228,12 @@ namespace Astrum.Client.Core
             try
             {
                 // 初始化配置管理器（单例赋值）
-                configManager = ConfigManager.Instance;
+                _tableManager = TableManager.Instance;
                 
                 // 初始化配置管理器，指定配置路径
                 // 配置文件位于 Astrum\AstrumConfig\Tables\output\Client 目录
                 var configPath = Path.Combine(Application.dataPath, "..","..", "AstrumConfig", "Tables", "output", "Client");
-                configManager.Initialize(configPath);
+                _tableManager.Initialize(configPath);
                 
                 Debug.Log("GameApplication: 配置管理器初始化完成");
             }
@@ -354,7 +354,7 @@ namespace Astrum.Client.Core
             //audioManager?.Shutdown();
             gamePlayManager?.Shutdown();
             cameraManager?.Shutdown();
-            configManager?.Shutdown();
+            _tableManager?.Shutdown();
             
             isRunning = false;
         }

@@ -11,7 +11,7 @@ namespace Astrum.LogicCore.Managers
     /// <summary>
     /// 配置管理器，负责加载和管理游戏配置数据
     /// </summary>
-    public class ConfigManager : Singleton<ConfigManager>
+    public class TableManager : Singleton<TableManager>
     {
         private Tables _tables;
         private bool _isInitialized = false;

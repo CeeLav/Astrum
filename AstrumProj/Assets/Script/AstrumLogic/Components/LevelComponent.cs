@@ -57,7 +57,7 @@ namespace Astrum.LogicCore.Components
             {
                 // 查找下一级的经验配置
                 cfg.Role.RoleGrowthTable growthConfig = null;
-                foreach (var config in ConfigManager.Instance.Tables.TbRoleGrowthTable.DataList)
+                foreach (var config in TableManager.Instance.Tables.TbRoleGrowthTable.DataList)
                 {
                     if (config.RoleId == roleInfo.RoleId && config.Level == CurrentLevel + 1)
                     {
