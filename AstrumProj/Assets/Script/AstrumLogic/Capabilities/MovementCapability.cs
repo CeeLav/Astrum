@@ -95,9 +95,9 @@ namespace Astrum.LogicCore.Capabilities
                 }
                 
                 // 【物理世界同步】更新实体在物理世界中的位置
-                if (OwnerEntity is AstrumEntity astrumEntity)
+                if (OwnerEntity is AstrumEntity astrumEntity && astrumEntity.World != null)
                 {
-                    HitSystem.Instance.UpdateEntityPosition(astrumEntity);
+                    astrumEntity.World.HitSystem?.UpdateEntityPosition(astrumEntity);
                 }
                 
                 // 调试日志

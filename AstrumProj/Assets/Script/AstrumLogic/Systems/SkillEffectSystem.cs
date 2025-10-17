@@ -3,30 +3,63 @@ using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.SkillSystem;
 using Astrum.LogicCore.SkillSystem.EffectHandlers;
+using Astrum.LogicCore.Managers;
 using cfg.Skill;
+using MemoryPack;
 
-namespace Astrum.LogicCore.Managers
+namespace Astrum.LogicCore.Systems
 {
     /// <summary>
-    /// 技能效果管理器 - 统一处理所有技能效果（单例）
+    /// 技能效果系统 - 统一处理所有技能效果，隶属于 World
     /// </summary>
-    public class SkillEffectSystem : Singleton<SkillEffectSystem>
+    [MemoryPackable]
+    public partial class SkillEffectSystem
     {
-        // 效果队列
-        private readonly Queue<SkillEffectData> _effectQueue = new Queue<SkillEffectData>();
+        /// <summary>
+        /// 效果队列（需要序列化）
+        /// </summary>
+        public Queue<SkillEffectData> EffectQueue { get; private set; }
         
-        // 效果类型 -> Handler 映射
-        private readonly Dictionary<int, IEffectHandler> _handlers = new Dictionary<int, IEffectHandler>();
+        /// <summary>
+        /// 效果类型 -> Handler 映射（不序列化，初始化时重新注册）
+        /// </summary>
+        [MemoryPackIgnore]
+        private Dictionary<int, IEffectHandler> _handlers;
         
-        // 当前World引用（用于从EntityId获取Entity）
+        /// <summary>
+        /// 当前World引用（不序列化，由 World 设置）
+        /// </summary>
+        [MemoryPackIgnore]
         public World CurrentWorld { get; set; }
         
         /// <summary>
-        /// 单例初始化
+        /// 默认构造函数（用于序列化）
         /// </summary>
-        protected override void Awake()
+        public SkillEffectSystem()
         {
-            base.Awake();
+            EffectQueue = new Queue<SkillEffectData>();
+            _handlers = new Dictionary<int, IEffectHandler>();
+        }
+
+        /// <summary>
+        /// MemoryPack 构造函数
+        /// </summary>
+        [MemoryPackConstructor]
+        public SkillEffectSystem(Queue<SkillEffectData> effectQueue)
+        {
+            EffectQueue = effectQueue ?? new Queue<SkillEffectData>();
+            _handlers = new Dictionary<int, IEffectHandler>();
+        }
+
+        /// <summary>
+        /// 初始化系统（注册所有处理器）
+        /// </summary>
+        public void Initialize()
+        {
+            if (_handlers == null)
+            {
+                _handlers = new Dictionary<int, IEffectHandler>();
+            }
             RegisterAllHandlers();
         }
         
@@ -46,7 +79,7 @@ namespace Astrum.LogicCore.Managers
             // RegisterHandler(4, new BuffEffectHandler());
             // RegisterHandler(5, new DebuffEffectHandler());
             
-            ASLogger.Instance.Info("SkillEffectManager: All handlers registered successfully");
+            ASLogger.Instance.Info("SkillEffectSystem: All handlers registered successfully");
         }
         
         /// <summary>
@@ -58,12 +91,12 @@ namespace Astrum.LogicCore.Managers
         {
             if (handler == null)
             {
-                ASLogger.Instance.Error($"SkillEffectManager.RegisterHandler: Handler is null for type {effectType}");
+                ASLogger.Instance.Error($"SkillEffectSystem.RegisterHandler: Handler is null for type {effectType}");
                 return;
             }
             
             _handlers[effectType] = handler;
-            ASLogger.Instance.Info($"SkillEffectManager: Registered handler for effect type {effectType}");
+            ASLogger.Instance.Info($"SkillEffectSystem: Registered handler for effect type {effectType}");
         }
         
         /// <summary>
@@ -73,11 +106,11 @@ namespace Astrum.LogicCore.Managers
         {
             if (effectData == null)
             {
-                ASLogger.Instance.Error("SkillEffectManager.QueueSkillEffect: effectData is null");
+                ASLogger.Instance.Error("SkillEffectSystem.QueueSkillEffect: effectData is null");
                 return;
             }
             
-            _effectQueue.Enqueue(effectData);
+            EffectQueue.Enqueue(effectData);
             
             ASLogger.Instance.Debug($"Queued effect {effectData.EffectId}: " +
                 $"{effectData.CasterId} → {effectData.TargetId}");
@@ -89,9 +122,9 @@ namespace Astrum.LogicCore.Managers
         public void Update()
         {
             // 处理当前帧的所有效果
-            while (_effectQueue.Count > 0)
+            while (EffectQueue.Count > 0)
             {
-                var effectData = _effectQueue.Dequeue();
+                var effectData = EffectQueue.Dequeue();
                 ProcessEffect(effectData);
             }
         }
@@ -104,7 +137,7 @@ namespace Astrum.LogicCore.Managers
             // 0. 检查World引用
             if (CurrentWorld == null)
             {
-                ASLogger.Instance.Error("SkillEffectManager.ProcessEffect: CurrentWorld is null");
+                ASLogger.Instance.Error("SkillEffectSystem.ProcessEffect: CurrentWorld is null");
                 return;
             }
             
@@ -154,15 +187,15 @@ namespace Astrum.LogicCore.Managers
         /// <summary>
         /// 获取当前队列中的效果数量
         /// </summary>
-        public int QueuedEffectCount => _effectQueue.Count;
+        public int QueuedEffectCount => EffectQueue.Count;
         
         /// <summary>
         /// 清空效果队列（用于测试或重置）
         /// </summary>
         public void ClearQueue()
         {
-            _effectQueue.Clear();
-            ASLogger.Instance.Debug("SkillEffectManager: Cleared effect queue");
+            EffectQueue.Clear();
+            ASLogger.Instance.Debug("SkillEffectSystem: Cleared effect queue");
         }
     }
 }

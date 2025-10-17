@@ -93,11 +93,11 @@ namespace Astrum.LogicCore.Components
                 ASLogger.Instance.Debug($"CollisionComponent: No collision data for Entity {entity.UniqueId} (Model {entityConfig.ModelId})");
             }
             
-            // 【物理世界注册】注册实体到 HitManager
-            if (entity is AstrumEntity astrumEntity && Shapes != null && Shapes.Count > 0)
+            // 【物理世界注册】注册实体到 HitSystem
+            if (entity is AstrumEntity astrumEntity && Shapes != null && Shapes.Count > 0 && entity.World != null)
             {
-                HitSystem.Instance.RegisterEntity(astrumEntity);
-                ASLogger.Instance.Info($"[CollisionComponent] Registered entity {entity.UniqueId} to HitManager");
+                entity.World.HitSystem?.RegisterEntity(astrumEntity);
+                ASLogger.Instance.Info($"[CollisionComponent] Registered entity {entity.UniqueId} to HitSystem");
             }
         }
     }

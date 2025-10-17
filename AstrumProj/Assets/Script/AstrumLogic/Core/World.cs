@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Physics;
+using Astrum.LogicCore.Systems;
 using Astrum.CommonBase;
 using MemoryPack;
 using Astrum.LogicCore.Archetypes;
@@ -58,11 +60,23 @@ namespace Astrum.LogicCore.Core
         public int CurFrame { get; set; }
 
         /// <summary>
+        /// 命中系统（碰撞检测）
+        /// </summary>
+        public HitSystem HitSystem { get; private set; }
+
+        /// <summary>
+        /// 技能效果系统
+        /// </summary>
+        public SkillEffectSystem SkillEffectSystem { get; private set; }
+
+        /// <summary>
         /// 默认构造函数
         /// </summary>
         public World()
         {
             Entities = new Dictionary<long, Entity>();
+            HitSystem = new HitSystem();
+            SkillEffectSystem = new SkillEffectSystem();
         }
 
         /// <summary>
@@ -70,7 +84,8 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         [MemoryPackConstructor]
         public World(int worldId, string name, DateTime creationTime, Dictionary<long, Entity> entities,
-            float deltaTime, float totalTime, LSUpdater updater, long roomId, int curFrame)
+            float deltaTime, float totalTime, LSUpdater updater, long roomId, int curFrame,
+            HitSystem hitSystem, SkillEffectSystem skillEffectSystem)
         {
             WorldId = worldId;
             Name = name;
@@ -81,9 +96,15 @@ namespace Astrum.LogicCore.Core
             Updater = updater;
             RoomId = roomId;
             CurFrame = curFrame;
+            HitSystem = hitSystem ?? new HitSystem();
+            SkillEffectSystem = skillEffectSystem ?? new SkillEffectSystem();
+            
             // 重建关系
             foreach (var entity in Entities.Values)
             {
+                // 重建 Entity 的 World 引用
+                entity.World = this;
+                
                 // 重建组件的 EntityId 关系
                 foreach (var component in entity.Components)
                 {
@@ -96,6 +117,12 @@ namespace Astrum.LogicCore.Core
                     capability.OwnerEntity = entity;
                 }
             }
+            
+            // 重建 Systems 的引用
+            SkillEffectSystem.CurrentWorld = this;
+            
+            // 从 Entities 同步物理数据
+            HitSystem.SyncFromEntities(Entities);
         }
 
         /// <summary>
@@ -160,6 +187,14 @@ namespace Astrum.LogicCore.Core
             Updater = new LSUpdater();
             CurFrame = frame;
 
+            // 初始化系统
+            HitSystem = new HitSystem();
+            HitSystem.Initialize();
+            
+            SkillEffectSystem = new SkillEffectSystem();
+            SkillEffectSystem.CurrentWorld = this;
+            SkillEffectSystem.Initialize();
+
             // 工厂与原型管理器初始化应由 GameApplication 负责
         }
 
@@ -173,6 +208,10 @@ namespace Astrum.LogicCore.Core
                 entity.Destroy();
             }
             Entities.Clear();
+            
+            // 清理系统资源
+            HitSystem?.Dispose();
+            SkillEffectSystem?.ClearQueue();
         }
         
         /// <summary>

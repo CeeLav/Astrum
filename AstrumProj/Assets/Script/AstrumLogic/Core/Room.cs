@@ -167,12 +167,19 @@ namespace Astrum.LogicCore.Core
                 world.Update();
             }
             
-            TickManagers();
+            // 更新所有世界的 SkillEffectSystem
+            TickSystems();
         }
         
-        public void TickManagers()
+        /// <summary>
+        /// 更新所有世界的系统
+        /// </summary>
+        public void TickSystems()
         {
-            SkillEffectSystem.Instance.Update();
+            foreach (var world in Worlds)
+            {
+                world.SkillEffectSystem?.Update();
+            }
         }
 
         /// <summary>

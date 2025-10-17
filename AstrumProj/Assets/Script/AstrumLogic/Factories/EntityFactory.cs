@@ -78,6 +78,7 @@ namespace Astrum.LogicCore.Factories
                 }
             }
 
+            entity.World = world;
             world.Entities[entity.UniqueId] = entity;
             return entity;
         }
@@ -129,6 +130,7 @@ namespace Astrum.LogicCore.Factories
                 }
             }
 
+            entity.World = world;
             world.Entities[entity.UniqueId] = entity;
             return entity;
         }

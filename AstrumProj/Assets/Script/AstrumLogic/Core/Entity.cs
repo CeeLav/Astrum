@@ -81,6 +81,12 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public List<Capability> Capabilities { get; private set; } = new List<Capability>();
 
+        /// <summary>
+        /// 实体所属的 World（不序列化，由 World 设置）
+        /// </summary>
+        [MemoryPackIgnore]
+        public World World { get; set; }
+
         public Entity()
         {
             UniqueId = _nextId++;

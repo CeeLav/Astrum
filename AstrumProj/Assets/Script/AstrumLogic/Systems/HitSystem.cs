@@ -4,6 +4,7 @@ using System.Linq;
 using TrueSync;
 using Astrum.LogicCore.Components;
 using Astrum.CommonBase;
+using MemoryPack;
 // 使用别名避免与 BEPU 的 Entity 类冲突
 using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
@@ -28,33 +29,82 @@ namespace Astrum.LogicCore.Physics
     }
 
     /// <summary>
-    /// 命中管理器
-    /// 负责技能碰撞检测的即时查询
+    /// 命中系统
+    /// 负责技能碰撞检测的即时查询，隶属于 World
     /// </summary>
-    public class HitSystem :Singleton<HitSystem>
+    [MemoryPackable]
+    public partial class HitSystem
     {
-        private readonly BepuPhysicsWorld _physicsWorld;
+        /// <summary>
+        /// 物理世界实例（不序列化，每次初始化时重新创建）
+        /// </summary>
+        [MemoryPackIgnore]
+        private BepuPhysicsWorld _physicsWorld;
         
-        // 命中缓存：技能实例ID -> (目标实体ID -> 上次命中时间)
-        private readonly Dictionary<int, Dictionary<long, int>> _hitCache = new Dictionary<int, Dictionary<long, int>>();
+        /// <summary>
+        /// 命中缓存：技能实例ID -> (目标实体ID -> 上次命中时间)
+        /// </summary>
+        public Dictionary<int, Dictionary<long, int>> HitCache { get; private set; }
 
         /// <summary>
         /// 获取物理世界实例
         /// </summary>
+        [MemoryPackIgnore]
         public BepuPhysicsWorld PhysicsWorld => _physicsWorld;
 
+        /// <summary>
+        /// 默认构造函数（用于序列化）
+        /// </summary>
         public HitSystem()
         {
-            _physicsWorld = new BepuPhysicsWorld();
-            _physicsWorld.Initialize();
+            HitCache = new Dictionary<int, Dictionary<long, int>>();
         }
 
         /// <summary>
-        /// 构造函数（接收外部物理世界实例）
+        /// MemoryPack 构造函数
         /// </summary>
-        public HitSystem(BepuPhysicsWorld physicsWorld)
+        [MemoryPackConstructor]
+        public HitSystem(Dictionary<int, Dictionary<long, int>> hitCache)
         {
-            _physicsWorld = physicsWorld ?? throw new ArgumentNullException(nameof(physicsWorld));
+            HitCache = hitCache ?? new Dictionary<int, Dictionary<long, int>>();
+        }
+
+        /// <summary>
+        /// 初始化物理世界（每次启动时调用）
+        /// </summary>
+        public void Initialize()
+        {
+            if (_physicsWorld == null)
+            {
+                _physicsWorld = new BepuPhysicsWorld();
+                _physicsWorld.Initialize();
+            }
+        }
+
+        /// <summary>
+        /// 从 World 的实体同步物理数据（反序列化后调用）
+        /// </summary>
+        /// <param name="entities">World 中的所有实体</param>
+        public void SyncFromEntities(Dictionary<long, AstrumEntity> entities)
+        {
+            // 先初始化物理世界
+            Initialize();
+            
+            // 清空现有物理对象
+            _physicsWorld.Clear();
+            
+            // 从 World 的实体重新注册到物理世界
+            foreach (var entity in entities.Values)
+            {
+                // 只注册有碰撞组件的实体
+                var collisionComponent = entity.GetComponent<CollisionComponent>();
+                if (collisionComponent != null && collisionComponent.Shapes != null && collisionComponent.Shapes.Count > 0)
+                {
+                    RegisterEntity(entity);
+                }
+            }
+            
+            ASLogger.Instance.Info($"HitSystem synced {entities.Count} entities to physics world");
         }
 
         /// <summary>
@@ -174,10 +224,10 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         private List<AstrumEntity> ApplyDeduplication(int skillInstanceId, List<AstrumEntity> hits)
         {
-            if (!_hitCache.TryGetValue(skillInstanceId, out var hitTargets))
+            if (!HitCache.TryGetValue(skillInstanceId, out var hitTargets))
             {
                 hitTargets = new Dictionary<long, int>();
-                _hitCache[skillInstanceId] = hitTargets;
+                HitCache[skillInstanceId] = hitTargets;
             }
 
             var results = new List<AstrumEntity>();
@@ -201,7 +251,7 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         public void ClearHitCache(int skillInstanceId)
         {
-            _hitCache.Remove(skillInstanceId);
+            HitCache.Remove(skillInstanceId);
         }
 
         /// <summary>
@@ -209,7 +259,7 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         public void ClearAllHitCache()
         {
-            _hitCache.Clear();
+            HitCache.Clear();
         }
 
         // RegisterEntity 方法已移到前面统一定义
@@ -235,7 +285,7 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         public void Dispose()
         {
-            _hitCache.Clear();
+            HitCache.Clear();
             _physicsWorld?.Dispose();
         }
     }

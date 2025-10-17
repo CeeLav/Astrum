@@ -113,15 +113,15 @@ namespace Astrum.LogicCore.Capabilities
                 OnlyEnemies = false  // 暂时移除敌对过滤（team系统未实现）
             };
             
-            // 3. 获取 HitManager 单例进行碰撞检测（临时引用）
-            var hitManager = HitSystem.Instance;
-            if (hitManager == null)
+            // 3. 从 World 获取 HitSystem 进行碰撞检测
+            var hitSystem = caster.World?.HitSystem;
+            if (hitSystem == null)
             {
-                ASLogger.Instance.Warning("HitManager instance not available, skipping collision trigger");
+                ASLogger.Instance.Warning("HitSystem not available from World, skipping collision trigger");
                 return;
             }
             
-            var hits = hitManager.QueryHits(
+            var hits = hitSystem.QueryHits(
                 caster, 
                 shape, 
                 filter
@@ -180,15 +180,15 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void TriggerSkillEffect(Entity caster, Entity target, int effectId)
         {
-            // 获取 SkillEffectManager 单例（临时引用）
-            var effectManager = SkillEffectSystem.Instance;
-            if (effectManager == null)
+            // 从 World 获取 SkillEffectSystem
+            var effectSystem = caster.World?.SkillEffectSystem;
+            if (effectSystem == null)
             {
-                ASLogger.Instance.Error("SkillEffectManager instance not available");
+                ASLogger.Instance.Error("SkillEffectSystem not available from World");
                 return;
             }
             
-            effectManager.QueueSkillEffect(new SkillEffectData
+            effectSystem.QueueSkillEffect(new SkillEffectData
             {
                 CasterId = caster.UniqueId,
                 TargetId = target.UniqueId,
