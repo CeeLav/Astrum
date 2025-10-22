@@ -1,5 +1,6 @@
 using Astrum.LogicCore.Stats;
 using System.Collections.Generic;
+using Astrum.CommonBase;
 using TrueSync;
 using MemoryPack;
 
@@ -26,6 +27,7 @@ namespace Astrum.LogicCore.Components
         /// <summary>设置资源值</summary>
         public void Set(DynamicResourceType type, FP value)
         {
+            ASLogger.Instance.Warning($"DynamicStatsComponent Set Resource: {type} = {value}");
             Resources[type] = value;
         }
         

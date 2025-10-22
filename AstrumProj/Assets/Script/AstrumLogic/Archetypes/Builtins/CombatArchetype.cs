@@ -30,13 +30,13 @@ namespace Astrum.LogicCore.Archetypes
         public override Type[] Components => _comps;
         public override Type[] Capabilities => _caps;
 
-        public override void OnAfterComponentsAttach(Entity entity, World world)
+        public new static void OnAfterComponentsAttach(Entity entity, World world)
         {
-            base.OnAfterComponentsAttach(entity, world);
             // 初始化数值系统组件
             var baseStats = entity.GetComponent<BaseStatsComponent>();
             var derivedStats = entity.GetComponent<DerivedStatsComponent>();
             var dynamicStats = entity.GetComponent<DynamicStatsComponent>();
+            derivedStats.RecalculateAll(baseStats);
             dynamicStats.InitializeResources(derivedStats);
         }
     }

@@ -1,6 +1,7 @@
 using Astrum.LogicCore.Stats;
 using Astrum.LogicCore.Managers;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Core;
 using TrueSync;
 using MemoryPack;
 
@@ -17,6 +18,12 @@ namespace Astrum.LogicCore.Components
         
         [MemoryPackConstructor]
         public BaseStatsComponent() : base() { }
+        
+        public override void OnAttachToEntity(Entity entity)
+        {
+            base.OnAttachToEntity(entity);
+            InitializeFromConfig(entity.EntityConfigId, entity.GetComponent<LevelComponent>()?.CurrentLevel ?? 1);
+        }
         
         /// <summary>从配置表初始化</summary>
         public void InitializeFromConfig(int roleId, int level)

@@ -1,5 +1,6 @@
 using Astrum.LogicCore.Stats;
 using System.Collections.Generic;
+using Astrum.LogicCore.Core;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Components
@@ -15,7 +16,13 @@ namespace Astrum.LogicCore.Components
         
         [MemoryPackConstructor]
         public StateComponent() : base() { }
-        
+
+        public override void OnAttachToEntity(Entity entity)
+        {
+            base.OnAttachToEntity(entity);
+            //Set(StateType.DEAD, false);
+        }
+
         /// <summary>获取状态</summary>
         public bool Get(StateType type)
         {

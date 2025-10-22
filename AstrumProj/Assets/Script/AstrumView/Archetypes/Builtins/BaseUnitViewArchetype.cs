@@ -10,6 +10,7 @@ namespace Astrum.View.Archetypes
         {
             typeof(ModelViewComponent),
             typeof(TransViewComponent),
+            typeof(HUDViewComponent),
 #if UNITY_EDITOR
             typeof(CollisionDebugViewComponent)
 #endif

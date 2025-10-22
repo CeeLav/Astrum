@@ -17,7 +17,7 @@ namespace Astrum.LogicCore.Archetypes
         /// </summary>
         /// <param name="entity">创建的实体</param>
         /// <param name="world">所属世界</param>
-        public virtual void OnBeforeComponentsAttach(Entity entity, World world)
+        public static void OnBeforeComponentsAttach(Entity entity, World world)
         {
             // 默认不执行任何操作
         }
@@ -27,7 +27,7 @@ namespace Astrum.LogicCore.Archetypes
         /// </summary>
         /// <param name="entity">创建的实体</param>
         /// <param name="world">所属世界</param>
-        public virtual void OnAfterComponentsAttach(Entity entity, World world)
+        public static void OnAfterComponentsAttach(Entity entity, World world)
         {
             // 默认不执行任何操作
         }
@@ -37,7 +37,7 @@ namespace Astrum.LogicCore.Archetypes
         /// </summary>
         /// <param name="entity">创建的实体</param>
         /// <param name="world">所属世界</param>
-        public virtual void OnBeforeCapabilitiesAttach(Entity entity, World world)
+        public static void OnBeforeCapabilitiesAttach(Entity entity, World world)
         {
             // 默认不执行任何操作
         }
@@ -47,7 +47,7 @@ namespace Astrum.LogicCore.Archetypes
         /// </summary>
         /// <param name="entity">创建的实体</param>
         /// <param name="world">所属世界</param>
-        public virtual void OnAfterCapabilitiesAttach(Entity entity, World world)
+        public static void OnAfterCapabilitiesAttach(Entity entity, World world)
         {
             // 默认不执行任何操作
         }
@@ -57,7 +57,7 @@ namespace Astrum.LogicCore.Archetypes
         /// </summary>
         /// <param name="entity">被销毁的实体</param>
         /// <param name="world">所属世界</param>
-        public virtual void OnEntityDestroy(Entity entity, World world)
+        public static void OnEntityDestroy(Entity entity, World world)
         {
             // 默认不执行任何操作
         }
