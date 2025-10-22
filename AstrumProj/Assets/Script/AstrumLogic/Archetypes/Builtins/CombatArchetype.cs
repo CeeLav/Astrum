@@ -1,6 +1,7 @@
 using System;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Capabilities;
+using Astrum.LogicCore.Core;
 
 namespace Astrum.LogicCore.Archetypes
 {
@@ -28,6 +29,16 @@ namespace Astrum.LogicCore.Archetypes
 
         public override Type[] Components => _comps;
         public override Type[] Capabilities => _caps;
+
+        public override void OnAfterComponentsAttach(Entity entity, World world)
+        {
+            base.OnAfterComponentsAttach(entity, world);
+            // 初始化数值系统组件
+            var baseStats = entity.GetComponent<BaseStatsComponent>();
+            var derivedStats = entity.GetComponent<DerivedStatsComponent>();
+            var dynamicStats = entity.GetComponent<DynamicStatsComponent>();
+            dynamicStats.InitializeResources(derivedStats);
+        }
     }
 }
 

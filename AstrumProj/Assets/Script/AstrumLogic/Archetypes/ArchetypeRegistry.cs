@@ -49,7 +49,8 @@ namespace Astrum.LogicCore.Archetypes
                         Name = attr.Name,
                         RawMerge = attr.Merge ?? Array.Empty<string>(),
                         Components = instance.Components ?? Array.Empty<Type>(),
-                        Capabilities = instance.Capabilities ?? Array.Empty<Type>()
+                        Capabilities = instance.Capabilities ?? Array.Empty<Type>(),
+                        Instance = instance  // 保存 Archetype 实例
                     };
                 }
             }
@@ -137,6 +138,7 @@ namespace Astrum.LogicCore.Archetypes
         public string[] RawMerge;  // 直接父 Archetype 名称列表
         public Type[] Components;   // 合并后的组件类型列表
         public Type[] Capabilities; // 合并后的能力类型列表
+        public Archetype Instance;  // Archetype 实例（用于调用生命周期钩子）
     }
 }
 

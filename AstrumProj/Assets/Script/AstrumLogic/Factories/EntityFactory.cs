@@ -40,11 +40,15 @@ namespace Astrum.LogicCore.Factories
             var entity = new Entity
             {
                 Name = GetEntityNameFromConfig(entityConfigId),
+                ArchetypeName = archetypeName,
                 EntityConfigId = entityConfigId,
                 CreationTime = DateTime.Now,
                 IsActive = true,
                 IsDestroyed = false
             };
+
+            // 【生命周期钩子】组件挂载前
+            info.Instance?.OnBeforeComponentsAttach(entity, world);
 
             // 按 ArchetypeInfo 装配组件
             var componentFactory = ComponentFactory.Instance;
@@ -58,6 +62,12 @@ namespace Astrum.LogicCore.Factories
                     component.OnAttachToEntity(entity);
                 }
             }
+
+            // 【生命周期钩子】组件挂载后
+            info.Instance?.OnAfterComponentsAttach(entity, world);
+
+            // 【生命周期钩子】能力挂载前
+            info.Instance?.OnBeforeCapabilitiesAttach(entity, world);
 
             // 按 ArchetypeInfo 装配能力
             foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
@@ -78,6 +88,9 @@ namespace Astrum.LogicCore.Factories
                 }
             }
 
+            // 【生命周期钩子】能力挂载后
+            info.Instance?.OnAfterCapabilitiesAttach(entity, world);
+
             entity.World = world;
             world.Entities[entity.UniqueId] = entity;
             return entity;
@@ -93,11 +106,15 @@ namespace Astrum.LogicCore.Factories
             var entity = new T
             {
                 Name = GetEntityNameFromConfig(entityConfigId),
+                ArchetypeName = archetypeName,
                 EntityConfigId = entityConfigId,
                 CreationTime = DateTime.Now,
                 IsActive = true,
                 IsDestroyed = false
             };
+
+            // 【生命周期钩子】组件挂载前
+            info.Instance?.OnBeforeComponentsAttach(entity, world);
 
             // 按 ArchetypeInfo 装配组件
             var componentFactory = ComponentFactory.Instance;
@@ -111,6 +128,12 @@ namespace Astrum.LogicCore.Factories
                     component.OnAttachToEntity(entity);
                 }
             }
+
+            // 【生命周期钩子】组件挂载后
+            info.Instance?.OnAfterComponentsAttach(entity, world);
+
+            // 【生命周期钩子】能力挂载前
+            info.Instance?.OnBeforeCapabilitiesAttach(entity, world);
 
             // 按 ArchetypeInfo 装配能力
             foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
@@ -129,6 +152,9 @@ namespace Astrum.LogicCore.Factories
                     Console.WriteLine($"创建能力 {capType.Name} 失败: {ex.Message}");
                 }
             }
+
+            // 【生命周期钩子】能力挂载后
+            info.Instance?.OnAfterCapabilitiesAttach(entity, world);
 
             entity.World = world;
             world.Entities[entity.UniqueId] = entity;
@@ -220,6 +246,15 @@ namespace Astrum.LogicCore.Factories
         public void DestroyEntity(Entity entity, World world)
         {
             if (entity == null) return;
+
+            // 【生命周期钩子】实体销毁前
+            if (!string.IsNullOrEmpty(entity.ArchetypeName))
+            {
+                if (ArchetypeRegistry.Instance.TryGet(entity.ArchetypeName, out var info))
+                {
+                    info.Instance?.OnEntityDestroy(entity, world);
+                }
+            }
 
             // 从世界中移除
             world.Entities.Remove(entity.UniqueId);

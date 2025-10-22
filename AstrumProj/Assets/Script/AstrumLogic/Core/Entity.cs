@@ -30,6 +30,11 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public string Name { get; set; } = string.Empty;
         
+        /// <summary>
+        /// 实体原型名称（用于生命周期钩子）
+        /// </summary>
+        public string ArchetypeName { get; set; } = string.Empty;
+        
         public int EntityConfigId { get; set; } = 0;
         [MemoryPackIgnore]
         public EntityBaseTable EntityConfig
@@ -97,10 +102,11 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities)
+        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities)
         {
             UniqueId = uniqueId;
             Name = name;
+            ArchetypeName = archetypeName;
             EntityConfigId = entityConfigId;
             IsActive = isActive;
             IsDestroyed = isDestroyed;
