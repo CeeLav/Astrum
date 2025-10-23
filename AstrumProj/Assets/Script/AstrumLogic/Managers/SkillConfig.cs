@@ -82,7 +82,7 @@ namespace Astrum.LogicCore.Managers
                 SkillActionIds = new List<int>(skillTable.SkillActionIds)
             };
             
-            ASLogger.Instance.Info($"SkillConfigManager: Built SkillInfo for skill {skillId} ({skillInfo.Name}) level {level}");
+            //ASLogger.Instance.Info($"SkillConfigManager: Built SkillInfo for skill {skillId} ({skillInfo.Name}) level {level}");
             return skillInfo;
         }
         

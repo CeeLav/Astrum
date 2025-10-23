@@ -31,7 +31,7 @@ namespace Astrum.Network
                 }
 
                 ushort opcode = messageAttribute.Opcode;
-                ASLogger.Instance.Info($"OpcodeType.Awake: 注册类型 {type.Name} -> opcode {opcode}");
+                ASLogger.Instance.Debug($"OpcodeType.Awake: 注册类型 {type.Name} -> opcode {opcode}");
                 
                 if (opcode != 0)
                 {

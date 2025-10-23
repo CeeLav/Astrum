@@ -34,7 +34,7 @@ namespace Astrum.LogicCore.Components
         /// <summary>设置资源值</summary>
         public void Set(DynamicResourceType type, FP value)
         {
-            ASLogger.Instance.Warning($"DynamicStatsComponent Set Resource: {type} = {value}");
+            //ASLogger.Instance.Warning($"DynamicStatsComponent Set Resource: {type} = {value}");
             Resources[type] = value;
         }
         

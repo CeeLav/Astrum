@@ -36,6 +36,7 @@ namespace Astrum.Client.Core
         
         [Header("核心GameObject引用")]
         [SerializeField] private GameObject uiRoot;
+        [SerializeField] private Canvas hudCanvas;
         [SerializeField] private GameObject stageRoot;
         [SerializeField] private Camera mainCamera;
         [SerializeField] private Camera uiCamera;
@@ -68,6 +69,7 @@ namespace Astrum.Client.Core
         
         // 核心GameObject访问器
         public GameObject UIRoot => uiRoot;
+        public Canvas HUDCanvas => hudCanvas;
         public GameObject StageRoot => stageRoot;
         public Camera MainCamera => mainCamera;
         public Camera UICamera => uiCamera;
@@ -173,6 +175,8 @@ namespace Astrum.Client.Core
             // 初始化UI管理器（单例赋值）
             uiManager = UIManager.Instance;
             uiManager.Initialize();
+            
+            HUDManager.Instance.Initialize(hudCanvas, mainCamera);
 
             // 初始化音频管理器（单例赋值）
             audioManager = AudioManager.Instance;
