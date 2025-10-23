@@ -18,6 +18,11 @@ namespace Astrum.LogicCore.Components
         public List<BuffInstance> Buffs { get; set; } = new List<BuffInstance>();
         
         [MemoryPackConstructor]
+        public BuffComponent(List<BuffInstance> buffs) : base()
+        {
+            Buffs = buffs ?? new List<BuffInstance>();
+        }
+        
         public BuffComponent() : base() { }
         
         /// <summary>添加Buff</summary>

@@ -25,6 +25,14 @@ namespace Astrum.LogicCore.Components
         public int MaxLevel { get; set; } = 100;
         
         [MemoryPackConstructor]
+        public LevelComponent(int currentLevel, int currentExp, int expToNextLevel, int maxLevel) : base()
+        {
+            CurrentLevel = currentLevel;
+            CurrentExp = currentExp;
+            ExpToNextLevel = expToNextLevel;
+            MaxLevel = maxLevel;
+        }
+        
         public LevelComponent() : base() { }
         
         /// <summary>获得经验</summary>

@@ -30,6 +30,17 @@ namespace Astrum.LogicCore.Components
         public int AllocatedSpeedPoints { get; set; } = 0;
         
         [MemoryPackConstructor]
+        public GrowthComponent(int roleId, int availableStatPoints, int allocatedAttackPoints, 
+            int allocatedDefensePoints, int allocatedHealthPoints, int allocatedSpeedPoints) : base()
+        {
+            RoleId = roleId;
+            AvailableStatPoints = availableStatPoints;
+            AllocatedAttackPoints = allocatedAttackPoints;
+            AllocatedDefensePoints = allocatedDefensePoints;
+            AllocatedHealthPoints = allocatedHealthPoints;
+            AllocatedSpeedPoints = allocatedSpeedPoints;
+        }
+        
         public GrowthComponent() : base() { }
         
         /// <summary>分配属性点</summary>

@@ -17,6 +17,11 @@ namespace Astrum.LogicCore.Components
         public Stats.Stats BaseStats { get; set; } = new Stats.Stats();
         
         [MemoryPackConstructor]
+        public BaseStatsComponent(Stats.Stats baseStats) : base()
+        {
+            BaseStats = baseStats ?? new Stats.Stats();
+        }
+        
         public BaseStatsComponent() : base() { }
         
         public override void OnAttachToEntity(Entity entity)

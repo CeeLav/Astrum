@@ -271,7 +271,7 @@ namespace Astrum.View.Components
                 _healthFillImage.color = targetColor;
                 
                 // 根据血量显示/隐藏血条
-                bool shouldShow = showHealthBar && _isAlive && (healthPercent < 1f || _healthBarVisible);
+                bool shouldShow = showHealthBar && _isAlive && (healthPercent <= 1f || _healthBarVisible);
                 _healthBarObject.SetActive(shouldShow);
                 
                 if (shouldShow)
@@ -311,7 +311,7 @@ namespace Astrum.View.Components
                 if (_healthBarTimer >= healthBarFadeTime)
                 {
                     float healthPercent = _maxHealth > FP.Zero ? (float)(_currentHealth / _maxHealth) : 0f;
-                    if (healthPercent >= 1f)
+                    if (healthPercent > 1f)
                     {
                         _healthBarObject.SetActive(false);
                         _healthBarVisible = false;

@@ -24,6 +24,13 @@ namespace Astrum.LogicCore.Components
         private bool _isDirty = false;
         
         [MemoryPackConstructor]
+        public DerivedStatsComponent(Stats.Stats finalStats) : base()
+        {
+            FinalStats = finalStats ?? new Stats.Stats();
+            _modifiers = new Dictionary<StatType, List<StatModifier>>();
+            _isDirty = false;
+        }
+        
         public DerivedStatsComponent() : base() { }
         
         /// <summary>添加修饰器</summary>

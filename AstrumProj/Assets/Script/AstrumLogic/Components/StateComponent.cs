@@ -15,6 +15,11 @@ namespace Astrum.LogicCore.Components
         public Dictionary<StateType, bool> States { get; set; } = new Dictionary<StateType, bool>();
         
         [MemoryPackConstructor]
+        public StateComponent(Dictionary<StateType, bool> states) : base()
+        {
+            States = states ?? new Dictionary<StateType, bool>();
+        }
+        
         public StateComponent() : base() { }
 
         public override void OnAttachToEntity(Entity entity)
