@@ -40,7 +40,6 @@ namespace Astrum.View.Components
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Info($"MovementViewComponent: 初始化移动视图组件，ID: {_componentId}");
             
             // 获取动画器
             if (_ownerEntityView != null && _ownerEntityView.GameObject != null)

@@ -28,7 +28,6 @@ namespace Astrum.View.Stages
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Info("GameStage: 初始化游戏Stage");
             
             // 初始化游戏特定的组件
             SetupGameComponents();

@@ -14,7 +14,6 @@ namespace Astrum.Network
         public void Awake()
         {
             HashSet<Type> types = CodeTypes.Instance.GetTypes(typeof (MessageAttribute));
-            ASLogger.Instance.Info($"OpcodeType.Awake: 找到 {types.Count} 个带有MessageAttribute的类型");
             
             foreach (Type type in types)
             {
@@ -31,7 +30,6 @@ namespace Astrum.Network
                 }
 
                 ushort opcode = messageAttribute.Opcode;
-                ASLogger.Instance.Debug($"OpcodeType.Awake: 注册类型 {type.Name} -> opcode {opcode}");
                 
                 if (opcode != 0)
                 {

@@ -39,9 +39,7 @@ namespace Astrum.Client.Managers
             // 初始化输入状态
             currentInput = new InputState();
             previousInput = new InputState();
-            ASLogger.Instance.Info("InputManager: 初始化输入管理器", "Input.Manager");
             
-            ASLogger.Instance.Info("InputManager: 输入管理器初始化完成", "Input.Manager");
         }
         
         /// <summary>

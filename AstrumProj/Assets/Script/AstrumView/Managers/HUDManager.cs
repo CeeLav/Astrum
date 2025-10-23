@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
-using Astrum.View.UI;
 using TrueSync;
+
 
 namespace Astrum.View.Managers
 {
@@ -20,7 +20,9 @@ namespace Astrum.View.Managers
         
         // HUD配置
         private Vector3 healthBarOffset = new Vector3(0, 2.5f, 0);
-        private Vector2 healthBarSize = new Vector2(120, 12);
+        private Vector2 healthBarSize = new Vector2(200, 40);
+        private Vector3 healthBarScale = new Vector3(0.4f, 0.4f,0.4f);
+        
         private Color fullHealthColor = Color.green;
         private Color lowHealthColor = Color.red;
         private float lowHealthThreshold = 0.3f;
@@ -57,7 +59,6 @@ namespace Astrum.View.Managers
                 hudCanvas.sortingOrder = 100; // 确保HUD在最上层
             }
             
-            ASLogger.Instance.Debug("HUDManager 初始化完成");
         }
         
         /// <summary>
@@ -95,7 +96,6 @@ namespace Astrum.View.Managers
             // 初始化HUD显示
             InitializeHUDDisplay(hudInstance);
             
-            ASLogger.Instance.Debug($"注册实体 {entityId} 的HUD");
         }
         
         /// <summary>
@@ -112,7 +112,6 @@ namespace Astrum.View.Managers
             ReturnHUDToPool(hudInstance.GameObject);
             _hudInstances.Remove(entityId);
             
-            ASLogger.Instance.Debug($"注销实体 {entityId} 的HUD");
         }
         
         /// <summary>
@@ -188,6 +187,7 @@ namespace Astrum.View.Managers
             if (rectTransform != null)
             {
                 rectTransform.sizeDelta = healthBarSize;
+                rectTransform.localScale = healthBarScale;
             }
             
             // 初始化血条显示
@@ -215,17 +215,16 @@ namespace Astrum.View.Managers
             }
             
             // 更新血条
-            progressBar.SetProgress(healthPercent);
+            progressBar.SetValue(healthPercent);
             
             // 根据血量设置颜色
-            Color healthColor = healthPercent <= lowHealthThreshold ? lowHealthColor : fullHealthColor;
-            progressBar.SetColor(healthColor);
+            //Color healthColor = healthPercent <= lowHealthThreshold ? lowHealthColor : fullHealthColor;
+            //progressBar.SetBarColor(healthColor);
             
             // 处理护盾显示（如果有护盾组件）
             if (currentShield > FP.Zero)
             {
                 // 可以在这里添加护盾条的逻辑
-                ASLogger.Instance.Debug($"实体 {hudInstance.EntityId} 有护盾: {currentShield}");
             }
         }
         
@@ -243,7 +242,7 @@ namespace Astrum.View.Managers
         {
             if (hudPrefab == null)
             {
-                hudPrefab = ResourceManager.Instance.LoadResource<GameObject>("UI/Prefabs/HUD/HorizontalBoxWithShadow.prefab");
+                hudPrefab = ResourceManager.Instance.LoadResource<GameObject>("Assets/ArtRes/UI/HUD/HorizontalBoxWithShadow.prefab");
             }
             
             GameObject hudObject = UnityEngine.Object.Instantiate(hudPrefab, hudCanvas.transform);

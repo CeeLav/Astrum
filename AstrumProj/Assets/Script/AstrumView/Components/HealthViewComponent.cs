@@ -34,7 +34,6 @@ namespace Astrum.View.Components
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Info($"HealthViewComponent: 初始化健康视图组件，ID: {_componentId}");
             
             if (_ownerEntityView != null && _ownerEntityView.GameObject != null)
             {

@@ -23,7 +23,6 @@ namespace Astrum.View.Core
             base.Awake();
             _stages = new Dictionary<string, Stage>();
             
-            ASLogger.Instance.Info("StageManager: Stage管理器初始化");
         }
         
         /// <summary>

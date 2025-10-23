@@ -61,7 +61,6 @@ namespace Astrum.View.Components
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Debug($"AnimationViewComponent.OnInitialize: 初始化动画组件，EntityId={OwnerEntity?.UniqueId}");
             
             // 初始化Animancer组件
             InitializeAnimancer();

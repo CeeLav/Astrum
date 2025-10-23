@@ -40,7 +40,6 @@ namespace Astrum.LogicCore.Managers
             if (skillInfo != null)
             {
                 _skillInfoCache[cacheKey] = skillInfo;
-                ASLogger.Instance.Debug($"SkillConfigManager: Cached SkillInfo for {cacheKey}");
             }
             
             return skillInfo;
@@ -126,10 +125,8 @@ namespace Astrum.LogicCore.Managers
                 skillActionInfo.TriggerFrames,
                 skillLevel
             );
-            ASLogger.Instance.Info($"Parse SkillAction:{actionId} TriggerEffects count: {skillActionInfo.TriggerEffects.Count}");
             
             
-            ASLogger.Instance.Debug($"SkillConfigManager: Built SkillActionInfo {actionId} for skill level {skillLevel}");
             
             return skillActionInfo;
         }
@@ -362,7 +359,6 @@ namespace Astrum.LogicCore.Managers
                     
                     // 日志（显示帧范围）
                     string frameRange = startFrame == endFrame ? $"Frame{startFrame}" : $"Frame{startFrame}-{endFrame}";
-                    ASLogger.Instance.Debug($"Parsed trigger {frameRange}:{triggerType} → Effect {effectResult.EffectId} (expanded to {endFrame - startFrame + 1} frames)");
                 }
                 else
                 {

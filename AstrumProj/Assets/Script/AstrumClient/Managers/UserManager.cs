@@ -32,7 +32,6 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Initialize()
         {
-            ASLogger.Instance.Info("UserManager: 初始化完成");
         }
         
         /// <summary>

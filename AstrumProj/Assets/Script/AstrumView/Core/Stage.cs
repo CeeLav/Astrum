@@ -81,7 +81,6 @@ namespace Astrum.View.Core
         {
             if (_isLoaded) return;
             
-            ASLogger.Instance.Info($"Stage: 初始化 {_stageName}");
             
             // 创建Stage根对象
             CreateStageRoot();

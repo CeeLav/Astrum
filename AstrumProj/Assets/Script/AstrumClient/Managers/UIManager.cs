@@ -26,7 +26,6 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Initialize()
         {
-            ASLogger.Instance.Info("UIManager: 初始化UI管理器");
             Debug.Log("[UIManager] 初始化完成");
         }
 

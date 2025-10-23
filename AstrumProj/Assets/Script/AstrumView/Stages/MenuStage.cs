@@ -26,7 +26,6 @@ namespace Astrum.View.Stages
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Info("MenuStage: 初始化菜单Stage");
             
             // 初始化菜单特定的组件
             SetupMenuComponents();

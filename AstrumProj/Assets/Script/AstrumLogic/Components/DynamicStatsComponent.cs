@@ -18,9 +18,7 @@ namespace Astrum.LogicCore.Components
         [MemoryPackConstructor]
         public DynamicStatsComponent(Dictionary<DynamicResourceType, FP> resources) : base()
         {
-            ASLogger.Instance.Debug($"DynamicStatsComponent 构造函数调用，资源数量: {resources?.Count ?? 0}");
             Resources = resources ?? new Dictionary<DynamicResourceType, FP>();
-            ASLogger.Instance.Debug($"DynamicStatsComponent 初始化完成，最终资源数量: {Resources.Count}");
         }
         
         public DynamicStatsComponent() : base() { }
