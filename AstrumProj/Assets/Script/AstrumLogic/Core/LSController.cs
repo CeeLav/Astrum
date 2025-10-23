@@ -101,7 +101,7 @@ namespace Astrum.LogicCore.Core
                 if (Room.MainPlayerId > 0)
                 {
                     var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
-                    ASLogger.Instance.Log(LogLevel.Info, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
+                    ASLogger.Instance.Log(LogLevel.Debug, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
                     
                     EventSystem.Instance.Publish(eventData);
                 }
