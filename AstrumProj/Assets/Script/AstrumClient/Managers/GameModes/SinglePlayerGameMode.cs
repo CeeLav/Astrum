@@ -11,34 +11,41 @@ namespace Astrum.Client.Managers.GameModes
     /// <summary>
     /// 单机游戏模式 - 本地游戏，无需网络连接
     /// </summary>
-    public class SinglePlayerGameMode : IGameMode
+    public class SinglePlayerGameMode : BaseGameMode
     {
         // 核心属性
-        public Room MainRoom { get; private set; }
-        public Stage MainStage { get; private set; }
-        public long PlayerId { get; private set; }
-        public string ModeName => "SinglePlayer";
-        public bool IsRunning { get; private set; }
+        public override Room MainRoom { get; set; }
+        public override Stage MainStage { get; set; }
+        public override long PlayerId { get; set; }
+        public override string ModeName => "SinglePlayer";
+        public override bool IsRunning { get; set; }
         
         /// <summary>
         /// 初始化单机游戏模式
         /// </summary>
-        public void Initialize()
+        public override void Initialize()
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 初始化单机游戏模式");
-            IsRunning = false;
+            ChangeState(GameModeState.Initializing);
+            
+            // 注册事件处理器（使用现有 EventSystem）
+            EventSystem.Instance.Subscribe<GameModeStateChangedEventData>(OnStateChanged);
+            
+            ChangeState(GameModeState.Ready);
         }
         
         /// <summary>
         /// 启动单机游戏
         /// </summary>
         /// <param name="sceneName">游戏场景名称</param>
-        public void StartGame(string sceneName)
+        public override void StartGame(string sceneName)
         {
             ASLogger.Instance.Info($"SinglePlayerGameMode: 启动单机游戏 - 场景: {sceneName}");
             
             try
             {
+                //ChangeState(GameModeState.Loading);
+                
                 // 1. 创建本地 Room 和 World
                 CreateRoom();
                 
@@ -51,12 +58,14 @@ namespace Astrum.Client.Managers.GameModes
                 // 4. 创建玩家（在场景加载完成后）
                 // CreatePlayer() 会在 OnGameSceneLoaded() 中调用
                 
+                ChangeState(GameModeState.Playing);
                 IsRunning = true;
                 ASLogger.Instance.Info("SinglePlayerGameMode: 单机游戏启动成功");
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"SinglePlayerGameMode: 启动游戏失败 - {ex.Message}");
+                ChangeState(GameModeState.Finished);
                 throw;
             }
         }
@@ -65,9 +74,9 @@ namespace Astrum.Client.Managers.GameModes
         /// 更新游戏逻辑（本地帧循环）
         /// </summary>
         /// <param name="deltaTime">时间差</param>
-        public void Update(float deltaTime)
+        public override void Update(float deltaTime)
         {
-            if (!IsRunning) return;
+            if (!IsRunning || CurrentState != GameModeState.Playing) return;
             
             // 单机模式：模拟服务器的权威帧推进
             // 在联机模式下，AuthorityFrame 由服务器通过 FrameSyncData 更新
@@ -86,9 +95,10 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 关闭单机游戏模式
         /// </summary>
-        public void Shutdown()
+        public override void Shutdown()
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 关闭单机游戏模式");
+            ChangeState(GameModeState.Ending);
             
             // 取消订阅事件
             if (MainStage != null)
@@ -96,11 +106,16 @@ namespace Astrum.Client.Managers.GameModes
                 MainStage.OnEntityViewAdded -= OnEntityViewAdded;
             }
             
+            // 取消注册事件处理器
+            EventSystem.Instance.Unsubscribe<GameModeStateChangedEventData>(OnStateChanged);
+            
             // 清理资源
             MainRoom = null;
             MainStage = null;
             PlayerId = -1;
             IsRunning = false;
+            
+            ChangeState(GameModeState.Finished);
         }
         
         #region 私有方法 - Room/Stage/Player 创建
@@ -140,7 +155,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info($"SinglePlayerGameMode: 切换到游戏场景 {sceneName}");
             
-            var sceneManager = GameApplication.Instance?.SceneManager;
+            var sceneManager = SceneManager.Instance;
             if (sceneManager == null)
             {
                 throw new Exception("SceneManager不存在");
@@ -213,7 +228,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             try
             {
-                var uiManager = GameApplication.Instance?.UIManager;
+                var uiManager = UIManager.Instance;
                 if (uiManager != null)
                 {
                     uiManager.HideUI("Login");
@@ -241,7 +256,7 @@ namespace Astrum.Client.Managers.GameModes
             // 尝试从Stage中获取主玩家的EntityView
             if (MainStage.EntityViews.TryGetValue(PlayerId, out var entityView))
             {
-                var cameraManager = GameApplication.Instance?.CameraManager;
+                var cameraManager = CameraManager.Instance;
                 if (cameraManager != null)
                 {
                     cameraManager.SetFollowTarget(entityView.Transform);
@@ -271,13 +286,86 @@ namespace Astrum.Client.Managers.GameModes
                 ASLogger.Instance.Info($"SinglePlayerGameMode: 主玩家EntityView创建完成，ID: {entityView.EntityId}");
                 
                 // 设置相机跟随目标
-                var cameraManager = GameApplication.Instance?.CameraManager;
+                var cameraManager = CameraManager.Instance;
                 if (cameraManager != null)
                 {
                     cameraManager.SetFollowTarget(entityView.Transform);
                     ASLogger.Instance.Info("SinglePlayerGameMode: 设置相机跟随主玩家");
                 }
             }
+        }
+        
+        #endregion
+        
+        #region 状态管理和事件处理
+        
+        /// <summary>
+        /// 状态变化事件处理
+        /// </summary>
+        private void OnStateChanged(GameModeStateChangedEventData evt)
+        {
+            ASLogger.Instance.Info($"SinglePlayerGameMode: 状态从 {evt.PreviousState} 变为 {evt.NewState}");
+            
+            // 根据状态变化执行特定逻辑
+            switch (evt.NewState)
+            {
+                case GameModeState.Playing:
+                    OnGameStart();
+                    break;
+                case GameModeState.Paused:
+                    OnGamePause();
+                    break;
+                case GameModeState.Ending:
+                    OnGameEnd();
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// 游戏开始时的处理
+        /// </summary>
+        private void OnGameStart()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 游戏开始");
+        }
+        
+        /// <summary>
+        /// 游戏暂停时的处理
+        /// </summary>
+        private void OnGamePause()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 游戏暂停");
+        }
+        
+        /// <summary>
+        /// 游戏结束时的处理
+        /// </summary>
+        private void OnGameEnd()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 游戏结束");
+        }
+        
+        #endregion
+        
+        #region 配置管理
+        
+        /// <summary>
+        /// 创建默认配置
+        /// </summary>
+        protected override GameModeConfig CreateDefaultConfig()
+        {
+            return new GameModeConfig
+            {
+                ModeName = "SinglePlayer",
+                AutoSave = true,
+                UpdateInterval = 0.016f,
+                CustomSettings = new System.Collections.Generic.Dictionary<string, object>
+                {
+                    { "EnableDebugMode", false },
+                    { "MaxFPS", 60 },
+                    { "VSync", true }
+                }
+            };
         }
         
         #endregion

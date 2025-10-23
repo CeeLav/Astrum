@@ -96,7 +96,7 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void SubscribeToNetworkEvents()
         {
-            var networkManager = GameApplication.Instance?.NetworkManager;
+            var networkManager = NetworkManager.Instance;
             if (networkManager != null)
             {
                 networkManager.OnConnected += OnConnected;
@@ -118,7 +118,7 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void UnsubscribeFromNetworkEvents()
         {
-            var networkManager = GameApplication.Instance?.NetworkManager;
+            var networkManager = NetworkManager.Instance;
             if (networkManager != null)
             {
                 networkManager.OnConnected -= OnConnected;
@@ -290,7 +290,7 @@ namespace Astrum.Client.UI.Generated
             /*
             try
             {
-                var uiManager = GameApplication.Instance?.UIManager;
+                var uiManager = UIManager.Instance;
                 if (uiManager != null)
                 {
                     Debug.Log("LoginView: 匹配成功，切换到房间列表");
@@ -344,7 +344,8 @@ namespace Astrum.Client.UI.Generated
                     Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(false);
                     
                     // 提前创建 MultiplayerGameMode 以注册网络消息
-                    GameApplication.Instance?.GamePlayManager.PrepareGameMode();
+                    var multiplayerMode = new Astrum.Client.Managers.GameModes.MultiplayerGameMode();
+                    GameDirector.Instance.SwitchGameMode(multiplayerMode);
 
                     ConnectToServer();
                     break;
@@ -379,22 +380,16 @@ namespace Astrum.Client.UI.Generated
                 Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(true);
                 
                 // 2. 启动单机游戏
-                var gamePlayManager = GameApplication.Instance?.GamePlayManager;
-                if (gamePlayManager != null)
-                {
-                    // 关闭 Login UI
-                    var uiManager = GameApplication.Instance?.UIManager;
-                    uiManager?.HideUI("Login");
-                    
-                    // 启动单机游戏（场景名称可以从配置读取，这里暂时硬编码）
-                    gamePlayManager.StartSinglePlayerGame("DungeonsGame");
-                    
-                    Debug.Log("LoginView: 单机游戏启动成功");
-                }
-                else
-                {
-                    Debug.LogError("LoginView: GamePlayManager 不存在，无法启动单机游戏");
-                }
+                // 关闭 Login UI
+                var uiManager = UIManager.Instance;
+                uiManager?.HideUI("Login");
+                
+                // 创建单机游戏模式并启动游戏
+                var singlePlayerMode = new Astrum.Client.Managers.GameModes.SinglePlayerGameMode();
+                GameDirector.Instance.SwitchGameMode(singlePlayerMode);
+                GameDirector.Instance.StartGame("DungeonsGame");
+                
+                Debug.Log("LoginView: 单机游戏启动成功");
             }
             catch (Exception ex)
             {
@@ -420,7 +415,7 @@ namespace Astrum.Client.UI.Generated
 
                 Debug.Log($"LoginView: 开始连接到服务器 {serverAddress}:{serverPort}");
 
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     Debug.LogError("LoginView: NetworkManager不存在");
@@ -457,7 +452,7 @@ namespace Astrum.Client.UI.Generated
         {
             try
             {
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     Debug.LogError("LoginView: NetworkManager不存在，无法发送登录请求");
@@ -491,7 +486,7 @@ namespace Astrum.Client.UI.Generated
                 }
                 else
                 {
-                    var networkManager = GameApplication.Instance?.NetworkManager;
+                    var networkManager = NetworkManager.Instance;
                     if (networkManager != null && networkManager.IsConnected())
                     {
                         connectionStatusText.text = "连接状态：已连接";
@@ -542,7 +537,7 @@ namespace Astrum.Client.UI.Generated
         {
             try
             {
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     Debug.LogError("LoginView: NetworkManager不存在，无法发送快速匹配请求");
@@ -578,7 +573,7 @@ namespace Astrum.Client.UI.Generated
         {
             try
             {
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     Debug.LogError("LoginView: NetworkManager不存在，无法发送取消匹配请求");

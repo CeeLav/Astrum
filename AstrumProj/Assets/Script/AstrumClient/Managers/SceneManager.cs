@@ -5,6 +5,7 @@ using System.Collections;
 using Astrum.Client.Behaviour;
 using Astrum.Client.Core;
 using Astrum.CommonBase;
+using Astrum.View.Managers;
 
 namespace Astrum.Client.Managers
 {
@@ -90,7 +91,7 @@ namespace Astrum.Client.Managers
             try
             {
                 // 获取ResourceManager实例
-                var resourceManager = GameApplication.Instance?.ResourceManager;
+                var resourceManager = ResourceManager.Instance;
                 if (resourceManager == null)
                 {
                     Debug.LogError("SceneManager: ResourceManager未初始化");
@@ -186,7 +187,7 @@ namespace Astrum.Client.Managers
             loadingProgress = 0f;
             
             // 获取ResourceManager实例
-            var resourceManager = GameApplication.Instance?.ResourceManager;
+            var resourceManager = ResourceManager.Instance;
             if (resourceManager == null)
             {
                 Debug.LogError("SceneManager: ResourceManager未初始化");
@@ -229,7 +230,7 @@ namespace Astrum.Client.Managers
                 Debug.Log($"SceneManager: 卸载场景 {sceneName}");
             
             // 获取ResourceManager实例
-            var resourceManager = GameApplication.Instance?.ResourceManager;
+            var resourceManager = ResourceManager.Instance;
             if (resourceManager == null)
             {
                 Debug.LogError("SceneManager: ResourceManager未初始化");

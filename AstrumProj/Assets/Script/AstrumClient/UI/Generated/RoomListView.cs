@@ -175,11 +175,11 @@ namespace Astrum.Client.UI.Generated
         {
             Debug.Log("RoomListView: 退出按钮被点击");
             // 断开网络连接
-            GameApplication.Instance?.NetworkManager?.Disconnect();
+            NetworkManager.Instance?.Disconnect();
             // 切换回登录界面
-            GameApplication.Instance?.UIManager?.ShowUI("Login");
+            UIManager.Instance?.ShowUI("Login");
             // 隐藏当前房间列表界面
-            GameApplication.Instance?.UIManager?.HideUI("RoomList");
+            UIManager.Instance?.HideUI("RoomList");
             OnExitRequested?.Invoke();
         }
 

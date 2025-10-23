@@ -25,8 +25,15 @@ namespace Astrum.Client.Core
         private GameState _currentState = GameState.ApplicationStarting;
         private IGameMode _currentGameMode;
         
-        // 子系统管理
-        private Dictionary<Type, IGameSubsystem> _subsystems;
+        // Manager 引用
+        private ResourceManager _resourceManager;
+        private SceneManager _sceneManager;
+        private NetworkManager _networkManager;
+        private UIManager _uiManager;
+        private AudioManager _audioManager;
+        private InputManager _inputManager;
+        private CameraManager _cameraManager;
+        private GamePlayManager _gamePlayManager;
         
         // 公共属性
         public GameState CurrentState => _currentState;
@@ -85,50 +92,47 @@ namespace Astrum.Client.Core
             ASLogger.Instance.Info($"GameDirector: 切换到游戏模式 {newMode?.ModeName}");
         }
         
-        private void InitializeSubsystems()
+        private void InitializeManagers()
         {
-            _subsystems = new Dictionary<Type, IGameSubsystem>();
+            ASLogger.Instance.Info("GameDirector: 初始化各个 Manager");
             
-            // 注册所有子系统
-            RegisterSubsystem<ResourceManager>(ResourceManager.Instance);
-            RegisterSubsystem<SceneManager>(SceneManager.Instance);
-            RegisterSubsystem<NetworkManager>(NetworkManager.Instance);
-            RegisterSubsystem<UIManager>(UIManager.Instance);
-            RegisterSubsystem<AudioManager>(AudioManager.Instance);
-            RegisterSubsystem<InputManager>(InputManager.Instance);
-            RegisterSubsystem<CameraManager>(CameraManager.Instance);
-            RegisterSubsystem<GamePlayManager>(GamePlayManager.Instance);
+            // 直接初始化各个 Manager
+            _resourceManager = ResourceManager.Instance;
+            _resourceManager.Initialize();
             
-            // 初始化所有子系统
-            foreach (var subsystem in _subsystems.Values)
-            {
-                subsystem.Initialize();
-            }
+            _sceneManager = SceneManager.Instance;
+            _sceneManager.Initialize();
+            
+            _networkManager = NetworkManager.Instance;
+            _networkManager.Initialize();
+            
+            _uiManager = UIManager.Instance;
+            _uiManager.Initialize();
+            
+            _audioManager = AudioManager.Instance;
+            _audioManager.Initialize();
+            
+            _inputManager = InputManager.Instance;
+            _inputManager.Initialize();
+            
+            _cameraManager = CameraManager.Instance;
+            _cameraManager.Initialize();
+            
+            _gamePlayManager = GamePlayManager.Instance;
+            _gamePlayManager.Initialize();
+            
+            ASLogger.Instance.Info("GameDirector: 所有 Manager 初始化完成");
         }
         
-        private void UpdateSubsystems(float deltaTime)
+        private void UpdateManagers(float deltaTime)
         {
-            foreach (var subsystem in _subsystems.Values)
-            {
-                if (subsystem.IsInitialized)
-                {
-                    subsystem.Update(deltaTime);
-                }
-            }
-        }
-        
-        private void RegisterSubsystem<T>(IGameSubsystem subsystem) where T : IGameSubsystem
-        {
-            _subsystems[typeof(T)] = subsystem;
-        }
-        
-        public T GetSubsystem<T>() where T : class, IGameSubsystem
-        {
-            if (_subsystems.TryGetValue(typeof(T), out var subsystem))
-            {
-                return subsystem as T;
-            }
-            return null;
+            // 更新各个 Manager
+            _inputManager?.Update();
+            _networkManager?.Update();
+            _uiManager?.Update();
+            _audioManager?.Update();
+            _cameraManager?.Update();
+            _gamePlayManager?.Update(deltaTime);
         }
         
         public void Shutdown()
@@ -139,12 +143,15 @@ namespace Astrum.Client.Core
             _currentGameMode?.Shutdown();
             _currentGameMode = null;
             
-            // 关闭所有子系统
-            foreach (var subsystem in _subsystems.Values)
-            {
-                subsystem.Shutdown();
-            }
-            _subsystems.Clear();
+            // 关闭所有 Manager
+            _resourceManager?.Shutdown();
+            _sceneManager?.Shutdown();
+            _networkManager?.Shutdown();
+            _uiManager?.Shutdown();
+            _audioManager?.Shutdown();
+            _inputManager?.Shutdown();
+            _cameraManager?.Shutdown();
+            _gamePlayManager?.Shutdown();
             
             // 设置关闭状态
             ChangeGameState(GameState.SystemShutdown);
@@ -216,20 +223,23 @@ namespace Astrum.Client.Core
 }
 ```
 
-### 4. 子系统接口
+### 4. 简化的 Manager 管理
+
+GameDirector 直接管理各个 Manager，不需要额外的接口层：
 
 ```csharp
-// 文件：AstrumProj/Assets/Script/AstrumClient/Core/IGameSubsystem.cs
-namespace Astrum.Client.Core
+// GameDirector 中直接初始化各个 Manager
+private void InitializeManagers()
 {
-    public interface IGameSubsystem
-    {
-        void Initialize();
-        void Update(float deltaTime);
-        void Shutdown();
-        string SubsystemName { get; }
-        bool IsInitialized { get; }
-    }
+    // 直接初始化各个 Manager
+    ResourceManager.Instance.Initialize();
+    SceneManager.Instance.Initialize();
+    NetworkManager.Instance.Initialize();
+    UIManager.Instance.Initialize();
+    AudioManager.Instance.Initialize();
+    InputManager.Instance.Initialize();
+    CameraManager.Instance.Initialize();
+    GamePlayManager.Instance.Initialize();
 }
 ```
 
@@ -434,12 +444,14 @@ namespace Astrum.Client.Managers.GameModes
    - 专注于网络管理
    - 委托给 GameDirector
 
-### 阶段四：测试和优化（第7-8周）
+### 阶段四：手动测试和优化（第7-8周）
 
-1. **全面测试**
-   - 单元测试
-   - 集成测试
-   - 性能测试
+1. **Unity 编辑器手动测试**
+   - 测试 GameDirector 初始化
+   - 测试单机模式完整流程
+   - 测试联机模式完整流程
+   - 测试游戏模式切换
+   - 测试状态转换
 
 2. **优化和清理**
    - 性能优化

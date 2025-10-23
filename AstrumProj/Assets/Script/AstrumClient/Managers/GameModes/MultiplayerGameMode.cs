@@ -13,14 +13,14 @@ namespace Astrum.Client.Managers.GameModes
     /// <summary>
     /// 联机游戏模式 - 网络多人对战
     /// </summary>
-    public class MultiplayerGameMode : IGameMode
+    public class MultiplayerGameMode : BaseGameMode
     {
         // 核心属性
-        public Room MainRoom { get; private set; }
-        public Stage MainStage { get; private set; }
-        public long PlayerId { get; private set; }
-        public string ModeName => "Multiplayer";
-        public bool IsRunning { get; private set; }
+        public override Room MainRoom { get; set; }
+        public override Stage MainStage { get; set; }
+        public override long PlayerId { get; set; }
+        public override string ModeName => "Multiplayer";
+        public override bool IsRunning { get; set; }
         
         // 辅助处理器
         private NetworkGameHandler _networkHandler;
@@ -29,9 +29,10 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 初始化联机游戏模式
         /// </summary>
-        public void Initialize()
+        public override void Initialize()
         {
             ASLogger.Instance.Info("MultiplayerGameMode: 初始化联机游戏模式");
+            ChangeState(GameModeState.Initializing);
             
             // 创建辅助处理器
             _networkHandler = new NetworkGameHandler(this);
@@ -40,29 +41,33 @@ namespace Astrum.Client.Managers.GameModes
             // 注册网络消息处理器
             RegisterNetworkHandlers();
             
-            // 注册事件
+            // 注册事件（使用现有 EventSystem）
             EventSystem.Instance.Subscribe<FrameDataUploadEventData>(FrameDataUpload);
             EventSystem.Instance.Subscribe<NewPlayerEventData>(OnPlayerCreated);
             
-            IsRunning = false;
+            // 注册状态变化处理器（使用现有 EventSystem）
+            EventSystem.Instance.Subscribe<GameModeStateChangedEventData>(OnStateChanged);
+            
+            ChangeState(GameModeState.Ready);
         }
         
         /// <summary>
         /// 启动联机游戏（联机模式不主动启动，等待服务器通知）
         /// </summary>
         /// <param name="sceneName">场景名称</param>
-        public void StartGame(string sceneName)
+        public override void StartGame(string sceneName)
         {
             ASLogger.Instance.Info("MultiplayerGameMode: 联机模式等待服务器游戏开始通知");
+            ChangeState(GameModeState.Loading);
         }
         
         /// <summary>
         /// 更新游戏逻辑
         /// </summary>
         /// <param name="deltaTime">时间差</param>
-        public void Update(float deltaTime)
+        public override void Update(float deltaTime)
         {
-            if (!IsRunning) return;
+            if (!IsRunning || CurrentState != GameModeState.Playing) return;
             
             // 更新 Room 和 Stage
             MainRoom?.Update(deltaTime);
@@ -72,9 +77,10 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 关闭联机游戏模式
         /// </summary>
-        public void Shutdown()
+        public override void Shutdown()
         {
             ASLogger.Instance.Info("MultiplayerGameMode: 关闭联机游戏模式");
+            ChangeState(GameModeState.Ending);
             
             // 取消注册网络消息处理器
             UnregisterNetworkHandlers();
@@ -82,6 +88,9 @@ namespace Astrum.Client.Managers.GameModes
             // 取消订阅事件
             EventSystem.Instance.Unsubscribe<FrameDataUploadEventData>(FrameDataUpload);
             EventSystem.Instance.Unsubscribe<NewPlayerEventData>(OnPlayerCreated);
+            
+            // 取消注册状态变化处理器
+            EventSystem.Instance.Unsubscribe<GameModeStateChangedEventData>(OnStateChanged);
             
             // 取消订阅EntityView事件
             if (MainStage != null)
@@ -94,6 +103,8 @@ namespace Astrum.Client.Managers.GameModes
             MainStage = null;
             PlayerId = -1;
             IsRunning = false;
+            
+            ChangeState(GameModeState.Finished);
         }
         
         #region 网络消息注册
@@ -103,7 +114,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void RegisterNetworkHandlers()
         {
-            var networkManager = GameApplication.Instance?.NetworkManager;
+            var networkManager = NetworkManager.Instance;
             if (networkManager != null)
             {
                 // 游戏流程消息
@@ -131,7 +142,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void UnregisterNetworkHandlers()
         {
-            var networkManager = GameApplication.Instance?.NetworkManager;
+            var networkManager = NetworkManager.Instance;
             if (networkManager != null)
             {
                 // 游戏流程消息
@@ -247,7 +258,7 @@ namespace Astrum.Client.Managers.GameModes
                 ASLogger.Instance.Info($"MultiplayerGameMode: 主玩家EntityView创建完成，ID: {entityView.EntityId}");
                 
                 // 设置相机跟随目标
-                var cameraManager = GameApplication.Instance?.CameraManager;
+                var cameraManager = CameraManager.Instance;
                 if (cameraManager != null)
                 {
                     cameraManager.SetFollowTarget(entityView.Transform);
@@ -274,7 +285,7 @@ namespace Astrum.Client.Managers.GameModes
             // 尝试从Stage中获取主玩家的EntityView
             if (MainStage.EntityViews.TryGetValue(PlayerId, out var entityView))
             {
-                var cameraManager = GameApplication.Instance?.CameraManager;
+                var cameraManager = CameraManager.Instance;
                 if (cameraManager != null)
                 {
                     cameraManager.SetFollowTarget(entityView.Transform);
@@ -289,6 +300,80 @@ namespace Astrum.Client.Managers.GameModes
             {
                 ASLogger.Instance.Debug($"MultiplayerGameMode: 主玩家EntityView尚未创建，ID: {PlayerId}");
             }
+        }
+        
+        #endregion
+        
+        #region 状态管理和事件处理
+        
+        /// <summary>
+        /// 状态变化事件处理
+        /// </summary>
+        private void OnStateChanged(GameModeStateChangedEventData evt)
+        {
+            ASLogger.Instance.Info($"MultiplayerGameMode: 状态从 {evt.PreviousState} 变为 {evt.NewState}");
+            
+            // 根据状态变化执行特定逻辑
+            switch (evt.NewState)
+            {
+                case GameModeState.Playing:
+                    OnGameStart();
+                    break;
+                case GameModeState.Paused:
+                    OnGamePause();
+                    break;
+                case GameModeState.Ending:
+                    OnGameEnd();
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// 游戏开始时的处理
+        /// </summary>
+        private void OnGameStart()
+        {
+            ASLogger.Instance.Info("MultiplayerGameMode: 游戏开始");
+        }
+        
+        /// <summary>
+        /// 游戏暂停时的处理
+        /// </summary>
+        private void OnGamePause()
+        {
+            ASLogger.Instance.Info("MultiplayerGameMode: 游戏暂停");
+        }
+        
+        /// <summary>
+        /// 游戏结束时的处理
+        /// </summary>
+        private void OnGameEnd()
+        {
+            ASLogger.Instance.Info("MultiplayerGameMode: 游戏结束");
+        }
+        
+        #endregion
+        
+        #region 配置管理
+        
+        /// <summary>
+        /// 创建默认配置
+        /// </summary>
+        protected override GameModeConfig CreateDefaultConfig()
+        {
+            return new GameModeConfig
+            {
+                ModeName = "Multiplayer",
+                AutoSave = true,
+                UpdateInterval = 0.016f,
+                CustomSettings = new System.Collections.Generic.Dictionary<string, object>
+                {
+                    { "NetworkTimeout", 30 },
+                    { "MaxReconnectAttempts", 3 },
+                    { "FrameSyncRate", 20 },
+                    { "EnableLagCompensation", true }
+                }
+            };
         }
         
         #endregion

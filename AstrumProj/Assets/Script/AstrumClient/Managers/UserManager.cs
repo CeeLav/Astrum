@@ -61,7 +61,7 @@ namespace Astrum.Client.Managers
                 loginRequest.DisplayName = $"Player_{UnityEngine.Random.Range(1000, 9999)}";
                 
                 // 发送登录请求
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     ASLogger.Instance.Error("UserManager: NetworkManager不存在");
@@ -119,7 +119,7 @@ namespace Astrum.Client.Managers
                 ASLogger.Instance.Info("UserManager: 开始连接并登录...");
                 
                 // 获取网络管理器
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     ASLogger.Instance.Error("UserManager: NetworkManager不存在");

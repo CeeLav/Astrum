@@ -93,7 +93,7 @@ namespace Astrum.View.Stages
         /// <returns>实体类型</returns>
         private string GetEntityType(long entityId)
         {
-            // 这里可以通过GamePlayManager获取实体信息
+            // 这里可以通过GameDirector获取实体信息
             // 暂时返回默认类型，实际使用时需要从逻辑层获取
             return "unit";
         }

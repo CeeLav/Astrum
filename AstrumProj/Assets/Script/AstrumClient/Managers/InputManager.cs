@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.Generated;
+using Astrum.Client.Core;
 
 namespace Astrum.Client.Managers
 {
@@ -47,12 +48,13 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Update()
         {
-            if (GamePlayManager.Instance.MainRoom == null)
+            var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+            if (currentGameMode?.MainRoom == null)
             {
                 return;
             }
-            var input = CollectLSInput(GamePlayManager.Instance.PlayerId);
-            GamePlayManager.Instance.MainRoom?.LSController.SetPlayerInput(GamePlayManager.Instance.PlayerId, input);
+            var input = CollectLSInput(currentGameMode.PlayerId);
+            currentGameMode.MainRoom?.LSController.SetPlayerInput(currentGameMode.PlayerId, input);
         }
 
 

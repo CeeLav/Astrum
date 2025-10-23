@@ -159,7 +159,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
         {
             ASLogger.Instance.Info($"NetworkGameHandler: 切换到游戏场景 {sceneName}");
             
-            var sceneManager = GameApplication.Instance?.SceneManager;
+            var sceneManager = SceneManager.Instance;
             if (sceneManager == null)
             {
                 throw new Exception("SceneManager不存在");
@@ -202,7 +202,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
         {
             try
             {
-                var uiManager = GameApplication.Instance?.UIManager;
+                var uiManager = UIManager.Instance;
                 if (uiManager != null)
                 {
                     uiManager.HideUI("Login");

@@ -163,5 +163,22 @@ namespace Astrum.View.Managers
             // TODO: 返回实际静音状态
             return false;
         }
+        
+        /// <summary>
+        /// 更新音频管理器
+        /// </summary>
+        public void Update()
+        {
+            // TODO: 实现音频更新逻辑
+        }
+        
+        /// <summary>
+        /// 关闭音频管理器
+        /// </summary>
+        public void Shutdown()
+        {
+            // TODO: 实现音频关闭逻辑
+            ASLogger.Instance.Info("AudioManager: 关闭音频管理器");
+        }
     }
 }

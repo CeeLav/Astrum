@@ -51,7 +51,7 @@ namespace Astrum.Client.Managers
             {
                 ASLogger.Instance.Info("RoomSystemManager: 获取房间列表...");
                 
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     ASLogger.Instance.Error("RoomSystemManager: NetworkManager不存在");
@@ -106,7 +106,7 @@ namespace Astrum.Client.Managers
                 isCreatingRoom = true;
                 ASLogger.Instance.Info($"RoomSystemManager: 创建房间 - 名称: {roomName}, 最大玩家: {maxPlayers}");
                 
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     ASLogger.Instance.Error("RoomSystemManager: NetworkManager不存在");
@@ -167,7 +167,7 @@ namespace Astrum.Client.Managers
                 isJoiningRoom = true;
                 ASLogger.Instance.Info($"RoomSystemManager: 加入房间 - ID: {roomId}");
                 
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     ASLogger.Instance.Error("RoomSystemManager: NetworkManager不存在");
@@ -227,7 +227,7 @@ namespace Astrum.Client.Managers
                 isLeavingRoom = true;
                 ASLogger.Instance.Info("RoomSystemManager: 离开房间");
                 
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     ASLogger.Instance.Error("RoomSystemManager: NetworkManager不存在");
@@ -289,7 +289,7 @@ namespace Astrum.Client.Managers
                 isStartingGame = true;
                 ASLogger.Instance.Info($"RoomSystemManager: 开始游戏 - 房间ID: {CurrentRoom?.Id}");
                 
-                var networkManager = GameApplication.Instance?.NetworkManager;
+                var networkManager = NetworkManager.Instance;
                 if (networkManager == null)
                 {
                     ASLogger.Instance.Error("RoomSystemManager: NetworkManager不存在");
@@ -388,7 +388,7 @@ namespace Astrum.Client.Managers
                         OnRoomCreated?.Invoke(CurrentRoom);
                         
                         // 自动切换到房间详情界面
-                        var uiManager = GameApplication.Instance?.UIManager;
+                        var uiManager = UIManager.Instance;
                         if (uiManager != null)
                         {
                             ASLogger.Instance.Info("RoomSystemManager: 切换到房间详情界面");
@@ -449,7 +449,7 @@ namespace Astrum.Client.Managers
                         OnRoomJoined?.Invoke(CurrentRoom);
                         
                         // 自动切换到房间详情界面
-                        var uiManager = GameApplication.Instance?.UIManager;
+                        var uiManager = UIManager.Instance;
                         if (uiManager != null)
                         {
                             ASLogger.Instance.Info("RoomSystemManager: 切换到房间详情界面");
@@ -509,7 +509,7 @@ namespace Astrum.Client.Managers
                     OnRoomLeft?.Invoke();
                     
                     // 自动切换到房间列表界面
-                    var uiManager = GameApplication.Instance?.UIManager;
+                    var uiManager = UIManager.Instance;
                     if (uiManager != null)
                     {
                         ASLogger.Instance.Info("RoomSystemManager: 切换到房间列表界面");
