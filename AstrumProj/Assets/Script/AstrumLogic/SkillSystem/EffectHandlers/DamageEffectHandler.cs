@@ -35,7 +35,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             }
             
             // 3. 计算伤害
-            int currentFrame = 0; // TODO: 从World或Room获取真实帧号
+            int currentFrame = GetCurrentFrame(caster);
             var damageResult = DamageCalculator.Calculate(caster, target, effectConfig, currentFrame);
             ASLogger.Instance.Info($"[DamageEffect] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
             
@@ -70,6 +70,22 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             
             // 7. TODO: 播放音效
             // if (effectConfig.SoundEffectId > 0) { ... }
+        }
+        
+        /// <summary>
+        /// 获取当前逻辑帧号
+        /// </summary>
+        private static int GetCurrentFrame(Entity entity)
+        {
+            // 尝试从实体的World获取当前帧号
+            if (entity?.World != null)
+            {
+                return entity.World.CurFrame;
+            }
+            
+            // 如果无法获取，返回0作为默认值
+            ASLogger.Instance.Warning($"[DamageEffect] 无法获取当前帧号，使用默认值0");
+            return 0;
         }
     }
 }

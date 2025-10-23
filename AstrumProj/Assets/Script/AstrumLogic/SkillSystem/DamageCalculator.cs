@@ -47,13 +47,15 @@ namespace Astrum.LogicCore.SkillSystem
             FP targetBlockValue = targetDerived?.Get(StatType.BLOCK_VALUE) ?? (FP)50;
             
             ASLogger.Instance.Debug($"[DamageCalc] Caster ATK={casterAttack}, CRIT={casterCritRate}, Target DEF={targetDefense}");
+            ASLogger.Instance.Debug($"[DamageCalc] Frame={currentFrame}, CasterId={caster.UniqueId}, TargetId={target.UniqueId}");
             
             // 4. 计算基础伤害
             FP baseDamage = CalculateBaseDamage(casterAttack, effectConfig);
             ASLogger.Instance.Debug($"[DamageCalc] Base damage: {(float)baseDamage:F2}");
-            
+            /*
             // 5. 命中判定
             int seed1 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 1);
+            ASLogger.Instance.Debug($"[DamageCalc] Hit seed: {seed1}");
             if (!CheckHit(casterAccuracy, targetEvasion, seed1))
             {
                 ASLogger.Instance.Info($"[DamageCalc] ❌ MISS! (Accuracy={casterAccuracy}, Evasion={targetEvasion})");
@@ -62,6 +64,7 @@ namespace Astrum.LogicCore.SkillSystem
             
             // 6. 格挡判定
             int seed2 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 2);
+            ASLogger.Instance.Debug($"[DamageCalc] Block seed: {seed2}");
             bool isBlocked = CheckBlock(targetBlockRate, seed2);
             if (isBlocked)
             {
@@ -72,13 +75,14 @@ namespace Astrum.LogicCore.SkillSystem
             
             // 7. 暴击判定
             int seed3 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 3);
+            ASLogger.Instance.Debug($"[DamageCalc] Crit seed: {seed3}");
             bool isCritical = CheckCritical(casterCritRate, seed3);
             if (isCritical)
             {
                 FP beforeCrit = baseDamage;
                 baseDamage *= casterCritDamage;
                 ASLogger.Instance.Info($"[DamageCalc] 💥 CRITICAL HIT! {(float)beforeCrit:F2} × {(float)casterCritDamage:F2} = {(float)baseDamage:F2}");
-            }
+            }*/
             
             // 8. 应用防御减免
             Stats.DamageType damageType = (Stats.DamageType)effectConfig.DamageType;
@@ -90,19 +94,20 @@ namespace Astrum.LogicCore.SkillSystem
             ASLogger.Instance.Debug($"[DamageCalc] After resistance: {(float)afterDefense:F2} → {(float)afterResistance:F2}");
             
             // 10. 应用随机浮动（注意：使用确定性随机）
-            int seed4 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 4);
-            FP finalDamage = ApplyDeterministicVariance(afterResistance, seed4);
+            //int seed4 = GenerateSeed(currentFrame, caster.UniqueId, target.UniqueId, 4);
+            //ASLogger.Instance.Debug($"[DamageCalc] Variance seed: {seed4}");
+            FP finalDamage = afterResistance;//ApplyDeterministicVariance(afterResistance, seed4);
             
             // 11. 确保非负
             finalDamage = TSMath.Max(FP.Zero, finalDamage);
             
-            ASLogger.Instance.Info($"[DamageCalc] RESULT - Final damage: {(float)finalDamage:F2} (Crit: {isCritical}, Block: {isBlocked})");
+            //ASLogger.Instance.Info($"[DamageCalc] RESULT - Final damage: {(float)finalDamage:F2} (Crit: {isCritical}, Block: {isBlocked})");
             
             return new DamageResult
             {
                 FinalDamage = finalDamage,
-                IsCritical = isCritical,
-                IsBlocked = isBlocked,
+                IsCritical = false,
+                IsBlocked = false,
                 IsMiss = false,
                 DamageType = damageType
             };
