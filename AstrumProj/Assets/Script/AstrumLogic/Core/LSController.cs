@@ -80,7 +80,7 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsRunning || IsPaused || Room == null) return;
 
-            long currentTime = TimeInfo.Instance.ServerNow();
+            long currentTime = TimeInfo.Instance.ServerNow() + TimeInfo.Instance.RTT / 2;
 
             while (true)
             {
@@ -97,11 +97,12 @@ namespace Astrum.LogicCore.Core
                 ++PredictionFrame;
 
                 OneFrameInputs oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
-                ASLogger.Instance.Log(LogLevel.Debug, $"Tick Frame: {PredictionFrame}, Inputs Count: {oneOneFrameInputs.Inputs.Count}" );
                 Room.FrameTick(oneOneFrameInputs);
                 if (Room.MainPlayerId > 0)
                 {
                     var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
+                    ASLogger.Instance.Log(LogLevel.Info, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
+                    
                     EventSystem.Instance.Publish(eventData);
                 }
                 if (TimeInfo.Instance.ServerNow() - currentTime > 5)

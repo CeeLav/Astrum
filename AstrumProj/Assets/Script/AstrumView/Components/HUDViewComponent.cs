@@ -33,8 +33,8 @@ namespace Astrum.View.Components
         {
             if (!_isRegistered || OwnerEntity == null)
                 return;
-            OnSyncData(null);
-            // 获取实体的世界位置
+            
+            // 持续更新HUD位置，确保镜头移动时HUD跟随
             Vector3 worldPosition = GetEntityWorldPosition();
             if (worldPosition != Vector3.zero)
             {

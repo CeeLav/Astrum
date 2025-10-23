@@ -623,6 +623,7 @@ namespace Astrum.Client.Managers
                             var t2 = TimeInfo.Instance.ClientNow();
                             var rtt = t2 - t1;
                             var offset = captured.Time + rtt / 2 - t2;
+                            TimeInfo.Instance.RTT = rtt;
                             TimeInfo.Instance.ServerMinusClientTime = offset;
                             ASLogger.Instance.Info($"Ping RTT={rtt}ms, offset={offset}ms (attempt {attempt})");
                             success = true;

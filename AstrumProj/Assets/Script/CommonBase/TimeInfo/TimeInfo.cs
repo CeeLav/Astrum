@@ -24,6 +24,8 @@ namespace Astrum.CommonBase
         
         // ping消息会设置该值，原子操作
         public long ServerMinusClientTime { private get; set; }
+        
+        public long RTT { get; set; }
 
         public long FrameTime { get; private set; }
         
