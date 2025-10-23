@@ -68,15 +68,6 @@ namespace Astrum.Client.Core
             }
         }
         
-        public void StartGame()
-        {
-            // 设置目标帧率
-            Application.targetFrameRate = targetFrameRate;
-            
-            // 使用 GameDirector 启动游戏（新的核心控制器）
-            GameDirector.Instance.StartGame("Game");
-        }
-        
         private void Update()
         {
             if (!isRunning) return;

@@ -4,6 +4,7 @@ using Astrum.Client.Managers.GameModes;
 using Astrum.LogicCore.Archetypes;
 using Astrum.View.Managers;
 using Astrum.LogicCore.Managers;
+using Astrum.Network;
 using Astrum.View.Archetypes;
 
 namespace Astrum.Client.Core
@@ -290,7 +291,7 @@ namespace Astrum.Client.Core
                 ASLogger.Instance.Info("GameDirector: CodeTypes初始化完成");
                 
                 // 初始化OpcodeType（注册消息类型和opcode映射）
-                // OpcodeType.Instance.Awake();
+                OpcodeType.Instance.Awake();
                 ASLogger.Instance.Info("GameDirector: OpcodeType初始化完成");
             }
             catch (System.Exception ex)
