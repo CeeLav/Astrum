@@ -3,6 +3,7 @@ using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using TrueSync;
+using Sharklib.ProgressBar;
 
 
 namespace Astrum.View.Managers
@@ -207,23 +208,41 @@ namespace Astrum.View.Managers
                 return;
             }
             
-            // 计算血条百分比
-            float healthPercent = 0f;
-            if (maxHealth > FP.Zero)
-            {
-                healthPercent = (float)(currentHealth / maxHealth);
-            }
+            // 转换数值
+            float currentHealthFloat = (float)currentHealth;
+            float maxHealthFloat = (float)maxHealth;
             
-            // 更新血条
+            // 计算血量百分比用于血条显示
+            float healthPercent = maxHealthFloat > 0f ? currentHealthFloat / maxHealthFloat : 0f;
+            
+            // 更新血条进度（使用百分比）
             progressBar.SetValue(healthPercent);
             
+            // 配置文本显示组件以显示实际数值
+            var textView = hudInstance.GameObject.GetComponentInChildren<BarViewValueText>();
+            if (textView != null)
+            {
+                // 配置显示参数
+                textView.ConfigureDisplay(0f, maxHealthFloat, true, "", 0);
+                
+                // 强制更新显示
+                textView.UpdateView(healthPercent, healthPercent);
+            }
+            
             // 根据血量设置颜色
-            //Color healthColor = healthPercent <= lowHealthThreshold ? lowHealthColor : fullHealthColor;
-            //progressBar.SetBarColor(healthColor);
+            Color healthColor = healthPercent <= lowHealthThreshold ? lowHealthColor : fullHealthColor;
+            
+            // 查找并更新血条颜色组件
+            var colorView = hudInstance.GameObject.GetComponentInChildren<BarViewColor>();
+            if (colorView != null)
+            {
+                colorView.SetBarColor(healthColor);
+            }
             
             // 处理护盾显示（如果有护盾组件）
             if (currentShield > FP.Zero)
             {
+                ASLogger.Instance.Debug($"实体 {hudInstance.EntityId} 有护盾: {(float)currentShield:F1}");
                 // 可以在这里添加护盾条的逻辑
             }
         }

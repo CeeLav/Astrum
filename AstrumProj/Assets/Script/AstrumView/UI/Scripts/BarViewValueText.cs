@@ -30,6 +30,18 @@ namespace Sharklib.ProgressBar {
         public override void UpdateView(float currentValue, float targetValue) {
             text.text = prefix + FormatNumber(GetRoundedDisplayValue(currentValue)) + numberUnit + (showMaxValue ? " / " + FormatNumber(maxValue) + numberUnit : "" ) + suffix;
 		}
+		
+		/// <summary>
+		/// 配置显示参数
+		/// </summary>
+		public void ConfigureDisplay(float minVal, float maxVal, bool showMax, string unit, int decimals)
+		{
+			minValue = minVal;
+			maxValue = maxVal;
+			showMaxValue = showMax;
+			numberUnit = unit;
+			numDecimals = decimals;
+		}
 
 		float GetDisplayValue(float num) {
 			return Mathf.Lerp(minValue, maxValue, num);
