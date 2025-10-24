@@ -97,20 +97,9 @@ namespace Astrum.Client.UI.Generated
         private void SubscribeToNetworkEvents()
         {
             var networkManager = NetworkManager.Instance;
-            if (networkManager != null)
-            {
-                networkManager.OnConnected += OnConnected;
-                networkManager.OnDisconnected += OnDisconnected;
-                networkManager.OnConnectionStatusChanged += OnConnectionStatusChanged;
-                networkManager.OnConnectResponse += OnConnectResponse;
-                networkManager.OnLoginResponse += OnLoginResponse;
-                
-                // 订阅快速匹配事件
-                networkManager.OnQuickMatchResponse += OnQuickMatchResponse;
-                networkManager.OnCancelMatchResponse += OnCancelMatchResponse;
-                networkManager.OnMatchFoundNotification += OnMatchFoundNotification;
-                networkManager.OnMatchTimeoutNotification += OnMatchTimeoutNotification;
-            }
+            // TODO: 这些Action事件已被新的消息处理器系统替代
+            // 新的消息处理器会自动处理这些消息类型
+            Debug.Log("LoginView: 使用新的消息处理器系统，无需手动订阅Action事件");
         }
 
         /// <summary>
@@ -118,21 +107,9 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void UnsubscribeFromNetworkEvents()
         {
-            var networkManager = NetworkManager.Instance;
-            if (networkManager != null)
-            {
-                networkManager.OnConnected -= OnConnected;
-                networkManager.OnDisconnected -= OnDisconnected;
-                networkManager.OnConnectionStatusChanged -= OnConnectionStatusChanged;
-                networkManager.OnConnectResponse -= OnConnectResponse;
-                networkManager.OnLoginResponse -= OnLoginResponse;
-                
-                // 取消订阅快速匹配事件
-                networkManager.OnQuickMatchResponse -= OnQuickMatchResponse;
-                networkManager.OnCancelMatchResponse -= OnCancelMatchResponse;
-                networkManager.OnMatchFoundNotification -= OnMatchFoundNotification;
-                networkManager.OnMatchTimeoutNotification -= OnMatchTimeoutNotification;
-            }
+            // TODO: 这些Action事件已被新的消息处理器系统替代
+            // 新的消息处理器系统会自动管理，无需手动取消订阅
+            Debug.Log("LoginView: 使用新的消息处理器系统，无需手动取消订阅Action事件");
         }
 
         /// <summary>

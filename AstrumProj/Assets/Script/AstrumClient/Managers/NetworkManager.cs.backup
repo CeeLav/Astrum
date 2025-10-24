@@ -1,21 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Astrum.CommonBase;
-using Astrum.Network;
-using Astrum.Network.MessageHandlers;
-using Astrum.Network.Generated;
-using Astrum.Client.MessageHandlers;
 using Astrum.Generated;
-using IMessageHandler = Astrum.Network.MessageHandlers.IMessageHandler;
+using Astrum.Network;
+using Astrum.Network.Generated;
+using Astrum.LogicCore;
 using MemoryPack;
 
 namespace Astrum.Client.Managers
 {
-    /// <summary>
-    /// 重构后的NetworkManager
-    /// 使用消息处理器系统替换原有的Action回调方式
+        /// <summary>
+    /// 网络管理器，基于ET框架的TCP服务实现
     /// </summary>
     public class NetworkManager : Singleton<NetworkManager>
     {
@@ -25,22 +23,42 @@ namespace Astrum.Client.Managers
         private long _lastPingAtMs = 0;
         private bool _pingInProgress = false;
         
-        // 客户端连接状态
-        private bool isConnected = false;
-        
-        // 保留必要的连接状态事件（这些不是消息处理，而是连接状态管理）
+        // 客户端代码期望的事件接口
         public event Action OnConnected;
         public event Action OnDisconnected;
         public event Action<ConnectionStatus> OnConnectionStatusChanged;
         
-        // 移除所有具体的消息Action事件，例如：
-        // public event Action<LoginResponse> OnLoginResponse; ❌ 删除
-        // public event Action<CreateRoomResponse> OnCreateRoomResponse; ❌ 删除
-        // ... 其他20+个消息事件 ❌ 全部删除
+        // 具体消息类型的事件
+        public event Action<ConnectResponse> OnConnectResponse;
+        public event Action<LoginResponse> OnLoginResponse;
+        public event Action<CreateRoomResponse> OnCreateRoomResponse;
+        public event Action<JoinRoomResponse> OnJoinRoomResponse;
+        public event Action<LeaveRoomResponse> OnLeaveRoomResponse;
+        public event Action<GetRoomListResponse> OnGetRoomListResponse;
+        public event Action<RoomUpdateNotification> OnRoomUpdateNotification;
+        public event Action<HeartbeatResponse> OnHeartbeatResponse;
+        public event Action<G2C_Ping> OnPingResponse;
+        public event Action<GameResponse> OnGameResponse;
+        public event Action<GameStartNotification> OnGameStartNotification;
+        public event Action<GameEndNotification> OnGameEndNotification;
+        public event Action<GameStateUpdate> OnGameStateUpdate;
+        public event Action<FrameSyncStartNotification> OnFrameSyncStartNotification;
+        public event Action<FrameSyncEndNotification> OnFrameSyncEndNotification;
+        public event Action<FrameSyncData> OnFrameSyncData;
+        public event Action<OneFrameInputs> OnFrameInputs;
+        
+        // 快速匹配相关事件
+        public event Action<QuickMatchResponse> OnQuickMatchResponse;
+        public event Action<CancelMatchResponse> OnCancelMatchResponse;
+        public event Action<MatchFoundNotification> OnMatchFoundNotification;
+        public event Action<MatchTimeoutNotification> OnMatchTimeoutNotification;
         
         // 客户端代码期望的属性
         public ConnectionStatus ConnectionStatus => GetConnectionStatus();
         public string ClientId => currentSession?.Id.ToString() ?? "-1";
+        
+        // 客户端连接状态
+        private bool isConnected = false;
         
         /// <summary>
         /// 初始化网络管理器（客户端模式）
@@ -61,14 +79,8 @@ namespace Astrum.Client.Managers
                 tcpService.ReadCallback = OnTcpRead;
                 tcpService.ErrorCallback = OnTcpError;
                 
-                // 初始化消息处理器分发器
-                MessageHandlerDispatcher.Instance.Initialize();
-                
-                // 注册AstrumClient项目中的消息处理器
-                MessageHandlerRegistry.Instance.RegisterAllHandlers();
-                
                 isInitialized = true;
-                ASLogger.Instance.Info("NetworkManager initialized with MessageHandler system");
+                ASLogger.Instance.Info("NetworkManager initialized successfully (client mode)");
             }
             catch (Exception ex)
             {
@@ -103,6 +115,9 @@ namespace Astrum.Client.Managers
             
             try
             {
+                // 注册连接响应事件处理
+                OnConnectResponse += OnConnectResponseReceived;
+                
                 long channelId = NetServices.Instance.CreateConnectChannelId();
                 
                 if (tcpService != null)
@@ -115,6 +130,7 @@ namespace Astrum.Client.Managers
                     currentSession.Initialize(tcpService, channelId, endPoint);
                     
                     // 客户端模式：TCP连接建立后立即认为连接成功
+                    // 因为TCP连接建立意味着网络层连接已成功
                     isConnected = true;
                     ASLogger.Instance.Info($"客户端TCP连接建立成功，ChannelId: {channelId}");
                     
@@ -199,6 +215,19 @@ namespace Astrum.Client.Managers
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"Failed to send message via Session: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 关闭当前连接
+        /// </summary>
+        /// <param name="error">错误码</param>
+        private void CloseCurrentConnection(int error = 0)
+        {
+            if (currentSession != null && tcpService != null)
+            {
+                tcpService.Remove(currentSession.Id, error);
+                ASLogger.Instance.Info($"Connection closed, error: {error}");
             }
         }
         
@@ -316,9 +345,6 @@ namespace Astrum.Client.Managers
                 // 关闭TCP服务
                 tcpService?.Dispose();
                 
-                // 关闭消息处理器分发器
-                MessageHandlerDispatcher.Instance.Shutdown();
-                
                 tcpService = null;
                 currentSession = null;
                 isConnected = false;
@@ -337,6 +363,7 @@ namespace Astrum.Client.Managers
         private void OnTcpAccept(long channelId, IPEndPoint remoteEndPoint)
         {
             // 注意：在客户端模式下，这个回调通常不会被调用
+            // 客户端连接成功应该通过其他方式检测
             ASLogger.Instance.Info($"TCP connection accepted from {remoteEndPoint}, ChannelId: {channelId}");
             
             // 更新连接状态
@@ -356,11 +383,12 @@ namespace Astrum.Client.Managers
             if (currentSession != null && channelId == currentSession.Id)
             {
                 currentSession.LastRecvTime = TimeInfo.Instance.ClientNow();
+                
+                // 客户端模式：连接已在ConnectAsync中建立，这里只处理消息
                 ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}", "Network.Receive");
             }
             
-            // 异步处理消息，但不等待（fire-and-forget）
-            _ = ProcessMessageAsync(channelId, buffer);
+            ProcessMessage(channelId, buffer);
         }
         
         private void OnTcpError(long channelId, int error)
@@ -382,16 +410,14 @@ namespace Astrum.Client.Managers
             }
         }
         
-        /// <summary>
-        /// 处理接收到的消息 - 使用新的消息处理器系统
-        /// </summary>
-        private async Task ProcessMessageAsync(long channelId, MemoryBuffer buffer)
+        private void ProcessMessage(long channelId, MemoryBuffer buffer)
         {
             try
             {
                 if (currentSession != null && channelId == currentSession.Id)
                 {
-                    await ProcessReceivedMessage(buffer);
+                    // 尝试反序列化服务器发送的具体消息对象
+                    ProcessReceivedMessage(buffer);
                 }
             }
             catch (Exception ex)
@@ -401,12 +427,13 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
-        /// 处理接收到的消息 - 核心改进：使用消息处理器分发器
+        /// 处理接收到的消息
         /// </summary>
-        private async Task ProcessReceivedMessage(MemoryBuffer buffer)
+        private void ProcessReceivedMessage(MemoryBuffer buffer)
         {
             try
             {
+                // 检查 tcpService 是否已初始化
                 if (tcpService == null)
                 {
                     ASLogger.Instance.Error("TCP service not initialized, cannot process received message");
@@ -415,11 +442,11 @@ namespace Astrum.Client.Managers
                 
                 // 使用 MessageSerializeHelper.ToMessage 直接序列化出 Message 对象
                 var messageObject = MessageSerializeHelper.ToMessage(tcpService, buffer);
-                if (messageObject != null && messageObject is MessageObject msgObj)
+                if (messageObject != null)
                 {
-                    // 使用新的消息处理器分发系统
-                    await MessageHandlerDispatcher.Instance.DispatchAsync(msgObj);
-                    ASLogger.Instance.Debug($"消息已分发到处理器: {msgObj.GetType().Name}", "Network.Deserialize");
+                    // 根据消息类型触发对应事件
+                    DispatchMessage(messageObject);
+                    ASLogger.Instance.Debug($"成功反序列化消息: {messageObject.GetType().Name}", "Network.Deserialize");
                 }
                 else
                 {
@@ -433,18 +460,128 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
-        /// 关闭当前连接
+        /// 分发消息到对应的事件处理器
         /// </summary>
-        /// <param name="error">错误码</param>
-        private void CloseCurrentConnection(int error = 0)
+        private void DispatchMessage(object messageObject)
         {
-            if (currentSession != null && tcpService != null)
+            switch (messageObject)
             {
-                tcpService.Remove(currentSession.Id, error);
-                ASLogger.Instance.Info($"Connection closed, error: {error}");
+                case ConnectResponse connectResponse:
+                    OnConnectResponse?.Invoke(connectResponse);
+                    break;
+                case LoginResponse loginResponse:
+                    OnLoginResponse?.Invoke(loginResponse);
+                    break;
+                case CreateRoomResponse createRoomResponse:
+                    OnCreateRoomResponse?.Invoke(createRoomResponse);
+                    break;
+                case JoinRoomResponse joinRoomResponse:
+                    OnJoinRoomResponse?.Invoke(joinRoomResponse);
+                    break;
+                case LeaveRoomResponse leaveRoomResponse:
+                    OnLeaveRoomResponse?.Invoke(leaveRoomResponse);
+                    break;
+                case GetRoomListResponse getRoomListResponse:
+                    OnGetRoomListResponse?.Invoke(getRoomListResponse);
+                    break;
+                case RoomUpdateNotification roomUpdateNotification:
+                    OnRoomUpdateNotification?.Invoke(roomUpdateNotification);
+                    break;
+                case HeartbeatResponse heartbeatResponse:
+                    OnHeartbeatResponse?.Invoke(heartbeatResponse);
+                    break;
+                case G2C_Ping pingResponse:
+                    OnPingResponse?.Invoke(pingResponse);
+                    break;
+                case GameResponse gameResponse:
+                    OnGameResponse?.Invoke(gameResponse);
+                    break;
+                case GameStartNotification gameStartNotification:
+                    OnGameStartNotification?.Invoke(gameStartNotification);
+                    break;
+                case GameEndNotification gameEndNotification:
+                    OnGameEndNotification?.Invoke(gameEndNotification);
+                    break;
+                case GameStateUpdate gameStateUpdate:
+                    OnGameStateUpdate?.Invoke(gameStateUpdate);
+                    break;
+                case FrameSyncStartNotification frameSyncStartNotification:
+                    OnFrameSyncStartNotification?.Invoke(frameSyncStartNotification);
+                    break;
+                case FrameSyncEndNotification frameSyncEndNotification:
+                    OnFrameSyncEndNotification?.Invoke(frameSyncEndNotification);
+                    break;
+                case FrameSyncData frameSyncData:
+                    OnFrameSyncData?.Invoke(frameSyncData);
+                    break;
+                case OneFrameInputs oneFrameInputs:
+                    OnFrameInputs?.Invoke(oneFrameInputs);
+                    break;
+                
+                // 快速匹配相关消息
+                case QuickMatchResponse quickMatchResponse:
+                    ASLogger.Instance.Info($"[NetworkManager] Received QuickMatchResponse: {quickMatchResponse.Success}, {quickMatchResponse.Message}");
+                    OnQuickMatchResponse?.Invoke(quickMatchResponse);
+                    break;
+                case CancelMatchResponse cancelMatchResponse:
+                    ASLogger.Instance.Info($"[NetworkManager] Received CancelMatchResponse: {cancelMatchResponse.Success}, {cancelMatchResponse.Message}");
+                    OnCancelMatchResponse?.Invoke(cancelMatchResponse);
+                    break;
+                case MatchFoundNotification matchFoundNotification:
+                    ASLogger.Instance.Info($"[NetworkManager] Received MatchFoundNotification: Room={matchFoundNotification.Room?.Id}");
+                    OnMatchFoundNotification?.Invoke(matchFoundNotification);
+                    break;
+                case MatchTimeoutNotification matchTimeoutNotification:
+                    ASLogger.Instance.Info($"[NetworkManager] Received MatchTimeoutNotification: {matchTimeoutNotification.Message}");
+                    OnMatchTimeoutNotification?.Invoke(matchTimeoutNotification);
+                    break;
+                    
+                default:
+                    ASLogger.Instance.Warning($"未处理的消息类型: {messageObject.GetType().Name}");
+                    break;
             }
         }
         
+
+
+        
+        /// <summary>
+        /// 处理连接响应
+        /// </summary>
+        private void OnConnectResponseReceived(ConnectResponse response)
+        {
+            try
+            {
+                if (response.success)
+                {
+                    ASLogger.Instance.Info($"连接成功: {response.message}");
+                    
+                    // 更新连接状态
+                    isConnected = true;
+                    
+                    // 触发连接成功事件
+                    OnConnected?.Invoke();
+                    OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"连接失败: {response.message}");
+                    
+                    // 更新连接状态
+                    isConnected = false;
+                    
+                    // 触发连接失败事件
+                    OnConnectionStatusChanged?.Invoke(ConnectionStatus.Disconnected);
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理连接响应时出错: {ex.Message}");
+            }
+        }
+        
+        #endregion
+
         /// <summary>
         /// 发送一次 Ping 并基于响应校准 ServerMinusClientTime
         /// </summary>
@@ -469,11 +606,11 @@ namespace Astrum.Client.Managers
                 req.ClientSendTime = t1;
 
                 var tcs = new TaskCompletionSource<G2C_Ping?>(TaskCreationOptions.RunContinuationsAsynchronously);
-                
-                // 创建临时Ping处理器
-                var tempHandler = new TempPingHandler(tcs);
-                MessageHandlerDispatcher.Instance.RegisterHandler(typeof(G2C_Ping), tempHandler, 0, true);
-                
+                void Handler(G2C_Ping resp)
+                {
+                    tcs.TrySetResult(resp);
+                }
+                OnPingResponse += Handler;
                 try
                 {
                     Send(req);
@@ -499,9 +636,7 @@ namespace Astrum.Client.Managers
                 }
                 finally
                 {
-                    // 清理临时处理器
-                    // 注意：这里需要从MessageHandlerDispatcher中移除临时处理器
-                    // 由于MessageHandlerDispatcher没有提供移除方法，我们使用一次性处理
+                    OnPingResponse -= Handler;
                 }
             }
 
@@ -529,34 +664,5 @@ namespace Astrum.Client.Managers
                 _pingInProgress = false;
             }
         }
-        
-        #endregion
     }
-    
-    /// <summary>
-    /// 临时Ping处理器，用于处理Ping响应
-    /// </summary>
-    internal class TempPingHandler : IMessageHandler
-    {
-        private readonly TaskCompletionSource<G2C_Ping?> _tcs;
-        
-        public TempPingHandler(TaskCompletionSource<G2C_Ping?> tcs)
-        {
-            _tcs = tcs;
-        }
-        
-        public async Task HandleAsync(MessageObject message)
-        {
-            if (message is G2C_Ping pingResponse)
-            {
-                _tcs.TrySetResult(pingResponse);
-            }
-            await Task.CompletedTask;
-        }
-        
-        public Type GetMessageType()
-        {
-            return typeof(G2C_Ping);
-        }
-    }
-}
+} 

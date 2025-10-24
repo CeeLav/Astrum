@@ -189,8 +189,8 @@ namespace Astrum.Client.Core
             AudioManager.Instance.Initialize();
             InputManager.Instance.Initialize();
             CameraManager.Instance.Initialize();
-            // 初始化网络消息处理器
-            NetworkMessageHandler.Instance.Initialize();
+            // TODO: NetworkMessageHandler已被新的消息处理器系统替代
+            // 新的消息处理器会自动初始化，无需手动调用
             
             // 显示登录UI
             ShowLoginUI();
@@ -231,8 +231,8 @@ namespace Astrum.Client.Core
             AudioManager.Instance?.Shutdown();
             InputManager.Instance?.Shutdown();
             CameraManager.Instance?.Shutdown();
-            // 关闭网络消息处理器
-            NetworkMessageHandler.Instance?.Shutdown();
+            // TODO: NetworkMessageHandler已被新的消息处理器系统替代
+            // 新的消息处理器会自动管理，无需手动关闭
             TableConfig.Instance?.Shutdown();
             
             // 设置关闭状态

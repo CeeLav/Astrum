@@ -1,7 +1,11 @@
 {
     "name": "Network",
     "rootNamespace": "Astrum.Network",
-    "references": ["GUID:4212b4cac5beb1f4d91caa4511699f6b","GUID:331f1bca129ff5649960ca8e270b50e0"],
+    "references": [
+        "GUID:4212b4cac5beb1f4d91caa4511699f6b",
+        "GUID:331f1bca129ff5649960ca8e270b50e0",
+        "GUID:656394d66ddcaec41bfb53c51fe53c96"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

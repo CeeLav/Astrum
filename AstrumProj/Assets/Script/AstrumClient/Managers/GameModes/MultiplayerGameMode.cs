@@ -112,27 +112,9 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void RegisterNetworkHandlers()
         {
-            var networkManager = NetworkManager.Instance;
-            if (networkManager != null)
-            {
-                // 游戏流程消息
-                networkManager.OnGameResponse += OnGameResponse;
-                networkManager.OnGameStartNotification += OnGameStartNotification;
-                networkManager.OnGameEndNotification += OnGameEndNotification;
-                networkManager.OnGameStateUpdate += OnGameStateUpdate;
-                
-                // 帧同步消息
-                networkManager.OnFrameSyncStartNotification += _frameSyncHandler.OnFrameSyncStartNotification;
-                networkManager.OnFrameSyncEndNotification += _frameSyncHandler.OnFrameSyncEndNotification;
-                networkManager.OnFrameSyncData += _frameSyncHandler.OnFrameSyncData;
-                networkManager.OnFrameInputs += _frameSyncHandler.OnFrameInputs;
-                
-                ASLogger.Instance.Info("MultiplayerGameMode: 网络消息处理器注册完成");
-            }
-            else
-            {
-                ASLogger.Instance.Warning("MultiplayerGameMode: NetworkManager 不存在，无法注册消息处理器");
-            }
+            // TODO: 这些Action事件已被新的消息处理器系统替代
+            // 新的消息处理器会自动处理这些消息类型
+            ASLogger.Instance.Info("MultiplayerGameMode: 使用新的消息处理器系统，无需手动注册Action事件");
         }
         
         /// <summary>
@@ -140,23 +122,9 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void UnregisterNetworkHandlers()
         {
-            var networkManager = NetworkManager.Instance;
-            if (networkManager != null)
-            {
-                // 游戏流程消息
-                networkManager.OnGameResponse -= OnGameResponse;
-                networkManager.OnGameStartNotification -= OnGameStartNotification;
-                networkManager.OnGameEndNotification -= OnGameEndNotification;
-                networkManager.OnGameStateUpdate -= OnGameStateUpdate;
-                
-                // 帧同步消息
-                networkManager.OnFrameSyncStartNotification -= _frameSyncHandler.OnFrameSyncStartNotification;
-                networkManager.OnFrameSyncEndNotification -= _frameSyncHandler.OnFrameSyncEndNotification;
-                networkManager.OnFrameSyncData -= _frameSyncHandler.OnFrameSyncData;
-                networkManager.OnFrameInputs -= _frameSyncHandler.OnFrameInputs;
-                
-                ASLogger.Instance.Info("MultiplayerGameMode: 网络消息处理器取消注册完成");
-            }
+            // TODO: 这些Action事件已被新的消息处理器系统替代
+            // 新的消息处理器系统会自动管理，无需手动取消注册
+            ASLogger.Instance.Info("MultiplayerGameMode: 使用新的消息处理器系统，无需手动取消注册Action事件");
         }
         
         #endregion
