@@ -78,6 +78,31 @@ namespace Astrum.Network.MessageHandlers
         }
         
         /// <summary>
+        /// 注册外部提供的消息处理器列表
+        /// </summary>
+        /// <param name="handlers">处理器列表</param>
+        public void RegisterExternalHandlers(IEnumerable<IMessageHandler> handlers)
+        {
+            if (handlers == null)
+            {
+                ASLogger.Instance.Warning("MessageHandlerDispatcher: 传入的处理器列表为空");
+                return;
+            }
+            
+            foreach (var handler in handlers)
+            {
+                try
+                {
+                    RegisterHandlerInstance(handler);
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"Failed to register handler {handler.GetType().Name}: {ex.Message}");
+                }
+            }
+        }
+        
+        /// <summary>
         /// 注册单个消息处理器
         /// </summary>
         /// <param name="handlerType">处理器类型</param>
@@ -125,6 +150,47 @@ namespace Astrum.Network.MessageHandlers
             RegisterHandler(messageType, handler, attribute.Priority, attribute.Enabled);
             
             ASLogger.Instance.Info($"Registered handler {handlerType.Name} for message type {messageType.Name}");
+        }
+        
+        /// <summary>
+        /// 注册处理器实例
+        /// </summary>
+        /// <param name="handler">处理器实例</param>
+        private void RegisterHandlerInstance(IMessageHandler handler)
+        {
+            if (handler == null)
+            {
+                ASLogger.Instance.Warning("MessageHandlerDispatcher: 处理器实例为空");
+                return;
+            }
+            
+            // 获取MessageHandlerAttribute
+            var attribute = handler.GetType().GetCustomAttributes(typeof(MessageHandlerAttribute), false)
+                .FirstOrDefault() as MessageHandlerAttribute;
+            
+            if (attribute == null)
+            {
+                ASLogger.Instance.Warning($"Handler {handler.GetType().Name} does not have MessageHandlerAttribute");
+                return;
+            }
+            
+            if (!attribute.Enabled)
+            {
+                ASLogger.Instance.Info($"Handler {handler.GetType().Name} is disabled");
+                return;
+            }
+            
+            // 验证消息类型
+            var messageType = handler.GetMessageType();
+            if (attribute.MessageType != null && attribute.MessageType != messageType)
+            {
+                ASLogger.Instance.Warning($"Handler {handler.GetType().Name} message type mismatch: expected {attribute.MessageType.Name}, got {messageType.Name}");
+            }
+            
+            // 注册处理器
+            RegisterHandler(messageType, handler, attribute.Priority, attribute.Enabled);
+            
+            ASLogger.Instance.Info($"Registered handler {handler.GetType().Name} for message type {messageType.Name}");
         }
         
         /// <summary>
