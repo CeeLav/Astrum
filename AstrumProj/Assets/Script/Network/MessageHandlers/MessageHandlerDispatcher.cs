@@ -125,11 +125,7 @@ namespace Astrum.Network.MessageHandlers
                 return;
             }
             
-            if (!attribute.Enabled)
-            {
-                ASLogger.Instance.Info($"Handler {handlerType.Name} is disabled");
-                return;
-            }
+            // MessageHandlerAttribute 没有 Enabled 属性，所以总是启用
             
             // 创建处理器实例
             var handler = Activator.CreateInstance(handlerType) as IMessageHandler;
@@ -147,7 +143,7 @@ namespace Astrum.Network.MessageHandlers
             }
             
             // 注册处理器
-            RegisterHandler(messageType, handler, attribute.Priority, attribute.Enabled);
+            RegisterHandler(messageType, handler, 0, true);
             
             ASLogger.Instance.Info($"Registered handler {handlerType.Name} for message type {messageType.Name}");
         }
@@ -174,11 +170,7 @@ namespace Astrum.Network.MessageHandlers
                 return;
             }
             
-            if (!attribute.Enabled)
-            {
-                ASLogger.Instance.Info($"Handler {handler.GetType().Name} is disabled");
-                return;
-            }
+            // MessageHandlerAttribute 没有 Enabled 属性，所以总是启用
             
             // 验证消息类型
             var messageType = handler.GetMessageType();
@@ -188,7 +180,7 @@ namespace Astrum.Network.MessageHandlers
             }
             
             // 注册处理器
-            RegisterHandler(messageType, handler, attribute.Priority, attribute.Enabled);
+            RegisterHandler(messageType, handler, 0, true);
             
             ASLogger.Instance.Info($"Registered handler {handler.GetType().Name} for message type {messageType.Name}");
         }

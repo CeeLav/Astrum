@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Astrum.CommonBase;
+using Astrum.Network.MessageHandlers;
 
 namespace Astrum.Client.MessageHandlers
 {
@@ -44,37 +45,27 @@ namespace Astrum.Client.MessageHandlers
         {
             _handlers.Clear();
             
-            try
+            // 使用反射自动发现所有带有MessageHandlerAttribute的处理器
+            var handlerTypes = GetHandlerTypes();
+            
+            foreach (var handlerType in handlerTypes)
             {
-                // 使用反射自动发现所有带有MessageHandlerAttribute的处理器
-                var handlerTypes = GetHandlerTypes();
-                
-                foreach (var handlerType in handlerTypes)
+                try
                 {
-                    try
+                    var handler = Activator.CreateInstance(handlerType) as IMessageHandler;
+                    if (handler != null)
                     {
-                        var handler = Activator.CreateInstance(handlerType) as IMessageHandler;
-                        if (handler != null)
-                        {
-                            _handlers.Add(handler);
-                            ASLogger.Instance.Debug($"MessageHandlerRegistry: 注册处理器 - {handlerType.Name}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        ASLogger.Instance.Error($"MessageHandlerRegistry: 创建处理器 {handlerType.Name} 失败 - {ex.Message}");
+                        _handlers.Add(handler);
+                        ASLogger.Instance.Debug($"MessageHandlerRegistry: 注册处理器 - {handlerType.Name}");
                     }
                 }
-                
-                ASLogger.Instance.Info($"MessageHandlerRegistry: 通过反射发现并注册了 {_handlers.Count} 个消息处理器");
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"MessageHandlerRegistry: 创建处理器 {handlerType.Name} 失败 - {ex.Message}");
+                }
             }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"MessageHandlerRegistry: 反射发现处理器时发生异常 - {ex.Message}");
-                
-                // 如果反射失败，回退到手动注册
-                RegisterHandlersManually();
-            }
+            
+            ASLogger.Instance.Info($"MessageHandlerRegistry: 通过反射发现并注册了 {_handlers.Count} 个消息处理器");
         }
         
         /// <summary>
@@ -84,67 +75,51 @@ namespace Astrum.Client.MessageHandlers
         {
             var handlerTypes = new List<Type>();
             
-            // 获取当前程序集中所有类型
-            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var types = assembly.GetTypes();
-            
-            foreach (var type in types)
+            try
             {
-                // 检查是否实现了IMessageHandler接口
-                if (!typeof(IMessageHandler).IsAssignableFrom(type))
-                    continue;
-                    
-                // 检查是否有MessageHandlerAttribute
-                var attribute = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false)
-                    .FirstOrDefault() as MessageHandlerAttribute;
-                    
-                if (attribute != null)
+                // 获取当前程序集中所有类型
+                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                var types = assembly.GetTypes();
+                
+                ASLogger.Instance.Info($"MessageHandlerRegistry: 扫描程序集 {assembly.FullName}，发现 {types.Length} 个类型");
+                
+                foreach (var type in types)
                 {
-                    handlerTypes.Add(type);
+                    // 跳过抽象类和接口
+                    if (type.IsAbstract || type.IsInterface)
+                        continue;
+                    
+                    // 检查是否实现了IMessageHandler接口
+                    if (!typeof(IMessageHandler).IsAssignableFrom(type))
+                        continue;
+                    
+                    ASLogger.Instance.Debug($"MessageHandlerRegistry: 发现实现IMessageHandler的类型 - {type.Name}");
+                    
+                    // 检查是否有MessageHandlerAttribute
+                    var attribute = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false)
+                        .FirstOrDefault() as MessageHandlerAttribute;
+                    
+                    if (attribute != null)
+                    {
+                        handlerTypes.Add(type);
+                        ASLogger.Instance.Debug($"MessageHandlerRegistry: 发现带有MessageHandlerAttribute的处理器 - {type.Name}");
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Debug($"MessageHandlerRegistry: 类型 {type.Name} 没有MessageHandlerAttribute");
+                    }
                 }
+                
+                ASLogger.Instance.Info($"MessageHandlerRegistry: 总共发现 {handlerTypes.Count} 个有效的消息处理器");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"MessageHandlerRegistry: 获取处理器类型时发生异常 - {ex.Message}");
             }
             
             return handlerTypes;
         }
         
-        /// <summary>
-        /// 手动注册处理器（作为反射失败时的回退方案）
-        /// </summary>
-        private void RegisterHandlersManually()
-        {
-            ASLogger.Instance.Info("MessageHandlerRegistry: 使用手动注册方式");
-            
-            // 登录相关
-            _handlers.Add(new LoginMessageHandler());
-            
-            // 房间相关
-            _handlers.Add(new CreateRoomResponseHandler());
-            _handlers.Add(new JoinRoomResponseHandler());
-            _handlers.Add(new LeaveRoomResponseHandler());
-            _handlers.Add(new GetRoomListResponseHandler());
-            _handlers.Add(new RoomUpdateNotificationHandler());
-            
-            // 连接相关
-            _handlers.Add(new ConnectMessageHandler());
-            
-            // 心跳相关
-            _handlers.Add(new HeartbeatMessageHandler());
-            
-            // 匹配相关
-            _handlers.Add(new QuickMatchResponseHandler());
-            _handlers.Add(new CancelMatchResponseHandler());
-            _handlers.Add(new MatchFoundNotificationHandler());
-            _handlers.Add(new MatchTimeoutNotificationHandler());
-            
-            // 游戏相关
-            _handlers.Add(new GameResponseHandler());
-            _handlers.Add(new GameStartNotificationHandler());
-            _handlers.Add(new GameEndNotificationHandler());
-            
-            // 帧同步相关
-            _handlers.Add(new FrameSyncStartNotificationHandler());
-            _handlers.Add(new FrameSyncEndNotificationHandler());
-        }
         
         /// <summary>
         /// 注册到Network项目的MessageHandlerDispatcher

@@ -6,8 +6,6 @@
 
 Entity-Component-Capability 架构设计
 
-**核心架构图**: [Diagrams 架构图/ECC.puml](Diagrams%20架构图/ECC.puml)
-
 **核心概念**:
 
 - **Entity (实体)** - 游戏对象的容器
@@ -72,6 +70,7 @@ Entity-Component-Capability 架构设计
 - **GameClientFlow.puml** - 游戏客户端流程
 
 **查看方式**:
+
 - VS Code: 安装 PlantUML 插件
 - IDEA: 内置 PlantUML 支持
 - 在线: [PlantUML Web Server](http://www.plantuml.com/plantuml/)

@@ -455,6 +455,38 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
         
+        /// <summary>
+        /// 处理帧同步开始通知（供消息处理器调用）
+        /// </summary>
+        public void OnFrameSyncStartNotification(FrameSyncStartNotification notification)
+        {
+            _frameSyncHandler?.OnFrameSyncStartNotification(notification);
+        }
+        
+        /// <summary>
+        /// 处理帧同步结束通知（供消息处理器调用）
+        /// </summary>
+        public void OnFrameSyncEndNotification(FrameSyncEndNotification notification)
+        {
+            _frameSyncHandler?.OnFrameSyncEndNotification(notification);
+        }
+        
+        /// <summary>
+        /// 处理帧同步数据（供消息处理器调用）
+        /// </summary>
+        public void OnFrameSyncData(FrameSyncData frameData)
+        {
+            _frameSyncHandler?.OnFrameSyncData(frameData);
+        }
+        
+        /// <summary>
+        /// 处理帧输入数据（供消息处理器调用）
+        /// </summary>
+        public void OnFrameInputs(OneFrameInputs frameInputs)
+        {
+            _frameSyncHandler?.OnFrameInputs(frameInputs);
+        }
+        
         #region 私有辅助方法
         
         /// <summary>

@@ -3,6 +3,7 @@ using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Network;
 using Astrum.Client.Managers;
+using Astrum.Network.MessageHandlers;
 
 namespace Astrum.Client.MessageHandlers
 {

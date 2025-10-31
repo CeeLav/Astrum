@@ -9,6 +9,8 @@ using Astrum.Client.Managers;
 using Astrum.Client.Core;
 using Astrum.Generated;
 using Astrum.Network.Generated;
+using Astrum.CommonBase;
+using Astrum.Client.MessageHandlers;
 
 namespace Astrum.Client.UI.Generated
 {
@@ -96,10 +98,9 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void SubscribeToNetworkEvents()
         {
-            var networkManager = NetworkManager.Instance;
-            // TODO: 这些Action事件已被新的消息处理器系统替代
-            // 新的消息处理器会自动处理这些消息类型
-            Debug.Log("LoginView: 使用新的消息处理器系统，无需手动订阅Action事件");
+            // 订阅连接响应事件
+            EventSystem.Instance.Subscribe<ConnectResponseEventData>(OnConnectResponse);
+            Debug.Log("LoginView: 已订阅连接响应事件");
         }
 
         /// <summary>
@@ -107,9 +108,33 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void UnsubscribeFromNetworkEvents()
         {
-            // TODO: 这些Action事件已被新的消息处理器系统替代
-            // 新的消息处理器系统会自动管理，无需手动取消订阅
-            Debug.Log("LoginView: 使用新的消息处理器系统，无需手动取消订阅Action事件");
+            // 取消订阅连接响应事件
+            EventSystem.Instance.Unsubscribe<ConnectResponseEventData>(OnConnectResponse);
+            Debug.Log("LoginView: 已取消订阅连接响应事件");
+        }
+        
+        /// <summary>
+        /// 处理连接响应事件
+        /// </summary>
+        private void OnConnectResponse(ConnectResponseEventData eventData)
+        {
+            Debug.Log($"LoginView: 收到连接响应 - Success: {eventData.Success}, Message: {eventData.Message}");
+            
+            if (eventData.Success)
+            {
+                // 连接成功
+                OnConnected();
+                // 自动发送登录请求
+                SendLoginRequest();
+            }
+            else
+            {
+                // 连接失败
+                isConnecting = false;
+                UpdateConnectionStatus($"连接失败: {eventData.Message}");
+                UpdateConnectButtonText("重新连接");
+                SetConnectButtonInteractable(true);
+            }
         }
 
         /// <summary>
@@ -119,8 +144,8 @@ namespace Astrum.Client.UI.Generated
         {
             Debug.Log("LoginView: 连接成功");
             isConnecting = false;
-            UpdateConnectionStatus("已连接");
-            UpdateConnectButtonText("已连接");
+            UpdateConnectionStatus("已连接，正在登录...");
+            UpdateConnectButtonText("连接中...");
             SetConnectButtonInteractable(false);
         }
 

@@ -2,6 +2,9 @@ using System.Threading.Tasks;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Network;
+using Astrum.Client.Core;
+using Astrum.Client.Managers.GameModes;
+using Astrum.Network.MessageHandlers;
 
 namespace Astrum.Client.MessageHandlers
 {
@@ -17,7 +20,13 @@ namespace Astrum.Client.MessageHandlers
             {
                 ASLogger.Instance.Info($"GameResponseHandler: 处理游戏响应 - Success: {message.success}, Message: {message.message}");
                 
-                if (message.success)
+                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
+                var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                if (currentGameMode is MultiplayerGameMode multiplayerMode)
+                {
+                    multiplayerMode.OnGameResponse(message);
+                }
+                else if (message.success)
                 {
                     ASLogger.Instance.Info("GameResponseHandler: 游戏操作成功");
                 }
@@ -46,7 +55,18 @@ namespace Astrum.Client.MessageHandlers
             try
             {
                 ASLogger.Instance.Info($"GameStartNotificationHandler: 处理游戏开始通知 - RoomId: {message.roomId}");
-                // 这里可以触发游戏开始的相关逻辑
+                
+                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
+                var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                if (currentGameMode is MultiplayerGameMode multiplayerMode)
+                {
+                    multiplayerMode.OnGameStartNotification(message);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"GameStartNotificationHandler: 收到游戏开始通知，但当前不是联机模式");
+                }
+                
                 await Task.CompletedTask;
             }
             catch (System.Exception ex)
@@ -67,12 +87,55 @@ namespace Astrum.Client.MessageHandlers
             try
             {
                 ASLogger.Instance.Info($"GameEndNotificationHandler: 处理游戏结束通知 - RoomId: {message.roomId}");
-                // 这里可以触发游戏结束的相关逻辑
+                
+                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
+                var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                if (currentGameMode is MultiplayerGameMode multiplayerMode)
+                {
+                    multiplayerMode.OnGameEndNotification(message);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"GameEndNotificationHandler: 收到游戏结束通知，但当前不是联机模式");
+                }
+                
                 await Task.CompletedTask;
             }
             catch (System.Exception ex)
             {
                 ASLogger.Instance.Error($"GameEndNotificationHandler: 处理游戏结束通知时发生异常 - {ex.Message}");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 游戏状态更新消息处理器
+    /// </summary>
+    [MessageHandler(typeof(GameStateUpdate))]
+    public class GameStateUpdateHandler : MessageHandlerBase<GameStateUpdate>
+    {
+        public override async Task HandleMessageAsync(GameStateUpdate message)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"GameStateUpdateHandler: 处理游戏状态更新 - RoomId: {message.roomId}");
+                
+                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
+                var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                if (currentGameMode is MultiplayerGameMode multiplayerMode)
+                {
+                    multiplayerMode.OnGameStateUpdate(message);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"GameStateUpdateHandler: 收到游戏状态更新，但当前不是联机模式");
+                }
+                
+                await Task.CompletedTask;
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Error($"GameStateUpdateHandler: 处理游戏状态更新时发生异常 - {ex.Message}");
             }
         }
     }

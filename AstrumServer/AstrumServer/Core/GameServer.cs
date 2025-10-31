@@ -134,6 +134,40 @@ namespace AstrumServer.Core
             _networkManager.SendMessage(client.Id.ToString(), response);
         }
         
+        /// <summary>
+        /// 处理连接请求
+        /// </summary>
+        private void HandleConnectRequest(Session client, ConnectRequest request)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"收到客户端 {client.Id} 的连接请求");
+                
+                // 发送连接成功响应
+                var response = ConnectResponse.Create();
+                response.success = true;
+                response.message = "连接成功";
+                response.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                
+                _networkManager.SendMessage(client.Id.ToString(), response);
+                
+                ASLogger.Instance.Info($"已向客户端 {client.Id} 发送连接响应");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理连接请求时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                
+                // 发送连接失败响应
+                var response = ConnectResponse.Create();
+                response.success = false;
+                response.message = "连接失败: " + ex.Message;
+                response.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                
+                _networkManager.SendMessage(client.Id.ToString(), response);
+            }
+        }
+        
         private void OnClientDisconnected(Session client)
         {
             ASLogger.Instance.Info($"客户端已断开: {client.Id}");
@@ -181,6 +215,9 @@ namespace AstrumServer.Core
                 // 根据消息类型处理
                 switch (message)
                 {
+                    case ConnectRequest connectRequest:
+                        HandleConnectRequest(client, connectRequest);
+                        break;
                     case LoginRequest loginRequest:
                         HandleLoginRequest(client, loginRequest);
                         break;

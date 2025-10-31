@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Network;
+using Astrum.Network.MessageHandlers;
 
 namespace Astrum.Client.MessageHandlers
 {

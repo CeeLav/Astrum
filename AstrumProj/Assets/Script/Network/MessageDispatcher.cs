@@ -15,9 +15,7 @@ namespace Astrum.Network
             this.IMHandler = imHandler;
         }
     }
-    public class MessageHandlerAttribute: BaseAttribute
-    {
-    }
+
     /// <summary>
     /// Actor消息分发组件
     /// </summary>
@@ -27,14 +25,14 @@ namespace Astrum.Network
 
         public void Awake()
         {
-            HashSet<Type> types = CodeTypes.Instance.GetTypes(typeof (MessageHandlerAttribute));
+            /*HashSet<Type> types = CodeTypes.Instance.GetTypes(typeof (MessageHandlerAttribute));
             
             foreach (Type type in types)
             {
                 this.Register(type);
-            }
+            }*/
         }
-        
+        /*
         private void Register(Type type)
         {
             object obj = Activator.CreateInstance(type);
@@ -68,7 +66,7 @@ namespace Astrum.Network
                 this.RegisterHandler(messageType, messageDispatcherInfo);
             }
         }
-        
+        */
         private void RegisterHandler(Type type, MessageDispatcherInfo handler)
         {
             if (!this.messageHandlers.ContainsKey(type))

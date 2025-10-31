@@ -2,6 +2,9 @@ using System.Threading.Tasks;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Network;
+using Astrum.Client.Core;
+using Astrum.Client.Managers.GameModes;
+using Astrum.Network.MessageHandlers;
 
 namespace Astrum.Client.MessageHandlers
 {
@@ -16,7 +19,18 @@ namespace Astrum.Client.MessageHandlers
             try
             {
                 ASLogger.Instance.Info($"FrameSyncStartNotificationHandler: 处理帧同步开始通知 - RoomId: {message.roomId}");
-                // 这里可以触发帧同步开始的相关逻辑
+                
+                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
+                var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                if (currentGameMode is MultiplayerGameMode multiplayerMode)
+                {
+                    multiplayerMode.OnFrameSyncStartNotification(message);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"FrameSyncStartNotificationHandler: 收到帧同步开始通知，但当前不是联机模式");
+                }
+                
                 await Task.CompletedTask;
             }
             catch (System.Exception ex)
@@ -37,7 +51,18 @@ namespace Astrum.Client.MessageHandlers
             try
             {
                 ASLogger.Instance.Info($"FrameSyncEndNotificationHandler: 处理帧同步结束通知 - RoomId: {message.roomId}");
-                // 这里可以触发帧同步结束的相关逻辑
+                
+                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
+                var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                if (currentGameMode is MultiplayerGameMode multiplayerMode)
+                {
+                    multiplayerMode.OnFrameSyncEndNotification(message);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"FrameSyncEndNotificationHandler: 收到帧同步结束通知，但当前不是联机模式");
+                }
+                
                 await Task.CompletedTask;
             }
             catch (System.Exception ex)
