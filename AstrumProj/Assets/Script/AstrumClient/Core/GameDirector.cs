@@ -11,6 +11,16 @@ using AstrumClient.MonitorTools;
 namespace Astrum.Client.Core
 {
     /// <summary>
+    /// 游戏模式类型枚举
+    /// </summary>
+    public enum GameModeType
+    {
+        Login,          // 登录模式
+        SinglePlayer,   // 单机模式
+        Multiplayer     // 联机模式
+    }
+
+    /// <summary>
     /// 游戏导演 - 统一管理游戏核心逻辑和状态
     /// </summary>
     [MonitorTarget]
@@ -42,8 +52,7 @@ namespace Astrum.Client.Core
                 ChangeGameState(GameState.ApplicationReady);
                 
                 // 创建并切换到 LoginGameMode
-                var loginMode = new LoginGameMode();
-                SwitchGameMode(loginMode);
+                SwitchGameMode(GameModeType.Login);
                 
                 ASLogger.Instance.Info("GameDirector: 初始化完成");
             }
@@ -107,6 +116,22 @@ namespace Astrum.Client.Core
             EventSystem.Instance.Publish(new GameModeChangedEventData(previousMode, newMode));
             
             ASLogger.Instance.Info($"GameDirector: 切换到游戏模式 {newMode?.ModeName ?? "None"}");
+        }
+        
+        /// <summary>
+        /// 根据类型切换游戏模式（更优雅的方式）
+        /// </summary>
+        public void SwitchGameMode(GameModeType gameModeType)
+        {
+            IGameMode newGameMode = gameModeType switch
+            {
+                GameModeType.Login => new LoginGameMode(),
+                GameModeType.SinglePlayer => new SinglePlayerGameMode(),
+                GameModeType.Multiplayer => new MultiplayerGameMode(),
+                _ => throw new System.ArgumentException($"Unknown GameMode type: {gameModeType}")
+            };
+            
+            SwitchGameMode(newGameMode);
         }
         
         /// <summary>

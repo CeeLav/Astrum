@@ -426,8 +426,7 @@ namespace Astrum.Client.Managers.GameModes
                 HideLoginUI();
 
                 // 3. 创建单机游戏模式并切换
-                var singlePlayerMode = new SinglePlayerGameMode();
-                GameDirector.Instance.SwitchGameMode(singlePlayerMode);
+                GameDirector.Instance.SwitchGameMode(GameModeType.SinglePlayer);
 
                 // 4. 启动游戏
                 GameDirector.Instance.StartGame("DungeonsGame");
@@ -621,8 +620,7 @@ namespace Astrum.Client.Managers.GameModes
                 HideLoginUI();
 
                 // 3. 创建联机游戏模式并切换
-                var multiplayerMode = new MultiplayerGameMode();
-                GameDirector.Instance.SwitchGameMode(multiplayerMode);
+                GameDirector.Instance.SwitchGameMode(GameModeType.Multiplayer);
 
                 ASLogger.Instance.Info("LoginGameMode: 联机游戏模式切换成功");
             }

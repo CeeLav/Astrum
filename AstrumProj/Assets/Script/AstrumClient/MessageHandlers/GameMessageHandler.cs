@@ -70,11 +70,14 @@ namespace Astrum.Client.MessageHandlers
                     ASLogger.Instance.Info("GameStartNotificationHandler: 当前在LoginGameMode中，先切换到联机模式");
                     
                     // 切换到联机模式
-                    var newMultiplayerMode = new MultiplayerGameMode();
-                    GameDirector.Instance.SwitchGameMode(newMultiplayerMode);
+                    GameDirector.Instance.SwitchGameMode(GameModeType.Multiplayer);
                     
-                    // 切换完成后处理游戏开始通知
-                    newMultiplayerMode.OnGameStartNotification(message);
+                    // 切换完成后，获取新的 MultiplayerGameMode 实例并处理通知
+                    var newMultiplayerMode = GameDirector.Instance.CurrentGameMode as MultiplayerGameMode;
+                    if (newMultiplayerMode != null)
+                    {
+                        newMultiplayerMode.OnGameStartNotification(message);
+                    }
                 }
                 else
                 {
