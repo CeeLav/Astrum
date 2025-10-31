@@ -77,7 +77,11 @@ Unity 编辑器工具链
 - [协议定义](11-Network%20网络系统/Protocol-Definition%20协议定义.md) - Protocol Buffers协议规范
 
 ### 📋 [项目管理](项目管理/)
-- [单机闭环推进计划](项目管理/SinglePlayer-Loop-Plan%20单机闭环推进计划.md)
+- [单机闭环推进计划（索引）](项目管理/SinglePlayer-Loop/README.md)
+- [v0.1 计划（单机闭环）](项目管理/SinglePlayer-Loop/SinglePlayer-Loop-v0.1.md)
+- [v0.2 计划（塔防事件）](项目管理/SinglePlayer-Loop/SinglePlayer-Loop-v0.2.md)
+- [v0.3 计划（昼夜与基地核心）](项目管理/SinglePlayer-Loop/SinglePlayer-Loop-v0.3.md)
+- [v0.4 计划（简易建造与资源循环）](项目管理/SinglePlayer-Loop/SinglePlayer-Loop-v0.4.md)
 
 ### 📦 [_archived 归档文档](_archived%20归档文档/)
 历史文档和阶段报告
