@@ -41,6 +41,10 @@ namespace Astrum.Client.Core
                 // 设置初始状态
                 ChangeGameState(GameState.ApplicationReady);
                 
+                // 创建并切换到 LoginGameMode
+                var loginMode = new LoginGameMode();
+                SwitchGameMode(loginMode);
+                
                 ASLogger.Instance.Info("GameDirector: 初始化完成");
             }
             catch (System.Exception ex)
@@ -195,9 +199,6 @@ namespace Astrum.Client.Core
             // TODO: NetworkMessageHandler已被新的消息处理器系统替代
             // 新的消息处理器会自动初始化，无需手动调用
             
-            // 显示登录UI
-            ShowLoginUI();
-            
             ASLogger.Instance.Info("GameDirector: 所有 Manager 初始化完成");
         }
         
@@ -301,22 +302,6 @@ namespace Astrum.Client.Core
             {
                 ASLogger.Instance.Error($"GameDirector: 网络系统基础组件初始化失败 - {ex.Message}");
                 throw;
-            }
-        }
-        
-        /// <summary>
-        /// 显示登录UI
-        /// </summary>
-        private void ShowLoginUI()
-        {
-            try
-            {
-                ASLogger.Instance.Info("GameDirector: 显示登录UI");
-                UIManager.Instance?.ShowUI("Login");
-            }
-            catch (System.Exception ex)
-            {
-                ASLogger.Instance.Error($"GameDirector: 显示登录UI失败 - {ex.Message}");
             }
         }
     }

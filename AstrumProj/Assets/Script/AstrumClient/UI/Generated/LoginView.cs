@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using System;
 using Astrum.Client.UI.Core;
 using Astrum.Client.Managers;
+using Astrum.Client.Managers.GameModes;
 using Astrum.Client.Core;
 using Astrum.Generated;
 using Astrum.Network.Generated;
@@ -58,8 +59,8 @@ namespace Astrum.Client.UI.Generated
                 singlePlayButtonButton.onClick.AddListener(OnSinglePlayButtonClicked);
             }
 
-            // 订阅网络事件
-            SubscribeToNetworkEvents();
+            // 订阅登录事件
+            SubscribeToLoginEvents();
 
             // 初始化UI状态
             UpdateConnectionStatus("未连接");
@@ -87,203 +88,116 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         protected virtual void OnHide()
         {
-            // 取消订阅网络事件
-            UnsubscribeFromNetworkEvents();
+            // 取消订阅登录事件
+            UnsubscribeFromLoginEvents();
         }
 
         #endregion
 
-        #region Network Event Handlers
+        #region Event Subscriptions
 
         /// <summary>
-        /// 订阅网络事件
+        /// 订阅登录事件
         /// </summary>
-        private void SubscribeToNetworkEvents()
+        private void SubscribeToLoginEvents()
         {
-            // 订阅连接响应事件
-            EventSystem.Instance.Subscribe<ConnectResponseEventData>(OnConnectResponse);
-            
-            // 订阅UserManager的登录事件
-            var userManager = UserManager.Instance;
-            if (userManager != null)
-            {
-                userManager.OnUserLoggedIn += OnUserLoggedIn;
-                userManager.OnLoginError += OnLoginError;
-            }
-            
-            // 订阅快速匹配相关事件
-            EventSystem.Instance.Subscribe<QuickMatchResponse>(OnQuickMatchResponse);
-            EventSystem.Instance.Subscribe<CancelMatchResponse>(OnCancelMatchResponse);
-            EventSystem.Instance.Subscribe<MatchFoundNotification>(OnMatchFoundNotification);
-            EventSystem.Instance.Subscribe<MatchTimeoutNotification>(OnMatchTimeoutNotification);
-            
-            Debug.Log("LoginView: 已订阅网络、登录和匹配事件");
+            EventSystem.Instance.Subscribe<LoginStateChangedEventData>(OnLoginStateChanged);
+            EventSystem.Instance.Subscribe<LoginErrorEventData>(OnLoginError);
         }
 
         /// <summary>
-        /// 取消订阅网络事件
+        /// 取消订阅登录事件
         /// </summary>
-        private void UnsubscribeFromNetworkEvents()
+        private void UnsubscribeFromLoginEvents()
         {
-            // 取消订阅连接响应事件
-            EventSystem.Instance.Unsubscribe<ConnectResponseEventData>(OnConnectResponse);
-            
-            // 取消订阅UserManager的登录事件
-            var userManager = UserManager.Instance;
-            if (userManager != null)
-            {
-                userManager.OnUserLoggedIn -= OnUserLoggedIn;
-                userManager.OnLoginError -= OnLoginError;
-            }
-            
-            // 取消订阅快速匹配相关事件
-            EventSystem.Instance.Unsubscribe<QuickMatchResponse>(OnQuickMatchResponse);
-            EventSystem.Instance.Unsubscribe<CancelMatchResponse>(OnCancelMatchResponse);
-            EventSystem.Instance.Unsubscribe<MatchFoundNotification>(OnMatchFoundNotification);
-            EventSystem.Instance.Unsubscribe<MatchTimeoutNotification>(OnMatchTimeoutNotification);
-            
-            Debug.Log("LoginView: 已取消订阅网络、登录和匹配事件");
+            EventSystem.Instance.Unsubscribe<LoginStateChangedEventData>(OnLoginStateChanged);
+            EventSystem.Instance.Unsubscribe<LoginErrorEventData>(OnLoginError);
         }
-        
+
+        #endregion
+
+        #region Event Handlers
+
         /// <summary>
-        /// 处理连接响应事件
+        /// 登录状态变化事件处理（纯UI更新）
         /// </summary>
-        private void OnConnectResponse(ConnectResponseEventData eventData)
+        private void OnLoginStateChanged(LoginStateChangedEventData eventData)
         {
-            Debug.Log($"LoginView: 收到连接响应 - Success: {eventData.Success}, Message: {eventData.Message}");
+            Debug.Log($"LoginView: 登录状态变化 - ConnectionState: {eventData.ConnectionState}, MatchState: {eventData.MatchState}");
             
-            if (eventData.Success)
+            // 根据连接状态更新 UI
+            int connState = eventData.ConnectionState;
+            if (connState == 0) // Disconnected
             {
-                // 连接成功
-                OnConnected();
-                // 自动发送登录请求
-                SendLoginRequest();
-            }
-            else
-            {
-                // 连接失败
+                UpdateConnectionStatus("未连接");
+                UpdateConnectButtonText("连接服务器");
+                SetConnectButtonInteractable(true);
                 isConnecting = false;
-                UpdateConnectionStatus($"连接失败: {eventData.Message}");
-                UpdateConnectButtonText("重新连接");
+            }
+            else if (connState == 1) // Connecting
+            {
+                UpdateConnectionStatus("正在连接...");
+                UpdateConnectButtonText("连接中...");
+                SetConnectButtonInteractable(false);
+                isConnecting = true;
+            }
+            else if (connState == 2) // Connected
+            {
+                UpdateConnectionStatus("已连接，正在登录...");
+                UpdateConnectButtonText("连接中...");
+                SetConnectButtonInteractable(false);
+            }
+            else if (connState == 3) // LoggingIn
+            {
+                UpdateConnectionStatus("正在登录...");
+                UpdateConnectButtonText("登录中...");
+                SetConnectButtonInteractable(false);
+            }
+            else if (connState == 4) // LoggedIn
+            {
+                currentMatchState = MatchState.LoggedIn;
+                UpdateConnectionStatus("登录成功");
+                UpdateConnectButtonText("快速联机");
                 SetConnectButtonInteractable(true);
             }
-        }
-
-        /// <summary>
-        /// 连接成功事件
-        /// </summary>
-        private void OnConnected()
-        {
-            Debug.Log("LoginView: 连接成功");
-            isConnecting = false;
-            UpdateConnectionStatus("已连接，正在登录...");
-            UpdateConnectButtonText("连接中...");
-            SetConnectButtonInteractable(false);
-        }
-
-        /// <summary>
-        /// 断开连接事件
-        /// </summary>
-        private void OnDisconnected()
-        {
-            Debug.Log("LoginView: 连接断开");
-            isConnecting = false;
-            currentMatchState = MatchState.None; // 重置匹配状态
-            UpdateConnectionStatus("连接断开");
-            UpdateConnectButtonText("重新连接");
-            SetConnectButtonInteractable(true);
-        }
-
-
-        /// <summary>
-        /// 用户登录成功事件处理（UserManager事件回调）
-        /// </summary>
-        private void OnUserLoggedIn(UserInfo userInfo)
-        {
-            Debug.Log($"LoginView: 用户登录成功 - ID: {userInfo.Id}, Name: {userInfo.DisplayName}");
             
-            // 更新状态为已登录
-            currentMatchState = MatchState.LoggedIn;
-            UpdateConnectionStatus($"登录成功，欢迎 {userInfo.DisplayName}");
-            UpdateConnectButtonText("快速联机");
-            SetConnectButtonInteractable(true); // 允许点击快速匹配
-        }
-        
-        /// <summary>
-        /// 登录错误事件处理（UserManager事件回调）
-        /// </summary>
-        private void OnLoginError(string errorMessage)
-        {
-            Debug.LogError($"LoginView: 登录失败 - {errorMessage}");
-            
-            UpdateConnectionStatus($"登录失败: {errorMessage}");
-            UpdateConnectButtonText("重新连接");
-            SetConnectButtonInteractable(true);
-            currentMatchState = MatchState.None;
-            isConnecting = false;
-        }
-        
-        /// <summary>
-        /// 快速匹配响应事件
-        /// </summary>
-        private void OnQuickMatchResponse(QuickMatchResponse response)
-        {
-            Debug.Log($"LoginView: 收到快速匹配响应: {response.Success}, {response.Message}");
-            if (response.Success)
+            // 根据匹配状态更新 UI
+            int matchState = eventData.MatchState;
+            if (matchState == 0) // None
+            {
+                // 匹配状态为 None，不做额外处理，保持当前连接状态的提示
+                if (connState != 4) // 如果不是已登录状态
+                {
+                    currentMatchState = MatchState.None;
+                }
+            }
+            else if (matchState == 1) // Matching
             {
                 currentMatchState = MatchState.Matching;
-                UpdateConnectionStatus($"匹配中... (队列位置: {response.QueuePosition + 1}/{response.QueueSize})");
+                UpdateConnectionStatus("正在匹配中...");
                 UpdateConnectButtonText("取消匹配");
                 SetConnectButtonInteractable(true);
             }
-            else
+            else if (matchState == 2) // MatchFound
             {
-                UpdateConnectionStatus($"匹配失败: {response.Message}");
-                UpdateConnectButtonText("快速联机");
-                SetConnectButtonInteractable(true);
-                currentMatchState = MatchState.LoggedIn;
+                currentMatchState = MatchState.MatchFound;
+                UpdateConnectionStatus("匹配成功！正在进入房间...");
+                UpdateConnectButtonText("进入游戏");
+                SetConnectButtonInteractable(false);
             }
         }
-        
+
         /// <summary>
-        /// 取消匹配响应事件
+        /// 登录错误事件处理（纯UI更新）
         /// </summary>
-        private void OnCancelMatchResponse(CancelMatchResponse response)
+        private void OnLoginError(LoginErrorEventData eventData)
         {
-            Debug.Log($"LoginView: 收到取消匹配响应: {response.Success}, {response.Message}");
-            if (response.Success)
-            {
-                currentMatchState = MatchState.LoggedIn;
-                UpdateConnectionStatus($"已取消匹配: {response.Message}");
-                UpdateConnectButtonText("快速联机");
-                SetConnectButtonInteractable(true);
-            }
-        }
-        
-        /// <summary>
-        /// 匹配超时通知事件
-        /// </summary>
-        private void OnMatchTimeoutNotification(MatchTimeoutNotification notification)
-        {
-            Debug.Log($"LoginView: 匹配超时: {notification.Message}");
-            currentMatchState = MatchState.LoggedIn;
-            UpdateConnectionStatus($"匹配超时: {notification.Message} (等待时长: {notification.WaitTimeSeconds}秒)");
-            UpdateConnectButtonText("快速联机");
+            Debug.LogError($"LoginView: 登录错误 - {eventData.ErrorMessage}");
+            UpdateConnectionStatus($"错误: {eventData.ErrorMessage}");
+            UpdateConnectButtonText("重新连接");
             SetConnectButtonInteractable(true);
-        }
-        
-        /// <summary>
-        /// 匹配成功通知事件
-        /// </summary>
-        private void OnMatchFoundNotification(MatchFoundNotification notification)
-        {
-            Debug.Log($"LoginView: 匹配成功 - Room: {notification.Room?.Id}");
-            currentMatchState = MatchState.MatchFound;
-            UpdateConnectionStatus($"匹配成功！正在进入房间...");
-            UpdateConnectButtonText("进入游戏");
-            SetConnectButtonInteractable(false);
-            
-            // TODO: 这里应该触发进入房间的逻辑
+            isConnecting = false;
+            currentMatchState = MatchState.None;
         }
 
         #endregion
@@ -291,45 +205,39 @@ namespace Astrum.Client.UI.Generated
         #region UI Event Handlers
 
         /// <summary>
+        /// 设置 LoginGameMode 引用
+        /// </summary>
+        public void SetLoginGameMode(LoginGameMode loginGameMode)
+        {
+            // This method is no longer needed as LoginGameMode is not directly referenced here.
+            // The button click events will now be handled by the LoginGameMode itself.
+        }
+
+        /// <summary>
         /// 连接按钮点击事件
         /// </summary>
         private void OnConnectButtonClicked()
         {
-            // 根据当前匹配状态执行不同的操作
-            switch (currentMatchState)
+            // 从 GameDirector 获取当前的 LoginGameMode
+            var gameMode = GameDirector.Instance?.CurrentGameMode as LoginGameMode;
+            if (gameMode == null)
             {
-                case MatchState.None:
-                    // 未连接状态，执行连接
-                    if (isConnecting)
-                    {
-                        Debug.Log("LoginView: 正在连接中，请稍候...");
-                        return;
-                    }
-                    
-                    // 设置联机模式
-                    Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(false);
-                    
-                    // 提前创建 MultiplayerGameMode 以注册网络消息
-                    var multiplayerMode = new Astrum.Client.Managers.GameModes.MultiplayerGameMode();
-                    GameDirector.Instance.SwitchGameMode(multiplayerMode);
+                Debug.LogError("LoginView: 无法从 GameDirector 获取 LoginGameMode");
+                return;
+            }
 
-                    ConnectToServer();
-                    break;
-                    
-                case MatchState.LoggedIn:
-                    // 已登录状态，执行快速匹配
-                    SendQuickMatchRequest();
-                    break;
-                    
-                case MatchState.Matching:
-                    // 匹配中状态，执行取消匹配
-                    SendCancelMatchRequest();
-                    break;
-                    
-                case MatchState.MatchFound:
-                    // 匹配成功状态，不允许操作
-                    Debug.Log("LoginView: 匹配已成功，正在进入房间");
-                    break;
+            // 根据当前状态执行不同操作
+            if (currentMatchState == MatchState.None && !isConnecting)
+            {
+                gameMode.ConnectToServer();
+            }
+            else if (currentMatchState == MatchState.LoggedIn)
+            {
+                gameMode.SendQuickMatchRequest();
+            }
+            else if (currentMatchState == MatchState.Matching)
+            {
+                gameMode.SendCancelMatchRequest();
             }
         }
         
@@ -338,106 +246,20 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void OnSinglePlayButtonClicked()
         {
-            try
+            // 从 GameDirector 获取当前的 LoginGameMode
+            var gameMode = GameDirector.Instance?.CurrentGameMode as LoginGameMode;
+            if (gameMode == null)
             {
-                Debug.Log("LoginView: 启动单机游戏");
-                
-                // 1. 设置单机模式
-                Astrum.Client.Core.GameConfig.Instance.SetSinglePlayerMode(true);
-                
-                // 2. 启动单机游戏
-                // 关闭 Login UI
-                var uiManager = UIManager.Instance;
-                uiManager?.HideUI("Login");
-                
-                // 创建单机游戏模式并启动游戏
-                var singlePlayerMode = new Astrum.Client.Managers.GameModes.SinglePlayerGameMode();
-                GameDirector.Instance.SwitchGameMode(singlePlayerMode);
-                GameDirector.Instance.StartGame("DungeonsGame");
-                
-                Debug.Log("LoginView: 单机游戏启动成功");
+                Debug.LogError("LoginView: 无法从 GameDirector 获取 LoginGameMode");
+                return;
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"LoginView: 启动单机游戏失败 - {ex.Message}");
-            }
+
+            gameMode.StartSinglePlayerGame();
         }
 
         #endregion
 
-        #region Business Logic
-
-        /// <summary>
-        /// 连接到服务器
-        /// </summary>
-        public async void ConnectToServer()
-        {
-            try
-            {
-                isConnecting = true;
-                UpdateConnectionStatus("正在连接...");
-                UpdateConnectButtonText("连接中...");
-                SetConnectButtonInteractable(false);
-
-                Debug.Log($"LoginView: 开始连接到服务器 {serverAddress}:{serverPort}");
-
-                var networkManager = NetworkManager.Instance;
-                if (networkManager == null)
-                {
-                    Debug.LogError("LoginView: NetworkManager不存在");
-                    UpdateConnectionStatus("错误: 网络管理器不存在");
-                    UpdateConnectButtonText("重新连接");
-                    SetConnectButtonInteractable(true);
-                    isConnecting = false;
-                    return;
-                }
-
-                // 连接到服务器
-                var channelId = await networkManager.ConnectAsync(serverAddress, serverPort);
-                Debug.Log($"LoginView: 连接请求已发送，ChannelId: {channelId}");
-
-                // 发送连接请求
-                var connectRequest = ConnectRequest.Create();
-                networkManager.Send(connectRequest);
-                Debug.Log("LoginView: 连接请求已发送");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"LoginView: 连接失败: {ex.Message}");
-                UpdateConnectionStatus($"连接失败: {ex.Message}");
-                UpdateConnectButtonText("重新连接");
-                SetConnectButtonInteractable(true);
-                isConnecting = false;
-            }
-        }
-
-        /// <summary>
-        /// 发送登录请求
-        /// </summary>
-        private void SendLoginRequest()
-        {
-            try
-            {
-                var networkManager = NetworkManager.Instance;
-                if (networkManager == null)
-                {
-                    Debug.LogError("LoginView: NetworkManager不存在，无法发送登录请求");
-                    return;
-                }
-
-                // 创建登录请求
-                var loginRequest = LoginRequest.Create();
-                loginRequest.DisplayName = "Player_" + UnityEngine.Random.Range(1000, 9999);
-                
-                // 发送登录请求
-                networkManager.Send(loginRequest);
-                Debug.Log($"LoginView: 登录请求已发送，显示名称: {loginRequest.DisplayName}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"LoginView: 发送登录请求失败: {ex.Message}");
-            }
-        }
+        #region UI Update Methods
 
         /// <summary>
         /// 更新连接状态显示
@@ -484,87 +306,6 @@ namespace Astrum.Client.UI.Generated
             if (connectButtonButton != null)
             {
                 connectButtonButton.interactable = interactable;
-            }
-        }
-
-        /// <summary>
-        /// 设置服务器地址和端口
-        /// </summary>
-        public void SetServerInfo(string address, int port)
-        {
-            serverAddress = address;
-            serverPort = port;
-        }
-        
-        /// <summary>
-        /// 发送快速匹配请求
-        /// </summary>
-        private void SendQuickMatchRequest()
-        {
-            try
-            {
-                var networkManager = NetworkManager.Instance;
-                if (networkManager == null)
-                {
-                    Debug.LogError("LoginView: NetworkManager不存在，无法发送快速匹配请求");
-                    return;
-                }
-                
-                // 创建快速匹配请求
-                var quickMatchRequest = QuickMatchRequest.Create();
-                quickMatchRequest.Timestamp = Astrum.CommonBase.TimeInfo.Instance.ClientNow();
-                
-                // 发送请求
-                networkManager.Send(quickMatchRequest);
-                Debug.Log("LoginView: 快速匹配请求已发送");
-                
-                // 更新UI状态
-                UpdateConnectionStatus("正在请求快速匹配...");
-                UpdateConnectButtonText("请求中...");
-                SetConnectButtonInteractable(false);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"LoginView: 发送快速匹配请求失败: {ex.Message}");
-                UpdateConnectionStatus($"快速匹配请求失败: {ex.Message}");
-                UpdateConnectButtonText("快速联机");
-                SetConnectButtonInteractable(true);
-            }
-        }
-        
-        /// <summary>
-        /// 发送取消匹配请求
-        /// </summary>
-        private void SendCancelMatchRequest()
-        {
-            try
-            {
-                var networkManager = NetworkManager.Instance;
-                if (networkManager == null)
-                {
-                    Debug.LogError("LoginView: NetworkManager不存在，无法发送取消匹配请求");
-                    return;
-                }
-                
-                // 创建取消匹配请求
-                var cancelMatchRequest = CancelMatchRequest.Create();
-                cancelMatchRequest.Timestamp = Astrum.CommonBase.TimeInfo.Instance.ClientNow();
-                
-                // 发送请求
-                networkManager.Send(cancelMatchRequest);
-                Debug.Log("LoginView: 取消匹配请求已发送");
-                
-                // 更新UI状态
-                UpdateConnectionStatus("正在取消匹配...");
-                UpdateConnectButtonText("取消中...");
-                SetConnectButtonInteractable(false);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"LoginView: 发送取消匹配请求失败: {ex.Message}");
-                UpdateConnectionStatus($"取消匹配请求失败: {ex.Message}");
-                UpdateConnectButtonText("取消匹配");
-                SetConnectButtonInteractable(true);
             }
         }
 

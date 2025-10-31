@@ -56,15 +56,29 @@ namespace Astrum.Client.MessageHandlers
             {
                 ASLogger.Instance.Info($"GameStartNotificationHandler: 处理游戏开始通知 - RoomId: {message.roomId}");
                 
-                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
                 var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                
+                // 情况1：已经在联机模式中
                 if (currentGameMode is MultiplayerGameMode multiplayerMode)
                 {
+                    ASLogger.Instance.Info("GameStartNotificationHandler: 当前已在MultiplayerGameMode中，直接处理通知");
                     multiplayerMode.OnGameStartNotification(message);
+                }
+                // 情况2：还在登录模式中，需要先切换到联机模式再处理
+                else if (currentGameMode is LoginGameMode loginMode)
+                {
+                    ASLogger.Instance.Info("GameStartNotificationHandler: 当前在LoginGameMode中，先切换到联机模式");
+                    
+                    // 切换到联机模式
+                    var newMultiplayerMode = new MultiplayerGameMode();
+                    GameDirector.Instance.SwitchGameMode(newMultiplayerMode);
+                    
+                    // 切换完成后处理游戏开始通知
+                    newMultiplayerMode.OnGameStartNotification(message);
                 }
                 else
                 {
-                    ASLogger.Instance.Warning($"GameStartNotificationHandler: 收到游戏开始通知，但当前不是联机模式");
+                    ASLogger.Instance.Warning($"GameStartNotificationHandler: 收到游戏开始通知，但当前游戏模式不支持 (Mode: {currentGameMode?.ModeName ?? "Unknown"})");
                 }
                 
                 await Task.CompletedTask;
