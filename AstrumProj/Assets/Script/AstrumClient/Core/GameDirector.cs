@@ -48,6 +48,7 @@ namespace Astrum.Client.Core
                 ASLogger.Instance.Error($"GameDirector: 初始化失败 - {ex.Message}");
                 throw;
             }
+            MonitorManager.Register(this); // 注册到全局监控
         }
         
         /// <summary>

@@ -8,15 +8,10 @@ namespace AstrumClient.MonitorTools
     public static class MonitorManager
     {
         private static readonly List<WeakReference> _monitoredObjects = new List<WeakReference>();
-        private static readonly Dictionary<Type, bool> _typeCache = new Dictionary<Type, bool>();
 
         public static void Register(object instance)
         {
             if (instance == null) return;
-
-            var type = instance.GetType();
-            if (!HasMonitorAttribute(type))
-                return;
             lock (_monitoredObjects)
                 _monitoredObjects.Add(new WeakReference(instance));
         }
@@ -42,15 +37,6 @@ namespace AstrumClient.MonitorTools
                         yield return obj;
                 }
             }
-        }
-
-        private static bool HasMonitorAttribute(Type type)
-        {
-            if (_typeCache.TryGetValue(type, out var has))
-                return has;
-            has = type.GetCustomAttribute<MonitorTargetAttribute>(true) != null;
-            _typeCache[type] = has;
-            return has;
         }
     }
 }

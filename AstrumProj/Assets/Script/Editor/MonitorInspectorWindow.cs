@@ -21,7 +21,7 @@ public class MonitorInspectorWindow : EditorWindow
 
     private void OnGUI()
     {
-        EditorGUILayout.LabelField("[运行时仅读] 所有被 [MonitorTarget] 标记并注册的对象：", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("[运行时仅读] 当前所有已注册监控对象：", EditorStyles.boldLabel);
         scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
         int idx = 0;
         foreach (var obj in MonitorManager.GetAllAliveMonitored())
@@ -51,56 +51,88 @@ public class MonitorInspectorWindow : EditorWindow
         if (!foldout) return;
         EditorGUI.indentLevel++;
         ancestors.Add(obj);
-        foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+        // 展示所有字段（public+private, instance）
+        foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
         {
             DrawMember(obj, field, depth, ancestors);
         }
-        foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        // 展示所有属性（public+private, instance，排除索引器和特殊方法属性）
+        foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
         {
-            if (prop.CanRead && prop.GetIndexParameters().Length == 0)
+            if (prop.CanRead && prop.GetIndexParameters().Length == 0 && !prop.IsSpecialName)
             {
                 DrawMember(obj, prop, depth, ancestors);
             }
         }
+        // 父类也递归展示
+        var baseType = type.BaseType;
+        if (baseType != null && baseType != typeof(object))
+        {
+            DrawObjectFoldoutBase(obj, baseType, depth, ancestors);
+        }
         ancestors.Remove(obj);
         EditorGUI.indentLevel--;
     }
-
+    // 递归展示父类成员
+    private void DrawObjectFoldoutBase(object obj, Type baseType, int depth, HashSet<object> ancestors)
+    {
+        EditorGUILayout.LabelField($"(Base: {baseType.Name})", EditorStyles.miniLabel);
+        foreach (var field in baseType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+        {
+            DrawMember(obj, field, depth, ancestors);
+        }
+        foreach (var prop in baseType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+        {
+            if (prop.CanRead && prop.GetIndexParameters().Length == 0 && !prop.IsSpecialName)
+            {
+                DrawMember(obj, prop, depth, ancestors);
+            }
+        }
+        var nextBase = baseType.BaseType;
+        if (nextBase != null && nextBase != typeof(object))
+        {
+            DrawObjectFoldoutBase(obj, nextBase, depth, ancestors);
+        }
+    }
     private void DrawMember(object obj, MemberInfo member, int depth, HashSet<object> ancestors)
     {
         object v = null;
         Type type = null;
+        string access = "";
         try
         {
             if (member is FieldInfo fi)
             {
                 v = fi.GetValue(obj);
                 type = fi.FieldType;
+                access = fi.IsPublic ? "public " : "private ";
             }
             else if (member is PropertyInfo pi)
             {
                 v = pi.GetValue(obj);
                 type = pi.PropertyType;
+                MethodInfo getter = pi.GetGetMethod(true);
+                access = getter != null && getter.IsPublic ? "public " : "private/protected ";
             }
         }
         catch (Exception e)
         {
-            EditorGUILayout.LabelField($"{member.Name}: <Error: {e.Message}>");
+            EditorGUILayout.LabelField($"{access}{member.Name}: <Error: {e.Message}>");
             return;
         }
         if (v == null)
         {
-            EditorGUILayout.LabelField($"{member.Name}: <null>");
+            EditorGUILayout.LabelField($"{access}{member.Name}: <null>");
             return;
         }
         if (IsSimple(type))
         {
-            EditorGUILayout.LabelField($"{member.Name}: {v}");
+            EditorGUILayout.LabelField($"{access}{member.Name}: {v}");
         }
         else if (typeof(IList).IsAssignableFrom(type))
         {
             IList list = v as IList;
-            EditorGUILayout.LabelField($"{member.Name} [List] Count: {list?.Count ?? 0}");
+            EditorGUILayout.LabelField($"{access}{member.Name} [List] Count: {list?.Count ?? 0}");
             if (list != null && depth + 1 <= MaxDepth)
             {
                 EditorGUI.indentLevel++;
@@ -122,7 +154,6 @@ public class MonitorInspectorWindow : EditorWindow
             DrawObjectFoldout(v, member.Name, depth + 1, ancestors);
         }
     }
-
     private static string GetObjDisplayName(object obj)
     {
         if (obj is UnityEngine.Object uo)

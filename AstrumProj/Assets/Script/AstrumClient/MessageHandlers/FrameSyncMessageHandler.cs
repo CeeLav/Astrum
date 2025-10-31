@@ -71,4 +71,36 @@ namespace Astrum.Client.MessageHandlers
             }
         }
     }
+
+    /// <summary>
+    /// 帧同步数据消息处理器
+    /// </summary>
+    [MessageHandler(typeof(FrameSyncData))]
+    public class FrameSyncDataHandler : MessageHandlerBase<FrameSyncData>
+    {
+        public override async Task HandleMessageAsync(FrameSyncData message)
+        {
+            try
+            {
+                ASLogger.Instance.Debug($"FrameSyncDataHandler: 处理帧同步数据 - RoomId: {message.roomId}, AuthorityFrame: {message.authorityFrame}");
+                
+                // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
+                var currentGameMode = GameDirector.Instance?.CurrentGameMode;
+                if (currentGameMode is MultiplayerGameMode multiplayerMode)
+                {
+                    multiplayerMode.OnFrameSyncData(message);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"FrameSyncDataHandler: 收到帧同步数据，但当前不是联机模式");
+                }
+                
+                await Task.CompletedTask;
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Error($"FrameSyncDataHandler: 处理帧同步数据时发生异常 - {ex.Message}");
+            }
+        }
+    }
 }

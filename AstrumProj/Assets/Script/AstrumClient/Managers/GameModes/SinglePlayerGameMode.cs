@@ -34,6 +34,8 @@ namespace Astrum.Client.Managers.GameModes
             EventSystem.Instance.Subscribe<GameModeStateChangedEventData>(OnStateChanged);
             
             ChangeState(GameModeState.Ready);
+
+            MonitorManager.Register(this); // 注册到全局监控
         }
         
         /// <summary>

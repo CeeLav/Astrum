@@ -18,6 +18,9 @@ namespace Astrum.Client.MessageHandlers
             {
                 ASLogger.Instance.Info($"QuickMatchResponseHandler: 处理快速匹配响应 - Success: {message.Success}, Message: {message.Message}");
                 
+                // 通过EventSystem发布事件
+                EventSystem.Instance.Publish(message);
+                
                 if (message.Success)
                 {
                     ASLogger.Instance.Info("QuickMatchResponseHandler: 快速匹配请求已提交");
@@ -48,6 +51,9 @@ namespace Astrum.Client.MessageHandlers
             {
                 ASLogger.Instance.Info($"CancelMatchResponseHandler: 处理取消匹配响应 - Success: {message.Success}, Message: {message.Message}");
                 
+                // 通过EventSystem发布事件
+                EventSystem.Instance.Publish(message);
+                
                 if (message.Success)
                 {
                     ASLogger.Instance.Info("CancelMatchResponseHandler: 取消匹配成功");
@@ -77,7 +83,10 @@ namespace Astrum.Client.MessageHandlers
             try
             {
                 ASLogger.Instance.Info($"MatchFoundNotificationHandler: 处理匹配找到通知 - Room: {message.Room?.Id}");
-                // 这里可以触发UI更新或游戏状态变化
+                
+                // 通过EventSystem发布事件
+                EventSystem.Instance.Publish(message);
+                
                 await Task.CompletedTask;
             }
             catch (System.Exception ex)
@@ -98,7 +107,10 @@ namespace Astrum.Client.MessageHandlers
             try
             {
                 ASLogger.Instance.Info($"MatchTimeoutNotificationHandler: 处理匹配超时通知");
-                // 这里可以显示超时提示或重新开始匹配
+                
+                // 通过EventSystem发布事件
+                EventSystem.Instance.Publish(message);
+                
                 await Task.CompletedTask;
             }
             catch (System.Exception ex)
