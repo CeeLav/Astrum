@@ -76,6 +76,9 @@ Unity 编辑器工具链
 - [连接管理](11-Network%20网络系统/Connection-Management%20连接管理.md) - 连接生命周期、状态管理
 - [协议定义](11-Network%20网络系统/Protocol-Definition%20协议定义.md) - Protocol Buffers协议规范
 
+### 📋 [项目管理](项目管理/)
+- [单机闭环推进计划](项目管理/SinglePlayer-Loop-Plan%20单机闭环推进计划.md)
+
 ### 📦 [_archived 归档文档](_archived%20归档文档/)
 历史文档和阶段报告
 - [编辑器阶段报告](_archived%20归档文档/Editor-Phase-Reports%20编辑器阶段报告/)
