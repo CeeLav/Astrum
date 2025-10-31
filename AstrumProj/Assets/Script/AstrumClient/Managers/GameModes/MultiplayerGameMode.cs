@@ -7,12 +7,14 @@ using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
 using Unity.Plastic.Newtonsoft.Json;
+using AstrumClient.MonitorTools;
 
 namespace Astrum.Client.Managers.GameModes
 {
     /// <summary>
     /// 联机游戏模式 - 网络多人对战
     /// </summary>
+    [MonitorTarget]
     public class MultiplayerGameMode : BaseGameMode
     {
         // 核心属性
@@ -47,6 +49,8 @@ namespace Astrum.Client.Managers.GameModes
             EventSystem.Instance.Subscribe<GameModeStateChangedEventData>(OnStateChanged);
             
             ChangeState(GameModeState.Ready);
+
+            MonitorManager.Register(this); // 监控注册
         }
         
         /// <summary>

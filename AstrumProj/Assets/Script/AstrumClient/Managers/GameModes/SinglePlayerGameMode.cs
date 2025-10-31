@@ -4,6 +4,7 @@ using Astrum.Client.Core;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
+using AstrumClient.MonitorTools;
 using UnityEngine;
 
 namespace Astrum.Client.Managers.GameModes
@@ -11,6 +12,7 @@ namespace Astrum.Client.Managers.GameModes
     /// <summary>
     /// 单机游戏模式 - 本地游戏，无需网络连接
     /// </summary>
+    [MonitorTarget]
     public class SinglePlayerGameMode : BaseGameMode
     {
         // 核心属性

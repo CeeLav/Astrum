@@ -6,12 +6,14 @@ using Astrum.View.Managers;
 using Astrum.LogicCore.Managers;
 using Astrum.Network;
 using Astrum.View.Archetypes;
+using AstrumClient.MonitorTools;
 
 namespace Astrum.Client.Core
 {
     /// <summary>
     /// 游戏导演 - 统一管理游戏核心逻辑和状态
     /// </summary>
+    [MonitorTarget]
     public class GameDirector : Singleton<GameDirector>
     {
         // 游戏状态
