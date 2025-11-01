@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using Astrum.Client.UI.Core;
+using Astrum.CommonBase;
+using Astrum.Client.Core;
+using Astrum.Client.Data;
 
 namespace Astrum.Client.UI.Generated
 {
@@ -21,7 +24,22 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         protected virtual void OnInitialize()
         {
-            // 在这里添加初始化逻辑
+            // 绑定按钮事件
+            if (startExplorationButtonButton != null)
+            {
+                startExplorationButtonButton.onClick.RemoveListener(OnStartExplorationClicked);
+                startExplorationButtonButton.onClick.AddListener(OnStartExplorationClicked);
+            }
+
+            // 订阅玩家数据变化事件
+            EventSystem.Instance.Subscribe<PlayerDataChangedEventData>(OnPlayerDataChanged);
+
+            // 首次刷新
+            var data = PlayerDataManager.Instance?.ProgressData;
+            if (data != null)
+            {
+                RefreshUI(data);
+            }
         }
 
         /// <summary>
@@ -29,7 +47,12 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         protected virtual void OnShow()
         {
-            // 在这里添加显示逻辑
+            // 显示时确保刷新一次（避免场景切换后数据未展示）
+            var data = PlayerDataManager.Instance?.ProgressData;
+            if (data != null)
+            {
+                RefreshUI(data);
+            }
         }
 
         /// <summary>
@@ -37,17 +60,41 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         protected virtual void OnHide()
         {
-            // 在这里添加隐藏逻辑
+            // 隐藏时可选择性取消订阅（如果该视图会频繁显示/隐藏，可保持订阅）
+            EventSystem.Instance.Unsubscribe<PlayerDataChangedEventData>(OnPlayerDataChanged);
         }
 
         #endregion
 
         #region Business Logic
 
-        // 在这里添加业务逻辑方法
-        // 例如：
-        // public void OnButtonClick() { }
-        // public void OnInputFieldChanged(string value) { }
+        private void OnStartExplorationClicked()
+        {
+            EventSystem.Instance.Publish(new StartExplorationRequestEventData
+            {
+                Sender = this
+            });
+        }
+
+        private void OnPlayerDataChanged(PlayerDataChangedEventData evt)
+        {
+            if (evt?.ProgressData == null) return;
+            RefreshUI(evt.ProgressData);
+        }
+
+        private void RefreshUI(PlayerProgressData data)
+        {
+            if (levelTextText != null)
+            {
+                // 不显示 ExpToNextLevel，简化为 等级/经验
+                levelTextText.text = $"等级: {data.Level}  经验: {data.Exp}";
+            }
+
+            if (starFragmentsTextText != null)
+            {
+                starFragmentsTextText.text = $"星能碎片: {data.StarFragments}";
+            }
+        }
 
         #endregion
     }
