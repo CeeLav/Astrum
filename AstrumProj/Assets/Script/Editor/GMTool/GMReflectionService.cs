@@ -214,7 +214,7 @@ namespace Astrum.Editor.GMTool
                 try
                 {
                     // 直接访问 GameDirector.Instance（最可靠的方式，因为这是编译时已知的类型）
-                    object gameDirector = null;
+                    GameDirector gameDirector = null;
                     try
                     {
                         gameDirector = GameDirector.Instance;
@@ -233,7 +233,7 @@ namespace Astrum.Editor.GMTool
                         }
                         if (instanceProperty != null)
                         {
-                            gameDirector = instanceProperty.GetValue(null);
+                            gameDirector = (GameDirector)instanceProperty.GetValue(null);
                             UnityEngine.Debug.Log($"[GMReflectionService] 通过反射获取 GameDirector 实例成功");
                         }
                     }
@@ -244,7 +244,7 @@ namespace Astrum.Editor.GMTool
                         var currentGameModeProperty = gameDirectorType.GetProperty("CurrentGameMode", BindingFlags.Public | BindingFlags.Instance);
                         if (currentGameModeProperty != null)
                         {
-                            var currentGameMode = currentGameModeProperty.GetValue(gameDirector);
+                            var currentGameMode = gameDirector.CurrentGameMode;
                             if (currentGameMode != null)
                             {
                                 var currentType = currentGameMode.GetType();

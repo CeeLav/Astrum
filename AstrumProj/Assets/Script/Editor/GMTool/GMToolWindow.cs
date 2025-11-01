@@ -39,10 +39,10 @@ namespace Astrum.Editor.GMTool
         private const string HISTORY_PREF_KEY = "GMTool_History";
         
         // 窗口设置
-        private const float MIN_WINDOW_WIDTH = 800f;
+        private const float MIN_WINDOW_WIDTH = 900f;
         private const float MIN_WINDOW_HEIGHT = 600f;
-        private const float LEFT_PANEL_WIDTH = 300f;
-        private const float RIGHT_PANEL_WIDTH = 300f;
+        private const float LEFT_PANEL_WIDTH = 250f;
+        private const float RIGHT_PANEL_WIDTH = 280f;
 
         [MenuItem("Astrum/Tools/GM Tool", false, 100)]
         public static void ShowWindow()
@@ -76,13 +76,13 @@ namespace Astrum.Editor.GMTool
 
             EditorGUILayout.BeginHorizontal();
             {
-                // 左侧：分类的类型列表和方法列表
+                // 左侧：分类的实例列表
                 DrawLeftPanel();
 
                 // 中间分隔线
                 DrawVerticalSeparator();
 
-                // 中间：参数输入和执行
+                // 中间：上方显示当前方法和参数，下方显示方法列表
                 DrawCenterPanel();
 
                 // 中间分隔线
@@ -128,7 +128,7 @@ namespace Astrum.Editor.GMTool
         }
 
         /// <summary>
-        /// 绘制左侧面板（分类的类型列表和方法列表）
+        /// 绘制左侧面板（仅分类的实例列表）
         /// </summary>
         private void DrawLeftPanel()
         {
@@ -168,10 +168,11 @@ namespace Astrum.Editor.GMTool
                             GUI.backgroundColor = Color.cyan;
                         }
 
-                        if (GUILayout.Button(displayName, EditorStyles.label, GUILayout.Height(18)))
+                        if (GUILayout.Button(displayName, EditorStyles.label, GUILayout.Height(20)))
                         {
                             _selectedTypeName = typeName;
                             OnTypeSelected();
+                            Repaint();
                         }
 
                         GUI.backgroundColor = Color.white;
@@ -182,52 +183,49 @@ namespace Astrum.Editor.GMTool
 
             EditorGUILayout.EndScrollView();
 
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 绘制中间面板（上方：当前方法和参数，下方：方法列表）
+        /// </summary>
+        private void DrawCenterPanel()
+        {
+            EditorGUILayout.BeginVertical();
+
+            // 上方：当前选择的方法和参数输入
+            DrawSelectedMethodPanel();
+
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("方法列表", EditorStyles.boldLabel);
-            _methodScrollPosition = EditorGUILayout.BeginScrollView(_methodScrollPosition, GUILayout.Height(200));
+            EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
-            if (_methods.Count == 0)
-            {
-                EditorGUILayout.HelpBox("没有找到方法", MessageType.Info);
-            }
-            else
-            {
-                for (int i = 0; i < _methods.Count; i++)
-                {
-                    var method = _methods[i];
-                    string signature = GMReflectionService.GetMethodSignature(method);
-
-                    // 高亮选中的方法
-                    if (i == _selectedMethodIndex)
-                    {
-                        GUI.backgroundColor = Color.cyan;
-                    }
-
-                    if (GUILayout.Button(signature, EditorStyles.label, GUILayout.Height(18)))
-                    {
-                        _selectedMethodIndex = i;
-                        OnMethodSelected();
-                    }
-
-                    GUI.backgroundColor = Color.white;
-                }
-            }
-
-            EditorGUILayout.EndScrollView();
+            // 下方：方法列表
+            DrawMethodListPanel();
 
             EditorGUILayout.EndVertical();
         }
 
         /// <summary>
-        /// 绘制中间面板（参数输入和执行）
+        /// 绘制选中方法和参数面板（中间上方）
         /// </summary>
-        private void DrawCenterPanel()
+        private void DrawSelectedMethodPanel()
         {
-            EditorGUILayout.BeginVertical(GUILayout.Width(RIGHT_PANEL_WIDTH));
+            EditorGUILayout.LabelField("当前选择", EditorStyles.boldLabel);
 
-            if (string.IsNullOrEmpty(_selectedTypeName) || _selectedMethodIndex < 0 || _selectedMethodIndex >= _methods.Count)
+            if (string.IsNullOrEmpty(_selectedTypeName))
             {
-                EditorGUILayout.HelpBox("请从左侧选择一个类型和方法", MessageType.Info);
+                EditorGUILayout.HelpBox("请从左侧选择一个类型", MessageType.Info);
+                return;
+            }
+
+            // 显示选中的类型
+            string displayType = GetSimpleTypeName(_selectedTypeName);
+            EditorGUILayout.LabelField($"类型: {displayType}", EditorStyles.miniLabel);
+            EditorGUILayout.Space();
+
+            if (_selectedMethodIndex < 0 || _selectedMethodIndex >= _methods.Count)
+            {
+                EditorGUILayout.HelpBox("请从下方方法列表选择一个方法", MessageType.Info);
             }
             else
             {
@@ -236,7 +234,7 @@ namespace Astrum.Editor.GMTool
 
                 // 方法签名显示
                 EditorGUILayout.LabelField("方法签名", EditorStyles.boldLabel);
-                EditorGUILayout.TextArea(signature, EditorStyles.wordWrappedLabel, GUILayout.Height(50));
+                EditorGUILayout.TextArea(signature, EditorStyles.wordWrappedLabel, GUILayout.Height(40));
                 EditorGUILayout.Space();
 
                 // 参数输入
@@ -248,7 +246,7 @@ namespace Astrum.Editor.GMTool
                 else
                 {
                     EditorGUILayout.LabelField("参数输入", EditorStyles.boldLabel);
-                    _parameterScrollPosition = EditorGUILayout.BeginScrollView(_parameterScrollPosition, GUILayout.Height(300));
+                    _parameterScrollPosition = EditorGUILayout.BeginScrollView(_parameterScrollPosition, GUILayout.Height(200));
 
                     // 确保参数值数组大小正确
                     if (_parameterValues.Length != parameters.Length)
@@ -284,8 +282,53 @@ namespace Astrum.Editor.GMTool
                     ExecuteMethod();
                 }
             }
+        }
 
-            EditorGUILayout.EndVertical();
+        /// <summary>
+        /// 绘制方法列表面板（中间下方）
+        /// </summary>
+        private void DrawMethodListPanel()
+        {
+            EditorGUILayout.LabelField("方法列表", EditorStyles.boldLabel);
+
+            if (string.IsNullOrEmpty(_selectedTypeName))
+            {
+                EditorGUILayout.HelpBox("请先选择一个类型", MessageType.Info);
+                return;
+            }
+
+            _methodScrollPosition = EditorGUILayout.BeginScrollView(_methodScrollPosition, GUILayout.ExpandHeight(true));
+
+            if (_methods.Count == 0)
+            {
+                EditorGUILayout.HelpBox("没有找到方法", MessageType.Info);
+                Debug.LogWarning($"[GMTool] 类型 {_selectedTypeName} 没有找到方法");
+            }
+            else
+            {
+                for (int i = 0; i < _methods.Count; i++)
+                {
+                    var method = _methods[i];
+                    string signature = GMReflectionService.GetMethodSignature(method);
+
+                    // 高亮选中的方法
+                    if (i == _selectedMethodIndex)
+                    {
+                        GUI.backgroundColor = Color.cyan;
+                    }
+
+                    if (GUILayout.Button(signature, EditorStyles.label, GUILayout.Height(20)))
+                    {
+                        _selectedMethodIndex = i;
+                        OnMethodSelected();
+                        Repaint();
+                    }
+
+                    GUI.backgroundColor = Color.white;
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
         }
 
         /// <summary>
@@ -404,9 +447,34 @@ namespace Astrum.Editor.GMTool
                 GMReflectionService.Reset();
                 GMReflectionService.Initialize();
                 _categorizedTypes = GMReflectionService.GetCategorizedTypes();
-                _selectedTypeName = null;
-                _methods.Clear();
-                _selectedMethodIndex = -1;
+                
+                Debug.Log($"[GMTool] 刷新完成 - Manager: {_categorizedTypes[GMReflectionService.TypeCategory.Manager].Count}, " +
+                    $"GameMode: {_categorizedTypes[GMReflectionService.TypeCategory.GameMode].Count}, " +
+                    $"Other: {_categorizedTypes[GMReflectionService.TypeCategory.Other].Count}");
+                
+                // 如果之前有选中，尝试保留
+                if (!string.IsNullOrEmpty(_selectedTypeName))
+                {
+                    // 检查选中的类型是否还存在
+                    bool exists = _categorizedTypes.Any(cat => cat.Value.Contains(_selectedTypeName));
+                    if (!exists)
+                    {
+                        _selectedTypeName = null;
+                        _methods.Clear();
+                        _selectedMethodIndex = -1;
+                    }
+                    else
+                    {
+                        // 重新加载方法
+                        OnTypeSelected();
+                    }
+                }
+                else
+                {
+                    _selectedTypeName = null;
+                    _methods.Clear();
+                    _selectedMethodIndex = -1;
+                }
             }
             catch (Exception ex)
             {
@@ -424,20 +492,24 @@ namespace Astrum.Editor.GMTool
             {
                 _methods.Clear();
                 _selectedMethodIndex = -1;
+                Debug.LogWarning("[GMTool] 类型名称为空");
                 return;
             }
 
+            Debug.Log($"[GMTool] 选择类型: {_selectedTypeName}");
             _methods = GMReflectionService.GetMethods(_selectedTypeName);
             _selectedMethodIndex = -1;
             _parameterValues = new string[0];
             _resultText = "";
             _showResult = false;
+            
+            Debug.Log($"[GMTool] 找到 {_methods.Count} 个方法");
         }
 
         /// <summary>
         /// 方法选择回调
         /// </summary>
-        private void OnMethodSelected()
+        private void OnMethodSelected(bool preserveParameters = false)
         {
             if (_selectedMethodIndex < 0 || _selectedMethodIndex >= _methods.Count)
             {
@@ -448,7 +520,17 @@ namespace Astrum.Editor.GMTool
             var method = _methods[_selectedMethodIndex];
             Debug.Log($"[GMTool] 选择方法: {method.Name}, 类型: {method.DeclaringType?.Name}");
             var parameters = method.GetParameters();
-            _parameterValues = new string[parameters.Length];
+            
+            // 如果保留参数且长度匹配，则保留现有值，否则创建新数组
+            if (preserveParameters && _parameterValues.Length == parameters.Length)
+            {
+                // 保留现有参数值
+            }
+            else
+            {
+                _parameterValues = new string[parameters.Length];
+            }
+            
             _resultText = "";
             _showResult = false;
         }
@@ -585,29 +667,95 @@ namespace Astrum.Editor.GMTool
         /// </summary>
         private void LoadFromHistory(GMHistoryItem item)
         {
-            // 设置类型
-            _selectedTypeName = item.TypeName;
-            OnTypeSelected();
-            
-            // 查找方法
-            var method = _methods.FirstOrDefault(m => m.Name == item.MethodName);
-            if (method != null)
+            try
             {
-                _selectedMethodIndex = _methods.IndexOf(method);
-                OnMethodSelected();
+                Debug.Log($"[GMTool] 开始从历史记录加载: {item.GetDisplayName()}");
                 
-                // 加载参数值
-                var paramArray = item.GetParameterArray();
-                if (paramArray != null && paramArray.Length == _parameterValues.Length)
+                // 确保类型列表已刷新
+                if (_categorizedTypes.Count == 0 || !_categorizedTypes.Any(cat => cat.Value.Contains(item.TypeName)))
                 {
-                    Array.Copy(paramArray, _parameterValues, paramArray.Length);
+                    Debug.Log($"[GMTool] 刷新类型列表");
+                    RefreshTypeList();
                 }
                 
-                Debug.Log($"[GMTool] 从历史记录加载: {item.GetDisplayName()}");
+                // 设置类型
+                _selectedTypeName = item.TypeName;
+                
+                // 找到类型所在的分类并展开
+                foreach (var category in _categorizedTypes.Keys)
+                {
+                    if (_categorizedTypes[category].Contains(_selectedTypeName))
+                    {
+                        _categoryFoldouts[category] = true; // 展开分类
+                        Debug.Log($"[GMTool] 展开分类: {category}, 类型: {_selectedTypeName}");
+                        break;
+                    }
+                }
+                
+                // 加载方法列表
+                OnTypeSelected();
+                
+                // 检查方法列表
+                if (_methods.Count == 0)
+                {
+                    EditorUtility.DisplayDialog("错误", $"类型 {_selectedTypeName} 没有可用方法", "确定");
+                    Debug.LogWarning($"[GMTool] 类型 {_selectedTypeName} 没有可用方法");
+                    Repaint();
+                    return;
+                }
+                
+                Debug.Log($"[GMTool] 找到 {_methods.Count} 个方法，查找: {item.MethodName}");
+                
+                // 查找方法
+                var method = _methods.FirstOrDefault(m => m.Name == item.MethodName);
+                if (method != null)
+                {
+                    _selectedMethodIndex = _methods.IndexOf(method);
+                    Debug.Log($"[GMTool] 找到方法，索引: {_selectedMethodIndex}");
+                    
+                    // 获取参数数组
+                    var paramArray = item.GetParameterArray();
+                    var parameters = method.GetParameters();
+                    
+                    // 如果参数数量匹配，直接设置参数值
+                    if (paramArray != null && paramArray.Length == parameters.Length)
+                    {
+                        // 先创建参数数组
+                        _parameterValues = new string[paramArray.Length];
+                        // 然后复制值
+                        Array.Copy(paramArray, _parameterValues, paramArray.Length);
+                        Debug.Log($"[GMTool] 加载参数值成功: [{string.Join(", ", paramArray)}]");
+                        
+                        // 调用 OnMethodSelected 但保留参数值
+                        OnMethodSelected(true);
+                    }
+                    else
+                    {
+                        // 参数数量不匹配，正常初始化
+                        OnMethodSelected(false);
+                        if (paramArray != null && paramArray.Length != parameters.Length)
+                        {
+                            Debug.LogWarning($"[GMTool] 参数数量不匹配: 历史记录={paramArray.Length}, 当前方法={parameters.Length}");
+                        }
+                    }
+                    
+                    Debug.Log($"[GMTool] 从历史记录加载成功: {item.GetDisplayName()}");
+                    
+                    // 强制重绘窗口以更新UI
+                    Repaint();
+                }
+                else
+                {
+                    string availableMethods = string.Join(", ", _methods.Select(m => m.Name));
+                    EditorUtility.DisplayDialog("错误", $"找不到方法: {item.MethodName}\n类型: {_selectedTypeName}\n可用方法数: {_methods.Count}\n可用方法: {availableMethods}", "确定");
+                    Debug.LogWarning($"[GMTool] 找不到方法: {item.MethodName}, 可用方法: {availableMethods}");
+                    Repaint();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                EditorUtility.DisplayDialog("错误", $"找不到方法: {item.MethodName}", "确定");
+                Debug.LogError($"[GMTool] 从历史记录加载失败: {ex.Message}\n{ex.StackTrace}");
+                EditorUtility.DisplayDialog("错误", $"加载历史记录失败: {ex.Message}", "确定");
             }
         }
 
