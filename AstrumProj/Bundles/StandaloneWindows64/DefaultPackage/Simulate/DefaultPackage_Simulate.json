@@ -9,8 +9,16 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/10/23 11:57:44",
+    "PackageNote": "2025/11/1 22:46:40",
     "AssetList": [
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/HubView.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
         {
             "Address": "",
             "AssetPath": "Assets/ArtRes/UI/HUD/HorizontalBoxWithShadow.prefab",
@@ -229,6 +237,14 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/Scenes/Hub.unity",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/Scenes/Start.unity",
             "AssetGUID": "",
             "AssetTags": [],
@@ -250,7 +266,7 @@
             "UnityCRC": 0,
             "FileHash": "119f15bc2f772e65240d209586ba9c17",
             "FileCRC": 0,
-            "FileSize": 182709,
+            "FileSize": 209361,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -260,7 +276,7 @@
             "UnityCRC": 0,
             "FileHash": "70f74b08a2cc1a0684e7051dfa3e0970",
             "FileCRC": 0,
-            "FileSize": 18580,
+            "FileSize": 18717,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -290,7 +306,7 @@
             "UnityCRC": 0,
             "FileHash": "cea67fae521d4ef419fedc4a328320b1",
             "FileCRC": 0,
-            "FileSize": 8728562,
+            "FileSize": 8735334,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []

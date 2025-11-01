@@ -411,13 +411,13 @@ namespace Astrum.Client.Managers.GameModes
         }
 
         /// <summary>
-        /// 启动单机游戏
+        /// 启动单机游戏（切换到 Hub 模式）
         /// </summary>
         public void StartSinglePlayerGame()
         {
             try
             {
-                ASLogger.Instance.Info("LoginGameMode: 启动单机游戏");
+                ASLogger.Instance.Info("LoginGameMode: 切换到 Hub 模式");
 
                 // 1. 设置单机模式
                 Client.Core.GameConfig.Instance.SetSinglePlayerMode(true);
@@ -425,17 +425,17 @@ namespace Astrum.Client.Managers.GameModes
                 // 2. 隐藏登录 UI
                 HideLoginUI();
 
-                // 3. 创建单机游戏模式并切换
-                GameDirector.Instance.SwitchGameMode(GameModeType.SinglePlayer);
+                // 3. 切换到 Hub 模式
+                GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
 
-                // 4. 启动游戏
-                GameDirector.Instance.StartGame("DungeonsGame");
+                // 4. 启动 Hub 游戏（加载 Hub 场景）
+                GameDirector.Instance.StartGame("Hub");
 
-                ASLogger.Instance.Info("LoginGameMode: 单机游戏启动成功");
+                ASLogger.Instance.Info("LoginGameMode: 切换到 Hub 模式成功");
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"LoginGameMode: 启动单机游戏失败 - {ex.Message}");
+                ASLogger.Instance.Error($"LoginGameMode: 切换到 Hub 模式失败 - {ex.Message}");
                 PublishLoginError($"启动游戏失败: {ex.Message}");
             }
         }

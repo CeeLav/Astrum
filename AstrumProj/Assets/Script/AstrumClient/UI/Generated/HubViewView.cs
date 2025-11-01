@@ -8,6 +8,7 @@ using Astrum.Client.UI.Core;
 using Astrum.CommonBase;
 using Astrum.Client.Core;
 using Astrum.Client.Data;
+using Astrum.Client.Managers.GameModes;
 
 namespace Astrum.Client.UI.Generated
 {
@@ -70,10 +71,16 @@ namespace Astrum.Client.UI.Generated
 
         private void OnStartExplorationClicked()
         {
-            EventSystem.Instance.Publish(new StartExplorationRequestEventData
+            // 直接调用 GameMode 的方法，不通过事件
+            var hubMode = GameDirector.Instance?.CurrentGameMode as HubGameMode;
+            if (hubMode != null)
             {
-                Sender = this
-            });
+                hubMode.StartExploration();
+            }
+            else
+            {
+                ASLogger.Instance.Warning("HubViewView: 当前 GameMode 不是 HubGameMode");
+            }
         }
 
         private void OnPlayerDataChanged(PlayerDataChangedEventData evt)

@@ -23,7 +23,7 @@ namespace Astrum.Client.Managers.GameModes
         public override bool IsRunning { get; set; }
         
         // Hub 特定场景名称
-        private const string HubSceneName = "HubScene";
+        private const string HubSceneName = "Hub";
         
         /// <summary>
         /// 初始化 Hub 游戏模式
@@ -89,6 +89,9 @@ namespace Astrum.Client.Managers.GameModes
             ASLogger.Instance.Info("HubGameMode: 关闭 Hub 模式");
             ChangeState(GameModeState.Ending);
             
+            // 隐藏 Hub UI
+            HideHubView();
+            
             // 取消订阅事件
             UnsubscribeFromEvents();
             
@@ -98,6 +101,22 @@ namespace Astrum.Client.Managers.GameModes
             IsRunning = false;
             
             ChangeState(GameModeState.Finished);
+        }
+        
+        /// <summary>
+        /// 隐藏 Hub UI
+        /// </summary>
+        private void HideHubView()
+        {
+            try
+            {
+                ASLogger.Instance.Info("HubGameMode: 隐藏HubView");
+                UIManager.Instance?.HideUI("HubView");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"HubGameMode: 隐藏HubView失败 - {ex.Message}");
+            }
         }
         
         /// <summary>
@@ -117,7 +136,7 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 开始探索请求事件处理
+        /// 开始探索请求事件处理（保留用于事件驱动架构）
         /// </summary>
         private void OnStartExplorationRequested(StartExplorationRequestEventData eventData)
         {
@@ -126,9 +145,9 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 启动探索
+        /// 启动探索（公开方法，供 UI 直接调用）
         /// </summary>
-        private void StartExploration()
+        public void StartExploration()
         {
             ASLogger.Instance.Info("HubGameMode: 启动探索");
             
