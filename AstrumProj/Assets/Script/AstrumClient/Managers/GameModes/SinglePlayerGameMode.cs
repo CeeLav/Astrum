@@ -5,6 +5,7 @@ using Astrum.Client.Data;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
+using Astrum.View.Managers;
 using AstrumClient.MonitorTools;
 using UnityEngine;
 
@@ -113,6 +114,17 @@ namespace Astrum.Client.Managers.GameModes
             
             // 取消注册事件处理器
             EventSystem.Instance.Unsubscribe<GameModeStateChangedEventData>(OnStateChanged);
+            
+
+            
+            // 销毁Stage（会清理所有EntityView）
+            MainStage?.Destroy();
+            
+            // 清理HUD
+            HUDManager.Instance?.ClearAll();
+            
+            // 销毁Room（会自动清理所有World资源）
+            MainRoom?.Shutdown();
             
             // 清理资源
             MainRoom = null;

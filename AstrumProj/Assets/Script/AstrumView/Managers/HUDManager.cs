@@ -278,6 +278,19 @@ namespace Astrum.View.Managers
             }
         }
         
+        /// <summary>
+        /// 清理所有HUD实例
+        /// </summary>
+        public void ClearAll()
+        {
+            foreach (var hudInstance in _hudInstances.Values)
+            {
+                ReturnHUDToPool(hudInstance.GameObject);
+            }
+            _hudInstances.Clear();
+            ASLogger.Instance.Info("HUDManager: 已清理所有HUD实例");
+        }
+        
     }
     
     /// <summary>

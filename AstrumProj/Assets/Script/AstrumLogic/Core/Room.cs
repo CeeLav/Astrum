@@ -222,5 +222,29 @@ namespace Astrum.LogicCore.Core
             }
         }
         
+        /// <summary>
+        /// 销毁房间，清理所有资源
+        /// </summary>
+        public virtual void Shutdown()
+        {
+            ASLogger.Instance.Info($"Room: 销毁房间 {Name} (ID: {RoomId})");
+            
+            // 清理所有世界资源
+            foreach (var world in Worlds)
+            {
+                world?.Cleanup();
+            }
+            
+            // 清理玩家列表
+            Players.Clear();
+            
+            // 清理帧同步控制器
+            LSController = null;
+            
+            // 重置状态
+            IsActive = false;
+            Worlds.Clear();
+        }
+        
     }
 }
