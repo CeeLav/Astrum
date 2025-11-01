@@ -1,6 +1,7 @@
 using System;
 using Astrum.CommonBase;
 using Astrum.Client.Core;
+using Astrum.Client.Data;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
@@ -347,6 +348,62 @@ namespace Astrum.Client.Managers.GameModes
         private void OnGameEnd()
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 游戏结束");
+        }
+        
+        #endregion
+        
+        #region 撤离逻辑
+        
+        /// <summary>
+        /// 撤离单机游戏并返回 Hub
+        /// </summary>
+        public void Evacuate()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 开始撤离");
+            
+            try
+            {
+                // 1. 保存玩家数据
+                SavePlayerData();
+                
+                // 2. 切换到 HubGameMode
+                GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
+                
+                // 3. 启动 Hub 场景
+                GameDirector.Instance.StartGame("Hub");
+                
+                ASLogger.Instance.Info("SinglePlayerGameMode: 撤离成功，已切换到 Hub 模式");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"SinglePlayerGameMode: 撤离失败 - {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// 保存玩家数据
+        /// </summary>
+        private void SavePlayerData()
+        {
+            try
+            {
+                var playerDataManager = PlayerDataManager.Instance;
+                if (playerDataManager != null)
+                {
+                    playerDataManager.SaveProgressData();
+                    ASLogger.Instance.Info("SinglePlayerGameMode: 玩家数据已保存");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning("SinglePlayerGameMode: PlayerDataManager 未找到，跳过数据保存");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"SinglePlayerGameMode: 保存玩家数据失败 - {ex.Message}");
+                // 不抛出异常，允许继续撤离流程
+            }
         }
         
         #endregion

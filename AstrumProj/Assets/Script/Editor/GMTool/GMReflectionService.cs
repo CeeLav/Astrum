@@ -152,28 +152,71 @@ namespace Astrum.Editor.GMTool
             {
                 try
                 {
-                    var gameDirectorType = typeof(GameDirector);
-                    var instanceProperty = gameDirectorType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
-                    if (instanceProperty != null)
+                    // 直接访问 GameDirector.Instance（最可靠的方式，因为这是编译时已知的类型）
+                    object gameDirector = null;
+                    try
                     {
-                        var gameDirector = instanceProperty.GetValue(null);
-                        if (gameDirector != null)
+                        gameDirector = GameDirector.Instance;
+                        UnityEngine.Debug.Log($"[GMReflectionService] 直接访问 GameDirector.Instance 成功");
+                    }
+                    catch (Exception directEx)
+                    {
+                        UnityEngine.Debug.LogError($"[GMReflectionService] 直接访问 GameDirector.Instance 失败: {directEx.Message}");
+                        
+                        // Fallback: 尝试通过反射获取（如果直接访问失败）
+                        var gameDirectorType = typeof(GameDirector);
+                        var instanceProperty = gameDirectorType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+                        if (instanceProperty == null && gameDirectorType.BaseType != null)
                         {
-                            var currentGameModeProperty = gameDirectorType.GetProperty("CurrentGameMode", BindingFlags.Public | BindingFlags.Instance);
-                            if (currentGameModeProperty != null)
+                            instanceProperty = gameDirectorType.BaseType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+                        }
+                        if (instanceProperty != null)
+                        {
+                            gameDirector = instanceProperty.GetValue(null);
+                            UnityEngine.Debug.Log($"[GMReflectionService] 通过反射获取 GameDirector 实例成功");
+                        }
+                    }
+                    
+                    if (gameDirector != null)
+                    {
+                        var gameDirectorType = typeof(GameDirector);
+                        var currentGameModeProperty = gameDirectorType.GetProperty("CurrentGameMode", BindingFlags.Public | BindingFlags.Instance);
+                        if (currentGameModeProperty != null)
+                        {
+                            var currentGameMode = currentGameModeProperty.GetValue(gameDirector);
+                            if (currentGameMode != null)
                             {
-                                var currentGameMode = currentGameModeProperty.GetValue(gameDirector);
-                                if (currentGameMode != null && type.IsAssignableFrom(currentGameMode.GetType()))
+                                var currentType = currentGameMode.GetType();
+                                // 检查类型是否匹配
+                                // 使用IsAssignableFrom确保能够匹配基类和接口关系
+                                if (type.IsAssignableFrom(currentType))
                                 {
+                                    UnityEngine.Debug.Log($"[GMReflectionService] 找到匹配的 GameMode: 当前类型={currentType.Name}, 目标类型={type.Name}");
                                     return currentGameMode;
                                 }
+                                else
+                                {
+                                    UnityEngine.Debug.LogWarning($"[GMReflectionService] GameMode 类型不匹配: 当前={currentType.Name}, 目标={type.Name} (类型检查: IsAssignableFrom={type.IsAssignableFrom(currentType)})");
+                                }
+                            }
+                            else
+                            {
+                                UnityEngine.Debug.LogWarning($"[GMReflectionService] 当前没有激活的 GameMode");
                             }
                         }
+                        else
+                        {
+                            UnityEngine.Debug.LogWarning($"[GMReflectionService] 无法找到 CurrentGameMode 属性");
+                        }
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogWarning($"[GMReflectionService] GameDirector 实例为 null，可能尚未初始化");
                     }
                 }
                 catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogWarning($"[GMReflectionService] 获取 GameMode 失败: {ex.Message}");
+                    UnityEngine.Debug.LogError($"[GMReflectionService] 获取 GameMode 失败: {ex.Message}\n{ex.StackTrace}");
                 }
                 return null;
             }

@@ -320,6 +320,7 @@ namespace Astrum.Editor.GMTool
             }
 
             var method = _methods[_selectedMethodIndex];
+            Debug.Log($"[GMTool] 选择方法: {method.Name}, 类型: {method.DeclaringType?.Name}");
             var parameters = method.GetParameters();
             _parameterValues = new string[parameters.Length];
             _resultText = "";
@@ -354,13 +355,16 @@ namespace Astrum.Editor.GMTool
                 object instance = null;
                 if (!method.IsStatic)
                 {
+                    Debug.Log($"[GMTool] 尝试获取实例: {typeName}");
                     instance = GMReflectionService.GetInstance(typeName);
                     if (instance == null)
                     {
                         _resultText = $"错误: 无法获取 {typeName} 的实例。\n请确保该单例已初始化或GameMode已激活。";
                         _showResult = true;
+                        Debug.LogWarning($"[GMTool] 无法获取实例: {typeName}");
                         return;
                     }
+                    Debug.Log($"[GMTool] 成功获取实例: {typeName}, 类型: {instance.GetType().Name}");
                 }
 
                 // 转换参数
@@ -382,7 +386,9 @@ namespace Astrum.Editor.GMTool
                 }
 
                 // 调用方法
+                Debug.Log($"[GMTool] 准备调用方法: {typeName}.{method.Name}()");
                 object result = method.Invoke(instance, parameterObjects);
+                Debug.Log($"[GMTool] 方法调用完成: {typeName}.{method.Name}()");
 
                 // 显示结果
                 if (method.ReturnType == typeof(void))
