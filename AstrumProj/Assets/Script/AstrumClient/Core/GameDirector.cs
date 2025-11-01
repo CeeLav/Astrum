@@ -7,6 +7,7 @@ using Astrum.LogicCore.Managers;
 using Astrum.Network;
 using Astrum.View.Archetypes;
 using AstrumClient.MonitorTools;
+using Astrum.Client.Data;
 
 namespace Astrum.Client.Core
 {
@@ -16,6 +17,7 @@ namespace Astrum.Client.Core
     public enum GameModeType
     {
         Login,          // 登录模式
+        Hub,            // Hub 模式
         SinglePlayer,   // 单机模式
         Multiplayer     // 联机模式
     }
@@ -126,6 +128,7 @@ namespace Astrum.Client.Core
             IGameMode newGameMode = gameModeType switch
             {
                 GameModeType.Login => new LoginGameMode(),
+                GameModeType.Hub => new HubGameMode(),
                 GameModeType.SinglePlayer => new SinglePlayerGameMode(),
                 GameModeType.Multiplayer => new MultiplayerGameMode(),
                 _ => throw new System.ArgumentException($"Unknown GameMode type: {gameModeType}")
@@ -214,6 +217,9 @@ namespace Astrum.Client.Core
             SceneManager.Instance.Initialize();
             NetworkManager.Instance.Initialize();
             UIManager.Instance.Initialize();
+            
+            // 初始化玩家数据管理器
+            PlayerDataManager.Instance.Initialize();
             
             // 初始化 HUD 管理器
             HUDManager.Instance.Initialize(GameApplication.Instance.HUDCanvas, GameApplication.Instance.MainCamera);
