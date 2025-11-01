@@ -127,7 +127,68 @@ namespace Astrum.Editor.GMTool
         }
 
         /// <summary>
-        /// 获取所有可用的类型名称
+        /// 类型分类枚举
+        /// </summary>
+        public enum TypeCategory
+        {
+            Manager,
+            GameMode,
+            Other
+        }
+        
+        /// <summary>
+        /// 获取类型的分类
+        /// </summary>
+        public static TypeCategory GetTypeCategory(Type type, string typeName)
+        {
+            // GameMode类型
+            if (typeName.StartsWith("GameMode:") || typeof(IGameMode).IsAssignableFrom(type))
+            {
+                return TypeCategory.GameMode;
+            }
+            
+            // Manager类型（通常以Manager结尾，或在Managers命名空间下）
+            string name = type.Name;
+            if (name.EndsWith("Manager") || 
+                (type.Namespace != null && type.Namespace.Contains("Managers")))
+            {
+                return TypeCategory.Manager;
+            }
+            
+            return TypeCategory.Other;
+        }
+        
+        /// <summary>
+        /// 获取分类的类型列表
+        /// </summary>
+        public static Dictionary<TypeCategory, List<string>> GetCategorizedTypes()
+        {
+            Initialize();
+            
+            var categorized = new Dictionary<TypeCategory, List<string>>
+            {
+                { TypeCategory.Manager, new List<string>() },
+                { TypeCategory.GameMode, new List<string>() },
+                { TypeCategory.Other, new List<string>() }
+            };
+            
+            foreach (var kvp in _singletonTypes)
+            {
+                var category = GetTypeCategory(kvp.Value, kvp.Key);
+                categorized[category].Add(kvp.Key);
+            }
+            
+            // 排序
+            foreach (var category in categorized.Keys)
+            {
+                categorized[category].Sort();
+            }
+            
+            return categorized;
+        }
+
+        /// <summary>
+        /// 获取所有可用的类型名称（保持向后兼容）
         /// </summary>
         public static List<string> GetAvailableTypeNames()
         {

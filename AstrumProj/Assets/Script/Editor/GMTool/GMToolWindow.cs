@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEditor;
@@ -11,21 +12,37 @@ namespace Astrum.Editor.GMTool
     /// </summary>
     public class GMToolWindow : EditorWindow
     {
-        // UI状态
-        private int _selectedTypeIndex = 0;
-        private string[] _availableTypeNames = new string[0];
+        // UI状态 - 分类折叠
+        private Dictionary<GMReflectionService.TypeCategory, bool> _categoryFoldouts = new Dictionary<GMReflectionService.TypeCategory, bool>
+        {
+            { GMReflectionService.TypeCategory.Manager, true },
+            { GMReflectionService.TypeCategory.GameMode, true },
+            { GMReflectionService.TypeCategory.Other, true }
+        };
+        private Dictionary<GMReflectionService.TypeCategory, List<string>> _categorizedTypes = new Dictionary<GMReflectionService.TypeCategory, List<string>>();
+        private string _selectedTypeName = null;
+        
+        // UI状态 - 方法选择
         private List<MethodInfo> _methods = new List<MethodInfo>();
         private int _selectedMethodIndex = -1;
         private string[] _parameterValues = new string[0];
         private Vector2 _typeScrollPosition;
         private Vector2 _methodScrollPosition;
         private Vector2 _parameterScrollPosition;
+        private Vector2 _historyScrollPosition;
+        
+        // UI状态 - 结果和历史
         private string _resultText = "";
         private bool _showResult = false;
-
+        private List<GMHistoryItem> _historyList = new List<GMHistoryItem>();
+        private const int MAX_HISTORY_COUNT = 10;
+        private const string HISTORY_PREF_KEY = "GMTool_History";
+        
         // 窗口设置
-        private const float MIN_WINDOW_WIDTH = 600f;
-        private const float MIN_WINDOW_HEIGHT = 500f;
+        private const float MIN_WINDOW_WIDTH = 800f;
+        private const float MIN_WINDOW_HEIGHT = 600f;
+        private const float LEFT_PANEL_WIDTH = 300f;
+        private const float RIGHT_PANEL_WIDTH = 300f;
 
         [MenuItem("Astrum/Tools/GM Tool", false, 100)]
         public static void ShowWindow()
@@ -38,6 +55,7 @@ namespace Astrum.Editor.GMTool
         private void OnEnable()
         {
             RefreshTypeList();
+            LoadHistory();
         }
 
         private void OnGUI()
@@ -58,13 +76,19 @@ namespace Astrum.Editor.GMTool
 
             EditorGUILayout.BeginHorizontal();
             {
-                // 左侧：类型和方法列表
+                // 左侧：分类的类型列表和方法列表
                 DrawLeftPanel();
 
                 // 中间分隔线
                 DrawVerticalSeparator();
 
-                // 右侧：参数输入和执行
+                // 中间：参数输入和执行
+                DrawCenterPanel();
+
+                // 中间分隔线
+                DrawVerticalSeparator();
+
+                // 右侧：历史记录
                 DrawRightPanel();
             }
             EditorGUILayout.EndHorizontal();
@@ -88,6 +112,14 @@ namespace Astrum.Editor.GMTool
                     RefreshTypeList();
                 }
 
+                if (GUILayout.Button("清空历史", EditorStyles.toolbarButton, GUILayout.Width(80)))
+                {
+                    if (EditorUtility.DisplayDialog("清空历史", "确定要清空所有历史记录吗？", "确定", "取消"))
+                    {
+                        ClearHistory();
+                    }
+                }
+
                 GUILayout.FlexibleSpace();
 
                 EditorGUILayout.LabelField("GM工具 - 反射调用单例和GameMode方法", EditorStyles.miniLabel);
@@ -96,30 +128,63 @@ namespace Astrum.Editor.GMTool
         }
 
         /// <summary>
-        /// 绘制左侧面板（类型和方法列表）
+        /// 绘制左侧面板（分类的类型列表和方法列表）
         /// </summary>
         private void DrawLeftPanel()
         {
-            EditorGUILayout.BeginVertical(GUILayout.Width(300));
+            EditorGUILayout.BeginVertical(GUILayout.Width(LEFT_PANEL_WIDTH));
+            
+            EditorGUILayout.LabelField("可调用实例", EditorStyles.boldLabel);
+            _typeScrollPosition = EditorGUILayout.BeginScrollView(_typeScrollPosition, GUILayout.ExpandHeight(true));
 
-            // 类型选择
-            EditorGUILayout.LabelField("目标类型", EditorStyles.boldLabel);
-            EditorGUILayout.BeginHorizontal();
+            // 绘制分类折叠列表
+            foreach (var category in new[] 
+            { 
+                GMReflectionService.TypeCategory.Manager, 
+                GMReflectionService.TypeCategory.GameMode, 
+                GMReflectionService.TypeCategory.Other 
+            })
             {
-                int newIndex = EditorGUILayout.Popup(_selectedTypeIndex, _availableTypeNames);
-                if (newIndex != _selectedTypeIndex)
+                if (!_categorizedTypes.ContainsKey(category) || _categorizedTypes[category].Count == 0)
+                    continue;
+
+                string categoryName = GetCategoryDisplayName(category);
+                int count = _categorizedTypes[category].Count;
+                
+                // 折叠标题
+                _categoryFoldouts[category] = EditorGUILayout.Foldout(_categoryFoldouts[category], $"{categoryName} ({count})", true);
+                
+                if (_categoryFoldouts[category])
                 {
-                    _selectedTypeIndex = newIndex;
-                    OnTypeSelected();
+                    EditorGUI.indentLevel++;
+                    foreach (var typeName in _categorizedTypes[category])
+                    {
+                        // 显示类型名称（简化显示）
+                        string displayName = GetSimpleTypeName(typeName);
+                        
+                        // 高亮选中的类型
+                        if (typeName == _selectedTypeName)
+                        {
+                            GUI.backgroundColor = Color.cyan;
+                        }
+
+                        if (GUILayout.Button(displayName, EditorStyles.label, GUILayout.Height(18)))
+                        {
+                            _selectedTypeName = typeName;
+                            OnTypeSelected();
+                        }
+
+                        GUI.backgroundColor = Color.white;
+                    }
+                    EditorGUI.indentLevel--;
                 }
             }
-            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndScrollView();
 
             EditorGUILayout.Space();
-
-            // 方法列表
             EditorGUILayout.LabelField("方法列表", EditorStyles.boldLabel);
-            _methodScrollPosition = EditorGUILayout.BeginScrollView(_methodScrollPosition, GUILayout.ExpandHeight(true));
+            _methodScrollPosition = EditorGUILayout.BeginScrollView(_methodScrollPosition, GUILayout.Height(200));
 
             if (_methods.Count == 0)
             {
@@ -138,7 +203,7 @@ namespace Astrum.Editor.GMTool
                         GUI.backgroundColor = Color.cyan;
                     }
 
-                    if (GUILayout.Button(signature, EditorStyles.label, GUILayout.Height(20)))
+                    if (GUILayout.Button(signature, EditorStyles.label, GUILayout.Height(18)))
                     {
                         _selectedMethodIndex = i;
                         OnMethodSelected();
@@ -154,15 +219,15 @@ namespace Astrum.Editor.GMTool
         }
 
         /// <summary>
-        /// 绘制右侧面板（参数输入和执行）
+        /// 绘制中间面板（参数输入和执行）
         /// </summary>
-        private void DrawRightPanel()
+        private void DrawCenterPanel()
         {
-            EditorGUILayout.BeginVertical();
+            EditorGUILayout.BeginVertical(GUILayout.Width(RIGHT_PANEL_WIDTH));
 
-            if (_selectedMethodIndex < 0 || _selectedMethodIndex >= _methods.Count)
+            if (string.IsNullOrEmpty(_selectedTypeName) || _selectedMethodIndex < 0 || _selectedMethodIndex >= _methods.Count)
             {
-                EditorGUILayout.HelpBox("请从左侧选择一个方法", MessageType.Info);
+                EditorGUILayout.HelpBox("请从左侧选择一个类型和方法", MessageType.Info);
             }
             else
             {
@@ -171,7 +236,7 @@ namespace Astrum.Editor.GMTool
 
                 // 方法签名显示
                 EditorGUILayout.LabelField("方法签名", EditorStyles.boldLabel);
-                EditorGUILayout.TextArea(signature, EditorStyles.wordWrappedLabel);
+                EditorGUILayout.TextArea(signature, EditorStyles.wordWrappedLabel, GUILayout.Height(50));
                 EditorGUILayout.Space();
 
                 // 参数输入
@@ -183,7 +248,7 @@ namespace Astrum.Editor.GMTool
                 else
                 {
                     EditorGUILayout.LabelField("参数输入", EditorStyles.boldLabel);
-                    _parameterScrollPosition = EditorGUILayout.BeginScrollView(_parameterScrollPosition);
+                    _parameterScrollPosition = EditorGUILayout.BeginScrollView(_parameterScrollPosition, GUILayout.Height(300));
 
                     // 确保参数值数组大小正确
                     if (_parameterValues.Length != parameters.Length)
@@ -200,12 +265,12 @@ namespace Astrum.Editor.GMTool
                         {
                             string typeShortName = GMReflectionService.GetTypeShortName(param.ParameterType);
                             EditorGUILayout.LabelField($"{param.Name} ({typeShortName})", EditorStyles.boldLabel);
-                            EditorGUILayout.LabelField($"提示: {GMParameterConverter.GetParameterHint(param.ParameterType)}", EditorStyles.miniLabel);
+                            EditorGUILayout.LabelField($"提示: {hint}", EditorStyles.miniLabel);
 
                             _parameterValues[i] = EditorGUILayout.TextField("值", _parameterValues[i] ?? "");
                         }
                         EditorGUILayout.EndVertical();
-                        EditorGUILayout.Space(5);
+                        EditorGUILayout.Space(3);
                     }
 
                     EditorGUILayout.EndScrollView();
@@ -214,13 +279,54 @@ namespace Astrum.Editor.GMTool
                 EditorGUILayout.Space();
 
                 // 执行按钮
-                GUI.enabled = true;
                 if (GUILayout.Button("执行方法", GUILayout.Height(30)))
                 {
                     ExecuteMethod();
                 }
-                GUI.enabled = true;
             }
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 绘制右侧面板（历史记录）
+        /// </summary>
+        private void DrawRightPanel()
+        {
+            EditorGUILayout.BeginVertical(GUILayout.Width(RIGHT_PANEL_WIDTH));
+
+            EditorGUILayout.LabelField("历史记录", EditorStyles.boldLabel);
+            _historyScrollPosition = EditorGUILayout.BeginScrollView(_historyScrollPosition, GUILayout.ExpandHeight(true));
+
+            if (_historyList.Count == 0)
+            {
+                EditorGUILayout.HelpBox("暂无历史记录", MessageType.Info);
+            }
+            else
+            {
+                for (int i = _historyList.Count - 1; i >= 0; i--)
+                {
+                    var item = _historyList[i];
+                    EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                    {
+                        EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+                        {
+                            EditorGUILayout.LabelField(item.GetDisplayName(), EditorStyles.miniLabel);
+                            EditorGUILayout.LabelField(item.ExecuteTime.ToString("HH:mm:ss"), EditorStyles.centeredGreyMiniLabel);
+                        }
+                        EditorGUILayout.EndVertical();
+
+                        if (GUILayout.Button("使用", GUILayout.Width(50), GUILayout.Height(35)))
+                        {
+                            LoadFromHistory(item);
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.Space(2);
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
 
             EditorGUILayout.EndVertical();
         }
@@ -230,9 +336,9 @@ namespace Astrum.Editor.GMTool
         /// </summary>
         private void DrawVerticalSeparator()
         {
-            EditorGUILayout.BeginVertical(GUILayout.Width(5));
+            EditorGUILayout.BeginVertical(GUILayout.Width(3));
             EditorGUILayout.Space();
-            Rect rect = GUILayoutUtility.GetRect(5, Screen.height, GUILayout.ExpandHeight(true));
+            Rect rect = GUILayoutUtility.GetRect(3, Screen.height, GUILayout.ExpandHeight(true));
             EditorGUI.DrawRect(rect, new Color(0.3f, 0.3f, 0.3f));
             EditorGUILayout.EndVertical();
         }
@@ -260,6 +366,35 @@ namespace Astrum.Editor.GMTool
         }
 
         /// <summary>
+        /// 获取分类显示名称
+        /// </summary>
+        private string GetCategoryDisplayName(GMReflectionService.TypeCategory category)
+        {
+            return category switch
+            {
+                GMReflectionService.TypeCategory.Manager => "Manager",
+                GMReflectionService.TypeCategory.GameMode => "GameMode",
+                GMReflectionService.TypeCategory.Other => "其他",
+                _ => category.ToString()
+            };
+        }
+
+        /// <summary>
+        /// 获取简化的类型名称
+        /// </summary>
+        private string GetSimpleTypeName(string typeName)
+        {
+            if (typeName.StartsWith("GameMode:"))
+            {
+                return typeName.Substring(9); // 移除 "GameMode: " 前缀
+            }
+            
+            // 只显示类名，不显示命名空间
+            int lastDot = typeName.LastIndexOf('.');
+            return lastDot >= 0 ? typeName.Substring(lastDot + 1) : typeName;
+        }
+
+        /// <summary>
         /// 刷新类型列表
         /// </summary>
         private void RefreshTypeList()
@@ -268,18 +403,10 @@ namespace Astrum.Editor.GMTool
             {
                 GMReflectionService.Reset();
                 GMReflectionService.Initialize();
-                _availableTypeNames = GMReflectionService.GetAvailableTypeNames().ToArray();
-
-                if (_availableTypeNames.Length > 0)
-                {
-                    _selectedTypeIndex = 0;
-                    OnTypeSelected();
-                }
-                else
-                {
-                    _selectedTypeIndex = -1;
-                    _methods.Clear();
-                }
+                _categorizedTypes = GMReflectionService.GetCategorizedTypes();
+                _selectedTypeName = null;
+                _methods.Clear();
+                _selectedMethodIndex = -1;
             }
             catch (Exception ex)
             {
@@ -293,15 +420,14 @@ namespace Astrum.Editor.GMTool
         /// </summary>
         private void OnTypeSelected()
         {
-            if (_selectedTypeIndex < 0 || _selectedTypeIndex >= _availableTypeNames.Length)
+            if (string.IsNullOrEmpty(_selectedTypeName))
             {
                 _methods.Clear();
                 _selectedMethodIndex = -1;
                 return;
             }
 
-            string typeName = _availableTypeNames[_selectedTypeIndex];
-            _methods = GMReflectionService.GetMethods(typeName);
+            _methods = GMReflectionService.GetMethods(_selectedTypeName);
             _selectedMethodIndex = -1;
             _parameterValues = new string[0];
             _resultText = "";
@@ -332,7 +458,7 @@ namespace Astrum.Editor.GMTool
         /// </summary>
         private void ExecuteMethod()
         {
-            if (_selectedTypeIndex < 0 || _selectedTypeIndex >= _availableTypeNames.Length)
+            if (string.IsNullOrEmpty(_selectedTypeName))
             {
                 _resultText = "错误: 未选择类型";
                 _showResult = true;
@@ -346,7 +472,6 @@ namespace Astrum.Editor.GMTool
                 return;
             }
 
-            string typeName = _availableTypeNames[_selectedTypeIndex];
             var method = _methods[_selectedMethodIndex];
 
             try
@@ -355,16 +480,16 @@ namespace Astrum.Editor.GMTool
                 object instance = null;
                 if (!method.IsStatic)
                 {
-                    Debug.Log($"[GMTool] 尝试获取实例: {typeName}");
-                    instance = GMReflectionService.GetInstance(typeName);
+                    Debug.Log($"[GMTool] 尝试获取实例: {_selectedTypeName}");
+                    instance = GMReflectionService.GetInstance(_selectedTypeName);
                     if (instance == null)
                     {
-                        _resultText = $"错误: 无法获取 {typeName} 的实例。\n请确保该单例已初始化或GameMode已激活。";
+                        _resultText = $"错误: 无法获取 {_selectedTypeName} 的实例。\n请确保该单例已初始化或GameMode已激活。";
                         _showResult = true;
-                        Debug.LogWarning($"[GMTool] 无法获取实例: {typeName}");
+                        Debug.LogWarning($"[GMTool] 无法获取实例: {_selectedTypeName}");
                         return;
                     }
-                    Debug.Log($"[GMTool] 成功获取实例: {typeName}, 类型: {instance.GetType().Name}");
+                    Debug.Log($"[GMTool] 成功获取实例: {_selectedTypeName}, 类型: {instance.GetType().Name}");
                 }
 
                 // 转换参数
@@ -386,9 +511,9 @@ namespace Astrum.Editor.GMTool
                 }
 
                 // 调用方法
-                Debug.Log($"[GMTool] 准备调用方法: {typeName}.{method.Name}()");
+                Debug.Log($"[GMTool] 准备调用方法: {_selectedTypeName}.{method.Name}()");
                 object result = method.Invoke(instance, parameterObjects);
-                Debug.Log($"[GMTool] 方法调用完成: {typeName}.{method.Name}()");
+                Debug.Log($"[GMTool] 方法调用完成: {_selectedTypeName}.{method.Name}()");
 
                 // 显示结果
                 if (method.ReturnType == typeof(void))
@@ -405,7 +530,10 @@ namespace Astrum.Editor.GMTool
                 }
 
                 _showResult = true;
-                Debug.Log($"[GMTool] 执行方法: {typeName}.{method.Name}() 成功");
+                Debug.Log($"[GMTool] 执行方法: {_selectedTypeName}.{method.Name}() 成功");
+
+                // 添加到历史记录
+                AddToHistory(_selectedTypeName, method.Name, _parameterValues);
             }
             catch (TargetInvocationException ex)
             {
@@ -422,6 +550,123 @@ namespace Astrum.Editor.GMTool
                 Debug.LogError($"[GMTool] 执行方法失败: {ex}");
             }
         }
+
+        /// <summary>
+        /// 添加到历史记录
+        /// </summary>
+        private void AddToHistory(string typeName, string methodName, string[] parameterValues)
+        {
+            // 复制参数数组以避免引用问题
+            string[] paramCopy = parameterValues != null ? (string[])parameterValues.Clone() : new string[0];
+            var newItem = new GMHistoryItem(typeName, methodName, paramCopy);
+            
+            // 检查是否已存在相同的记录
+            var existingIndex = _historyList.FindIndex(item => item.IsSameAs(newItem));
+            if (existingIndex >= 0)
+            {
+                // 移除旧记录
+                _historyList.RemoveAt(existingIndex);
+            }
+            
+            // 添加到列表开头
+            _historyList.Insert(0, newItem);
+            
+            // 限制最大数量
+            if (_historyList.Count > MAX_HISTORY_COUNT)
+            {
+                _historyList.RemoveRange(MAX_HISTORY_COUNT, _historyList.Count - MAX_HISTORY_COUNT);
+            }
+            
+            SaveHistory();
+        }
+
+        /// <summary>
+        /// 从历史记录加载
+        /// </summary>
+        private void LoadFromHistory(GMHistoryItem item)
+        {
+            // 设置类型
+            _selectedTypeName = item.TypeName;
+            OnTypeSelected();
+            
+            // 查找方法
+            var method = _methods.FirstOrDefault(m => m.Name == item.MethodName);
+            if (method != null)
+            {
+                _selectedMethodIndex = _methods.IndexOf(method);
+                OnMethodSelected();
+                
+                // 加载参数值
+                var paramArray = item.GetParameterArray();
+                if (paramArray != null && paramArray.Length == _parameterValues.Length)
+                {
+                    Array.Copy(paramArray, _parameterValues, paramArray.Length);
+                }
+                
+                Debug.Log($"[GMTool] 从历史记录加载: {item.GetDisplayName()}");
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("错误", $"找不到方法: {item.MethodName}", "确定");
+            }
+        }
+
+        /// <summary>
+        /// 保存历史记录
+        /// </summary>
+        private void SaveHistory()
+        {
+            try
+            {
+                string json = JsonUtility.ToJson(new HistoryData { Items = _historyList });
+                EditorPrefs.SetString(HISTORY_PREF_KEY, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[GMTool] 保存历史记录失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 加载历史记录
+        /// </summary>
+        private void LoadHistory()
+        {
+            try
+            {
+                string json = EditorPrefs.GetString(HISTORY_PREF_KEY, "");
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var data = JsonUtility.FromJson<HistoryData>(json);
+                    if (data != null && data.Items != null)
+                    {
+                        _historyList = data.Items;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[GMTool] 加载历史记录失败: {ex.Message}");
+                _historyList = new List<GMHistoryItem>();
+            }
+        }
+
+        /// <summary>
+        /// 清空历史记录
+        /// </summary>
+        private void ClearHistory()
+        {
+            _historyList.Clear();
+            EditorPrefs.DeleteKey(HISTORY_PREF_KEY);
+        }
+
+        /// <summary>
+        /// 历史记录数据包装类（用于JSON序列化）
+        /// </summary>
+        [Serializable]
+        private class HistoryData
+        {
+            public List<GMHistoryItem> Items = new List<GMHistoryItem>();
+        }
     }
 }
-
