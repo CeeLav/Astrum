@@ -33,12 +33,17 @@ namespace Astrum.LogicCore.Factories
         /// <returns>创建的实体</returns>
         public Entity CreateByArchetype(string archetypeName, int entityConfigId, World world)
         {
+            return CreateByArchetype<Entity>(archetypeName, entityConfigId, world);
+        }
+        
+        public T CreateByArchetype<T>(string archetypeName, int entityConfigId, World world)  where T : Entity, new()
+        {
             if (!ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
             {
                 throw new Exception($"Archetype '{archetypeName}' not found");
             }
 
-            var entity = new Entity
+            var entity = new T
             {
                 Name = GetEntityNameFromConfig(entityConfigId),
                 ArchetypeName = archetypeName,
@@ -47,10 +52,9 @@ namespace Astrum.LogicCore.Factories
                 IsActive = true,
                 IsDestroyed = false
             };
-
             // 确保组件 OnAttachToEntity 内可访问 World
             entity.World = world;
-
+            
             // 【生命周期钩子】组件挂载前
             CallArchetypeLifecycleMethod(archetypeName, "OnBeforeComponentsAttach", entity, world);
 
@@ -113,90 +117,7 @@ namespace Astrum.LogicCore.Factories
                 }
             }
             world.Entities[entity.UniqueId] = entity;
-            return entity;
-        }
-        
-        public T CreateByArchetype<T>(string archetypeName, int entityConfigId, World world)  where T : Entity, new()
-        {
-            if (!ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
-            {
-                throw new Exception($"Archetype '{archetypeName}' not found");
-            }
-
-            var entity = new T
-            {
-                Name = GetEntityNameFromConfig(entityConfigId),
-                ArchetypeName = archetypeName,
-                EntityConfigId = entityConfigId,
-                CreationTime = DateTime.Now,
-                IsActive = true,
-                IsDestroyed = false
-            };
-            // 确保组件 OnAttachToEntity 内可访问 World
-            entity.World = world;
             
-            // 【生命周期钩子】组件挂载前
-            CallArchetypeLifecycleMethod(archetypeName, "OnBeforeComponentsAttach", entity, world);
-
-            // 按 ArchetypeInfo 装配组件
-            var componentFactory = ComponentFactory.Instance;
-            foreach (var compType in info.Components ?? Array.Empty<Type>())
-            {
-                if (compType == null) continue;
-                var component = componentFactory.CreateComponentFromType(compType);
-                if (component != null)
-                {
-                    entity.AddComponent(component);
-                    component.OnAttachToEntity(entity);
-                }
-            }
-
-            // 【生命周期钩子】组件挂载后
-            CallArchetypeLifecycleMethod(archetypeName, "OnAfterComponentsAttach", entity, world);
-
-            // 【生命周期钩子】能力挂载前
-            CallArchetypeLifecycleMethod(archetypeName, "OnBeforeCapabilitiesAttach", entity, world);
-
-            // 按 ArchetypeInfo 装配能力
-            foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
-            {
-                if (capType == null) continue;
-                try
-                {
-                    var capability = Activator.CreateInstance(capType) as LogicCore.Capabilities.Capability;
-                    if (capability != null)
-                    {
-                        entity.AddCapability(capability);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"创建能力 {capType.Name} 失败: {ex.Message}");
-                }
-            }
-
-            // 【生命周期钩子】能力挂载后
-            CallArchetypeLifecycleMethod(archetypeName, "OnAfterCapabilitiesAttach", entity, world);
-
-            entity.World = world;
-            // 初始化引用计数：按主原型声明与实际实例同步
-            foreach (var t in info.Components ?? Array.Empty<Type>())
-            {
-                var key = t.AssemblyQualifiedName ?? t.FullName;
-                if (entity.Components.Any(c => c.GetType() == t))
-                {
-                    entity.ComponentRefCounts[key] = 1;
-                }
-            }
-            foreach (var t in info.Capabilities ?? Array.Empty<Type>())
-            {
-                var key = t.AssemblyQualifiedName ?? t.FullName;
-                if (entity.Capabilities.Any(c => c.GetType() == t))
-                {
-                    entity.CapabilityRefCounts[key] = 1;
-                }
-            }
-            world.Entities[entity.UniqueId] = entity;
             return entity;
         }
 
