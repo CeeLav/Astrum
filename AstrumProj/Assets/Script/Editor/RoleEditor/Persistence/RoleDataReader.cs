@@ -106,14 +106,6 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     roleData.RoleName = roleTableData.RoleName;
                     roleData.RoleDescription = roleTableData.RoleDescription;
                     roleData.RoleType = (RoleTypeEnum)roleTableData.RoleType;
-                    roleData.BaseAttack = roleTableData.BaseAttack;
-                    roleData.BaseDefense = roleTableData.BaseDefense;
-                    roleData.BaseHealth = roleTableData.BaseHealth;
-                    roleData.BaseSpeed = roleTableData.BaseSpeed;
-                    roleData.AttackGrowth = roleTableData.AttackGrowth;
-                    roleData.DefenseGrowth = roleTableData.DefenseGrowth;
-                    roleData.HealthGrowth = roleTableData.HealthGrowth;
-                    roleData.SpeedGrowth = roleTableData.SpeedGrowth;
                     roleData.LightAttackSkillId = roleTableData.LightAttackSkillId;
                     roleData.HeavyAttackSkillId = roleTableData.HeavyAttackSkillId;
                     roleData.Skill1Id = roleTableData.Skill1Id;

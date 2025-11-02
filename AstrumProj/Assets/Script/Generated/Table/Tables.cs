@@ -16,7 +16,9 @@ public partial class Tables
     public Buff.TbBuffTable TbBuffTable {get; }
     public Entity.TbActionTable TbActionTable {get; }
     public Entity.TbEntityBaseTable TbEntityBaseTable {get; }
+    public Entity.TbEntityGrowthTable TbEntityGrowthTable {get; }
     public Entity.TbEntityModelTable TbEntityModelTable {get; }
+    public Entity.TbEntityStatsTable TbEntityStatsTable {get; }
     public Item.TbEquipmentStatsTable TbEquipmentStatsTable {get; }
     public Item.TbItemBaseTable TbItemBaseTable {get; }
     public Item.TbLootTable TbLootTable {get; }
@@ -32,7 +34,9 @@ public partial class Tables
         TbBuffTable = new Buff.TbBuffTable(loader("buff_tbbufftable"));
         TbActionTable = new Entity.TbActionTable(loader("entity_tbactiontable"));
         TbEntityBaseTable = new Entity.TbEntityBaseTable(loader("entity_tbentitybasetable"));
+        TbEntityGrowthTable = new Entity.TbEntityGrowthTable(loader("entity_tbentitygrowthtable"));
         TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
+        TbEntityStatsTable = new Entity.TbEntityStatsTable(loader("entity_tbentitystatstable"));
         TbEquipmentStatsTable = new Item.TbEquipmentStatsTable(loader("item_tbequipmentstatstable"));
         TbItemBaseTable = new Item.TbItemBaseTable(loader("item_tbitembasetable"));
         TbLootTable = new Item.TbLootTable(loader("item_tbloottable"));
@@ -50,7 +54,9 @@ public partial class Tables
         TbBuffTable.ResolveRef(this);
         TbActionTable.ResolveRef(this);
         TbEntityBaseTable.ResolveRef(this);
+        TbEntityGrowthTable.ResolveRef(this);
         TbEntityModelTable.ResolveRef(this);
+        TbEntityStatsTable.ResolveRef(this);
         TbEquipmentStatsTable.ResolveRef(this);
         TbItemBaseTable.ResolveRef(this);
         TbLootTable.ResolveRef(this);

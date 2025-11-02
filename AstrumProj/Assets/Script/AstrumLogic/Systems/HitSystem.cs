@@ -208,12 +208,12 @@ namespace Astrum.LogicCore.Physics
                 if (filter.ExcludedEntityIds.Contains(candidate.UniqueId))
                     continue;
 
-                // TODO: 阵营过滤（需要实现 Team/Faction 系统）
-                // if (filter.ExcludeAllies && IsSameTeam(caster, candidate))
-                //     continue;
+                // 阵营过滤（基于Archetype）
+                //if (filter.ExcludeAllies && IsSameTeam(caster, candidate))
+                //    continue;
                 
-                // if (filter.OnlyEnemies && !IsEnemy(caster, candidate))
-                //     continue;
+                //if (filter.OnlyEnemies && !IsEnemy(caster, candidate))
+                //    continue;
 
                 // 自定义过滤
                 if (filter.CustomFilter != null && !filter.CustomFilter(candidate))
@@ -250,6 +250,35 @@ namespace Astrum.LogicCore.Physics
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// 判断两个实体是否是同一阵营
+        /// </summary>
+        private bool IsSameTeam(AstrumEntity entity1, AstrumEntity entity2)
+        {
+            if (entity1 == null || entity2 == null)
+                return false;
+            
+            
+            string archetype1 = entity1.ArchetypeName;
+            string archetype2 = entity2.ArchetypeName;
+            
+            return archetype1 == archetype2;
+        }
+        
+        /// <summary>
+        /// 判断target是否是caster的敌人
+        /// </summary>
+        private bool IsEnemy(AstrumEntity caster, AstrumEntity target)
+        {
+            if (caster == null || target == null)
+                return false;
+            
+            string casterArchetype = caster.ArchetypeName;
+            string targetArchetype = target.ArchetypeName;
+            
+            return casterArchetype != targetArchetype;
         }
 
         /// <summary>

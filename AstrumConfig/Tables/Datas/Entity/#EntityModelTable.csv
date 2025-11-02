@@ -1,7 +1,7 @@
 ##var,modelId,modelPath,collisionData
 ##type,int,string,string
 ##group,,,
-##desc,æ¨¡å‹ID,æ¨¡å‹è·¯å¾„,ç¢°æ’ç›’æ•°æ®
+##desc,Ä£ĞÍID,Ä£ĞÍÂ·¾¶,Åö×²ºĞÊı¾İ
 ,2001,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,"Capsule:0.00,0.99,0.00:0.00,0.00,0.00,1.00:0.38:1.89"
-,2002,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,
+,2002,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,"Capsule:0.00,0.99,0.00:0.00,0.00,0.00,1.00:0.38:1.89"
 ,2003,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,
