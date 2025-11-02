@@ -48,10 +48,23 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            // 在战斗距离内，触发攻击输入
-            var input = CreateInput(0, 0, attack: true);
-            var inputComp = GetOwnerComponent<LSInputComponent>();
-            inputComp?.SetInput(input);
+			// 在战斗距离内：基于冷却脉冲式攻击
+			var inputComp = GetOwnerComponent<LSInputComponent>();
+			if (inputComp == null) return;
+			var curFrame = OwnerEntity?.World?.CurFrame ?? 0;
+			if (curFrame >= fsm.NextAttackFrame)
+			{
+				// 仅这一帧置 Attack=true，并推进冷却帧
+				var atk = CreateInput(0, 0, attack: true);
+				inputComp.SetInput(atk);
+				fsm.NextAttackFrame = curFrame + TSMath.Max(1, (TrueSync.FP)fsm.AttackIntervalFrames).AsInt();
+			}
+			else
+			{
+				// 冷却中：显式写入 Attack=false，避免持续为真
+				var idle = CreateInput(0, 0, attack: false);
+				inputComp.SetInput(idle);
+			}
         }
 
         private Entity? FindNearestEnemy(World world, TSVector selfPos)

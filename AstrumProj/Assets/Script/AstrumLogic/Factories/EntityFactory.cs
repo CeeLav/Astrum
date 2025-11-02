@@ -48,6 +48,9 @@ namespace Astrum.LogicCore.Factories
                 IsDestroyed = false
             };
 
+            // 确保组件 OnAttachToEntity 内可访问 World
+            entity.World = world;
+
             // 【生命周期钩子】组件挂载前
             CallArchetypeLifecycleMethod(archetypeName, "OnBeforeComponentsAttach", entity, world);
 
@@ -92,7 +95,6 @@ namespace Astrum.LogicCore.Factories
             // 【生命周期钩子】能力挂载后
             CallArchetypeLifecycleMethod(archetypeName, "OnAfterCapabilitiesAttach", entity, world);
 
-            entity.World = world;
             // 初始化引用计数：按主原型声明与实际实例同步
             foreach (var t in info.Components ?? Array.Empty<Type>())
             {

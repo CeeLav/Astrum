@@ -22,6 +22,10 @@ namespace Astrum.LogicCore.Components
         // 下一次允许触发随机漫游的帧号（用于去抖）
         public int NextWanderFrame { get; set; } = 0;
 
+		// 攻击冷却：下一次允许攻击的帧、攻击间隔帧数（默认 20 帧约1秒@20fps）
+		public int NextAttackFrame { get; set; } = 0;
+		public int AttackIntervalFrames { get; set; } = 20;
+
         public override void OnAttachToEntity(Entity entity)
         {
             // 默认状态置空，由调度能力决定首次状态
