@@ -454,14 +454,25 @@ namespace Astrum.Editor.UIGenerator.Generators
             var uiElements = new List<UIElementInfo>();
             CollectUIElementsForDesigner(prefab, uiElements, "");
             
-            foreach (var element in uiElements)
+            // 按字段名分组
+            var groups = GroupUIElementsByFieldName(uiElements);
+            
+            foreach (var group in groups)
             {
-                if (element.ComponentType != null)
+                codeBuilder.AppendLine($"        // {group.Key}");
+                if (group.Value.Count == 1)
                 {
-                    codeBuilder.AppendLine($"        // {element.Path}");
+                    // 单个元素，生成普通字段
+                    var element = group.Value[0];
                     codeBuilder.AppendLine($"        private {element.ComponentType.Name} {element.FieldName};");
-                    codeBuilder.AppendLine();
                 }
+                else
+                {
+                    // 多个同名元素，生成数组字段
+                    var firstElement = group.Value[0];
+                    codeBuilder.AppendLine($"        private {firstElement.ComponentType.Name}[] {group.Key};");
+                }
+                codeBuilder.AppendLine();
             }
         }
         
@@ -479,16 +490,54 @@ namespace Astrum.Editor.UIGenerator.Generators
             var uiElements = new List<UIElementInfo>();
             CollectUIElementsForDesigner(prefab, uiElements, "");
             
-            foreach (var element in uiElements)
+            // 按字段名分组
+            var groups = GroupUIElementsByFieldName(uiElements);
+            
+            foreach (var group in groups)
             {
-                if (element.ComponentType != null)
+                if (group.Value.Count == 1)
                 {
+                    // 单个元素，生成普通初始化
+                    var element = group.Value[0];
                     codeBuilder.AppendLine($"            {element.FieldName} = uiRefs.GetComponent<{element.ComponentType.Name}>(\"{element.Path}\");");
+                }
+                else
+                {
+                    // 多个同名元素，生成数组初始化
+                    codeBuilder.AppendLine($"            {group.Key} = new {group.Value[0].ComponentType.Name}[]");
+                    codeBuilder.AppendLine("            {");
+                    foreach (var element in group.Value)
+                    {
+                        codeBuilder.AppendLine($"                uiRefs.GetComponent<{element.ComponentType.Name}>(\"{element.Path}\"),");
+                    }
+                    codeBuilder.AppendLine("            };");
                 }
             }
             
             codeBuilder.AppendLine("        }");
             codeBuilder.AppendLine();
+        }
+        
+        /// <summary>
+        /// 按字段名分组UI元素（同名组件归类为数组）
+        /// </summary>
+        private Dictionary<string, List<UIElementInfo>> GroupUIElementsByFieldName(List<UIElementInfo> uiElements)
+        {
+            var groups = new Dictionary<string, List<UIElementInfo>>();
+            
+            foreach (var element in uiElements)
+            {
+                if (element.ComponentType != null)
+                {
+                    if (!groups.ContainsKey(element.FieldName))
+                    {
+                        groups[element.FieldName] = new List<UIElementInfo>();
+                    }
+                    groups[element.FieldName].Add(element);
+                }
+            }
+            
+            return groups;
         }
         
         /// <summary>
@@ -532,7 +581,8 @@ namespace Astrum.Editor.UIGenerator.Generators
         /// </summary>
         private string GetFieldName(string objectName, Type componentType)
         {
-            string baseName = objectName.Replace(" ", "").Replace("-", "").Replace("_", "");
+            // 清理不合法的字符，替换为下划线
+            string baseName = SanitizeFieldName(objectName);
             string typeName = componentType.Name;
             
             // 转换为驼峰命名
@@ -542,6 +592,40 @@ namespace Astrum.Editor.UIGenerator.Generators
             }
             
             return $"{baseName}{typeName}";
+        }
+        
+        /// <summary>
+        /// 清理字段名中的不合法字符
+        /// </summary>
+        private string SanitizeFieldName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return string.Empty;
+            
+            // 替换所有不合法字符为下划线
+            // C#标识符规则：只能包含字母、数字、下划线，且不能以数字开头
+            char[] chars = name.ToCharArray();
+            for (int i = 0; i < chars.Length; i++)
+            {
+                char c = chars[i];
+                // 如果是字母、数字或下划线，保持不变
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_')
+                {
+                    continue;
+                }
+                // 其他字符替换为下划线
+                chars[i] = '_';
+            }
+            
+            string result = new string(chars);
+            
+            // 确保不以数字开头
+            if (result.Length > 0 && char.IsDigit(result[0]))
+            {
+                result = "_" + result;
+            }
+            
+            return result;
         }
         
         /// <summary>

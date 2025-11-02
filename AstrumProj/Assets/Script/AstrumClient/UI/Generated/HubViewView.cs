@@ -28,8 +28,8 @@ namespace Astrum.Client.UI.Generated
             // 绑定按钮事件
             if (startExplorationButtonButton != null)
             {
-                startExplorationButtonButton.onClick.RemoveListener(OnStartExplorationClicked);
-                startExplorationButtonButton.onClick.AddListener(OnStartExplorationClicked);
+                startExplorationButtonButton[0].onClick.RemoveListener(OnStartExplorationClicked);
+                startExplorationButtonButton[0].onClick.AddListener(OnStartExplorationClicked);
             }
 
             // 订阅玩家数据变化事件
@@ -91,16 +91,7 @@ namespace Astrum.Client.UI.Generated
 
         private void RefreshUI(PlayerProgressData data)
         {
-            if (levelTextText != null)
-            {
-                // 不显示 ExpToNextLevel，简化为 等级/经验
-                levelTextText.text = $"等级: {data.Level}  经验: {data.Exp}";
-            }
 
-            if (starFragmentsTextText != null)
-            {
-                starFragmentsTextText.text = $"星能碎片: {data.StarFragments}";
-            }
         }
 
         #endregion

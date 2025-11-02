@@ -139,11 +139,14 @@ namespace Astrum.Editor.UIGenerator.Generators
             logger.LogInfo($"收集到 {uiRefItems.Count} 个UI引用项");
         }
         
-        private void CollectAllNodeReferences(GameObject gameObject, List<UIRefItem> uiRefItems)
+        private void CollectAllNodeReferences(GameObject gameObject, List<UIRefItem> uiRefItems, string currentPath = "")
         {
             // 收集当前节点的引用
             if (!string.IsNullOrEmpty(gameObject.name))
             {
+                // 构建完整路径
+                string nodePath = string.IsNullOrEmpty(currentPath) ? gameObject.name : $"{currentPath}/{gameObject.name}";
+                
                 // 收集所有MonoBehaviour组件引用
                 var components = gameObject.GetComponents<MonoBehaviour>();
                 foreach (var component in components)
@@ -153,7 +156,7 @@ namespace Astrum.Editor.UIGenerator.Generators
                         var componentTypeName = component.GetType().Name;
                         var uiRefItem = new UIRefItem
                         {
-                            path = gameObject.name,
+                            path = nodePath,
                             componentType = componentTypeName,
                             reference = component
                         };
@@ -164,18 +167,18 @@ namespace Astrum.Editor.UIGenerator.Generators
                 // 收集GameObject引用
                 var gameObjectRefItem = new UIRefItem
                 {
-                    path = gameObject.name,
+                    path = nodePath,
                     componentType = "GameObject",
                     reference = gameObject
                 };
                 uiRefItems.Add(gameObjectRefItem);
-            }
-            
-            // 递归处理子节点
-            for (int i = 0; i < gameObject.transform.childCount; i++)
-            {
-                var childNode = gameObject.transform.GetChild(i).gameObject;
-                CollectAllNodeReferences(childNode, uiRefItems);
+                
+                // 递归处理子节点
+                for (int i = 0; i < gameObject.transform.childCount; i++)
+                {
+                    var childNode = gameObject.transform.GetChild(i).gameObject;
+                    CollectAllNodeReferences(childNode, uiRefItems, nodePath);
+                }
             }
         }
         

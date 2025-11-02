@@ -20,32 +20,23 @@ namespace Astrum.Client.UI.Generated
         // UI引用
         private UIRefs uiRefs;
 
-        // HubView/BG
+        // questBGImage
+        private Image questBGImage;
+
+        // bGImage
         private Image bGImage;
 
-        // HubView/BG/TitlePanel
-        private Image titlePanelImage;
+        // questPaperImage
+        private Image questPaperImage;
 
-        // HubView/BG/TitlePanel/TitleText
-        private Text titleTextText;
+        // startExplorationButtonImage
+        private Image[] startExplorationButtonImage;
 
-        // HubView/BG/PlayerInfoPanel/LevelText
-        private Text levelTextText;
+        // startExplorationButtonButton
+        private Button[] startExplorationButtonButton;
 
-        // HubView/BG/PlayerInfoPanel/StarFragmentsText
-        private Text starFragmentsTextText;
-
-        // HubView/BG/PlayerInfoPanel/Background
-        private Image backgroundImage;
-
-        // HubView/BG/ButtonContainer/StartExplorationButton
-        private Button startExplorationButtonButton;
-
-        // HubView/BG/ButtonContainer/StartExplorationButton
-        private Image startExplorationButtonImage;
-
-        // HubView/BG/ButtonContainer/StartExplorationButton/ButtonText
-        private Text buttonTextText;
+        // textText
+        private Text[] textText;
 
         #endregion
 
@@ -72,15 +63,27 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void InitializeUIElements()
         {
+            questBGImage = uiRefs.GetComponent<Image>("HubView/Quest_BG");
             bGImage = uiRefs.GetComponent<Image>("HubView/BG");
-            titlePanelImage = uiRefs.GetComponent<Image>("HubView/BG/TitlePanel");
-            titleTextText = uiRefs.GetComponent<Text>("HubView/BG/TitlePanel/TitleText");
-            levelTextText = uiRefs.GetComponent<Text>("HubView/BG/PlayerInfoPanel/LevelText");
-            starFragmentsTextText = uiRefs.GetComponent<Text>("HubView/BG/PlayerInfoPanel/StarFragmentsText");
-            backgroundImage = uiRefs.GetComponent<Image>("HubView/BG/PlayerInfoPanel/Background");
-            startExplorationButtonButton = uiRefs.GetComponent<Button>("HubView/BG/ButtonContainer/StartExplorationButton");
-            startExplorationButtonImage = uiRefs.GetComponent<Image>("HubView/BG/ButtonContainer/StartExplorationButton");
-            buttonTextText = uiRefs.GetComponent<Text>("HubView/BG/ButtonContainer/StartExplorationButton/ButtonText");
+            questPaperImage = uiRefs.GetComponent<Image>("HubView/BG/QuestPaper");
+            startExplorationButtonImage = new Image[]
+            {
+                uiRefs.GetComponent<Image>("HubView/BG/ButtonContainer/StartExplorationButton"),
+                uiRefs.GetComponent<Image>("HubView/BG/ButtonContainer/StartExplorationButton"),
+                uiRefs.GetComponent<Image>("HubView/BG/ButtonContainer/StartExplorationButton"),
+            };
+            startExplorationButtonButton = new Button[]
+            {
+                uiRefs.GetComponent<Button>("HubView/BG/ButtonContainer/StartExplorationButton"),
+                uiRefs.GetComponent<Button>("HubView/BG/ButtonContainer/StartExplorationButton"),
+                uiRefs.GetComponent<Button>("HubView/BG/ButtonContainer/StartExplorationButton"),
+            };
+            textText = new Text[]
+            {
+                uiRefs.GetComponent<Text>("HubView/BG/ButtonContainer/StartExplorationButton/Text"),
+                uiRefs.GetComponent<Text>("HubView/BG/ButtonContainer/StartExplorationButton/Text"),
+                uiRefs.GetComponent<Text>("HubView/BG/ButtonContainer/StartExplorationButton/Text"),
+            };
         }
 
         #endregion
