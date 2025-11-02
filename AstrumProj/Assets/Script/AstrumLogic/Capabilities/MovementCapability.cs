@@ -98,6 +98,7 @@ namespace Astrum.LogicCore.Capabilities
                 if (OwnerEntity is AstrumEntity astrumEntity && astrumEntity.World != null)
                 {
                     astrumEntity.World.HitSystem?.UpdateEntityPosition(astrumEntity);
+                    ASLogger.Instance.Debug($"[MovementCapability] 已同步位置到物理世界: Entity={astrumEntity.UniqueId}, Pos=({(float)positionComponent.Position.x:F2}, {(float)positionComponent.Position.y:F2}, {(float)positionComponent.Position.z:F2})", "Logic.Movement");
                 }
                 
                 // 调试日志

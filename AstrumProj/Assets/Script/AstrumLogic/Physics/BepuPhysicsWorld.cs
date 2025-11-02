@@ -125,6 +125,9 @@ namespace Astrum.LogicCore.Physics
             var bepuPos = position.ToBepuVector();
             
             bepuEntity.Position = bepuPos;
+            
+            // 调试：记录位置更新
+            ASLogger.Instance.Debug($"[BepuPhysicsWorld] 更新实体位置: Entity={entity.UniqueId}, LogicPos=({(float)position.x:F2},{(float)position.y:F2},{(float)position.z:F2}), BepuPos=({(float)bepuPos.X:F2},{(float)bepuPos.Y:F2},{(float)bepuPos.Z:F2})");
         }
 
         /// <summary>
@@ -167,24 +170,74 @@ namespace Astrum.LogicCore.Physics
             queryBox.CollisionInformation.UpdateBoundingBox();
             boundingBox = queryBox.CollisionInformation.BoundingBox;
 
+            // 调试：打印查询参数
+            ASLogger.Instance.Info($"[QueryBoxOverlap] Center=({(float)center.x:F2},{(float)center.y:F2},{(float)center.z:F2}) " +
+                $"HalfSize=({(float)halfSize.x:F2},{(float)halfSize.y:F2},{(float)halfSize.z:F2}) " +
+                $"AABB=({(float)boundingBox.Min.X:F2},{(float)boundingBox.Min.Y:F2},{(float)boundingBox.Min.Z:F2})-" +
+                $"({(float)boundingBox.Max.X:F2},{(float)boundingBox.Max.Y:F2},{(float)boundingBox.Max.Z:F2})");
+
             // 使用 BroadPhase 进行 AABB 查询
             var candidates = new BEPUutilities.DataStructures.RawList<BroadPhaseEntry>();
             _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, candidates);
 
-            // 遍历候选者，提取实体
+            ASLogger.Instance.Info($"[QueryBoxOverlap] Found {candidates.Count} candidates in AABB");
+
+            // 遍历候选者，进行窄相检测
             foreach (var candidate in candidates)
             {
                 // 从 EntityCollidable 中获取 Entity
                 if (candidate is EntityCollidable collidable && collidable.Entity != null)
                 {
                     var bepuEntity = collidable.Entity;
-                    if (bepuEntity.Tag is AstrumEntity entity)
+                    
+                    // 检查 Tag 是否正确设置
+                    if (!(bepuEntity.Tag is AstrumEntity entity))
                     {
-                        results.Add(entity);
+                        ASLogger.Instance.Warning($"[QueryBoxOverlap] BEPU Entity Tag is not AstrumEntity (Tag type: {bepuEntity.Tag?.GetType().Name ?? "null"}), skipping");
+                        continue;
                     }
+                    
+                    // 调试：打印候选实体位置
+                    var candidatePos = bepuEntity.Position.ToTSVector();
+                    
+                    // 【关键修复】进行窄相精确检测（而不是仅仅依赖AABB重叠）
+                    // 只有候选者是Box时才做精确检测，其他形状暂不支持
+                    if (bepuEntity is Box targetBox)
+                    {
+                        // 创建查询Box和目标Box的变换
+                        var queryTransform = new BEPUutilities.RigidTransform(bepuCenter, bepuRotation);
+                        var targetTransform = new BEPUutilities.RigidTransform(bepuEntity.Position, bepuEntity.Orientation);
+                        
+                        // 使用BEPU的Box vs Box精确检测（使用最简单的重载）
+                        // queryBox.CollisionInformation.Shape 是 BoxShape，targetBox.CollisionInformation.Shape 也是 BoxShape
+                        if (BEPUphysics.CollisionTests.CollisionAlgorithms.BoxBoxCollider.AreBoxesColliding(
+                            queryBox.CollisionInformation.Shape, targetBox.CollisionInformation.Shape, 
+                            ref queryTransform, ref targetTransform))
+                        {
+                            // 精确检测通过，添加到结果
+                            ASLogger.Instance.Info($"[QueryBoxOverlap] NarrowPhase Hit: Entity={entity.UniqueId} " +
+                                $"Pos=({(float)candidatePos.x:F2},{(float)candidatePos.y:F2},{(float)candidatePos.z:F2})");
+                            results.Add(entity);
+                        }
+                        else
+                        {
+                            ASLogger.Instance.Debug($"[QueryBoxOverlap] NarrowPhase Miss: Entity={entity.UniqueId} (AABB overlap but no collision)");
+                        }
+                    }
+                    else
+                    {
+                        // 非Box形状暂时不处理（TODO: 支持Sphere、Capsule等）
+                        // 注意：这会导致Sphere和Capsule形状的目标不会被命中！
+                        ASLogger.Instance.Warning($"[QueryBoxOverlap] Candidate Entity={entity.UniqueId} is not a Box (type: {bepuEntity.GetType().Name}), skipping narrow phase. This entity will NOT be hit!");
+                    }
+                }
+                else
+                {
+                    ASLogger.Instance.Debug($"[QueryBoxOverlap] Candidate is not EntityCollidable or Entity is null");
                 }
             }
 
+            ASLogger.Instance.Info($"[QueryBoxOverlap] Returning {results.Count} results");
             return results;
         }
 
@@ -225,6 +278,22 @@ namespace Astrum.LogicCore.Physics
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// 调试：获取当前注册到物理世界的实体及其位置（TSVector）
+        /// </summary>
+        public System.Collections.Generic.List<System.ValueTuple<long, TSVector>> GetEntityPositions()
+        {
+            var list = new System.Collections.Generic.List<System.ValueTuple<long, TSVector>>();
+            foreach (var kv in _entityBodies)
+            {
+                var id = kv.Key;
+                var bepuEntity = kv.Value;
+                var tsPos = bepuEntity.Position.ToTSVector();
+                list.Add(new System.ValueTuple<long, TSVector>(id, tsPos));
+            }
+            return list;
         }
     }
 }

@@ -3,12 +3,15 @@ using Astrum.CommonBase;
 using Astrum.Client.Core;
 using Astrum.Client.Data;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Components;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Factories;
 using Astrum.View.Core;
 using Astrum.View.Managers;
 using AstrumClient.MonitorTools;
 using UnityEngine;
+// 使用别名避免与 BEPU 的 Entity 类冲突
+using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
 namespace Astrum.Client.Managers.GameModes
 {

@@ -171,13 +171,39 @@ namespace Astrum.LogicCore.Physics
                     break;
             }
 
+            // 防御性检查：确保候选列表不为null
+            if (candidates == null)
+            {
+                ASLogger.Instance.Warning($"[HitSystem.QueryHits] Candidates list is null for caster {caster.UniqueId}");
+                return new List<AstrumEntity>();
+            }
+
+            // 调试：打印候选者信息（过滤前）
+            ASLogger.Instance.Info($"[HitSystem.QueryHits] Found {candidates.Count} candidates before filtering");
+            foreach (var cand in candidates)
+            {
+                ASLogger.Instance.Debug($"[HitSystem.QueryHits] Candidate: Entity={cand.UniqueId}, IsSelf={cand.UniqueId == caster.UniqueId}");
+            }
+
             // 应用过滤
             var filteredHits = ApplyFilter(caster, candidates, filter);
+
+            // 调试：打印过滤后结果
+            ASLogger.Instance.Info($"[HitSystem.QueryHits] After filtering: {filteredHits.Count} hits");
+            if (filteredHits.Count == 0 && candidates.Count > 0)
+            {
+                ASLogger.Instance.Warning($"[HitSystem.QueryHits] All candidates were filtered out! Caster={caster.UniqueId}, ExcludedIds={string.Join(",", filter?.ExcludedEntityIds ?? new HashSet<long>())}");
+            }
 
             // 应用去重
             if (skillInstanceId > 0)
             {
+                var beforeDedup = filteredHits.Count;
                 filteredHits = ApplyDeduplication(skillInstanceId, filteredHits);
+                if (filteredHits.Count < beforeDedup)
+                {
+                    ASLogger.Instance.Debug($"[HitSystem.QueryHits] Deduplication removed {beforeDedup - filteredHits.Count} duplicates");
+                }
             }
 
             return filteredHits;

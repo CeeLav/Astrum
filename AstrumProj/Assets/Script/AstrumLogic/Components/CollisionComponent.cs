@@ -4,6 +4,7 @@ using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Managers;
 using Astrum.CommonBase;
 using MemoryPack;
+using TrueSync;
 // 使用别名避免与 BEPU 的 Entity 类冲突
 using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
@@ -97,7 +98,10 @@ namespace Astrum.LogicCore.Components
             if (entity is AstrumEntity astrumEntity && Shapes != null && Shapes.Count > 0 && entity.World != null)
             {
                 entity.World.HitSystem?.RegisterEntity(astrumEntity);
-                ASLogger.Instance.Info($"[CollisionComponent] Registered entity {entity.UniqueId} to HitSystem");
+                // 【关键修复】注册后立即同步位置，确保物理世界中的位置与逻辑层一致
+                entity.World.HitSystem?.UpdateEntityPosition(astrumEntity);
+                var pos = entity.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
+                ASLogger.Instance.Info($"[CollisionComponent] Registered entity {entity.UniqueId} to HitSystem at Pos=({(float)pos.x:F2},{(float)pos.y:F2},{(float)pos.z:F2})");
             }
         }
     }
