@@ -201,34 +201,53 @@ namespace Astrum.LogicCore.Physics
                     var candidatePos = bepuEntity.Position.ToTSVector();
                     
                     // 【关键修复】进行窄相精确检测（而不是仅仅依赖AABB重叠）
-                    // 只有候选者是Box时才做精确检测，其他形状暂不支持
+                    // 支持Box和Capsule形状的精确检测
+                    var queryTransform = new BEPUutilities.RigidTransform(bepuCenter, bepuRotation);
+                    var targetTransform = new BEPUutilities.RigidTransform(bepuEntity.Position, bepuEntity.Orientation);
+                    bool isColliding = false;
+                    
                     if (bepuEntity is Box targetBox)
                     {
-                        // 创建查询Box和目标Box的变换
-                        var queryTransform = new BEPUutilities.RigidTransform(bepuCenter, bepuRotation);
-                        var targetTransform = new BEPUutilities.RigidTransform(bepuEntity.Position, bepuEntity.Orientation);
-                        
-                        // 使用BEPU的Box vs Box精确检测（使用最简单的重载）
-                        // queryBox.CollisionInformation.Shape 是 BoxShape，targetBox.CollisionInformation.Shape 也是 BoxShape
-                        if (BEPUphysics.CollisionTests.CollisionAlgorithms.BoxBoxCollider.AreBoxesColliding(
+                        // Box vs Box：使用专用的BoxBoxCollider（更快）
+                        isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.BoxBoxCollider.AreBoxesColliding(
                             queryBox.CollisionInformation.Shape, targetBox.CollisionInformation.Shape, 
-                            ref queryTransform, ref targetTransform))
-                        {
-                            // 精确检测通过，添加到结果
-                            ASLogger.Instance.Info($"[QueryBoxOverlap] NarrowPhase Hit: Entity={entity.UniqueId} " +
-                                $"Pos=({(float)candidatePos.x:F2},{(float)candidatePos.y:F2},{(float)candidatePos.z:F2})");
-                            results.Add(entity);
-                        }
-                        else
-                        {
-                            ASLogger.Instance.Debug($"[QueryBoxOverlap] NarrowPhase Miss: Entity={entity.UniqueId} (AABB overlap but no collision)");
-                        }
+                            ref queryTransform, ref targetTransform);
+                    }
+                    else if (bepuEntity is BEPUphysics.Entities.Prefabs.Capsule targetCapsule)
+                    {
+                        // Box vs Capsule：使用通用的GJK算法（因为两者都是凸体）
+                        var queryBoxShape = queryBox.CollisionInformation.Shape;
+                        var targetCapsuleShape = targetCapsule.CollisionInformation.Shape;
+                        isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.GJK.GJKToolbox.AreShapesIntersecting(
+                            queryBoxShape, targetCapsuleShape, 
+                            ref queryTransform, ref targetTransform);
                     }
                     else
                     {
-                        // 非Box形状暂时不处理（TODO: 支持Sphere、Capsule等）
-                        // 注意：这会导致Sphere和Capsule形状的目标不会被命中！
-                        ASLogger.Instance.Warning($"[QueryBoxOverlap] Candidate Entity={entity.UniqueId} is not a Box (type: {bepuEntity.GetType().Name}), skipping narrow phase. This entity will NOT be hit!");
+                        // 其他凸体形状：尝试使用通用GJK算法
+                        if (bepuEntity.CollisionInformation?.Shape is BEPUphysics.CollisionShapes.ConvexShapes.ConvexShape targetConvexShape)
+                        {
+                            var queryBoxShape = queryBox.CollisionInformation.Shape;
+                            isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.GJK.GJKToolbox.AreShapesIntersecting(
+                                queryBoxShape, targetConvexShape, 
+                                ref queryTransform, ref targetTransform);
+                        }
+                        else
+                        {
+                            ASLogger.Instance.Warning($"[QueryBoxOverlap] Candidate Entity={entity.UniqueId} is not a supported convex shape (type: {bepuEntity.GetType().Name}), skipping narrow phase");
+                        }
+                    }
+                    
+                    if (isColliding)
+                    {
+                        // 精确检测通过，添加到结果
+                        ASLogger.Instance.Info($"[QueryBoxOverlap] NarrowPhase Hit: Entity={entity.UniqueId} " +
+                            $"Pos=({(float)candidatePos.x:F2},{(float)candidatePos.y:F2},{(float)candidatePos.z:F2})");
+                        results.Add(entity);
+                    }
+                    else if (bepuEntity is Box || bepuEntity is BEPUphysics.Entities.Prefabs.Capsule || bepuEntity.CollisionInformation?.Shape is BEPUphysics.CollisionShapes.ConvexShapes.ConvexShape)
+                    {
+                        ASLogger.Instance.Debug($"[QueryBoxOverlap] NarrowPhase Miss: Entity={entity.UniqueId} (AABB overlap but no collision)");
                     }
                 }
                 else
