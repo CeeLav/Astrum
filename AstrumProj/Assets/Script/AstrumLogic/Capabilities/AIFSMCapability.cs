@@ -2,13 +2,15 @@ using System;
 using System.Linq;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
     /// AI 状态机调度能力：统一决策与状态切换，调用对应状态能力执行。
     /// </summary>
-    public class AIFSMCapability : Capability
+    [MemoryPackable]
+    public partial class AIFSMCapability : Capability
     {
         private AIStateMachineComponent? _fsm;
 

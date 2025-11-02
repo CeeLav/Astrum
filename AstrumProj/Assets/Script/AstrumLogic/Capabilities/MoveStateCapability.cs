@@ -4,7 +4,9 @@ namespace Astrum.LogicCore.Capabilities
     /// Move 状态能力（最小实现）。
     /// </summary>
     using System;
-    public class MoveStateCapability : Capability
+    using MemoryPack;
+    [MemoryPackable]
+    public partial class MoveStateCapability : Capability
     {
         private const float BattleEnterDistance = 1.5f;
         private const float ArriveThreshold = 0.3f;

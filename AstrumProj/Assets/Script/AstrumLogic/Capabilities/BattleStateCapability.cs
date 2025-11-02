@@ -4,10 +4,12 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using TrueSync;
+using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
-    public class BattleStateCapability : Capability
+    [MemoryPackable]
+    public partial class BattleStateCapability : Capability
     {
         private const float BattleEnterDistance = 1.5f; // 进入战斗的距离阈值
         private const float LoseTargetDistance = 6.0f;  // 目标过远则切回追击

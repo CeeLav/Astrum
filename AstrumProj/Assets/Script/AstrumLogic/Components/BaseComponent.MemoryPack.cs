@@ -19,6 +19,7 @@ namespace Astrum.LogicCore.Components
     [MemoryPackUnion(11, typeof(BuffComponent))]
     [MemoryPackUnion(12, typeof(LevelComponent))]
     [MemoryPackUnion(13, typeof(GrowthComponent))]
+    [MemoryPackUnion(14, typeof(AIStateMachineComponent))]
     [MemoryPackable]
     public abstract partial class BaseComponent
     {

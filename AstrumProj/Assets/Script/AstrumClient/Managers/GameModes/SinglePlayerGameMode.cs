@@ -280,7 +280,7 @@ namespace Astrum.Client.Managers.GameModes
             var world = MainRoom.MainWorld;
             try
             {
-                var entity = EntityFactory.Instance.CreateByArchetype("Role", entityConfigId, world);
+                var entity = MainRoom.MainWorld.CreateEntity<Entity>(entityConfigId);
                 if (entity == null)
                 {
                     ASLogger.Instance.Error("SinglePlayerGameMode: 创建 Role 实体失败");

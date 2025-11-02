@@ -4,7 +4,9 @@ namespace Astrum.LogicCore.Capabilities
     /// Idle 状态能力（最小实现）。
     /// </summary>
     using System;
-    public class IdleStateCapability : Capability
+    using MemoryPack;
+    [MemoryPackable]
+    public partial class IdleStateCapability : Capability
     {
         private const float DetectionRadius = 10f;
         private const float BattleEnterDistance = 1.5f;
