@@ -9,14 +9,70 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/11/1 22:46:40",
+    "PackageNote": "2025/11/2 12:01:44",
     "AssetList": [
         {
             "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/HubView.prefab",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Bag.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 0,
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/ButtonClaim_Brown.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Equipment2.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Hub.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Quest.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/QuestOld.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Shop.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Storage.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 1,
             "DependBundleIDs": []
         },
         {
@@ -24,7 +80,7 @@
             "AssetPath": "Assets/ArtRes/UI/HUD/HorizontalBoxWithShadow.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 1,
+            "BundleID": 2,
             "DependBundleIDs": []
         },
         {
@@ -56,7 +112,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -64,7 +120,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -72,7 +128,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -80,7 +136,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -88,7 +144,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_3.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -96,7 +152,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_3_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -104,7 +160,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_4.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -112,7 +168,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_4_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -120,7 +176,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_5.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -128,7 +184,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_5_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -136,7 +192,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_6.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -144,7 +200,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_6_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -152,7 +208,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_7.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -160,7 +216,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_7_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -168,7 +224,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_8.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -176,7 +232,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_8_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -184,7 +240,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_B_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -192,7 +248,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -200,7 +256,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Knight.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 2,
+            "BundleID": 3,
             "DependBundleIDs": []
         },
         {
@@ -208,7 +264,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/SM_Wep_Sword_03.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 2,
+            "BundleID": 3,
             "DependBundleIDs": []
         },
         {
@@ -216,7 +272,7 @@
             "AssetPath": "Assets/Scenes/DungeonsGame.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -224,7 +280,7 @@
             "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -232,7 +288,7 @@
             "AssetPath": "Assets/Scenes/Game.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -240,7 +296,7 @@
             "AssetPath": "Assets/Scenes/Hub.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -248,7 +304,7 @@
             "AssetPath": "Assets/Scenes/Start.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -256,7 +312,7 @@
             "AssetPath": "Assets/Scenes/UIScene.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         }
     ],
@@ -266,7 +322,17 @@
             "UnityCRC": 0,
             "FileHash": "119f15bc2f772e65240d209586ba9c17",
             "FileCRC": 0,
-            "FileSize": 209361,
+            "FileSize": 182709,
+            "Encrypted": false,
+            "Tags": [],
+            "DependBundleIDs": []
+        },
+        {
+            "BundleName": "assets_artres_ui_hub.bundle",
+            "UnityCRC": 0,
+            "FileHash": "a3786629de432abb780c832f60d5888f",
+            "FileCRC": 0,
+            "FileSize": 3282947,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -306,7 +372,7 @@
             "UnityCRC": 0,
             "FileHash": "cea67fae521d4ef419fedc4a328320b1",
             "FileCRC": 0,
-            "FileSize": 8735334,
+            "FileSize": 8750058,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []

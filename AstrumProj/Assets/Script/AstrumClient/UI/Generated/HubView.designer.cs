@@ -10,18 +10,18 @@ using Astrum.Client.UI.Core;
 namespace Astrum.Client.UI.Generated
 {
     /// <summary>
-    /// HubViewView 设计器部分
+    /// HubView 设计器部分
     /// 由UI生成器自动生成，包含UI元素引用和初始化逻辑
     /// </summary>
-    public partial class HubViewView
+    public partial class HubView
     {
         #region UI References
 
         // UI引用
         private UIRefs uiRefs;
 
-        // questBGImage
-        private Image questBGImage;
+        // quest_BGImage
+        private Image quest_BGImage;
 
         // bGImage
         private Image bGImage;
@@ -30,13 +30,25 @@ namespace Astrum.Client.UI.Generated
         private Image questPaperImage;
 
         // startExplorationButtonImage
-        private Image[] startExplorationButtonImage;
+        private Image startExplorationButtonImage;
 
         // startExplorationButtonButton
-        private Button[] startExplorationButtonButton;
+        private Button startExplorationButtonButton;
 
         // textText
         private Text[] textText;
+
+        // bagButtonImage
+        private Image bagButtonImage;
+
+        // bagButtonButton
+        private Button bagButtonButton;
+
+        // storageButtonImage
+        private Image storageButtonImage;
+
+        // storageButtonButton
+        private Button storageButtonButton;
 
         #endregion
 
@@ -63,27 +75,21 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void InitializeUIElements()
         {
-            questBGImage = uiRefs.GetComponent<Image>("HubView/Quest_BG");
-            bGImage = uiRefs.GetComponent<Image>("HubView/BG");
-            questPaperImage = uiRefs.GetComponent<Image>("HubView/BG/QuestPaper");
-            startExplorationButtonImage = new Image[]
-            {
-                uiRefs.GetComponent<Image>("HubView/BG/ButtonContainer/StartExplorationButton"),
-                uiRefs.GetComponent<Image>("HubView/BG/ButtonContainer/StartExplorationButton"),
-                uiRefs.GetComponent<Image>("HubView/BG/ButtonContainer/StartExplorationButton"),
-            };
-            startExplorationButtonButton = new Button[]
-            {
-                uiRefs.GetComponent<Button>("HubView/BG/ButtonContainer/StartExplorationButton"),
-                uiRefs.GetComponent<Button>("HubView/BG/ButtonContainer/StartExplorationButton"),
-                uiRefs.GetComponent<Button>("HubView/BG/ButtonContainer/StartExplorationButton"),
-            };
+            quest_BGImage = uiRefs.GetComponent<Image>("Hub/Quest_BG");
+            bGImage = uiRefs.GetComponent<Image>("Hub/BG");
+            questPaperImage = uiRefs.GetComponent<Image>("Hub/BG/QuestPaper");
+            startExplorationButtonImage = uiRefs.GetComponent<Image>("Hub/BG/ButtonContainer/StartExplorationButton");
+            startExplorationButtonButton = uiRefs.GetComponent<Button>("Hub/BG/ButtonContainer/StartExplorationButton");
             textText = new Text[]
             {
-                uiRefs.GetComponent<Text>("HubView/BG/ButtonContainer/StartExplorationButton/Text"),
-                uiRefs.GetComponent<Text>("HubView/BG/ButtonContainer/StartExplorationButton/Text"),
-                uiRefs.GetComponent<Text>("HubView/BG/ButtonContainer/StartExplorationButton/Text"),
+                uiRefs.GetComponent<Text>("Hub/BG/ButtonContainer/StartExplorationButton/Text"),
+                uiRefs.GetComponent<Text>("Hub/BG/ButtonContainer/BagButton/Text"),
+                uiRefs.GetComponent<Text>("Hub/BG/ButtonContainer/StorageButton/Text"),
             };
+            bagButtonImage = uiRefs.GetComponent<Image>("Hub/BG/ButtonContainer/BagButton");
+            bagButtonButton = uiRefs.GetComponent<Button>("Hub/BG/ButtonContainer/BagButton");
+            storageButtonImage = uiRefs.GetComponent<Image>("Hub/BG/ButtonContainer/StorageButton");
+            storageButtonButton = uiRefs.GetComponent<Button>("Hub/BG/ButtonContainer/StorageButton");
         }
 
         #endregion

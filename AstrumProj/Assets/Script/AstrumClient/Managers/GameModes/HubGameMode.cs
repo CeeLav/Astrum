@@ -67,7 +67,7 @@ namespace Astrum.Client.Managers.GameModes
             ASLogger.Instance.Info("HubGameMode: 场景加载完成，显示 Hub UI");
             
             // 显示 Hub UI
-            UIManager.Instance.ShowUI("HubView");
+            UIManager.Instance.ShowUI("Hub/Hub");
             
             ChangeState(GameModeState.Playing);
         }
@@ -110,12 +110,12 @@ namespace Astrum.Client.Managers.GameModes
         {
             try
             {
-                ASLogger.Instance.Info("HubGameMode: 隐藏HubView");
-                UIManager.Instance?.HideUI("HubView");
+                ASLogger.Instance.Info("HubGameMode: 隐藏Hub");
+                UIManager.Instance?.HideUI("Hub/Hub");
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"HubGameMode: 隐藏HubView失败 - {ex.Message}");
+                ASLogger.Instance.Error($"HubGameMode: 隐藏Hub失败 - {ex.Message}");
             }
         }
         

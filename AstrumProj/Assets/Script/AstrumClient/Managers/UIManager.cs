@@ -50,6 +50,7 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 显示UI
         /// </summary>
+        /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public void ShowUI(string uiName)
         {
             var uiGO = GetOrCreateUI(uiName);
@@ -62,6 +63,7 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 隐藏UI
         /// </summary>
+        /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public void HideUI(string uiName)
         {
             if (uiCache.TryGetValue(uiName, out var uiGO))
@@ -73,6 +75,7 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 获取UI GameObject
         /// </summary>
+        /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public GameObject GetUI(string uiName)
         {
             if (uiCache.TryGetValue(uiName, out var uiGO))
@@ -85,6 +88,7 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 销毁UI
         /// </summary>
+        /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public void DestroyUI(string uiName)
         {
             if (uiCache.TryGetValue(uiName, out var uiGO))
@@ -97,6 +101,7 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 检查UI是否已创建
         /// </summary>
+        /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public bool HasUI(string uiName)
         {
             return uiCache.ContainsKey(uiName);
@@ -105,6 +110,7 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 检查UI是否显示
         /// </summary>
+        /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public bool IsUIVisible(string uiName)
         {
             if (uiCache.TryGetValue(uiName, out var uiGO))
@@ -123,7 +129,7 @@ namespace Astrum.Client.Managers
             }
 
             // 加载Prefab
-            var prefabPath = $"{uiPrefabPath}{uiName}.prefab";
+            string prefabPath = $"{uiPrefabPath}{uiName}.prefab";
             GameObject prefab = null;
             
 #if UNITY_EDITOR
@@ -150,10 +156,12 @@ namespace Astrum.Client.Managers
             }
 
             // 实例化UI
+            // 提取纯名称作为GameObject名称（去掉路径）
+            string cleanName = uiName.Contains("/") ? uiName.Substring(uiName.LastIndexOf("/") + 1) : uiName;
             var uiGO = UnityEngine.Object.Instantiate(prefab, uiRootTransform);
-            uiGO.name = uiName;
+            uiGO.name = cleanName;
             
-            // 缓存UI
+            // 缓存UI（使用完整路径作为key）
             uiCache[uiName] = uiGO;
             
             return uiGO;
