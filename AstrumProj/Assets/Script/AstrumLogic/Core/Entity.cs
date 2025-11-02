@@ -94,8 +94,9 @@ namespace Astrum.LogicCore.Core
 
         // 运行时子原型：激活列表与引入映射（用于安全卸载）
         public List<string> ActiveSubArchetypes { get; private set; } = new List<string>();
-        public Dictionary<string, List<string>> SubArchetypeAddedComponents { get; private set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, List<string>> SubArchetypeAddedCapabilities { get; private set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        // 引用计数字典（类型名 -> 引用次数），用于决定组件/能力的装配与卸载
+        public Dictionary<string, int> ComponentRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
+        public Dictionary<string, int> CapabilityRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
         public Entity()
         {
@@ -107,7 +108,7 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities)
+        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities, List<string> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
@@ -132,6 +133,10 @@ namespace Astrum.LogicCore.Core
             {
                 capability.OwnerEntity = this;
             }
+
+            ActiveSubArchetypes = activeSubArchetypes ?? new List<string>();
+            ComponentRefCounts = componentRefCounts ?? new Dictionary<string, int>(StringComparer.Ordinal);
+            CapabilityRefCounts = capabilityRefCounts ?? new Dictionary<string, int>(StringComparer.Ordinal);
         }
 
         /// <summary>
@@ -149,88 +154,89 @@ namespace Astrum.LogicCore.Core
                 return false;
             }
 
-            var addedCompTypes = new List<string>();
-            var addedCapTypes = new List<string>();
-
-            // 装配组件（按类型去重，单实例）
+            // 装配组件/能力（引用计数）
             var componentFactory = Astrum.LogicCore.Factories.ComponentFactory.Instance;
             foreach (var compType in info.Components ?? Array.Empty<Type>())
             {
                 if (compType == null) continue;
-                if (Components.Any(c => c.GetType() == compType)) continue;
-                var comp = componentFactory.CreateComponentFromType(compType);
-                if (comp != null)
+                var key = GetTypeKey(compType);
+                if (!ComponentRefCounts.TryGetValue(key, out var n)) n = 0;
+                if (n == 0)
                 {
+                    var comp = componentFactory.CreateComponentFromType(compType);
+                    if (comp == null) { reason = $"Create component '{compType.Name}' failed"; return false; }
                     AddComponent(comp);
                     comp.OnAttachToEntity(this);
-                    addedCompTypes.Add(compType.AssemblyQualifiedName ?? compType.FullName);
                 }
+                ComponentRefCounts[key] = n + 1;
             }
 
-            // 装配能力（禁止多实例）
             foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
             {
                 if (capType == null) continue;
-                if (Capabilities.Any(c => c.GetType() == capType))
+                var key = GetTypeKey(capType);
+                if (!CapabilityRefCounts.TryGetValue(key, out var n)) n = 0;
+                if (n == 0)
                 {
-                    reason = $"Capability '{capType.Name}' already exists";
-                    // 回滚已添加组件
-                    RollbackAdded(subArchetypeName, addedCompTypes, addedCapTypes);
-                    return false;
-                }
-                try
-                {
-                    var cap = Activator.CreateInstance(capType) as Capability;
-                    if (cap != null)
+                    try
                     {
+                        var cap = Activator.CreateInstance(capType) as Capability;
+                        if (cap == null) { reason = $"Create capability '{capType.Name}' failed"; return false; }
                         AddCapability(cap);
-                        addedCapTypes.Add(capType.AssemblyQualifiedName ?? capType.FullName);
+                    }
+                    catch (Exception ex)
+                    {
+                        reason = $"Create capability '{capType.Name}' failed: {ex.Message}";
+                        return false;
                     }
                 }
-                catch (Exception ex)
-                {
-                    reason = $"Create capability '{capType.Name}' failed: {ex.Message}";
-                    RollbackAdded(subArchetypeName, addedCompTypes, addedCapTypes);
-                    return false;
-                }
+                CapabilityRefCounts[key] = n + 1;
             }
 
             ActiveSubArchetypes.Add(subArchetypeName);
-            if (addedCompTypes.Count > 0) SubArchetypeAddedComponents[subArchetypeName] = addedCompTypes;
-            if (addedCapTypes.Count > 0) SubArchetypeAddedCapabilities[subArchetypeName] = addedCapTypes;
             return true;
         }
 
         /// <summary>
-        /// 运行时卸载子原型（仅移除该子原型引入的成员）。
+        /// 运行时卸载子原型：按声明差集卸载（主原型+其他子原型覆盖的成员保留）。
         /// </summary>
         public bool DetachSubArchetype(string subArchetypeName, out string? reason)
         {
             reason = null;
             if (!ActiveSubArchetypes.Contains(subArchetypeName, StringComparer.OrdinalIgnoreCase)) return true;
 
-            // 卸载能力（逆序更安全）
-            if (SubArchetypeAddedCapabilities.TryGetValue(subArchetypeName, out var capList))
+            // 目标子原型声明
+            if (!Astrum.LogicCore.Archetypes.ArchetypeRegistry.Instance.TryGet(subArchetypeName, out var subInfo))
             {
-                for (int i = capList.Count - 1; i >= 0; i--)
-                {
-                    var typeName = capList[i];
-                    var type = Type.GetType(typeName);
-                    if (type == null) continue;
-                    var inst = Capabilities.FirstOrDefault(c => c.GetType() == type);
-                    if (inst != null) RemoveCapability(inst);
-                }
-                SubArchetypeAddedCapabilities.Remove(subArchetypeName);
+                ActiveSubArchetypes.RemoveAll(n => string.Equals(n, subArchetypeName, StringComparison.OrdinalIgnoreCase));
+                return true;
             }
 
-            // 卸载组件（仅移除由该子原型引入的）
-            if (SubArchetypeAddedComponents.TryGetValue(subArchetypeName, out var compList))
+            // 引用计数减一，归零则移除
+            foreach (var t in subInfo.Capabilities ?? Array.Empty<Type>())
             {
-                foreach (var typeName in compList)
+                if (t == null) continue;
+                var key = GetTypeKey(t);
+                if (!CapabilityRefCounts.TryGetValue(key, out var n)) n = 0;
+                if (n > 0) n--;
+                CapabilityRefCounts[key] = n;
+                if (n == 0)
                 {
-                    var type = Type.GetType(typeName);
-                    if (type == null) continue;
-                    var comp = Components.FirstOrDefault(c => c.GetType() == type);
+                    var inst = Capabilities.FirstOrDefault(c => c.GetType() == t);
+                    if (inst != null) RemoveCapability(inst);
+                }
+            }
+
+            foreach (var t in subInfo.Components ?? Array.Empty<Type>())
+            {
+                if (t == null) continue;
+                var key = GetTypeKey(t);
+                if (!ComponentRefCounts.TryGetValue(key, out var n)) n = 0;
+                if (n > 0) n--;
+                ComponentRefCounts[key] = n;
+                if (n == 0)
+                {
+                    var comp = Components.FirstOrDefault(c => c.GetType() == t);
                     if (comp != null)
                     {
                         Components.Remove(comp);
@@ -238,7 +244,6 @@ namespace Astrum.LogicCore.Core
                         PublishComponentChangedEvent(comp, "Remove");
                     }
                 }
-                SubArchetypeAddedComponents.Remove(subArchetypeName);
             }
 
             ActiveSubArchetypes.RemoveAll(n => string.Equals(n, subArchetypeName, StringComparison.OrdinalIgnoreCase));
@@ -269,6 +274,8 @@ namespace Astrum.LogicCore.Core
                 }
             }
         }
+
+        private static string GetTypeKey(Type t) => t.AssemblyQualifiedName ?? t.FullName;
 
         public bool IsSubArchetypeActive(string subArchetypeName)
         {

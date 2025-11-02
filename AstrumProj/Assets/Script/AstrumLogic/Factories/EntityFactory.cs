@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Managers;
@@ -92,6 +93,23 @@ namespace Astrum.LogicCore.Factories
             CallArchetypeLifecycleMethod(archetypeName, "OnAfterCapabilitiesAttach", entity, world);
 
             entity.World = world;
+            // 初始化引用计数：按主原型声明与实际实例同步
+            foreach (var t in info.Components ?? Array.Empty<Type>())
+            {
+                var key = t.AssemblyQualifiedName ?? t.FullName;
+                if (entity.Components.Any(c => c.GetType() == t))
+                {
+                    entity.ComponentRefCounts[key] = 1;
+                }
+            }
+            foreach (var t in info.Capabilities ?? Array.Empty<Type>())
+            {
+                var key = t.AssemblyQualifiedName ?? t.FullName;
+                if (entity.Capabilities.Any(c => c.GetType() == t))
+                {
+                    entity.CapabilityRefCounts[key] = 1;
+                }
+            }
             world.Entities[entity.UniqueId] = entity;
             return entity;
         }
@@ -157,6 +175,23 @@ namespace Astrum.LogicCore.Factories
             CallArchetypeLifecycleMethod(archetypeName, "OnAfterCapabilitiesAttach", entity, world);
 
             entity.World = world;
+            // 初始化引用计数：按主原型声明与实际实例同步
+            foreach (var t in info.Components ?? Array.Empty<Type>())
+            {
+                var key = t.AssemblyQualifiedName ?? t.FullName;
+                if (entity.Components.Any(c => c.GetType() == t))
+                {
+                    entity.ComponentRefCounts[key] = 1;
+                }
+            }
+            foreach (var t in info.Capabilities ?? Array.Empty<Type>())
+            {
+                var key = t.AssemblyQualifiedName ?? t.FullName;
+                if (entity.Capabilities.Any(c => c.GetType() == t))
+                {
+                    entity.CapabilityRefCounts[key] = 1;
+                }
+            }
             world.Entities[entity.UniqueId] = entity;
             return entity;
         }

@@ -30,30 +30,15 @@ namespace Astrum.LogicCore.Capabilities
             _fsm ??= GetOwnerComponent<AIStateMachineComponent>();
             if (_fsm == null) return;
 
-            // 状态切换（若指定 NextState）
+            // 仅负责状态切换与激活管理，不直接调用其他能力的 Tick（由统一更新器驱动）。
             if (!string.IsNullOrEmpty(_fsm.NextState) && _fsm.NextState != _fsm.CurrentState)
             {
                 SwitchTo(_fsm.NextState);
                 _fsm.NextState = string.Empty;
             }
-
-            // 执行当前状态能力
-            var stateCap = ResolveStateCapability(_fsm.CurrentState);
-            stateCap?.Tick();
         }
 
-        private Capability? ResolveStateCapability(string state)
-        {
-            if (string.IsNullOrEmpty(state) || OwnerEntity == null) return null;
-            var capTypeName = state switch
-            {
-                "Idle" => typeof(IdleStateCapability).FullName,
-                "Move" => typeof(MoveStateCapability).FullName,
-                _ => null
-            };
-            if (capTypeName == null) return null;
-            return OwnerEntity.Capabilities.FirstOrDefault(c => c.GetType().FullName == capTypeName);
-        }
+
 
         private void SwitchTo(string next)
         {
@@ -62,6 +47,7 @@ namespace Astrum.LogicCore.Capabilities
             _fsm.CurrentState = next;
             _fsm.LastSwitchFrame = OwnerEntity?.World?.CurFrame ?? 0;
         }
+
     }
 }
 

@@ -4,6 +4,7 @@ using Astrum.Client.Core;
 using Astrum.Client.Data;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Factories;
 using Astrum.View.Core;
 using Astrum.View.Managers;
 using AstrumClient.MonitorTools;
@@ -261,6 +262,45 @@ namespace Astrum.Client.Managers.GameModes
         
         #endregion
         
+        #region AI/实体创建辅助
+
+        /// <summary>
+        /// 创建一个 Role 实体并挂载 AI 子原型（SubArchetype "AI"）。
+        /// </summary>
+        /// <param name="entityConfigId">实体配置ID（应包含 ArchetypeName="Role"）</param>
+        /// <returns>创建的实体ID，失败返回 -1</returns>
+        public long CreateRoleWithAI(int entityConfigId)
+        {
+            if (MainRoom == null || MainRoom.MainWorld == null)
+            {
+                ASLogger.Instance.Error("SinglePlayerGameMode: World 未初始化，无法创建实体");
+                return -1;
+            }
+
+            var world = MainRoom.MainWorld;
+            try
+            {
+                var entity = EntityFactory.Instance.CreateByArchetype("Role", entityConfigId, world);
+                if (entity == null)
+                {
+                    ASLogger.Instance.Error("SinglePlayerGameMode: 创建 Role 实体失败");
+                    return -1;
+                }
+
+                // 在帧末挂载 AI 子原型，确保确定性
+                world.EnqueueSubArchetypeChange(entity.UniqueId, "AI", true);
+                ASLogger.Instance.Info($"SinglePlayerGameMode: 已创建 Role 并挂载 AI，EntityId={entity.UniqueId}");
+                return entity.UniqueId;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"SinglePlayerGameMode: CreateRoleWithAI 失败 - {ex.Message}");
+                return -1;
+            }
+        }
+
+        #endregion
+
         #region 相机跟随逻辑
         
         /// <summary>
