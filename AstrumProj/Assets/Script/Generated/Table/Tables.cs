@@ -13,11 +13,14 @@ namespace cfg
 {
 public partial class Tables
 {
-    public TbItem TbItem {get; }
     public Buff.TbBuffTable TbBuffTable {get; }
     public Entity.TbActionTable TbActionTable {get; }
     public Entity.TbEntityBaseTable TbEntityBaseTable {get; }
     public Entity.TbEntityModelTable TbEntityModelTable {get; }
+    public Item.TbEquipmentStatsTable TbEquipmentStatsTable {get; }
+    public Item.TbItemBaseTable TbItemBaseTable {get; }
+    public Item.TbLootTable TbLootTable {get; }
+    public Item.TbMaterialResourceTable TbMaterialResourceTable {get; }
     public Role.TbRoleBaseTable TbRoleBaseTable {get; }
     public Role.TbRoleGrowthTable TbRoleGrowthTable {get; }
     public Skill.TbSkillActionTable TbSkillActionTable {get; }
@@ -26,11 +29,14 @@ public partial class Tables
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
-        TbItem = new TbItem(loader("tbitem"));
         TbBuffTable = new Buff.TbBuffTable(loader("buff_tbbufftable"));
         TbActionTable = new Entity.TbActionTable(loader("entity_tbactiontable"));
         TbEntityBaseTable = new Entity.TbEntityBaseTable(loader("entity_tbentitybasetable"));
         TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
+        TbEquipmentStatsTable = new Item.TbEquipmentStatsTable(loader("item_tbequipmentstatstable"));
+        TbItemBaseTable = new Item.TbItemBaseTable(loader("item_tbitembasetable"));
+        TbLootTable = new Item.TbLootTable(loader("item_tbloottable"));
+        TbMaterialResourceTable = new Item.TbMaterialResourceTable(loader("item_tbmaterialresourcetable"));
         TbRoleBaseTable = new Role.TbRoleBaseTable(loader("role_tbrolebasetable"));
         TbRoleGrowthTable = new Role.TbRoleGrowthTable(loader("role_tbrolegrowthtable"));
         TbSkillActionTable = new Skill.TbSkillActionTable(loader("skill_tbskillactiontable"));
@@ -41,11 +47,14 @@ public partial class Tables
     
     private void ResolveRef()
     {
-        TbItem.ResolveRef(this);
         TbBuffTable.ResolveRef(this);
         TbActionTable.ResolveRef(this);
         TbEntityBaseTable.ResolveRef(this);
         TbEntityModelTable.ResolveRef(this);
+        TbEquipmentStatsTable.ResolveRef(this);
+        TbItemBaseTable.ResolveRef(this);
+        TbLootTable.ResolveRef(this);
+        TbMaterialResourceTable.ResolveRef(this);
         TbRoleBaseTable.ResolveRef(this);
         TbRoleGrowthTable.ResolveRef(this);
         TbSkillActionTable.ResolveRef(this);
