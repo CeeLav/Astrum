@@ -18,6 +18,23 @@
 - 物品配置
 - 关卡配置
 
+### [道具系统策划案](道具/道具系统策划案.md)
+完整的道具与装备设计文档
+
+**核心内容**:
+- 道具分类与稀有度系统
+- 装备属性与数值平衡
+- 战利品掉落与资源定义
+- Luban配置表规范
+
+**配置表类型**:
+- ItemBaseTable（道具基础表）
+- EquipmentStatsTable（装备属性表）
+- LootTable（战利品掉落表）
+- MaterialResourceTable（资源定义表）
+- CraftingRecipeTable（制作配方表）⚠️ 暂不实现
+- UpgradeTable（装备强化表）⚠️ 暂不实现
+
 ---
 
 ## 🔧 配置工具
