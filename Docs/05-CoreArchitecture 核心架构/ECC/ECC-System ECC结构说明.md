@@ -51,6 +51,15 @@ ECC 结构将实体职责拆分为三层：
 - 类型绑定：给具体 `Entity` 子类绑定一个 Archetype 名（如 `Unit` 绑定 "Role"）。
 - 数据绑定：在实体配置表中提供 `ArchetypeName` 字段，在创建时按配置选择。
 
+## 4A. 子原型机制（运行时组合）
+
+> 合并结果 = 主原型（静态展开） ∪ ActiveSubArchetypes（运行时挂载）。
+
+- 去重与约束：按 Type 去重；组件单实例；能力不允许多实例（冲突报错）。
+- 挂载/卸载：AttachSubArchetype/DetachSubArchetype；卸载仅移除本子原型引入成员，逆序处理。
+- 确定性：帧同步中，子原型变更以指令驱动并纳入序列化；回放按顺序应用。
+- 性能：缓存“主原型集合 + 子原型集合”的并集快照，变更时做增量更新。
+
 ## 5. 实体生命周期
 
 ### 5.1 创建流程
@@ -87,12 +96,27 @@ EntityView.BuildViewComponents(viewComponentTypes)
 
 ### 5.2 运行
 
-- 帧同步驱动（`LSController.Tick`），按优先级/条件调用能力 `Tick`，更新组件状态。
+ - 帧同步驱动（`LSController.Tick`），按优先级/条件调用能力 `Tick`，更新组件状态。
+ - 允许处理帧内的“子原型变更指令”（统一在本帧末批量应用），确保确定性与一致性。
 - 视图层订阅或轮询组件数据，更新模型/动画/特效/UI。
 
 ### 5.3 销毁
 
-- 逆序释放能力与组件，回收资源，解除表/资源引用。
+ - 先卸载全部子原型（仅移除其引入成员），再逆序释放主原型成员，回收资源，解除表/资源引用。
+
+## 14. 子原型示例：AI（SubArchetype "AI"）
+
+> 目的：将 AI 状态机作为可挂载/卸载的功能片段，便于剧情、战斗或控制权切换。
+
+- 组件：`AIStateMachineComponent`
+- 能力：`AIFSMCapability`（调度器） + `IdleStateCapability`/`MoveStateCapability`/...（各状态）
+- 关系：`AIFSMCapability` 统一评估与切换状态；各 StateCapability 封装条件与行为。
+- 用法：
+  - 怪物实体：主原型 `Monster`
+  - 进入战斗：`AttachSubArchetype(entity, "AI")`
+  - 剧情接管：`DetachSubArchetype(entity, "AI")`
+
+序列化：在快照中记录 activeSubArchetypes 包含 "AI"，回放时按顺序恢复并装配。
 
 ## 6. 组件层（数据）
 
@@ -252,7 +276,7 @@ EntityView.BuildViewComponents(viewComponentTypes)
 
 ---
 
-版本：v1.0
+版本：v1.1（最后更新：2025-11-02）
 位置：`AstrumConfig/Doc/ECC结构说明.md`
 关联策划案：`AstrumConfig/Doc/Archetype结构说明.md`（原型系统的详细规则与视图原型映射，请见该文档）
 说明：本说明覆盖整个 ECC 系统，并为后续优化（如 Archetype 改造）提供一致的上下文与规范依据。

@@ -36,6 +36,30 @@
 - 支持序列化（MemoryPack）
 - 状态定义可通过配置表扩展
 
+## AI 原型（子原型 SubArchetype "AI"）
+
+> 目标：将 AI 作为可挂载/卸载的子原型，按需启用或关闭 AI 行为。
+
+- 组成：
+  - 组件：`AIStateMachineComponent`
+  - 能力：`AIFSMCapability`（调度器） + 若干 `*StateCapability`（如 `IdleStateCapability`、`MoveStateCapability`）
+- 职责边界：
+  - `AIFSMCapability` 统一评估条件、切换状态并调用对应 `StateCapability`
+  - 各 `StateCapability` 仅实现本状态的进入/执行/退出与条件判断
+- 生命周期：
+  - 挂载：`AttachSubArchetype(entity, "AI")` 初始化状态机（默认状态如 Idle）
+  - 卸载：`DetachSubArchetype(entity, "AI")` 清理状态与临时数据
+- 与 ECC：默认不影响视图；如需调试可视化，另行定义 View 子原型
+
+最小用法：
+```
+// 进入战斗
+AttachSubArchetype(entity, "AI");
+
+// 剧情接管（关闭AI）
+DetachSubArchetype(entity, "AI");
+```
+
 ## 状态机流程
 
 ```

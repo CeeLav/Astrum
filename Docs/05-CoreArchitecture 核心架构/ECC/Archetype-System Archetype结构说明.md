@@ -34,6 +34,29 @@
 - Controllable：LSInput + ControlCapability（如存在）
 - Role = BaseUnit ∪ Action ∪ Controllable + 自身差异
 - Monster = BaseUnit ∪ Action + 自身差异（AI）
+ 
+ ### 3.4 子原型（SubArchetype）
+ 
+ > 定义：运行时可增/卸载的“原型增量”，声明一组 Components/Capabilities，用于按需组合（如 AI、Buff、临时状态）。
+ 
+ - 目标：避免将可选功能都固化到主原型，支持在运行时启用/关闭功能片段。
+ - 区别：`Merge` 在启动期静态展开；`SubArchetype` 在运行时动态挂载/卸载。
+ - 合并：子原型与主原型的成员以 Type 维度去重，组件唯一实例，能力禁止多实例。
+ 
+ ### 3.5 运行时操作（API 约束）
+ 
+ - AttachSubArchetype(entity, subName)：装配子原型的组件与能力，触发 OnAttach 生命周期回调。
+ - DetachSubArchetype(entity, subName)：逆序卸载，仅移除“该子原型引入”的成员；若仍被其他子原型/系统引用则失败并返回原因。
+ - 查询：IsSubArchetypeActive(entity, subName) / ListActiveSubArchetypes(entity)。
+ - 冲突/去重：按 Type 去重；组件保持单实例；能力多实例禁止（报错）。
+ - 生命周期：OnAttach/OnDetach 仅用于初始化/释放资源，不得做跨实体/全局副作用。
+ - 确定性：帧同步模式下，挂载/卸载必须由指令驱动并纳入序列化回放。
+ 
+ ### 3.6 序列化与回放
+ 
+ - 快照需记录 `activeSubArchetypes` 列表及必要顺序/时间戳（如有优先级/时序约束）。
+ - 恢复顺序：主原型（静态）→ 子原型（注册顺序或优先级）→ 增量合并。
+ - 版本兼容：未知子原型名应忽略并记录警告，不影响主原型恢复。
 
 ## 4. 视图原型（ViewArchetype）
 
@@ -61,6 +84,8 @@
 - 合并关系：优先复用基础原型；避免循环定义；尽量保持扁平化组合层级不超过 3 层。
 - 视图映射：仅为“可直接落地展示”的原型配置 ViewArchetype（例如 Role/Monster）。纯逻辑原型无需视图映射。
 - 表驱动：如需从配置表控制原型，新增 `ArchetypeName` 字段，并通过工厂在运行时选择。
+ - 子原型命名：采用功能语义（如 `AI`、`Buff.Poison`），避免与主原型重名；卸载仅影响本子原型引入的成员。
+ - 安全卸载：提供“试卸载”接口返回引用计数或阻断原因，避免误删主原型或他源成员。
 
 ## 6. 与 ECC 的关系
 
@@ -71,8 +96,9 @@
 
 ---
 
-版本：v1.1 (更新日期：2025-10-07)位置：`AstrumConfig/Doc/Archetype结构说明.md`变更记录：
+版本：v1.2 (更新日期：2025-11-02)位置：`AstrumConfig/Doc/Archetype结构说明.md`变更记录：
 
+- v1.2: 新增子原型（SubArchetype）定义、运行时操作与序列化规范；补充使用约束
 - v1.1: 更新 ViewArchetype 合成算法为实际实现（使用 `ArchetypeManager.GetMergeChain()`）
 - v1.1: 补充完整的装配流程和示例
 - v1.0: 初始版本

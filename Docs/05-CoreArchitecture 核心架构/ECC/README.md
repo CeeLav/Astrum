@@ -28,6 +28,11 @@ Entity-Component-Capability 架构设计
 - 自动装配组件和能力
 - 类型安全的创建流程
 
+**新增**:
+- 子原型（SubArchetype）：运行时可挂载/卸载的原型增量，用于按需组合（如 AI、Buff 等）。详见：
+  - ECC：4A 子原型机制（运行时组合）
+  - Archetype：3.4/3.5/3.6 子原型定义、运行时操作与序列化
+
 ### [序列化最佳实践](Serialization-Best-Practices%20序列化最佳实践.md)
 
 回滚系统中的序列化设计规范
