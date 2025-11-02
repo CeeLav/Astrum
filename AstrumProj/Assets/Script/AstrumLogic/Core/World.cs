@@ -17,6 +17,15 @@ namespace Astrum.LogicCore.Core
     [MemoryPackable]
     public partial class World
     {
+        private struct PendingSubChange
+        {
+            public long EntityId;
+            public string Name;
+            public bool Attach;
+        }
+
+        private readonly List<PendingSubChange> _pendingSubArchetypeChanges = new List<PendingSubChange>();
+
         /// <summary>
         /// 世界唯一标识符
         /// </summary>
@@ -175,6 +184,7 @@ namespace Astrum.LogicCore.Core
         {
             Updater?.UpdateWorld(this);
             CurFrame++;
+            ApplyQueuedSubArchetypeChangesAtFrameEnd();
         }
 
         /// <summary>
@@ -196,6 +206,36 @@ namespace Astrum.LogicCore.Core
             SkillEffectSystem.Initialize();
 
             // 工厂与原型管理器初始化应由 GameApplication 负责
+        }
+
+        public void EnqueueSubArchetypeChange(long entityId, string subArchetypeName, bool attach)
+        {
+            if (string.IsNullOrWhiteSpace(subArchetypeName)) return;
+            _pendingSubArchetypeChanges.Add(new PendingSubChange
+            {
+                EntityId = entityId,
+                Name = subArchetypeName,
+                Attach = attach
+            });
+        }
+
+        public void ApplyQueuedSubArchetypeChangesAtFrameEnd()
+        {
+            if (_pendingSubArchetypeChanges.Count == 0) return;
+            foreach (var change in _pendingSubArchetypeChanges)
+            {
+                var ent = GetEntity(change.EntityId);
+                if (ent == null) continue;
+                if (change.Attach)
+                {
+                    ent.AttachSubArchetype(change.Name, out _);
+                }
+                else
+                {
+                    ent.DetachSubArchetype(change.Name, out _);
+                }
+            }
+            _pendingSubArchetypeChanges.Clear();
         }
 
         /// <summary>

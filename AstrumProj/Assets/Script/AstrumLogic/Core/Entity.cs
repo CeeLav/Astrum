@@ -92,6 +92,11 @@ namespace Astrum.LogicCore.Core
         [MemoryPackIgnore]
         public World World { get; set; }
 
+        // 运行时子原型：激活列表与引入映射（用于安全卸载）
+        public List<string> ActiveSubArchetypes { get; private set; } = new List<string>();
+        public Dictionary<string, List<string>> SubArchetypeAddedComponents { get; private set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, List<string>> SubArchetypeAddedCapabilities { get; private set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
         public Entity()
         {
             UniqueId = _nextId++;
@@ -128,6 +133,149 @@ namespace Astrum.LogicCore.Core
                 capability.OwnerEntity = this;
             }
         }
+
+        /// <summary>
+        /// 运行时挂载子原型（按需装配组件/能力，去重）。
+        /// </summary>
+        public bool AttachSubArchetype(string subArchetypeName, out string? reason)
+        {
+            reason = null;
+            if (string.IsNullOrWhiteSpace(subArchetypeName)) { reason = "SubArchetype name is empty"; return false; }
+            if (ActiveSubArchetypes.Contains(subArchetypeName, StringComparer.OrdinalIgnoreCase)) { return true; }
+
+            if (!Astrum.LogicCore.Archetypes.ArchetypeRegistry.Instance.TryGet(subArchetypeName, out var info))
+            {
+                reason = $"SubArchetype '{subArchetypeName}' not found";
+                return false;
+            }
+
+            var addedCompTypes = new List<string>();
+            var addedCapTypes = new List<string>();
+
+            // 装配组件（按类型去重，单实例）
+            var componentFactory = Astrum.LogicCore.Factories.ComponentFactory.Instance;
+            foreach (var compType in info.Components ?? Array.Empty<Type>())
+            {
+                if (compType == null) continue;
+                if (Components.Any(c => c.GetType() == compType)) continue;
+                var comp = componentFactory.CreateComponentFromType(compType);
+                if (comp != null)
+                {
+                    AddComponent(comp);
+                    comp.OnAttachToEntity(this);
+                    addedCompTypes.Add(compType.AssemblyQualifiedName ?? compType.FullName);
+                }
+            }
+
+            // 装配能力（禁止多实例）
+            foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
+            {
+                if (capType == null) continue;
+                if (Capabilities.Any(c => c.GetType() == capType))
+                {
+                    reason = $"Capability '{capType.Name}' already exists";
+                    // 回滚已添加组件
+                    RollbackAdded(subArchetypeName, addedCompTypes, addedCapTypes);
+                    return false;
+                }
+                try
+                {
+                    var cap = Activator.CreateInstance(capType) as Capability;
+                    if (cap != null)
+                    {
+                        AddCapability(cap);
+                        addedCapTypes.Add(capType.AssemblyQualifiedName ?? capType.FullName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    reason = $"Create capability '{capType.Name}' failed: {ex.Message}";
+                    RollbackAdded(subArchetypeName, addedCompTypes, addedCapTypes);
+                    return false;
+                }
+            }
+
+            ActiveSubArchetypes.Add(subArchetypeName);
+            if (addedCompTypes.Count > 0) SubArchetypeAddedComponents[subArchetypeName] = addedCompTypes;
+            if (addedCapTypes.Count > 0) SubArchetypeAddedCapabilities[subArchetypeName] = addedCapTypes;
+            return true;
+        }
+
+        /// <summary>
+        /// 运行时卸载子原型（仅移除该子原型引入的成员）。
+        /// </summary>
+        public bool DetachSubArchetype(string subArchetypeName, out string? reason)
+        {
+            reason = null;
+            if (!ActiveSubArchetypes.Contains(subArchetypeName, StringComparer.OrdinalIgnoreCase)) return true;
+
+            // 卸载能力（逆序更安全）
+            if (SubArchetypeAddedCapabilities.TryGetValue(subArchetypeName, out var capList))
+            {
+                for (int i = capList.Count - 1; i >= 0; i--)
+                {
+                    var typeName = capList[i];
+                    var type = Type.GetType(typeName);
+                    if (type == null) continue;
+                    var inst = Capabilities.FirstOrDefault(c => c.GetType() == type);
+                    if (inst != null) RemoveCapability(inst);
+                }
+                SubArchetypeAddedCapabilities.Remove(subArchetypeName);
+            }
+
+            // 卸载组件（仅移除由该子原型引入的）
+            if (SubArchetypeAddedComponents.TryGetValue(subArchetypeName, out var compList))
+            {
+                foreach (var typeName in compList)
+                {
+                    var type = Type.GetType(typeName);
+                    if (type == null) continue;
+                    var comp = Components.FirstOrDefault(c => c.GetType() == type);
+                    if (comp != null)
+                    {
+                        Components.Remove(comp);
+                        UpdateComponentMask();
+                        PublishComponentChangedEvent(comp, "Remove");
+                    }
+                }
+                SubArchetypeAddedComponents.Remove(subArchetypeName);
+            }
+
+            ActiveSubArchetypes.RemoveAll(n => string.Equals(n, subArchetypeName, StringComparison.OrdinalIgnoreCase));
+            return true;
+        }
+
+        private void RollbackAdded(string subArchetypeName, List<string> addedCompTypes, List<string> addedCapTypes)
+        {
+            // 移除刚添加的能力
+            foreach (var tName in addedCapTypes)
+            {
+                var t = Type.GetType(tName);
+                if (t == null) continue;
+                var inst = Capabilities.FirstOrDefault(c => c.GetType() == t);
+                if (inst != null) RemoveCapability(inst);
+            }
+            // 移除刚添加的组件
+            foreach (var tName in addedCompTypes)
+            {
+                var t = Type.GetType(tName);
+                if (t == null) continue;
+                var comp = Components.FirstOrDefault(c => c.GetType() == t);
+                if (comp != null)
+                {
+                    Components.Remove(comp);
+                    UpdateComponentMask();
+                    PublishComponentChangedEvent(comp, "Remove");
+                }
+            }
+        }
+
+        public bool IsSubArchetypeActive(string subArchetypeName)
+        {
+            return ActiveSubArchetypes.Contains(subArchetypeName, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public IReadOnlyList<string> ListActiveSubArchetypes() => ActiveSubArchetypes;
 
         /// <summary>
         /// 添加组件
