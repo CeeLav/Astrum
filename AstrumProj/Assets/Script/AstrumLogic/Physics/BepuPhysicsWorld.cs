@@ -143,10 +143,6 @@ namespace Astrum.LogicCore.Physics
             
             // 注意：IsActive是只读属性，不能手动设置
             // BroadPhase会在查询时自动使用更新后的AABB（通过UpdateBoundingBox）
-            
-            // 调试：记录位置更新和AABB
-            var aabb = bepuEntity.CollisionInformation.BoundingBox;
-            ASLogger.Instance.Debug($"[BepuPhysicsWorld] 更新实体位置: Entity={entity.UniqueId}, LogicPos=({(float)position.x:F2},{(float)position.y:F2},{(float)position.z:F2}), BepuPos=({(float)bepuPos.X:F2},{(float)bepuPos.Y:F2},{(float)bepuPos.Z:F2}), AABB=({(float)aabb.Min.X:F2},{(float)aabb.Min.Y:F2},{(float)aabb.Min.Z:F2})-({(float)aabb.Max.X:F2},{(float)aabb.Max.Y:F2},{(float)aabb.Max.Z:F2})");
         }
 
         /// <summary>
@@ -192,28 +188,10 @@ namespace Astrum.LogicCore.Physics
             // 【关键修复】在查询前更新BroadPhase，确保使用最新的AABB
             // 因为我们的物理世界可能不会自动调用Space.Update()，所以需要手动刷新
             _space.BroadPhase.Update();
-            
-            // 调试：打印查询参数
-            ASLogger.Instance.Info($"[QueryBoxOverlap] AttackBox Center=({(float)center.x:F2},{(float)center.y:F2},{(float)center.z:F2}) " +
-                $"HalfSize=({(float)halfSize.x:F2},{(float)halfSize.y:F2},{(float)halfSize.z:F2}) " +
-                $"AABB=({(float)boundingBox.Min.X:F2},{(float)boundingBox.Min.Y:F2},{(float)boundingBox.Min.Z:F2})-" +
-                $"({(float)boundingBox.Max.X:F2},{(float)boundingBox.Max.Y:F2},{(float)boundingBox.Max.Z:F2})");
 
             // 使用 BroadPhase 进行 AABB 查询
             var candidates = new BEPUutilities.DataStructures.RawList<BroadPhaseEntry>();
             _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, candidates);
-
-            ASLogger.Instance.Info($"[QueryBoxOverlap] Found {candidates.Count} candidates in AABB");
-            
-            // 调试：打印所有注册实体的AABB位置（用于对比）
-            foreach (var kv in _entityBodies)
-            {
-                var bepuEnt = kv.Value;
-                var aabb = bepuEnt.CollisionInformation.BoundingBox;
-                ASLogger.Instance.Info($"[QueryBoxOverlap] Registered Entity={kv.Key} " +
-                    $"BepuPos=({(float)bepuEnt.Position.X:F2},{(float)bepuEnt.Position.Y:F2},{(float)bepuEnt.Position.Z:F2}) " +
-                    $"AABB=({(float)aabb.Min.X:F2},{(float)aabb.Min.Y:F2},{(float)aabb.Min.Z:F2})-({(float)aabb.Max.X:F2},{(float)aabb.Max.Y:F2},{(float)aabb.Max.Z:F2})");
-            }
 
             // 遍历候选者，进行窄相检测
             foreach (var candidate in candidates)
@@ -230,14 +208,7 @@ namespace Astrum.LogicCore.Physics
                         continue;
                     }
                     
-                    // 调试：打印候选实体位置（对比逻辑层和物理世界）
                     var candidatePos = bepuEntity.Position.ToTSVector();
-                    var candidatePosLogic = entity.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
-                    var candidateAABB = bepuEntity.CollisionInformation.BoundingBox;
-                    ASLogger.Instance.Info($"[QueryBoxOverlap] Candidate Entity={entity.UniqueId} " +
-                        $"LogicPos=({(float)candidatePosLogic.x:F2},{(float)candidatePosLogic.y:F2},{(float)candidatePosLogic.z:F2}) " +
-                        $"BepuPos=({(float)candidatePos.x:F2},{(float)candidatePos.y:F2},{(float)candidatePos.z:F2}) " +
-                        $"AABB=({(float)candidateAABB.Min.X:F2},{(float)candidateAABB.Min.Y:F2},{(float)candidateAABB.Min.Z:F2})-({(float)candidateAABB.Max.X:F2},{(float)candidateAABB.Max.Y:F2},{(float)candidateAABB.Max.Z:F2})");
                     
                     // 【关键修复】进行窄相精确检测（而不是仅仅依赖AABB重叠）
                     // 支持Box和Capsule形状的精确检测
@@ -280,22 +251,11 @@ namespace Astrum.LogicCore.Physics
                     if (isColliding)
                     {
                         // 精确检测通过，添加到结果
-                        ASLogger.Instance.Info($"[QueryBoxOverlap] NarrowPhase Hit: Entity={entity.UniqueId} " +
-                            $"Pos=({(float)candidatePos.x:F2},{(float)candidatePos.y:F2},{(float)candidatePos.z:F2})");
                         results.Add(entity);
                     }
-                    else if (bepuEntity is Box || bepuEntity is BEPUphysics.Entities.Prefabs.Capsule || bepuEntity.CollisionInformation?.Shape is BEPUphysics.CollisionShapes.ConvexShapes.ConvexShape)
-                    {
-                        ASLogger.Instance.Debug($"[QueryBoxOverlap] NarrowPhase Miss: Entity={entity.UniqueId} (AABB overlap but no collision)");
-                    }
-                }
-                else
-                {
-                    ASLogger.Instance.Debug($"[QueryBoxOverlap] Candidate is not EntityCollidable or Entity is null");
                 }
             }
 
-            ASLogger.Instance.Info($"[QueryBoxOverlap] Returning {results.Count} results");
             return results;
         }
 

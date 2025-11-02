@@ -121,39 +121,12 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            // 调试：打印攻击盒世界位置
-            var trans = caster.GetComponent<TransComponent>();
-            var worldTf = shape.ToWorldTransform(trans?.Position ?? TrueSync.TSVector.zero, trans?.Rotation ?? TrueSync.TSQuaternion.identity);
-            ASLogger.Instance.Info($"[AI AttackBox] Caster={caster.UniqueId} Center=({(float)worldTf.WorldCenter.x:F2},{(float)worldTf.WorldCenter.y:F2},{(float)worldTf.WorldCenter.z:F2}) Frame={caster.World?.CurFrame ?? 0}");
-
             var hits = hitSystem.QueryHits(
                 caster, 
                 shape, 
                 filter
                 //skillInstanceId: skillAction.Id
             );
-            
-            ASLogger.Instance.Debug($"Collision trigger hit {hits.Count} targets");
-            
-            // 调试：打印命中实体位置
-            if (hits != null && hits.Count > 0)
-            {
-                foreach (var target in hits)
-                {
-                    var tpos = target.GetComponent<TransComponent>()?.Position ?? TrueSync.TSVector.zero;
-                    ASLogger.Instance.Info($"[AI AttackHit] Target={target.UniqueId} Pos=({(float)tpos.x:F2},{(float)tpos.y:F2},{(float)tpos.z:F2})");
-                }
-            }
-
-            // 调试：打印物理世界所有注册实体的位置
-            var allBodies = hitSystem.PhysicsWorld?.GetEntityPositions();
-            if (allBodies != null)
-            {
-                foreach (var (id, pos) in allBodies)
-                {
-                    ASLogger.Instance.Info($"[PhysicsBodies] Id={id} Pos=({(float)pos.x:F2},{(float)pos.y:F2},{(float)pos.z:F2})");
-                }
-            }
 
             // 4. 对每个命中目标触发效果
             foreach (var target in hits)

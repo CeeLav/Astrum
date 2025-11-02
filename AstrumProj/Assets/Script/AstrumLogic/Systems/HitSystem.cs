@@ -138,13 +138,6 @@ namespace Astrum.LogicCore.Physics
 
             // 【统一坐标转换】使用 CollisionShape.ToWorldTransform
             var worldTransform = shape.ToWorldTransform(casterPos, casterRot);
-            
-            // 调试日志
-            ASLogger.Instance.Info($"[HitManager.QueryHits] Caster={caster.UniqueId} " +
-                $"Pos=({casterPos.x:F2},{casterPos.y:F2},{casterPos.z:F2}) " +
-                $"Rot=({casterRot.x:F2},{casterRot.y:F2},{casterRot.z:F2},{casterRot.w:F2}) " +
-                $"LocalOffset=({shape.LocalOffset.x:F2},{shape.LocalOffset.y:F2},{shape.LocalOffset.z:F2}) " +
-                $"→ WorldCenter=({worldTransform.WorldCenter.x:F2},{worldTransform.WorldCenter.y:F2},{worldTransform.WorldCenter.z:F2})");
 
             // 根据形状类型进行查询
             List<AstrumEntity> candidates = null;
@@ -178,18 +171,10 @@ namespace Astrum.LogicCore.Physics
                 return new List<AstrumEntity>();
             }
 
-            // 调试：打印候选者信息（过滤前）
-            ASLogger.Instance.Info($"[HitSystem.QueryHits] Found {candidates.Count} candidates before filtering");
-            foreach (var cand in candidates)
-            {
-                ASLogger.Instance.Debug($"[HitSystem.QueryHits] Candidate: Entity={cand.UniqueId}, IsSelf={cand.UniqueId == caster.UniqueId}");
-            }
-
             // 应用过滤
             var filteredHits = ApplyFilter(caster, candidates, filter);
 
-            // 调试：打印过滤后结果
-            ASLogger.Instance.Info($"[HitSystem.QueryHits] After filtering: {filteredHits.Count} hits");
+            // 警告：如果所有候选者都被过滤掉
             if (filteredHits.Count == 0 && candidates.Count > 0)
             {
                 ASLogger.Instance.Warning($"[HitSystem.QueryHits] All candidates were filtered out! Caster={caster.UniqueId}, ExcludedIds={string.Join(",", filter?.ExcludedEntityIds ?? new HashSet<long>())}");
@@ -198,12 +183,7 @@ namespace Astrum.LogicCore.Physics
             // 应用去重
             if (skillInstanceId > 0)
             {
-                var beforeDedup = filteredHits.Count;
                 filteredHits = ApplyDeduplication(skillInstanceId, filteredHits);
-                if (filteredHits.Count < beforeDedup)
-                {
-                    ASLogger.Instance.Debug($"[HitSystem.QueryHits] Deduplication removed {beforeDedup - filteredHits.Count} duplicates");
-                }
             }
 
             return filteredHits;
