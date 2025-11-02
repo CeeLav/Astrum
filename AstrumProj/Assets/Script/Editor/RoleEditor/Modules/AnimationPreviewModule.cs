@@ -27,6 +27,10 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 碰撞盒显示 ===
         private string _currentFrameCollisionInfo = null; // 当前帧的碰撞盒信息
         
+        // === 网格显示 ===
+        private bool _showGrid = true;                  // 是否显示网格
+        private Material _gridMaterial;                 // 网格绘制材质
+        
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
         // === 实体管理 ===
@@ -213,7 +217,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         }
         
         /// <summary>
-        /// 渲染预览场景（包含碰撞盒）
+        /// 渲染预览场景（包含碰撞盒和网格）
         /// </summary>
         private void RenderPreviewWithCollision(Rect rect)
         {
@@ -233,6 +237,12 @@ namespace Astrum.Editor.RoleEditor.Modules
             _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
             _previewRenderUtility.camera.Render();
             
+            // 在相机渲染后，绘制网格（在角色脚底下）
+            if (_showGrid)
+            {
+                DrawGrid(_previewRenderUtility.camera);
+            }
+            
             // 在相机渲染后，绘制碰撞盒（模型在原点，相对偏移直接绘制）
             if (!string.IsNullOrEmpty(_currentFrameCollisionInfo))
             {
@@ -244,6 +254,84 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             Texture texture = _previewRenderUtility.EndPreview();
             GUI.DrawTexture(rect, texture);
+        }
+        
+        // === 网格绘制 ===
+        
+        /// <summary>
+        /// 获取网格绘制材质
+        /// </summary>
+        private Material GetGridMaterial()
+        {
+            if (_gridMaterial == null)
+            {
+                Shader shader = Shader.Find("Hidden/Internal-Colored");
+                _gridMaterial = new Material(shader);
+                _gridMaterial.hideFlags = HideFlags.HideAndDontSave;
+                _gridMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                _gridMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                _gridMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+                _gridMaterial.SetInt("_ZWrite", 0);
+                _gridMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.LessEqual);
+            }
+            return _gridMaterial;
+        }
+        
+        /// <summary>
+        /// 绘制地面网格（在 Y=0 平面上）
+        /// </summary>
+        private void DrawGrid(Camera camera)
+        {
+            if (camera == null) return;
+            
+            const float gridSize = 10f;        // 网格大小（10x10单位）
+            Color gridColor = new Color(0.5f, 0.5f, 0.5f, 0.6f);  // 半透明灰色
+            Color axisColorX = new Color(1f, 0.3f, 0.3f, 0.8f);   // X轴红色
+            Color axisColorZ = new Color(0.3f, 0.3f, 1f, 0.8f);   // Z轴蓝色
+            
+            Material mat = GetGridMaterial();
+            if (mat == null) return;
+            
+            mat.SetPass(0);
+            
+            GL.PushMatrix();
+            GL.LoadProjectionMatrix(camera.projectionMatrix);
+            GL.LoadIdentity();
+            GL.MultMatrix(camera.worldToCameraMatrix);
+            
+            GL.Begin(GL.LINES);
+            
+            // 绘制网格线
+            int halfGridSize = Mathf.RoundToInt(gridSize * 0.5f);
+            
+            // X方向网格线（平行于X轴，沿着Z轴分布）
+            for (int z = -halfGridSize; z <= halfGridSize; z++)
+            {
+                bool isAxisLine = (z == 0);
+                GL.Color(isAxisLine ? axisColorZ : gridColor);
+                
+                Vector3 start = new Vector3(-halfGridSize, 0, z);
+                Vector3 end = new Vector3(halfGridSize, 0, z);
+                
+                GL.Vertex(start);
+                GL.Vertex(end);
+            }
+            
+            // Z方向网格线（平行于Z轴，沿着X轴分布）
+            for (int x = -halfGridSize; x <= halfGridSize; x++)
+            {
+                bool isAxisLine = (x == 0);
+                GL.Color(isAxisLine ? axisColorX : gridColor);
+                
+                Vector3 start = new Vector3(x, 0, -halfGridSize);
+                Vector3 end = new Vector3(x, 0, halfGridSize);
+                
+                GL.Vertex(start);
+                GL.Vertex(end);
+            }
+            
+            GL.End();
+            GL.PopMatrix();
         }
         
         // === 更新动画（重写以支持逐帧）===
@@ -282,6 +370,20 @@ namespace Astrum.Editor.RoleEditor.Modules
                 // 手动更新Animancer（不传入deltaTime，因为我们直接设置了Time）
                 AnimationHelper.EvaluateAnimancer(_animancer, 0);
             }
+        }
+        
+        // === 清理资源 ===
+        
+        public override void Cleanup()
+        {
+            // 清理网格材质
+            if (_gridMaterial != null)
+            {
+                Object.DestroyImmediate(_gridMaterial);
+                _gridMaterial = null;
+            }
+            
+            base.Cleanup();
         }
     }
 }
