@@ -435,52 +435,88 @@ namespace Astrum.Editor.UIGenerator.Windows
         
         private void DrawUIFileItem(UIFileInfo file)
         {
-            EditorGUILayout.BeginHorizontal();
-            
             if (file.IsFolder)
             {
-                // 文件夹
-                bool isExpanded = folderExpandedStates.GetValueOrDefault(file.Path, false);
-                bool newExpanded = EditorGUILayout.Foldout(isExpanded, file.Name, true);
-                if (newExpanded != isExpanded)
-                {
-                    folderExpandedStates[file.Path] = newExpanded;
-                }
-                
-                if (newExpanded)
-                {
-                    EditorGUI.indentLevel++;
-                    DrawUIFiles(file.Children);
-                    EditorGUI.indentLevel--;
-                }
+                // 文件夹 - 使用更友好的布局
+                DrawFolderItem(file);
             }
             else
             {
-                // 文件
+                // 文件 - 使用更友好的布局
+                DrawFileItem(file);
+            }
+        }
+        
+        /// <summary>
+        /// 绘制文件夹项（整个区域可点击）
+        /// </summary>
+        private void DrawFolderItem(UIFileInfo file)
+        {
+            bool isExpanded = folderExpandedStates.GetValueOrDefault(file.Path, false);
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // Toggle checkbox（只显示，不可点击）
+            EditorGUILayout.Toggle(isExpanded, GUILayout.Width(20));
+            
+            // 文件夹图标和名称 - 整个Label可以点击
+            GUIContent content = new GUIContent(file.Name, GetFileIcon(file));
+            Rect labelRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
+            
+            // 绘制文本
+            EditorGUI.LabelField(labelRect, content);
+            
+            // 检测点击事件
+            if (Event.current.type == EventType.MouseDown && labelRect.Contains(Event.current.mousePosition))
+            {
+                folderExpandedStates[file.Path] = !isExpanded;
+                Event.current.Use();
+            }
+            
+            EditorGUILayout.EndHorizontal();
+            
+            // 绘制子项
+            bool newExpanded = folderExpandedStates.GetValueOrDefault(file.Path, false);
+            if (newExpanded)
+            {
                 EditorGUI.indentLevel++;
-                
-                // 选择状态
-                bool isSelected = selectedUIFile == file;
-                bool newSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
-                
-                if (newSelected != isSelected)
-                {
-                    selectedUIFile = newSelected ? file : null;
-                    if (newSelected)
-                    {
-                        LoadUIFile(file);
-                    }
-                }
-                
-                // 文件图标和名称
-                GUIContent content = new GUIContent(file.Name, GetFileIcon(file));
-                EditorGUILayout.LabelField(content);
-                
-                // 状态指示器
-                DrawStatusIndicator(file);
-                
+                DrawUIFiles(file.Children);
                 EditorGUI.indentLevel--;
             }
+        }
+        
+        /// <summary>
+        /// 绘制文件项（整个区域可点击）
+        /// </summary>
+        private void DrawFileItem(UIFileInfo file)
+        {
+            bool isSelected = selectedUIFile == file;
+            
+            EditorGUILayout.BeginHorizontal();
+            
+            // Toggle checkbox（只显示，不可点击）
+            EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
+            
+            // 文件图标和名称 - 整个Label可以点击
+            GUIContent content = new GUIContent(file.Name, GetFileIcon(file));
+            Rect labelRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
+            
+            // 绘制文本
+            EditorGUI.LabelField(labelRect, content);
+            
+            // 检测点击事件
+            if (Event.current.type == EventType.MouseDown && labelRect.Contains(Event.current.mousePosition))
+            {
+                if (!isSelected)
+                {
+                    selectedUIFile = file;
+                    LoadUIFile(file);
+                }
+                Event.current.Use();
+            }
+            
+            // 状态指示器
+            DrawStatusIndicator(file);
             
             EditorGUILayout.EndHorizontal();
         }
@@ -1723,3 +1759,4 @@ namespace Astrum.Editor.UIGenerator.Windows
         }
     }
 }
+
