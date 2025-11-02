@@ -1,7 +1,7 @@
 ##var,lootId,sourceType,sourceId,itemId,dropRate,amountMin,amountMax,weightGroup
 ##type,int,int,int,int,int,int,int,string
 ##group,,,,,,,,
-##desc,æ‰è½ID,æ¥æºç±»å‹,æ¥æºID,ç‰©å“ID,æ‰è½å‡ ç‡*1000,æœ€å°æ•°é‡,æœ€å¤§æ•°é‡,æƒé‡ç»„
+##desc,µôÂäID,À´Ô´ÀàĞÍ,À´Ô´ID,ÎïÆ·ID,µôÂä¼¸ÂÊ*1000,×îĞ¡ÊıÁ¿,×î´óÊıÁ¿,È¨ÖØ×é
 ,30001,1,5001,1002,800,1,1,common_loot
 ,30002,1,5001,6001,950,1,3,common_loot
 ,30003,1,5002,1001,120,1,1,mid_tier_loot
