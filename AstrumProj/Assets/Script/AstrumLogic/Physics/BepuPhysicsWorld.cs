@@ -121,13 +121,32 @@ namespace Astrum.LogicCore.Physics
             if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var bepuEntity))
                 return;
 
-            var position = entity.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
+            var transComp = entity.GetComponent<TransComponent>();
+            if (transComp == null)
+                return;
+
+            var position = transComp.Position;
+            var rotation = transComp.Rotation;
             var bepuPos = position.ToBepuVector();
+            var bepuRot = rotation.ToBepuQuaternion();
             
+            // 【关键修复】手动更新位置时，必须同时更新碰撞信息的世界变换
+            // 否则AABB和查询会使用旧的位置，导致在原点附近才能命中
             bepuEntity.Position = bepuPos;
+            bepuEntity.Orientation = bepuRot;
             
-            // 调试：记录位置更新
-            ASLogger.Instance.Debug($"[BepuPhysicsWorld] 更新实体位置: Entity={entity.UniqueId}, LogicPos=({(float)position.x:F2},{(float)position.y:F2},{(float)position.z:F2}), BepuPos=({(float)bepuPos.X:F2},{(float)bepuPos.Y:F2},{(float)bepuPos.Z:F2})");
+            // 更新碰撞信息的世界变换（这对于BroadPhase查询至关重要）
+            bepuEntity.CollisionInformation.UpdateWorldTransform(ref bepuPos, ref bepuRot);
+            
+            // 更新AABB包围盒（BroadPhase使用AABB进行快速筛选）
+            bepuEntity.CollisionInformation.UpdateBoundingBox(0); // dt=0，因为我们不关心速度扩展
+            
+            // 注意：IsActive是只读属性，不能手动设置
+            // BroadPhase会在查询时自动使用更新后的AABB（通过UpdateBoundingBox）
+            
+            // 调试：记录位置更新和AABB
+            var aabb = bepuEntity.CollisionInformation.BoundingBox;
+            ASLogger.Instance.Debug($"[BepuPhysicsWorld] 更新实体位置: Entity={entity.UniqueId}, LogicPos=({(float)position.x:F2},{(float)position.y:F2},{(float)position.z:F2}), BepuPos=({(float)bepuPos.X:F2},{(float)bepuPos.Y:F2},{(float)bepuPos.Z:F2}), AABB=({(float)aabb.Min.X:F2},{(float)aabb.Min.Y:F2},{(float)aabb.Min.Z:F2})-({(float)aabb.Max.X:F2},{(float)aabb.Max.Y:F2},{(float)aabb.Max.Z:F2})");
         }
 
         /// <summary>
@@ -170,8 +189,12 @@ namespace Astrum.LogicCore.Physics
             queryBox.CollisionInformation.UpdateBoundingBox();
             boundingBox = queryBox.CollisionInformation.BoundingBox;
 
+            // 【关键修复】在查询前更新BroadPhase，确保使用最新的AABB
+            // 因为我们的物理世界可能不会自动调用Space.Update()，所以需要手动刷新
+            _space.BroadPhase.Update();
+            
             // 调试：打印查询参数
-            ASLogger.Instance.Info($"[QueryBoxOverlap] Center=({(float)center.x:F2},{(float)center.y:F2},{(float)center.z:F2}) " +
+            ASLogger.Instance.Info($"[QueryBoxOverlap] AttackBox Center=({(float)center.x:F2},{(float)center.y:F2},{(float)center.z:F2}) " +
                 $"HalfSize=({(float)halfSize.x:F2},{(float)halfSize.y:F2},{(float)halfSize.z:F2}) " +
                 $"AABB=({(float)boundingBox.Min.X:F2},{(float)boundingBox.Min.Y:F2},{(float)boundingBox.Min.Z:F2})-" +
                 $"({(float)boundingBox.Max.X:F2},{(float)boundingBox.Max.Y:F2},{(float)boundingBox.Max.Z:F2})");
@@ -181,6 +204,16 @@ namespace Astrum.LogicCore.Physics
             _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, candidates);
 
             ASLogger.Instance.Info($"[QueryBoxOverlap] Found {candidates.Count} candidates in AABB");
+            
+            // 调试：打印所有注册实体的AABB位置（用于对比）
+            foreach (var kv in _entityBodies)
+            {
+                var bepuEnt = kv.Value;
+                var aabb = bepuEnt.CollisionInformation.BoundingBox;
+                ASLogger.Instance.Info($"[QueryBoxOverlap] Registered Entity={kv.Key} " +
+                    $"BepuPos=({(float)bepuEnt.Position.X:F2},{(float)bepuEnt.Position.Y:F2},{(float)bepuEnt.Position.Z:F2}) " +
+                    $"AABB=({(float)aabb.Min.X:F2},{(float)aabb.Min.Y:F2},{(float)aabb.Min.Z:F2})-({(float)aabb.Max.X:F2},{(float)aabb.Max.Y:F2},{(float)aabb.Max.Z:F2})");
+            }
 
             // 遍历候选者，进行窄相检测
             foreach (var candidate in candidates)
@@ -197,8 +230,14 @@ namespace Astrum.LogicCore.Physics
                         continue;
                     }
                     
-                    // 调试：打印候选实体位置
+                    // 调试：打印候选实体位置（对比逻辑层和物理世界）
                     var candidatePos = bepuEntity.Position.ToTSVector();
+                    var candidatePosLogic = entity.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
+                    var candidateAABB = bepuEntity.CollisionInformation.BoundingBox;
+                    ASLogger.Instance.Info($"[QueryBoxOverlap] Candidate Entity={entity.UniqueId} " +
+                        $"LogicPos=({(float)candidatePosLogic.x:F2},{(float)candidatePosLogic.y:F2},{(float)candidatePosLogic.z:F2}) " +
+                        $"BepuPos=({(float)candidatePos.x:F2},{(float)candidatePos.y:F2},{(float)candidatePos.z:F2}) " +
+                        $"AABB=({(float)candidateAABB.Min.X:F2},{(float)candidateAABB.Min.Y:F2},{(float)candidateAABB.Min.Z:F2})-({(float)candidateAABB.Max.X:F2},{(float)candidateAABB.Max.Y:F2},{(float)candidateAABB.Max.Z:F2})");
                     
                     // 【关键修复】进行窄相精确检测（而不是仅仅依赖AABB重叠）
                     // 支持Box和Capsule形状的精确检测
