@@ -45,6 +45,15 @@ namespace Astrum.Editor.RoleEditor.Services
             anim.AddClip(clip, "RootMotionSample");
             anim.clip = clip;
             
+            // 获取动画状态，确保它存在
+            AnimationState animState = anim["RootMotionSample"];
+            if (animState == null)
+            {
+                Debug.LogWarning($"[AnimationRootMotionExtractor] Failed to get animation state for clip {clip.name}");
+                Object.DestroyImmediate(tempGO);
+                return new List<int>();
+            }
+            
             // 格式: [frameCount, dx0, dy0, dz0, rx0, ry0, rz0, rw0, dx1, dy1, dz1, rx1, ry1, rz1, rw1, ...]
             var result = new List<int> { totalFrames };
             
@@ -52,13 +61,21 @@ namespace Astrum.Editor.RoleEditor.Services
             
             bool hasMotion = false; // 用于标记是否检测到任何位移
             
+            // 保存初始位置和旋转（用于计算相对位移）
+            animState.time = 0f;
+            animState.enabled = true;
+            anim.Sample();
+            Vector3 startPosition = tempGO.transform.localPosition;
+            Quaternion startRotation = tempGO.transform.localRotation;
+            
             // 逐帧采样
             for (int frame = 0; frame < totalFrames; frame++)
             {
-                float time = frame * FRAME_TIME;
+                float time = Mathf.Clamp(frame * FRAME_TIME, 0f, clip.length);
                 
                 // 采样动画到指定时间
-                anim["RootMotionSample"].time = time;
+                animState.time = time;
+                animState.enabled = true;
                 anim.Sample();
                 
                 Vector3 currentPosition = tempGO.transform.localPosition;
@@ -70,8 +87,9 @@ namespace Astrum.Editor.RoleEditor.Services
                 
                 if (frame > 0)
                 {
-                    float prevTime = (frame - 1) * FRAME_TIME;
-                    anim["RootMotionSample"].time = prevTime;
+                    float prevTime = Mathf.Clamp((frame - 1) * FRAME_TIME, 0f, clip.length);
+                    animState.time = prevTime;
+                    animState.enabled = true;
                     anim.Sample();
                     
                     Vector3 prevPosition = tempGO.transform.localPosition;

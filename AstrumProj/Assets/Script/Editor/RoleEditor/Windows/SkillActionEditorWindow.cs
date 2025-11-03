@@ -785,9 +785,16 @@ namespace Astrum.Editor.RoleEditor.Windows
                 return;
             }
             
+            float offsetInfoHeight = 60f;
             float controlHeight = 80f;
-            Rect previewRect = new Rect(rect.x, rect.y, rect.width, rect.height - controlHeight);
+            float previewHeight = rect.height - offsetInfoHeight - controlHeight;
+            
+            Rect offsetInfoRect = new Rect(rect.x, rect.y, rect.width, offsetInfoHeight);
+            Rect previewRect = new Rect(rect.x, rect.y + offsetInfoHeight, rect.width, previewHeight);
             Rect controlRect = new Rect(rect.x, rect.y + rect.height - controlHeight, rect.width, controlHeight);
+            
+            // 绘制当前动作偏移信息
+            DrawCurrentFrameOffset(offsetInfoRect);
             
             if (_previewModule != null)
             {
@@ -810,6 +817,77 @@ namespace Astrum.Editor.RoleEditor.Windows
             }
             
             DrawAnimationControl(controlRect);
+        }
+        
+        /// <summary>
+        /// 绘制当前帧的位移偏移信息
+        /// </summary>
+        private void DrawCurrentFrameOffset(Rect rect)
+        {
+            GUILayout.BeginArea(rect);
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("当前动作偏移", EditorStyles.boldLabel);
+                
+                if (_selectedSkillAction == null || 
+                    _selectedSkillAction.RootMotionDataArray == null || 
+                    _selectedSkillAction.RootMotionDataArray.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("暂无位移数据", MessageType.Info);
+                }
+                else
+                {
+                    int currentFrame = _previewModule != null ? _previewModule.GetCurrentFrame() : 0;
+                    int frameCount = _selectedSkillAction.RootMotionDataArray[0];
+                    
+                    if (currentFrame >= 0 && currentFrame < frameCount)
+                    {
+                        // 获取当前帧的位移数据
+                        int baseIndex = 1 + currentFrame * 7;
+                        if (baseIndex + 6 < _selectedSkillAction.RootMotionDataArray.Count)
+                        {
+                            int dxInt = _selectedSkillAction.RootMotionDataArray[baseIndex];
+                            int dyInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 1];
+                            int dzInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 2];
+                            int rxInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 3];
+                            int ryInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 4];
+                            int rzInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 5];
+                            int rwInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 6];
+                            
+                            // 转换为浮点数显示（除以1000）
+                            float dx = dxInt / 1000.0f;
+                            float dy = dyInt / 1000.0f;
+                            float dz = dzInt / 1000.0f;
+                            float rx = rxInt / 1000.0f;
+                            float ry = ryInt / 1000.0f;
+                            float rz = rzInt / 1000.0f;
+                            float rw = rwInt / 1000.0f;
+                            
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                EditorGUILayout.LabelField($"帧: {currentFrame}/{frameCount - 1}", GUILayout.Width(100));
+                                
+                                EditorGUILayout.LabelField("位移:", GUILayout.Width(40));
+                                EditorGUILayout.LabelField($"({dx:F3}, {dy:F3}, {dz:F3})", EditorStyles.miniLabel);
+                                
+                                EditorGUILayout.LabelField("旋转:", GUILayout.Width(40));
+                                EditorGUILayout.LabelField($"({rx:F3}, {ry:F3}, {rz:F3}, {rw:F3})", EditorStyles.miniLabel);
+                            }
+                            EditorGUILayout.EndHorizontal();
+                        }
+                        else
+                        {
+                            EditorGUILayout.HelpBox($"数据不完整 (帧 {currentFrame})", MessageType.Warning);
+                        }
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox($"帧索引超出范围 (当前: {currentFrame}, 总数: {frameCount})", MessageType.Warning);
+                    }
+                }
+            }
+            EditorGUILayout.EndVertical();
+            GUILayout.EndArea();
         }
         
         private void DrawAnimationControl(Rect rect)

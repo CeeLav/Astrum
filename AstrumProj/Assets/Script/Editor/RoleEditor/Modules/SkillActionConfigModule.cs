@@ -184,9 +184,103 @@ namespace Astrum.Editor.RoleEditor.Modules
                 }
                 
                 EditorGUILayout.HelpBox("💡 拖拽 AnimationClip 到上方字段自动更新路径", MessageType.None);
+                
+                EditorGUILayout.Space(5);
+                
+                // 提取位移数据按钮
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUI.enabled = _currentSkillAction.AnimationClip != null;
+                    if (GUILayout.Button("提取位移数据", GUILayout.Height(30)))
+                    {
+                        ExtractRootMotionData();
+                    }
+                    GUI.enabled = true;
+                }
+                EditorGUILayout.EndHorizontal();
+                
+                // 显示位移数据信息
+                DrawRootMotionDataInfo();
             }
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space(5);
+        }
+        
+        /// <summary>
+        /// 提取根节点位移数据
+        /// </summary>
+        private void ExtractRootMotionData()
+        {
+            if (_currentSkillAction == null || _currentSkillAction.AnimationClip == null)
+            {
+                EditorUtility.DisplayDialog("错误", "请先选择动画文件", "确定");
+                return;
+            }
+            
+            try
+            {
+                var clip = _currentSkillAction.AnimationClip;
+                _currentSkillAction.RootMotionDataArray = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip);
+                
+                if (_currentSkillAction.RootMotionDataArray != null && _currentSkillAction.RootMotionDataArray.Count > 0)
+                {
+                    int frameCount = _currentSkillAction.RootMotionDataArray[0];
+                    EditorUtility.DisplayDialog("提取成功", 
+                        $"已提取位移数据：\n帧数: {frameCount}\n数据大小: {_currentSkillAction.RootMotionDataArray.Count} 整数", 
+                        "确定");
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("提示", "动画没有根节点位移数据", "确定");
+                    _currentSkillAction.RootMotionDataArray = new List<int>();
+                }
+                
+                _currentSkillAction.MarkDirty();
+                EditorUtility.SetDirty(_currentSkillAction);
+                OnActionModified?.Invoke(_currentSkillAction);
+            }
+            catch (System.Exception ex)
+            {
+                EditorUtility.DisplayDialog("错误", $"提取位移数据失败：\n{ex.Message}", "确定");
+                Debug.LogError($"[SkillActionConfigModule] Failed to extract root motion: {ex}");
+            }
+        }
+        
+        /// <summary>
+        /// 显示根节点位移数据信息
+        /// </summary>
+        private void DrawRootMotionDataInfo()
+        {
+            if (_currentSkillAction == null) return;
+            
+            EditorGUILayout.Space(3);
+            EditorGUILayout.LabelField("位移数据信息", EditorStyles.boldLabel);
+            
+            if (_currentSkillAction.RootMotionDataArray == null || _currentSkillAction.RootMotionDataArray.Count == 0)
+            {
+                EditorGUILayout.HelpBox("暂无位移数据", MessageType.Info);
+                return;
+            }
+            
+            int frameCount = _currentSkillAction.RootMotionDataArray[0];
+            int dataSize = _currentSkillAction.RootMotionDataArray.Count;
+            int expectedSize = 1 + frameCount * 7; // frameCount + (dx,dy,dz,rx,ry,rz,rw) * frameCount
+            
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField($"帧数: {frameCount}", EditorStyles.label);
+                EditorGUILayout.LabelField($"数据大小: {dataSize} 整数", EditorStyles.label);
+                
+                if (dataSize == expectedSize)
+                {
+                    EditorGUILayout.HelpBox("✓ 数据格式正确", MessageType.None);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox($"⚠️ 数据格式异常 (期望: {expectedSize}, 实际: {dataSize})", MessageType.Warning);
+                }
+            }
+            EditorGUILayout.EndVertical();
         }
         
         private void DrawAnimationStatusCheck()
