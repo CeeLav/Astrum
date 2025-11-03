@@ -220,7 +220,100 @@ namespace Astrum.Editor.RoleEditor.Modules
         }
         
         /// <summary>
-        /// 根据帧索引计算累积位移并应用到模型
+        /// 根据浮点时间计算插值后的累积位移并应用到模型
+        /// 使用线性插值在逻辑帧之间平滑过渡
+        /// </summary>
+        private void ApplyInterpolatedDisplacement(float time)
+        {
+            if (_previewInstance == null || _rootMotionDataArray == null || _rootMotionDataArray.Count == 0)
+            {
+                return;
+            }
+            
+            int frameCount = _rootMotionDataArray[0];
+            if (frameCount <= 0)
+            {
+                return;
+            }
+            
+            // 将时间转换为逻辑帧索引（浮点）
+            float frameFloat = time * LOGIC_FRAME_RATE;
+            
+            // 确保在有效范围内（处理循环）
+            frameFloat = frameFloat % frameCount;
+            if (frameFloat < 0)
+            {
+                frameFloat += frameCount;
+            }
+            
+            // 计算当前所在的逻辑帧索引和下帧索引
+            int frameIndex0 = Mathf.FloorToInt(frameFloat);
+            int frameIndex1 = (frameIndex0 + 1) % frameCount;
+            
+            // 计算插值因子 [0, 1)
+            float t = frameFloat - frameIndex0;
+            
+            const float SCALE = 1000f; // 与提取时使用的缩放因子相同
+            
+            // 计算累积位移的辅助函数
+            Vector3 GetAccumulatedPosition(int endFrame)
+            {
+                Vector3 pos = Vector3.zero;
+                for (int f = 1; f <= endFrame && f < frameCount; f++)
+                {
+                    int baseIndex = 1 + f * 7;
+                    if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                    {
+                        break;
+                    }
+                    float dx = _rootMotionDataArray[baseIndex] / SCALE;
+                    float dy = _rootMotionDataArray[baseIndex + 1] / SCALE;
+                    float dz = _rootMotionDataArray[baseIndex + 2] / SCALE;
+                    pos += new Vector3(dx, dy, dz);
+                }
+                return pos;
+            }
+            
+            Quaternion GetAccumulatedRotation(int endFrame)
+            {
+                Quaternion rot = Quaternion.identity;
+                for (int f = 1; f <= endFrame && f < frameCount; f++)
+                {
+                    int baseIndex = 1 + f * 7;
+                    if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                    {
+                        break;
+                    }
+                    float rx = _rootMotionDataArray[baseIndex + 3] / SCALE;
+                    float ry = _rootMotionDataArray[baseIndex + 4] / SCALE;
+                    float rz = _rootMotionDataArray[baseIndex + 5] / SCALE;
+                    float rw = _rootMotionDataArray[baseIndex + 6] / SCALE;
+                    Quaternion deltaRot = new Quaternion(rx, ry, rz, rw);
+                    rot = rot * deltaRot;
+                }
+                return rot;
+            }
+            
+            // 计算两个逻辑帧的累积位移
+            Vector3 accumulatedPos0 = GetAccumulatedPosition(frameIndex0);
+            Quaternion accumulatedRot0 = GetAccumulatedRotation(frameIndex0);
+            
+            Vector3 accumulatedPos1 = GetAccumulatedPosition(frameIndex1);
+            Quaternion accumulatedRot1 = GetAccumulatedRotation(frameIndex1);
+            
+            // 在两个逻辑帧之间进行线性插值
+            Vector3 interpolatedPosition = Vector3.Lerp(accumulatedPos0, accumulatedPos1, t);
+            Quaternion interpolatedRotation = Quaternion.Lerp(accumulatedRot0, accumulatedRot1, t);
+            
+            // 应用到模型位置（初始位置 + 插值后的累积位移）
+            _previewInstance.transform.position = _initialPosition + interpolatedPosition;
+            
+            // 应用插值后的旋转
+            _previewInstance.transform.rotation = interpolatedRotation;
+        }
+        
+        /// <summary>
+        /// 根据帧索引计算累积位移并应用到模型（用于SetFrame，不使用插值）
         /// </summary>
         private void ApplyAccumulatedDisplacement(int frame)
         {
@@ -425,47 +518,39 @@ namespace Astrum.Editor.RoleEditor.Modules
             GL.PopMatrix();
         }
         
-        // === 更新动画（重写以支持逐帧）===
+        // === 更新动画（重写以支持平滑渲染帧更新）===
         
         protected override void UpdateAnimation()
         {
-            if (_isPlaying && _currentAnimState != null && _animancer != null)
+            if (_isPlaying && _currentAnimState != null && _animancer != null && _currentClip != null)
             {
                 double currentTime = UnityEditor.EditorApplication.timeSinceStartup;
                 float deltaTime = (float)(currentTime - _lastUpdateTime);
                 _lastUpdateTime = currentTime;
                 
-                // 累积时间
-                _accumulatedTime += deltaTime;
+                // 平滑播放：按照渲染帧更新（使用deltaTime）
+                float newTime = _currentAnimState.Time + deltaTime * _animationSpeed;
                 
-                // 按照逻辑帧率（20fps）逐帧更新
-                while (_accumulatedTime >= FRAME_TIME)
+                // 循环播放
+                if (newTime >= _currentClip.length)
                 {
-                    _accumulatedTime -= FRAME_TIME;
-                    
-                    // 前进一帧
-                    _currentFrame++;
-                    
-                    // 检查是否到达结尾
-                    int totalFrames = GetTotalFrames();
-                    if (_currentFrame >= totalFrames)
-                    {
-                        // 循环播放
-                        _currentFrame = 0;
-                    }
-                    
-                    // 设置动画时间
-                    _currentAnimState.Time = _currentFrame * FRAME_TIME;
-                    
-                    // 根据位移数据手动累加位移（RootMotion关闭时需要手动应用）
-                    ApplyAccumulatedDisplacement(_currentFrame);
+                    newTime = newTime % _currentClip.length;
+                }
+                else if (newTime < 0)
+                {
+                    newTime = _currentClip.length + newTime;
                 }
                 
-                // 手动更新Animancer（不传入deltaTime，因为我们直接设置了Time）
-                AnimationHelper.EvaluateAnimancer(_animancer, 0);
+                _currentAnimState.Time = newTime;
                 
-                // 确保当前帧的位移也被应用（在非逐帧更新时）
-                ApplyAccumulatedDisplacement(_currentFrame);
+                // 更新当前逻辑帧（用于显示）
+                _currentFrame = Mathf.RoundToInt(newTime * LOGIC_FRAME_RATE);
+                
+                // 手动更新Animancer（使用实际的deltaTime进行平滑更新）
+                AnimationHelper.EvaluateAnimancer(_animancer, deltaTime * _animationSpeed);
+                
+                // 根据位移数据应用插值后的位移（RootMotion关闭时需要手动应用）
+                ApplyInterpolatedDisplacement(newTime);
             }
         }
         
