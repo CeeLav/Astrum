@@ -43,12 +43,66 @@ namespace Astrum.Editor.RoleEditor.Data
         // === 根节点位移数据 ===
         
         /// <summary>
+        /// 位移提取模式
+        /// </summary>
+        public enum RootMotionExtractMode
+        {
+            RootTransform,      // 模式1：提取根骨骼位移
+            HipsDifference     // 模式2：使用参考动画计算Hips差值
+        }
+        
+        [TitleGroup("动画位移")]
+        [LabelText("提取模式")]
+        [InfoBox("RootTransform: 提取根骨骼位移\nHipsDifference: 使用参考动画计算Hips位移差值", InfoMessageType.Info)]
+        [ValueDropdown("GetExtractModeOptions")]
+        public RootMotionExtractMode ExtractMode = RootMotionExtractMode.RootTransform;
+        
+        /// <summary>
+        /// 参考动画文件路径（模式2使用，带位移的动画）
+        /// </summary>
+        [TitleGroup("动画位移")]
+        [LabelText("参考动画路径")]
+        [ShowIf("@ExtractMode == RootMotionExtractMode.HipsDifference")]
+        [InfoBox("带位移的动画文件路径（用于与基础动画计算差值）", InfoMessageType.Info)]
+        public string ReferenceAnimationPath = "";
+        
+        /// <summary>
+        /// 参考动画片段（模式2使用）
+        /// </summary>
+        [TitleGroup("动画位移")]
+        [LabelText("参考动画文件")]
+        [ShowIf("@ExtractMode == RootMotionExtractMode.HipsDifference")]
+        [InfoBox("带位移的动画文件（与基础动画做差值）", InfoMessageType.Info)]
+        public AnimationClip ReferenceAnimationClip;
+        
+        /// <summary>
+        /// Hips骨骼名称（模式2使用）
+        /// </summary>
+        [TitleGroup("动画位移")]
+        [LabelText("Hips骨骼名称")]
+        [ShowIf("@ExtractMode == RootMotionExtractMode.HipsDifference")]
+        [InfoBox("角色模型中Hips骨骼的名称，默认为'Hips'", InfoMessageType.Info)]
+        public string HipsBoneName = "Hips";
+        
+        /// <summary>
         /// 根节点位移数据（整型数组格式，用于保存到CSV）
         /// Luban 类型：array,int#sep=,
         /// 编辑器端直接使用运行时数据结构，提取时直接转为定点数并序列化
         /// </summary>
         [HideInInspector]
         public List<int> RootMotionDataArray = new List<int>();
+        
+        /// <summary>
+        /// 获取提取模式选项（用于下拉菜单）
+        /// </summary>
+        private static ValueDropdownList<RootMotionExtractMode> GetExtractModeOptions()
+        {
+            return new ValueDropdownList<RootMotionExtractMode>
+            {
+                { "根骨骼位移 (RootTransform)", RootMotionExtractMode.RootTransform },
+                { "Hips差值 (HipsDifference)", RootMotionExtractMode.HipsDifference }
+            };
+        }
         
         // === 核心方法 ===
         
@@ -122,6 +176,13 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.ActualCost = this.ActualCost;
             clone.ActualCooldown = this.ActualCooldown;
             clone.TriggerFrames = this.TriggerFrames;
+            
+            // 根节点位移数据
+            clone.ExtractMode = this.ExtractMode;
+            clone.ReferenceAnimationPath = this.ReferenceAnimationPath;
+            clone.ReferenceAnimationClip = this.ReferenceAnimationClip;
+            clone.HipsBoneName = this.HipsBoneName;
+            clone.RootMotionDataArray = new List<int>(this.RootMotionDataArray);
             
             // 深拷贝触发帧数据
             clone.TriggerEffects = new List<TriggerFrameData>();

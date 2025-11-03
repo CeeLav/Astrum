@@ -30,6 +30,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         public event Action<ActionEditorData> OnActionModified;
         public event Action OnJumpToTimeline;
         
+        // === 预览模块引用 ===
+        private AnimationPreviewModule _previewModule;
+        
         // === 核心方法 ===
         
         /// <summary>
@@ -94,6 +97,14 @@ namespace Astrum.Editor.RoleEditor.Modules
         }
         
         /// <summary>
+        /// 设置预览模块引用
+        /// </summary>
+        public void SetPreviewModule(AnimationPreviewModule previewModule)
+        {
+            _previewModule = previewModule;
+        }
+        
+        /// <summary>
         /// 清理资源
         /// </summary>
         public void Cleanup()
@@ -111,12 +122,28 @@ namespace Astrum.Editor.RoleEditor.Modules
             _propertyTree.UpdateTree();
             _propertyTree.BeginDraw(true);
             
+            // 需要在DrawAnimationSection中手动绘制的字段（排除它们，避免重复绘制）
+            var excludedAnimationMotionFields = new HashSet<string>
+            {
+                "ReferenceAnimationPath",
+                "ReferenceAnimationClip",
+                "HipsBoneName",
+                "RootMotionDataArray"
+            };
+            
             foreach (var property in _propertyTree.EnumerateTree(false))
             {
-                // 只绘制带 TitleGroup 的属性
+                // 绘制带 TitleGroup 的属性
                 if (property.Info.GetAttribute<TitleGroupAttribute>() != null || 
                     property.Parent?.Info.GetAttribute<TitleGroupAttribute>() != null)
                 {
+                    // 排除在DrawAnimationSection中手动绘制的"动画位移"相关字段（除了ExtractMode）
+                    if (excludedAnimationMotionFields.Contains(property.Name))
+                    {
+                        continue; // 跳过，这些字段在DrawAnimationSection中手动处理
+                    }
+                    
+                    // 其他字段正常绘制（包括ExtractMode，它在Odin中显示以便选择模式）
                     property.Draw();
                 }
             }
@@ -139,7 +166,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginVertical("box");
             {
-                EditorGUILayout.LabelField("动画路径", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("基础动画", EditorStyles.boldLabel);
                 EditorGUI.BeginChangeCheck();
                 string newPath = EditorGUILayout.TextField(_currentSkillAction.AnimationPath);
                 if (EditorGUI.EndChangeCheck())
@@ -184,13 +211,116 @@ namespace Astrum.Editor.RoleEditor.Modules
                 }
                 
                 EditorGUILayout.HelpBox("💡 拖拽 AnimationClip 到上方字段自动更新路径", MessageType.None);
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(5);
+            
+            // 动画位移提取配置
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("动画位移提取", EditorStyles.boldLabel);
+                
+                // 绘制提取模式选择
+                EditorGUI.BeginChangeCheck();
+                var newMode = (SkillActionEditorData.RootMotionExtractMode)EditorGUILayout.EnumPopup(
+                    "提取模式", 
+                    _currentSkillAction.ExtractMode);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _currentSkillAction.ExtractMode = newMode;
+                    _currentSkillAction.MarkDirty();
+                    EditorUtility.SetDirty(_currentSkillAction);
+                    OnActionModified?.Invoke(_currentSkillAction);
+                }
+                
+                EditorGUILayout.HelpBox(
+                    _currentSkillAction.ExtractMode == SkillActionEditorData.RootMotionExtractMode.RootTransform
+                        ? "根骨骼位移模式：直接提取动画根节点的位移曲线"
+                        : "Hips差值模式：通过对比参考动画（带位移）和基础动画（不带位移）计算Hips骨骼位移差值",
+                    MessageType.Info);
+                
+                EditorGUILayout.Space(3);
+                
+                // 模式2：参考动画配置
+                if (_currentSkillAction.ExtractMode == SkillActionEditorData.RootMotionExtractMode.HipsDifference)
+                {
+                    EditorGUILayout.Space(5);
+                    EditorGUILayout.LabelField("参考动画配置", EditorStyles.boldLabel);
+                    
+                    EditorGUI.BeginChangeCheck();
+                    string newRefPath = EditorGUILayout.TextField("参考动画路径", _currentSkillAction.ReferenceAnimationPath);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        _currentSkillAction.ReferenceAnimationPath = newRefPath;
+                        
+                        if (!string.IsNullOrEmpty(newRefPath))
+                        {
+                            _currentSkillAction.ReferenceAnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(newRefPath);
+                        }
+                        else
+                        {
+                            _currentSkillAction.ReferenceAnimationClip = null;
+                        }
+                        
+                        _currentSkillAction.MarkDirty();
+                        EditorUtility.SetDirty(_currentSkillAction);
+                        OnActionModified?.Invoke(_currentSkillAction);
+                    }
+                    
+                    EditorGUI.BeginChangeCheck();
+                    var newRefClip = EditorGUILayout.ObjectField("参考动画文件", _currentSkillAction.ReferenceAnimationClip, typeof(AnimationClip), false) as AnimationClip;
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        _currentSkillAction.ReferenceAnimationClip = newRefClip;
+                        
+                        if (newRefClip != null)
+                        {
+                            _currentSkillAction.ReferenceAnimationPath = AssetDatabase.GetAssetPath(newRefClip);
+                        }
+                        else
+                        {
+                            _currentSkillAction.ReferenceAnimationPath = "";
+                        }
+                        
+                        _currentSkillAction.MarkDirty();
+                        EditorUtility.SetDirty(_currentSkillAction);
+                        OnActionModified?.Invoke(_currentSkillAction);
+                    }
+                    
+                    EditorGUILayout.Space(3);
+                    EditorGUI.BeginChangeCheck();
+                    string hipsName = EditorGUILayout.TextField("Hips骨骼名称", _currentSkillAction.HipsBoneName);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        _currentSkillAction.HipsBoneName = hipsName;
+                        _currentSkillAction.MarkDirty();
+                        EditorUtility.SetDirty(_currentSkillAction);
+                        OnActionModified?.Invoke(_currentSkillAction);
+                    }
+                }
                 
                 EditorGUILayout.Space(5);
                 
                 // 提取位移数据按钮
                 EditorGUILayout.BeginHorizontal();
                 {
-                    GUI.enabled = _currentSkillAction.AnimationClip != null;
+                    bool canExtract = _currentSkillAction.AnimationClip != null;
+                    
+                    // 模式2需要额外检查
+                    if (_currentSkillAction.ExtractMode == SkillActionEditorData.RootMotionExtractMode.HipsDifference)
+                    {
+                        canExtract = canExtract && 
+                                   _currentSkillAction.ReferenceAnimationClip != null && 
+                                   _previewModule != null && 
+                                   _previewModule.GetPreviewModel() != null;
+                        
+                        if (!canExtract && _currentSkillAction.AnimationClip != null)
+                        {
+                            EditorGUILayout.HelpBox("⚠️ Hips差值模式需要：参考动画文件 + 已加载的预览模型", MessageType.Warning);
+                        }
+                    }
+                    
+                    GUI.enabled = canExtract;
                     if (GUILayout.Button("提取位移数据", GUILayout.Height(30)))
                     {
                         ExtractRootMotionData();
@@ -220,18 +350,54 @@ namespace Astrum.Editor.RoleEditor.Modules
             try
             {
                 var clip = _currentSkillAction.AnimationClip;
-                _currentSkillAction.RootMotionDataArray = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip);
+                List<int> result;
+                
+                // 根据提取模式选择不同的方法
+                if (_currentSkillAction.ExtractMode == SkillActionEditorData.RootMotionExtractMode.RootTransform)
+                {
+                    // 模式1：提取根骨骼位移
+                    result = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip);
+                }
+                else // HipsDifference
+                {
+                    // 模式2：使用参考动画计算Hips差值
+                    if (_currentSkillAction.ReferenceAnimationClip == null)
+                    {
+                        EditorUtility.DisplayDialog("错误", "请先选择参考动画文件（带位移的动画）", "确定");
+                        return;
+                    }
+                    
+                    GameObject model = _previewModule?.GetPreviewModel();
+                    if (model == null)
+                    {
+                        EditorUtility.DisplayDialog("错误", 
+                            "未找到预览模型。请先在预览区域选择一个实体并加载模型。", 
+                            "确定");
+                        return;
+                    }
+                    
+                    result = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractHipsMotionDifference(
+                        baseClip: clip,
+                        referenceClip: _currentSkillAction.ReferenceAnimationClip,
+                        hipsBoneName: _currentSkillAction.HipsBoneName ?? "Hips",
+                        modelGameObject: model
+                    );
+                }
+                
+                _currentSkillAction.RootMotionDataArray = result;
                 
                 if (_currentSkillAction.RootMotionDataArray != null && _currentSkillAction.RootMotionDataArray.Count > 0)
                 {
                     int frameCount = _currentSkillAction.RootMotionDataArray[0];
                     EditorUtility.DisplayDialog("提取成功", 
-                        $"已提取位移数据：\n帧数: {frameCount}\n数据大小: {_currentSkillAction.RootMotionDataArray.Count} 整数", 
+                        $"已提取位移数据：\n模式: {_currentSkillAction.ExtractMode}\n帧数: {frameCount}\n数据大小: {_currentSkillAction.RootMotionDataArray.Count} 整数", 
                         "确定");
                 }
                 else
                 {
-                    EditorUtility.DisplayDialog("提示", "动画没有根节点位移数据", "确定");
+                    EditorUtility.DisplayDialog("提示", 
+                        $"未能提取到位移数据。\n模式: {_currentSkillAction.ExtractMode}", 
+                        "确定");
                     _currentSkillAction.RootMotionDataArray = new List<int>();
                 }
                 

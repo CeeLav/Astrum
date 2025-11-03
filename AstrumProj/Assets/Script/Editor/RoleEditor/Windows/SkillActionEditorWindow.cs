@@ -149,6 +149,9 @@ namespace Astrum.Editor.RoleEditor.Windows
             _previewModule = new AnimationPreviewModule();
             _previewModule.Initialize();
             
+            // 将预览模块引用传递给配置模块（用于提取Hips位移）
+            _configModule.SetPreviewModule(_previewModule);
+            
             // 时间轴模块
             _timelineModule = new TimelineEditorModule();
             _timelineModule.Initialize(60);

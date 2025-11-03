@@ -184,6 +184,14 @@ namespace Astrum.Editor.RoleEditor.Modules
         }
         
         /// <summary>
+        /// 获取预览模型实例（用于提取Hips位移）
+        /// </summary>
+        public GameObject GetPreviewModel()
+        {
+            return _previewInstance;
+        }
+        
+        /// <summary>
         /// 设置当前帧的碰撞盒信息（从编辑器传入）
         /// </summary>
         /// <param name="collisionInfo">碰撞盒信息字符串，格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point</param>
