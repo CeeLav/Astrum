@@ -144,9 +144,9 @@
 #### 2. SkillActionTable 字段扩展
 - **状态**: ⏳ 需要添加
 - **需求**: 
-  - 添加 `root_motion_data` 字段（string 类型）
-  - 更新 CSV 表结构
-  - 更新数据映射类
+  - 添加 `rootMotionData` 字段（Luban 类型：`array,int#sep=,`，运行时类型：`List<int>`）
+  - 更新 CSV 表结构（表头添加字段，类型为 `array,int#sep=,`）
+  - 更新数据映射类（`SkillActionTableData`）
 - **优先级**: 🔴 高 - Phase 1 阻塞项
 
 #### 3. AnimationRootMotionData 运行时结构
@@ -189,34 +189,51 @@
   - [ ] 局部空间位移和旋转计算
   - [ ] 增量位移计算（DeltaPosition/DeltaRotation）
   - [ ] 临时 GameObject 创建和清理
-  - [ ] `SerializeToArrayString()` - 序列化为数组字符串（整型*1000）
-  - [ ] `DeserializeFromArrayString()` - 从数组字符串反序列化
+  - [ ] `SerializeToIntArray()` - 序列化为整型数组（`List<int>`，整型*1000）
+  - [ ] `SerializeToArrayString()` - 序列化为数组字符串（兼容方法）
+  - [ ] `DeserializeFromArrayString()` - 从数组字符串反序列化（编辑器端使用）
+  - [ ] `ConvertToRuntimeFromIntArray()` - 从整型数组转定点数（推荐，Luban 已解析为数组）
+  - [ ] `ConvertToRuntimeFromArrayString()` - 从字符串转定点数（兼容方法）
   - [ ] `ConvertToRuntime()` - 浮点数转定点数（备选）
-  - [ ] `ConvertToRuntimeFromArrayString()` - 整型直接转定点数（推荐）
 
 ##### 1.3 编辑器集成
 - [ ] **SkillActionEditorData.cs 扩展**
-  - [ ] 添加 `RootMotionData` 字段（编辑器端数据）
-  - [ ] 添加 `RootMotionDataString` 字段（用于保存到 CSV）
+  - [ ] 添加 `RootMotionData` 字段（编辑器端数据，浮点数）
+  - [ ] 添加 `RootMotionDataArray` 字段（`List<int>`，用于保存到 CSV）
 
 - [ ] **SkillActionEditorWindow.cs 修改**
   - [ ] `LoadAnimationForAction()` 方法集成提取逻辑
   - [ ] 自动提取根节点位移数据
-  - [ ] 序列化并保存到 `RootMotionDataString`
+  - [ ] 序列化并保存到 `RootMotionDataArray`（使用 `SerializeToIntArray()`）
   - [ ] 日志输出数据大小和帧数
 
 ##### 1.4 配置表扩展
 - [ ] **SkillActionTableData.cs 扩展**
-  - [ ] 添加 `RootMotionData` 字段（string 类型）
+  - [ ] 添加 `RootMotionData` 字段（`List<int>` 类型）
   - [ ] 更新 `GetTableConfig()` 方法
+    - [ ] 在 `VarNames` 中添加 `"rootMotionData"`
+    - [ ] 在 `Types` 中添加 `"array,int#sep=,"`
+    - [ ] 在 `Descriptions` 中添加 `"根节点位移数据"`
 
 - [ ] **CSV 表结构更新**
-  - [ ] 在 `#SkillActionTable.csv` 中添加 `root_motion_data` 列
-  - [ ] 更新表头信息
+  - [ ] 在 `#SkillActionTable.csv` 中添加 `rootMotionData` 列
+  - [ ] 更新表头格式：
+    ```
+    ##var,actionId,actualCost,actualCooldown,triggerFrames,rootMotionData
+    ##type,int,int,int,string,array,int#sep=,
+    ##group,,,,,
+    ##desc,动作ID,实际法力消耗,实际冷却时间(帧),触发帧信息(含碰撞盒),根节点位移数据
+    ```
+  - [ ] 数据格式：在单元格中存储 `"60,0,0,0,0,0,0,1000,50,0,0,0,0,0,1000,..."`
 
 - [ ] **SkillActionDataWriter.cs 修改**
-  - [ ] 保存时写入 `root_motion_data` 字段
-  - [ ] 从 `RootMotionDataString` 读取数据
+  - [ ] 在 `ConvertToSkillActionTableData()` 方法中添加：
+    ```csharp
+    RootMotionData = editorData.RootMotionDataArray ?? new List<int>()
+    ```
+  - [ ] LubanCSVWriter 会自动将 `List<int>` 转换为 CSV 单元格中的逗号分隔字符串
+  - [ ] CSV 写入格式：单元格中存储 `"60,0,0,0,0,0,0,1000,50,0,0,0,0,0,1000,..."`
+  - [ ] 读取时 Luban 会自动将 CSV 字符串解析回 `List<int>`
 
 ##### 1.5 数据预览（可选）
 - [ ] **编辑器预览功能**
@@ -246,8 +263,8 @@
 ##### 2.1 配置加载
 - [ ] **ActionConfig.cs 修改**
   - [ ] 在 `GetAction()` 方法中添加 RootMotionData 加载
-  - [ ] 使用 `AnimationRootMotionExtractor.ConvertToRuntimeFromArrayString()`
-  - [ ] 从 `SkillActionTable.RootMotionData` 字段读取
+  - [ ] 使用 `AnimationRootMotionExtractor.ConvertToRuntimeFromIntArray()`（推荐）
+  - [ ] 从 `SkillActionTable.RootMotionData` 字段读取（Luban 已解析为 `List<int>`）
   - [ ] 错误处理和日志记录
   - [ ] 将数据填充到 `SkillActionInfo.RootMotionData`
 
@@ -436,9 +453,9 @@
 ### 🔴 高优先级（阻塞开发）
 
 1. **SkillActionTable 字段扩展**
-   - 添加 `root_motion_data` 字段
-   - 更新数据映射类
-   - 更新 CSV 表结构
+   - 添加 `rootMotionData` 字段（Luban 类型：`array,int#sep=,`）
+   - 更新数据映射类（`SkillActionTableData`，类型改为 `List<int>`）
+   - 更新 CSV 表结构（表头添加字段，类型为 `array,int#sep=,`）
    - **预计时间**: 1 小时
 
 2. **AnimationRootMotionExtractor 实现**
