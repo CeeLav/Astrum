@@ -23,6 +23,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 播放状态（特有） ===
         private int _currentFrame = 0;
         private float _accumulatedTime = 0f;             // 累积时间，用于逐帧播放
+        private double _playStartTime = 0.0;             // 开始播放的时间戳（用于调试）
+        private int _lastUpdateFrame = -1;               // 上一次更新的Unity帧号（用于防止每帧多次更新）
+        private bool _isUpdatingThisFrame = false;       // 标记当前帧是否正在更新（防止重复调用）
         
         // === 碰撞盒显示 ===
         private string _currentFrameCollisionInfo = null; // 当前帧的碰撞盒信息
@@ -133,9 +136,36 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 _isPlaying = true;
                 _currentAnimState.Speed = 0; // 保持Speed=0，完全由我们手动控制Time
-                _lastUpdateTime = UnityEditor.EditorApplication.timeSinceStartup;
-                _accumulatedTime = 0f; // 重置累积时间，防止跳帧
-                Debug.Log($"{LogPrefix} Playing (manual frame control)");
+                
+                // 重置所有时间相关状态
+                double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+                _lastUpdateTime = currentTimestamp;
+                _playStartTime = currentTimestamp;
+                _accumulatedTime = 0f;
+                _lastUpdateFrame = -1;
+                _isUpdatingThisFrame = false;
+                
+                // 输出精确到毫秒的时间戳
+                long milliseconds = (long)(currentTimestamp * 1000.0);
+                Debug.Log($"{LogPrefix} Playing (manual frame control) - Timestamp: {milliseconds}ms (Time: {currentTimestamp:F6}s, AnimationTime: {_currentAnimState.Time:F6}s, Frame: {_currentFrame}, Speed: {_animationSpeed})");
+            }
+        }
+        
+        public override void Pause()
+        {
+            if (_currentAnimState != null)
+            {
+                _isPlaying = false;
+                _currentAnimState.Speed = 0;
+                
+                double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+                long milliseconds = (long)(currentTimestamp * 1000.0);
+                double elapsedPlayTime = _playStartTime > 0 ? (currentTimestamp - _playStartTime) : 0.0;
+                long elapsedMs = (long)(elapsedPlayTime * 1000.0);
+                
+                Debug.Log($"{LogPrefix} Paused - Timestamp: {milliseconds}ms, Elapsed: {elapsedMs}ms ({elapsedPlayTime:F6}s), " +
+                          $"AnimationTime: {_currentAnimState.Time:F6}s, Frame: {_currentFrame}, ExpectedFrame: {Mathf.RoundToInt(_currentAnimState.Time * LOGIC_FRAME_RATE)}, " +
+                          $"ClipLength: {(_currentClip != null ? _currentClip.length.ToString("F6") : "N/A")}s");
             }
         }
         
@@ -144,6 +174,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             base.Stop();
             _currentFrame = 0;
             _accumulatedTime = 0f;
+            _playStartTime = 0.0;
             
             // 重置模型位置到初始位置
             if (_previewInstance != null)
@@ -539,61 +570,114 @@ namespace Astrum.Editor.RoleEditor.Modules
             GL.PopMatrix();
         }
         
-        // === 更新动画（重写以支持平滑渲染帧更新）===
+        // === 更新动画（统一更新逻辑，重写以支持平滑渲染帧更新）===
         
+        /// <summary>
+        /// 统一动画更新入口 - 确保每帧只更新一次
+        /// </summary>
+        private void UpdateAnimationInternal()
+        {
+            // 如果不在播放状态，直接返回
+            if (!_isPlaying || _currentAnimState == null || _animancer == null || _currentClip == null)
+            {
+                return;
+            }
+            
+            // 防止同一帧多次更新（Unity Editor可能在Layout、Repaint等事件中多次调用OnGUI）
+            int currentUnityFrame = Time.frameCount;
+            if (currentUnityFrame == _lastUpdateFrame && _isUpdatingThisFrame)
+            {
+                // 同一帧已经更新过，跳过（避免重复累加时间）
+                return;
+            }
+            
+            // 标记开始更新
+            _isUpdatingThisFrame = true;
+            _lastUpdateFrame = currentUnityFrame;
+            
+            // 计算实际经过的时间（基于EditorApplication.timeSinceStartup）
+            double currentRealTime = UnityEditor.EditorApplication.timeSinceStartup;
+            float deltaTime = (float)(currentRealTime - _lastUpdateTime);
+            
+            // 检查deltaTime是否异常（防止编辑器暂停、调试断点等情况）
+            if (deltaTime < 0)
+            {
+                // 时间倒流（通常发生在编辑器暂停恢复时），重置时间基准
+                _lastUpdateTime = currentRealTime;
+                deltaTime = 0f;
+            }
+            else if (deltaTime > 1.0f)
+            {
+                // 时间跳跃过大（编辑器暂停后恢复），限制为合理值
+                Debug.LogWarning($"{LogPrefix} Large deltaTime detected: {deltaTime:F6}s, clamping to 0.1s");
+                deltaTime = 0.1f;
+                _lastUpdateTime = currentRealTime - deltaTime; // 调整基准时间，避免跳帧
+            }
+            else if (deltaTime == 0f && _lastUpdateTime > 0)
+            {
+                // deltaTime为0（可能在同一帧多次调用），不更新动画时间
+                _isUpdatingThisFrame = false;
+                return;
+            }
+            
+            // 更新最后更新时间
+            _lastUpdateTime = currentRealTime;
+            
+            // 计算新的动画时间：基于实际经过的时间 * 播放速度
+            float oldAnimationTime = _currentAnimState.Time;
+            float newAnimationTime = oldAnimationTime + deltaTime * _animationSpeed;
+            
+            // 检查播放边界
+            bool shouldStop = false;
+            if (_maxPlaybackTime > 0f && newAnimationTime >= _maxPlaybackTime)
+            {
+                // 超过Duration限制，停在最后一帧
+                newAnimationTime = _maxPlaybackTime;
+                shouldStop = true;
+            }
+            else if (_maxPlaybackTime <= 0f && newAnimationTime >= _currentClip.length)
+            {
+                // 播放到动画结尾，停在最后一帧
+                newAnimationTime = _currentClip.length;
+                shouldStop = true;
+            }
+            
+            // 确保时间不小于0
+            if (newAnimationTime < 0)
+            {
+                newAnimationTime = 0f;
+            }
+            
+            // 应用新的动画时间
+            _currentAnimState.Time = newAnimationTime;
+            
+            // 更新当前逻辑帧（用于UI显示）
+            _currentFrame = Mathf.RoundToInt(newAnimationTime * LOGIC_FRAME_RATE);
+            
+            // 更新Animancer（传入0，因为我们完全手动控制Time，Speed=0）
+            // Evaluate 只会应用当前的Time值，不会累加时间
+            AnimationHelper.EvaluateAnimancer(_animancer, 0f);
+            
+            // 应用位移插值
+            ApplyInterpolatedDisplacement(newAnimationTime);
+            
+            // 标记更新完成
+            _isUpdatingThisFrame = false;
+            
+            // 如果应该停止，停止播放
+            if (shouldStop)
+            {
+                Pause();
+            }
+        }
+        
+        /// <summary>
+        /// 重写基类的UpdateAnimation - 统一调用内部更新逻辑
+        /// </summary>
         protected override void UpdateAnimation()
         {
-            if (_isPlaying && _currentAnimState != null && _animancer != null && _currentClip != null)
-            {
-                double currentTime = UnityEditor.EditorApplication.timeSinceStartup;
-                float deltaTime = (float)(currentTime - _lastUpdateTime);
-                _lastUpdateTime = currentTime;
-                
-                // 平滑播放：按照渲染帧更新（使用deltaTime）
-                float newTime = _currentAnimState.Time + deltaTime * _animationSpeed;
-                
-                // 检查是否超过最大播放时长限制
-                bool shouldStop = false;
-                if (_maxPlaybackTime > 0f && newTime >= _maxPlaybackTime)
-                {
-                    // 超过duration限制，停止播放并停在最后一帧
-                    newTime = _maxPlaybackTime;
-                    shouldStop = true;
-                }
-                else if (_maxPlaybackTime <= 0f)
-                {
-                    // 没有限制，但需要检查动画长度
-                    if (newTime >= _currentClip.length)
-                    {
-                        // 播放到动画结尾，停止（不循环）
-                        newTime = _currentClip.length;
-                        shouldStop = true;
-                    }
-                }
-                
-                // 确保时间不小于0
-                if (newTime < 0)
-                {
-                    newTime = 0f;
-                }
-                
-                _currentAnimState.Time = newTime;
-                
-                // 更新当前逻辑帧（用于显示）
-                _currentFrame = Mathf.RoundToInt(newTime * LOGIC_FRAME_RATE);
-                
-                // 手动更新Animancer（使用实际的deltaTime进行平滑更新）
-                AnimationHelper.EvaluateAnimancer(_animancer, deltaTime * _animationSpeed);
-                
-                // 根据位移数据应用插值后的位移（RootMotion关闭时需要手动应用）
-                ApplyInterpolatedDisplacement(newTime);
-                
-                // 如果应该停止，停止播放
-                if (shouldStop)
-                {
-                    Pause();
-                }
-            }
+            // 直接调用统一更新逻辑，不调用基类方法（避免基类的自动更新干扰）
+            UpdateAnimationInternal();
         }
         
         // === 清理资源 ===
