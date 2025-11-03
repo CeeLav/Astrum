@@ -88,6 +88,36 @@ namespace Astrum.Editor.RoleEditor.Services
             AnimationCurve posYCurve = AnimationUtility.GetEditorCurve(clip, posY.Value);
             AnimationCurve posZCurve = AnimationUtility.GetEditorCurve(clip, posZ.Value);
             
+            // 调试：检查曲线的数值范围
+            if (posXCurve != null && posXCurve.keys.Length > 0)
+            {
+                float minX = posXCurve.keys[0].value;
+                float maxX = posXCurve.keys[0].value;
+                float minY = posYCurve.keys[0].value;
+                float maxY = posYCurve.keys[0].value;
+                float minZ = posZCurve.keys[0].value;
+                float maxZ = posZCurve.keys[0].value;
+                
+                foreach (var key in posXCurve.keys)
+                {
+                    minX = Mathf.Min(minX, key.value);
+                    maxX = Mathf.Max(maxX, key.value);
+                }
+                foreach (var key in posYCurve.keys)
+                {
+                    minY = Mathf.Min(minY, key.value);
+                    maxY = Mathf.Max(maxY, key.value);
+                }
+                foreach (var key in posZCurve.keys)
+                {
+                    minZ = Mathf.Min(minZ, key.value);
+                    maxZ = Mathf.Max(maxZ, key.value);
+                }
+                
+                Debug.Log($"[AnimationRootMotionExtractor] Curve value ranges - X: [{minX:F6}, {maxX:F6}], Y: [{minY:F6}, {maxY:F6}], Z: [{minZ:F6}, {maxZ:F6}]");
+                Debug.Log($"[AnimationRootMotionExtractor] Total displacement range: X={maxX-minX:F6}, Y={maxY-minY:F6}, Z={maxZ-minZ:F6}");
+            }
+            
             AnimationCurve rotXCurve = rotX.HasValue ? AnimationUtility.GetEditorCurve(clip, rotX.Value) : null;
             AnimationCurve rotYCurve = rotY.HasValue ? AnimationUtility.GetEditorCurve(clip, rotY.Value) : null;
             AnimationCurve rotZCurve = rotZ.HasValue ? AnimationUtility.GetEditorCurve(clip, rotZ.Value) : null;
@@ -102,6 +132,9 @@ namespace Astrum.Editor.RoleEditor.Services
             Vector3 prevPosition = Vector3.zero;
             Quaternion prevRotation = Quaternion.identity;
             
+            // 记录第一帧的位置，用于调试
+            Vector3 firstFramePos = Vector3.zero;
+            
             // 逐帧采样
             for (int frame = 0; frame < totalFrames; frame++)
             {
@@ -113,6 +146,13 @@ namespace Astrum.Editor.RoleEditor.Services
                     posYCurve.Evaluate(time),
                     posZCurve.Evaluate(time)
                 );
+                
+                // 记录第一帧位置，用于调试
+                if (frame == 0)
+                {
+                    firstFramePos = currentPosition;
+                    Debug.Log($"[AnimationRootMotionExtractor] First frame position: ({currentPosition.x:F6}, {currentPosition.y:F6}, {currentPosition.z:F6})");
+                }
                 
                 Quaternion currentRotation = Quaternion.identity;
                 if (rotXCurve != null && rotYCurve != null && rotZCurve != null && rotWCurve != null)
@@ -133,6 +173,15 @@ namespace Astrum.Editor.RoleEditor.Services
                 {
                     deltaPosition = currentPosition - prevPosition;
                     deltaRotation = currentRotation * Quaternion.Inverse(prevRotation);
+                    
+                    // 调试日志：前几帧的数据
+                    if (frame <= 3 || deltaPosition.sqrMagnitude > 0.0001f)
+                    {
+                        Debug.Log($"[AnimationRootMotionExtractor] Frame {frame}: currentPos=({currentPosition.x:F6}, {currentPosition.y:F6}, {currentPosition.z:F6}), " +
+                                  $"prevPos=({prevPosition.x:F6}, {prevPosition.y:F6}, {prevPosition.z:F6}), " +
+                                  $"delta=({deltaPosition.x:F6}, {deltaPosition.y:F6}, {deltaPosition.z:F6}), " +
+                                  $"deltaInt=({(int)(deltaPosition.x * SCALE)}, {(int)(deltaPosition.y * SCALE)}, {(int)(deltaPosition.z * SCALE)})");
+                    }
                 }
                 else
                 {

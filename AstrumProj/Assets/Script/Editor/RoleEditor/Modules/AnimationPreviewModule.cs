@@ -31,6 +31,10 @@ namespace Astrum.Editor.RoleEditor.Modules
         private bool _showGrid = true;                  // 是否显示网格
         private Material _gridMaterial;                 // 网格绘制材质
         
+        // === 根节点位移数据 ===
+        private System.Collections.Generic.List<int> _rootMotionDataArray = null; // 位移数据数组
+        private Vector3 _initialPosition = Vector3.zero; // 模型的初始位置（用于重置）
+        
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
         // === 实体管理 ===
@@ -137,6 +141,13 @@ namespace Astrum.Editor.RoleEditor.Modules
             base.Stop();
             _currentFrame = 0;
             _accumulatedTime = 0f;
+            
+            // 重置模型位置到初始位置
+            if (_previewInstance != null)
+            {
+                _previewInstance.transform.position = _initialPosition;
+                _previewInstance.transform.rotation = Quaternion.identity;
+            }
         }
         
         /// <summary>
@@ -158,6 +169,9 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 AnimationHelper.EvaluateAnimancer(_animancer, 0);
             }
+            
+            // 根据位移数据手动累加位移（RootMotion关闭时需要手动应用）
+            ApplyAccumulatedDisplacement(_currentFrame);
         }
         
         /// <summary>
@@ -189,6 +203,75 @@ namespace Astrum.Editor.RoleEditor.Modules
         public GameObject GetPreviewModel()
         {
             return _previewInstance;
+        }
+        
+        /// <summary>
+        /// 设置根节点位移数据（用于手动累加位移）
+        /// </summary>
+        public void SetRootMotionData(System.Collections.Generic.List<int> rootMotionDataArray)
+        {
+            _rootMotionDataArray = rootMotionDataArray;
+            
+            // 重置模型位置到初始位置
+            if (_previewInstance != null)
+            {
+                _previewInstance.transform.position = _initialPosition;
+            }
+        }
+        
+        /// <summary>
+        /// 根据帧索引计算累积位移并应用到模型
+        /// </summary>
+        private void ApplyAccumulatedDisplacement(int frame)
+        {
+            if (_previewInstance == null || _rootMotionDataArray == null || _rootMotionDataArray.Count == 0)
+            {
+                return;
+            }
+            
+            int frameCount = _rootMotionDataArray[0];
+            if (frameCount <= 0 || frame < 0 || frame >= frameCount)
+            {
+                return;
+            }
+            
+            // 计算累积位移：从第0帧到当前帧的所有增量位移之和
+            Vector3 accumulatedPosition = Vector3.zero;
+            Quaternion accumulatedRotation = Quaternion.identity;
+            
+            const float SCALE = 1000f; // 与提取时使用的缩放因子相同
+            
+            // 累加从第1帧到当前帧的所有增量位移（第0帧的delta是0）
+            for (int f = 1; f <= frame && f < frameCount; f++)
+            {
+                int baseIndex = 1 + f * 7; // 跳过 frameCount，每帧7个值
+                if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                {
+                    break;
+                }
+                
+                // 读取增量位移（整数，需要除以1000）
+                float dx = _rootMotionDataArray[baseIndex] / SCALE;
+                float dy = _rootMotionDataArray[baseIndex + 1] / SCALE;
+                float dz = _rootMotionDataArray[baseIndex + 2] / SCALE;
+                float rx = _rootMotionDataArray[baseIndex + 3] / SCALE;
+                float ry = _rootMotionDataArray[baseIndex + 4] / SCALE;
+                float rz = _rootMotionDataArray[baseIndex + 5] / SCALE;
+                float rw = _rootMotionDataArray[baseIndex + 6] / SCALE;
+                
+                // 累加位置
+                accumulatedPosition += new Vector3(dx, dy, dz);
+                
+                // 累加旋转（四元数乘法）
+                Quaternion deltaRot = new Quaternion(rx, ry, rz, rw);
+                accumulatedRotation = accumulatedRotation * deltaRot;
+            }
+            
+            // 应用到模型位置（初始位置 + 累积位移）
+            _previewInstance.transform.position = _initialPosition + accumulatedPosition;
+            
+            // 应用累积旋转（初始旋转 * 累积旋转）
+            _previewInstance.transform.rotation = accumulatedRotation;
         }
         
         /// <summary>
@@ -373,10 +456,16 @@ namespace Astrum.Editor.RoleEditor.Modules
                     
                     // 设置动画时间
                     _currentAnimState.Time = _currentFrame * FRAME_TIME;
+                    
+                    // 根据位移数据手动累加位移（RootMotion关闭时需要手动应用）
+                    ApplyAccumulatedDisplacement(_currentFrame);
                 }
                 
                 // 手动更新Animancer（不传入deltaTime，因为我们直接设置了Time）
                 AnimationHelper.EvaluateAnimancer(_animancer, 0);
+                
+                // 确保当前帧的位移也被应用（在非逐帧更新时）
+                ApplyAccumulatedDisplacement(_currentFrame);
             }
         }
         

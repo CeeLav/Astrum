@@ -386,6 +386,19 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 _currentSkillAction.RootMotionDataArray = result;
                 
+                // 更新预览模块的位移数据（如果预览模块可用）
+                if (_previewModule != null)
+                {
+                    if (_currentSkillAction.RootMotionDataArray != null && _currentSkillAction.RootMotionDataArray.Count > 0)
+                    {
+                        _previewModule.SetRootMotionData(_currentSkillAction.RootMotionDataArray);
+                    }
+                    else
+                    {
+                        _previewModule.SetRootMotionData(null);
+                    }
+                }
+                
                 if (_currentSkillAction.RootMotionDataArray != null && _currentSkillAction.RootMotionDataArray.Count > 0)
                 {
                     int frameCount = _currentSkillAction.RootMotionDataArray[0];

@@ -409,8 +409,11 @@ namespace Astrum.Editor.RoleEditor.Windows
             {
                 action.RootMotionDataArray = AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip);
                 
+                // 将位移数据传递给预览模块（用于手动累加位移）
                 if (action.RootMotionDataArray != null && action.RootMotionDataArray.Count > 0)
                 {
+                    _previewModule.SetRootMotionData(action.RootMotionDataArray);
+                    
                     // 获取帧数（数组第一个元素）
                     int frameCount = action.RootMotionDataArray[0];
                     Debug.Log($"[SkillActionEditor] Extracted root motion for action {action.ActionId}: " +
@@ -420,6 +423,8 @@ namespace Astrum.Editor.RoleEditor.Windows
                 else
                 {
                     action.RootMotionDataArray = new List<int>();
+                    // 清空预览模块的位移数据
+                    _previewModule.SetRootMotionData(null);
                 }
             }
             
