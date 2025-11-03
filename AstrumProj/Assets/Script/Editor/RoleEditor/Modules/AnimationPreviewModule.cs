@@ -23,9 +23,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 播放状态（特有） ===
         private int _currentFrame = 0;
         private float _accumulatedTime = 0f;             // 累积时间，用于逐帧播放
-        private double _playStartTime = 0.0;             // 开始播放的时间戳（用于调试）
-        private int _lastUpdateFrame = -1;               // 上一次更新的Unity帧号（用于防止每帧多次更新）
-        private bool _isUpdatingThisFrame = false;       // 标记当前帧是否正在更新（防止重复调用）
+        private double _playStartTime = 0.0;             // 开始播放的时间戳（用于基于时间戳的播放）
         
         // === 碰撞盒显示 ===
         private string _currentFrameCollisionInfo = null; // 当前帧的碰撞盒信息
@@ -139,11 +137,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 // 重置所有时间相关状态
                 double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
-                _lastUpdateTime = currentTimestamp;
                 _playStartTime = currentTimestamp;
                 _accumulatedTime = 0f;
-                _lastUpdateFrame = -1;
-                _isUpdatingThisFrame = false;
                 
                 // 输出精确到毫秒的时间戳
                 long milliseconds = (long)(currentTimestamp * 1000.0);
@@ -583,49 +578,29 @@ namespace Astrum.Editor.RoleEditor.Modules
                 return;
             }
             
-            // 防止同一帧多次更新（Unity Editor可能在Layout、Repaint等事件中多次调用OnGUI）
-            int currentUnityFrame = Time.frameCount;
-            if (currentUnityFrame == _lastUpdateFrame && _isUpdatingThisFrame)
-            {
-                // 同一帧已经更新过，跳过（避免重复累加时间）
-                return;
-            }
-            
-            // 标记开始更新
-            _isUpdatingThisFrame = true;
-            _lastUpdateFrame = currentUnityFrame;
-            
-            // 计算实际经过的时间（基于EditorApplication.timeSinceStartup）
+            // 获取当前时间戳
             double currentRealTime = UnityEditor.EditorApplication.timeSinceStartup;
-            float deltaTime = (float)(currentRealTime - _lastUpdateTime);
             
-            // 检查deltaTime是否异常（防止编辑器暂停、调试断点等情况）
-            if (deltaTime < 0)
+            // 检查时间是否异常（防止编辑器暂停、调试断点等情况）
+            if (currentRealTime < _playStartTime)
             {
-                // 时间倒流（通常发生在编辑器暂停恢复时），重置时间基准
-                _lastUpdateTime = currentRealTime;
-                deltaTime = 0f;
-            }
-            else if (deltaTime > 1.0f)
-            {
-                // 时间跳跃过大（编辑器暂停后恢复），限制为合理值
-                Debug.LogWarning($"{LogPrefix} Large deltaTime detected: {deltaTime:F6}s, clamping to 0.1s");
-                deltaTime = 0.1f;
-                _lastUpdateTime = currentRealTime - deltaTime; // 调整基准时间，避免跳帧
-            }
-            else if (deltaTime == 0f && _lastUpdateTime > 0)
-            {
-                // deltaTime为0（可能在同一帧多次调用），不更新动画时间
-                _isUpdatingThisFrame = false;
+                // 时间倒流（通常发生在编辑器暂停恢复时），重置播放起点
+                _playStartTime = currentRealTime;
                 return;
             }
             
-            // 更新最后更新时间
-            _lastUpdateTime = currentRealTime;
+            // 计算从播放开始经过的时间
+            double elapsedTime = currentRealTime - _playStartTime;
             
-            // 计算新的动画时间：基于实际经过的时间 * 播放速度
-            float oldAnimationTime = _currentAnimState.Time;
-            float newAnimationTime = oldAnimationTime + deltaTime * _animationSpeed;
+            // 如果时间跳跃过大（超过1秒，可能是编辑器暂停后恢复），重置播放起点
+            if (elapsedTime > (_currentAnimState.Time + 1.0))
+            {
+                _playStartTime = currentRealTime - _currentAnimState.Time;
+                elapsedTime = _currentAnimState.Time;
+            }
+            
+            // 计算新的动画时间：基于绝对时间戳 * 播放速度（即使多次调用结果也一致）
+            float newAnimationTime = (float)elapsedTime * _animationSpeed;
             
             // 检查播放边界
             bool shouldStop = false;
@@ -660,9 +635,6 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 应用位移插值
             ApplyInterpolatedDisplacement(newAnimationTime);
-            
-            // 标记更新完成
-            _isUpdatingThisFrame = false;
             
             // 如果应该停止，停止播放
             if (shouldStop)
