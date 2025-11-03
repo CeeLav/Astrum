@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 using Astrum.LogicCore.SkillSystem;
 using TrueSync;
 
@@ -17,6 +18,7 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <summary>
         /// 从动画片段提取根节点位移数据并直接序列化为整型数组
         /// 编辑器端直接使用运行时格式（整型数组），提取时直接转换并序列化
+        /// 支持两种格式：传统格式（m_LocalPosition/m_LocalRotation）和根运动格式（RootT/RootQ）
         /// </summary>
         /// <param name="clip">动画片段</param>
         /// <returns>整型数组（Luban格式），如果动画没有Root Motion则返回空列表</returns>
@@ -36,50 +38,92 @@ namespace Astrum.Editor.RoleEditor.Services
                 return new List<int>();
             }
             
-            // 创建临时GameObject用于采样动画
-            GameObject tempGO = new GameObject("TempRootMotionSampler");
-            tempGO.hideFlags = HideFlags.HideAndDontSave;
+            // 使用AnimationUtility直接读取曲线数据，避免需要Legacy格式
+            EditorCurveBinding[] bindings = AnimationUtility.GetCurveBindings(clip);
             
-            // 添加Animation组件
-            Animation anim = tempGO.AddComponent<Animation>();
-            anim.AddClip(clip, "RootMotionSample");
-            anim.clip = clip;
+            // 检测使用的格式
+            bool usesRootMotionFormat = UsesRootMotionFormat(bindings);
             
-            // 获取动画状态，确保它存在
-            AnimationState animState = anim["RootMotionSample"];
-            if (animState == null)
+            // 自动检测根骨骼路径（空路径表示根对象）
+            string rootBonePath = FindRootBonePathForSingleClip(bindings);
+            
+            if (rootBonePath == null)
             {
-                Debug.LogWarning($"[AnimationRootMotionExtractor] Failed to get animation state for clip {clip.name}");
-                Object.DestroyImmediate(tempGO);
+                // 如果找不到，尝试使用空路径（根对象）
+                rootBonePath = "";
+            }
+            
+            Debug.Log($"[AnimationRootMotionExtractor] Auto-detected root bone path: '{rootBonePath ?? "null"}', uses root motion format: {usesRootMotionFormat}");
+            
+            // 查找根骨骼的位置和旋转曲线
+            string posPrefix = usesRootMotionFormat ? "RootT" : "m_LocalPosition";
+            string rotPrefix = usesRootMotionFormat ? "RootQ" : "m_LocalRotation";
+            
+            EditorCurveBinding? posX = null, posY = null, posZ = null;
+            EditorCurveBinding? rotX = null, rotY = null, rotZ = null, rotW = null;
+            
+            foreach (var binding in bindings)
+            {
+                if (binding.path == rootBonePath)
+                {
+                    if (binding.propertyName == $"{posPrefix}.x" || binding.propertyName == "m_LocalPosition.x" || binding.propertyName == "RootT.x") posX = binding;
+                    else if (binding.propertyName == $"{posPrefix}.y" || binding.propertyName == "m_LocalPosition.y" || binding.propertyName == "RootT.y") posY = binding;
+                    else if (binding.propertyName == $"{posPrefix}.z" || binding.propertyName == "m_LocalPosition.z" || binding.propertyName == "RootT.z") posZ = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.x" || binding.propertyName == "m_LocalRotation.x" || binding.propertyName == "RootQ.x") rotX = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.y" || binding.propertyName == "m_LocalRotation.y" || binding.propertyName == "RootQ.y") rotY = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.z" || binding.propertyName == "m_LocalRotation.z" || binding.propertyName == "RootQ.z") rotZ = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.w" || binding.propertyName == "m_LocalRotation.w" || binding.propertyName == "RootQ.w") rotW = binding;
+                }
+            }
+            
+            // 检查是否找到必要的位置曲线
+            if (!posX.HasValue || !posY.HasValue || !posZ.HasValue)
+            {
+                Debug.LogWarning($"[AnimationRootMotionExtractor] Could not find root position curves in animation {clip.name}. Available bindings: {string.Join(", ", System.Array.ConvertAll(bindings, b => $"{b.path}/{b.propertyName}"))}");
                 return new List<int>();
             }
+            
+            // 获取曲线
+            AnimationCurve posXCurve = AnimationUtility.GetEditorCurve(clip, posX.Value);
+            AnimationCurve posYCurve = AnimationUtility.GetEditorCurve(clip, posY.Value);
+            AnimationCurve posZCurve = AnimationUtility.GetEditorCurve(clip, posZ.Value);
+            
+            AnimationCurve rotXCurve = rotX.HasValue ? AnimationUtility.GetEditorCurve(clip, rotX.Value) : null;
+            AnimationCurve rotYCurve = rotY.HasValue ? AnimationUtility.GetEditorCurve(clip, rotY.Value) : null;
+            AnimationCurve rotZCurve = rotZ.HasValue ? AnimationUtility.GetEditorCurve(clip, rotZ.Value) : null;
+            AnimationCurve rotWCurve = rotW.HasValue ? AnimationUtility.GetEditorCurve(clip, rotW.Value) : null;
             
             // 格式: [frameCount, dx0, dy0, dz0, rx0, ry0, rz0, rw0, dx1, dy1, dz1, rx1, ry1, rz1, rw1, ...]
             var result = new List<int> { totalFrames };
             
             const int SCALE = 1000; // 缩放因子
+            bool hasMotion = false;
             
-            bool hasMotion = false; // 用于标记是否检测到任何位移
-            
-            // 保存初始位置和旋转（用于计算相对位移）
-            animState.time = 0f;
-            animState.enabled = true;
-            anim.Sample();
-            Vector3 startPosition = tempGO.transform.localPosition;
-            Quaternion startRotation = tempGO.transform.localRotation;
+            Vector3 prevPosition = Vector3.zero;
+            Quaternion prevRotation = Quaternion.identity;
             
             // 逐帧采样
             for (int frame = 0; frame < totalFrames; frame++)
             {
                 float time = Mathf.Clamp(frame * FRAME_TIME, 0f, clip.length);
                 
-                // 采样动画到指定时间
-                animState.time = time;
-                animState.enabled = true;
-                anim.Sample();
+                // 直接从曲线评估值
+                Vector3 currentPosition = new Vector3(
+                    posXCurve.Evaluate(time),
+                    posYCurve.Evaluate(time),
+                    posZCurve.Evaluate(time)
+                );
                 
-                Vector3 currentPosition = tempGO.transform.localPosition;
-                Quaternion currentRotation = tempGO.transform.localRotation;
+                Quaternion currentRotation = Quaternion.identity;
+                if (rotXCurve != null && rotYCurve != null && rotZCurve != null && rotWCurve != null)
+                {
+                    currentRotation = new Quaternion(
+                        rotXCurve.Evaluate(time),
+                        rotYCurve.Evaluate(time),
+                        rotZCurve.Evaluate(time),
+                        rotWCurve.Evaluate(time)
+                    );
+                }
                 
                 // 计算增量位移（相对于上一帧）
                 Vector3 deltaPosition = Vector3.zero;
@@ -87,16 +131,14 @@ namespace Astrum.Editor.RoleEditor.Services
                 
                 if (frame > 0)
                 {
-                    float prevTime = Mathf.Clamp((frame - 1) * FRAME_TIME, 0f, clip.length);
-                    animState.time = prevTime;
-                    animState.enabled = true;
-                    anim.Sample();
-                    
-                    Vector3 prevPosition = tempGO.transform.localPosition;
-                    Quaternion prevRotation = tempGO.transform.localRotation;
-                    
                     deltaPosition = currentPosition - prevPosition;
                     deltaRotation = currentRotation * Quaternion.Inverse(prevRotation);
+                }
+                else
+                {
+                    // 第一帧记录初始值，用于后续帧计算
+                    prevPosition = currentPosition;
+                    prevRotation = currentRotation;
                 }
                 
                 // 检查是否有位移或旋转（容忍一定的浮点误差）
@@ -115,21 +157,89 @@ namespace Astrum.Editor.RoleEditor.Services
                 result.Add((int)(deltaRotation.y * SCALE));
                 result.Add((int)(deltaRotation.z * SCALE));
                 result.Add((int)(deltaRotation.w * SCALE));
+                
+                // 保存当前值作为下一帧的前一帧
+                if (frame > 0)
+                {
+                    prevPosition = currentPosition;
+                    prevRotation = currentRotation;
+                }
             }
             
-            // 清理临时对象
-            Object.DestroyImmediate(tempGO);
-            
-            // 如果没有检测到任何位移，返回空列表（但保留帧数信息用于判断）
+            // 如果没有检测到任何位移，返回空列表
             if (!hasMotion)
             {
-                Debug.Log($"[AnimationRootMotionExtractor] Animation {clip.name} has no root motion");
+                Debug.Log($"[AnimationRootMotionExtractor] Animation {clip.name} has no root motion detected");
                 return new List<int>();
             }
             
             Debug.Log($"[AnimationRootMotionExtractor] Extracted root motion for {clip.name}: {totalFrames} frames, {result.Count} integers");
             
             return result;
+        }
+        
+        /// <summary>
+        /// 为单个动画片段自动检测根骨骼路径
+        /// </summary>
+        private static string FindRootBonePathForSingleClip(EditorCurveBinding[] bindings)
+        {
+            // 统计每个路径的位置曲线数量
+            Dictionary<string, int> pathPosCount = new Dictionary<string, int>();
+            
+            foreach (var binding in bindings)
+            {
+                if (binding.propertyName == "m_LocalPosition.x" || 
+                    binding.propertyName == "m_LocalPosition.y" || 
+                    binding.propertyName == "m_LocalPosition.z" ||
+                    binding.propertyName == "RootT.x" ||
+                    binding.propertyName == "RootT.y" ||
+                    binding.propertyName == "RootT.z")
+                {
+                    if (!pathPosCount.ContainsKey(binding.path))
+                        pathPosCount[binding.path] = 0;
+                    pathPosCount[binding.path]++;
+                }
+            }
+            
+            // 找出有完整位置数据（x,y,z = 3个曲线）的路径
+            List<string> candidatePaths = new List<string>();
+            foreach (var kvp in pathPosCount)
+            {
+                if (kvp.Value == 3)
+                {
+                    candidatePaths.Add(kvp.Key);
+                }
+            }
+            
+            if (candidatePaths.Count == 0)
+            {
+                Debug.LogWarning("[AnimationRootMotionExtractor] No bone found with complete position curves (x,y,z).");
+                return null;
+            }
+            
+            // 优先选择空路径（根对象），否则选择最短路径
+            string bestPath = null;
+            int minDepth = int.MaxValue;
+            
+            foreach (string path in candidatePaths)
+            {
+                if (string.IsNullOrEmpty(path))
+                {
+                    bestPath = path;
+                    break;
+                }
+                
+                int depth = path.Split('/').Length;
+                if (depth < minDepth)
+                {
+                    minDepth = depth;
+                    bestPath = path;
+                }
+            }
+            
+            Debug.Log($"[AnimationRootMotionExtractor] Found {candidatePaths.Count} candidate root bone(s), selected: '{bestPath ?? "null"}' (depth: {minDepth})");
+            
+            return bestPath;
         }
         
         /// <summary>
@@ -191,16 +301,103 @@ namespace Astrum.Editor.RoleEditor.Services
                 return new List<int>();
             }
             
-            Debug.Log($"[AnimationRootMotionExtractor] Found Hips bone: {baseHipsBone.name} at path {GetTransformPath(baseHipsBone)}");
+            string hipsPath = GetTransformPath(baseHipsBone);
+            Debug.Log($"[AnimationRootMotionExtractor] Model Hips bone: {baseHipsBone.name} at path {hipsPath}");
             
-            // 在两个模型上分别添加Animation组件
-            Animation baseAnim = baseModel.AddComponent<Animation>();
-            baseAnim.AddClip(baseClip, "BaseSample");
-            baseAnim.clip = baseClip;
+            // 使用AnimationUtility直接读取动画曲线数据，自动检测根骨骼
+            // 获取所有曲线绑定
+            EditorCurveBinding[] baseBindings = AnimationUtility.GetCurveBindings(baseClip);
+            EditorCurveBinding[] refBindings = AnimationUtility.GetCurveBindings(referenceClip);
             
-            Animation refAnim = refModel.AddComponent<Animation>();
-            refAnim.AddClip(referenceClip, "ReferenceSample");
-            refAnim.clip = referenceClip;
+            // 自动检测根骨骼路径（包含完整位置数据的骨骼）
+            string detectedRootBonePath = FindRootBonePath(baseBindings, refBindings);
+            
+            if (string.IsNullOrEmpty(detectedRootBonePath))
+            {
+                Debug.LogError($"[AnimationRootMotionExtractor] Could not auto-detect root bone in animation clips.");
+                Debug.LogError($"[AnimationRootMotionExtractor] Available bindings in base clip: {string.Join(", ", System.Array.ConvertAll(baseBindings, b => $"{b.path}/{b.propertyName}"))}");
+                Debug.LogError($"[AnimationRootMotionExtractor] Available bindings in ref clip: {string.Join(", ", System.Array.ConvertAll(refBindings, b => $"{b.path}/{b.propertyName}"))}");
+                Object.DestroyImmediate(baseModel);
+                Object.DestroyImmediate(refModel);
+                return new List<int>();
+            }
+            
+            Debug.Log($"[AnimationRootMotionExtractor] Auto-detected root bone path: '{detectedRootBonePath}'");
+            
+            // 检测使用的属性名格式
+            bool baseUsesRootMotion = UsesRootMotionFormat(baseBindings);
+            bool refUsesRootMotion = UsesRootMotionFormat(refBindings);
+            
+            // 根据格式选择属性名前缀
+            string posPrefix = baseUsesRootMotion ? "RootT" : "m_LocalPosition";
+            string rotPrefix = baseUsesRootMotion ? "RootQ" : "m_LocalRotation";
+            
+            Debug.Log($"[AnimationRootMotionExtractor] Base clip uses root motion format: {baseUsesRootMotion}, Ref clip uses root motion format: {refUsesRootMotion}");
+            
+            // 查找根骨骼的位置和旋转曲线（支持两种格式）
+            EditorCurveBinding? basePosX = null, basePosY = null, basePosZ = null;
+            EditorCurveBinding? baseRotX = null, baseRotY = null, baseRotZ = null, baseRotW = null;
+            EditorCurveBinding? refPosX = null, refPosY = null, refPosZ = null;
+            EditorCurveBinding? refRotX = null, refRotY = null, refRotZ = null, refRotW = null;
+            
+            foreach (var binding in baseBindings)
+            {
+                if (binding.path == detectedRootBonePath)
+                {
+                    if (binding.propertyName == $"{posPrefix}.x" || binding.propertyName == "m_LocalPosition.x" || binding.propertyName == "RootT.x") basePosX = binding;
+                    else if (binding.propertyName == $"{posPrefix}.y" || binding.propertyName == "m_LocalPosition.y" || binding.propertyName == "RootT.y") basePosY = binding;
+                    else if (binding.propertyName == $"{posPrefix}.z" || binding.propertyName == "m_LocalPosition.z" || binding.propertyName == "RootT.z") basePosZ = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.x" || binding.propertyName == "m_LocalRotation.x" || binding.propertyName == "RootQ.x") baseRotX = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.y" || binding.propertyName == "m_LocalRotation.y" || binding.propertyName == "RootQ.y") baseRotY = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.z" || binding.propertyName == "m_LocalRotation.z" || binding.propertyName == "RootQ.z") baseRotZ = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.w" || binding.propertyName == "m_LocalRotation.w" || binding.propertyName == "RootQ.w") baseRotW = binding;
+                }
+            }
+            
+            foreach (var binding in refBindings)
+            {
+                if (binding.path == detectedRootBonePath)
+                {
+                    if (binding.propertyName == $"{posPrefix}.x" || binding.propertyName == "m_LocalPosition.x" || binding.propertyName == "RootT.x") refPosX = binding;
+                    else if (binding.propertyName == $"{posPrefix}.y" || binding.propertyName == "m_LocalPosition.y" || binding.propertyName == "RootT.y") refPosY = binding;
+                    else if (binding.propertyName == $"{posPrefix}.z" || binding.propertyName == "m_LocalPosition.z" || binding.propertyName == "RootT.z") refPosZ = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.x" || binding.propertyName == "m_LocalRotation.x" || binding.propertyName == "RootQ.x") refRotX = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.y" || binding.propertyName == "m_LocalRotation.y" || binding.propertyName == "RootQ.y") refRotY = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.z" || binding.propertyName == "m_LocalRotation.z" || binding.propertyName == "RootQ.z") refRotZ = binding;
+                    else if (binding.propertyName == $"{rotPrefix}.w" || binding.propertyName == "m_LocalRotation.w" || binding.propertyName == "RootQ.w") refRotW = binding;
+                }
+            }
+            
+            // 检查是否找到必要的曲线
+            bool hasBasePos = basePosX.HasValue && basePosY.HasValue && basePosZ.HasValue;
+            bool hasRefPos = refPosX.HasValue && refPosY.HasValue && refPosZ.HasValue;
+            
+            if (!hasBasePos || !hasRefPos)
+            {
+                Debug.LogError($"[AnimationRootMotionExtractor] Could not find root bone curves. Base: {hasBasePos}, Ref: {hasRefPos}. Path: {detectedRootBonePath}");
+                Object.DestroyImmediate(baseModel);
+                Object.DestroyImmediate(refModel);
+                return new List<int>();
+            }
+            
+            // 获取曲线
+            AnimationCurve basePosXCurve = AnimationUtility.GetEditorCurve(baseClip, basePosX.Value);
+            AnimationCurve basePosYCurve = AnimationUtility.GetEditorCurve(baseClip, basePosY.Value);
+            AnimationCurve basePosZCurve = AnimationUtility.GetEditorCurve(baseClip, basePosZ.Value);
+            
+            AnimationCurve refPosXCurve = AnimationUtility.GetEditorCurve(referenceClip, refPosX.Value);
+            AnimationCurve refPosYCurve = AnimationUtility.GetEditorCurve(referenceClip, refPosY.Value);
+            AnimationCurve refPosZCurve = AnimationUtility.GetEditorCurve(referenceClip, refPosZ.Value);
+            
+            AnimationCurve baseRotXCurve = baseRotX.HasValue ? AnimationUtility.GetEditorCurve(baseClip, baseRotX.Value) : null;
+            AnimationCurve baseRotYCurve = baseRotY.HasValue ? AnimationUtility.GetEditorCurve(baseClip, baseRotY.Value) : null;
+            AnimationCurve baseRotZCurve = baseRotZ.HasValue ? AnimationUtility.GetEditorCurve(baseClip, baseRotZ.Value) : null;
+            AnimationCurve baseRotWCurve = baseRotW.HasValue ? AnimationUtility.GetEditorCurve(baseClip, baseRotW.Value) : null;
+            
+            AnimationCurve refRotXCurve = refRotX.HasValue ? AnimationUtility.GetEditorCurve(referenceClip, refRotX.Value) : null;
+            AnimationCurve refRotYCurve = refRotY.HasValue ? AnimationUtility.GetEditorCurve(referenceClip, refRotY.Value) : null;
+            AnimationCurve refRotZCurve = refRotZ.HasValue ? AnimationUtility.GetEditorCurve(referenceClip, refRotZ.Value) : null;
+            AnimationCurve refRotWCurve = refRotW.HasValue ? AnimationUtility.GetEditorCurve(referenceClip, refRotW.Value) : null;
             
             // 格式: [frameCount, dx0, dy0, dz0, rx0, ry0, rz0, rw0, dx1, dy1, dz1, rx1, ry1, rz1, rw1, ...]
             var result = new List<int> { totalFrames };
@@ -216,19 +413,42 @@ namespace Astrum.Editor.RoleEditor.Services
             {
                 float time = Mathf.Clamp(frame * FRAME_TIME, 0f, Mathf.Min(baseClip.length, referenceClip.length));
                 
-                // 采样基础动画（在不带位移的模型上）
-                baseAnim["BaseSample"].time = time;
-                baseAnim["BaseSample"].enabled = true;
-                baseAnim.Sample();
-                Vector3 baseHipsPos = baseHipsBone.localPosition;
-                Quaternion baseHipsRot = baseHipsBone.localRotation;
+                // 直接从曲线评估值
+                Vector3 baseHipsPos = new Vector3(
+                    basePosXCurve.Evaluate(time),
+                    basePosYCurve.Evaluate(time),
+                    basePosZCurve.Evaluate(time)
+                );
                 
-                // 采样参考动画（在带位移的模型上）
-                refAnim["ReferenceSample"].time = time;
-                refAnim["ReferenceSample"].enabled = true;
-                refAnim.Sample();
-                Vector3 refHipsPos = refHipsBone.localPosition;
-                Quaternion refHipsRot = refHipsBone.localRotation;
+                Vector3 refHipsPos = new Vector3(
+                    refPosXCurve.Evaluate(time),
+                    refPosYCurve.Evaluate(time),
+                    refPosZCurve.Evaluate(time)
+                );
+                
+                // 评估旋转（如果没有曲线，使用默认值）
+                Quaternion baseHipsRot = Quaternion.identity;
+                Quaternion refHipsRot = Quaternion.identity;
+                
+                if (baseRotXCurve != null && baseRotYCurve != null && baseRotZCurve != null && baseRotWCurve != null)
+                {
+                    baseHipsRot = new Quaternion(
+                        baseRotXCurve.Evaluate(time),
+                        baseRotYCurve.Evaluate(time),
+                        baseRotZCurve.Evaluate(time),
+                        baseRotWCurve.Evaluate(time)
+                    );
+                }
+                
+                if (refRotXCurve != null && refRotYCurve != null && refRotZCurve != null && refRotWCurve != null)
+                {
+                    refHipsRot = new Quaternion(
+                        refRotXCurve.Evaluate(time),
+                        refRotYCurve.Evaluate(time),
+                        refRotZCurve.Evaluate(time),
+                        refRotWCurve.Evaluate(time)
+                    );
+                }
                 
                 // 计算差值（参考动画 - 基础动画 = 真正的位移）
                 Vector3 hipsDelta = refHipsPos - baseHipsPos;
@@ -282,6 +502,112 @@ namespace Astrum.Editor.RoleEditor.Services
             Debug.Log($"[AnimationRootMotionExtractor] Extracted Hips motion difference: {totalFrames} frames, {result.Count} integers");
             
             return result;
+        }
+        
+        /// <summary>
+        /// 自动检测根骨骼路径（包含完整位置数据的骨骼）
+        /// 支持两种格式：
+        /// 1. 传统格式：m_LocalPosition.x/y/z, m_LocalRotation.x/y/z/w
+        /// 2. 根运动格式：RootT.x/y/z, RootQ.x/y/z/w
+        /// </summary>
+        private static string FindRootBonePath(EditorCurveBinding[] baseBindings, EditorCurveBinding[] refBindings)
+        {
+            // 统计每个路径（骨骼）在两个动画中的位置曲线数量
+            // 支持两种格式
+            Dictionary<string, int> basePathPosCount = new Dictionary<string, int>();
+            Dictionary<string, int> refPathPosCount = new Dictionary<string, int>();
+            
+            // 统计基础动画中每个路径的位置曲线
+            foreach (var binding in baseBindings)
+            {
+                // 传统格式：m_LocalPosition.x/y/z
+                // 根运动格式：RootT.x/y/z
+                if (binding.propertyName == "m_LocalPosition.x" || 
+                    binding.propertyName == "m_LocalPosition.y" || 
+                    binding.propertyName == "m_LocalPosition.z" ||
+                    binding.propertyName == "RootT.x" ||
+                    binding.propertyName == "RootT.y" ||
+                    binding.propertyName == "RootT.z")
+                {
+                    if (!basePathPosCount.ContainsKey(binding.path))
+                        basePathPosCount[binding.path] = 0;
+                    basePathPosCount[binding.path]++;
+                }
+            }
+            
+            // 统计参考动画中每个路径的位置曲线
+            foreach (var binding in refBindings)
+            {
+                if (binding.propertyName == "m_LocalPosition.x" || 
+                    binding.propertyName == "m_LocalPosition.y" || 
+                    binding.propertyName == "m_LocalPosition.z" ||
+                    binding.propertyName == "RootT.x" ||
+                    binding.propertyName == "RootT.y" ||
+                    binding.propertyName == "RootT.z")
+                {
+                    if (!refPathPosCount.ContainsKey(binding.path))
+                        refPathPosCount[binding.path] = 0;
+                    refPathPosCount[binding.path]++;
+                }
+            }
+            
+            // 找出在两个动画中都有完整位置数据（x,y,z = 3个曲线）的路径
+            List<string> candidatePaths = new List<string>();
+            foreach (var kvp in basePathPosCount)
+            {
+                if (kvp.Value == 3 && refPathPosCount.ContainsKey(kvp.Key) && refPathPosCount[kvp.Key] == 3)
+                {
+                    candidatePaths.Add(kvp.Key);
+                }
+            }
+            
+            if (candidatePaths.Count == 0)
+            {
+                Debug.LogWarning("[AnimationRootMotionExtractor] No bone found with complete position curves (x,y,z) in both animations.");
+                return null;
+            }
+            
+            // 如果有多个候选，选择路径最短的（通常是根骨骼，路径为空或最短）
+            // 优先选择空路径（根对象），否则选择最短路径
+            string bestPath = null;
+            int minDepth = int.MaxValue;
+            
+            foreach (string path in candidatePaths)
+            {
+                // 空路径表示根对象，优先级最高
+                if (string.IsNullOrEmpty(path))
+                {
+                    bestPath = path;
+                    break;
+                }
+                
+                // 计算路径深度（斜杠数量）
+                int depth = path.Split('/').Length;
+                if (depth < minDepth)
+                {
+                    minDepth = depth;
+                    bestPath = path;
+                }
+            }
+            
+            Debug.Log($"[AnimationRootMotionExtractor] Found {candidatePaths.Count} candidate root bone(s), selected: '{bestPath}' (depth: {minDepth})");
+            
+            return bestPath;
+        }
+        
+        /// <summary>
+        /// 检测动画使用的属性名格式（传统格式或根运动格式）
+        /// </summary>
+        private static bool UsesRootMotionFormat(EditorCurveBinding[] bindings)
+        {
+            foreach (var binding in bindings)
+            {
+                if (binding.propertyName == "RootT.x" || binding.propertyName == "RootQ.x")
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         
         /// <summary>
