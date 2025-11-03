@@ -35,6 +35,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         private System.Collections.Generic.List<int> _rootMotionDataArray = null; // 位移数据数组
         private Vector3 _initialPosition = Vector3.zero; // 模型的初始位置（用于重置）
         
+        // === 播放时长限制 ===
+        private float _maxPlaybackTime = -1f; // 最大播放时长（秒），-1表示不限制（播放完整动画）
+        
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
         // === 实体管理 ===
@@ -216,6 +219,24 @@ namespace Astrum.Editor.RoleEditor.Modules
             if (_previewInstance != null)
             {
                 _previewInstance.transform.position = _initialPosition;
+            }
+        }
+        
+        /// <summary>
+        /// 设置最大播放时长（基于Duration帧数）
+        /// </summary>
+        /// <param name="durationFrames">持续时间（逻辑帧数），-1表示不限制（播放完整动画）</param>
+        public void SetMaxPlaybackDuration(int durationFrames)
+        {
+            if (durationFrames <= 0)
+            {
+                // 不限制，播放完整动画
+                _maxPlaybackTime = -1f;
+            }
+            else
+            {
+                // 转换为时间（秒）
+                _maxPlaybackTime = durationFrames * FRAME_TIME;
             }
         }
         
@@ -531,14 +552,29 @@ namespace Astrum.Editor.RoleEditor.Modules
                 // 平滑播放：按照渲染帧更新（使用deltaTime）
                 float newTime = _currentAnimState.Time + deltaTime * _animationSpeed;
                 
-                // 循环播放
-                if (newTime >= _currentClip.length)
+                // 检查是否超过最大播放时长限制
+                bool shouldStop = false;
+                if (_maxPlaybackTime > 0f && newTime >= _maxPlaybackTime)
                 {
-                    newTime = newTime % _currentClip.length;
+                    // 超过duration限制，停止播放并停在最后一帧
+                    newTime = _maxPlaybackTime;
+                    shouldStop = true;
                 }
-                else if (newTime < 0)
+                else if (_maxPlaybackTime <= 0f)
                 {
-                    newTime = _currentClip.length + newTime;
+                    // 没有限制，但需要检查动画长度
+                    if (newTime >= _currentClip.length)
+                    {
+                        // 播放到动画结尾，停止（不循环）
+                        newTime = _currentClip.length;
+                        shouldStop = true;
+                    }
+                }
+                
+                // 确保时间不小于0
+                if (newTime < 0)
+                {
+                    newTime = 0f;
                 }
                 
                 _currentAnimState.Time = newTime;
@@ -551,6 +587,12 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 // 根据位移数据应用插值后的位移（RootMotion关闭时需要手动应用）
                 ApplyInterpolatedDisplacement(newTime);
+                
+                // 如果应该停止，停止播放
+                if (shouldStop)
+                {
+                    Pause();
+                }
             }
         }
         

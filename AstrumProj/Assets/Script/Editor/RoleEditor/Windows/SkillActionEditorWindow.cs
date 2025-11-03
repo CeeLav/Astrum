@@ -440,6 +440,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                     action.Duration = animationTotalFrames;
                 }
                 
+                // 设置预览模块的最大播放时长（基于Duration）
+                _previewModule.SetMaxPlaybackDuration(action.Duration);
+                
                 // 时间轴显示完整动画帧数，可编辑范围为Duration
                 _timelineModule.SetFrameRange(animationTotalFrames, action.Duration);
             }
@@ -646,11 +649,20 @@ namespace Astrum.Editor.RoleEditor.Windows
                     skillAction.Duration = skillAction.AnimationDuration;
                 }
                 
+                // 更新预览模块的最大播放时长（如果只修改了Duration，不需要重新加载动画）
+                if (_previewModule != null)
+                {
+                    _previewModule.SetMaxPlaybackDuration(skillAction.Duration);
+                }
+                
                 // 时间轴显示完整动画帧数，可编辑范围为Duration
                 int timelineFrames = skillAction.AnimationDuration > 0 
                     ? skillAction.AnimationDuration 
                     : skillAction.Duration;
                 _timelineModule.SetFrameRange(timelineFrames, skillAction.Duration);
+                
+                // 如果修改了动画路径或其他需要重新加载的字段，才重新加载动画
+                // 这里暂时保留 LoadAnimationForAction，但可以考虑优化为只更新必要的内容
                 LoadAnimationForAction(skillAction);
             }
         }
