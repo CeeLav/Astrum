@@ -85,6 +85,14 @@ namespace Astrum.Editor.RoleEditor.Data
         public string HipsBoneName = "Hips";
         
         /// <summary>
+        /// 是否提取旋转数据
+        /// </summary>
+        [TitleGroup("动画位移")]
+        [LabelText("提取旋转")]
+        [InfoBox("是否同时提取根骨骼的旋转数据（四元数）。默认只提取位置位移。", InfoMessageType.Info)]
+        public bool ExtractRotation = false;
+        
+        /// <summary>
         /// 根节点位移数据（整型数组格式，用于保存到CSV）
         /// Luban 类型：array,int#sep=,
         /// 编辑器端直接使用运行时数据结构，提取时直接转为定点数并序列化
@@ -182,6 +190,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.ReferenceAnimationPath = this.ReferenceAnimationPath;
             clone.ReferenceAnimationClip = this.ReferenceAnimationClip;
             clone.HipsBoneName = this.HipsBoneName;
+            clone.ExtractRotation = this.ExtractRotation;
             clone.RootMotionDataArray = new List<int>(this.RootMotionDataArray);
             
             // 深拷贝触发帧数据

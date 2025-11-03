@@ -21,8 +21,9 @@ namespace Astrum.Editor.RoleEditor.Services
         /// 支持两种格式：传统格式（m_LocalPosition/m_LocalRotation）和根运动格式（RootT/RootQ）
         /// </summary>
         /// <param name="clip">动画片段</param>
+        /// <param name="extractRotation">是否提取旋转数据，默认为false（只提取位置）</param>
         /// <returns>整型数组（Luban格式），如果动画没有Root Motion则返回空列表</returns>
-        public static List<int> ExtractRootMotionToIntArray(AnimationClip clip)
+        public static List<int> ExtractRootMotionToIntArray(AnimationClip clip, bool extractRotation = false)
         {
             if (clip == null)
             {
@@ -202,10 +203,23 @@ namespace Astrum.Editor.RoleEditor.Services
                 result.Add((int)(deltaPosition.x * SCALE));
                 result.Add((int)(deltaPosition.y * SCALE));
                 result.Add((int)(deltaPosition.z * SCALE));
-                result.Add((int)(deltaRotation.x * SCALE));
-                result.Add((int)(deltaRotation.y * SCALE));
-                result.Add((int)(deltaRotation.z * SCALE));
-                result.Add((int)(deltaRotation.w * SCALE));
+                
+                // 根据参数决定是否添加旋转数据
+                if (extractRotation)
+                {
+                    result.Add((int)(deltaRotation.x * SCALE));
+                    result.Add((int)(deltaRotation.y * SCALE));
+                    result.Add((int)(deltaRotation.z * SCALE));
+                    result.Add((int)(deltaRotation.w * SCALE));
+                }
+                else
+                {
+                    // 不提取旋转时，填充 identity quaternion (0, 0, 0, 1)
+                    result.Add(0); // rx
+                    result.Add(0); // ry
+                    result.Add(0); // rz
+                    result.Add((int)(1.0f * SCALE)); // rw = 1
+                }
                 
                 // 保存当前值作为下一帧的前一帧
                 if (frame > 0)
@@ -299,12 +313,14 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <param name="referenceClip">参考动画（带位移）</param>
         /// <param name="hipsBoneName">Hips骨骼名称，默认为"Hips"</param>
         /// <param name="modelGameObject">角色模型GameObject（用于查找Hips骨骼）</param>
+        /// <param name="extractRotation">是否提取旋转数据，默认为false（只提取位置）</param>
         /// <returns>整型数组（Luban格式），如果提取失败则返回空列表</returns>
         public static List<int> ExtractHipsMotionDifference(
             AnimationClip baseClip, 
             AnimationClip referenceClip, 
             string hipsBoneName = "Hips",
-            GameObject modelGameObject = null)
+            GameObject modelGameObject = null,
+            bool extractRotation = false)
         {
             if (baseClip == null || referenceClip == null)
             {
@@ -528,10 +544,23 @@ namespace Astrum.Editor.RoleEditor.Services
                 result.Add((int)(deltaPosition.x * SCALE));
                 result.Add((int)(deltaPosition.y * SCALE));
                 result.Add((int)(deltaPosition.z * SCALE));
-                result.Add((int)(deltaRotation.x * SCALE));
-                result.Add((int)(deltaRotation.y * SCALE));
-                result.Add((int)(deltaRotation.z * SCALE));
-                result.Add((int)(deltaRotation.w * SCALE));
+                
+                // 根据参数决定是否添加旋转数据
+                if (extractRotation)
+                {
+                    result.Add((int)(deltaRotation.x * SCALE));
+                    result.Add((int)(deltaRotation.y * SCALE));
+                    result.Add((int)(deltaRotation.z * SCALE));
+                    result.Add((int)(deltaRotation.w * SCALE));
+                }
+                else
+                {
+                    // 不提取旋转时，填充 identity quaternion (0, 0, 0, 1)
+                    result.Add(0); // rx
+                    result.Add(0); // ry
+                    result.Add(0); // rz
+                    result.Add((int)(1.0f * SCALE)); // rw = 1
+                }
                 
                 // 保存当前帧数据作为下一帧的前一帧
                 prevHipsDelta = hipsDelta;

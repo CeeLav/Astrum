@@ -407,7 +407,7 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 提取根节点位移数据并直接序列化为整型数组
             if (clip != null)
             {
-                action.RootMotionDataArray = AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip);
+                action.RootMotionDataArray = AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip, action.ExtractRotation);
                 
                 // 将位移数据传递给预览模块（用于手动累加位移）
                 if (action.RootMotionDataArray != null && action.RootMotionDataArray.Count > 0)

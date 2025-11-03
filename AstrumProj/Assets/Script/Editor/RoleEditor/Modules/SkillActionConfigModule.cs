@@ -353,10 +353,12 @@ namespace Astrum.Editor.RoleEditor.Modules
                 List<int> result;
                 
                 // 根据提取模式选择不同的方法
+                bool extractRotation = _currentSkillAction.ExtractRotation;
+                
                 if (_currentSkillAction.ExtractMode == SkillActionEditorData.RootMotionExtractMode.RootTransform)
                 {
                     // 模式1：提取根骨骼位移
-                    result = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip);
+                    result = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip, extractRotation);
                 }
                 else // HipsDifference
                 {
@@ -380,7 +382,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                         baseClip: clip,
                         referenceClip: _currentSkillAction.ReferenceAnimationClip,
                         hipsBoneName: _currentSkillAction.HipsBoneName ?? "Hips",
-                        modelGameObject: model
+                        modelGameObject: model,
+                        extractRotation: extractRotation
                     );
                 }
                 
