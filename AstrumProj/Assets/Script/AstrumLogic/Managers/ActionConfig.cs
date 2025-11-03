@@ -5,6 +5,7 @@ using cfg;
 using cfg.Entity;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 
 namespace Astrum.LogicCore.Managers
@@ -133,6 +134,52 @@ namespace Astrum.LogicCore.Managers
             skillActionInfo.ActualCost = skillActionTable.ActualCost;
             skillActionInfo.ActualCooldown = skillActionTable.ActualCooldown;
             skillActionInfo.TriggerFrames = skillActionTable.TriggerFrames ?? string.Empty;
+            
+            // 加载根节点位移数据（如果存在）
+            // 注意：需要重新生成 Luban 代码后 RootMotionData 字段才会存在
+            // 使用反射安全访问，兼容字段不存在的情况
+            try
+            {
+                var rootMotionDataProperty = skillActionTable.GetType().GetProperty("RootMotionData");
+                if (rootMotionDataProperty != null)
+                {
+                    var rootMotionDataValue = rootMotionDataProperty.GetValue(skillActionTable);
+                    if (rootMotionDataValue is System.Collections.Generic.List<int> rootMotionDataList && 
+                        rootMotionDataList != null && 
+                        rootMotionDataList.Count > 0)
+                    {
+                        // 直接从整型数组转换为运行时数据（整型转定点数）
+                        // 这是最高效的方式，Luban 已解析为数组，无需字符串解析
+                        var rootMotionData = RootMotionDataConverter.ConvertFromIntArray(rootMotionDataList);
+                        
+                        if (rootMotionData != null && rootMotionData.HasMotion)
+                        {
+                            skillActionInfo.RootMotionData = rootMotionData;
+                            ASLogger.Instance.Debug($"[ActionConfig] Loaded root motion data for action {skillActionInfo.Id}: " +
+                                                    $"{rootMotionData.TotalFrames} frames");
+                        }
+                        else
+                        {
+                            skillActionInfo.RootMotionData = new AnimationRootMotionData();
+                        }
+                    }
+                    else
+                    {
+                        skillActionInfo.RootMotionData = new AnimationRootMotionData();
+                    }
+                }
+                else
+                {
+                    // RootMotionData 字段不存在（Luban 代码未重新生成）
+                    skillActionInfo.RootMotionData = new AnimationRootMotionData();
+                    ASLogger.Instance.Debug($"[ActionConfig] RootMotionData field not found in SkillActionTable (Luban code needs regeneration)");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Warning($"[ActionConfig] Failed to load root motion data for action {skillActionInfo.Id}: {ex.Message}");
+                skillActionInfo.RootMotionData = new AnimationRootMotionData();
+            }
         }
         
         // ========== 以下是 JSON 解析方法 ==========

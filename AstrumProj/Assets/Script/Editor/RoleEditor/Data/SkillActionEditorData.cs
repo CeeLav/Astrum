@@ -40,6 +40,16 @@ namespace Astrum.Editor.RoleEditor.Data
         [HideInInspector]
         public List<TriggerFrameData> TriggerEffects = new List<TriggerFrameData>();
         
+        // === 根节点位移数据 ===
+        
+        /// <summary>
+        /// 根节点位移数据（整型数组格式，用于保存到CSV）
+        /// Luban 类型：array,int#sep=,
+        /// 编辑器端直接使用运行时数据结构，提取时直接转为定点数并序列化
+        /// </summary>
+        [HideInInspector]
+        public List<int> RootMotionDataArray = new List<int>();
+        
         // === 核心方法 ===
         
         /// <summary>

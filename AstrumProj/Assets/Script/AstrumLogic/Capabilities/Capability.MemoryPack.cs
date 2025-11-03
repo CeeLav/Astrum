@@ -13,6 +13,7 @@ namespace Astrum.LogicCore.Capabilities
     [MemoryPackUnion(5, typeof(IdleStateCapability))]
     [MemoryPackUnion(6, typeof(MoveStateCapability))]
     [MemoryPackUnion(7, typeof(BattleStateCapability))]
+    [MemoryPackUnion(8, typeof(SkillDisplacementCapability))]
     [MemoryPackable]
     public abstract partial class Capability
     {

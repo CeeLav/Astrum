@@ -398,7 +398,27 @@ namespace Astrum.Editor.RoleEditor.Windows
             }
             
             // 加载动画片段
+            AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(action.AnimationPath);
             _previewModule.LoadAnimationFromPath(action.AnimationPath);
+            
+            // 提取根节点位移数据并直接序列化为整型数组
+            if (clip != null)
+            {
+                action.RootMotionDataArray = AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip);
+                
+                if (action.RootMotionDataArray != null && action.RootMotionDataArray.Count > 0)
+                {
+                    // 获取帧数（数组第一个元素）
+                    int frameCount = action.RootMotionDataArray[0];
+                    Debug.Log($"[SkillActionEditor] Extracted root motion for action {action.ActionId}: " +
+                              $"{frameCount} frames, " +
+                              $"data array size: {action.RootMotionDataArray.Count} integers");
+                }
+                else
+                {
+                    action.RootMotionDataArray = new List<int>();
+                }
+            }
             
             // 计算动画总帧数
             int animationTotalFrames = _previewModule.GetTotalFrames();

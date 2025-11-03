@@ -25,6 +25,10 @@ namespace Astrum.LogicCore.SkillSystem
         [MemoryPackAllowSerialize]
         public List<TriggerFrameInfo> TriggerEffects { get; set; } = new();
         
+        /// <summary>根节点位移数据（运行时数据，从配置表加载）</summary>
+        [MemoryPackAllowSerialize]
+        public AnimationRootMotionData RootMotionData { get; set; }
+        
         /// <summary>
         /// 默认构造函数
         /// </summary>
@@ -44,7 +48,7 @@ namespace Astrum.LogicCore.SkillSystem
             bool keepPlayingAnim, bool autoTerminate, int priority, int duration,
             // 派生类SkillActionInfo的参数
             int actualCost, int actualCooldown, 
-            string triggerFrames, List<TriggerFrameInfo> triggerEffects)
+            string triggerFrames, List<TriggerFrameInfo> triggerEffects, AnimationRootMotionData rootMotionData)
             : base(id, catalog, cancelTags, beCancelledTags, tempBeCancelledTags, commands,
                    autoNextActionId, keepPlayingAnim, autoTerminate, priority, duration)
         {
@@ -52,6 +56,7 @@ namespace Astrum.LogicCore.SkillSystem
             ActualCooldown = actualCooldown;
             TriggerFrames = triggerFrames ?? string.Empty;
             TriggerEffects = triggerEffects ?? new List<TriggerFrameInfo>();
+            RootMotionData = rootMotionData ?? new AnimationRootMotionData();
         }
     }
 }
