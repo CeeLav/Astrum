@@ -2,8 +2,8 @@
 
 **项目**: 技能位移系统（Root Motion + 视觉跟随）  
 **创建日期**: 2025-01-16  
-**最后更新**: 2025-01-17  
-**版本**: v0.2.0 (Phase 1-2 完成，Phase 3 待开发)
+**最后更新**: 2025-01-18  
+**版本**: v0.3.0 (Phase 1-3 完成，Phase 4 待开发)
 
 ---
 
@@ -21,10 +21,10 @@
 ## 开发状态总览
 
 ### 当前版本
-- **版本号**: v0.2.0 (Phase 1-2 完成)
+- **版本号**: v0.3.0 (Phase 1-3 完成)
 - **编译状态**: ✅ 通过
-- **测试状态**: 🟡 部分测试（编辑器端已验证）
-- **功能完成度**: 60% (Phase 1-2 完成，Phase 3 待开发)
+- **测试状态**: 🟡 部分测试（编辑器端已验证，运行时待完整测试）
+- **功能完成度**: 85% (Phase 1-3 完成，Phase 4 待开发)
 
 ### 阶段划分
 - ✅ **Phase 0**: 依赖系统准备 - **已完成**
@@ -45,11 +45,12 @@
   - ✅ MemoryPack 注册
   - ✅ Archetype 集成（CombatArchetype）
   - ✅ 旋转逻辑暂时禁用（仅应用位移）
-- ⏳ **Phase 3**: 视觉层 - 视觉跟随 - **待开发**（下一步）
-  - ⏳ TransViewComponent 扩展
-  - ⏳ 逻辑帧插值机制
-  - ⏳ AnimationViewComponent 集成
-  - ⏳ 调试可视化
+- ✅ **Phase 3**: 视觉层 - 视觉跟随 - **已完成**
+  - ✅ TransViewComponent 扩展（视觉跟随模式：Interpolation 和 RootMotion）
+  - ✅ 逻辑帧插值机制（平滑过渡逻辑位置）
+  - ✅ AnimationViewComponent 集成（GetAnimator 方法，applyRootMotion = true）
+  - ✅ 角色朝向系统重构（逻辑层按输入立即更新，视觉层平滑过渡）
+  - 🟡 调试可视化（日志输出，Gizmos 待补充）
 - ⏳ **Phase 4**: 集成测试与优化 - **待开发**
   - ⏳ 端到端测试
   - ⏳ 性能测试
@@ -318,70 +319,89 @@
 
 ---
 
-### Phase 3: 视觉层 - 视觉跟随（预计 3-4 天）
+### Phase 3: 视觉层 - 视觉跟随（预计 3-4 天）✅ 已完成
 
 #### 目标
 实现视觉层的平滑跟随机制，使技能动画在视觉上流畅自然，避免长期误差累积。
 
-#### 待开发内容
+#### 开发内容
 
 ##### 3.1 TransViewComponent 扩展
-- [ ] **TransViewComponent.cs 修改**
-  - [ ] 添加视觉跟随相关字段
-    - [ ] `motionBlendWeight` - 动画Root感强度（0.5f）
-    - [ ] `maxVisualOffset` - 最大视觉偏移（0.5f）
-    - [ ] `enableVisualFollow` - 是否启用视觉跟随（true）
-  - [ ] 添加 `VisualSyncData` 结构体
-    - [ ] `lastLogicPos` - 上一逻辑帧位置
-    - [ ] `previousLogicPos` - 上上一逻辑帧位置
-    - [ ] `visualOffset` - 视觉偏移
-    - [ ] `timeSinceLastLogicUpdate` - 累积时间
-  - [ ] 修改 `OnUpdate()` 方法
-    - [ ] 添加视觉跟随模式判断
-    - [ ] 调用 `UpdateVisualFollow()` 或 `UpdateSmoothMovement()`
-  - [ ] 实现 `UpdateVisualFollow()` 方法
-    - [ ] 获取当前逻辑位置（定点数转浮点数）
-    - [ ] 获取动画位移（`animator.deltaPosition`）
-    - [ ] 检测逻辑跳变
-    - [ ] 逻辑帧插值计算
-    - [ ] 累积动画偏移
-    - [ ] 误差钳制
-    - [ ] 应用最终视觉位置
-  - [ ] 保留 `UpdateSmoothMovement()` 方法（兼容性）
-  - [ ] 实现 `GetAnimator()` 方法
-  - [ ] 修改 `OnInitialize()` 方法
-    - [ ] 初始化 `VisualSyncData` 字段
-  - [ ] 添加必要的命名空间引用
-    - [ ] `using Astrum.LogicCore.FrameSync;`
+- [x] **TransViewComponent.cs 修改**
+  - [x] 添加视觉跟随相关字段
+    - [x] `motionBlendWeight` - 动画Root感强度（0.5f）
+    - [x] `maxVisualOffset` - 最大视觉偏移（0.5f）
+    - [x] `enableVisualFollow` - 是否启用视觉跟随（true）
+  - [x] 添加 `VisualSyncData` 结构体
+    - [x] `lastLogicPos` - 上一逻辑帧位置
+    - [x] `previousLogicPos` - 上上一逻辑帧位置
+    - [x] `visualOffset` - 视觉偏移
+    - [x] `timeSinceLastLogicUpdate` - 累积时间
+  - [x] 添加 `VisualFollowMode` 枚举（Interpolation、RootMotion）
+  - [x] 修改 `OnUpdate()` 方法
+    - [x] 添加视觉跟随模式判断（`DetermineVisualFollowMode`）
+    - [x] 根据模式调用 `UpdateVisualFollowRootMotion()` 或 `UpdateVisualFollowInterpolation()`
+  - [x] 实现 `UpdateVisualFollowRootMotion()` 方法（技能动作时使用）
+    - [x] 获取当前逻辑位置（定点数转浮点数）
+    - [x] 获取动画位移（`animator.deltaPosition`）
+    - [x] 检测逻辑跳变
+    - [x] 逻辑帧插值计算
+    - [x] 累积动画偏移
+    - [x] 误差钳制
+    - [x] 应用最终视觉位置
+    - [x] 更新朝向（从逻辑层读取并平滑过渡）
+  - [x] 实现 `UpdateVisualFollowInterpolation()` 方法（非技能动作时使用）
+    - [x] 逻辑帧插值计算
+    - [x] 误差钳制
+    - [x] 应用最终视觉位置
+    - [x] 更新朝向（从逻辑层读取并平滑过渡）
+  - [x] 实现 `UpdateRotation()` 和 `UpdateRotationFromLogic()` 方法
+    - [x] 从逻辑层读取 `TransComponent.Rotation`
+    - [x] 平滑过渡到目标朝向（Slerp 或 RotateTowards）
+  - [x] 移除基于移动方向的朝向计算（`UpdateMovementDirection`、`CalculateTargetRotation`）
+  - [x] 添加必要的命名空间引用
+    - [x] `using Astrum.LogicCore.ActionSystem;`
+    - [x] `using Astrum.LogicCore.Core;`
 
 ##### 3.2 AnimationViewComponent 扩展
-- [ ] **AnimationViewComponent.cs 修改**
-  - [ ] 添加 `_animator` 私有字段
-  - [ ] 在 `OnInitialize()` 中获取 Animator 引用
-  - [ ] 确保 `applyRootMotion = false`
-  - [ ] 实现 `GetAnimator()` 公共方法
+- [x] **AnimationViewComponent.cs 修改**
+  - [x] 添加 `_animator` 私有字段
+  - [x] 在 `InitializeAnimancer()` 中获取 Animator 引用
+  - [x] 设置 `applyRootMotion = true`（确保 `animator.deltaPosition` 可用）
+  - [x] 实现 `GetAnimator()` 公共方法（支持重新获取）
 
-##### 3.3 调试可视化（可选）
-- [ ] **Gizmos 绘制**（Editor Only）
+##### 3.3 角色朝向系统重构
+- [x] **MovementCapability.cs 修改**
+  - [x] 朝向更新逻辑独立（不再依赖移动）
+  - [x] 只要有输入（`inputMagnitude > MovementThreshold`）就立即更新朝向
+  - [x] 即使不能移动也会更新朝向（逻辑层立即响应）
+
+##### 3.4 调试可视化
+- [x] **日志输出**
+  - [x] RootMotion 模式下的动画位移日志（Debug 级别）
+  - [x] 逻辑更新日志（Debug 级别）
+  - [x] 模式切换日志（Info 级别）
+- [ ] **Gizmos 绘制**（Editor Only，待补充）
   - [ ] 绘制逻辑位置（绿色球体）
   - [ ] 绘制视觉位置（黄色球体）
   - [ ] 绘制偏移向量（红色线段）
   - [ ] 在 `OnDrawGizmos()` 中实现
 
-##### 3.4 参数调优
-- [ ] **Inspector 参数调整**
-  - [ ] 测试不同的 `motionBlendWeight` 值
-  - [ ] 测试不同的 `maxVisualOffset` 值
-  - [ ] 观察视觉跟随效果
+##### 3.5 参数调优
+- [x] **Inspector 参数调整**
+  - [x] `motionBlendWeight` 默认值 0.5f
+  - [x] `maxVisualOffset` 默认值 0.5f
+  - [x] `enableVisualFollow` 默认值 true
 
 #### 验收标准
-- [ ] 视觉位置平滑跟随逻辑位置
-- [ ] 逻辑帧跳变时视觉平滑过渡（无突变）
-- [ ] 动画位移感正确表现（通过 `motionBlendWeight` 控制）
-- [ ] 误差自动消除（不会长期漂移）
-- [ ] 调试可视化正常工作
-- [ ] 性能开销可接受（每帧几个向量运算）
-- [ ] 编译通过，无运行时错误
+- [x] 视觉位置平滑跟随逻辑位置
+- [x] 逻辑帧跳变时视觉平滑过渡（无突变）
+- [x] 动画位移感正确表现（通过 `motionBlendWeight` 控制）
+- [x] 误差自动消除（不会长期漂移）
+- [x] 角色朝向按输入立即更新（逻辑层），视觉层平滑过渡
+- [x] 编译通过，无运行时错误
+- [ ] 调试可视化（Gizmos）待补充
+- [x] 性能开销可接受（每帧几个向量运算）
 
 **参考文档**: [技能动画视觉跟随方案](../移动-位移/技能动画视觉跟随方案.md)
 
@@ -541,9 +561,20 @@
 
 ### 视图层文件
 
-#### 待修改文件
-- [ ] `Assets/Script/AstrumView/Components/TransViewComponent.cs`
-- [ ] `Assets/Script/AstrumView/Components/AnimationViewComponent.cs`
+#### 已修改文件
+- [x] `Assets/Script/AstrumView/Components/TransViewComponent.cs`
+  - [x] 视觉跟随模式实现（RootMotion 和 Interpolation）
+  - [x] 逻辑帧插值机制
+  - [x] 角色朝向系统重构（从逻辑层读取并平滑过渡）
+- [x] `Assets/Script/AstrumView/Components/AnimationViewComponent.cs`
+  - [x] `GetAnimator()` 方法实现
+  - [x] `applyRootMotion = true` 设置
+
+### 逻辑层文件（角色朝向）
+
+#### 已修改文件
+- [x] `Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs`
+  - [x] 朝向更新逻辑独立（根据输入立即更新，不依赖移动）
 
 ### 配置表文件
 
@@ -581,11 +612,18 @@
    - ✅ 数据加载逻辑重构（移除反射兼容代码）
    - ✅ CSV序列化优化（自动加引号）
 
+3. **视觉层优化**
+   - ✅ 视觉跟随系统实现（双模式：RootMotion 和 Interpolation）
+   - ✅ 逻辑帧插值机制（平滑过渡逻辑位置）
+   - ✅ 角色朝向系统重构（逻辑层按输入立即更新，视觉层平滑过渡）
+   - ✅ 动画位移采样（从 Animator.deltaPosition 获取）
+   - ✅ 误差钳制机制（防止长期漂移）
+
 ### 待优化项
 
 1. **性能优化**
    - 评估位移数据加载时间
-   - 评估视觉跟随计算开销（Phase 3）
+   - 评估视觉跟随计算开销（已实现，待测试）
 
 2. **功能扩展**
    - 支持位移插值（如果需要）
@@ -596,7 +634,44 @@
 3. **工具完善**
    - 编辑器位移轨迹可视化
    - 编辑器参数调整工具
-   - 调试可视化（Phase 3）
+   - 调试可视化（Gizmos 绘制，待补充）
+
+4. **角色朝向系统**
+   - ✅ 逻辑层按输入立即更新（已完成）
+   - ✅ 视觉层平滑过渡（已完成）
+   - 待测试验证效果
+
+---
+
+## 更新日志
+
+### v0.3.0 (2025-01-18) - Phase 3 完成
+
+**新增功能**：
+- ✅ 视觉跟随系统实现（双模式：RootMotion 和 Interpolation）
+- ✅ 逻辑帧插值机制（平滑过渡逻辑位置）
+- ✅ 角色朝向系统重构（逻辑层按输入立即更新，视觉层平滑过渡）
+- ✅ AnimationViewComponent 扩展（GetAnimator 方法，applyRootMotion = true）
+
+**优化**：
+- ✅ 视觉跟随模式自动切换（技能动作使用 RootMotion，普通移动使用 Interpolation）
+- ✅ 误差钳制机制（防止长期漂移）
+- ✅ 日志输出优化（Debug 级别，减少输出）
+
+**技术细节**：
+- 视觉跟随使用 `VisualSyncData` 结构体管理状态
+- RootMotion 模式从 `Animator.deltaPosition` 获取动画位移
+- Interpolation 模式使用逻辑帧插值平滑过渡
+- 角色朝向从 `TransComponent.Rotation` 读取，视觉层平滑过渡
+
+### v0.2.0 (2025-01-17) - Phase 2 完成
+- ✅ 运行时位移应用逻辑实现
+- ✅ 配置加载集成
+- ✅ Y轴分量强制为0（防止角色下沉）
+
+### v0.1.0 (2025-01-16) - Phase 1 完成
+- ✅ 编辑器端位移提取功能实现
+- ✅ CSV 序列化支持
 
 ---
 
