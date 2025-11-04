@@ -71,7 +71,19 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             var deltaTime = LSConstValue.UpdateInterval / 1000f; // 秒（float）
-            // 直接移动
+            
+            // 1. 更新朝向（根据输入方向，立即更新，不依赖移动）
+            // 只要有输入就更新朝向，即使不能移动也要更新朝向
+            if (inputMagnitude > MovementThreshold)
+            {
+                TSVector inputDirection = new TSVector(moveX, FP.Zero, moveY);
+                if (inputDirection.sqrMagnitude > FP.EN4)  // 避免零向量
+                {
+                    positionComponent.Rotation = TSQuaternion.LookRotation(inputDirection, TSVector.up);
+                }
+            }
+            
+            // 2. 处理移动（如果可以移动）
             if (inputMagnitude > MovementThreshold && movementComponent.CanMove)
             {
                 // 根据输入方向和速度计算移动距离
@@ -83,16 +95,6 @@ namespace Astrum.LogicCore.Capabilities
                 // 更新位置
                 var pos = positionComponent.Position;
                 positionComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
-                
-                // 更新朝向（根据移动方向）
-                if (inputMagnitude > MovementThreshold)
-                {
-                    TSVector moveDirection = new TSVector(moveX, FP.Zero, moveY);
-                    if (moveDirection.sqrMagnitude > FP.EN4)  // 避免零向量
-                    {
-                        positionComponent.Rotation = TSQuaternion.LookRotation(moveDirection, TSVector.up);
-                    }
-                }
                 
                 // 【物理世界同步】更新实体在物理世界中的位置
                 if (OwnerEntity is AstrumEntity astrumEntity && astrumEntity.World != null)

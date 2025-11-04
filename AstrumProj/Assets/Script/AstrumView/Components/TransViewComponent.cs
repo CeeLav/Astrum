@@ -161,14 +161,11 @@ namespace Astrum.View.Components
             else
             {
                 // 使用原有的平滑移动逻辑
-                // 检测移动方向并计算朝向
-                if (enableRotationToMovement)
-                {
-                    UpdateMovementDirection();
-                }
-                
                 // 更新移动
                 UpdateMovement(deltaTime);
+                
+                // 更新朝向（从逻辑层读取并平滑过渡）
+                UpdateRotation(deltaTime);
             }
 
         }
@@ -192,54 +189,51 @@ namespace Astrum.View.Components
         }
         
         /// <summary>
-        /// 更新移动方向
+        /// 更新旋转（从逻辑层读取并平滑过渡）
         /// </summary>
-        private void UpdateMovementDirection()
+        /// <param name="deltaTime">帧时间</param>
+        private void UpdateRotation(float deltaTime)
         {
             if (_ownerEntityView == null) return;
             
-            Vector3 currentPosition = _ownerEntityView.GetWorldPosition();
-            Vector3 positionDelta = currentPosition - _lastPosition;
+            var ownerEntity = _ownerEntityView.OwnerEntity;
+            if (ownerEntity == null) return;
             
-            // 检查是否有足够的移动距离
-            //if (positionDelta.magnitude > rotationThreshold)
+            var transComponent = ownerEntity.GetComponent<TransComponent>();
+            if (transComponent == null) return;
+            
+            // 从逻辑层读取目标旋转（定点数转浮点数）
+            var fixedRot = transComponent.Rotation;
+            Quaternion logicRotation = new Quaternion(
+                (float)fixedRot.x,
+                (float)fixedRot.y,
+                (float)fixedRot.z,
+                (float)fixedRot.w
+            );
+            
+            // 更新目标旋转
+            _targetRotation = logicRotation;
+            
+            // 平滑旋转到目标朝向
+            Quaternion currentRotation = _ownerEntityView.GetWorldRotation();
+            if (Quaternion.Angle(currentRotation, _targetRotation) > 0.1f)
             {
-                _movementDirection = positionDelta.normalized;
+                Quaternion newRotation;
+                if (smoothRotation)
+                {
+                    newRotation = Quaternion.Slerp(currentRotation, _targetRotation, rotationSmoothTime * deltaTime * 10f);
+                }
+                else
+                {
+                    newRotation = Quaternion.RotateTowards(currentRotation, _targetRotation, rotationSpeed * deltaTime);
+                }
+                _ownerEntityView.SetWorldRotation(newRotation);
                 _isRotating = true;
-                
-                // 计算目标旋转（朝向移动方向）
-                _targetRotation = CalculateTargetRotation(_movementDirection);
-                
-                ASLogger.Instance.Debug($"TransViewComponent: 检测到移动方向 {_movementDirection}, 目标旋转 {_targetRotation.eulerAngles}", "View.Rotation");
             }
-            //else
+            else
             {
                 _isRotating = false;
             }
-            
-            // 更新上一帧位置
-            _lastPosition = currentPosition;
-        }
-        
-        /// <summary>
-        /// 计算目标旋转
-        /// </summary>
-        /// <param name="direction">移动方向</param>
-        /// <returns>目标旋转</returns>
-        private Quaternion CalculateTargetRotation(Vector3 direction)
-        {
-            // 忽略Y轴，只考虑XZ平面的方向
-            Vector3 flatDirection = new Vector3(direction.x, 0f, direction.z);
-            
-            if (flatDirection.magnitude < 0.01f)
-            {
-                return _targetRotation; // 保持当前旋转
-            }
-            
-            flatDirection.Normalize();
-            
-            // 计算朝向移动方向的旋转
-            return Quaternion.LookRotation(flatDirection);
         }
         
         /// <summary>
@@ -281,22 +275,8 @@ namespace Astrum.View.Components
                 }
             }
             
-            // 平滑旋转
-            if (Quaternion.Angle(currentRotation, _targetRotation) > 0.1f)
-            {
-                Quaternion newRotation;
-                if (smoothRotation)
-                {
-                    // 使用Slerp进行平滑旋转
-                    newRotation = Quaternion.Slerp(currentRotation, _targetRotation, rotationSmoothTime * deltaTime * 10f);
-                }
-                else
-                {
-                    // 使用RotateTowards进行线性旋转
-                    newRotation = Quaternion.RotateTowards(currentRotation, _targetRotation, rotationSpeed * deltaTime);
-                }
-                _ownerEntityView.SetWorldRotation(newRotation);
-            }
+            // 更新朝向（从逻辑层读取并平滑过渡）
+            UpdateRotation(deltaTime);
         }
         
         /// <summary>
@@ -448,12 +428,12 @@ namespace Astrum.View.Components
                 // 添加日志输出，检查能否从动画获取采样
                 if (animDelta.sqrMagnitude > 0.0001f)
                 {
-                    ASLogger.Instance.Info($"[TransViewComponent] [RootMotion] Animator deltaPosition: {animDelta}, magnitude: {animDelta.magnitude:F6}", "View.VisualFollow");
+                    ASLogger.Instance.Debug($"[TransViewComponent] [RootMotion] Animator deltaPosition: {animDelta}, magnitude: {animDelta.magnitude:F6}", "View.VisualFollow");
                 }
                 else
                 {
                     // 如果 deltaPosition 为 0，记录警告
-                    ASLogger.Instance.Info($"[TransViewComponent] [RootMotion] Animator deltaPosition is zero (applyRootMotion={animator.applyRootMotion})", "View.VisualFollow");
+                    ASLogger.Instance.Debug($"[TransViewComponent] [RootMotion] Animator deltaPosition is zero (applyRootMotion={animator.applyRootMotion})", "View.VisualFollow");
                 }
             }
             else
@@ -490,7 +470,7 @@ namespace Astrum.View.Components
                 _visualSync.lastLogicPos = currentLogicPos;
                 _visualSync.timeSinceLastLogicUpdate = 0f;
                 
-                ASLogger.Instance.Info($"[TransViewComponent] [RootMotion] Logic updated: lastPos={_visualSync.previousLogicPos}, currentPos={currentLogicPos}, " +
+                ASLogger.Instance.Debug($"[TransViewComponent] [RootMotion] Logic updated: lastPos={_visualSync.previousLogicPos}, currentPos={currentLogicPos}, " +
                     $"logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}", "View.VisualFollow");
             }
             else
@@ -513,31 +493,8 @@ namespace Astrum.View.Components
             Vector3 finalVisualPos = currentLogicPos + _visualSync.visualOffset;
             _ownerEntityView.SetWorldPosition(finalVisualPos);
             
-            // 更新朝向（如果启用）
-            if (enableRotationToMovement && logicUpdated)
-            {
-                Vector3 movementDirection = logicDelta.normalized;
-                if (movementDirection.sqrMagnitude > 0.01f)
-                {
-                    _targetRotation = CalculateTargetRotation(movementDirection);
-                }
-            }
-            
-            // 平滑旋转
-            Quaternion currentRotation = _ownerEntityView.GetWorldRotation();
-            if (Quaternion.Angle(currentRotation, _targetRotation) > 0.1f)
-            {
-                Quaternion newRotation;
-                if (smoothRotation)
-                {
-                    newRotation = Quaternion.Slerp(currentRotation, _targetRotation, rotationSmoothTime * deltaTime * 10f);
-                }
-                else
-                {
-                    newRotation = Quaternion.RotateTowards(currentRotation, _targetRotation, rotationSpeed * deltaTime);
-                }
-                _ownerEntityView.SetWorldRotation(newRotation);
-            }
+            // 更新朝向（从逻辑层读取并平滑过渡）
+            UpdateRotationFromLogic(deltaTime);
         }
         
         /// <summary>
@@ -583,7 +540,7 @@ namespace Astrum.View.Components
                 _visualSync.lastLogicPos = currentLogicPos;
                 _visualSync.timeSinceLastLogicUpdate = 0f;
                 
-                ASLogger.Instance.Info($"[TransViewComponent] [Interpolation] Logic updated: lastPos={_visualSync.previousLogicPos}, currentPos={currentLogicPos}, " +
+                ASLogger.Instance.Debug($"[TransViewComponent] [Interpolation] Logic updated: lastPos={_visualSync.previousLogicPos}, currentPos={currentLogicPos}, " +
                     $"logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}", "View.VisualFollow");
             }
             else
@@ -613,17 +570,37 @@ namespace Astrum.View.Components
             Vector3 finalVisualPos = currentLogicPos + _visualSync.visualOffset;
             _ownerEntityView.SetWorldPosition(finalVisualPos);
             
-            // 更新朝向（如果启用）
-            if (enableRotationToMovement && logicUpdated)
-            {
-                Vector3 movementDirection = logicDelta.normalized;
-                if (movementDirection.sqrMagnitude > 0.01f)
-                {
-                    _targetRotation = CalculateTargetRotation(movementDirection);
-                }
-            }
+            // 更新朝向（从逻辑层读取并平滑过渡）
+            UpdateRotationFromLogic(deltaTime);
+        }
+        
+        /// <summary>
+        /// 从逻辑层更新旋转（视觉跟随模式和普通模式共用）
+        /// </summary>
+        /// <param name="deltaTime">帧时间</param>
+        private void UpdateRotationFromLogic(float deltaTime)
+        {
+            if (_ownerEntityView == null) return;
             
-            // 平滑旋转
+            var ownerEntity = _ownerEntityView.OwnerEntity;
+            if (ownerEntity == null) return;
+            
+            var transComponent = ownerEntity.GetComponent<TransComponent>();
+            if (transComponent == null) return;
+            
+            // 从逻辑层读取目标旋转（定点数转浮点数）
+            var fixedRot = transComponent.Rotation;
+            Quaternion logicRotation = new Quaternion(
+                (float)fixedRot.x,
+                (float)fixedRot.y,
+                (float)fixedRot.z,
+                (float)fixedRot.w
+            );
+            
+            // 更新目标旋转
+            _targetRotation = logicRotation;
+            
+            // 平滑旋转到目标朝向
             Quaternion currentRotation = _ownerEntityView.GetWorldRotation();
             if (Quaternion.Angle(currentRotation, _targetRotation) > 0.1f)
             {
@@ -637,6 +614,11 @@ namespace Astrum.View.Components
                     newRotation = Quaternion.RotateTowards(currentRotation, _targetRotation, rotationSpeed * deltaTime);
                 }
                 _ownerEntityView.SetWorldRotation(newRotation);
+                _isRotating = true;
+            }
+            else
+            {
+                _isRotating = false;
             }
         }
         
