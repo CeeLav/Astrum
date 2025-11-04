@@ -2,7 +2,7 @@
 
 > 作者：AI Assistant  
 > 日期：2025-11-04  
-> 版本：v1.4  
+> 版本：v1.5  
 > 适用范围：Astrum 客户端 ECC 架构
 
 ## 1. 方案概述
@@ -45,14 +45,16 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CapabilitySystem                        │
-│  （单例/静态系统，统一调度所有 Capability）                   │
+│  （World 成员变量，统一调度所有 Capability）                   │
 │                                                             │
 │  - 注册所有 Capability 类型                                  │
-│  - 按优先级遍历所有实体                                       │
-│  - 对每个实体：                                              │
+│  - 按优先级遍历所有 Capability                                │
+│  - 对每个 Capability：                                       │
+│    遍历所有实体，对拥有此 Capability 的实体：                 │
 │    1. 检查 ShouldActivate（判定激活条件）                     │
 │    2. 更新激活状态（OnActivate/OnDeactivate）                │
-│    3. 对激活的 Capability 调用 Tick(Entity)                  │
+│    3. 更新持续时间（ActiveDuration/DeactiveDuration）         │
+│    4. 对激活的 Capability 调用 Tick(Entity)                  │
 └─────────────────────────────────────────────────────────────┘
                             ▲
                             │ 统一调度
@@ -144,6 +146,18 @@ public partial struct CapabilityState
     /// 注意：CapabilityState 在字典中存在即表示实体拥有此 Capability
     /// </summary>
     public bool IsActive { get; set; }
+    
+    /// <summary>
+    /// 已激活持续时间（帧数，仅在 TrackActiveDuration 为 true 时更新）
+    /// 当 IsActive 为 true 时，每帧递增 1
+    /// </summary>
+    public int ActiveDuration { get; set; }
+    
+    /// <summary>
+    /// 已禁用持续时间（帧数，仅在 TrackDeactiveDuration 为 true 时更新）
+    /// 当 IsActive 为 false 时，每帧递增 1
+    /// </summary>
+    public int DeactiveDuration { get; set; }
     
     /// <summary>
     /// 自定义数据（预留字段，用于存储 Capability 特定的简单状态）
@@ -283,6 +297,18 @@ public interface ICapability
     IReadOnlySet<CapabilityTag> Tags { get; }
     
     /// <summary>
+    /// 是否跟踪激活持续时间（ActiveDuration）
+    /// 如果为 true，系统会在每帧更新 ActiveDuration
+    /// </summary>
+    bool TrackActiveDuration { get; }
+    
+    /// <summary>
+    /// 是否跟踪禁用持续时间（DeactiveDuration）
+    /// 如果为 true，系统会在每帧更新 DeactiveDuration
+    /// </summary>
+    bool TrackDeactiveDuration { get; }
+    
+    /// <summary>
     /// 判定此 Capability 是否应该激活
     /// 每帧调用，用于检查激活条件（如：所需组件是否存在、外部条件是否满足）
     /// </summary>
@@ -297,6 +323,7 @@ public interface ICapability
     /// <summary>
     /// 首次挂载到实体时调用（在 Archetype 装配时）
     /// 用于初始化 Entity 上的状态数据
+    /// 注意：此方法替代了原来的 Initialize() 方法
     /// </summary>
     void OnAttached(Entity entity);
     
@@ -353,31 +380,17 @@ public abstract class Capability<T> : ICapability where T : ICapability
     /// </summary>
     public virtual IReadOnlySet<CapabilityTag> Tags => EmptyTags;
     
+    /// <summary>
+    /// 是否跟踪激活持续时间（默认 false）
+    /// </summary>
+    public virtual bool TrackActiveDuration => false;
+    
+    /// <summary>
+    /// 是否跟踪禁用持续时间（默认 false）
+    /// </summary>
+    public virtual bool TrackDeactiveDuration => false;
+    
     private static readonly HashSet<CapabilityTag> EmptyTags = new HashSet<CapabilityTag>();
-    
-    /// <summary>
-    /// 初始化能力（兼容旧接口，可选实现）
-    /// </summary>
-    public virtual void Initialize()
-    {
-        // 子类可以重写此方法进行初始化
-    }
-    
-    /// <summary>
-    /// 激活时调用（兼容旧接口，可选实现）
-    /// </summary>
-    public virtual void OnActivate()
-    {
-        // 子类可以重写此方法
-    }
-    
-    /// <summary>
-    /// 停用时调用（兼容旧接口，可选实现）
-    /// </summary>
-    public virtual void OnDeactivate()
-    {
-        // 子类可以重写此方法
-    }
     
     /// <summary>
     /// 判定此 Capability 是否应该激活
@@ -416,21 +429,19 @@ public abstract class Capability<T> : ICapability where T : ICapability
     }
     
     /// <summary>
-    /// 激活时调用（新接口，传入 Entity）
+    /// 激活时调用
     /// </summary>
     public virtual void OnActivate(Entity entity)
     {
-        // 默认调用旧接口以保持兼容
-        OnActivate();
+        // 默认不执行任何操作
     }
     
     /// <summary>
-    /// 停用时调用（新接口，传入 Entity）
+    /// 停用时调用
     /// </summary>
     public virtual void OnDeactivate(Entity entity)
     {
-        // 默认调用旧接口以保持兼容
-        OnDeactivate();
+        // 默认不执行任何操作
     }
     
     /// <summary>
@@ -480,7 +491,10 @@ public abstract class Capability<T> : ICapability where T : ICapability
     /// </summary>
     protected bool IsCapabilityDisabled(Entity entity)
     {
-        var capability = CapabilitySystem.Instance.GetCapability(TypeId);
+        if (entity.World?.CapabilitySystem == null)
+            return false;
+        
+        var capability = entity.World.CapabilitySystem.GetCapability(TypeId);
         if (capability == null)
             return false;
         
@@ -518,11 +532,11 @@ public abstract class Capability<T> : ICapability where T : ICapability
 /// <summary>
 /// Capability 统一调度系统
 /// 负责所有 Capability 的激活判定和 Tick 执行
+/// World 的成员变量，支持序列化用于帧同步回滚
 /// </summary>
-public class CapabilitySystem
+[MemoryPackable]
+public partial class CapabilitySystem
 {
-    private static CapabilitySystem _instance;
-    public static CapabilitySystem Instance => _instance ??= new CapabilitySystem();
     
     /// <summary>
     /// 已注册的 Capability 列表（按优先级排序）
@@ -549,7 +563,7 @@ public class CapabilitySystem
     private readonly Dictionary<int, ICapability> _typeIdToCapability 
         = new Dictionary<int, ICapability>();
     
-    private CapabilitySystem() { }
+    public CapabilitySystem() { }
     
     /// <summary>
     /// 初始化系统（在游戏启动时调用）
@@ -669,95 +683,97 @@ public class CapabilitySystem
     }
     
     /// <summary>
-    /// 更新单个实体的所有 Capability
+    /// 更新所有 Capability（按 Capability 遍历，每个 Capability 更新所有拥有它的实体）
     /// </summary>
-    public void UpdateEntity(Entity entity)
+    public void Update(World world)
     {
-        if (entity == null || !entity.IsActive || entity.IsDestroyed)
+        if (world == null || world.Entities == null)
             return;
         
-        // 1. 更新激活状态（遍历所有 Capability）
-        UpdateActivationStates(entity);
-        
-        // 2. 执行激活的 Capability 的 Tick
-        ExecuteActiveCapabilities(entity);
-        
-        // 3. 清理超时的禁用来源
-        CleanupExpiredDisablers(entity);
-    }
-    
-    /// <summary>
-    /// 更新实体上所有 Capability 的激活状态
-    /// </summary>
-    private void UpdateActivationStates(Entity entity)
-    {
+        // 按优先级遍历所有 Capability
         foreach (var capability in _sortedCapabilities)
         {
             var typeId = capability.TypeId;
             
-            // 检查此 Capability 是否存在于实体上（字典中存在即表示拥有）
-            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
-                continue;
-            
-            // 检查激活条件
-            bool shouldActivate = capability.ShouldActivate(entity);
-            bool shouldDeactivate = capability.ShouldDeactivate(entity);
-            
-            // 状态变更
-            if (shouldActivate && !state.IsActive)
+            // 遍历所有实体，对拥有此 Capability 的实体进行更新
+            foreach (var entity in world.Entities.Values)
             {
-                state.IsActive = true;
-                entity.CapabilityStates[typeId] = state;
-                capability.OnActivate(entity);
-            }
-            else if (shouldDeactivate && state.IsActive)
-            {
-                state.IsActive = false;
-                entity.CapabilityStates[typeId] = state;
-                capability.OnDeactivate(entity);
-            }
-        }
-    }
-    
-    /// <summary>
-    /// 执行激活的 Capability 的 Tick
-    /// </summary>
-    private void ExecuteActiveCapabilities(Entity entity)
-    {
-        foreach (var capability in _sortedCapabilities)
-        {
-            var typeId = capability.TypeId;
-            
-            // 检查此 Capability 是否存在且激活
-            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
-                continue;
-            
-            if (state.IsActive)
-            {
-                try
+                if (entity == null || !entity.IsActive || entity.IsDestroyed)
+                    continue;
+                
+                // 检查此 Capability 是否存在于实体上（字典中存在即表示拥有）
+                if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
+                    continue;
+                
+                // 1. 更新激活状态
+                UpdateActivationState(capability, entity, ref state);
+                
+                // 2. 更新持续时间
+                UpdateDuration(capability, entity, ref state);
+                
+                // 3. 执行激活的 Capability 的 Tick
+                if (state.IsActive)
                 {
-                    capability.Tick(entity);
-                }
-                catch (Exception ex)
-                {
-                    ASLogger.Instance.Error($"Error executing Capability {capability.GetType().Name} on entity {entity.UniqueId}: {ex.Message}");
+                    try
+                    {
+                        capability.Tick(entity);
+                    }
+                    catch (Exception ex)
+                    {
+                        ASLogger.Instance.Error($"Error executing Capability {capability.GetType().Name} on entity {entity.UniqueId}: {ex.Message}");
+                    }
                 }
             }
         }
     }
     
     /// <summary>
-    /// 清理超时的禁用来源
-    /// 注意：如果需要支持超时自动解除，需要在 DisabledTags 中存储额外的元数据
-    /// 当前实现暂不支持，需要时可以扩展 DisabledTags 的值类型
+    /// 更新单个 Capability 在单个实体上的激活状态
     /// </summary>
-    private void CleanupExpiredDisablers(Entity entity)
+    private void UpdateActivationState(ICapability capability, Entity entity, ref CapabilityState state)
     {
-        // 当前实现：禁用是永久性的，直到显式调用 EnableCapabilitiesByTag
-        // 如果需要超时功能，可以扩展为：
-        // Dictionary<CapabilityTag, Dictionary<long, DisableInfo>>
-        // 其中 DisableInfo 包含 DisableFrame 和 DurationFrames
+        var typeId = capability.TypeId;
+        
+        // 检查激活条件
+        bool shouldActivate = capability.ShouldActivate(entity);
+        bool shouldDeactivate = capability.ShouldDeactivate(entity);
+        
+        // 状态变更
+        if (shouldActivate && !state.IsActive)
+        {
+            state.IsActive = true;
+            state.ActiveDuration = 0; // 重置激活持续时间
+            entity.CapabilityStates[typeId] = state;
+            capability.OnActivate(entity);
+        }
+        else if (shouldDeactivate && state.IsActive)
+        {
+            state.IsActive = false;
+            state.DeactiveDuration = 0; // 重置禁用持续时间
+            entity.CapabilityStates[typeId] = state;
+            capability.OnDeactivate(entity);
+        }
     }
+    
+    /// <summary>
+    /// 更新 Capability 的持续时间
+    /// </summary>
+    private void UpdateDuration(ICapability capability, Entity entity, ref CapabilityState state)
+    {
+        var typeId = capability.TypeId;
+        
+        if (state.IsActive && capability.TrackActiveDuration)
+        {
+            state.ActiveDuration++;
+            entity.CapabilityStates[typeId] = state;
+        }
+        else if (!state.IsActive && capability.TrackDeactiveDuration)
+        {
+            state.DeactiveDuration++;
+            entity.CapabilityStates[typeId] = state;
+        }
+    }
+    
     
     // ====== 外部接口：Tag 禁用/启用 ======
     
@@ -824,15 +840,18 @@ public class CapabilitySystem
 [Obsolete("Use CapabilityStates instead")]
 public List<Capability> Capabilities { get; private set; } = new List<Capability>();
 
-// LSUpdater.cs - 双轨更新
+// LSUpdater.cs - 新方式更新
 public void Update()
 {
+    // 新方式：统一调度（按 Capability 遍历，每个 Capability 更新所有拥有它的实体）
+    if (CurrentWorld?.CapabilitySystem != null)
+    {
+        CurrentWorld.CapabilitySystem.Update(CurrentWorld);
+    }
+    
+    // 旧方式：实例更新（兼容期保留，逐步迁移后移除）
     foreach (var entity in GetActiveEntities())
     {
-        // 新方式：统一调度
-        CapabilitySystem.Instance.UpdateEntity(entity);
-        
-        // 旧方式：实例更新（兼容期保留）
         UpdateEntityCapabilities_Legacy(entity);
     }
 }
@@ -850,7 +869,47 @@ public void Update()
 2. **移除 Capability 实例模式相关代码**
 3. **更新所有文档和示例**
 
-### 3.2 Archetype 装配流程调整
+### 3.2 World 类调整
+
+```csharp
+// World.cs - 添加 CapabilitySystem 成员变量
+public partial class World
+{
+    /// <summary>
+    /// Capability 统一调度系统
+    /// </summary>
+    public CapabilitySystem CapabilitySystem { get; set; }
+    
+    public World()
+    {
+        Entities = new Dictionary<long, Entity>();
+        HitSystem = new HitSystem();
+        SkillEffectSystem = new SkillEffectSystem();
+        CapabilitySystem = new CapabilitySystem();
+        CapabilitySystem.World = this;
+        CapabilitySystem.Initialize();
+    }
+    
+    /// <summary>
+    /// MemoryPack 构造函数
+    /// </summary>
+    [MemoryPackConstructor]
+    public World(/* ... 其他参数 ... */, CapabilitySystem capabilitySystem)
+    {
+        // ... 其他初始化 ...
+        CapabilitySystem = capabilitySystem ?? new CapabilitySystem();
+        CapabilitySystem.World = this;
+        
+        // 反序列化后需要重建 CapabilitySystem 的内部映射
+        if (CapabilitySystem != null)
+        {
+            CapabilitySystem.Initialize();
+        }
+    }
+}
+```
+
+### 3.3 Archetype 装配流程调整
 
 ```csharp
 // EntityFactory.cs - 新的装配流程
@@ -870,7 +929,7 @@ public static Entity CreateByArchetype(string archetypeName, World world)
     foreach (var capabilityType in archetypeInfo.Capabilities)
     {
         // 获取 Capability 实例以获取 TypeId
-        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+        var capability = entity.World?.CapabilitySystem?.GetCapability(capabilityType);
         if (capability == null)
         {
             ASLogger.Instance.Warning($"Capability {capabilityType.Name} not registered in CapabilitySystem");
@@ -881,6 +940,8 @@ public static Entity CreateByArchetype(string archetypeName, World world)
         entity.CapabilityStates[capability.TypeId] = new CapabilityState
         {
             IsActive = false, // 初始未激活，等待 ShouldActivate 判定
+            ActiveDuration = 0,
+            DeactiveDuration = 0,
             CustomData = new Dictionary<string, object>()
         };
         
@@ -904,7 +965,7 @@ public bool AttachSubArchetype(string subArchetypeName, out string reason)
     foreach (var capabilityType in subInfo.Capabilities)
     {
         // 获取 Capability 实例以获取 TypeId
-        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+        var capability = World?.CapabilitySystem?.GetCapability(capabilityType);
         if (capability == null)
             continue;
         
@@ -922,6 +983,8 @@ public bool AttachSubArchetype(string subArchetypeName, out string reason)
             CapabilityStates[typeId] = new CapabilityState
             {
                 IsActive = false,
+                ActiveDuration = 0,
+                DeactiveDuration = 0,
                 CustomData = new Dictionary<string, object>()
             };
             
@@ -942,7 +1005,7 @@ public bool DetachSubArchetype(string subArchetypeName, out string reason)
     foreach (var capabilityType in subInfo.Capabilities)
     {
         // 获取 Capability 实例以获取 TypeId
-        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+        var capability = World?.CapabilitySystem?.GetCapability(capabilityType);
         if (capability == null)
             continue;
         
@@ -1139,7 +1202,7 @@ public override void OnActivate(Entity entity)
     base.OnActivate(entity);
     
     // 禁用所有标记为 Movement 的 Capability
-    CapabilitySystem.Instance.DisableCapabilitiesByTag(
+    entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(
         entity, 
         CapabilityTag.Movement, 
         entity.UniqueId, 
@@ -1152,7 +1215,7 @@ public override void OnDeactivate(Entity entity)
     base.OnDeactivate(entity);
     
     // 恢复移动能力
-    CapabilitySystem.Instance.EnableCapabilitiesByTag(
+    entity.World?.CapabilitySystem?.EnableCapabilitiesByTag(
         entity, 
         CapabilityTag.Movement, 
         entity.UniqueId
@@ -1172,7 +1235,7 @@ private void OnEntityDied(EntityDiedEventData eventData)
     var entity = OwnerEntity;
     
     // 禁用所有标记为 Control 的 Capability
-    CapabilitySystem.Instance.DisableCapabilitiesByTag(
+    entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(
         entity, 
         CapabilityTag.Control, 
         entity.UniqueId, 
@@ -1188,7 +1251,7 @@ private void OnEntityRevived(EntityRevivedEventData eventData)
     var entity = OwnerEntity;
     
     // 恢复所有控制能力
-    CapabilitySystem.Instance.EnableCapabilitiesByTag(
+    entity.World?.CapabilitySystem?.EnableCapabilitiesByTag(
         entity, 
         CapabilityTag.Control, 
         entity.UniqueId
@@ -1211,13 +1274,13 @@ private void OnEntityRevived(EntityRevivedEventData eventData)
 
 ```csharp
 // 示例1：禁用多个 Tag（需要分别调用）
-CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Movement, entity.UniqueId, "Stun");
-CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Control, entity.UniqueId, "Stun");
+entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(entity, CapabilityTag.Movement, entity.UniqueId, "Stun");
+entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(entity, CapabilityTag.Control, entity.UniqueId, "Stun");
 
 // 示例2：禁用所有战斗相关能力（需要分别禁用）
-CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Attack, entity.UniqueId, "Silence");
-CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Skill, entity.UniqueId, "Silence");
-CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Combat, entity.UniqueId, "Silence");
+entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(entity, CapabilityTag.Attack, entity.UniqueId, "Silence");
+entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(entity, CapabilityTag.Skill, entity.UniqueId, "Silence");
+entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(entity, CapabilityTag.Combat, entity.UniqueId, "Silence");
 ```
 
 ---
@@ -1249,13 +1312,23 @@ CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Combat,
 ```
 单个 CapabilityState 大小：
 - IsActive (bool): 1 byte
+- ActiveDuration (int): 4 bytes（仅当 TrackActiveDuration 为 true 时使用）
+- DeactiveDuration (int): 4 bytes（仅当 TrackDeactiveDuration 为 true 时使用）
 - CustomData (Dictionary): 8 bytes（空字典）
-= 约 9 bytes/状态
+= 约 17 bytes/状态（假设两个 Duration 字段都使用）
 
-5 个 Capability 状态 = 5 * 9 = 45 bytes
-1000 个实体 = 1000 * 45 = 45 KB
+实际使用中，大多数 Capability 不需要跟踪持续时间，实际大小约为：
+- IsActive (bool): 1 byte
+- ActiveDuration (int): 4 bytes（默认值，即使不跟踪也会占用）
+- DeactiveDuration (int): 4 bytes（默认值，即使不跟踪也会占用）
+- CustomData (Dictionary): 8 bytes（空字典）
+= 约 17 bytes/状态
 
-节省内存：(205 - 45) / 205 = 78% ✓
+5 个 Capability 状态 = 5 * 17 = 85 bytes
+1000 个实体 = 1000 * 85 = 85 KB
+
+节省内存：(205 - 85) / 205 = 59% ✓
+（相比旧方案仍有显著优势）
 ```
 
 ### 6.2 缓存命中率提升
@@ -1283,10 +1356,10 @@ CapabilityState 连续存储在 Dictionary 中
 
 ```csharp
 // 示例：并行更新所有实体的 MovementCapability
-public void UpdateMovementCapability_Parallel(List<Entity> entities)
+public void UpdateMovementCapability_Parallel(World world, List<Entity> entities)
 {
     var typeId = MovementCapability.TypeId;
-    var capability = CapabilitySystem.Instance.GetCapability(typeId);
+    var capability = world?.CapabilitySystem?.GetCapability(typeId);
     
     Parallel.ForEach(entities, entity =>
     {
@@ -1341,25 +1414,32 @@ public void Test_CapabilityState_EnableDisable()
 [Test]
 public void Test_TagDisable_Enable()
 {
+    var world = new World();
+    world.CapabilitySystem = new CapabilitySystem();
+    world.CapabilitySystem.Initialize();
+    world.CapabilitySystem.World = world;
+    
     var entity = new Entity();
-    CapabilitySystem.Instance.Initialize();
+    entity.World = world;
     
     // 注册 MovementCapability（Tag: "Movement"）
     var typeId = MovementCapability.TypeId; // 使用 TypeId
     entity.CapabilityStates[typeId] = new CapabilityState
     {
-        IsActive = true
+        IsActive = true,
+        ActiveDuration = 0,
+        DeactiveDuration = 0
     };
     
     // 禁用 Movement Tag
-    CapabilitySystem.Instance.DisableCapabilitiesByTag(
+    world.CapabilitySystem.DisableCapabilitiesByTag(
         entity, CapabilityTag.Movement, 999, "Test"
     );
     
     Assert.IsTrue(entity.DisabledTags.ContainsKey(CapabilityTag.Movement));
     
     // 启用 Movement Tag
-    CapabilitySystem.Instance.EnableCapabilitiesByTag(
+    world.CapabilitySystem.EnableCapabilitiesByTag(
         entity, CapabilityTag.Movement, 999
     );
     
@@ -1413,7 +1493,7 @@ public void Test_FullCapabilityLifecycle()
     Assert.IsTrue(entity.CapabilityStates.ContainsKey(movementTypeId));
     
     // 2. 测试 Capability 更新
-    CapabilitySystem.Instance.UpdateEntity(entity);
+    world.CapabilitySystem.Update(world);
     
     // 3. 测试 SubArchetype 挂载/卸载（使用 TypeId）
     entity.AttachSubArchetype("AI", out var reason);
@@ -1453,10 +1533,7 @@ public void Test_PerformanceComparison()
     
     // 测试新方案
     var sw2 = Stopwatch.StartNew();
-    foreach (var entity in entities)
-    {
-        CapabilitySystem.Instance.UpdateEntity(entity);
-    }
+    world.CapabilitySystem.Update(world);
     sw2.Stop();
     
     Console.WriteLine($"Legacy: {sw1.ElapsedMilliseconds}ms");
@@ -1567,9 +1644,38 @@ public void Update()
 
 ---
 
-## 10. 附录
+## 10. 版本历史
 
-### 10.1 术语表
+### v1.5 (2025-11-04)
+- ✅ 添加 `ActiveDuration` 和 `DeactiveDuration` 字段到 `CapabilityState`
+- ✅ 添加 `TrackActiveDuration` 和 `TrackDeactiveDuration` 配置属性到 `ICapability`
+- ✅ 将 `Initialize()` 方法统一改为 `OnAttached(Entity entity)`
+- ✅ 移除兼容接口（无参数的 `OnActivate()` 和 `OnDeactivate()`）
+- ✅ 将 `CapabilitySystem` 从单例改为 `World` 的成员变量
+- ✅ 添加 `CapabilitySystem` 的 `MemoryPackable` 支持，用于帧同步回滚
+- ✅ 更新顺序改为按 Capability 遍历（每个 Capability 更新所有拥有它的实体）
+
+### v1.4 (2025-11-04)
+- ✅ 移除 `CapabilityState.IsEnabled` 字段（字典存在即表示拥有）
+- ✅ 移除 `CapabilityState.Disablers` 字段（使用 `Entity.DisabledTags` 统一管理）
+- ✅ 将 `CapabilityTag` 从 `[Flags]` 枚举改为普通枚举
+
+### v1.3 (2025-11-04)
+- ✅ 将 `CapabilityTag` 从字符串改为枚举类型
+- ✅ 将 `ICapability.Tags` 从 `IReadOnlySet<string>` 改为 `IReadOnlySet<CapabilityTag>`
+
+### v1.2 (2025-11-04)
+- ✅ 将 Capability 的 Key 从字符串改为 `TypeId`（基于 `TypeHash` 的整数）
+- ✅ 添加 `TypeHash<T>` 和 `StringHashUtility` 工具类
+
+### v1.1 (2025-11-04)
+- ✅ 初始版本，包含完整的架构设计和迁移方案
+
+---
+
+## 11. 附录
+
+### 11.1 术语表
 
 | 术语 | 含义 |
 |------|------|
@@ -1580,21 +1686,15 @@ public void Update()
 | ShouldActivate | 判定 Capability 是否应该激活的接口方法 |
 | ShouldDeactivate | 判定 Capability 是否应该停用的接口方法 |
 
-### 10.2 参考文档
+### 11.2 参考文档
 
 - [ECC-System ECC结构说明.md](./ECC-System%20ECC结构说明.md)
 - [Archetype-System Archetype结构说明.md](./Archetype-System%20Archetype结构说明.md)
 - [Serialization-Best-Practices 序列化最佳实践.md](./Serialization-Best-Practices%20序列化最佳实践.md)
 
-### 10.3 变更记录
+### 11.3 变更记录
 
-| 版本 | 日期 | 作者 | 变更内容 |
-|------|------|------|---------|
-| v1.4 | 2025-11-04 | AI Assistant | 进一步简化：移除 CapabilityState.IsEnabled 字段，字典存在即表示拥有，不存在即表示未拥有 |
-| v1.3 | 2025-11-04 | AI Assistant | 简化设计：移除 Disablers 字段和 CapabilityDisabler 结构体，Tag 改为普通枚举（移除 Flags），使用 HashSet 存储多个 Tag |
-| v1.2 | 2025-11-04 | AI Assistant | 将 Tag 从 string 改为 CapabilityTag 枚举，支持 Flags 位标记组合，提升类型安全性和性能 |
-| v1.1 | 2025-11-04 | AI Assistant | 使用 TypeHash 生成 TypeId，将 Key 从 string 改为 int，提升性能 |
-| v1.0 | 2025-11-04 | AI Assistant | 初始版本，完整方案设计 |
+（已移至"版本历史"章节）
 
 ---
 
