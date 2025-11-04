@@ -153,6 +153,11 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                 memberMap.TypeConverterOption.Format("F2");
                 memberMap.TypeConverterOption.CultureInfo(CultureInfo.InvariantCulture);
             }
+            else if (memberType == typeof(List<int>))
+            {
+                // List<int>类型：使用自定义转换器，序列化为逗号分隔的字符串
+                memberMap.TypeConverter(new IntListTypeConverter());
+            }
         }
         
         /// <summary>
@@ -205,6 +210,54 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
             string projectRoot = Directory.GetParent(astrumProjPath).FullName; // .../Astrum
             
             return Path.Combine(projectRoot, relativePath.Replace("/", "\\"));
+        }
+    }
+    
+    /// <summary>
+    /// List<int> 类型转换器：序列化为逗号分隔的字符串（用于CSV写入）
+    /// </summary>
+    public class IntListTypeConverter : CsvHelper.TypeConversion.ITypeConverter
+    {
+        public object ConvertFromString(string text, CsvHelper.IReaderRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            // 读取时：从逗号分隔的字符串解析为List<int>
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<int>();
+            
+            // 移除引号（如果有）
+            text = text.Trim().Trim('"');
+            
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<int>();
+            
+            var result = new List<int>();
+            var parts = text.Split(',');
+            foreach (var part in parts)
+            {
+                if (int.TryParse(part.Trim(), out int value))
+                {
+                    result.Add(value);
+                }
+            }
+            return result;
+        }
+        
+        public string ConvertToString(object value, CsvHelper.IWriterRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            // 写入时：将List<int>序列化为逗号分隔的字符串
+            if (value == null)
+                return "";
+            
+            if (value is List<int> list)
+            {
+                if (list.Count == 0)
+                    return "";
+                
+                // 使用逗号分隔，CsvHelper会根据ShouldQuoteField自动加引号
+                return string.Join(",", list);
+            }
+            
+            return "";
         }
     }
 }
