@@ -2,7 +2,7 @@
 
 > 作者：AI Assistant  
 > 日期：2025-11-04  
-> 版本：v1.0  
+> 版本：v1.2  
 > 适用范围：Astrum 客户端 ECC 架构
 
 ## 1. 方案概述
@@ -67,15 +67,15 @@
 │    └─ IsActive: bool        // 是否激活                      │
 │    └─ DisablerSet: HashSet<CapabilityDisabler>             │
 │       └─ InstigatorId: long    // 禁用发起者实体ID           │
-│       └─ Tag: string           // 禁用的目标 Tag              │
+│       └─ Tag: CapabilityTag    // 禁用的目标 Tag（枚举）       │
 │                                                             │
 │  【Capability Tag 注册】                                     │
-│  - CapabilityTags: Dictionary<int, HashSet<string>>        │
+│  - CapabilityTags: Dictionary<int, CapabilityTag>          │
 │    └─ Key: TypeId                                           │
-│    └─ 每个 Capability 类型对应的 Tag 集合                     │
+│    └─ 每个 Capability 类型对应的 Tag（位标记组合）             │
 │                                                             │
 │  【禁用 Tag 记录】                                           │
-│  - DisabledTags: Dictionary<string, HashSet<long>>         │
+│  - DisabledTags: Dictionary<CapabilityTag, HashSet<long>>  │
 │    └─ Tag -> 禁用发起者实体ID集合                             │
 └─────────────────────────────────────────────────────────────┘
                             ▲
@@ -96,7 +96,7 @@
 │  【元数据】                                                   │
 │  + TypeId: int                     // 类型 ID（基于 TypeHash）│
 │  + Priority: int                   // 执行优先级              │
-│  + Tags: HashSet<string>           // 此 Capability 的 Tag   │
+│  + Tags: CapabilityTag             // 此 Capability 的 Tag（位标记）│
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -124,8 +124,8 @@ public partial class Entity
     /// 被禁用的 Tag 集合（Tag -> 禁用发起者实体ID集合）
     /// 用于支持基于 Tag 的 Capability 批量禁用
     /// </summary>
-    public Dictionary<string, HashSet<long>> DisabledTags { get; private set; } 
-        = new Dictionary<string, HashSet<long>>(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<CapabilityTag, HashSet<long>> DisabledTags { get; private set; } 
+        = new Dictionary<CapabilityTag, HashSet<long>>();
     
     // ====== 移除字段 ======
     // public List<Capability> Capabilities { get; private set; } = new List<Capability>();
@@ -181,6 +181,11 @@ public partial struct CapabilityDisabler : IEquatable<CapabilityDisabler>
     public long InstigatorId { get; set; }
     
     /// <summary>
+    /// 禁用的目标 Tag（枚举）
+    /// </summary>
+    public CapabilityTag Tag { get; set; }
+    
+    /// <summary>
     /// 禁用原因/类型（可选，用于调试）
     /// 例如："Stun", "Death", "SkillCasting"
     /// </summary>
@@ -199,7 +204,7 @@ public partial struct CapabilityDisabler : IEquatable<CapabilityDisabler>
     
     public bool Equals(CapabilityDisabler other)
     {
-        return InstigatorId == other.InstigatorId && Reason == other.Reason;
+        return InstigatorId == other.InstigatorId && Tag == other.Tag && Reason == other.Reason;
     }
     
     public override bool Equals(object obj)
@@ -209,12 +214,127 @@ public partial struct CapabilityDisabler : IEquatable<CapabilityDisabler>
     
     public override int GetHashCode()
     {
-        return HashCode.Combine(InstigatorId, Reason);
+        return HashCode.Combine(InstigatorId, Tag, Reason);
     }
 }
 ```
 
-### 2.3 TypeHash 工具类
+### 2.3 CapabilityTag 枚举定义
+
+```csharp
+/// <summary>
+/// Capability 标签枚举
+/// 使用 Flags 特性支持位标记组合
+/// </summary>
+[Flags]
+public enum CapabilityTag : int
+{
+    /// <summary>
+    /// 无标签
+    /// </summary>
+    None = 0,
+    
+    /// <summary>
+    /// 移动相关（位移、旋转等）
+    /// </summary>
+    Movement = 1 << 0,
+    
+    /// <summary>
+    /// 玩家控制相关（输入响应、指令处理等）
+    /// </summary>
+    Control = 1 << 1,
+    
+    /// <summary>
+    /// 攻击相关（普通攻击、连击等）
+    /// </summary>
+    Attack = 1 << 2,
+    
+    /// <summary>
+    /// 技能相关（技能释放、技能效果等）
+    /// </summary>
+    Skill = 1 << 3,
+    
+    /// <summary>
+    /// AI 相关（AI 决策、状态机等）
+    /// </summary>
+    AI = 1 << 4,
+    
+    /// <summary>
+    /// 动画相关（动画播放、状态同步等，通常不禁用）
+    /// </summary>
+    Animation = 1 << 5,
+    
+    /// <summary>
+    /// 物理相关（碰撞、物理模拟等）
+    /// </summary>
+    Physics = 1 << 6,
+    
+    /// <summary>
+    /// 战斗相关（伤害计算、状态效果等）
+    /// </summary>
+    Combat = 1 << 7,
+    
+    /// <summary>
+    /// 交互相关（拾取、对话、使用物品等）
+    /// </summary>
+    Interaction = 1 << 8,
+    
+    /// <summary>
+    /// 组合标签：所有控制类能力（移动 + 控制）
+    /// </summary>
+    AllControl = Movement | Control,
+    
+    /// <summary>
+    /// 组合标签：所有战斗类能力（攻击 + 技能 + 战斗）
+    /// </summary>
+    AllCombat = Attack | Skill | Combat,
+    
+    /// <summary>
+    /// 所有标签（用于全禁用）
+    /// </summary>
+    All = ~0
+}
+
+/// <summary>
+/// CapabilityTag 扩展方法
+/// </summary>
+public static class CapabilityTagExtensions
+{
+    /// <summary>
+    /// 检查枚举值是否包含指定的标签
+    /// </summary>
+    public static bool HasTag(this CapabilityTag tags, CapabilityTag tag)
+    {
+        return (tags & tag) != 0;
+    }
+    
+    /// <summary>
+    /// 检查枚举值是否包含所有指定的标签
+    /// </summary>
+    public static bool HasAllTags(this CapabilityTag tags, CapabilityTag requiredTags)
+    {
+        return (tags & requiredTags) == requiredTags;
+    }
+    
+    /// <summary>
+    /// 添加标签
+    /// </summary>
+    public static CapabilityTag AddTag(this CapabilityTag tags, CapabilityTag tag)
+    {
+        return tags | tag;
+    }
+    
+    /// <summary>
+    /// 移除标签
+    /// </summary>
+    public static CapabilityTag RemoveTag(this CapabilityTag tags, CapabilityTag tag)
+    {
+        return tags & ~tag;
+    }
+}
+```
+
+### 2.4 TypeHash 工具类
 
 ```csharp
 /// <summary>
@@ -260,7 +380,7 @@ public static class TypeHash<T>
 }
 ```
 
-### 2.4 Capability 新接口定义
+### 2.5 Capability 新接口定义
 
 #### 2.4.1 ICapability 接口
 
@@ -282,10 +402,10 @@ public interface ICapability
     int Priority { get; }
     
     /// <summary>
-    /// 此 Capability 的 Tag 集合
+    /// 此 Capability 的 Tag（位标记组合）
     /// 用于支持基于 Tag 的批量禁用
     /// </summary>
-    IReadOnlySet<string> Tags { get; }
+    CapabilityTag Tags { get; }
     
     /// <summary>
     /// 判定此 Capability 是否应该激活
@@ -354,11 +474,9 @@ public abstract class Capability<T> : ICapability where T : ICapability
     public virtual int Priority => 0;
     
     /// <summary>
-    /// Tag 集合（默认空集合，子类可重写）
+    /// Tag（默认无标签，子类可重写）
     /// </summary>
-    public virtual IReadOnlySet<string> Tags => EmptyTags;
-    
-    private static readonly HashSet<string> EmptyTags = new HashSet<string>();
+    public virtual CapabilityTag Tags => CapabilityTag.None;
     
     /// <summary>
     /// 初始化能力（兼容旧接口，可选实现）
@@ -506,7 +624,7 @@ public abstract class Capability<T> : ICapability where T : ICapability
 }
 ```
 
-### 2.5 CapabilitySystem 统一调度系统
+### 2.6 CapabilitySystem 统一调度系统
 
 ```csharp
 /// <summary>
@@ -532,10 +650,10 @@ public class CapabilitySystem
     private List<ICapability> _sortedCapabilities = new List<ICapability>();
     
     /// <summary>
-    /// Capability TypeId 到 Tag 的映射（缓存）
+    /// Tag 到 Capability TypeId 集合的映射（缓存）
     /// </summary>
-    private readonly Dictionary<string, HashSet<int>> _tagToCapabilityTypeIds 
-        = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<CapabilityTag, HashSet<int>> _tagToCapabilityTypeIds 
+        = new Dictionary<CapabilityTag, HashSet<int>>();
     
     /// <summary>
     /// TypeId 到 Capability 实例的映射（用于快速查找）
@@ -623,23 +741,33 @@ public class CapabilitySystem
     
     /// <summary>
     /// 构建 Tag 到 Capability TypeId 的映射
+    /// 遍历所有 CapabilityTag 的每一位，构建映射关系
     /// </summary>
     private void BuildTagMapping()
     {
         _tagToCapabilityTypeIds.Clear();
         
+        // 遍历所有已注册的 Capability
         foreach (var capability in _registeredCapabilities.Values)
         {
             var typeId = capability.TypeId;
+            var tags = capability.Tags;
             
-            foreach (var tag in capability.Tags)
+            // 遍历所有可能的 Tag 值（1 << 0 到 1 << 30）
+            for (int i = 0; i < 32; i++)
             {
-                if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
+                var tag = (CapabilityTag)(1 << i);
+                
+                // 检查此 Capability 是否包含此 Tag
+                if (tags.HasTag(tag))
                 {
-                    typeIds = new HashSet<int>();
-                    _tagToCapabilityTypeIds[tag] = typeIds;
+                    if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
+                    {
+                        typeIds = new HashSet<int>();
+                        _tagToCapabilityTypeIds[tag] = typeIds;
+                    }
+                    typeIds.Add(typeId);
                 }
-                typeIds.Add(typeId);
             }
         }
     }
@@ -771,9 +899,23 @@ public class CapabilitySystem
     /// <summary>
     /// 禁用实体上所有匹配指定 Tag 的 Capability
     /// </summary>
-    public void DisableCapabilitiesByTag(Entity entity, string tag, long instigatorId, string reason = null, int durationFrames = -1)
+    public void DisableCapabilitiesByTag(Entity entity, CapabilityTag tag, long instigatorId, string reason = null, int durationFrames = -1)
     {
-        if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
+        // 遍历 Tag 的每一位，找到所有匹配的 Capability
+        var matchedTypeIds = new HashSet<int>();
+        for (int i = 0; i < 32; i++)
+        {
+            var singleTag = (CapabilityTag)(1 << i);
+            if (!tag.HasTag(singleTag))
+                continue;
+            
+            if (_tagToCapabilityTypeIds.TryGetValue(singleTag, out var typeIds))
+            {
+                matchedTypeIds.UnionWith(typeIds);
+            }
+        }
+        
+        if (matchedTypeIds.Count == 0)
             return;
         
         var currentFrame = LSController.Instance?.CurrentFrame ?? 0;
@@ -782,7 +924,8 @@ public class CapabilitySystem
             InstigatorId = instigatorId,
             Reason = reason,
             DisableFrame = currentFrame,
-            DurationFrames = durationFrames
+            DurationFrames = durationFrames,
+            Tag = tag
         };
         
         // 记录到 DisabledTags
@@ -794,7 +937,7 @@ public class CapabilitySystem
         instigators.Add(instigatorId);
         
         // 添加禁用来源到每个匹配的 Capability
-        foreach (var typeId in typeIds)
+        foreach (var typeId in matchedTypeIds)
         {
             if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 continue;
@@ -810,9 +953,23 @@ public class CapabilitySystem
     /// <summary>
     /// 启用实体上所有匹配指定 Tag 的 Capability
     /// </summary>
-    public void EnableCapabilitiesByTag(Entity entity, string tag, long instigatorId)
+    public void EnableCapabilitiesByTag(Entity entity, CapabilityTag tag, long instigatorId)
     {
-        if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
+        // 遍历 Tag 的每一位，找到所有匹配的 Capability
+        var matchedTypeIds = new HashSet<int>();
+        for (int i = 0; i < 32; i++)
+        {
+            var singleTag = (CapabilityTag)(1 << i);
+            if (!tag.HasTag(singleTag))
+                continue;
+            
+            if (_tagToCapabilityTypeIds.TryGetValue(singleTag, out var typeIds))
+            {
+                matchedTypeIds.UnionWith(typeIds);
+            }
+        }
+        
+        if (matchedTypeIds.Count == 0)
             return;
         
         // 从 DisabledTags 中移除
@@ -824,7 +981,7 @@ public class CapabilitySystem
         }
         
         // 从每个匹配的 Capability 中移除禁用来源
-        foreach (var typeId in typeIds)
+        foreach (var typeId in matchedTypeIds)
         {
             if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 continue;
@@ -832,7 +989,7 @@ public class CapabilitySystem
             if (state.Disablers == null)
                 continue;
             
-            state.Disablers.RemoveWhere(d => d.InstigatorId == instigatorId);
+            state.Disablers.RemoveWhere(d => d.InstigatorId == instigatorId && d.Tag == tag);
             entity.CapabilityStates[typeId] = state;
         }
     }
@@ -840,7 +997,7 @@ public class CapabilitySystem
     /// <summary>
     /// 检查实体上是否有指定 Tag 的 Capability 被禁用
     /// </summary>
-    public bool IsTagDisabled(Entity entity, string tag)
+    public bool IsTagDisabled(Entity entity, CapabilityTag tag)
     {
         return entity.DisabledTags.ContainsKey(tag) && entity.DisabledTags[tag].Count > 0;
     }
@@ -1067,8 +1224,7 @@ public class MovementCapability : Capability<MovementCapability>
     // ====== 元数据 ======
     public override int Priority => 100;
     
-    public override IReadOnlySet<string> Tags => _tags;
-    private static readonly HashSet<string> _tags = new HashSet<string> { "Movement", "Control" };
+    public override CapabilityTag Tags => CapabilityTag.Movement | CapabilityTag.Control;
     
     // ====== 常量配置（可移至配置文件） ======
     private const string KEY_MOVEMENT_THRESHOLD = "MovementThreshold";
@@ -1180,10 +1336,10 @@ public override void OnActivate(Entity entity)
 {
     base.OnActivate(entity);
     
-    // 禁用所有标记为 "Movement" 的 Capability
+    // 禁用所有标记为 Movement 的 Capability
     CapabilitySystem.Instance.DisableCapabilitiesByTag(
         entity, 
-        "Movement", 
+        CapabilityTag.Movement, 
         entity.UniqueId, 
         "SkillCasting", 
         durationFrames: 60 // 持续60帧（1秒）
@@ -1197,7 +1353,7 @@ public override void OnDeactivate(Entity entity)
     // 恢复移动能力
     CapabilitySystem.Instance.EnableCapabilitiesByTag(
         entity, 
-        "Movement", 
+        CapabilityTag.Movement, 
         entity.UniqueId
     );
 }
@@ -1214,10 +1370,10 @@ private void OnEntityDied(EntityDiedEventData eventData)
     
     var entity = OwnerEntity;
     
-    // 禁用所有标记为 "Control" 的 Capability
+    // 禁用所有标记为 Control 的 Capability
     CapabilitySystem.Instance.DisableCapabilitiesByTag(
         entity, 
-        "Control", 
+        CapabilityTag.Control, 
         entity.UniqueId, 
         "Death", 
         durationFrames: -1 // 永久禁用
@@ -1234,23 +1390,53 @@ private void OnEntityRevived(EntityRevivedEventData eventData)
     // 恢复所有控制能力
     CapabilitySystem.Instance.EnableCapabilitiesByTag(
         entity, 
-        "Control", 
+        CapabilityTag.Control, 
         entity.UniqueId
     );
 }
 ```
 
-### 5.3 常用 Tag 建议
+### 5.3 常用 Tag 枚举值
 
-| Tag 名称 | 含义 | 应用场景 |
-|---------|------|---------|
-| `Movement` | 移动相关 | 技能施放、眩晕、冰冻、死亡时禁用 |
-| `Control` | 玩家控制相关 | 死亡、剧情接管时禁用 |
-| `Attack` | 攻击相关 | 缴械、眩晕、死亡时禁用 |
-| `Skill` | 技能相关 | 沉默、眩晕、死亡时禁用 |
-| `AI` | AI 相关 | 玩家接管、特殊剧情时禁用 |
-| `Animation` | 动画相关 | 通常不禁用（视觉表现层） |
-| `Physics` | 物理相关 | 死亡、传送时禁用 |
+| Tag 枚举值 | 含义 | 应用场景 |
+|-----------|------|---------|
+| `CapabilityTag.Movement` | 移动相关 | 技能施放、眩晕、冰冻、死亡时禁用 |
+| `CapabilityTag.Control` | 玩家控制相关 | 死亡、剧情接管时禁用 |
+| `CapabilityTag.Attack` | 攻击相关 | 缴械、眩晕、死亡时禁用 |
+| `CapabilityTag.Skill` | 技能相关 | 沉默、眩晕、死亡时禁用 |
+| `CapabilityTag.AI` | AI 相关 | 玩家接管、特殊剧情时禁用 |
+| `CapabilityTag.Animation` | 动画相关 | 通常不禁用（视觉表现层） |
+| `CapabilityTag.Physics` | 物理相关 | 死亡、传送时禁用 |
+| `CapabilityTag.AllControl` | 所有控制类 | 组合标签：Movement \| Control |
+| `CapabilityTag.AllCombat` | 所有战斗类 | 组合标签：Attack \| Skill \| Combat |
+
+### 5.4 Tag 组合使用示例
+
+```csharp
+// 示例1：禁用所有控制和移动能力
+CapabilitySystem.Instance.DisableCapabilitiesByTag(
+    entity, 
+    CapabilityTag.AllControl,  // 等同于 CapabilityTag.Movement | CapabilityTag.Control
+    entity.UniqueId, 
+    "Stun"
+);
+
+// 示例2：禁用所有战斗相关能力
+CapabilitySystem.Instance.DisableCapabilitiesByTag(
+    entity, 
+    CapabilityTag.AllCombat,  // 等同于 CapabilityTag.Attack | CapabilityTag.Skill | CapabilityTag.Combat
+    entity.UniqueId, 
+    "Silence"
+);
+
+// 示例3：自定义组合（只禁用移动和攻击）
+CapabilitySystem.Instance.DisableCapabilitiesByTag(
+    entity, 
+    CapabilityTag.Movement | CapabilityTag.Attack,  // 位运算组合
+    entity.UniqueId, 
+    "CustomEffect"
+);
+```
 
 ---
 
@@ -1386,16 +1572,16 @@ public void Test_TagDisable_Enable()
         IsActive = true
     };
     
-    // 禁用 "Movement" Tag
+    // 禁用 Movement Tag
     CapabilitySystem.Instance.DisableCapabilitiesByTag(
-        entity, "Movement", 999, "Test"
+        entity, CapabilityTag.Movement, 999, "Test"
     );
     
     Assert.IsTrue(entity.CapabilityStates[typeId].Disablers.Count > 0);
     
-    // 启用 "Movement" Tag
+    // 启用 Movement Tag
     CapabilitySystem.Instance.EnableCapabilitiesByTag(
-        entity, "Movement", 999
+        entity, CapabilityTag.Movement, 999
     );
     
     Assert.IsTrue(entity.CapabilityStates[typeId].Disablers.Count == 0);
@@ -1612,7 +1798,7 @@ public void Update()
 | Capability | 能力，ECC 架构中的行为处理单元 |
 | CapabilityState | Capability 在实体上的状态信息 |
 | CapabilityDisabler | Capability 禁用来源信息 |
-| Tag | Capability 的标签，用于批量控制 |
+| CapabilityTag | Capability 的标签枚举，支持 Flags 位标记组合 |
 | Instigator | 发起者，指禁用 Capability 的实体 |
 | ShouldActivate | 判定 Capability 是否应该激活的接口方法 |
 | ShouldDeactivate | 判定 Capability 是否应该停用的接口方法 |
@@ -1627,6 +1813,7 @@ public void Update()
 
 | 版本 | 日期 | 作者 | 变更内容 |
 |------|------|------|---------|
+| v1.2 | 2025-11-04 | AI Assistant | 将 Tag 从 string 改为 CapabilityTag 枚举，支持 Flags 位标记组合，提升类型安全性和性能 |
 | v1.1 | 2025-11-04 | AI Assistant | 使用 TypeHash 生成 TypeId，将 Key 从 string 改为 int，提升性能 |
 | v1.0 | 2025-11-04 | AI Assistant | 初始版本，完整方案设计 |
 
