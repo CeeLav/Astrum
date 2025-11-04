@@ -485,6 +485,13 @@ namespace Astrum.Editor.RoleEditor.Windows
             _timelineModule.SetCurrentFrame(0);
         }
         
+        private void ResetAnimation()
+        {
+            if (_selectedSkillAction == null || _previewModule == null) return;
+            _previewModule.Reset();
+            _timelineModule.SetCurrentFrame(0);
+        }
+        
         private void PreviousFrame()
         {
             int currentFrame = _timelineModule.GetCurrentFrame();
@@ -919,19 +926,33 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 EditorGUILayout.BeginHorizontal();
                 {
-                    if (GUILayout.Button("▶ 播放", GUILayout.Height(25)))
+                    // 播放/暂停切换按钮
+                    bool isPlaying = _previewModule != null && _previewModule.IsPlaying();
+                    string playButtonText = isPlaying ? "⏸ 暂停" : "▶ 播放";
+                    if (GUILayout.Button(playButtonText, GUILayout.Height(25)))
                     {
-                        PlayAnimation();
+                        if (isPlaying)
+                        {
+                            PauseAnimation();
+                        }
+                        else
+                        {
+                            PlayAnimation();
+                        }
                     }
                     
-                    if (GUILayout.Button("⏸ 暂停", GUILayout.Height(25)))
+                    // 重置按钮
+                    if (GUILayout.Button("⏹ 重置", GUILayout.Height(25)))
                     {
-                        PauseAnimation();
+                        ResetAnimation();
                     }
                     
-                    if (GUILayout.Button("⏹ 停止", GUILayout.Height(25)))
+                    // 循环播放勾选
+                    bool isLooping = _previewModule != null && _previewModule.IsLooping();
+                    bool newLooping = GUILayout.Toggle(isLooping, "循环", GUILayout.Height(25));
+                    if (newLooping != isLooping && _previewModule != null)
                     {
-                        StopAnimation();
+                        _previewModule.SetLooping(newLooping);
                     }
                 }
                 EditorGUILayout.EndHorizontal();
