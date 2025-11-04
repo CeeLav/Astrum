@@ -22,8 +22,9 @@ namespace Astrum.Editor.RoleEditor.Services
         /// </summary>
         /// <param name="clip">动画片段</param>
         /// <param name="extractRotation">是否提取旋转数据，默认为false（只提取位置）</param>
+        /// <param name="extractHorizontalOnly">是否只提取水平方向（X和Z，忽略Y），默认为false</param>
         /// <returns>整型数组（Luban格式），如果动画没有Root Motion则返回空列表</returns>
-        public static List<int> ExtractRootMotionToIntArray(AnimationClip clip, bool extractRotation = false)
+        public static List<int> ExtractRootMotionToIntArray(AnimationClip clip, bool extractRotation = false, bool extractHorizontalOnly = false)
         {
             if (clip == null)
             {
@@ -173,6 +174,13 @@ namespace Astrum.Editor.RoleEditor.Services
                 if (frame > 0)
                 {
                     deltaPosition = currentPosition - prevPosition;
+                    
+                    // 如果只提取水平方向，将Y轴设为0
+                    if (extractHorizontalOnly)
+                    {
+                        deltaPosition.y = 0f;
+                    }
+                    
                     deltaRotation = currentRotation * Quaternion.Inverse(prevRotation);
                     /*
                     // 调试日志：前几帧的数据
@@ -314,13 +322,15 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <param name="hipsBoneName">Hips骨骼名称，默认为"Hips"</param>
         /// <param name="modelGameObject">角色模型GameObject（用于查找Hips骨骼）</param>
         /// <param name="extractRotation">是否提取旋转数据，默认为false（只提取位置）</param>
+        /// <param name="extractHorizontalOnly">是否只提取水平方向（X和Z，忽略Y），默认为false</param>
         /// <returns>整型数组（Luban格式），如果提取失败则返回空列表</returns>
         public static List<int> ExtractHipsMotionDifference(
             AnimationClip baseClip, 
             AnimationClip referenceClip, 
             string hipsBoneName = "Hips",
             GameObject modelGameObject = null,
-            bool extractRotation = false)
+            bool extractRotation = false,
+            bool extractHorizontalOnly = false)
         {
             if (baseClip == null || referenceClip == null)
             {
@@ -526,6 +536,13 @@ namespace Astrum.Editor.RoleEditor.Services
                 if (frame > 0)
                 {
                     deltaPosition = hipsDelta - prevHipsDelta;
+                    
+                    // 如果只提取水平方向，将Y轴设为0
+                    if (extractHorizontalOnly)
+                    {
+                        deltaPosition.y = 0f;
+                    }
+                    
                     deltaRotation = hipsRotationDelta * Quaternion.Inverse(prevHipsRotationDelta);
                 }
                 

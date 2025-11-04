@@ -125,9 +125,12 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 需要在DrawAnimationSection中手动绘制的字段（排除它们，避免重复绘制）
             var excludedAnimationMotionFields = new HashSet<string>
             {
+                "ExtractMode",
                 "ReferenceAnimationPath",
                 "ReferenceAnimationClip",
                 "HipsBoneName",
+                "ExtractRotation",
+                "ExtractHorizontalOnly",
                 "RootMotionDataArray"
             };
             
@@ -301,6 +304,29 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 EditorGUILayout.Space(5);
                 
+                // 提取选项
+                EditorGUI.BeginChangeCheck();
+                bool extractRotation = EditorGUILayout.Toggle("提取旋转", _currentSkillAction.ExtractRotation);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _currentSkillAction.ExtractRotation = extractRotation;
+                    _currentSkillAction.MarkDirty();
+                    EditorUtility.SetDirty(_currentSkillAction);
+                    OnActionModified?.Invoke(_currentSkillAction);
+                }
+                
+                EditorGUI.BeginChangeCheck();
+                bool extractHorizontalOnly = EditorGUILayout.Toggle("只提取水平方向（忽略Y轴）", _currentSkillAction.ExtractHorizontalOnly);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _currentSkillAction.ExtractHorizontalOnly = extractHorizontalOnly;
+                    _currentSkillAction.MarkDirty();
+                    EditorUtility.SetDirty(_currentSkillAction);
+                    OnActionModified?.Invoke(_currentSkillAction);
+                }
+                
+                EditorGUILayout.Space(5);
+                
                 // 提取位移数据按钮
                 EditorGUILayout.BeginHorizontal();
                 {
@@ -354,11 +380,13 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 // 根据提取模式选择不同的方法
                 bool extractRotation = _currentSkillAction.ExtractRotation;
+                bool extractHorizontalOnly = _currentSkillAction.ExtractHorizontalOnly;
                 
                 if (_currentSkillAction.ExtractMode == SkillActionEditorData.RootMotionExtractMode.RootTransform)
                 {
                     // 模式1：提取根骨骼位移
-                    result = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractRootMotionToIntArray(clip, extractRotation);
+                    result = Astrum.Editor.RoleEditor.Services.AnimationRootMotionExtractor.ExtractRootMotionToIntArray(
+                        clip, extractRotation, extractHorizontalOnly);
                 }
                 else // HipsDifference
                 {
@@ -383,8 +411,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                         referenceClip: _currentSkillAction.ReferenceAnimationClip,
                         hipsBoneName: _currentSkillAction.HipsBoneName ?? "Hips",
                         modelGameObject: model,
-                        extractRotation: extractRotation
-                    );
+                        extractRotation: extractRotation,
+                        extractHorizontalOnly: extractHorizontalOnly);
                 }
                 
                 _currentSkillAction.RootMotionDataArray = result;

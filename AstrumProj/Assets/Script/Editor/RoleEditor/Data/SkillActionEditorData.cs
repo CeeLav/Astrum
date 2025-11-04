@@ -51,46 +51,38 @@ namespace Astrum.Editor.RoleEditor.Data
             HipsDifference     // 模式2：使用参考动画计算Hips差值
         }
         
-        [TitleGroup("动画位移")]
-        [LabelText("提取模式")]
-        [InfoBox("RootTransform: 提取根骨骼位移\nHipsDifference: 使用参考动画计算Hips位移差值", InfoMessageType.Info)]
-        [ValueDropdown("GetExtractModeOptions")]
+        [HideInInspector]
         public RootMotionExtractMode ExtractMode = RootMotionExtractMode.RootTransform;
         
         /// <summary>
         /// 参考动画文件路径（模式2使用，带位移的动画）
         /// </summary>
-        [TitleGroup("动画位移")]
-        [LabelText("参考动画路径")]
-        [ShowIf("@ExtractMode == RootMotionExtractMode.HipsDifference")]
-        [InfoBox("带位移的动画文件路径（用于与基础动画计算差值）", InfoMessageType.Info)]
+        [HideInInspector]
         public string ReferenceAnimationPath = "";
         
         /// <summary>
         /// 参考动画片段（模式2使用）
         /// </summary>
-        [TitleGroup("动画位移")]
-        [LabelText("参考动画文件")]
-        [ShowIf("@ExtractMode == RootMotionExtractMode.HipsDifference")]
-        [InfoBox("带位移的动画文件（与基础动画做差值）", InfoMessageType.Info)]
+        [HideInInspector]
         public AnimationClip ReferenceAnimationClip;
         
         /// <summary>
         /// Hips骨骼名称（模式2使用）
         /// </summary>
-        [TitleGroup("动画位移")]
-        [LabelText("Hips骨骼名称")]
-        [ShowIf("@ExtractMode == RootMotionExtractMode.HipsDifference")]
-        [InfoBox("角色模型中Hips骨骼的名称，默认为'Hips'", InfoMessageType.Info)]
+        [HideInInspector]
         public string HipsBoneName = "Hips";
         
         /// <summary>
         /// 是否提取旋转数据
         /// </summary>
-        [TitleGroup("动画位移")]
-        [LabelText("提取旋转")]
-        [InfoBox("是否同时提取根骨骼的旋转数据（四元数）。默认只提取位置位移。", InfoMessageType.Info)]
+        [HideInInspector]
         public bool ExtractRotation = false;
+        
+        /// <summary>
+        /// 是否只提取水平方向位移（X和Z，忽略Y）
+        /// </summary>
+        [HideInInspector]
+        public bool ExtractHorizontalOnly = false;
         
         /// <summary>
         /// 根节点位移数据（整型数组格式，用于保存到CSV）
@@ -191,6 +183,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.ReferenceAnimationClip = this.ReferenceAnimationClip;
             clone.HipsBoneName = this.HipsBoneName;
             clone.ExtractRotation = this.ExtractRotation;
+            clone.ExtractHorizontalOnly = this.ExtractHorizontalOnly;
             clone.RootMotionDataArray = new List<int>(this.RootMotionDataArray);
             
             // 深拷贝触发帧数据
