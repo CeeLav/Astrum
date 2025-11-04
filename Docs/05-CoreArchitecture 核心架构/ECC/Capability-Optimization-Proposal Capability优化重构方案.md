@@ -2,7 +2,7 @@
 
 > 作者：AI Assistant  
 > 日期：2025-11-04  
-> 版本：v1.2  
+> 版本：v1.4  
 > 适用范围：Astrum 客户端 ECC 架构
 
 ## 1. 方案概述
@@ -63,16 +63,13 @@
 │  【Capability 状态数据】                                      │
 │  - CapabilityStates: Dictionary<int, CapabilityState>      │
 │    └─ Key: TypeId (基于 TypeHash 的 int)                   │
-│    └─ IsEnabled: bool       // 是否拥有此 Capability         │
+│    └─ 存在 = 拥有此 Capability，不存在 = 未拥有              │
 │    └─ IsActive: bool        // 是否激活                      │
-│    └─ DisablerSet: HashSet<CapabilityDisabler>             │
-│       └─ InstigatorId: long    // 禁用发起者实体ID           │
-│       └─ Tag: CapabilityTag    // 禁用的目标 Tag（枚举）       │
 │                                                             │
 │  【Capability Tag 注册】                                     │
-│  - CapabilityTags: Dictionary<int, CapabilityTag>          │
+│  - CapabilityTags: Dictionary<int, HashSet<CapabilityTag>> │
 │    └─ Key: TypeId                                           │
-│    └─ 每个 Capability 类型对应的 Tag（位标记组合）             │
+│    └─ 每个 Capability 类型对应的 Tag 集合                     │
 │                                                             │
 │  【禁用 Tag 记录】                                           │
 │  - DisabledTags: Dictionary<CapabilityTag, HashSet<long>>  │
@@ -96,7 +93,7 @@
 │  【元数据】                                                   │
 │  + TypeId: int                     // 类型 ID（基于 TypeHash）│
 │  + Priority: int                   // 执行优先级              │
-│  + Tags: CapabilityTag             // 此 Capability 的 Tag（位标记）│
+│  + Tags: HashSet<CapabilityTag>   // 此 Capability 的 Tag 集合 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -143,20 +140,10 @@ public partial class Entity
 public partial struct CapabilityState
 {
     /// <summary>
-    /// 是否启用（实体是否拥有此 Capability）
-    /// </summary>
-    public bool IsEnabled { get; set; }
-    
-    /// <summary>
     /// 是否激活（满足激活条件且未被禁用）
+    /// 注意：CapabilityState 在字典中存在即表示实体拥有此 Capability
     /// </summary>
     public bool IsActive { get; set; }
-    
-    /// <summary>
-    /// 禁用来源集合（记录哪些发起者禁用了此 Capability）
-    /// 使用 HashSet 支持多个来源同时禁用
-    /// </summary>
-    public HashSet<CapabilityDisabler> Disablers { get; set; }
     
     /// <summary>
     /// 自定义数据（预留字段，用于存储 Capability 特定的简单状态）
@@ -166,171 +153,59 @@ public partial struct CapabilityState
 }
 ```
 
-#### 2.2.3 CapabilityDisabler 数据结构
-
-```csharp
-/// <summary>
-/// Capability 禁用来源信息（支持溯源）
-/// </summary>
-[MemoryPackable]
-public partial struct CapabilityDisabler : IEquatable<CapabilityDisabler>
-{
-    /// <summary>
-    /// 禁用发起者实体ID（用于溯源）
-    /// </summary>
-    public long InstigatorId { get; set; }
-    
-    /// <summary>
-    /// 禁用的目标 Tag（枚举）
-    /// </summary>
-    public CapabilityTag Tag { get; set; }
-    
-    /// <summary>
-    /// 禁用原因/类型（可选，用于调试）
-    /// 例如："Stun", "Death", "SkillCasting"
-    /// </summary>
-    public string Reason { get; set; }
-    
-    /// <summary>
-    /// 禁用时间戳（帧号，用于超时自动解除）
-    /// -1 表示永久禁用
-    /// </summary>
-    public int DisableFrame { get; set; }
-    
-    /// <summary>
-    /// 禁用持续帧数（-1 表示永久）
-    /// </summary>
-    public int DurationFrames { get; set; }
-    
-    public bool Equals(CapabilityDisabler other)
-    {
-        return InstigatorId == other.InstigatorId && Tag == other.Tag && Reason == other.Reason;
-    }
-    
-    public override bool Equals(object obj)
-    {
-        return obj is CapabilityDisabler other && Equals(other);
-    }
-    
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(InstigatorId, Tag, Reason);
-    }
-}
-```
-
 ### 2.3 CapabilityTag 枚举定义
 
 ```csharp
 /// <summary>
 /// Capability 标签枚举
-/// 使用 Flags 特性支持位标记组合
+/// 普通枚举，每个 Capability 可以拥有多个 Tag（使用 HashSet 存储）
 /// </summary>
-[Flags]
-public enum CapabilityTag : int
+public enum CapabilityTag
 {
-    /// <summary>
-    /// 无标签
-    /// </summary>
-    None = 0,
-    
     /// <summary>
     /// 移动相关（位移、旋转等）
     /// </summary>
-    Movement = 1 << 0,
+    Movement,
     
     /// <summary>
     /// 玩家控制相关（输入响应、指令处理等）
     /// </summary>
-    Control = 1 << 1,
+    Control,
     
     /// <summary>
     /// 攻击相关（普通攻击、连击等）
     /// </summary>
-    Attack = 1 << 2,
+    Attack,
     
     /// <summary>
     /// 技能相关（技能释放、技能效果等）
     /// </summary>
-    Skill = 1 << 3,
+    Skill,
     
     /// <summary>
     /// AI 相关（AI 决策、状态机等）
     /// </summary>
-    AI = 1 << 4,
+    AI,
     
     /// <summary>
     /// 动画相关（动画播放、状态同步等，通常不禁用）
     /// </summary>
-    Animation = 1 << 5,
+    Animation,
     
     /// <summary>
     /// 物理相关（碰撞、物理模拟等）
     /// </summary>
-    Physics = 1 << 6,
+    Physics,
     
     /// <summary>
     /// 战斗相关（伤害计算、状态效果等）
     /// </summary>
-    Combat = 1 << 7,
+    Combat,
     
     /// <summary>
     /// 交互相关（拾取、对话、使用物品等）
     /// </summary>
-    Interaction = 1 << 8,
-    
-    /// <summary>
-    /// 组合标签：所有控制类能力（移动 + 控制）
-    /// </summary>
-    AllControl = Movement | Control,
-    
-    /// <summary>
-    /// 组合标签：所有战斗类能力（攻击 + 技能 + 战斗）
-    /// </summary>
-    AllCombat = Attack | Skill | Combat,
-    
-    /// <summary>
-    /// 所有标签（用于全禁用）
-    /// </summary>
-    All = ~0
-}
-
-/// <summary>
-/// CapabilityTag 扩展方法
-/// </summary>
-public static class CapabilityTagExtensions
-{
-    /// <summary>
-    /// 检查枚举值是否包含指定的标签
-    /// </summary>
-    public static bool HasTag(this CapabilityTag tags, CapabilityTag tag)
-    {
-        return (tags & tag) != 0;
-    }
-    
-    /// <summary>
-    /// 检查枚举值是否包含所有指定的标签
-    /// </summary>
-    public static bool HasAllTags(this CapabilityTag tags, CapabilityTag requiredTags)
-    {
-        return (tags & requiredTags) == requiredTags;
-    }
-    
-    /// <summary>
-    /// 添加标签
-    /// </summary>
-    public static CapabilityTag AddTag(this CapabilityTag tags, CapabilityTag tag)
-    {
-        return tags | tag;
-    }
-    
-    /// <summary>
-    /// 移除标签
-    /// </summary>
-    public static CapabilityTag RemoveTag(this CapabilityTag tags, CapabilityTag tag)
-    {
-        return tags & ~tag;
-    }
+    Interaction
 }
 ```
 
@@ -402,10 +277,10 @@ public interface ICapability
     int Priority { get; }
     
     /// <summary>
-    /// 此 Capability 的 Tag（位标记组合）
+    /// 此 Capability 的 Tag 集合
     /// 用于支持基于 Tag 的批量禁用
     /// </summary>
-    CapabilityTag Tags { get; }
+    IReadOnlySet<CapabilityTag> Tags { get; }
     
     /// <summary>
     /// 判定此 Capability 是否应该激活
@@ -474,9 +349,11 @@ public abstract class Capability<T> : ICapability where T : ICapability
     public virtual int Priority => 0;
     
     /// <summary>
-    /// Tag（默认无标签，子类可重写）
+    /// Tag 集合（默认空集合，子类可重写）
     /// </summary>
-    public virtual CapabilityTag Tags => CapabilityTag.None;
+    public virtual IReadOnlySet<CapabilityTag> Tags => EmptyTags;
+    
+    private static readonly HashSet<CapabilityTag> EmptyTags = new HashSet<CapabilityTag>();
     
     /// <summary>
     /// 初始化能力（兼容旧接口，可选实现）
@@ -507,8 +384,9 @@ public abstract class Capability<T> : ICapability where T : ICapability
     /// </summary>
     public virtual bool ShouldActivate(Entity entity)
     {
-        // 默认实现：检查是否启用且未被禁用
-        return IsCapabilityEnabled(entity) && !IsCapabilityDisabled(entity);
+        // 默认实现：检查是否存在且未被禁用
+        // CapabilityState 存在即表示拥有此 Capability
+        return HasCapabilityState(entity) && !IsCapabilityDisabled(entity);
     }
     
     /// <summary>
@@ -516,8 +394,8 @@ public abstract class Capability<T> : ICapability where T : ICapability
     /// </summary>
     public virtual bool ShouldDeactivate(Entity entity)
     {
-        // 默认实现：检查是否被禁用或不再启用
-        return !IsCapabilityEnabled(entity) || IsCapabilityDisabled(entity);
+        // 默认实现：检查是否被禁用或不再存在
+        return !HasCapabilityState(entity) || IsCapabilityDisabled(entity);
     }
     
     /// <summary>
@@ -589,21 +467,31 @@ public abstract class Capability<T> : ICapability where T : ICapability
     }
     
     /// <summary>
-    /// 检查此 Capability 是否在实体上启用
+    /// 检查此 Capability 是否在实体上存在（字典中存在即表示拥有）
     /// </summary>
-    protected bool IsCapabilityEnabled(Entity entity)
+    protected bool HasCapabilityState(Entity entity)
     {
-        var state = GetCapabilityState(entity);
-        return state.IsEnabled;
+        return entity.CapabilityStates.ContainsKey(TypeId);
     }
     
     /// <summary>
     /// 检查此 Capability 是否被禁用
+    /// 通过检查 Entity.DisabledTags 中是否有此 Capability 的 Tag 被禁用
     /// </summary>
     protected bool IsCapabilityDisabled(Entity entity)
     {
-        var state = GetCapabilityState(entity);
-        return state.Disablers != null && state.Disablers.Count > 0;
+        var capability = CapabilitySystem.Instance.GetCapability(TypeId);
+        if (capability == null)
+            return false;
+        
+        // 检查此 Capability 的任何一个 Tag 是否在 DisabledTags 中
+        foreach (var tag in capability.Tags)
+        {
+            if (entity.DisabledTags.ContainsKey(tag) && entity.DisabledTags[tag].Count > 0)
+                return true;
+        }
+        
+        return false;
     }
     
     /// <summary>
@@ -741,7 +629,6 @@ public class CapabilitySystem
     
     /// <summary>
     /// 构建 Tag 到 Capability TypeId 的映射
-    /// 遍历所有 CapabilityTag 的每一位，构建映射关系
     /// </summary>
     private void BuildTagMapping()
     {
@@ -751,23 +638,16 @@ public class CapabilitySystem
         foreach (var capability in _registeredCapabilities.Values)
         {
             var typeId = capability.TypeId;
-            var tags = capability.Tags;
             
-            // 遍历所有可能的 Tag 值（1 << 0 到 1 << 30）
-            for (int i = 0; i < 32; i++)
+            // 遍历此 Capability 的所有 Tag
+            foreach (var tag in capability.Tags)
             {
-                var tag = (CapabilityTag)(1 << i);
-                
-                // 检查此 Capability 是否包含此 Tag
-                if (tags.HasTag(tag))
+                if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
                 {
-                    if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
-                    {
-                        typeIds = new HashSet<int>();
-                        _tagToCapabilityTypeIds[tag] = typeIds;
-                    }
-                    typeIds.Add(typeId);
+                    typeIds = new HashSet<int>();
+                    _tagToCapabilityTypeIds[tag] = typeIds;
                 }
+                typeIds.Add(typeId);
             }
         }
     }
@@ -815,11 +695,8 @@ public class CapabilitySystem
         {
             var typeId = capability.TypeId;
             
-            // 检查是否启用
+            // 检查此 Capability 是否存在于实体上（字典中存在即表示拥有）
             if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
-                continue;
-            
-            if (!state.IsEnabled)
                 continue;
             
             // 检查激活条件
@@ -851,10 +728,11 @@ public class CapabilitySystem
         {
             var typeId = capability.TypeId;
             
+            // 检查此 Capability 是否存在且激活
             if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 continue;
             
-            if (state.IsEnabled && state.IsActive)
+            if (state.IsActive)
             {
                 try
                 {
@@ -870,28 +748,15 @@ public class CapabilitySystem
     
     /// <summary>
     /// 清理超时的禁用来源
+    /// 注意：如果需要支持超时自动解除，需要在 DisabledTags 中存储额外的元数据
+    /// 当前实现暂不支持，需要时可以扩展 DisabledTags 的值类型
     /// </summary>
     private void CleanupExpiredDisablers(Entity entity)
     {
-        var currentFrame = LSController.Instance?.CurrentFrame ?? 0;
-        
-        foreach (var kvp in entity.CapabilityStates)
-        {
-            var state = kvp.Value;
-            if (state.Disablers == null || state.Disablers.Count == 0)
-                continue;
-            
-            // 移除超时的禁用来源
-            state.Disablers.RemoveWhere(d =>
-            {
-                if (d.DurationFrames < 0)
-                    return false; // 永久禁用
-                
-                return currentFrame >= d.DisableFrame + d.DurationFrames;
-            });
-            
-            entity.CapabilityStates[kvp.Key] = state;
-        }
+        // 当前实现：禁用是永久性的，直到显式调用 EnableCapabilitiesByTag
+        // 如果需要超时功能，可以扩展为：
+        // Dictionary<CapabilityTag, Dictionary<long, DisableInfo>>
+        // 其中 DisableInfo 包含 DisableFrame 和 DurationFrames
     }
     
     // ====== 外部接口：Tag 禁用/启用 ======
@@ -899,36 +764,13 @@ public class CapabilitySystem
     /// <summary>
     /// 禁用实体上所有匹配指定 Tag 的 Capability
     /// </summary>
-    public void DisableCapabilitiesByTag(Entity entity, CapabilityTag tag, long instigatorId, string reason = null, int durationFrames = -1)
+    public void DisableCapabilitiesByTag(Entity entity, CapabilityTag tag, long instigatorId, string reason = null)
     {
-        // 遍历 Tag 的每一位，找到所有匹配的 Capability
-        var matchedTypeIds = new HashSet<int>();
-        for (int i = 0; i < 32; i++)
-        {
-            var singleTag = (CapabilityTag)(1 << i);
-            if (!tag.HasTag(singleTag))
-                continue;
-            
-            if (_tagToCapabilityTypeIds.TryGetValue(singleTag, out var typeIds))
-            {
-                matchedTypeIds.UnionWith(typeIds);
-            }
-        }
-        
-        if (matchedTypeIds.Count == 0)
+        // 查找所有匹配此 Tag 的 Capability
+        if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
             return;
         
-        var currentFrame = LSController.Instance?.CurrentFrame ?? 0;
-        var disabler = new CapabilityDisabler
-        {
-            InstigatorId = instigatorId,
-            Reason = reason,
-            DisableFrame = currentFrame,
-            DurationFrames = durationFrames,
-            Tag = tag
-        };
-        
-        // 记录到 DisabledTags
+        // 记录到 DisabledTags（用于快速检查）
         if (!entity.DisabledTags.TryGetValue(tag, out var instigators))
         {
             instigators = new HashSet<long>();
@@ -936,18 +778,7 @@ public class CapabilitySystem
         }
         instigators.Add(instigatorId);
         
-        // 添加禁用来源到每个匹配的 Capability
-        foreach (var typeId in matchedTypeIds)
-        {
-            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
-                continue;
-            
-            if (state.Disablers == null)
-                state.Disablers = new HashSet<CapabilityDisabler>();
-            
-            state.Disablers.Add(disabler);
-            entity.CapabilityStates[typeId] = state;
-        }
+        // 注意：不需要在 CapabilityState 中存储 Disabler，因为禁用状态可以从 DisabledTags 中查询
     }
     
     /// <summary>
@@ -955,42 +786,12 @@ public class CapabilitySystem
     /// </summary>
     public void EnableCapabilitiesByTag(Entity entity, CapabilityTag tag, long instigatorId)
     {
-        // 遍历 Tag 的每一位，找到所有匹配的 Capability
-        var matchedTypeIds = new HashSet<int>();
-        for (int i = 0; i < 32; i++)
-        {
-            var singleTag = (CapabilityTag)(1 << i);
-            if (!tag.HasTag(singleTag))
-                continue;
-            
-            if (_tagToCapabilityTypeIds.TryGetValue(singleTag, out var typeIds))
-            {
-                matchedTypeIds.UnionWith(typeIds);
-            }
-        }
-        
-        if (matchedTypeIds.Count == 0)
-            return;
-        
         // 从 DisabledTags 中移除
         if (entity.DisabledTags.TryGetValue(tag, out var instigators))
         {
             instigators.Remove(instigatorId);
             if (instigators.Count == 0)
                 entity.DisabledTags.Remove(tag);
-        }
-        
-        // 从每个匹配的 Capability 中移除禁用来源
-        foreach (var typeId in matchedTypeIds)
-        {
-            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
-                continue;
-            
-            if (state.Disablers == null)
-                continue;
-            
-            state.Disablers.RemoveWhere(d => d.InstigatorId == instigatorId && d.Tag == tag);
-            entity.CapabilityStates[typeId] = state;
         }
     }
     
@@ -1076,12 +877,10 @@ public static Entity CreateByArchetype(string archetypeName, World world)
             continue;
         }
         
-        // 启用此 Capability（使用 TypeId 作为 Key）
+        // 启用此 Capability（使用 TypeId 作为 Key，存在即表示拥有）
         entity.CapabilityStates[capability.TypeId] = new CapabilityState
         {
-            IsEnabled = true,
             IsActive = false, // 初始未激活，等待 ShouldActivate 判定
-            Disablers = new HashSet<CapabilityDisabler>(),
             CustomData = new Dictionary<string, object>()
         };
         
@@ -1117,14 +916,12 @@ public bool AttachSubArchetype(string subArchetypeName, out string reason)
             count = 0;
         CapabilityRefCounts[key] = count + 1;
         
-        // 首次添加：启用 Capability（使用 TypeId）
+        // 首次添加：启用 Capability（使用 TypeId，存在即表示拥有）
         if (count == 0)
         {
             CapabilityStates[typeId] = new CapabilityState
             {
-                IsEnabled = true,
                 IsActive = false,
-                Disablers = new HashSet<CapabilityDisabler>(),
                 CustomData = new Dictionary<string, object>()
             };
             
@@ -1224,7 +1021,12 @@ public class MovementCapability : Capability<MovementCapability>
     // ====== 元数据 ======
     public override int Priority => 100;
     
-    public override CapabilityTag Tags => CapabilityTag.Movement | CapabilityTag.Control;
+    public override IReadOnlySet<CapabilityTag> Tags => _tags;
+    private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
+    { 
+        CapabilityTag.Movement, 
+        CapabilityTag.Control 
+    };
     
     // ====== 常量配置（可移至配置文件） ======
     private const string KEY_MOVEMENT_THRESHOLD = "MovementThreshold";
@@ -1341,8 +1143,7 @@ public override void OnActivate(Entity entity)
         entity, 
         CapabilityTag.Movement, 
         entity.UniqueId, 
-        "SkillCasting", 
-        durationFrames: 60 // 持续60帧（1秒）
+        "SkillCasting"
     );
 }
 
@@ -1375,8 +1176,7 @@ private void OnEntityDied(EntityDiedEventData eventData)
         entity, 
         CapabilityTag.Control, 
         entity.UniqueId, 
-        "Death", 
-        durationFrames: -1 // 永久禁用
+        "Death"
     );
 }
 
@@ -1407,35 +1207,17 @@ private void OnEntityRevived(EntityRevivedEventData eventData)
 | `CapabilityTag.AI` | AI 相关 | 玩家接管、特殊剧情时禁用 |
 | `CapabilityTag.Animation` | 动画相关 | 通常不禁用（视觉表现层） |
 | `CapabilityTag.Physics` | 物理相关 | 死亡、传送时禁用 |
-| `CapabilityTag.AllControl` | 所有控制类 | 组合标签：Movement \| Control |
-| `CapabilityTag.AllCombat` | 所有战斗类 | 组合标签：Attack \| Skill \| Combat |
-
-### 5.4 Tag 组合使用示例
+### 5.4 多 Tag 禁用示例
 
 ```csharp
-// 示例1：禁用所有控制和移动能力
-CapabilitySystem.Instance.DisableCapabilitiesByTag(
-    entity, 
-    CapabilityTag.AllControl,  // 等同于 CapabilityTag.Movement | CapabilityTag.Control
-    entity.UniqueId, 
-    "Stun"
-);
+// 示例1：禁用多个 Tag（需要分别调用）
+CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Movement, entity.UniqueId, "Stun");
+CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Control, entity.UniqueId, "Stun");
 
-// 示例2：禁用所有战斗相关能力
-CapabilitySystem.Instance.DisableCapabilitiesByTag(
-    entity, 
-    CapabilityTag.AllCombat,  // 等同于 CapabilityTag.Attack | CapabilityTag.Skill | CapabilityTag.Combat
-    entity.UniqueId, 
-    "Silence"
-);
-
-// 示例3：自定义组合（只禁用移动和攻击）
-CapabilitySystem.Instance.DisableCapabilitiesByTag(
-    entity, 
-    CapabilityTag.Movement | CapabilityTag.Attack,  // 位运算组合
-    entity.UniqueId, 
-    "CustomEffect"
-);
+// 示例2：禁用所有战斗相关能力（需要分别禁用）
+CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Attack, entity.UniqueId, "Silence");
+CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Skill, entity.UniqueId, "Silence");
+CapabilitySystem.Instance.DisableCapabilitiesByTag(entity, CapabilityTag.Combat, entity.UniqueId, "Silence");
 ```
 
 ---
@@ -1466,16 +1248,14 @@ CapabilitySystem.Instance.DisableCapabilitiesByTag(
 
 ```
 单个 CapabilityState 大小：
-- IsEnabled (bool): 1 byte
 - IsActive (bool): 1 byte
-- Disablers (HashSet): 8 bytes（空集合）
 - CustomData (Dictionary): 8 bytes（空字典）
-= 约 18 bytes/状态
+= 约 9 bytes/状态
 
-5 个 Capability 状态 = 5 * 18 = 90 bytes
-1000 个实体 = 1000 * 90 = 90 KB
+5 个 Capability 状态 = 5 * 9 = 45 bytes
+1000 个实体 = 1000 * 45 = 45 KB
 
-节省内存：(205 - 90) / 205 = 56% ✓
+节省内存：(205 - 45) / 205 = 78% ✓
 ```
 
 ### 6.2 缓存命中率提升
@@ -1510,9 +1290,10 @@ public void UpdateMovementCapability_Parallel(List<Entity> entities)
     
     Parallel.ForEach(entities, entity =>
     {
+        // 检查 Capability 是否存在且激活（存在即表示拥有）
         if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
             return;
-        if (!state.IsEnabled || !state.IsActive)
+        if (!state.IsActive)
             return;
         
         // 并行执行移动逻辑
@@ -1536,14 +1317,13 @@ public void Test_CapabilityState_EnableDisable()
     var entity = new Entity();
     var typeId = MovementCapability.TypeId; // 使用 TypeId
     
-    // 启用 Capability
+    // 启用 Capability（添加状态即表示拥有）
     entity.CapabilityStates[typeId] = new CapabilityState
     {
-        IsEnabled = true,
         IsActive = false
     };
     
-    Assert.IsTrue(entity.CapabilityStates[typeId].IsEnabled);
+    Assert.IsTrue(entity.CapabilityStates.ContainsKey(typeId));
     Assert.IsFalse(entity.CapabilityStates[typeId].IsActive);
     
     // 激活 Capability
@@ -1568,7 +1348,6 @@ public void Test_TagDisable_Enable()
     var typeId = MovementCapability.TypeId; // 使用 TypeId
     entity.CapabilityStates[typeId] = new CapabilityState
     {
-        IsEnabled = true,
         IsActive = true
     };
     
@@ -1577,14 +1356,14 @@ public void Test_TagDisable_Enable()
         entity, CapabilityTag.Movement, 999, "Test"
     );
     
-    Assert.IsTrue(entity.CapabilityStates[typeId].Disablers.Count > 0);
+    Assert.IsTrue(entity.DisabledTags.ContainsKey(CapabilityTag.Movement));
     
     // 启用 Movement Tag
     CapabilitySystem.Instance.EnableCapabilitiesByTag(
         entity, CapabilityTag.Movement, 999
     );
     
-    Assert.IsTrue(entity.CapabilityStates[typeId].Disablers.Count == 0);
+    Assert.IsFalse(entity.DisabledTags.ContainsKey(CapabilityTag.Movement));
 }
 ```
 
@@ -1602,11 +1381,10 @@ public void Test_ShouldActivate_Deactivate()
     entity.AddComponent(new MovementComponent());
     entity.AddComponent(new TransComponent());
     
-    // 启用 Capability（使用 TypeId）
+    // 启用 Capability（使用 TypeId，存在即表示拥有）
     var typeId = MovementCapability.TypeId;
     entity.CapabilityStates[typeId] = new CapabilityState
     {
-        IsEnabled = true,
         IsActive = false
     };
     
@@ -1797,8 +1575,7 @@ public void Update()
 |------|------|
 | Capability | 能力，ECC 架构中的行为处理单元 |
 | CapabilityState | Capability 在实体上的状态信息 |
-| CapabilityDisabler | Capability 禁用来源信息 |
-| CapabilityTag | Capability 的标签枚举，支持 Flags 位标记组合 |
+| CapabilityTag | Capability 的标签枚举 |
 | Instigator | 发起者，指禁用 Capability 的实体 |
 | ShouldActivate | 判定 Capability 是否应该激活的接口方法 |
 | ShouldDeactivate | 判定 Capability 是否应该停用的接口方法 |
@@ -1813,6 +1590,8 @@ public void Update()
 
 | 版本 | 日期 | 作者 | 变更内容 |
 |------|------|------|---------|
+| v1.4 | 2025-11-04 | AI Assistant | 进一步简化：移除 CapabilityState.IsEnabled 字段，字典存在即表示拥有，不存在即表示未拥有 |
+| v1.3 | 2025-11-04 | AI Assistant | 简化设计：移除 Disablers 字段和 CapabilityDisabler 结构体，Tag 改为普通枚举（移除 Flags），使用 HashSet 存储多个 Tag |
 | v1.2 | 2025-11-04 | AI Assistant | 将 Tag 从 string 改为 CapabilityTag 枚举，支持 Flags 位标记组合，提升类型安全性和性能 |
 | v1.1 | 2025-11-04 | AI Assistant | 使用 TypeHash 生成 TypeId，将 Key 从 string 改为 int，提升性能 |
 | v1.0 | 2025-11-04 | AI Assistant | 初始版本，完整方案设计 |
