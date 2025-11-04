@@ -11,11 +11,3 @@ TextScriptImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 293524
-  packageName: Animancer Lite v8
-  packageVersion: 8.2.3
-  assetPath: Packages/com.kybernetik.animancer/Samples~/07 Sprites/01 Directional
-    Basics/Critters/License.txt
-  uploadId: 803366

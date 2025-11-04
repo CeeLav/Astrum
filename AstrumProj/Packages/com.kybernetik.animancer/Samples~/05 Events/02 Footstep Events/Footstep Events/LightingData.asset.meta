@@ -6,11 +6,3 @@ NativeFormatImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 293524
-  packageName: Animancer Lite v8
-  packageVersion: 8.2.3
-  assetPath: Packages/com.kybernetik.animancer/Samples~/05 Events/02 Footstep Events/Footstep
-    Events/LightingData.asset
-  uploadId: 803366

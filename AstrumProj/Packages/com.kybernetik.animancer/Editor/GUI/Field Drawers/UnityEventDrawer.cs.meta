@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: 15937f3ffdbf9354bb948f5eb0eaf6ed
 timeCreated: 1516751545
-licenseType: Store
+licenseType: Free
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -11,10 +11,3 @@ MonoImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 293524
-  packageName: Animancer Lite v8
-  packageVersion: 8.2.3
-  assetPath: Packages/com.kybernetik.animancer/Editor/GUI/Field Drawers/UnityEventDrawer.cs
-  uploadId: 803366

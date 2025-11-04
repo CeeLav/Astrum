@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 21463b31c6c8b2040b6777fb87efc92d
+guid: bb32a8dd5372952438a8a8216732c8bf
 labels:
 - Documentation
 NativeFormatImporter:
@@ -8,10 +8,3 @@ NativeFormatImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 293524
-  packageName: Animancer Lite v8
-  packageVersion: 8.2.3
-  assetPath: Packages/com.kybernetik.animancer/Read Me v8.2.3.asset
-  uploadId: 803366

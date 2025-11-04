@@ -25,11 +25,3 @@ AudioImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 293524
-  packageName: Animancer Lite v8
-  packageVersion: 8.2.3
-  assetPath: Packages/com.kybernetik.animancer/Samples~/05 Events/02 Footstep Events/Footstep
-    Sounds/Footstep On Concrete 01.ogg
-  uploadId: 803366

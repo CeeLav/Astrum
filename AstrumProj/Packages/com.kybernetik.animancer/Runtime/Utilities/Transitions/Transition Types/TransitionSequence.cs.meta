@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: 9d0d81bfa0886584d8734dbaa0f3c441
 timeCreated: 1515060256
-licenseType: Store
+licenseType: Free
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -11,11 +11,3 @@ MonoImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 293524
-  packageName: Animancer Lite v8
-  packageVersion: 8.2.3
-  assetPath: Packages/com.kybernetik.animancer/Runtime/Utilities/Transitions/Transition
-    Types/TransitionSequence.cs
-  uploadId: 803366

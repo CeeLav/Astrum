@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>MongoDB.Bson</id>
+    <version>3.5.0</version>
+    <authors>MongoDB Inc.</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">Apache-2.0</license>
+    <licenseUrl>https://licenses.nuget.org/Apache-2.0</licenseUrl>
+    <icon>packageIcon.png</icon>
+    <readme>README.md</readme>
+    <projectUrl>https://www.mongodb.com/docs/drivers/csharp/</projectUrl>
+    <description>MongoDB's Official Bson Library.</description>
+    <releaseNotes>https://github.com/mongodb/mongo-csharp-driver/releases/tag/v3.5.0</releaseNotes>
+    <copyright>Copyright © 2010-present MongoDB Inc.</copyright>
+    <tags>mongodb mongo nosql bson</tags>
+    <repository type="git" url="https://github.com/mongodb/mongo-csharp-driver.git" commit="d2ff8abfe42e4a9d6bba6caa2238c51dbbb7497f" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.7.2">
+        <dependency id="System.Memory" version="4.5.5" exclude="Build,Analyzers" />
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="5.0.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0">
+        <dependency id="System.Memory" version="4.5.5" exclude="Build,Analyzers" />
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="5.0.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.1">
+        <dependency id="System.Memory" version="4.5.5" exclude="Build,Analyzers" />
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="5.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
