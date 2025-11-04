@@ -339,24 +339,19 @@ namespace Astrum.LogicCore.Factories
         }
 
         /// <summary>
-        /// 根据原型名称获取类型
+        /// 根据原型名称获取类型（使用反射自动获取，无需硬编码）
         /// </summary>
         /// <param name="archetypeName">原型名称</param>
         /// <returns>类型</returns>
         private Type GetArchetypeType(string archetypeName)
         {
-            // 这里可以根据 archetypeName 映射到具体的类型
-            // 暂时使用简单的映射，实际项目中可能需要更复杂的逻辑
-            switch (archetypeName)
+            if (ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
             {
-                case "Role":
-                    return typeof(RoleArchetype);
-                case "Combat":
-                    return typeof(CombatArchetype);
-                // 可以添加更多映射
-                default:
-                    return null;
+                return info.ArchetypeType;
             }
+            
+            ASLogger.Instance.Error($"GetArchetypeType: Archetype '{archetypeName}' not found in registry");
+            return null;
         }
     }
 }

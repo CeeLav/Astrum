@@ -395,11 +395,11 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool CheckCommandMatch(string commandName)
         {
-            // 获取输入组件
+            // 获取输入组件（Monster等非玩家控制实体可能没有此组件，这是正常的）
             var inputComponent = GetOwnerComponent<LSInputComponent>();
             if (inputComponent == null)
             {
-                ASLogger.Instance.Error($"ActionCapability.CheckCommandMatch: LSInputComponent not found on entity {OwnerEntity?.UniqueId}");
+                // 没有输入组件的实体（如Monster）无法匹配玩家输入命令
                 return false;
             }
             if (inputComponent.CurrentInput == null) return false;

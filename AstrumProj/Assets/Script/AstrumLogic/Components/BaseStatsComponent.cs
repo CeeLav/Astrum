@@ -31,7 +31,7 @@ namespace Astrum.LogicCore.Components
         }
         
         /// <summary>从配置表初始化</summary>
-        public void InitializeFromConfig(int roleId, int level)
+        public void InitializeFromConfig(int entityId, int level)
         {
             // 1. 清空现有属性
             BaseStats.Clear();
@@ -44,61 +44,62 @@ namespace Astrum.LogicCore.Components
                 return;
             }
             
-            var roleConfig = configManager.Tables.TbRoleBaseTable.Get(roleId);
-            if (roleConfig == null)
+            var entityStatsConfig = configManager.Tables.TbEntityStatsTable.Get(entityId);
+            if (entityStatsConfig == null)
             {
-                ASLogger.Instance.Error($"[BaseStats] RoleBaseTable not found for roleId={roleId}");
+                ASLogger.Instance.Error($"[BaseStats] EntityStatsTable not found for entityId={entityId}");
                 return;
             }
             
             // 3. 设置基础四维（配置表存int，直接转FP）
-            BaseStats.Set(StatType.ATK, (FP)roleConfig.BaseAttack);
-            BaseStats.Set(StatType.DEF, (FP)roleConfig.BaseDefense);
-            BaseStats.Set(StatType.HP, (FP)roleConfig.BaseHealth);
+            BaseStats.Set(StatType.ATK, (FP)entityStatsConfig.BaseAttack);
+            BaseStats.Set(StatType.DEF, (FP)entityStatsConfig.BaseDefense);
+            BaseStats.Set(StatType.HP, (FP)entityStatsConfig.BaseHealth);
             
             // 速度是小数，配置表存1000倍（如10.5存为10500）
-            BaseStats.Set(StatType.SPD, (FP)roleConfig.BaseSpeed / (FP)1000);
+            BaseStats.Set(StatType.SPD, (FP)entityStatsConfig.BaseSpeed / (FP)1000);
             
             // 4. 设置高级属性（百分比属性，配置表存1000倍）
             // 如暴击率5%，配置表存50，运行时除以1000得到0.05
-            BaseStats.Set(StatType.CRIT_RATE, (FP)roleConfig.BaseCritRate / (FP)1000);
-            BaseStats.Set(StatType.CRIT_DMG, (FP)roleConfig.BaseCritDamage / (FP)1000);
-            BaseStats.Set(StatType.ACCURACY, (FP)roleConfig.BaseAccuracy / (FP)1000);
-            BaseStats.Set(StatType.EVASION, (FP)roleConfig.BaseEvasion / (FP)1000);
-            BaseStats.Set(StatType.BLOCK_RATE, (FP)roleConfig.BaseBlockRate / (FP)1000);
-            BaseStats.Set(StatType.BLOCK_VALUE, (FP)roleConfig.BaseBlockValue);
+            BaseStats.Set(StatType.CRIT_RATE, (FP)entityStatsConfig.BaseCritRate / (FP)1000);
+            BaseStats.Set(StatType.CRIT_DMG, (FP)entityStatsConfig.BaseCritDamage / (FP)1000);
+            BaseStats.Set(StatType.ACCURACY, (FP)entityStatsConfig.BaseAccuracy / (FP)1000);
+            BaseStats.Set(StatType.EVASION, (FP)entityStatsConfig.BaseEvasion / (FP)1000);
+            BaseStats.Set(StatType.BLOCK_RATE, (FP)entityStatsConfig.BaseBlockRate / (FP)1000);
+            BaseStats.Set(StatType.BLOCK_VALUE, (FP)entityStatsConfig.BaseBlockValue);
             
             // 5. 设置抗性（百分比，配置表存1000倍）
-            BaseStats.Set(StatType.PHYSICAL_RES, (FP)roleConfig.PhysicalRes / (FP)1000);
-            BaseStats.Set(StatType.MAGICAL_RES, (FP)roleConfig.MagicalRes / (FP)1000);
+            BaseStats.Set(StatType.PHYSICAL_RES, (FP)entityStatsConfig.PhysicalRes / (FP)1000);
+            BaseStats.Set(StatType.MAGICAL_RES, (FP)entityStatsConfig.MagicalRes / (FP)1000);
             
             // 6. 设置资源属性
-            BaseStats.Set(StatType.MAX_MANA, (FP)roleConfig.BaseMaxMana);
-            BaseStats.Set(StatType.MANA_REGEN, (FP)roleConfig.ManaRegen / (FP)1000);
-            BaseStats.Set(StatType.HEALTH_REGEN, (FP)roleConfig.HealthRegen / (FP)1000);
+            BaseStats.Set(StatType.MAX_MANA, (FP)entityStatsConfig.BaseMaxMana);
+            BaseStats.Set(StatType.MANA_REGEN, (FP)entityStatsConfig.ManaRegen / (FP)1000);
+            BaseStats.Set(StatType.HEALTH_REGEN, (FP)entityStatsConfig.HealthRegen / (FP)1000);
             
             // 7. 应用等级成长
             if (level > 1)
             {
-                ApplyLevelGrowth(roleId, level);
+                ApplyLevelGrowth(entityId, level);
             }
             
-            ASLogger.Instance.Debug($"[BaseStats] Initialized roleId={roleId}, level={level}, ATK={BaseStats.Get(StatType.ATK)}");
+            ASLogger.Instance.Debug($"[BaseStats] Initialized entityId={entityId}, level={level}, ATK={BaseStats.Get(StatType.ATK)}");
         }
         
         /// <summary>应用等级成长</summary>
-        private void ApplyLevelGrowth(int roleId, int level)
+        private void ApplyLevelGrowth(int entityId, int level)
         {
             var configManager = TableConfig.Instance;
             
             // 累计2到level的成长
             for (int lv = 2; lv <= level; lv++)
             {
-                // 查找对应等级的成长配置（通过遍历查找匹配roleId和level的记录）
-                cfg.Role.RoleGrowthTable growthConfig = null;
-                foreach (var config in configManager.Tables.TbRoleGrowthTable.DataList)
+                // 查找对应等级的成长配置（通过遍历查找匹配entityId和level的记录）
+                // TODO pxa 优化
+                cfg.Entity.EntityGrowthTable growthConfig = null;
+                foreach (var config in configManager.Tables.TbEntityGrowthTable.DataList)
                 {
-                    if (config.RoleId == roleId && config.Level == lv)
+                    if (config.EntityId == entityId && config.Level == lv)
                     {
                         growthConfig = config;
                         break;
@@ -107,7 +108,7 @@ namespace Astrum.LogicCore.Components
                 
                 if (growthConfig == null)
                 {
-                    ASLogger.Instance.Warning($"[BaseStats] Growth config not found for roleId={roleId}, level={lv}");
+                    ASLogger.Instance.Warning($"[BaseStats] Growth config not found for entityId={entityId}, level={lv}");
                     continue;
                 }
                 

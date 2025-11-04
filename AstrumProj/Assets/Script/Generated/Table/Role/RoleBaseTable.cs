@@ -20,21 +20,6 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
         Name = _buf.ReadString();
         Description = _buf.ReadString();
         RoleType = _buf.ReadInt();
-        BaseAttack = _buf.ReadInt();
-        BaseDefense = _buf.ReadInt();
-        BaseHealth = _buf.ReadInt();
-        BaseSpeed = _buf.ReadInt();
-        BaseCritRate = _buf.ReadInt();
-        BaseCritDamage = _buf.ReadInt();
-        BaseAccuracy = _buf.ReadInt();
-        BaseEvasion = _buf.ReadInt();
-        BaseBlockRate = _buf.ReadInt();
-        BaseBlockValue = _buf.ReadInt();
-        PhysicalRes = _buf.ReadInt();
-        MagicalRes = _buf.ReadInt();
-        BaseMaxMana = _buf.ReadInt();
-        ManaRegen = _buf.ReadInt();
-        HealthRegen = _buf.ReadInt();
         LightAttackSkillId = _buf.ReadInt();
         HeavyAttackSkillId = _buf.ReadInt();
         Skill1Id = _buf.ReadInt();
@@ -62,66 +47,6 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// 角色类型
     /// </summary>
     public readonly int RoleType;
-    /// <summary>
-    /// 基础攻击力
-    /// </summary>
-    public readonly int BaseAttack;
-    /// <summary>
-    /// 基础防御力
-    /// </summary>
-    public readonly int BaseDefense;
-    /// <summary>
-    /// 基础生命值
-    /// </summary>
-    public readonly int BaseHealth;
-    /// <summary>
-    /// 基础移动速度*1000
-    /// </summary>
-    public readonly int BaseSpeed;
-    /// <summary>
-    /// 基础暴击率*1000
-    /// </summary>
-    public readonly int BaseCritRate;
-    /// <summary>
-    /// 基础暴击伤害*1000
-    /// </summary>
-    public readonly int BaseCritDamage;
-    /// <summary>
-    /// 基础命中率*1000
-    /// </summary>
-    public readonly int BaseAccuracy;
-    /// <summary>
-    /// 基础闪避率*1000
-    /// </summary>
-    public readonly int BaseEvasion;
-    /// <summary>
-    /// 基础格挡率*1000
-    /// </summary>
-    public readonly int BaseBlockRate;
-    /// <summary>
-    /// 基础格挡值
-    /// </summary>
-    public readonly int BaseBlockValue;
-    /// <summary>
-    /// 物理抗性*1000
-    /// </summary>
-    public readonly int PhysicalRes;
-    /// <summary>
-    /// 魔法抗性*1000
-    /// </summary>
-    public readonly int MagicalRes;
-    /// <summary>
-    /// 基础法力上限
-    /// </summary>
-    public readonly int BaseMaxMana;
-    /// <summary>
-    /// 法力回复*1000
-    /// </summary>
-    public readonly int ManaRegen;
-    /// <summary>
-    /// 生命回复*1000
-    /// </summary>
-    public readonly int HealthRegen;
     /// <summary>
     /// 轻击技能ID
     /// </summary>
@@ -153,21 +78,6 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
         + "name:" + Name + ","
         + "description:" + Description + ","
         + "roleType:" + RoleType + ","
-        + "baseAttack:" + BaseAttack + ","
-        + "baseDefense:" + BaseDefense + ","
-        + "baseHealth:" + BaseHealth + ","
-        + "baseSpeed:" + BaseSpeed + ","
-        + "baseCritRate:" + BaseCritRate + ","
-        + "baseCritDamage:" + BaseCritDamage + ","
-        + "baseAccuracy:" + BaseAccuracy + ","
-        + "baseEvasion:" + BaseEvasion + ","
-        + "baseBlockRate:" + BaseBlockRate + ","
-        + "baseBlockValue:" + BaseBlockValue + ","
-        + "physicalRes:" + PhysicalRes + ","
-        + "magicalRes:" + MagicalRes + ","
-        + "baseMaxMana:" + BaseMaxMana + ","
-        + "manaRegen:" + ManaRegen + ","
-        + "healthRegen:" + HealthRegen + ","
         + "lightAttackSkillId:" + LightAttackSkillId + ","
         + "heavyAttackSkillId:" + HeavyAttackSkillId + ","
         + "skill1Id:" + Skill1Id + ","

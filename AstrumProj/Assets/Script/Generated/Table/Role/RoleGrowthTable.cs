@@ -20,13 +20,6 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
         RoleId = _buf.ReadInt();
         Level = _buf.ReadInt();
         RequiredExp = _buf.ReadInt();
-        AttackBonus = _buf.ReadInt();
-        DefenseBonus = _buf.ReadInt();
-        HealthBonus = _buf.ReadInt();
-        SpeedBonus = _buf.ReadInt();
-        CritRateBonus = _buf.ReadInt();
-        CritDamageBonus = _buf.ReadInt();
-        UnlockSkillId = _buf.ReadInt();
         SkillPoint = _buf.ReadInt();
     }
 
@@ -52,34 +45,6 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
     /// </summary>
     public readonly int RequiredExp;
     /// <summary>
-    /// 攻击力加成
-    /// </summary>
-    public readonly int AttackBonus;
-    /// <summary>
-    /// 防御力加成
-    /// </summary>
-    public readonly int DefenseBonus;
-    /// <summary>
-    /// 生命值加成
-    /// </summary>
-    public readonly int HealthBonus;
-    /// <summary>
-    /// 移动速度加成*1000
-    /// </summary>
-    public readonly int SpeedBonus;
-    /// <summary>
-    /// 暴击率加成*1000
-    /// </summary>
-    public readonly int CritRateBonus;
-    /// <summary>
-    /// 暴击伤害加成*1000
-    /// </summary>
-    public readonly int CritDamageBonus;
-    /// <summary>
-    /// 解锁的技能ID
-    /// </summary>
-    public readonly int UnlockSkillId;
-    /// <summary>
     /// 获得的技能点
     /// </summary>
     public readonly int SkillPoint;
@@ -98,13 +63,6 @@ public sealed partial class RoleGrowthTable : Luban.BeanBase
         + "roleId:" + RoleId + ","
         + "level:" + Level + ","
         + "requiredExp:" + RequiredExp + ","
-        + "attackBonus:" + AttackBonus + ","
-        + "defenseBonus:" + DefenseBonus + ","
-        + "healthBonus:" + HealthBonus + ","
-        + "speedBonus:" + SpeedBonus + ","
-        + "critRateBonus:" + CritRateBonus + ","
-        + "critDamageBonus:" + CritDamageBonus + ","
-        + "unlockSkillId:" + UnlockSkillId + ","
         + "skillPoint:" + SkillPoint + ","
         + "}";
     }

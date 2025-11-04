@@ -78,9 +78,9 @@ namespace Astrum.LogicCore.Components
             
             // 2. 更新基础属性
             var baseStats = owner.GetComponent<BaseStatsComponent>();
-            if (baseStats != null && roleInfo != null)
+            if (baseStats != null)
             {
-                baseStats.InitializeFromConfig(roleInfo.RoleId, CurrentLevel);
+                baseStats.InitializeFromConfig(owner.EntityConfigId, CurrentLevel);
             }
             
             // 3. 重新计算派生属性

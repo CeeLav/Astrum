@@ -838,6 +838,7 @@ namespace Astrum.Editor.ASLogger
                 EditorUtility.DisplayProgressBar("扫描日志", "正在扫描项目中的日志...", 0.3f);
                 
                 // 扫描项目中的实际日志 - 使用Roslyn扫描器
+                /*
                 var projectLogs = RoslynLogScanner.ScanProject(_config.ToRuntimeConfig());
                 
                 Debug.Log($"[ASLoggerManager] Roslyn扫描器找到 {projectLogs.Count} 个日志条目");
@@ -883,7 +884,7 @@ namespace Astrum.Editor.ASLogger
                 
                 EditorUtility.ClearProgressBar();
                 
-                Debug.Log($"日志扫描完成，找到 {projectLogs.Count} 个实际日志条目，恢复了 {enabledStateCache.Count} 个状态");
+                Debug.Log($"日志扫描完成，找到 {projectLogs.Count} 个实际日志条目，恢复了 {enabledStateCache.Count} 个状态");*/
             }
             catch (Exception ex)
             {

@@ -63,6 +63,11 @@ namespace Astrum.LogicCore.Core
         public int MaxPlayers { get; set; } = 8;
 
         /// <summary>
+        /// 怪物列表
+        /// </summary>
+        public List<long> Monsters { get; private set; } = new List<long>();
+
+        /// <summary>
         /// 帧同步控制器
         /// </summary>
         public LSController? LSController { get; set; }
@@ -113,6 +118,69 @@ namespace Astrum.LogicCore.Core
         public bool RemovePlayer(int playerId)
         {
             return Players.Remove(playerId);
+        }
+
+        /// <summary>
+        /// 添加怪物
+        /// </summary>
+        /// <param name="monsterConfigId">怪物配置ID（从EntityBaseTable中读取）</param>
+        /// <returns>怪物实体ID，失败返回-1</returns>
+        public long AddMonster(int monsterConfigId)
+        {
+            if (MainWorld == null)
+            {
+                ASLogger.Instance.Error($"Room.AddMonster: MainWorld不存在");
+                return -1;
+            }
+
+            // 创建怪物实体
+            var monster = MainWorld.CreateEntity(monsterConfigId);
+            if (monster == null)
+            {
+                ASLogger.Instance.Error($"Room.AddMonster: 创建怪物失败，ConfigId={monsterConfigId}");
+                return -1;
+            }
+
+            // 添加到怪物列表
+            Monsters.Add(monster.UniqueId);
+            ASLogger.Instance.Info($"Room.AddMonster: 怪物创建成功，EntityId={monster.UniqueId}, ConfigId={monsterConfigId}");
+                
+            return monster.UniqueId;
+        }
+
+        /// <summary>
+        /// 移除怪物
+        /// </summary>
+        /// <param name="monsterId">怪物实体ID</param>
+        /// <returns>是否移除成功</returns>
+        public bool RemoveMonster(long monsterId)
+        {
+            if (Monsters.Remove(monsterId))
+            {
+                // 从世界中销毁实体
+                var monster = MainWorld?.GetEntity(monsterId);
+                if (monster != null)
+                {
+                    MainWorld.DestroyEntity(monsterId);
+                    ASLogger.Instance.Info($"Room.RemoveMonster: 怪物已移除，EntityId={monsterId}");
+                }
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 获取怪物实体
+        /// </summary>
+        /// <param name="monsterId">怪物实体ID</param>
+        /// <returns>怪物实体，不存在返回null</returns>
+        public Entity? GetMonster(long monsterId)
+        {
+            if (!Monsters.Contains(monsterId))
+            {
+                return null;
+            }
+            return MainWorld?.GetEntity(monsterId);
         }
 
         /// <summary>
