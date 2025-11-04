@@ -61,7 +61,8 @@
 │                        Entity                              │
 │                                                             │
 │  【Capability 状态数据】                                      │
-│  - CapabilityStates: Dictionary<Type, CapabilityState>     │
+│  - CapabilityStates: Dictionary<int, CapabilityState>      │
+│    └─ Key: TypeId (基于 TypeHash 的 int)                   │
 │    └─ IsEnabled: bool       // 是否拥有此 Capability         │
 │    └─ IsActive: bool        // 是否激活                      │
 │    └─ DisablerSet: HashSet<CapabilityDisabler>             │
@@ -69,7 +70,8 @@
 │       └─ Tag: string           // 禁用的目标 Tag              │
 │                                                             │
 │  【Capability Tag 注册】                                     │
-│  - CapabilityTags: Dictionary<Type, HashSet<string>>       │
+│  - CapabilityTags: Dictionary<int, HashSet<string>>        │
+│    └─ Key: TypeId                                           │
 │    └─ 每个 Capability 类型对应的 Tag 集合                     │
 │                                                             │
 │  【禁用 Tag 记录】                                           │
@@ -92,6 +94,7 @@
 │  + Tick(Entity): void              // 每帧逻辑                │
 │                                                             │
 │  【元数据】                                                   │
+│  + TypeId: int                     // 类型 ID（基于 TypeHash）│
 │  + Priority: int                   // 执行优先级              │
 │  + Tags: HashSet<string>           // 此 Capability 的 Tag   │
 └─────────────────────────────────────────────────────────────┘
@@ -111,11 +114,11 @@ public partial class Entity
     // ====== 新增字段 ======
     
     /// <summary>
-    /// Capability 状态字典（Type 完全限定名 -> 状态）
-    /// 使用字符串 Key 以支持序列化
+    /// Capability 状态字典（TypeId -> 状态）
+    /// 使用 int 类型的 TypeId 作为 Key，基于 TypeHash 生成，性能更高
     /// </summary>
-    public Dictionary<string, CapabilityState> CapabilityStates { get; private set; } 
-        = new Dictionary<string, CapabilityState>(StringComparer.Ordinal);
+    public Dictionary<int, CapabilityState> CapabilityStates { get; private set; } 
+        = new Dictionary<int, CapabilityState>();
     
     /// <summary>
     /// 被禁用的 Tag 集合（Tag -> 禁用发起者实体ID集合）
@@ -211,9 +214,55 @@ public partial struct CapabilityDisabler : IEquatable<CapabilityDisabler>
 }
 ```
 
-### 2.3 Capability 新接口定义
+### 2.3 TypeHash 工具类
 
-#### 2.3.1 ICapability 接口
+```csharp
+/// <summary>
+/// 字符串稳定哈希工具类
+/// 使用 FNV-1a 算法生成稳定的哈希值
+/// </summary>
+public static class StringHashUtility
+{
+    /// <summary>
+    /// 获取字符串的稳定哈希值
+    /// </summary>
+    public static int GetStableHash(this string str)
+    {
+        if (string.IsNullOrEmpty(str))
+            return 0;
+        
+        unchecked
+        {
+            const int fnvPrime = 16777619;
+            int hash = (int)2166136261;
+            for (int i = 0; i < str.Length; i++)
+                hash = (hash ^ str[i]) * fnvPrime;
+            return hash;
+        }
+    }
+}
+
+/// <summary>
+/// 类型哈希工具类
+/// 为每个类型生成唯一的稳定哈希 ID
+/// </summary>
+public static class TypeHash<T>
+{
+    /// <summary>
+    /// 类型的稳定哈希 ID（编译期常量）
+    /// </summary>
+    public static readonly int Hash = typeof(T).FullName?.GetStableHash() ?? 0;
+    
+    /// <summary>
+    /// 获取类型的哈希 ID
+    /// </summary>
+    public static int GetHash() => Hash;
+}
+```
+
+### 2.4 Capability 新接口定义
+
+#### 2.4.1 ICapability 接口
 
 ```csharp
 /// <summary>
@@ -222,6 +271,11 @@ public partial struct CapabilityDisabler : IEquatable<CapabilityDisabler>
 /// </summary>
 public interface ICapability
 {
+    /// <summary>
+    /// 类型 ID（基于 TypeHash 的稳定哈希值）
+    /// </summary>
+    int TypeId { get; }
+    
     /// <summary>
     /// 执行优先级（数值越大越优先）
     /// </summary>
@@ -274,54 +328,118 @@ public interface ICapability
 }
 ```
 
-#### 2.3.2 CapabilityBase 抽象基类
+#### 2.4.2 CapabilityBase 抽象基类
 
 ```csharp
 /// <summary>
 /// Capability 抽象基类
-/// 提供默认实现和辅助方法
+/// 使用泛型自动生成 TypeId，提供默认实现和辅助方法
 /// </summary>
-public abstract class CapabilityBase : ICapability
+/// <typeparam name="T">Capability 自身类型</typeparam>
+public abstract class Capability<T> : ICapability where T : ICapability
 {
+    /// <summary>
+    /// 类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+    /// </summary>
+    public static readonly int TypeId = TypeHash<T>.GetHash();
+    
+    /// <summary>
+    /// 类型 ID（接口实现）
+    /// </summary>
+    int ICapability.TypeId => TypeId;
+    
+    /// <summary>
+    /// 执行优先级（默认值，子类可重写）
+    /// </summary>
     public virtual int Priority => 0;
     
+    /// <summary>
+    /// Tag 集合（默认空集合，子类可重写）
+    /// </summary>
     public virtual IReadOnlySet<string> Tags => EmptyTags;
     
     private static readonly HashSet<string> EmptyTags = new HashSet<string>();
     
+    /// <summary>
+    /// 初始化能力（兼容旧接口，可选实现）
+    /// </summary>
+    public virtual void Initialize()
+    {
+        // 子类可以重写此方法进行初始化
+    }
+    
+    /// <summary>
+    /// 激活时调用（兼容旧接口，可选实现）
+    /// </summary>
+    public virtual void OnActivate()
+    {
+        // 子类可以重写此方法
+    }
+    
+    /// <summary>
+    /// 停用时调用（兼容旧接口，可选实现）
+    /// </summary>
+    public virtual void OnDeactivate()
+    {
+        // 子类可以重写此方法
+    }
+    
+    /// <summary>
+    /// 判定此 Capability 是否应该激活
+    /// </summary>
     public virtual bool ShouldActivate(Entity entity)
     {
         // 默认实现：检查是否启用且未被禁用
         return IsCapabilityEnabled(entity) && !IsCapabilityDisabled(entity);
     }
     
+    /// <summary>
+    /// 判定此 Capability 是否应该停用
+    /// </summary>
     public virtual bool ShouldDeactivate(Entity entity)
     {
         // 默认实现：检查是否被禁用或不再启用
         return !IsCapabilityEnabled(entity) || IsCapabilityDisabled(entity);
     }
     
+    /// <summary>
+    /// 首次挂载到实体时调用
+    /// </summary>
     public virtual void OnAttached(Entity entity)
     {
         // 默认不执行任何操作
     }
     
+    /// <summary>
+    /// 从实体上完全卸载时调用
+    /// </summary>
     public virtual void OnDetached(Entity entity)
     {
         // 默认清理状态
         RemoveCapabilityState(entity);
     }
     
+    /// <summary>
+    /// 激活时调用（新接口，传入 Entity）
+    /// </summary>
     public virtual void OnActivate(Entity entity)
     {
-        // 默认不执行任何操作
+        // 默认调用旧接口以保持兼容
+        OnActivate();
     }
     
+    /// <summary>
+    /// 停用时调用（新接口，传入 Entity）
+    /// </summary>
     public virtual void OnDeactivate(Entity entity)
     {
-        // 默认不执行任何操作
+        // 默认调用旧接口以保持兼容
+        OnDeactivate();
     }
     
+    /// <summary>
+    /// 每帧更新（抽象方法，子类必须实现）
+    /// </summary>
     public abstract void Tick(Entity entity);
     
     // ====== 辅助方法 ======
@@ -331,8 +449,7 @@ public abstract class CapabilityBase : ICapability
     /// </summary>
     protected CapabilityState GetCapabilityState(Entity entity)
     {
-        var key = GetCapabilityTypeKey();
-        if (entity.CapabilityStates.TryGetValue(key, out var state))
+        if (entity.CapabilityStates.TryGetValue(TypeId, out var state))
             return state;
         return default;
     }
@@ -342,8 +459,7 @@ public abstract class CapabilityBase : ICapability
     /// </summary>
     protected void SetCapabilityState(Entity entity, CapabilityState state)
     {
-        var key = GetCapabilityTypeKey();
-        entity.CapabilityStates[key] = state;
+        entity.CapabilityStates[TypeId] = state;
     }
     
     /// <summary>
@@ -351,8 +467,7 @@ public abstract class CapabilityBase : ICapability
     /// </summary>
     protected void RemoveCapabilityState(Entity entity)
     {
-        var key = GetCapabilityTypeKey();
-        entity.CapabilityStates.Remove(key);
+        entity.CapabilityStates.Remove(TypeId);
     }
     
     /// <summary>
@@ -374,32 +489,24 @@ public abstract class CapabilityBase : ICapability
     }
     
     /// <summary>
-    /// 获取此 Capability 的类型键（用于字典查找）
-    /// </summary>
-    protected string GetCapabilityTypeKey()
-    {
-        return GetType().AssemblyQualifiedName ?? GetType().FullName;
-    }
-    
-    /// <summary>
     /// 检查实体是否拥有指定组件
     /// </summary>
-    protected bool HasComponent<T>(Entity entity) where T : BaseComponent
+    protected bool HasComponent<TComponent>(Entity entity) where TComponent : BaseComponent
     {
-        return entity.HasComponent<T>();
+        return entity.HasComponent<TComponent>();
     }
     
     /// <summary>
     /// 获取实体的组件
     /// </summary>
-    protected T GetComponent<T>(Entity entity) where T : BaseComponent
+    protected TComponent GetComponent<TComponent>(Entity entity) where TComponent : BaseComponent
     {
-        return entity.GetComponent<T>();
+        return entity.GetComponent<TComponent>();
     }
 }
 ```
 
-### 2.4 CapabilitySystem 统一调度系统
+### 2.5 CapabilitySystem 统一调度系统
 
 ```csharp
 /// <summary>
@@ -425,10 +532,16 @@ public class CapabilitySystem
     private List<ICapability> _sortedCapabilities = new List<ICapability>();
     
     /// <summary>
-    /// Capability 类型到 Tag 的映射（缓存）
+    /// Capability TypeId 到 Tag 的映射（缓存）
     /// </summary>
-    private readonly Dictionary<string, HashSet<Type>> _tagToCapabilityTypes 
-        = new Dictionary<string, HashSet<Type>>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, HashSet<int>> _tagToCapabilityTypeIds 
+        = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+    
+    /// <summary>
+    /// TypeId 到 Capability 实例的映射（用于快速查找）
+    /// </summary>
+    private readonly Dictionary<int, ICapability> _typeIdToCapability 
+        = new Dictionary<int, ICapability>();
     
     private CapabilitySystem() { }
     
@@ -471,6 +584,9 @@ public class CapabilitySystem
         {
             _registeredCapabilities[type] = capability;
             _sortedCapabilities.Add(capability);
+            
+            // 同时注册到 TypeId 映射
+            _typeIdToCapability[capability.TypeId] = capability;
         }
     }
     
@@ -506,27 +622,42 @@ public class CapabilitySystem
     }
     
     /// <summary>
-    /// 构建 Tag 到 Capability 类型的映射
+    /// 构建 Tag 到 Capability TypeId 的映射
     /// </summary>
     private void BuildTagMapping()
     {
-        _tagToCapabilityTypes.Clear();
+        _tagToCapabilityTypeIds.Clear();
         
-        foreach (var kvp in _registeredCapabilities)
+        foreach (var capability in _registeredCapabilities.Values)
         {
-            var type = kvp.Key;
-            var capability = kvp.Value;
+            var typeId = capability.TypeId;
             
             foreach (var tag in capability.Tags)
             {
-                if (!_tagToCapabilityTypes.TryGetValue(tag, out var types))
+                if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
                 {
-                    types = new HashSet<Type>();
-                    _tagToCapabilityTypes[tag] = types;
+                    typeIds = new HashSet<int>();
+                    _tagToCapabilityTypeIds[tag] = typeIds;
                 }
-                types.Add(type);
+                typeIds.Add(typeId);
             }
         }
+    }
+    
+    /// <summary>
+    /// 根据 TypeId 获取 Capability
+    /// </summary>
+    public ICapability GetCapability(int typeId)
+    {
+        return _typeIdToCapability.TryGetValue(typeId, out var capability) ? capability : null;
+    }
+    
+    /// <summary>
+    /// 根据 Type 获取 Capability
+    /// </summary>
+    public ICapability GetCapability(Type type)
+    {
+        return _registeredCapabilities.TryGetValue(type, out var capability) ? capability : null;
     }
     
     /// <summary>
@@ -554,10 +685,10 @@ public class CapabilitySystem
     {
         foreach (var capability in _sortedCapabilities)
         {
-            var key = GetCapabilityTypeKey(capability.GetType());
+            var typeId = capability.TypeId;
             
             // 检查是否启用
-            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 continue;
             
             if (!state.IsEnabled)
@@ -571,13 +702,13 @@ public class CapabilitySystem
             if (shouldActivate && !state.IsActive)
             {
                 state.IsActive = true;
-                entity.CapabilityStates[key] = state;
+                entity.CapabilityStates[typeId] = state;
                 capability.OnActivate(entity);
             }
             else if (shouldDeactivate && state.IsActive)
             {
                 state.IsActive = false;
-                entity.CapabilityStates[key] = state;
+                entity.CapabilityStates[typeId] = state;
                 capability.OnDeactivate(entity);
             }
         }
@@ -590,9 +721,9 @@ public class CapabilitySystem
     {
         foreach (var capability in _sortedCapabilities)
         {
-            var key = GetCapabilityTypeKey(capability.GetType());
+            var typeId = capability.TypeId;
             
-            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 continue;
             
             if (state.IsEnabled && state.IsActive)
@@ -635,14 +766,6 @@ public class CapabilitySystem
         }
     }
     
-    /// <summary>
-    /// 获取 Capability 类型键
-    /// </summary>
-    private string GetCapabilityTypeKey(Type type)
-    {
-        return type.AssemblyQualifiedName ?? type.FullName;
-    }
-    
     // ====== 外部接口：Tag 禁用/启用 ======
     
     /// <summary>
@@ -650,7 +773,7 @@ public class CapabilitySystem
     /// </summary>
     public void DisableCapabilitiesByTag(Entity entity, string tag, long instigatorId, string reason = null, int durationFrames = -1)
     {
-        if (!_tagToCapabilityTypes.TryGetValue(tag, out var types))
+        if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
             return;
         
         var currentFrame = LSController.Instance?.CurrentFrame ?? 0;
@@ -671,18 +794,16 @@ public class CapabilitySystem
         instigators.Add(instigatorId);
         
         // 添加禁用来源到每个匹配的 Capability
-        foreach (var type in types)
+        foreach (var typeId in typeIds)
         {
-            var key = GetCapabilityTypeKey(type);
-            
-            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 continue;
             
             if (state.Disablers == null)
                 state.Disablers = new HashSet<CapabilityDisabler>();
             
             state.Disablers.Add(disabler);
-            entity.CapabilityStates[key] = state;
+            entity.CapabilityStates[typeId] = state;
         }
     }
     
@@ -691,7 +812,7 @@ public class CapabilitySystem
     /// </summary>
     public void EnableCapabilitiesByTag(Entity entity, string tag, long instigatorId)
     {
-        if (!_tagToCapabilityTypes.TryGetValue(tag, out var types))
+        if (!_tagToCapabilityTypeIds.TryGetValue(tag, out var typeIds))
             return;
         
         // 从 DisabledTags 中移除
@@ -703,18 +824,16 @@ public class CapabilitySystem
         }
         
         // 从每个匹配的 Capability 中移除禁用来源
-        foreach (var type in types)
+        foreach (var typeId in typeIds)
         {
-            var key = GetCapabilityTypeKey(type);
-            
-            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+            if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 continue;
             
             if (state.Disablers == null)
                 continue;
             
             state.Disablers.RemoveWhere(d => d.InstigatorId == instigatorId);
-            entity.CapabilityStates[key] = state;
+            entity.CapabilityStates[typeId] = state;
         }
     }
     
@@ -792,9 +911,16 @@ public static Entity CreateByArchetype(string archetypeName, World world)
     // 2. 装配 Capabilities（新方式）
     foreach (var capabilityType in archetypeInfo.Capabilities)
     {
-        // 启用此 Capability
-        var key = capabilityType.AssemblyQualifiedName ?? capabilityType.FullName;
-        entity.CapabilityStates[key] = new CapabilityState
+        // 获取 Capability 实例以获取 TypeId
+        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+        if (capability == null)
+        {
+            ASLogger.Instance.Warning($"Capability {capabilityType.Name} not registered in CapabilitySystem");
+            continue;
+        }
+        
+        // 启用此 Capability（使用 TypeId 作为 Key）
+        entity.CapabilityStates[capability.TypeId] = new CapabilityState
         {
             IsEnabled = true,
             IsActive = false, // 初始未激活，等待 ShouldActivate 判定
@@ -803,8 +929,7 @@ public static Entity CreateByArchetype(string archetypeName, World world)
         };
         
         // 调用 OnAttached 回调
-        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
-        capability?.OnAttached(entity);
+        capability.OnAttached(entity);
     }
     
     return entity;
@@ -822,17 +947,23 @@ public bool AttachSubArchetype(string subArchetypeName, out string reason)
     // 装配 Capabilities（新方式）
     foreach (var capabilityType in subInfo.Capabilities)
     {
-        var key = GetTypeKey(capabilityType);
+        // 获取 Capability 实例以获取 TypeId
+        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+        if (capability == null)
+            continue;
         
-        // 引用计数
+        var typeId = capability.TypeId;
+        var key = GetTypeKey(capabilityType); // 保留字符串 Key 用于引用计数
+        
+        // 引用计数（使用字符串 Key）
         if (!CapabilityRefCounts.TryGetValue(key, out var count))
             count = 0;
         CapabilityRefCounts[key] = count + 1;
         
-        // 首次添加：启用 Capability
+        // 首次添加：启用 Capability（使用 TypeId）
         if (count == 0)
         {
-            CapabilityStates[key] = new CapabilityState
+            CapabilityStates[typeId] = new CapabilityState
             {
                 IsEnabled = true,
                 IsActive = false,
@@ -841,8 +972,7 @@ public bool AttachSubArchetype(string subArchetypeName, out string reason)
             };
             
             // 调用 OnAttached
-            var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
-            capability?.OnAttached(this);
+            capability.OnAttached(this);
         }
     }
     
@@ -857,7 +987,13 @@ public bool DetachSubArchetype(string subArchetypeName, out string reason)
     // 卸载 Capabilities（新方式）
     foreach (var capabilityType in subInfo.Capabilities)
     {
-        var key = GetTypeKey(capabilityType);
+        // 获取 Capability 实例以获取 TypeId
+        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+        if (capability == null)
+            continue;
+        
+        var typeId = capability.TypeId;
+        var key = GetTypeKey(capabilityType); // 保留字符串 Key 用于引用计数
         
         if (!CapabilityRefCounts.TryGetValue(key, out var count))
             count = 0;
@@ -867,15 +1003,14 @@ public bool DetachSubArchetype(string subArchetypeName, out string reason)
         
         CapabilityRefCounts[key] = count;
         
-        // 引用计数归零：移除 Capability
+        // 引用计数归零：移除 Capability（使用 TypeId）
         if (count == 0)
         {
             // 调用 OnDetached
-            var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
-            capability?.OnDetached(this);
+            capability.OnDetached(this);
             
-            // 移除状态
-            CapabilityStates.Remove(key);
+            // 移除状态（使用 TypeId）
+            CapabilityStates.Remove(typeId);
         }
     }
     
@@ -927,7 +1062,7 @@ public partial class MovementCapability : Capability
 /// <summary>
 /// 移动能力（静态/单例模式）
 /// </summary>
-public class MovementCapability : CapabilityBase
+public class MovementCapability : Capability<MovementCapability>
 {
     // ====== 元数据 ======
     public override int Priority => 100;
@@ -1184,13 +1319,18 @@ CapabilityState 连续存储在 Dictionary 中
 // 示例：并行更新所有实体的 MovementCapability
 public void UpdateMovementCapability_Parallel(List<Entity> entities)
 {
+    var typeId = MovementCapability.TypeId;
+    var capability = CapabilitySystem.Instance.GetCapability(typeId);
+    
     Parallel.ForEach(entities, entity =>
     {
-        if (!IsCapabilityActive(entity, typeof(MovementCapability)))
+        if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
+            return;
+        if (!state.IsEnabled || !state.IsActive)
             return;
         
         // 并行执行移动逻辑
-        MovementCapability.Instance.Tick(entity);
+        capability.Tick(entity);
     });
 }
 ```
@@ -1208,24 +1348,24 @@ public void UpdateMovementCapability_Parallel(List<Entity> entities)
 public void Test_CapabilityState_EnableDisable()
 {
     var entity = new Entity();
-    var key = typeof(MovementCapability).AssemblyQualifiedName;
+    var typeId = MovementCapability.TypeId; // 使用 TypeId
     
     // 启用 Capability
-    entity.CapabilityStates[key] = new CapabilityState
+    entity.CapabilityStates[typeId] = new CapabilityState
     {
         IsEnabled = true,
         IsActive = false
     };
     
-    Assert.IsTrue(entity.CapabilityStates[key].IsEnabled);
-    Assert.IsFalse(entity.CapabilityStates[key].IsActive);
+    Assert.IsTrue(entity.CapabilityStates[typeId].IsEnabled);
+    Assert.IsFalse(entity.CapabilityStates[typeId].IsActive);
     
     // 激活 Capability
-    var state = entity.CapabilityStates[key];
+    var state = entity.CapabilityStates[typeId];
     state.IsActive = true;
-    entity.CapabilityStates[key] = state;
+    entity.CapabilityStates[typeId] = state;
     
-    Assert.IsTrue(entity.CapabilityStates[key].IsActive);
+    Assert.IsTrue(entity.CapabilityStates[typeId].IsActive);
 }
 ```
 
@@ -1239,8 +1379,8 @@ public void Test_TagDisable_Enable()
     CapabilitySystem.Instance.Initialize();
     
     // 注册 MovementCapability（Tag: "Movement"）
-    var key = typeof(MovementCapability).AssemblyQualifiedName;
-    entity.CapabilityStates[key] = new CapabilityState
+    var typeId = MovementCapability.TypeId; // 使用 TypeId
+    entity.CapabilityStates[typeId] = new CapabilityState
     {
         IsEnabled = true,
         IsActive = true
@@ -1251,14 +1391,14 @@ public void Test_TagDisable_Enable()
         entity, "Movement", 999, "Test"
     );
     
-    Assert.IsTrue(entity.CapabilityStates[key].Disablers.Count > 0);
+    Assert.IsTrue(entity.CapabilityStates[typeId].Disablers.Count > 0);
     
     // 启用 "Movement" Tag
     CapabilitySystem.Instance.EnableCapabilitiesByTag(
         entity, "Movement", 999
     );
     
-    Assert.IsTrue(entity.CapabilityStates[key].Disablers.Count == 0);
+    Assert.IsTrue(entity.CapabilityStates[typeId].Disablers.Count == 0);
 }
 ```
 
@@ -1276,9 +1416,9 @@ public void Test_ShouldActivate_Deactivate()
     entity.AddComponent(new MovementComponent());
     entity.AddComponent(new TransComponent());
     
-    // 启用 Capability
-    var key = typeof(MovementCapability).AssemblyQualifiedName;
-    entity.CapabilityStates[key] = new CapabilityState
+    // 启用 Capability（使用 TypeId）
+    var typeId = MovementCapability.TypeId;
+    entity.CapabilityStates[typeId] = new CapabilityState
     {
         IsEnabled = true,
         IsActive = false
@@ -1304,20 +1444,20 @@ public void Test_FullCapabilityLifecycle()
     var world = new World();
     var entity = world.CreateEntityByConfig(1001); // Role 原型
     
-    // 1. 检查 Capability 是否正确装配
-    var movementKey = typeof(MovementCapability).AssemblyQualifiedName;
-    Assert.IsTrue(entity.CapabilityStates.ContainsKey(movementKey));
+    // 1. 检查 Capability 是否正确装配（使用 TypeId）
+    var movementTypeId = MovementCapability.TypeId;
+    Assert.IsTrue(entity.CapabilityStates.ContainsKey(movementTypeId));
     
     // 2. 测试 Capability 更新
     CapabilitySystem.Instance.UpdateEntity(entity);
     
-    // 3. 测试 SubArchetype 挂载/卸载
+    // 3. 测试 SubArchetype 挂载/卸载（使用 TypeId）
     entity.AttachSubArchetype("AI", out var reason);
-    var aiKey = typeof(AIFSMCapability).AssemblyQualifiedName;
-    Assert.IsTrue(entity.CapabilityStates.ContainsKey(aiKey));
+    var aiTypeId = AIFSMCapability.TypeId;
+    Assert.IsTrue(entity.CapabilityStates.ContainsKey(aiTypeId));
     
     entity.DetachSubArchetype("AI", out reason);
-    Assert.IsFalse(entity.CapabilityStates.ContainsKey(aiKey));
+    Assert.IsFalse(entity.CapabilityStates.ContainsKey(aiTypeId));
 }
 ```
 
@@ -1487,9 +1627,11 @@ public void Update()
 
 | 版本 | 日期 | 作者 | 变更内容 |
 |------|------|------|---------|
+| v1.1 | 2025-11-04 | AI Assistant | 使用 TypeHash 生成 TypeId，将 Key 从 string 改为 int，提升性能 |
 | v1.0 | 2025-11-04 | AI Assistant | 初始版本，完整方案设计 |
 
 ---
 
 **文档结束**
+
 
