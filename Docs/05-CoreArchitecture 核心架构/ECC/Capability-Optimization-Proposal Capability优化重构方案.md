@@ -871,25 +871,47 @@ public partial class CapabilitySystem
     {
         var typeId = capability.TypeId;
         
-        // 检查激活条件
-        bool shouldActivate = capability.ShouldActivate(entity);
-        bool shouldDeactivate = capability.ShouldDeactivate(entity);
+        // 检查 Tag 是否被禁用
+        bool isDisabled = IsCapabilityDisabledByTag(capability, entity);
         
-        // 状态变更
-        if (shouldActivate && !state.IsActive)
+        // 如果当前未激活，检查是否应该激活
+        if (!state.IsActive)
         {
-            state.IsActive = true;
-            state.ActiveDuration = 0; // 重置激活持续时间
-            entity.CapabilityStates[typeId] = state;
-            capability.OnActivate(entity);
+            // 只有在未被禁用的情况下才检查激活条件
+            if (!isDisabled && capability.ShouldActivate(entity))
+            {
+                state.IsActive = true;
+                state.ActiveDuration = 0; // 重置激活持续时间
+                entity.CapabilityStates[typeId] = state;
+                capability.OnActivate(entity);
+                return; // 成功激活后直接返回，避免无效的停用检查
+            }
         }
-        else if (shouldDeactivate && state.IsActive)
+        else // 当前已激活
         {
-            state.IsActive = false;
-            state.DeactiveDuration = 0; // 重置禁用持续时间
-            entity.CapabilityStates[typeId] = state;
-            capability.OnDeactivate(entity);
+            // 检查是否应该停用（被禁用或 ShouldDeactivate 返回 true）
+            if (isDisabled || capability.ShouldDeactivate(entity))
+            {
+                state.IsActive = false;
+                state.DeactiveDuration = 0; // 重置禁用持续时间
+                entity.CapabilityStates[typeId] = state;
+                capability.OnDeactivate(entity);
+            }
         }
+    }
+    
+    /// <summary>
+    /// 检查 Capability 是否被 Tag 禁用
+    /// </summary>
+    private bool IsCapabilityDisabledByTag(ICapability capability, Entity entity)
+    {
+        // 检查此 Capability 的任何一个 Tag 是否在 DisabledTags 中
+        foreach (var tag in capability.Tags)
+        {
+            if (entity.DisabledTags.ContainsKey(tag) && entity.DisabledTags[tag].Count > 0)
+                return true;
+        }
+        return false;
     }
     
     /// <summary>
