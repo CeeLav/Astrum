@@ -87,6 +87,9 @@ namespace Astrum.LogicCore.Capabilities
                 transComponent.Rotation
             );
             
+            // 强制Y轴分量为0（技能位移只影响水平方向，不影响垂直方向）
+            worldDeltaPosition = new TSVector(worldDeltaPosition.x, FP.Zero, worldDeltaPosition.z);
+            
             transComponent.Position = transComponent.Position + worldDeltaPosition;
             
             // 5. 应用增量旋转（暂时禁用，不进行旋转逻辑）

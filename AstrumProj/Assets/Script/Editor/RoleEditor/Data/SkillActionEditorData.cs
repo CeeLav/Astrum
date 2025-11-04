@@ -82,7 +82,7 @@ namespace Astrum.Editor.RoleEditor.Data
         /// 是否只提取水平方向位移（X和Z，忽略Y）
         /// </summary>
         [HideInInspector]
-        public bool ExtractHorizontalOnly = false;
+        public bool ExtractHorizontalOnly = true;
         
         /// <summary>
         /// 根节点位移数据（整型数组格式，用于保存到CSV）
