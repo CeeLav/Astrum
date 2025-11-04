@@ -1,0 +1,1495 @@
+# Capability 系统优化重构方案
+
+> 作者：AI Assistant  
+> 日期：2025-11-04  
+> 版本：v1.0  
+> 适用范围：Astrum 客户端 ECC 架构
+
+## 1. 方案概述
+
+### 1.1 背景与动机
+
+当前 Capability 系统采用"实例化对象"设计，每个实体持有独立的 Capability 实例。虽然这种设计简单直观，但在性能和架构上存在以下问题：
+
+1. **内存开销大**：每个实体都持有完整的 Capability 实例，即使逻辑相同，也需要重复分配内存
+2. **缓存不友好**：Capability 实例散布在内存中，遍历执行时缓存命中率低
+3. **与 ECS 理念不符**：ECC 架构中 Component 已经是纯数据，但 Capability 仍是有状态对象，未充分发挥数据驱动优势
+4. **扩展性受限**：难以实现批量处理、SIMD 优化等高级性能优化
+5. **状态管理复杂**：激活/禁用逻辑分散在各个 Capability 实例中，难以统一管理
+
+### 1.2 优化目标
+
+**核心理念**：将 Capability 从"有状态的行为对象"转变为"无状态的逻辑处理器"，状态完全由 Entity 持有，向纯 ECS 架构靠拢。
+
+**具体目标**：
+
+1. **性能优化**：减少内存占用，提升缓存命中率，为未来的并行/批量处理铺路
+2. **状态集中化**：所有 Capability 状态（是否拥有、是否激活、禁用来源）统一存储在 Entity 上
+3. **统一更新机制**：由单一系统统一调度所有 Capability 的激活判定与 Tick 执行
+4. **灵活的禁用机制**：通过 Tag 系统实现细粒度的 Capability 控制，支持溯源
+5. **完整生命周期**：新增 `ShouldActivate`、`ShouldDeactivate`、`OnDetached` 等接口，规范激活逻辑
+
+### 1.3 设计原则
+
+1. **数据与逻辑分离**：Capability 只包含逻辑，不持有状态；状态存储在 Entity 的 Component 中
+2. **确定性优先**：所有状态变更可序列化、可回放，满足帧同步要求
+3. **向后兼容**：优先考虑平滑迁移，降低现有代码改动量
+4. **可扩展性**：为未来的并行处理、Job System 等优化预留接口
+
+---
+
+## 2. 架构设计
+
+### 2.1 整体架构图
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CapabilitySystem                        │
+│  （单例/静态系统，统一调度所有 Capability）                   │
+│                                                             │
+│  - 注册所有 Capability 类型                                  │
+│  - 按优先级遍历所有实体                                       │
+│  - 对每个实体：                                              │
+│    1. 检查 ShouldActivate（判定激活条件）                     │
+│    2. 更新激活状态（OnActivate/OnDeactivate）                │
+│    3. 对激活的 Capability 调用 Tick(Entity)                  │
+└─────────────────────────────────────────────────────────────┘
+                            ▲
+                            │ 统一调度
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│                        Entity                              │
+│                                                             │
+│  【Capability 状态数据】                                      │
+│  - CapabilityStates: Dictionary<Type, CapabilityState>     │
+│    └─ IsEnabled: bool       // 是否拥有此 Capability         │
+│    └─ IsActive: bool        // 是否激活                      │
+│    └─ DisablerSet: HashSet<CapabilityDisabler>             │
+│       └─ InstigatorId: long    // 禁用发起者实体ID           │
+│       └─ Tag: string           // 禁用的目标 Tag              │
+│                                                             │
+│  【Capability Tag 注册】                                     │
+│  - CapabilityTags: Dictionary<Type, HashSet<string>>       │
+│    └─ 每个 Capability 类型对应的 Tag 集合                     │
+│                                                             │
+│  【禁用 Tag 记录】                                           │
+│  - DisabledTags: Dictionary<string, HashSet<long>>         │
+│    └─ Tag -> 禁用发起者实体ID集合                             │
+└─────────────────────────────────────────────────────────────┘
+                            ▲
+                            │ 访问状态
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│               Capability（静态类/单例）                        │
+│                                                             │
+│  【核心接口】                                                 │
+│  + ShouldActivate(Entity): bool    // 判定是否应激活          │
+│  + ShouldDeactivate(Entity): bool  // 判定是否应停用          │
+│  + OnActivate(Entity): void        // 激活时回调              │
+│  + OnDeactivate(Entity): void      // 停用时回调              │
+│  + OnAttached(Entity): void        // 首次挂载时回调          │
+│  + OnDetached(Entity): void        // 完全卸载时回调          │
+│  + Tick(Entity): void              // 每帧逻辑                │
+│                                                             │
+│  【元数据】                                                   │
+│  + Priority: int                   // 执行优先级              │
+│  + Tags: HashSet<string>           // 此 Capability 的 Tag   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 核心数据结构
+
+#### 2.2.1 Entity 新增字段
+
+```csharp
+/// <summary>
+/// Capability 状态管理
+/// </summary>
+[MemoryPackable]
+public partial class Entity
+{
+    // ====== 新增字段 ======
+    
+    /// <summary>
+    /// Capability 状态字典（Type 完全限定名 -> 状态）
+    /// 使用字符串 Key 以支持序列化
+    /// </summary>
+    public Dictionary<string, CapabilityState> CapabilityStates { get; private set; } 
+        = new Dictionary<string, CapabilityState>(StringComparer.Ordinal);
+    
+    /// <summary>
+    /// 被禁用的 Tag 集合（Tag -> 禁用发起者实体ID集合）
+    /// 用于支持基于 Tag 的 Capability 批量禁用
+    /// </summary>
+    public Dictionary<string, HashSet<long>> DisabledTags { get; private set; } 
+        = new Dictionary<string, HashSet<long>>(StringComparer.OrdinalIgnoreCase);
+    
+    // ====== 移除字段 ======
+    // public List<Capability> Capabilities { get; private set; } = new List<Capability>();
+    // ↑ 此字段将被废弃，Capability 不再以实例形式存在
+}
+```
+
+#### 2.2.2 CapabilityState 数据结构
+
+```csharp
+/// <summary>
+/// Capability 在实体上的状态信息
+/// </summary>
+[MemoryPackable]
+public partial struct CapabilityState
+{
+    /// <summary>
+    /// 是否启用（实体是否拥有此 Capability）
+    /// </summary>
+    public bool IsEnabled { get; set; }
+    
+    /// <summary>
+    /// 是否激活（满足激活条件且未被禁用）
+    /// </summary>
+    public bool IsActive { get; set; }
+    
+    /// <summary>
+    /// 禁用来源集合（记录哪些发起者禁用了此 Capability）
+    /// 使用 HashSet 支持多个来源同时禁用
+    /// </summary>
+    public HashSet<CapabilityDisabler> Disablers { get; set; }
+    
+    /// <summary>
+    /// 自定义数据（预留字段，用于存储 Capability 特定的简单状态）
+    /// 例如：冷却时间、计数器等
+    /// </summary>
+    public Dictionary<string, object> CustomData { get; set; }
+}
+```
+
+#### 2.2.3 CapabilityDisabler 数据结构
+
+```csharp
+/// <summary>
+/// Capability 禁用来源信息（支持溯源）
+/// </summary>
+[MemoryPackable]
+public partial struct CapabilityDisabler : IEquatable<CapabilityDisabler>
+{
+    /// <summary>
+    /// 禁用发起者实体ID（用于溯源）
+    /// </summary>
+    public long InstigatorId { get; set; }
+    
+    /// <summary>
+    /// 禁用原因/类型（可选，用于调试）
+    /// 例如："Stun", "Death", "SkillCasting"
+    /// </summary>
+    public string Reason { get; set; }
+    
+    /// <summary>
+    /// 禁用时间戳（帧号，用于超时自动解除）
+    /// -1 表示永久禁用
+    /// </summary>
+    public int DisableFrame { get; set; }
+    
+    /// <summary>
+    /// 禁用持续帧数（-1 表示永久）
+    /// </summary>
+    public int DurationFrames { get; set; }
+    
+    public bool Equals(CapabilityDisabler other)
+    {
+        return InstigatorId == other.InstigatorId && Reason == other.Reason;
+    }
+    
+    public override bool Equals(object obj)
+    {
+        return obj is CapabilityDisabler other && Equals(other);
+    }
+    
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(InstigatorId, Reason);
+    }
+}
+```
+
+### 2.3 Capability 新接口定义
+
+#### 2.3.1 ICapability 接口
+
+```csharp
+/// <summary>
+/// Capability 核心接口
+/// 所有 Capability 必须实现此接口
+/// </summary>
+public interface ICapability
+{
+    /// <summary>
+    /// 执行优先级（数值越大越优先）
+    /// </summary>
+    int Priority { get; }
+    
+    /// <summary>
+    /// 此 Capability 的 Tag 集合
+    /// 用于支持基于 Tag 的批量禁用
+    /// </summary>
+    IReadOnlySet<string> Tags { get; }
+    
+    /// <summary>
+    /// 判定此 Capability 是否应该激活
+    /// 每帧调用，用于检查激活条件（如：所需组件是否存在、外部条件是否满足）
+    /// </summary>
+    bool ShouldActivate(Entity entity);
+    
+    /// <summary>
+    /// 判定此 Capability 是否应该停用
+    /// 每帧调用，用于检查停用条件（如：所需组件被移除、外部条件不再满足）
+    /// </summary>
+    bool ShouldDeactivate(Entity entity);
+    
+    /// <summary>
+    /// 首次挂载到实体时调用（在 Archetype 装配时）
+    /// 用于初始化 Entity 上的状态数据
+    /// </summary>
+    void OnAttached(Entity entity);
+    
+    /// <summary>
+    /// 从实体上完全卸载时调用（在 SubArchetype 卸载时）
+    /// 用于清理 Entity 上的状态数据
+    /// </summary>
+    void OnDetached(Entity entity);
+    
+    /// <summary>
+    /// 激活时调用（当 IsActive 从 false 变为 true）
+    /// </summary>
+    void OnActivate(Entity entity);
+    
+    /// <summary>
+    /// 停用时调用（当 IsActive 从 true 变为 false）
+    /// </summary>
+    void OnDeactivate(Entity entity);
+    
+    /// <summary>
+    /// 每帧更新（仅在激活状态下调用）
+    /// </summary>
+    void Tick(Entity entity);
+}
+```
+
+#### 2.3.2 CapabilityBase 抽象基类
+
+```csharp
+/// <summary>
+/// Capability 抽象基类
+/// 提供默认实现和辅助方法
+/// </summary>
+public abstract class CapabilityBase : ICapability
+{
+    public virtual int Priority => 0;
+    
+    public virtual IReadOnlySet<string> Tags => EmptyTags;
+    
+    private static readonly HashSet<string> EmptyTags = new HashSet<string>();
+    
+    public virtual bool ShouldActivate(Entity entity)
+    {
+        // 默认实现：检查是否启用且未被禁用
+        return IsCapabilityEnabled(entity) && !IsCapabilityDisabled(entity);
+    }
+    
+    public virtual bool ShouldDeactivate(Entity entity)
+    {
+        // 默认实现：检查是否被禁用或不再启用
+        return !IsCapabilityEnabled(entity) || IsCapabilityDisabled(entity);
+    }
+    
+    public virtual void OnAttached(Entity entity)
+    {
+        // 默认不执行任何操作
+    }
+    
+    public virtual void OnDetached(Entity entity)
+    {
+        // 默认清理状态
+        RemoveCapabilityState(entity);
+    }
+    
+    public virtual void OnActivate(Entity entity)
+    {
+        // 默认不执行任何操作
+    }
+    
+    public virtual void OnDeactivate(Entity entity)
+    {
+        // 默认不执行任何操作
+    }
+    
+    public abstract void Tick(Entity entity);
+    
+    // ====== 辅助方法 ======
+    
+    /// <summary>
+    /// 获取此 Capability 在实体上的状态
+    /// </summary>
+    protected CapabilityState GetCapabilityState(Entity entity)
+    {
+        var key = GetCapabilityTypeKey();
+        if (entity.CapabilityStates.TryGetValue(key, out var state))
+            return state;
+        return default;
+    }
+    
+    /// <summary>
+    /// 设置此 Capability 在实体上的状态
+    /// </summary>
+    protected void SetCapabilityState(Entity entity, CapabilityState state)
+    {
+        var key = GetCapabilityTypeKey();
+        entity.CapabilityStates[key] = state;
+    }
+    
+    /// <summary>
+    /// 移除此 Capability 在实体上的状态
+    /// </summary>
+    protected void RemoveCapabilityState(Entity entity)
+    {
+        var key = GetCapabilityTypeKey();
+        entity.CapabilityStates.Remove(key);
+    }
+    
+    /// <summary>
+    /// 检查此 Capability 是否在实体上启用
+    /// </summary>
+    protected bool IsCapabilityEnabled(Entity entity)
+    {
+        var state = GetCapabilityState(entity);
+        return state.IsEnabled;
+    }
+    
+    /// <summary>
+    /// 检查此 Capability 是否被禁用
+    /// </summary>
+    protected bool IsCapabilityDisabled(Entity entity)
+    {
+        var state = GetCapabilityState(entity);
+        return state.Disablers != null && state.Disablers.Count > 0;
+    }
+    
+    /// <summary>
+    /// 获取此 Capability 的类型键（用于字典查找）
+    /// </summary>
+    protected string GetCapabilityTypeKey()
+    {
+        return GetType().AssemblyQualifiedName ?? GetType().FullName;
+    }
+    
+    /// <summary>
+    /// 检查实体是否拥有指定组件
+    /// </summary>
+    protected bool HasComponent<T>(Entity entity) where T : BaseComponent
+    {
+        return entity.HasComponent<T>();
+    }
+    
+    /// <summary>
+    /// 获取实体的组件
+    /// </summary>
+    protected T GetComponent<T>(Entity entity) where T : BaseComponent
+    {
+        return entity.GetComponent<T>();
+    }
+}
+```
+
+### 2.4 CapabilitySystem 统一调度系统
+
+```csharp
+/// <summary>
+/// Capability 统一调度系统
+/// 负责所有 Capability 的激活判定和 Tick 执行
+/// </summary>
+public class CapabilitySystem
+{
+    private static CapabilitySystem _instance;
+    public static CapabilitySystem Instance => _instance ??= new CapabilitySystem();
+    
+    /// <summary>
+    /// 已注册的 Capability 列表（按优先级排序）
+    /// Key: Capability 类型
+    /// Value: Capability 实例（单例）
+    /// </summary>
+    private readonly Dictionary<Type, ICapability> _registeredCapabilities 
+        = new Dictionary<Type, ICapability>();
+    
+    /// <summary>
+    /// 按优先级排序的 Capability 列表（缓存）
+    /// </summary>
+    private List<ICapability> _sortedCapabilities = new List<ICapability>();
+    
+    /// <summary>
+    /// Capability 类型到 Tag 的映射（缓存）
+    /// </summary>
+    private readonly Dictionary<string, HashSet<Type>> _tagToCapabilityTypes 
+        = new Dictionary<string, HashSet<Type>>(StringComparer.OrdinalIgnoreCase);
+    
+    private CapabilitySystem() { }
+    
+    /// <summary>
+    /// 初始化系统（在游戏启动时调用）
+    /// </summary>
+    public void Initialize()
+    {
+        // 自动扫描并注册所有 Capability
+        RegisterAllCapabilities();
+        
+        // 按优先级排序
+        SortCapabilities();
+        
+        // 构建 Tag 映射
+        BuildTagMapping();
+    }
+    
+    /// <summary>
+    /// 注册 Capability
+    /// </summary>
+    public void RegisterCapability<T>() where T : ICapability, new()
+    {
+        var capability = new T();
+        var type = typeof(T);
+        
+        if (!_registeredCapabilities.ContainsKey(type))
+        {
+            _registeredCapabilities[type] = capability;
+            _sortedCapabilities.Add(capability);
+        }
+    }
+    
+    /// <summary>
+    /// 注册 Capability 实例（用于单例）
+    /// </summary>
+    public void RegisterCapability(Type type, ICapability capability)
+    {
+        if (!_registeredCapabilities.ContainsKey(type))
+        {
+            _registeredCapabilities[type] = capability;
+            _sortedCapabilities.Add(capability);
+        }
+    }
+    
+    /// <summary>
+    /// 自动扫描并注册所有 Capability
+    /// </summary>
+    private void RegisterAllCapabilities()
+    {
+        var assembly = typeof(ICapability).Assembly;
+        var capabilityTypes = assembly.GetTypes()
+            .Where(t => !t.IsAbstract && typeof(ICapability).IsAssignableFrom(t));
+        
+        foreach (var type in capabilityTypes)
+        {
+            try
+            {
+                var capability = (ICapability)Activator.CreateInstance(type);
+                RegisterCapability(type, capability);
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"Failed to register Capability: {type.Name}, Error: {ex.Message}");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 按优先级排序 Capability
+    /// </summary>
+    private void SortCapabilities()
+    {
+        _sortedCapabilities.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+    }
+    
+    /// <summary>
+    /// 构建 Tag 到 Capability 类型的映射
+    /// </summary>
+    private void BuildTagMapping()
+    {
+        _tagToCapabilityTypes.Clear();
+        
+        foreach (var kvp in _registeredCapabilities)
+        {
+            var type = kvp.Key;
+            var capability = kvp.Value;
+            
+            foreach (var tag in capability.Tags)
+            {
+                if (!_tagToCapabilityTypes.TryGetValue(tag, out var types))
+                {
+                    types = new HashSet<Type>();
+                    _tagToCapabilityTypes[tag] = types;
+                }
+                types.Add(type);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 更新单个实体的所有 Capability
+    /// </summary>
+    public void UpdateEntity(Entity entity)
+    {
+        if (entity == null || !entity.IsActive || entity.IsDestroyed)
+            return;
+        
+        // 1. 更新激活状态（遍历所有 Capability）
+        UpdateActivationStates(entity);
+        
+        // 2. 执行激活的 Capability 的 Tick
+        ExecuteActiveCapabilities(entity);
+        
+        // 3. 清理超时的禁用来源
+        CleanupExpiredDisablers(entity);
+    }
+    
+    /// <summary>
+    /// 更新实体上所有 Capability 的激活状态
+    /// </summary>
+    private void UpdateActivationStates(Entity entity)
+    {
+        foreach (var capability in _sortedCapabilities)
+        {
+            var key = GetCapabilityTypeKey(capability.GetType());
+            
+            // 检查是否启用
+            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+                continue;
+            
+            if (!state.IsEnabled)
+                continue;
+            
+            // 检查激活条件
+            bool shouldActivate = capability.ShouldActivate(entity);
+            bool shouldDeactivate = capability.ShouldDeactivate(entity);
+            
+            // 状态变更
+            if (shouldActivate && !state.IsActive)
+            {
+                state.IsActive = true;
+                entity.CapabilityStates[key] = state;
+                capability.OnActivate(entity);
+            }
+            else if (shouldDeactivate && state.IsActive)
+            {
+                state.IsActive = false;
+                entity.CapabilityStates[key] = state;
+                capability.OnDeactivate(entity);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 执行激活的 Capability 的 Tick
+    /// </summary>
+    private void ExecuteActiveCapabilities(Entity entity)
+    {
+        foreach (var capability in _sortedCapabilities)
+        {
+            var key = GetCapabilityTypeKey(capability.GetType());
+            
+            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+                continue;
+            
+            if (state.IsEnabled && state.IsActive)
+            {
+                try
+                {
+                    capability.Tick(entity);
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"Error executing Capability {capability.GetType().Name} on entity {entity.UniqueId}: {ex.Message}");
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 清理超时的禁用来源
+    /// </summary>
+    private void CleanupExpiredDisablers(Entity entity)
+    {
+        var currentFrame = LSController.Instance?.CurrentFrame ?? 0;
+        
+        foreach (var kvp in entity.CapabilityStates)
+        {
+            var state = kvp.Value;
+            if (state.Disablers == null || state.Disablers.Count == 0)
+                continue;
+            
+            // 移除超时的禁用来源
+            state.Disablers.RemoveWhere(d =>
+            {
+                if (d.DurationFrames < 0)
+                    return false; // 永久禁用
+                
+                return currentFrame >= d.DisableFrame + d.DurationFrames;
+            });
+            
+            entity.CapabilityStates[kvp.Key] = state;
+        }
+    }
+    
+    /// <summary>
+    /// 获取 Capability 类型键
+    /// </summary>
+    private string GetCapabilityTypeKey(Type type)
+    {
+        return type.AssemblyQualifiedName ?? type.FullName;
+    }
+    
+    // ====== 外部接口：Tag 禁用/启用 ======
+    
+    /// <summary>
+    /// 禁用实体上所有匹配指定 Tag 的 Capability
+    /// </summary>
+    public void DisableCapabilitiesByTag(Entity entity, string tag, long instigatorId, string reason = null, int durationFrames = -1)
+    {
+        if (!_tagToCapabilityTypes.TryGetValue(tag, out var types))
+            return;
+        
+        var currentFrame = LSController.Instance?.CurrentFrame ?? 0;
+        var disabler = new CapabilityDisabler
+        {
+            InstigatorId = instigatorId,
+            Reason = reason,
+            DisableFrame = currentFrame,
+            DurationFrames = durationFrames
+        };
+        
+        // 记录到 DisabledTags
+        if (!entity.DisabledTags.TryGetValue(tag, out var instigators))
+        {
+            instigators = new HashSet<long>();
+            entity.DisabledTags[tag] = instigators;
+        }
+        instigators.Add(instigatorId);
+        
+        // 添加禁用来源到每个匹配的 Capability
+        foreach (var type in types)
+        {
+            var key = GetCapabilityTypeKey(type);
+            
+            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+                continue;
+            
+            if (state.Disablers == null)
+                state.Disablers = new HashSet<CapabilityDisabler>();
+            
+            state.Disablers.Add(disabler);
+            entity.CapabilityStates[key] = state;
+        }
+    }
+    
+    /// <summary>
+    /// 启用实体上所有匹配指定 Tag 的 Capability
+    /// </summary>
+    public void EnableCapabilitiesByTag(Entity entity, string tag, long instigatorId)
+    {
+        if (!_tagToCapabilityTypes.TryGetValue(tag, out var types))
+            return;
+        
+        // 从 DisabledTags 中移除
+        if (entity.DisabledTags.TryGetValue(tag, out var instigators))
+        {
+            instigators.Remove(instigatorId);
+            if (instigators.Count == 0)
+                entity.DisabledTags.Remove(tag);
+        }
+        
+        // 从每个匹配的 Capability 中移除禁用来源
+        foreach (var type in types)
+        {
+            var key = GetCapabilityTypeKey(type);
+            
+            if (!entity.CapabilityStates.TryGetValue(key, out var state))
+                continue;
+            
+            if (state.Disablers == null)
+                continue;
+            
+            state.Disablers.RemoveWhere(d => d.InstigatorId == instigatorId);
+            entity.CapabilityStates[key] = state;
+        }
+    }
+    
+    /// <summary>
+    /// 检查实体上是否有指定 Tag 的 Capability 被禁用
+    /// </summary>
+    public bool IsTagDisabled(Entity entity, string tag)
+    {
+        return entity.DisabledTags.ContainsKey(tag) && entity.DisabledTags[tag].Count > 0;
+    }
+}
+```
+
+---
+
+## 3. 迁移方案
+
+### 3.1 向后兼容策略
+
+为了平滑迁移，采用"双轨制"过渡方案：
+
+#### 阶段 1：保留旧接口（兼容期）
+
+1. **保留 Entity.Capabilities 字段**（标记为 `[Obsolete]`）
+2. **Capability 基类同时支持实例模式和静态模式**
+3. **LSUpdater 同时支持两种更新方式**
+
+```csharp
+// Entity.cs - 兼容旧代码
+[Obsolete("Use CapabilityStates instead")]
+public List<Capability> Capabilities { get; private set; } = new List<Capability>();
+
+// LSUpdater.cs - 双轨更新
+public void Update()
+{
+    foreach (var entity in GetActiveEntities())
+    {
+        // 新方式：统一调度
+        CapabilitySystem.Instance.UpdateEntity(entity);
+        
+        // 旧方式：实例更新（兼容期保留）
+        UpdateEntityCapabilities_Legacy(entity);
+    }
+}
+```
+
+#### 阶段 2：逐步迁移（分批重构）
+
+1. **优先迁移简单的 Capability**（如 `MovementCapability`、`DeadCapability`）
+2. **逐步迁移复杂的 Capability**（如 `ActionCapability`、`AIFSMCapability`）
+3. **每个 Capability 迁移后进行单元测试**
+
+#### 阶段 3：完全移除旧代码（清理期）
+
+1. **移除 `Entity.Capabilities` 字段**
+2. **移除 Capability 实例模式相关代码**
+3. **更新所有文档和示例**
+
+### 3.2 Archetype 装配流程调整
+
+```csharp
+// EntityFactory.cs - 新的装配流程
+public static Entity CreateByArchetype(string archetypeName, World world)
+{
+    var entity = new Entity();
+    var archetypeInfo = ArchetypeManager.Instance.Get(archetypeName);
+    
+    // 1. 装配 Components（不变）
+    foreach (var componentType in archetypeInfo.Components)
+    {
+        var component = (BaseComponent)Activator.CreateInstance(componentType);
+        entity.AddComponent(component);
+    }
+    
+    // 2. 装配 Capabilities（新方式）
+    foreach (var capabilityType in archetypeInfo.Capabilities)
+    {
+        // 启用此 Capability
+        var key = capabilityType.AssemblyQualifiedName ?? capabilityType.FullName;
+        entity.CapabilityStates[key] = new CapabilityState
+        {
+            IsEnabled = true,
+            IsActive = false, // 初始未激活，等待 ShouldActivate 判定
+            Disablers = new HashSet<CapabilityDisabler>(),
+            CustomData = new Dictionary<string, object>()
+        };
+        
+        // 调用 OnAttached 回调
+        var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+        capability?.OnAttached(entity);
+    }
+    
+    return entity;
+}
+```
+
+### 3.3 SubArchetype 装配流程调整
+
+```csharp
+// Entity.cs - AttachSubArchetype 调整
+public bool AttachSubArchetype(string subArchetypeName, out string reason)
+{
+    // ... 原有逻辑 ...
+    
+    // 装配 Capabilities（新方式）
+    foreach (var capabilityType in subInfo.Capabilities)
+    {
+        var key = GetTypeKey(capabilityType);
+        
+        // 引用计数
+        if (!CapabilityRefCounts.TryGetValue(key, out var count))
+            count = 0;
+        CapabilityRefCounts[key] = count + 1;
+        
+        // 首次添加：启用 Capability
+        if (count == 0)
+        {
+            CapabilityStates[key] = new CapabilityState
+            {
+                IsEnabled = true,
+                IsActive = false,
+                Disablers = new HashSet<CapabilityDisabler>(),
+                CustomData = new Dictionary<string, object>()
+            };
+            
+            // 调用 OnAttached
+            var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+            capability?.OnAttached(this);
+        }
+    }
+    
+    return true;
+}
+
+// Entity.cs - DetachSubArchetype 调整
+public bool DetachSubArchetype(string subArchetypeName, out string reason)
+{
+    // ... 原有逻辑 ...
+    
+    // 卸载 Capabilities（新方式）
+    foreach (var capabilityType in subInfo.Capabilities)
+    {
+        var key = GetTypeKey(capabilityType);
+        
+        if (!CapabilityRefCounts.TryGetValue(key, out var count))
+            count = 0;
+        
+        if (count > 0)
+            count--;
+        
+        CapabilityRefCounts[key] = count;
+        
+        // 引用计数归零：移除 Capability
+        if (count == 0)
+        {
+            // 调用 OnDetached
+            var capability = CapabilitySystem.Instance.GetCapability(capabilityType);
+            capability?.OnDetached(this);
+            
+            // 移除状态
+            CapabilityStates.Remove(key);
+        }
+    }
+    
+    return true;
+}
+```
+
+---
+
+## 4. 具体示例：MovementCapability 迁移
+
+### 4.1 迁移前（旧实现）
+
+```csharp
+[MemoryPackable]
+public partial class MovementCapability : Capability
+{
+    public FP MovementThreshold { get; set; } = (FP)0.1f;
+    
+    public MovementCapability()
+    {
+        Priority = 100;
+    }
+    
+    public override void Tick()
+    {
+        if (!CanExecute()) return;
+        
+        var inputComponent = GetOwnerComponent<LSInputComponent>();
+        var movementComponent = GetOwnerComponent<MovementComponent>();
+        var transComponent = GetOwnerComponent<TransComponent>();
+        
+        // ... 移动逻辑 ...
+    }
+    
+    public override bool CanExecute()
+    {
+        if (!base.CanExecute()) return false;
+        return OwnerHasComponent<LSInputComponent>() && 
+               OwnerHasComponent<MovementComponent>() && 
+               OwnerHasComponent<TransComponent>();
+    }
+}
+```
+
+### 4.2 迁移后（新实现）
+
+```csharp
+/// <summary>
+/// 移动能力（静态/单例模式）
+/// </summary>
+public class MovementCapability : CapabilityBase
+{
+    // ====== 元数据 ======
+    public override int Priority => 100;
+    
+    public override IReadOnlySet<string> Tags => _tags;
+    private static readonly HashSet<string> _tags = new HashSet<string> { "Movement", "Control" };
+    
+    // ====== 常量配置（可移至配置文件） ======
+    private const string KEY_MOVEMENT_THRESHOLD = "MovementThreshold";
+    private static readonly FP DEFAULT_MOVEMENT_THRESHOLD = (FP)0.1f;
+    
+    // ====== 生命周期 ======
+    
+    public override void OnAttached(Entity entity)
+    {
+        base.OnAttached(entity);
+        
+        // 初始化自定义数据
+        var state = GetCapabilityState(entity);
+        if (state.CustomData == null)
+            state.CustomData = new Dictionary<string, object>();
+        
+        state.CustomData[KEY_MOVEMENT_THRESHOLD] = DEFAULT_MOVEMENT_THRESHOLD;
+        SetCapabilityState(entity, state);
+    }
+    
+    public override bool ShouldActivate(Entity entity)
+    {
+        // 检查必需组件是否存在
+        return base.ShouldActivate(entity) &&
+               HasComponent<LSInputComponent>(entity) &&
+               HasComponent<MovementComponent>(entity) &&
+               HasComponent<TransComponent>(entity);
+    }
+    
+    public override bool ShouldDeactivate(Entity entity)
+    {
+        // 缺少任何必需组件则停用
+        return base.ShouldDeactivate(entity) ||
+               !HasComponent<LSInputComponent>(entity) ||
+               !HasComponent<MovementComponent>(entity) ||
+               !HasComponent<TransComponent>(entity);
+    }
+    
+    // ====== 每帧逻辑 ======
+    
+    public override void Tick(Entity entity)
+    {
+        // 获取组件
+        var inputComponent = GetComponent<LSInputComponent>(entity);
+        var movementComponent = GetComponent<MovementComponent>(entity);
+        var transComponent = GetComponent<TransComponent>(entity);
+        
+        if (inputComponent?.CurrentInput == null || movementComponent == null || transComponent == null)
+            return;
+        
+        // 获取移动阈值
+        var state = GetCapabilityState(entity);
+        var threshold = (FP)(state.CustomData?.TryGetValue(KEY_MOVEMENT_THRESHOLD, out var value) == true 
+            ? value 
+            : DEFAULT_MOVEMENT_THRESHOLD);
+        
+        // 原有移动逻辑（不变）
+        var input = inputComponent.CurrentInput;
+        FP moveX = (FP)(input.MoveX / (double)(1L << 32));
+        FP moveY = (FP)(input.MoveY / (double)(1L << 32));
+        
+        FP inputMagnitude = FP.Sqrt(moveX * moveX + moveY * moveY);
+        
+        if (inputMagnitude > FP.One)
+        {
+            moveX /= inputMagnitude;
+            moveY /= inputMagnitude;
+            inputMagnitude = FP.One;
+        }
+        
+        var deltaTime = LSConstValue.UpdateInterval / 1000f;
+        
+        // 更新朝向
+        if (inputMagnitude > threshold)
+        {
+            TSVector inputDirection = new TSVector(moveX, FP.Zero, moveY);
+            if (inputDirection.sqrMagnitude > FP.EN4)
+            {
+                transComponent.Rotation = TSQuaternion.LookRotation(inputDirection, TSVector.up);
+            }
+        }
+        
+        // 处理移动
+        if (inputMagnitude > threshold && movementComponent.CanMove)
+        {
+            FP speed = movementComponent.Speed;
+            FP dt = (FP)deltaTime;
+            FP deltaX = moveX * speed * dt;
+            FP deltaY = moveY * speed * dt;
+            
+            var pos = transComponent.Position;
+            transComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
+            
+            entity.World?.HitSystem?.UpdateEntityPosition(entity);
+        }
+    }
+}
+```
+
+---
+
+## 5. Tag 系统应用示例
+
+### 5.1 技能释放时禁用移动
+
+```csharp
+// SkillExecutorCapability.cs
+public override void OnActivate(Entity entity)
+{
+    base.OnActivate(entity);
+    
+    // 禁用所有标记为 "Movement" 的 Capability
+    CapabilitySystem.Instance.DisableCapabilitiesByTag(
+        entity, 
+        "Movement", 
+        entity.UniqueId, 
+        "SkillCasting", 
+        durationFrames: 60 // 持续60帧（1秒）
+    );
+}
+
+public override void OnDeactivate(Entity entity)
+{
+    base.OnDeactivate(entity);
+    
+    // 恢复移动能力
+    CapabilitySystem.Instance.EnableCapabilitiesByTag(
+        entity, 
+        "Movement", 
+        entity.UniqueId
+    );
+}
+```
+
+### 5.2 死亡时禁用所有控制
+
+```csharp
+// DeadCapability.cs
+private void OnEntityDied(EntityDiedEventData eventData)
+{
+    if (eventData.EntityId != OwnerEntity.UniqueId)
+        return;
+    
+    var entity = OwnerEntity;
+    
+    // 禁用所有标记为 "Control" 的 Capability
+    CapabilitySystem.Instance.DisableCapabilitiesByTag(
+        entity, 
+        "Control", 
+        entity.UniqueId, 
+        "Death", 
+        durationFrames: -1 // 永久禁用
+    );
+}
+
+private void OnEntityRevived(EntityRevivedEventData eventData)
+{
+    if (eventData.EntityId != OwnerEntity.UniqueId)
+        return;
+    
+    var entity = OwnerEntity;
+    
+    // 恢复所有控制能力
+    CapabilitySystem.Instance.EnableCapabilitiesByTag(
+        entity, 
+        "Control", 
+        entity.UniqueId
+    );
+}
+```
+
+### 5.3 常用 Tag 建议
+
+| Tag 名称 | 含义 | 应用场景 |
+|---------|------|---------|
+| `Movement` | 移动相关 | 技能施放、眩晕、冰冻、死亡时禁用 |
+| `Control` | 玩家控制相关 | 死亡、剧情接管时禁用 |
+| `Attack` | 攻击相关 | 缴械、眩晕、死亡时禁用 |
+| `Skill` | 技能相关 | 沉默、眩晕、死亡时禁用 |
+| `AI` | AI 相关 | 玩家接管、特殊剧情时禁用 |
+| `Animation` | 动画相关 | 通常不禁用（视觉表现层） |
+| `Physics` | 物理相关 | 死亡、传送时禁用 |
+
+---
+
+## 6. 性能分析
+
+### 6.1 内存占用对比
+
+#### 旧方案（实例模式）
+
+假设一个实体有 5 个 Capability：
+
+```
+单个 Capability 实例大小：
+- CapabilityId (int): 4 bytes
+- IsActive (bool): 1 byte
+- Priority (int): 4 bytes
+- OwnerEntity (引用): 8 bytes
+- 虚函数表指针: 8 bytes
+- 子类字段: 平均 16 bytes
+= 约 41 bytes/实例
+
+5 个 Capability = 5 * 41 = 205 bytes
+1000 个实体 = 1000 * 205 = 205 KB
+```
+
+#### 新方案（状态模式）
+
+```
+单个 CapabilityState 大小：
+- IsEnabled (bool): 1 byte
+- IsActive (bool): 1 byte
+- Disablers (HashSet): 8 bytes（空集合）
+- CustomData (Dictionary): 8 bytes（空字典）
+= 约 18 bytes/状态
+
+5 个 Capability 状态 = 5 * 18 = 90 bytes
+1000 个实体 = 1000 * 90 = 90 KB
+
+节省内存：(205 - 90) / 205 = 56% ✓
+```
+
+### 6.2 缓存命中率提升
+
+#### 旧方案
+
+```
+Capability 实例散布在内存中（不连续）
+→ 缓存行利用率低（约 30-40%）
+→ 频繁的 Cache Miss
+```
+
+#### 新方案
+
+```
+CapabilityState 连续存储在 Dictionary 中
+→ 缓存行利用率高（约 70-80%）
+→ 更少的 Cache Miss
+→ 理论性能提升：20-30%
+```
+
+### 6.3 批量处理潜力
+
+新方案为未来的并行优化铺路：
+
+```csharp
+// 示例：并行更新所有实体的 MovementCapability
+public void UpdateMovementCapability_Parallel(List<Entity> entities)
+{
+    Parallel.ForEach(entities, entity =>
+    {
+        if (!IsCapabilityActive(entity, typeof(MovementCapability)))
+            return;
+        
+        // 并行执行移动逻辑
+        MovementCapability.Instance.Tick(entity);
+    });
+}
+```
+
+---
+
+## 7. 测试计划
+
+### 7.1 单元测试
+
+#### 测试 1：CapabilityState 管理
+
+```csharp
+[Test]
+public void Test_CapabilityState_EnableDisable()
+{
+    var entity = new Entity();
+    var key = typeof(MovementCapability).AssemblyQualifiedName;
+    
+    // 启用 Capability
+    entity.CapabilityStates[key] = new CapabilityState
+    {
+        IsEnabled = true,
+        IsActive = false
+    };
+    
+    Assert.IsTrue(entity.CapabilityStates[key].IsEnabled);
+    Assert.IsFalse(entity.CapabilityStates[key].IsActive);
+    
+    // 激活 Capability
+    var state = entity.CapabilityStates[key];
+    state.IsActive = true;
+    entity.CapabilityStates[key] = state;
+    
+    Assert.IsTrue(entity.CapabilityStates[key].IsActive);
+}
+```
+
+#### 测试 2：Tag 禁用/启用
+
+```csharp
+[Test]
+public void Test_TagDisable_Enable()
+{
+    var entity = new Entity();
+    CapabilitySystem.Instance.Initialize();
+    
+    // 注册 MovementCapability（Tag: "Movement"）
+    var key = typeof(MovementCapability).AssemblyQualifiedName;
+    entity.CapabilityStates[key] = new CapabilityState
+    {
+        IsEnabled = true,
+        IsActive = true
+    };
+    
+    // 禁用 "Movement" Tag
+    CapabilitySystem.Instance.DisableCapabilitiesByTag(
+        entity, "Movement", 999, "Test"
+    );
+    
+    Assert.IsTrue(entity.CapabilityStates[key].Disablers.Count > 0);
+    
+    // 启用 "Movement" Tag
+    CapabilitySystem.Instance.EnableCapabilitiesByTag(
+        entity, "Movement", 999
+    );
+    
+    Assert.IsTrue(entity.CapabilityStates[key].Disablers.Count == 0);
+}
+```
+
+#### 测试 3：ShouldActivate/Deactivate
+
+```csharp
+[Test]
+public void Test_ShouldActivate_Deactivate()
+{
+    var entity = new Entity();
+    var capability = new MovementCapability();
+    
+    // 添加必需组件
+    entity.AddComponent(new LSInputComponent());
+    entity.AddComponent(new MovementComponent());
+    entity.AddComponent(new TransComponent());
+    
+    // 启用 Capability
+    var key = typeof(MovementCapability).AssemblyQualifiedName;
+    entity.CapabilityStates[key] = new CapabilityState
+    {
+        IsEnabled = true,
+        IsActive = false
+    };
+    
+    // 测试激活条件
+    Assert.IsTrue(capability.ShouldActivate(entity));
+    
+    // 移除组件后测试停用条件
+    entity.RemoveComponent<LSInputComponent>();
+    Assert.IsTrue(capability.ShouldDeactivate(entity));
+}
+```
+
+### 7.2 集成测试
+
+#### 测试 4：完整的 Capability 生命周期
+
+```csharp
+[Test]
+public void Test_FullCapabilityLifecycle()
+{
+    var world = new World();
+    var entity = world.CreateEntityByConfig(1001); // Role 原型
+    
+    // 1. 检查 Capability 是否正确装配
+    var movementKey = typeof(MovementCapability).AssemblyQualifiedName;
+    Assert.IsTrue(entity.CapabilityStates.ContainsKey(movementKey));
+    
+    // 2. 测试 Capability 更新
+    CapabilitySystem.Instance.UpdateEntity(entity);
+    
+    // 3. 测试 SubArchetype 挂载/卸载
+    entity.AttachSubArchetype("AI", out var reason);
+    var aiKey = typeof(AIFSMCapability).AssemblyQualifiedName;
+    Assert.IsTrue(entity.CapabilityStates.ContainsKey(aiKey));
+    
+    entity.DetachSubArchetype("AI", out reason);
+    Assert.IsFalse(entity.CapabilityStates.ContainsKey(aiKey));
+}
+```
+
+### 7.3 性能测试
+
+#### 测试 5：大规模实体更新性能
+
+```csharp
+[Test]
+public void Test_PerformanceComparison()
+{
+    const int entityCount = 1000;
+    var world = new World();
+    var entities = new List<Entity>();
+    
+    // 创建 1000 个实体
+    for (int i = 0; i < entityCount; i++)
+    {
+        entities.Add(world.CreateEntityByConfig(1001));
+    }
+    
+    // 测试旧方案（如果保留）
+    var sw1 = Stopwatch.StartNew();
+    foreach (var entity in entities)
+    {
+        UpdateEntityCapabilities_Legacy(entity);
+    }
+    sw1.Stop();
+    
+    // 测试新方案
+    var sw2 = Stopwatch.StartNew();
+    foreach (var entity in entities)
+    {
+        CapabilitySystem.Instance.UpdateEntity(entity);
+    }
+    sw2.Stop();
+    
+    Console.WriteLine($"Legacy: {sw1.ElapsedMilliseconds}ms");
+    Console.WriteLine($"New: {sw2.ElapsedMilliseconds}ms");
+    Console.WriteLine($"Improvement: {(1 - sw2.ElapsedMilliseconds / (double)sw1.ElapsedMilliseconds) * 100:F2}%");
+}
+```
+
+---
+
+## 8. 风险评估与应对
+
+### 8.1 风险列表
+
+| 风险 | 等级 | 影响 | 应对措施 |
+|------|------|------|---------|
+| 迁移过程中引入 Bug | 高 | 游戏逻辑错误 | 分批迁移，每个 Capability 迁移后进行充分测试 |
+| 性能不达预期 | 中 | 无法达到优化目标 | 保留性能测试对比，必要时回滚 |
+| 序列化兼容性问题 | 高 | 存档无法加载 | 编写存档升级工具，保留旧版本兼容代码 |
+| 代码量大导致延期 | 中 | 开发周期延长 | 采用双轨制，分阶段迁移 |
+| Tag 系统误用 | 低 | 逻辑错误 | 编写 Tag 使用规范文档，代码审查 |
+
+### 8.2 回滚方案
+
+如果新方案出现严重问题，可以快速回滚：
+
+1. **保留旧代码**：在兼容期不删除旧的 Capability 实例模式
+2. **开关控制**：通过配置开关在两种模式间切换
+3. **存档兼容**：序列化时同时保存两种格式
+
+```csharp
+// 配置开关
+public static class CapabilityConfig
+{
+    public static bool UseNewCapabilitySystem = true; // 可在运行时切换
+}
+
+// LSUpdater.cs - 可切换的更新方式
+public void Update()
+{
+    foreach (var entity in GetActiveEntities())
+    {
+        if (CapabilityConfig.UseNewCapabilitySystem)
+        {
+            CapabilitySystem.Instance.UpdateEntity(entity);
+        }
+        else
+        {
+            UpdateEntityCapabilities_Legacy(entity);
+        }
+    }
+}
+```
+
+---
+
+## 9. 实施计划
+
+### 9.1 开发阶段
+
+#### 第 1 阶段：基础架构（预计 1-2 周）
+
+- [ ] 定义 `ICapability` 接口
+- [ ] 实现 `CapabilityBase` 抽象基类
+- [ ] 实现 `CapabilitySystem` 调度系统
+- [ ] 在 `Entity` 中添加 `CapabilityStates` 字段
+- [ ] 实现 Tag 系统核心逻辑
+- [ ] 编写基础单元测试
+
+#### 第 2 阶段：迁移简单 Capability（预计 2-3 周）
+
+- [ ] 迁移 `MovementCapability`
+- [ ] 迁移 `DeadCapability`
+- [ ] 迁移 `SkillDisplacementCapability`
+- [ ] 每个 Capability 迁移后进行单元测试和集成测试
+
+#### 第 3 阶段：迁移复杂 Capability（预计 3-4 周）
+
+- [ ] 迁移 `ActionCapability`
+- [ ] 迁移 `SkillCapability`
+- [ ] 迁移 `SkillExecutorCapability`
+- [ ] 迁移 `AIFSMCapability` 及相关状态 Capability
+- [ ] 进行性能对比测试
+
+#### 第 4 阶段：集成与优化（预计 1-2 周）
+
+- [ ] 调整 `EntityFactory` 和 `Archetype` 装配流程
+- [ ] 实现序列化兼容性
+- [ ] 进行大规模实体压力测试
+- [ ] 修复发现的 Bug
+
+#### 第 5 阶段：清理与文档（预计 1 周）
+
+- [ ] 移除旧的 Capability 实例模式代码
+- [ ] 更新 ECC 架构文档
+- [ ] 编写 Capability 开发指南
+- [ ] 编写 Tag 系统使用规范
+
+### 9.2 里程碑
+
+| 里程碑 | 目标 | 验收标准 |
+|--------|------|---------|
+| M1: 基础架构完成 | `CapabilitySystem` 可用 | 通过所有基础单元测试 |
+| M2: 简单 Capability 迁移完成 | 至少 3 个 Capability 迁移 | 原有功能无损失 |
+| M3: 复杂 Capability 迁移完成 | 所有 Capability 迁移 | 通过所有集成测试 |
+| M4: 性能验证通过 | 内存减少 >50%，性能提升 >20% | 性能测试达标 |
+| M5: 正式发布 | 移除旧代码，文档更新 | 代码审查通过 |
+
+---
+
+## 10. 附录
+
+### 10.1 术语表
+
+| 术语 | 含义 |
+|------|------|
+| Capability | 能力，ECC 架构中的行为处理单元 |
+| CapabilityState | Capability 在实体上的状态信息 |
+| CapabilityDisabler | Capability 禁用来源信息 |
+| Tag | Capability 的标签，用于批量控制 |
+| Instigator | 发起者，指禁用 Capability 的实体 |
+| ShouldActivate | 判定 Capability 是否应该激活的接口方法 |
+| ShouldDeactivate | 判定 Capability 是否应该停用的接口方法 |
+
+### 10.2 参考文档
+
+- [ECC-System ECC结构说明.md](./ECC-System%20ECC结构说明.md)
+- [Archetype-System Archetype结构说明.md](./Archetype-System%20Archetype结构说明.md)
+- [Serialization-Best-Practices 序列化最佳实践.md](./Serialization-Best-Practices%20序列化最佳实践.md)
+
+### 10.3 变更记录
+
+| 版本 | 日期 | 作者 | 变更内容 |
+|------|------|------|---------|
+| v1.0 | 2025-11-04 | AI Assistant | 初始版本，完整方案设计 |
+
+---
+
+**文档结束**
+
