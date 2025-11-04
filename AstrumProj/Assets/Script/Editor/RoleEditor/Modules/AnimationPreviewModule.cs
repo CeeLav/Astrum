@@ -39,6 +39,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 播放时长限制 ===
         private float _maxPlaybackTime = -1f; // 最大播放时长（秒），-1表示不限制（播放完整动画）
         
+        // === 循环播放 ===
+        private bool _isLooping = false; // 是否循环播放
+        
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
         // === 实体管理 ===
@@ -604,17 +607,23 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 检查播放边界
             bool shouldStop = false;
-            if (_maxPlaybackTime > 0f && newAnimationTime >= _maxPlaybackTime)
+            float maxTime = _maxPlaybackTime > 0f ? _maxPlaybackTime : _currentClip.length;
+            
+            if (newAnimationTime >= maxTime)
             {
-                // 超过Duration限制，停在最后一帧
-                newAnimationTime = _maxPlaybackTime;
-                shouldStop = true;
-            }
-            else if (_maxPlaybackTime <= 0f && newAnimationTime >= _currentClip.length)
-            {
-                // 播放到动画结尾，停在最后一帧
-                newAnimationTime = _currentClip.length;
-                shouldStop = true;
+                if (_isLooping)
+                {
+                    // 循环播放：重置播放时间
+                    double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+                    _playStartTime = currentTimestamp; // 重置播放开始时间
+                    newAnimationTime = 0f;
+                }
+                else
+                {
+                    // 不循环：停在最后一帧
+                    newAnimationTime = maxTime;
+                    shouldStop = true;
+                }
             }
             
             // 确保时间不小于0
@@ -650,6 +659,56 @@ namespace Astrum.Editor.RoleEditor.Modules
         {
             // 直接调用统一更新逻辑，不调用基类方法（避免基类的自动更新干扰）
             UpdateAnimationInternal();
+        }
+        
+        /// <summary>
+        /// 重置动画到第一帧（不播放）
+        /// </summary>
+        public void Reset()
+        {
+            if (_currentAnimState != null)
+            {
+                _currentAnimState.Time = 0f;
+                _currentFrame = 0;
+                _accumulatedTime = 0f;
+                _playStartTime = 0.0;
+                _isPlaying = false;
+                _currentAnimState.Speed = 0;
+                
+                // 重置模型位置到初始位置
+                if (_previewInstance != null)
+                {
+                    _previewInstance.transform.position = _initialPosition;
+                    _previewInstance.transform.rotation = Quaternion.identity;
+                }
+                
+                // 手动更新Animancer
+                if (_animancer != null)
+                {
+                    AnimationHelper.EvaluateAnimancer(_animancer, 0);
+                }
+                
+                // 重置位移
+                ApplyAccumulatedDisplacement(0);
+            }
+        }
+        
+        /// <summary>
+        /// 获取是否循环播放
+        /// </summary>
+        /// <returns>是否循环播放</returns>
+        public bool IsLooping()
+        {
+            return _isLooping;
+        }
+        
+        /// <summary>
+        /// 设置是否循环播放
+        /// </summary>
+        /// <param name="isLooping">是否循环播放</param>
+        public void SetLooping(bool isLooping)
+        {
+            _isLooping = isLooping;
         }
         
         // === 清理资源 ===
