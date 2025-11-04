@@ -2,7 +2,7 @@
 
 > 作者：AI Assistant  
 > 日期：2025-11-04  
-> 版本：v1.5  
+> 版本：v1.6  
 > 适用范围：Astrum 客户端 ECC 架构
 
 ## 1. 方案概述
@@ -491,10 +491,8 @@ public abstract class Capability<T> : ICapability where T : ICapability
     /// </summary>
     protected bool IsCapabilityDisabled(Entity entity)
     {
-        if (entity.World?.CapabilitySystem == null)
-            return false;
-        
-        var capability = entity.World.CapabilitySystem.GetCapability(TypeId);
+        // 使用静态方法获取 Capability
+        var capability = CapabilitySystem.GetCapability(TypeId);
         if (capability == null)
             return false;
         
@@ -537,83 +535,150 @@ public abstract class Capability<T> : ICapability where T : ICapability
 [MemoryPackable]
 public partial class CapabilitySystem
 {
+    // ====== 静态注册信息（不序列化，避免回滚） ======
     
     /// <summary>
-    /// 已注册的 Capability 列表（按优先级排序）
+    /// 已注册的 Capability 列表（静态，所有 World 共享）
     /// Key: Capability 类型
     /// Value: Capability 实例（单例）
     /// </summary>
-    private readonly Dictionary<Type, ICapability> _registeredCapabilities 
+    [MemoryPackIgnore]
+    private static readonly Dictionary<Type, ICapability> _registeredCapabilities 
         = new Dictionary<Type, ICapability>();
     
     /// <summary>
-    /// 按优先级排序的 Capability 列表（缓存）
+    /// 按优先级排序的 Capability 列表（静态，所有 World 共享）
     /// </summary>
-    private List<ICapability> _sortedCapabilities = new List<ICapability>();
+    [MemoryPackIgnore]
+    private static readonly List<ICapability> _sortedCapabilities = new List<ICapability>();
     
     /// <summary>
-    /// Tag 到 Capability TypeId 集合的映射（缓存）
+    /// Tag 到 Capability TypeId 集合的映射（静态，所有 World 共享）
     /// </summary>
-    private readonly Dictionary<CapabilityTag, HashSet<int>> _tagToCapabilityTypeIds 
+    [MemoryPackIgnore]
+    private static readonly Dictionary<CapabilityTag, HashSet<int>> _tagToCapabilityTypeIds 
         = new Dictionary<CapabilityTag, HashSet<int>>();
     
     /// <summary>
-    /// TypeId 到 Capability 实例的映射（用于快速查找）
+    /// TypeId 到 Capability 实例的映射（静态，所有 World 共享）
     /// </summary>
-    private readonly Dictionary<int, ICapability> _typeIdToCapability 
+    [MemoryPackIgnore]
+    private static readonly Dictionary<int, ICapability> _typeIdToCapability 
         = new Dictionary<int, ICapability>();
     
+    /// <summary>
+    /// 静态初始化标志（确保只初始化一次）
+    /// </summary>
+    [MemoryPackIgnore]
+    private static bool _isStaticInitialized = false;
+    
+    // ====== 实例数据（序列化，支持回滚） ======
+    
+    /// <summary>
+    /// Capability TypeId 到拥有此 Capability 的 Entity ID 集合的映射
+    /// Key: Capability TypeId
+    /// Value: 拥有此 Capability 的 Entity ID 集合
+    /// </summary>
+    private Dictionary<int, HashSet<long>> _typeIdToEntityIds 
+        = new Dictionary<int, HashSet<long>>();
+    
+    /// <summary>
+    /// 所属 World（不序列化，由 World 设置）
+    /// </summary>
+    [MemoryPackIgnore]
+    public World World { get; set; }
+    
     public CapabilitySystem() { }
+    
+    /// <summary>
+    /// MemoryPack 构造函数
+    /// </summary>
+    [MemoryPackConstructor]
+    public CapabilitySystem(Dictionary<int, HashSet<long>> typeIdToEntityIds)
+    {
+        _typeIdToEntityIds = typeIdToEntityIds ?? new Dictionary<int, HashSet<long>>();
+        
+        // 确保静态数据已初始化
+        EnsureStaticInitialized();
+    }
+    
+    /// <summary>
+    /// 确保静态数据已初始化（线程安全）
+    /// </summary>
+    private static void EnsureStaticInitialized()
+    {
+        if (_isStaticInitialized)
+            return;
+        
+        lock (_registeredCapabilities)
+        {
+            if (_isStaticInitialized)
+                return;
+            
+            // 自动扫描并注册所有 Capability
+            RegisterAllCapabilities();
+            
+            // 按优先级排序
+            SortCapabilities();
+            
+            // 构建 Tag 映射
+            BuildTagMapping();
+            
+            _isStaticInitialized = true;
+        }
+    }
     
     /// <summary>
     /// 初始化系统（在游戏启动时调用）
     /// </summary>
     public void Initialize()
     {
-        // 自动扫描并注册所有 Capability
-        RegisterAllCapabilities();
-        
-        // 按优先级排序
-        SortCapabilities();
-        
-        // 构建 Tag 映射
-        BuildTagMapping();
+        EnsureStaticInitialized();
     }
     
     /// <summary>
     /// 注册 Capability
     /// </summary>
-    public void RegisterCapability<T>() where T : ICapability, new()
+    public static void RegisterCapability<T>() where T : ICapability, new()
     {
         var capability = new T();
         var type = typeof(T);
         
-        if (!_registeredCapabilities.ContainsKey(type))
+        lock (_registeredCapabilities)
         {
-            _registeredCapabilities[type] = capability;
-            _sortedCapabilities.Add(capability);
+            if (!_registeredCapabilities.ContainsKey(type))
+            {
+                _registeredCapabilities[type] = capability;
+                _sortedCapabilities.Add(capability);
+                
+                // 同时注册到 TypeId 映射
+                _typeIdToCapability[capability.TypeId] = capability;
+            }
         }
     }
     
     /// <summary>
     /// 注册 Capability 实例（用于单例）
     /// </summary>
-    public void RegisterCapability(Type type, ICapability capability)
+    private static void RegisterCapability(Type type, ICapability capability)
     {
-        if (!_registeredCapabilities.ContainsKey(type))
+        lock (_registeredCapabilities)
         {
-            _registeredCapabilities[type] = capability;
-            _sortedCapabilities.Add(capability);
-            
-            // 同时注册到 TypeId 映射
-            _typeIdToCapability[capability.TypeId] = capability;
+            if (!_registeredCapabilities.ContainsKey(type))
+            {
+                _registeredCapabilities[type] = capability;
+                _sortedCapabilities.Add(capability);
+                
+                // 同时注册到 TypeId 映射
+                _typeIdToCapability[capability.TypeId] = capability;
+            }
         }
     }
     
     /// <summary>
     /// 自动扫描并注册所有 Capability
     /// </summary>
-    private void RegisterAllCapabilities()
+    private static void RegisterAllCapabilities()
     {
         var assembly = typeof(ICapability).Assembly;
         var capabilityTypes = assembly.GetTypes()
@@ -636,7 +701,7 @@ public partial class CapabilitySystem
     /// <summary>
     /// 按优先级排序 Capability
     /// </summary>
-    private void SortCapabilities()
+    private static void SortCapabilities()
     {
         _sortedCapabilities.Sort((a, b) => b.Priority.CompareTo(a.Priority));
     }
@@ -644,7 +709,7 @@ public partial class CapabilitySystem
     /// <summary>
     /// 构建 Tag 到 Capability TypeId 的映射
     /// </summary>
-    private void BuildTagMapping()
+    private static void BuildTagMapping()
     {
         _tagToCapabilityTypeIds.Clear();
         
@@ -669,7 +734,7 @@ public partial class CapabilitySystem
     /// <summary>
     /// 根据 TypeId 获取 Capability
     /// </summary>
-    public ICapability GetCapability(int typeId)
+    public static ICapability GetCapability(int typeId)
     {
         return _typeIdToCapability.TryGetValue(typeId, out var capability) ? capability : null;
     }
@@ -677,13 +742,65 @@ public partial class CapabilitySystem
     /// <summary>
     /// 根据 Type 获取 Capability
     /// </summary>
-    public ICapability GetCapability(Type type)
+    public static ICapability GetCapability(Type type)
     {
         return _registeredCapabilities.TryGetValue(type, out var capability) ? capability : null;
     }
     
+    // ====== Entity Capability 注册管理（实例方法，支持回滚） ======
+    
     /// <summary>
-    /// 更新所有 Capability（按 Capability 遍历，每个 Capability 更新所有拥有它的实体）
+    /// 注册 Entity 拥有某个 Capability
+    /// 在 Entity 添加 Capability 时调用
+    /// </summary>
+    public void RegisterEntityCapability(long entityId, int typeId)
+    {
+        if (!_typeIdToEntityIds.TryGetValue(typeId, out var entityIds))
+        {
+            entityIds = new HashSet<long>();
+            _typeIdToEntityIds[typeId] = entityIds;
+        }
+        entityIds.Add(entityId);
+    }
+    
+    /// <summary>
+    /// 注销 Entity 的某个 Capability
+    /// 在 Entity 移除 Capability 时调用
+    /// </summary>
+    public void UnregisterEntityCapability(long entityId, int typeId)
+    {
+        if (_typeIdToEntityIds.TryGetValue(typeId, out var entityIds))
+        {
+            entityIds.Remove(entityId);
+            
+            // 如果集合为空，可以选择移除（或者保留，等待垃圾回收）
+            if (entityIds.Count == 0)
+            {
+                _typeIdToEntityIds.Remove(typeId);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 清理已销毁实体的 Capability 注册
+    /// 在 Entity 销毁时调用
+    /// </summary>
+    public void UnregisterEntity(long entityId)
+    {
+        foreach (var kvp in _typeIdToEntityIds.ToList())
+        {
+            kvp.Value.Remove(entityId);
+            
+            // 如果集合为空，移除该 TypeId 的映射
+            if (kvp.Value.Count == 0)
+            {
+                _typeIdToEntityIds.Remove(kvp.Key);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 更新所有 Capability（按 Capability 遍历，只更新拥有该 Capability 的实体）
     /// </summary>
     public void Update(World world)
     {
@@ -695,15 +812,35 @@ public partial class CapabilitySystem
         {
             var typeId = capability.TypeId;
             
-            // 遍历所有实体，对拥有此 Capability 的实体进行更新
-            foreach (var entity in world.Entities.Values)
+            // 只遍历拥有此 Capability 的实体（避免无效更新）
+            if (!_typeIdToEntityIds.TryGetValue(typeId, out var entityIds))
+                continue;
+            
+            // 遍历拥有此 Capability 的实体 ID 集合
+            foreach (var entityId in entityIds.ToList()) // ToList() 避免迭代时修改集合
             {
-                if (entity == null || !entity.IsActive || entity.IsDestroyed)
+                // 获取实体（可能已被销毁）
+                if (!world.Entities.TryGetValue(entityId, out var entity))
+                {
+                    // 实体已被销毁，清理注册
+                    UnregisterEntityCapability(entityId, typeId);
                     continue;
+                }
                 
-                // 检查此 Capability 是否存在于实体上（字典中存在即表示拥有）
-                if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
+                if (entity == null || !entity.IsActive || entity.IsDestroyed)
+                {
+                    // 实体已销毁或未激活，清理注册
+                    UnregisterEntityCapability(entityId, typeId);
                     continue;
+                }
+                
+                // 检查此 Capability 是否仍然存在于实体上（双重检查，防止状态不一致）
+                if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
+                {
+                    // 状态不一致，清理注册
+                    UnregisterEntityCapability(entityId, typeId);
+                    continue;
+                }
                 
                 // 1. 更新激活状态
                 UpdateActivationState(capability, entity, ref state);
@@ -928,8 +1065,8 @@ public static Entity CreateByArchetype(string archetypeName, World world)
     // 2. 装配 Capabilities（新方式）
     foreach (var capabilityType in archetypeInfo.Capabilities)
     {
-        // 获取 Capability 实例以获取 TypeId
-        var capability = entity.World?.CapabilitySystem?.GetCapability(capabilityType);
+        // 获取 Capability 实例以获取 TypeId（静态方法）
+        var capability = CapabilitySystem.GetCapability(capabilityType);
         if (capability == null)
         {
             ASLogger.Instance.Warning($"Capability {capabilityType.Name} not registered in CapabilitySystem");
@@ -944,6 +1081,9 @@ public static Entity CreateByArchetype(string archetypeName, World world)
             DeactiveDuration = 0,
             CustomData = new Dictionary<string, object>()
         };
+        
+        // 注册到 CapabilitySystem
+        world.CapabilitySystem?.RegisterEntityCapability(entity.UniqueId, capability.TypeId);
         
         // 调用 OnAttached 回调
         capability.OnAttached(entity);
@@ -964,8 +1104,8 @@ public bool AttachSubArchetype(string subArchetypeName, out string reason)
     // 装配 Capabilities（新方式）
     foreach (var capabilityType in subInfo.Capabilities)
     {
-        // 获取 Capability 实例以获取 TypeId
-        var capability = World?.CapabilitySystem?.GetCapability(capabilityType);
+        // 获取 Capability 实例以获取 TypeId（静态方法）
+        var capability = CapabilitySystem.GetCapability(capabilityType);
         if (capability == null)
             continue;
         
@@ -988,6 +1128,9 @@ public bool AttachSubArchetype(string subArchetypeName, out string reason)
                 CustomData = new Dictionary<string, object>()
             };
             
+            // 注册到 CapabilitySystem
+            World?.CapabilitySystem?.RegisterEntityCapability(UniqueId, typeId);
+            
             // 调用 OnAttached
             capability.OnAttached(this);
         }
@@ -1004,8 +1147,8 @@ public bool DetachSubArchetype(string subArchetypeName, out string reason)
     // 卸载 Capabilities（新方式）
     foreach (var capabilityType in subInfo.Capabilities)
     {
-        // 获取 Capability 实例以获取 TypeId
-        var capability = World?.CapabilitySystem?.GetCapability(capabilityType);
+        // 获取 Capability 实例以获取 TypeId（静态方法）
+        var capability = CapabilitySystem.GetCapability(capabilityType);
         if (capability == null)
             continue;
         
@@ -1028,10 +1171,27 @@ public bool DetachSubArchetype(string subArchetypeName, out string reason)
             
             // 移除状态（使用 TypeId）
             CapabilityStates.Remove(typeId);
+            
+            // 从 CapabilitySystem 注销
+            World?.CapabilitySystem?.UnregisterEntityCapability(UniqueId, typeId);
         }
     }
     
     return true;
+}
+
+// World.cs - 销毁实体时清理 Capability 注册
+public void DestroyEntity(long entityId)
+{
+    if (!Entities.TryGetValue(entityId, out var entity))
+        return;
+    
+    // 清理 CapabilitySystem 中的注册
+    CapabilitySystem?.UnregisterEntity(entityId);
+    
+    // ... 其他销毁逻辑 ...
+    
+    Entities.Remove(entityId);
 }
 ```
 
@@ -1331,7 +1491,28 @@ entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(entity, CapabilityTag.C
 （相比旧方案仍有显著优势）
 ```
 
-### 6.2 缓存命中率提升
+### 6.2 更新性能优化
+
+#### 旧方案（遍历所有 Entity）
+
+```
+假设场景：1000 个实体，其中 100 个拥有 MovementCapability
+更新 MovementCapability 时需要遍历 1000 个实体
+→ 无效遍历：900 次（90%）
+→ 性能开销：O(EntityCount * CapabilityCount)
+```
+
+#### 新方案（使用 Entity 映射）
+
+```
+假设场景：1000 个实体，其中 100 个拥有 MovementCapability
+更新 MovementCapability 时只遍历 100 个实体 ID（从 _typeIdToEntityIds 获取）
+→ 无效遍历：0 次（0%）
+→ 性能开销：O(拥有该Capability的EntityCount * CapabilityCount)
+→ 性能提升：约 10 倍（在大部分实体没有该 Capability 的情况下）
+```
+
+### 6.3 缓存命中率提升
 
 #### 旧方案
 
@@ -1350,7 +1531,19 @@ CapabilityState 连续存储在 Dictionary 中
 → 理论性能提升：20-30%
 ```
 
-### 6.3 批量处理潜力
+### 6.4 静态数据优化
+
+#### 注册信息静态化
+
+```
+将 Capability 注册信息改为静态，所有 World 共享
+→ 避免序列化和回滚时重复初始化
+→ 减少内存占用（多个 World 共享同一份注册数据）
+→ 提升初始化速度（只需初始化一次）
+→ 避免回滚时重置注册信息
+```
+
+### 6.5 批量处理潜力
 
 新方案为未来的并行优化铺路：
 
