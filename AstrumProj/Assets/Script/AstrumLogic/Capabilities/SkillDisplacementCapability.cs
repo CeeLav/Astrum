@@ -89,15 +89,16 @@ namespace Astrum.LogicCore.Capabilities
             
             transComponent.Position = transComponent.Position + worldDeltaPosition;
             
-            // 5. 应用增量旋转（如果动画包含根节点旋转）
+            // 5. 应用增量旋转（暂时禁用，不进行旋转逻辑）
+            // TODO: 未来需要旋转时再启用
             // TSQuaternion 没有 != 运算符，通过比较分量判断是否为 identity
-            if (frameData.DeltaRotation.x != FP.Zero || 
-                frameData.DeltaRotation.y != FP.Zero || 
-                frameData.DeltaRotation.z != FP.Zero || 
-                frameData.DeltaRotation.w != FP.One)
-            {
-                transComponent.Rotation = transComponent.Rotation * frameData.DeltaRotation;
-            }
+            // if (frameData.DeltaRotation.x != FP.Zero || 
+            //     frameData.DeltaRotation.y != FP.Zero || 
+            //     frameData.DeltaRotation.z != FP.Zero || 
+            //     frameData.DeltaRotation.w != FP.One)
+            // {
+            //     transComponent.Rotation = transComponent.Rotation * frameData.DeltaRotation;
+            // }
             
             // 6. 【物理世界同步】更新实体在物理世界中的位置
             if (OwnerEntity is AstrumEntity astrumEntity && astrumEntity.World != null)

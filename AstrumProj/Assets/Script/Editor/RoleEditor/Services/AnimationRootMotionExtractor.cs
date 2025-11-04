@@ -174,7 +174,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 {
                     deltaPosition = currentPosition - prevPosition;
                     deltaRotation = currentRotation * Quaternion.Inverse(prevRotation);
-                    
+                    /*
                     // 调试日志：前几帧的数据
                     if (frame <= 3 || deltaPosition.sqrMagnitude > 0.0001f)
                     {
@@ -182,7 +182,7 @@ namespace Astrum.Editor.RoleEditor.Services
                                   $"prevPos=({prevPosition.x:F6}, {prevPosition.y:F6}, {prevPosition.z:F6}), " +
                                   $"delta=({deltaPosition.x:F6}, {deltaPosition.y:F6}, {deltaPosition.z:F6}), " +
                                   $"deltaInt=({(int)(deltaPosition.x * SCALE)}, {(int)(deltaPosition.y * SCALE)}, {(int)(deltaPosition.z * SCALE)})");
-                    }
+                    }*/
                 }
                 else
                 {
