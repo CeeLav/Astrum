@@ -275,20 +275,5 @@ namespace Astrum.LogicCore.Capabilities
             
             ASLogger.Instance.Debug($"Restored user input movement for entity {entity.UniqueId} after skill displacement");
         }
-        
-        /// <summary>
-        /// 检查用户输入位移是否被禁用（由技能位移系统禁用）
-        /// </summary>
-        private bool IsUserInputMovementDisabled(Entity entity)
-        {
-            if (entity.DisabledTags == null)
-                return false;
-            
-            if (!entity.DisabledTags.TryGetValue(CapabilityTag.UserInputMovement, out var instigators))
-                return false;
-            
-            // 检查是否由技能位移系统禁用
-            return instigators.Contains(SKILL_DISPLACEMENT_DISABLER_ID);
-        }
     }
 }

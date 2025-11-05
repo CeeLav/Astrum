@@ -74,10 +74,8 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             
             // 获取移动阈值
-            var state = GetCapabilityState(entity);
-            var threshold = (FP)(state.CustomData?.TryGetValue(KEY_MOVEMENT_THRESHOLD, out var value) == true 
-                ? value 
-                : DEFAULT_MOVEMENT_THRESHOLD);
+            //var state = GetCapabilityState(entity);
+            var threshold = (FP)(0.1f);
             
             // 原有移动逻辑（不变）
             var input = inputComponent.CurrentInput;
