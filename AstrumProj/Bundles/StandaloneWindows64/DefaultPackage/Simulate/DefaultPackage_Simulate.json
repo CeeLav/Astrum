@@ -9,75 +9,395 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/11/3 23:36:06",
+    "PackageNote": "2025/11/5 17:36:15",
     "AssetList": [
         {
             "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_02.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_03.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_04.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_05.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_06.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_07.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_08.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_09.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_10.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_11.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_12.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_13.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_14.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_15.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_blood.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_electric.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_spark.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_01.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_02.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_03.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_04.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_05.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_06.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_07.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_08.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_09.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_10.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_11.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_12.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_13.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_14.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_slash_15.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_01.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_02.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_03.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_04.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_05.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_06.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_07.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_08.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_09.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_10.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_11.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_12.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_13.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_14.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Effect/Stylized Hit & Slash/FX_stab_15.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 0,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/ArtRes/UI/Hub/Bag.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/Hub/ButtonClaim_Brown.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/Hub/Equipment2.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/Hub/Hub.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/Hub/Quest.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/Hub/QuestOld.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/Hub/Shop.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/Hub/Storage.prefab",
-            "AssetGUID": "",
-            "AssetTags": [],
-            "BundleID": 1,
-            "DependBundleIDs": []
-        },
-        {
-            "Address": "",
-            "AssetPath": "Assets/ArtRes/UI/HUD/HorizontalBoxWithShadow.prefab",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 2,
@@ -85,10 +405,74 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/ButtonClaim_Brown.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Equipment2.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Hub.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Quest.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/QuestOld.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Shop.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/Hub/Storage.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/UI/HUD/HorizontalBoxWithShadow.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/ArtRes/UI/Login.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 0,
+            "BundleID": 1,
             "DependBundleIDs": []
         },
         {
@@ -96,7 +480,7 @@
             "AssetPath": "Assets/ArtRes/UI/RoomDetail.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 0,
+            "BundleID": 1,
             "DependBundleIDs": []
         },
         {
@@ -104,7 +488,7 @@
             "AssetPath": "Assets/ArtRes/UI/RoomList.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 0,
+            "BundleID": 1,
             "DependBundleIDs": []
         },
         {
@@ -112,7 +496,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -120,7 +504,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -128,7 +512,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -136,7 +520,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -144,7 +528,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_3.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -152,7 +536,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_3_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -160,7 +544,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_4.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -168,7 +552,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_4_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -176,7 +560,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_5.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -184,7 +568,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_5_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -192,7 +576,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_6.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -200,7 +584,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_6_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -208,7 +592,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_7.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -216,7 +600,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_7_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -224,7 +608,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_8.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -232,7 +616,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_8_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -240,7 +624,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -248,7 +632,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_1_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -256,7 +640,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -264,7 +648,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_1_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -272,7 +656,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_2.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -280,7 +664,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_2_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -288,7 +672,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_3.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -296,7 +680,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_3_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -304,7 +688,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_4.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -312,7 +696,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_4_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -320,7 +704,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_5.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -328,7 +712,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_5_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -336,7 +720,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_6.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -344,7 +728,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_6_InPlace.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -352,7 +736,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_B_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -360,7 +744,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 4,
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -368,7 +752,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_1_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -376,7 +760,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_2_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -384,7 +768,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_3_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -392,7 +776,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_4_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -400,7 +784,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_5_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -408,7 +792,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_6_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -416,7 +800,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_7_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -424,7 +808,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_8_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -432,7 +816,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_Combo_1_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -440,7 +824,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_Combo_2_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -448,7 +832,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_Combo_3_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -456,7 +840,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_Combo_4_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -464,7 +848,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_Combo_5_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -472,7 +856,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/InPlace/OneHand_Base_Attack_C_Combo_6_InPlace.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 6,
+            "BundleID": 7,
             "DependBundleIDs": []
         },
         {
@@ -480,7 +864,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -488,7 +872,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_1.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -496,7 +880,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_2.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -504,7 +888,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_3.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -512,7 +896,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_4.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -520,7 +904,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_5.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -528,7 +912,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_6.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -536,7 +920,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_7.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -544,7 +928,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_8.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -552,7 +936,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_Combo_1.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -560,7 +944,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_Combo_2.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -568,7 +952,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_Combo_3.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -576,7 +960,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_Combo_4.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -584,7 +968,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_Combo_5.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -592,7 +976,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Attack_C/OneHand_Base_Attack_C_Combo_6.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependBundleIDs": []
         },
         {
@@ -600,7 +984,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Knight.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -608,7 +992,7 @@
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/SM_Wep_Sword_03.fbx",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 4,
             "DependBundleIDs": []
         },
         {
@@ -616,7 +1000,7 @@
             "AssetPath": "Assets/Scenes/DungeonsGame.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 7,
+            "BundleID": 8,
             "DependBundleIDs": []
         },
         {
@@ -624,7 +1008,7 @@
             "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 8,
+            "BundleID": 9,
             "DependBundleIDs": []
         },
         {
@@ -632,7 +1016,7 @@
             "AssetPath": "Assets/Scenes/Game.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 7,
+            "BundleID": 8,
             "DependBundleIDs": []
         },
         {
@@ -640,7 +1024,7 @@
             "AssetPath": "Assets/Scenes/Hub.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 7,
+            "BundleID": 8,
             "DependBundleIDs": []
         },
         {
@@ -648,7 +1032,7 @@
             "AssetPath": "Assets/Scenes/Start.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 7,
+            "BundleID": 8,
             "DependBundleIDs": []
         },
         {
@@ -656,11 +1040,21 @@
             "AssetPath": "Assets/Scenes/UIScene.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 7,
+            "BundleID": 8,
             "DependBundleIDs": []
         }
     ],
     "BundleList": [
+        {
+            "BundleName": "assets_artres_effect_stylized_hit_&_slash.bundle",
+            "UnityCRC": 0,
+            "FileHash": "6e66407191f9c7e043d0ec6f1a8f6830",
+            "FileCRC": 0,
+            "FileSize": 26102457,
+            "Encrypted": false,
+            "Tags": [],
+            "DependBundleIDs": []
+        },
         {
             "BundleName": "assets_artres_ui.bundle",
             "UnityCRC": 0,
