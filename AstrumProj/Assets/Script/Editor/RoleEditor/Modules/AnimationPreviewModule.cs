@@ -284,6 +284,17 @@ namespace Astrum.Editor.RoleEditor.Modules
         }
         
         /// <summary>
+        /// 更新指定特效的参数（用于实时编辑）
+        /// </summary>
+        public void UpdateVFXParameters(string eventId)
+        {
+            if (_vfxPreviewManager != null)
+            {
+                _vfxPreviewManager.UpdateVFXParameters(eventId, _currentFrame);
+            }
+        }
+        
+        /// <summary>
         /// 获取当前帧
         /// </summary>
         public int GetCurrentFrame()

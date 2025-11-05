@@ -137,6 +137,15 @@ namespace Astrum.Editor.RoleEditor.Services
                     {
                         // 创建特效
                         PlayVFX(evt);
+                        
+                        // 如果不在播放状态，需要立即模拟到当前时间点
+                        if (!_isPlaying)
+                        {
+                            if (_activeVFX.TryGetValue(evt.EventId, out var vfxInstance))
+                            {
+                                UpdateSingleVFXToFrame(vfxInstance, evt, frame);
+                            }
+                        }
                     }
                 }
             }
@@ -344,6 +353,173 @@ namespace Astrum.Editor.RoleEditor.Services
                     // 第三个参数 restart=true 表示从开始播放，然后模拟到指定时间
                     ps.Simulate(actualTime, true, true);
                 }
+            }
+        }
+        
+        /// <summary>
+        /// 更新指定特效的参数（位置、旋转、缩放等）
+        /// </summary>
+        public void UpdateVFXParameters(string eventId, int currentFrame)
+        {
+            // 查找对应的事件
+            var evt = _vfxEvents.Find(e => e.EventId == eventId);
+            if (evt == null)
+                return;
+            
+            var vfxData = evt.GetEventData<Timeline.EventData.VFXEventData>();
+            if (vfxData == null)
+                return;
+            
+            // 检查特效是否已创建
+            if (!_activeVFX.TryGetValue(eventId, out var vfxInstance) || vfxInstance == null)
+            {
+                // 如果当前帧在特效范围内，创建特效
+                if (currentFrame >= evt.StartFrame && currentFrame <= evt.EndFrame)
+                {
+                    PlayVFX(evt);
+                    // 重新获取实例
+                    if (_activeVFX.TryGetValue(eventId, out vfxInstance) && vfxInstance != null)
+                    {
+                        // 如果不在播放状态，需要立即模拟到当前时间点
+                        if (!_isPlaying)
+                        {
+                            UpdateSingleVFXToFrame(vfxInstance, evt, currentFrame);
+                        }
+                    }
+                }
+                return;
+            }
+            
+            // 更新位置、旋转和缩放
+            UpdateVFXTransform(vfxInstance, vfxData);
+            
+            // 更新播放参数（播放速度、循环等）
+            UpdateVFXPlaybackParams(vfxInstance, vfxData);
+            
+            // 如果不在播放状态，需要重新模拟到当前时间点
+            if (!_isPlaying && currentFrame >= evt.StartFrame && currentFrame <= evt.EndFrame)
+            {
+                UpdateSingleVFXToFrame(vfxInstance, evt, currentFrame);
+            }
+        }
+        
+        /// <summary>
+        /// 更新特效的变换参数（位置、旋转、缩放）
+        /// </summary>
+        private void UpdateVFXTransform(GameObject vfxInstance, Timeline.EventData.VFXEventData vfxData)
+        {
+            if (_parentObject == null)
+                return;
+            
+            Vector3 position = _parentObject.transform.position;
+            Quaternion rotation = _parentObject.transform.rotation;
+            
+            // 应用位置偏移
+            if (vfxData.PositionOffset != Vector3.zero)
+            {
+                position += rotation * vfxData.PositionOffset;
+            }
+            
+            // 应用旋转
+            if (vfxData.Rotation != Vector3.zero)
+            {
+                rotation *= Quaternion.Euler(vfxData.Rotation);
+            }
+            
+            // 如果跟随角色，设置为子对象
+            if (vfxData.FollowCharacter)
+            {
+                if (vfxInstance.transform.parent != _parentObject.transform)
+                {
+                    // 需要重新设置父对象
+                    vfxInstance.transform.SetParent(_parentObject.transform);
+                    // 设置本地位置和旋转（相对于父对象）
+                    vfxInstance.transform.localPosition = vfxData.PositionOffset;
+                    vfxInstance.transform.localRotation = Quaternion.Euler(vfxData.Rotation);
+                }
+                else
+                {
+                    // 只更新本地变换
+                    vfxInstance.transform.localPosition = vfxData.PositionOffset;
+                    vfxInstance.transform.localRotation = Quaternion.Euler(vfxData.Rotation);
+                }
+            }
+            else
+            {
+                // 不跟随角色，使用世界坐标
+                if (vfxInstance.transform.parent != null)
+                {
+                    vfxInstance.transform.SetParent(null);
+                }
+                vfxInstance.transform.position = position;
+                vfxInstance.transform.rotation = rotation;
+            }
+            
+            // 应用缩放
+            if (vfxData.Scale != 1.0f)
+            {
+                vfxInstance.transform.localScale = Vector3.one * vfxData.Scale;
+            }
+            else
+            {
+                vfxInstance.transform.localScale = Vector3.one;
+            }
+        }
+        
+        /// <summary>
+        /// 更新特效的播放参数（播放速度、循环等）
+        /// </summary>
+        private void UpdateVFXPlaybackParams(GameObject vfxInstance, Timeline.EventData.VFXEventData vfxData)
+        {
+            var particleSystems = vfxInstance.GetComponentsInChildren<ParticleSystem>(true);
+            foreach (var ps in particleSystems)
+            {
+                if (ps == null)
+                    continue;
+                
+                var main = ps.main;
+                main.simulationSpeed = vfxData.PlaybackSpeed;
+                main.loop = vfxData.Loop;
+            }
+        }
+        
+        /// <summary>
+        /// 更新单个特效到指定帧（用于暂停状态下预览）
+        /// </summary>
+        private void UpdateSingleVFXToFrame(GameObject vfxInstance, TimelineEvent evt, int frame)
+        {
+            const float FRAME_TIME = 0.05f; // 20fps = 50ms/帧
+            
+            var vfxData = evt.GetEventData<Timeline.EventData.VFXEventData>();
+            if (vfxData == null)
+                return;
+            
+            // 计算特效已经播放的时间（从开始帧到当前帧）
+            int framesElapsed = frame - evt.StartFrame;
+            float timeElapsed = framesElapsed * FRAME_TIME;
+            
+            // 应用播放速度
+            float actualTime = timeElapsed / vfxData.PlaybackSpeed;
+            
+            // 更新所有粒子系统到对应时间
+            var particleSystems = vfxInstance.GetComponentsInChildren<ParticleSystem>(true);
+            foreach (var ps in particleSystems)
+            {
+                if (ps == null)
+                    continue;
+                
+                // 确保粒子系统已激活
+                if (!ps.gameObject.activeSelf)
+                {
+                    ps.gameObject.SetActive(true);
+                }
+                
+                // 重置并播放到指定时间
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                ps.Play(true);
+                
+                // 模拟到指定时间
+                ps.Simulate(actualTime, true, true);
             }
         }
         

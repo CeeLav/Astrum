@@ -743,8 +743,9 @@ namespace Astrum.Editor.RoleEditor.Windows
             {
                 _selectedSkillAction.MarkDirty();
                 
-                // 如果修改的是当前帧范围内的事件，立即更新预览的碰撞盒显示
                 int currentFrame = _timelineModule.GetCurrentFrame();
+                
+                // 如果修改的是当前帧范围内的事件，立即更新预览的碰撞盒显示
                 if (evt != null && currentFrame >= evt.StartFrame && currentFrame <= evt.EndFrame)
                 {
                     // 直接从修改的事件中获取最新的碰撞盒信息
@@ -752,10 +753,21 @@ namespace Astrum.Editor.RoleEditor.Windows
                     Repaint();
                 }
                 
-                // 更新 VFX 事件列表（如果修改了 VFX 事件）
-                if (_previewModule != null && _selectedSkillAction.TimelineEvents != null)
+                // 如果是 VFX 事件，实时更新特效预览
+                if (evt != null && evt.TrackType == "VFX" && _previewModule != null)
                 {
-                    _previewModule.SetVFXEvents(_selectedSkillAction.TimelineEvents);
+                    // 更新 VFX 事件列表（确保事件数据是最新的）
+                    if (_selectedSkillAction.TimelineEvents != null)
+                    {
+                        _previewModule.SetVFXEvents(_selectedSkillAction.TimelineEvents);
+                    }
+                    
+                    // 如果当前帧在特效范围内，实时更新特效参数
+                    if (currentFrame >= evt.StartFrame && currentFrame <= evt.EndFrame)
+                    {
+                        _previewModule.UpdateVFXParameters(evt.EventId);
+                        Repaint();
+                    }
                 }
             }
         }
