@@ -157,6 +157,15 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.unity.textmeshpro": {
+      "version": "3.0.7",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0"
+      },
+      "url": "https://packages.unity.com"
+    },
     "com.unity.timeline": {
       "version": "1.8.7",
       "depth": 0,
