@@ -1041,6 +1041,19 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 EditorGUILayout.BeginHorizontal();
                 {
+                    // 显示碰撞盒勾选
+                    bool showCollision = _previewModule != null && _previewModule.GetShowCollision();
+                    bool newShowCollision = GUILayout.Toggle(showCollision, "显示碰撞盒", GUILayout.Height(25));
+                    if (newShowCollision != showCollision && _previewModule != null)
+                    {
+                        _previewModule.SetShowCollision(newShowCollision);
+                        Repaint();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+                
+                EditorGUILayout.BeginHorizontal();
+                {
                     if (GUILayout.Button("◀", GUILayout.Width(30)))
                     {
                         PreviousFrame();

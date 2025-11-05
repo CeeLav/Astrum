@@ -27,6 +27,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 碰撞盒显示 ===
         private string _currentFrameCollisionInfo = null; // 当前帧的碰撞盒信息
+        private bool _showCollision = true;              // 是否显示攻击碰撞盒
         
         // === 网格显示 ===
         private bool _showGrid = true;                  // 是否显示网格
@@ -78,6 +79,12 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 加载模型（使用基类方法）
             LoadModel(modelData.ModelPath);
+            
+            // 保存初始位置（在计算边界后，模型位置应该在原点）
+            if (_previewInstance != null)
+            {
+                _initialPosition = _previewInstance.transform.position;
+            }
             
             // 初始化特效预览管理器
             if (_vfxPreviewManager == null)
@@ -332,10 +339,18 @@ namespace Astrum.Editor.RoleEditor.Modules
         {
             _rootMotionDataArray = rootMotionDataArray;
             
-            // 重置模型位置到初始位置
-            if (_previewInstance != null)
+            // 重新应用当前帧的位移（而不是直接重置到初始位置）
+            // 这样可以保持动画的当前状态
+            if (_previewInstance != null && _rootMotionDataArray != null && _rootMotionDataArray.Count > 0)
             {
+                // 重新应用当前帧的位移
+                ApplyAccumulatedDisplacement(_currentFrame);
+            }
+            else if (_previewInstance != null)
+            {
+                // 如果没有位移数据，才重置到初始位置
                 _previewInstance.transform.position = _initialPosition;
+                _previewInstance.transform.rotation = Quaternion.identity;
             }
         }
         
@@ -575,7 +590,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             }
             
             // 在相机渲染后，绘制碰撞盒（跟随模型的位移和旋转）
-            if (!string.IsNullOrEmpty(_currentFrameCollisionInfo))
+            if (_showCollision && !string.IsNullOrEmpty(_currentFrameCollisionInfo))
             {
                 // 获取模型当前的位置和旋转（考虑根节点位移）
                 Vector3 modelPosition = _previewInstance != null ? _previewInstance.transform.position : Vector3.zero;
@@ -826,6 +841,23 @@ namespace Astrum.Editor.RoleEditor.Modules
         public void SetLooping(bool isLooping)
         {
             _isLooping = isLooping;
+        }
+        
+        /// <summary>
+        /// 设置是否显示攻击碰撞盒
+        /// </summary>
+        /// <param name="show">是否显示</param>
+        public void SetShowCollision(bool show)
+        {
+            _showCollision = show;
+        }
+        
+        /// <summary>
+        /// 获取是否显示攻击碰撞盒
+        /// </summary>
+        public bool GetShowCollision()
+        {
+            return _showCollision;
         }
         
         // === 清理资源 ===

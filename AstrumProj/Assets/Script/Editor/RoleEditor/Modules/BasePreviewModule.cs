@@ -134,29 +134,40 @@ namespace Astrum.Editor.RoleEditor.Modules
         {
             if (_previewInstance == null) return;
             
+            // 保存当前模型位置和旋转（可能在动画过程中已被更新）
+            Vector3 currentPosition = _previewInstance.transform.position;
+            Quaternion currentRotation = _previewInstance.transform.rotation;
+            
+            // 临时重置到原点以便计算边界（使用模型本地空间）
+            _previewInstance.transform.position = Vector3.zero;
+            _previewInstance.transform.rotation = Quaternion.identity;
+            
             // 获取所有渲染器
             var renderers = _previewInstance.GetComponentsInChildren<Renderer>();
             if (renderers.Length == 0)
             {
                 _modelCenter = Vector3.zero;
                 _orbitRadius = 2f;
+                // 恢复位置
+                _previewInstance.transform.position = currentPosition;
+                _previewInstance.transform.rotation = currentRotation;
                 return;
             }
             
-            // 计算边界框
+            // 计算边界框（在模型本地空间）
             Bounds bounds = renderers[0].bounds;
             foreach (var renderer in renderers)
             {
                 bounds.Encapsulate(renderer.bounds);
             }
             
-            // 设置模型中心点（保持模型在原点，相机环绕模型中心）
+            // 设置模型中心点（用于相机环绕）
             _modelCenter = bounds.center;
             _orbitRadius = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * 1.5f;
             
-            // 确保模型位置在原点（不移动模型，让相机适应）
-            _previewInstance.transform.position = Vector3.zero;
-            _previewInstance.transform.rotation = Quaternion.identity;
+            // 恢复模型位置和旋转（保持动画产生的位移）
+            _previewInstance.transform.position = currentPosition;
+            _previewInstance.transform.rotation = currentRotation;
             
             Debug.Log($"{LogPrefix} Model bounds calculated: center={_modelCenter}, size={bounds.size}, orbitRadius={_orbitRadius}");
         }
