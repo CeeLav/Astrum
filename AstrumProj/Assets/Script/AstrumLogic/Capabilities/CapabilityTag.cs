@@ -49,7 +49,12 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 交互相关（拾取、对话、使用物品等）
         /// </summary>
-        Interaction
+        Interaction,
+        
+        /// <summary>
+        /// 用户输入位移（玩家通过输入控制的位移，技能释放时会被禁用）
+        /// </summary>
+        UserInputMovement
     }
 }
 

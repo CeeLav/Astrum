@@ -27,6 +27,12 @@ namespace Astrum.LogicCore.Capabilities
         
         // ====== 生命周期 ======
         
+        /// <summary>
+        /// 用于标识是技能位移系统禁用用户输入位移的 instigatorId
+        /// 使用负数以避免与实际实体ID冲突
+        /// </summary>
+        private const long SKILL_DISPLACEMENT_DISABLER_ID = -1;
+        
         public override void OnAttached(Entity entity)
         {
             base.OnAttached(entity);
@@ -36,44 +42,90 @@ namespace Astrum.LogicCore.Capabilities
         public override bool ShouldActivate(Entity entity)
         {
             // 检查必需组件是否存在
-            return base.ShouldActivate(entity) &&
-                   HasComponent<ActionComponent>(entity) &&
-                   HasComponent<TransComponent>(entity);
+            if (!base.ShouldActivate(entity))
+                return false;
+            
+            // 1. 检查必需组件
+            var actionComponent = GetComponent<ActionComponent>(entity);
+            if (actionComponent == null || actionComponent.CurrentAction == null)
+                return false;
+            
+            var transComponent = GetComponent<TransComponent>(entity);
+            if (transComponent == null)
+                return false;
+            
+            // 2. 检查当前动作是否是技能动作
+            if (!(actionComponent.CurrentAction is SkillActionInfo skillAction))
+                return false;
+            
+            // 3. 检查是否有根节点位移数据（检查 HasMotion 属性）
+            if (skillAction.RootMotionData == null || 
+                !skillAction.RootMotionData.HasMotion)
+                return false;
+            
+            return true;
         }
         
         public override bool ShouldDeactivate(Entity entity)
         {
-            // 缺少任何必需组件则停用
-            return base.ShouldDeactivate(entity) ||
-                   !HasComponent<ActionComponent>(entity) ||
-                   !HasComponent<TransComponent>(entity);
+            // 如果基础检查失败，则停用
+            if (base.ShouldDeactivate(entity))
+                return true;
+            
+            // 检查组件是否存在
+            var actionComponent = GetComponent<ActionComponent>(entity);
+            if (actionComponent == null || actionComponent.CurrentAction == null)
+                return true;
+            
+            var transComponent = GetComponent<TransComponent>(entity);
+            if (transComponent == null)
+                return true;
+            
+            // 检查是否仍然是技能动作且有位移数据
+            if (!(actionComponent.CurrentAction is SkillActionInfo skillAction))
+                return true;
+            
+            if (skillAction.RootMotionData == null || 
+                !skillAction.RootMotionData.HasMotion)
+                return true;
+            
+            return false;
+        }
+        
+        public override void OnActivate(Entity entity)
+        {
+            base.OnActivate(entity);
+            
+            // 禁用用户输入位移
+            DisableUserInputMovement(entity);
+        }
+        
+        public override void OnDeactivate(Entity entity)
+        {
+            // 恢复用户输入位移
+            RestoreUserInputMovement(entity);
+            
+            base.OnDeactivate(entity);
         }
         
         // ====== 每帧逻辑 ======
         
         public override void Tick(Entity entity)
         {
-            // 1. 获取当前动作信息
+            // 获取当前动作信息（ShouldActivate 已经检查过了，这里直接使用）
             var actionComponent = GetComponent<ActionComponent>(entity);
             if (actionComponent == null || actionComponent.CurrentAction == null)
             {
                 return;
             }
             
-            // 2. 检查当前动作是否是技能动作
-            if (!(actionComponent.CurrentAction is SkillActionInfo skillAction))
+            var skillAction = actionComponent.CurrentAction as SkillActionInfo;
+            if (skillAction == null)
             {
                 return;
             }
             
-            // 3. 检查是否有根节点位移数据（检查 HasMotion 属性）
-            if (skillAction.RootMotionData == null || 
-                !skillAction.RootMotionData.HasMotion)
-            {
-                return;
-            }
-            
-            // 4. 应用当前帧的位移
+            // 应用当前帧的位移
             int currentFrame = actionComponent.CurrentFrame;
             ApplyRootMotion(entity, skillAction, currentFrame);
         }
@@ -175,6 +227,68 @@ namespace Astrum.LogicCore.Capabilities
                 return skillAction.Id;
             }
             return 0;
+        }
+        
+        // ====== 用户输入位移禁用/恢复方法 ======
+        
+        /// <summary>
+        /// 禁用用户输入位移（技能位移激活时）
+        /// </summary>
+        private void DisableUserInputMovement(Entity entity)
+        {
+            var capabilitySystem = entity.World?.CapabilitySystem;
+            if (capabilitySystem == null)
+            {
+                ASLogger.Instance.Warning("CapabilitySystem not available from World, cannot disable user input movement");
+                return;
+            }
+            
+            // 禁用用户输入位移能力（通过 UserInputMovement Tag）
+            capabilitySystem.DisableCapabilitiesByTag(
+                entity, 
+                CapabilityTag.UserInputMovement, 
+                SKILL_DISPLACEMENT_DISABLER_ID, 
+                "Skill displacement active"
+            );
+            
+            ASLogger.Instance.Debug($"Disabled user input movement for entity {entity.UniqueId} during skill displacement");
+        }
+        
+        /// <summary>
+        /// 恢复用户输入位移（技能位移停用时）
+        /// </summary>
+        private void RestoreUserInputMovement(Entity entity)
+        {
+            var capabilitySystem = entity.World?.CapabilitySystem;
+            if (capabilitySystem == null)
+            {
+                ASLogger.Instance.Warning("CapabilitySystem not available from World, cannot restore user input movement");
+                return;
+            }
+            
+            // 恢复用户输入位移能力
+            capabilitySystem.EnableCapabilitiesByTag(
+                entity, 
+                CapabilityTag.UserInputMovement, 
+                SKILL_DISPLACEMENT_DISABLER_ID
+            );
+            
+            ASLogger.Instance.Debug($"Restored user input movement for entity {entity.UniqueId} after skill displacement");
+        }
+        
+        /// <summary>
+        /// 检查用户输入位移是否被禁用（由技能位移系统禁用）
+        /// </summary>
+        private bool IsUserInputMovementDisabled(Entity entity)
+        {
+            if (entity.DisabledTags == null)
+                return false;
+            
+            if (!entity.DisabledTags.TryGetValue(CapabilityTag.UserInputMovement, out var instigators))
+                return false;
+            
+            // 检查是否由技能位移系统禁用
+            return instigators.Contains(SKILL_DISPLACEMENT_DISABLER_ID);
         }
     }
 }
