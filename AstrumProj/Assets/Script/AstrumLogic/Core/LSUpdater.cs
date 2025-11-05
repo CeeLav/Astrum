@@ -31,7 +31,7 @@ namespace Astrum.LogicCore.Core
             {
                 world.CapabilitySystem.Update(world);
             }
-
+/*
             // 旧方式：实例更新（兼容期保留，逐步迁移后移除）
             // 获取需要更新的实体
             var entities = GetEntitiesForUpdate(world);
@@ -40,7 +40,7 @@ namespace Astrum.LogicCore.Core
             foreach (var entity in entities)
             {
                 UpdateEntityCapabilities(entity);
-            }
+            }*/
 
             // 更新世界状态（不调用world.Update避免递归）
             //world.DeltaTime = deltaTime;
