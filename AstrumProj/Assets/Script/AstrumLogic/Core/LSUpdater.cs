@@ -26,6 +26,13 @@ namespace Astrum.LogicCore.Core
         {
             if (world == null) return;
 
+            // 新方式：使用 CapabilitySystem 统一调度（按 Capability 遍历，每个 Capability 更新所有拥有它的实体）
+            if (world.CapabilitySystem != null)
+            {
+                world.CapabilitySystem.Update(world);
+            }
+
+            // 旧方式：实例更新（兼容期保留，逐步迁移后移除）
             // 获取需要更新的实体
             var entities = GetEntitiesForUpdate(world);
 

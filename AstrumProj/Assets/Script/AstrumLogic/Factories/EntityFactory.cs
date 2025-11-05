@@ -77,22 +77,61 @@ namespace Astrum.LogicCore.Factories
             // 【生命周期钩子】能力挂载前
             CallArchetypeLifecycleMethod(archetypeName, "OnBeforeCapabilitiesAttach", entity, world);
 
-            // 按 ArchetypeInfo 装配能力
+            // 按 ArchetypeInfo 装配能力（新方式：使用 CapabilitySystem）
             foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
             {
                 if (capType == null) continue;
-                try
+                
+                // 检查是否是新的 ICapability 接口
+                if (typeof(LogicCore.Capabilities.ICapability).IsAssignableFrom(capType))
                 {
-                    var capability = Activator.CreateInstance(capType) as LogicCore.Capabilities.Capability;
-                    if (capability != null)
+                    // 新方式：使用 CapabilitySystem 注册
+                    try
                     {
-                        entity.AddCapability(capability);
+                        var capability = LogicCore.Systems.CapabilitySystem.GetCapability(capType);
+                        if (capability == null)
+                        {
+                            ASLogger.Instance.Warning($"Capability {capType.Name} not registered in CapabilitySystem");
+                            continue;
+                        }
+                        
+                        // 启用此 Capability（使用 TypeId 作为 Key，存在即表示拥有）
+                        entity.CapabilityStates[capability.TypeId] = new LogicCore.Capabilities.CapabilityState
+                        {
+                            IsActive = false, // 初始未激活，等待 ShouldActivate 判定
+                            ActiveDuration = 0,
+                            DeactiveDuration = 0,
+                            CustomData = new Dictionary<string, object>()
+                        };
+                        
+                        // 注册到 CapabilitySystem
+                        world.CapabilitySystem?.RegisterEntityCapability(entity.UniqueId, capability.TypeId);
+                        
+                        // 调用 OnAttached 回调
+                        capability.OnAttached(entity);
+                    }
+                    catch (Exception ex)
+                    {
+                        ASLogger.Instance.Error($"创建能力 {capType.Name} 失败: {ex.Message}");
+                        ASLogger.Instance.LogException(ex);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    ASLogger.Instance.Error($"创建能力 {capType.Name} 失败: {ex.Message}");
-                    ASLogger.Instance.LogException(ex);
+                    // 旧方式：兼容旧的 Capability 实例模式
+                    try
+                    {
+                        var capability = Activator.CreateInstance(capType) as LogicCore.Capabilities.Capability;
+                        if (capability != null)
+                        {
+                            entity.AddCapability(capability);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ASLogger.Instance.Error($"创建能力 {capType.Name} 失败: {ex.Message}");
+                        ASLogger.Instance.LogException(ex);
+                    }
                 }
             }
 
