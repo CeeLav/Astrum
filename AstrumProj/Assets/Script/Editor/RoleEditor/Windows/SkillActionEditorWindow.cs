@@ -1054,6 +1054,21 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 EditorGUILayout.BeginHorizontal();
                 {
+                    EditorGUILayout.LabelField("缩放:", GUILayout.Width(40));
+                    float scale = _previewModule != null ? _previewModule.GetModelScale() : 1.0f;
+                    EditorGUI.BeginChangeCheck();
+                    float newScale = EditorGUILayout.Slider(scale, 0.1f, 10.0f, GUILayout.Height(25));
+                    if (EditorGUI.EndChangeCheck() && _previewModule != null)
+                    {
+                        _previewModule.SetModelScale(newScale);
+                        Repaint();
+                    }
+                    EditorGUILayout.LabelField($"{newScale:F2}x", GUILayout.Width(50));
+                }
+                EditorGUILayout.EndHorizontal();
+                
+                EditorGUILayout.BeginHorizontal();
+                {
                     if (GUILayout.Button("◀", GUILayout.Width(30)))
                     {
                         PreviousFrame();

@@ -43,6 +43,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 循环播放 ===
         private bool _isLooping = false; // 是否循环播放
         
+        // === 模型缩放 ===
+        private float _modelScale = 1.0f; // 模型缩放比例
+        
         // === 特效预览 ===
         private VFXPreviewManager _vfxPreviewManager;
         
@@ -84,6 +87,8 @@ namespace Astrum.Editor.RoleEditor.Modules
             if (_previewInstance != null)
             {
                 _initialPosition = _previewInstance.transform.position;
+                // 应用缩放
+                _previewInstance.transform.localScale = Vector3.one * _modelScale;
             }
             
             // 初始化特效预览管理器
@@ -858,6 +863,27 @@ namespace Astrum.Editor.RoleEditor.Modules
         public bool GetShowCollision()
         {
             return _showCollision;
+        }
+        
+        /// <summary>
+        /// 设置模型缩放
+        /// </summary>
+        /// <param name="scale">缩放比例</param>
+        public void SetModelScale(float scale)
+        {
+            _modelScale = Mathf.Max(0.1f, Mathf.Min(10.0f, scale)); // 限制在0.1到10之间
+            if (_previewInstance != null)
+            {
+                _previewInstance.transform.localScale = Vector3.one * _modelScale;
+            }
+        }
+        
+        /// <summary>
+        /// 获取模型缩放
+        /// </summary>
+        public float GetModelScale()
+        {
+            return _modelScale;
         }
         
         // === 清理资源 ===
