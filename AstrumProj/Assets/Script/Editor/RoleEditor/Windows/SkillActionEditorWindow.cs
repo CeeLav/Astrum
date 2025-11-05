@@ -85,10 +85,16 @@ namespace Astrum.Editor.RoleEditor.Windows
             InitializeModules();
             RegisterTracks();
             LoadData();
+            
+            // 注册更新回调（用于播放时持续更新）
+            EditorApplication.update += OnEditorUpdate;
         }
         
         private void OnDisable()
         {
+            // 取消更新回调
+            EditorApplication.update -= OnEditorUpdate;
+            
             // 取消事件订阅
             if (_listModule != null)
             {
@@ -99,6 +105,37 @@ namespace Astrum.Editor.RoleEditor.Windows
             CleanupModules();
             
             Debug.Log("[SkillActionEditor] Skill Action Editor Window closed");
+        }
+        
+        /// <summary>
+        /// 编辑器更新回调（用于播放时持续Repaint和同步时间轴）
+        /// </summary>
+        private void OnEditorUpdate()
+        {
+            // 如果动画正在播放，持续Repaint以更新预览，并同步时间轴
+            if (_previewModule != null && _previewModule.IsPlaying())
+            {
+                // 同步动画播放头到时间轴（避免频繁更新，只在帧变化时更新）
+                if (_timelineModule != null)
+                {
+                    int animFrame = _previewModule.GetCurrentFrame();
+                    int timelineFrame = _timelineModule.GetCurrentFrame();
+                    
+                    // 只在帧真正变化时更新（避免每帧都触发事件）
+                    if (animFrame != timelineFrame)
+                    {
+                        // 直接设置时间轴的内部帧，避免触发OnCurrentFrameChanged事件
+                        // 这样不会调用SetFrame，避免中断播放
+                        _timelineModule.SetCurrentFrame(animFrame);
+                        
+                        // 只在帧变化时更新碰撞盒信息
+                        UpdateFrameCollisionInfo(animFrame);
+                    }
+                }
+                
+                // 持续Repaint以更新动画预览（这是必要的，否则动画不会显示更新）
+                Repaint();
+            }
         }
         
         private void OnDestroy()
@@ -510,7 +547,16 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             if (_previewModule != null)
             {
-                _previewModule.SetFrame(frame);
+                // 如果正在播放，时间轴帧变化是由播放驱动的，不需要调用SetFrame
+                // SetFrame会重置播放时间，导致播放中断
+                bool isPlaying = _previewModule.IsPlaying();
+                
+                if (!isPlaying)
+                {
+                    // 非播放状态：手动拖拽时间轴，需要同步到预览
+                    _previewModule.SetFrame(frame);
+                }
+                // 播放状态：时间轴帧由OnEditorUpdate同步，不需要反向同步
                 
                 // 获取当前帧的碰撞盒信息并传递给预览模块
                 UpdateFrameCollisionInfo(frame);
@@ -595,7 +641,8 @@ namespace Astrum.Editor.RoleEditor.Windows
             int currentFrame = _timelineModule.GetCurrentFrame();
             UpdateFrameCollisionInfo(currentFrame);
             
-            Debug.Log($"[SkillActionEditor] 事件修改触发碰撞盒更新 (Frame: {currentFrame})");
+            // 移除日志输出，避免频繁打印
+            // Debug.Log($"[SkillActionEditor] 事件修改触发碰撞盒更新 (Frame: {currentFrame})");
         }
         
         private void OnCreateNewSkillAction()
@@ -702,7 +749,8 @@ namespace Astrum.Editor.RoleEditor.Windows
                 _eventDetailModule.SetSelectedEvent(evt);
             }
             
-            // 选中事件时，立即更新当前帧的碰撞盒显示
+            // 选中事件时，更新碰撞盒显示（但不改变播放状态）
+            // 注意：这里不调用SetFrame，避免在播放时中断
             if (_timelineModule != null && _previewModule != null)
             {
                 int currentFrame = _timelineModule.GetCurrentFrame();

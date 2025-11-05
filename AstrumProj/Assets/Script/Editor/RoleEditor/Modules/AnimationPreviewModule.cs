@@ -133,20 +133,48 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         public override void Play()
         {
-            if (_currentAnimState != null)
+            // 检查前置条件
+            if (_previewInstance == null)
             {
-                _isPlaying = true;
-                _currentAnimState.Speed = 0; // 保持Speed=0，完全由我们手动控制Time
-                
-                // 重置所有时间相关状态
-                double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
-                _playStartTime = currentTimestamp;
-                _accumulatedTime = 0f;
-                
-                // 输出精确到毫秒的时间戳
-                long milliseconds = (long)(currentTimestamp * 1000.0);
-                Debug.Log($"{LogPrefix} Playing (manual frame control) - Timestamp: {milliseconds}ms (Time: {currentTimestamp:F6}s, AnimationTime: {_currentAnimState.Time:F6}s, Frame: {_currentFrame}, Speed: {_animationSpeed})");
+                Debug.LogWarning($"{LogPrefix} Cannot play: Preview instance is null. Please select an entity first.");
+                return;
             }
+            
+            if (_animancer == null)
+            {
+                Debug.LogWarning($"{LogPrefix} Cannot play: Animancer is null. Please select an entity first.");
+                return;
+            }
+            
+            if (_currentClip == null)
+            {
+                Debug.LogWarning($"{LogPrefix} Cannot play: Animation clip is null. Please load an animation first.");
+                return;
+            }
+            
+            // 如果动画状态不存在，尝试重新加载动画
+            if (_currentAnimState == null)
+            {
+                Debug.LogWarning($"{LogPrefix} Animation state is null, attempting to reload animation...");
+                LoadAnimation(_currentClip, _currentAnimationPath);
+                
+                if (_currentAnimState == null)
+                {
+                    Debug.LogError($"{LogPrefix} Failed to reload animation. Cannot play.");
+                    return;
+                }
+            }
+            
+            _isPlaying = true;
+            _currentAnimState.Speed = 0; // 保持Speed=0，完全由我们手动控制Time
+            
+            // 重置所有时间相关状态
+            double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+            _playStartTime = currentTimestamp;
+            _accumulatedTime = 0f;
+            
+            // 仅在调试时输出日志
+            // Debug.Log($"{LogPrefix} Playing animation: {_currentClip.name}");
         }
         
         public override void Pause()
@@ -156,14 +184,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _isPlaying = false;
                 _currentAnimState.Speed = 0;
                 
-                double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
-                long milliseconds = (long)(currentTimestamp * 1000.0);
-                double elapsedPlayTime = _playStartTime > 0 ? (currentTimestamp - _playStartTime) : 0.0;
-                long elapsedMs = (long)(elapsedPlayTime * 1000.0);
-                
-                Debug.Log($"{LogPrefix} Paused - Timestamp: {milliseconds}ms, Elapsed: {elapsedMs}ms ({elapsedPlayTime:F6}s), " +
-                          $"AnimationTime: {_currentAnimState.Time:F6}s, Frame: {_currentFrame}, ExpectedFrame: {Mathf.RoundToInt(_currentAnimState.Time * LOGIC_FRAME_RATE)}, " +
-                          $"ClipLength: {(_currentClip != null ? _currentClip.length.ToString("F6") : "N/A")}s");
+                // 仅在调试时输出日志
+                // Debug.Log($"{LogPrefix} Paused animation");
             }
         }
         
@@ -195,6 +217,14 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 计算时间（50ms/帧 = 20fps）
             float time = _currentFrame * FRAME_TIME;
             _currentAnimState.Time = time;
+            
+            // 如果正在播放，需要同步更新 _playStartTime，避免时间计算错误
+            if (_isPlaying)
+            {
+                // 重新计算播放起点时间，使当前时间戳对应当前帧
+                double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+                _playStartTime = currentTimestamp - time / _animationSpeed;
+            }
             
             // 手动更新Animancer
             if (_animancer != null)

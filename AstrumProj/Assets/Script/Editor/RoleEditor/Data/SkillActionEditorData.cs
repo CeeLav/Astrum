@@ -565,6 +565,22 @@ namespace Astrum.Editor.RoleEditor.Data
         public int Duration => GetEndFrame() - GetStartFrame() + 1;
         
         /// <summary>
+        /// 获取JSON序列化设置（处理Unity类型）
+        /// </summary>
+        private static JsonSerializerSettings GetJsonSettings()
+        {
+            return new JsonSerializerSettings
+            {
+                // 忽略循环引用（解决Vector3.normalized等属性的循环引用问题）
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                // 忽略默认值（减少JSON大小）
+                DefaultValueHandling = DefaultValueHandling.Ignore,
+                // 格式化输出（开发时便于阅读，生产环境可改为None）
+                Formatting = Formatting.None
+            };
+        }
+        
+        /// <summary>
         /// 从JSON字符串解析触发帧列表
         /// </summary>
         public static List<TriggerFrameData> ParseFromJSON(string jsonStr)
@@ -576,8 +592,9 @@ namespace Astrum.Editor.RoleEditor.Data
             
             try
             {
-                // 使用Newtonsoft.Json直接解析数组
-                result = JsonConvert.DeserializeObject<List<TriggerFrameData>>(jsonStr);
+                // 使用Newtonsoft.Json直接解析数组，使用自定义设置
+                var settings = GetJsonSettings();
+                result = JsonConvert.DeserializeObject<List<TriggerFrameData>>(jsonStr, settings);
                 if (result == null)
                 {
                     result = new List<TriggerFrameData>();
@@ -601,8 +618,9 @@ namespace Astrum.Editor.RoleEditor.Data
             
             try
             {
-                // 使用Newtonsoft.Json直接序列化数组
-                return JsonConvert.SerializeObject(triggerFrames, Formatting.None);
+                // 使用Newtonsoft.Json直接序列化数组，使用自定义设置
+                var settings = GetJsonSettings();
+                return JsonConvert.SerializeObject(triggerFrames, settings);
             }
             catch (Exception ex)
             {
