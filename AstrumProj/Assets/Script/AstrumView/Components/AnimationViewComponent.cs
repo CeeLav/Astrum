@@ -19,6 +19,9 @@ namespace Astrum.View.Components
         private Animancer.AnimancerComponent _animancerComponent;
         private Animancer.AnimancerState _currentAnimationState;
         
+        // Animator引用（用于视觉跟随）
+        private Animator _animator;
+        
         // 动画配置
         private string _currentAnimationName = "";
         private bool _isPlaying = false;
@@ -117,12 +120,17 @@ namespace Astrum.View.Components
                 return;
             }
 
-            var animator = model.GetComponent<Animator>();
-            if (animator == null)
+            _animator = model.GetComponent<Animator>();
+            if (_animator == null)
             {
                 ASLogger.Instance.Error($"AnimationViewComponent.InitializeAnimancer: Animator is null on entity {OwnerEntity?.UniqueId}");
             }
-            animator.applyRootMotion = false;
+            else
+            {
+                // 确保 applyRootMotion = true（逻辑层控制位移，视觉层只采样动画感）
+                _animator.applyRootMotion = true;
+                ASLogger.Instance.Debug($"[AnimationViewComponent] Set applyRootMotion=true for entity {OwnerEntity?.UniqueId}");
+            }
             
             // 1. 检查GameObject上是否有AnimancerComponent
             _animancerComponent = model.GetComponent<Animancer.AnimancerComponent>();
@@ -777,6 +785,34 @@ namespace Astrum.View.Components
         private int CalculateFrameFromNormalizedTime(float normalizedTime, int totalFrames)
         {
             return Mathf.RoundToInt(normalizedTime * totalFrames);
+        }
+        
+        /// <summary>
+        /// 获取 Animator 引用（供 TransViewComponent 使用）
+        /// </summary>
+        /// <returns>Animator 组件引用，如果不存在则返回 null</returns>
+        public Animator GetAnimator()
+        {
+            if (_animator == null)
+            {
+                // 尝试重新获取（防止初始化顺序问题）
+                if (_ownerEntityView?.GameObject != null)
+                {
+                    var modelComp = _ownerEntityView.GetViewComponent<ModelViewComponent>();
+                    var model = modelComp?.ModelObject;
+                    if (model != null)
+                    {
+                        _animator = model.GetComponent<Animator>();
+                        if (_animator != null)
+                        {
+                            _animator.applyRootMotion = true;
+                            ASLogger.Instance.Debug($"[AnimationViewComponent] Re-acquired Animator for entity {OwnerEntity?.UniqueId}");
+                        }
+                    }
+                }
+            }
+            
+            return _animator;
         }
     }
 }

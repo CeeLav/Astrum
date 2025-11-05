@@ -4,6 +4,7 @@ using System.Linq;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Systems;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.Managers;
@@ -87,6 +88,20 @@ namespace Astrum.LogicCore.Core
         public List<Capability> Capabilities { get; private set; } = new List<Capability>();
 
         /// <summary>
+        /// Capability 状态字典（TypeId -> 状态）
+        /// 使用 int 类型的 TypeId 作为 Key，基于 TypeHash 生成，性能更高
+        /// </summary>
+        public Dictionary<int, CapabilityState> CapabilityStates { get; private set; } 
+            = new Dictionary<int, CapabilityState>();
+        
+        /// <summary>
+        /// 被禁用的 Tag 集合（Tag -> 禁用发起者实体ID集合）
+        /// 用于支持基于 Tag 的 Capability 批量禁用
+        /// </summary>
+        public Dictionary<CapabilityTag, HashSet<long>> DisabledTags { get; private set; } 
+            = new Dictionary<CapabilityTag, HashSet<long>>();
+
+        /// <summary>
         /// 实体所属的 World（不序列化，由 World 设置）
         /// </summary>
         [MemoryPackIgnore]
@@ -108,7 +123,7 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities, List<string> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
+        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<string> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
@@ -122,6 +137,8 @@ namespace Astrum.LogicCore.Core
             ParentId = parentId;
             ChildrenIds = childrenIds;
             Capabilities = capabilities;
+            CapabilityStates = capabilityStates ?? new Dictionary<int, CapabilityState>();
+            DisabledTags = disabledTags ?? new Dictionary<CapabilityTag, HashSet<long>>();
 
             foreach (var component in Components)
             {
@@ -176,21 +193,66 @@ namespace Astrum.LogicCore.Core
                 if (capType == null) continue;
                 var key = GetTypeKey(capType);
                 if (!CapabilityRefCounts.TryGetValue(key, out var n)) n = 0;
-                if (n == 0)
+                
+                // 检查是否是新的 ICapability 接口
+                if (typeof(ICapability).IsAssignableFrom(capType))
                 {
-                    try
+                    // 新方式：使用 CapabilitySystem
+                    if (n == 0)
                     {
-                        var cap = Activator.CreateInstance(capType) as Capability;
-                        if (cap == null) { reason = $"Create capability '{capType.Name}' failed"; return false; }
-                        AddCapability(cap);
+                        try
+                        {
+                            var capability = CapabilitySystem.GetCapability(capType);
+                            if (capability == null)
+                            {
+                                reason = $"Capability {capType.Name} not registered in CapabilitySystem";
+                                return false;
+                            }
+                            
+                            var typeId = capability.TypeId;
+                            
+                            // 启用此 Capability（使用 TypeId，存在即表示拥有）
+                            CapabilityStates[typeId] = new CapabilityState
+                            {
+                                IsActive = false,
+                                ActiveDuration = 0,
+                                DeactiveDuration = 0,
+                                CustomData = new Dictionary<string, object>()
+                            };
+                            
+                            // 注册到 CapabilitySystem
+                            World?.CapabilitySystem?.RegisterEntityCapability(UniqueId, typeId);
+                            
+                            // 调用 OnAttached
+                            capability.OnAttached(this);
+                        }
+                        catch (Exception ex)
+                        {
+                            reason = $"Create capability '{capType.Name}' failed: {ex.Message}";
+                            return false;
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        reason = $"Create capability '{capType.Name}' failed: {ex.Message}";
-                        return false;
-                    }
+                    CapabilityRefCounts[key] = n + 1;
                 }
-                CapabilityRefCounts[key] = n + 1;
+                else
+                {
+                    // 旧方式：兼容旧的 Capability 实例模式
+                    if (n == 0)
+                    {
+                        try
+                        {
+                            var cap = Activator.CreateInstance(capType) as Capability;
+                            if (cap == null) { reason = $"Create capability '{capType.Name}' failed"; return false; }
+                            AddCapability(cap);
+                        }
+                        catch (Exception ex)
+                        {
+                            reason = $"Create capability '{capType.Name}' failed: {ex.Message}";
+                            return false;
+                        }
+                    }
+                    CapabilityRefCounts[key] = n + 1;
+                }
             }
 
             ActiveSubArchetypes.Add(subArchetypeName);
@@ -220,10 +282,37 @@ namespace Astrum.LogicCore.Core
                 if (!CapabilityRefCounts.TryGetValue(key, out var n)) n = 0;
                 if (n > 0) n--;
                 CapabilityRefCounts[key] = n;
-                if (n == 0)
+                
+                // 检查是否是新的 ICapability 接口
+                if (typeof(ICapability).IsAssignableFrom(t))
                 {
-                    var inst = Capabilities.FirstOrDefault(c => c.GetType() == t);
-                    if (inst != null) RemoveCapability(inst);
+                    // 新方式：使用 CapabilitySystem
+                    if (n == 0)
+                    {
+                        var capability = Systems.CapabilitySystem.GetCapability(t);
+                        if (capability != null)
+                        {
+                            var typeId = capability.TypeId;
+                            
+                            // 调用 OnDetached
+                            capability.OnDetached(this);
+                            
+                            // 移除状态（使用 TypeId）
+                            CapabilityStates.Remove(typeId);
+                            
+                            // 从 CapabilitySystem 注销
+                            World?.CapabilitySystem?.UnregisterEntityCapability(UniqueId, typeId);
+                        }
+                    }
+                }
+                else
+                {
+                    // 旧方式：兼容旧的 Capability 实例模式
+                    if (n == 0)
+                    {
+                        var inst = Capabilities.FirstOrDefault(c => c.GetType() == t);
+                        if (inst != null) RemoveCapability(inst);
+                    }
                 }
             }
 

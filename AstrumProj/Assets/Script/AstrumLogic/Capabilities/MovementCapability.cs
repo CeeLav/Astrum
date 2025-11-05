@@ -1,121 +1,122 @@
-using System;
 using System.Collections.Generic;
-using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.FrameSync;
-using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Physics;
 using TrueSync;
-using MemoryPack;
-// 使用别名避免与 BEPU 的 Entity 类冲突
-using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
-    /// 移动能力，处理实体的移动逻辑
+    /// 移动能力（新架构，基于 Capability&lt;T&gt;）
+    /// 处理实体的移动逻辑
     /// </summary>
-    [MemoryPackable]
-    public partial class MovementCapability : Capability
+    public class MovementCapability : Capability<MovementCapability>
     {
-        /// <summary>
-        /// 移动阈值，低于此值视为停止移动
-        /// </summary>
-        public FP MovementThreshold { get; set; } = (FP)0.1f;
-
-        public MovementCapability()
+        // ====== 元数据 ======
+        public override int Priority => 100;
+        
+        public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
+        private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
+        { 
+            CapabilityTag.Movement, 
+            CapabilityTag.Control 
+        };
+        
+        // ====== 常量配置（可移至配置文件） ======
+        private const string KEY_MOVEMENT_THRESHOLD = "MovementThreshold";
+        private static readonly FP DEFAULT_MOVEMENT_THRESHOLD = (FP)0.1f;
+        
+        // ====== 生命周期 ======
+        
+        public override void OnAttached(Entity entity)
         {
-            Priority = 100; // 移动能力优先级较高
+            base.OnAttached(entity);
+            
+            // 初始化自定义数据
+            var state = GetCapabilityState(entity);
+            if (state.CustomData == null)
+                state.CustomData = new Dictionary<string, object>();
+            
+            state.CustomData[KEY_MOVEMENT_THRESHOLD] = DEFAULT_MOVEMENT_THRESHOLD;
+            SetCapabilityState(entity, state);
         }
-
-        /// <summary>
-        /// 每帧更新移动逻辑
-        /// </summary>
-        /// <param name="deltaTime">时间差</param>
-        public override void Tick()
+        
+        public override bool ShouldActivate(Entity entity)
         {
-            if (!CanExecute()) return;
-
-            // 获取必需的组件
-            var inputComponent = GetOwnerComponent<LSInputComponent>();
-            var movementComponent = GetOwnerComponent<MovementComponent>();
-            var positionComponent = GetOwnerComponent<TransComponent>();
-
             // 检查必需组件是否存在
-            if (inputComponent?.CurrentInput == null || movementComponent == null || positionComponent == null)
-            {
-                var missingComponents = new List<string>();
-                if (inputComponent?.CurrentInput == null) missingComponents.Add("LSInputComponent/CurrentInput");
-                if (movementComponent == null) missingComponents.Add("MovementComponent");
-                if (positionComponent == null) missingComponents.Add("PositionComponent");
-                Console.WriteLine($"MovementCapability: 缺少组件: {string.Join(", ", missingComponents)}");
+            return base.ShouldActivate(entity) &&
+                   HasComponent<LSInputComponent>(entity) &&
+                   HasComponent<MovementComponent>(entity) &&
+                   HasComponent<TransComponent>(entity);
+        }
+        
+        public override bool ShouldDeactivate(Entity entity)
+        {
+            // 缺少任何必需组件则停用
+            return base.ShouldDeactivate(entity) ||
+                   !HasComponent<LSInputComponent>(entity) ||
+                   !HasComponent<MovementComponent>(entity) ||
+                   !HasComponent<TransComponent>(entity);
+        }
+        
+        // ====== 每帧逻辑 ======
+        
+        public override void Tick(Entity entity)
+        {
+            // 获取组件
+            var inputComponent = GetComponent<LSInputComponent>(entity);
+            var movementComponent = GetComponent<MovementComponent>(entity);
+            var transComponent = GetComponent<TransComponent>(entity);
+            
+            if (inputComponent?.CurrentInput == null || movementComponent == null || transComponent == null)
                 return;
-            }
-
-            // 获取输入数据
+            
+            // 获取移动阈值
+            var state = GetCapabilityState(entity);
+            var threshold = (FP)(state.CustomData?.TryGetValue(KEY_MOVEMENT_THRESHOLD, out var value) == true 
+                ? value 
+                : DEFAULT_MOVEMENT_THRESHOLD);
+            
+            // 原有移动逻辑（不变）
             var input = inputComponent.CurrentInput;
-            // Q31.32 -> FP: 先转换为浮点数再转换为 FP
             FP moveX = (FP)(input.MoveX / (double)(1L << 32));
             FP moveY = (FP)(input.MoveY / (double)(1L << 32));
-
-            // 计算输入强度
+            
             FP inputMagnitude = FP.Sqrt(moveX * moveX + moveY * moveY);
             
-            // 限制输入强度在0-1之间
             if (inputMagnitude > FP.One)
             {
                 moveX /= inputMagnitude;
                 moveY /= inputMagnitude;
                 inputMagnitude = FP.One;
             }
-
-            var deltaTime = LSConstValue.UpdateInterval / 1000f; // 秒（float）
-            // 直接移动
-            if (inputMagnitude > MovementThreshold && movementComponent.CanMove)
+            
+            var deltaTime = LSConstValue.UpdateInterval / 1000f;
+            
+            // 更新朝向
+            if (inputMagnitude > threshold)
             {
-                // 根据输入方向和速度计算移动距离
+                TSVector inputDirection = new TSVector(moveX, FP.Zero, moveY);
+                if (inputDirection.sqrMagnitude > FP.EN4)
+                {
+                    transComponent.Rotation = TSQuaternion.LookRotation(inputDirection, TSVector.up);
+                }
+            }
+            
+            // 处理移动
+            if (inputMagnitude > threshold && movementComponent.CanMove)
+            {
                 FP speed = movementComponent.Speed;
                 FP dt = (FP)deltaTime;
                 FP deltaX = moveX * speed * dt;
                 FP deltaY = moveY * speed * dt;
                 
-                // 更新位置
-                var pos = positionComponent.Position;
-                positionComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
+                var pos = transComponent.Position;
+                transComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
                 
-                // 更新朝向（根据移动方向）
-                if (inputMagnitude > MovementThreshold)
-                {
-                    TSVector moveDirection = new TSVector(moveX, FP.Zero, moveY);
-                    if (moveDirection.sqrMagnitude > FP.EN4)  // 避免零向量
-                    {
-                        positionComponent.Rotation = TSQuaternion.LookRotation(moveDirection, TSVector.up);
-                    }
-                }
-                
-                // 【物理世界同步】更新实体在物理世界中的位置
-                if (OwnerEntity is AstrumEntity astrumEntity && astrumEntity.World != null)
-                {
-                    astrumEntity.World.HitSystem?.UpdateEntityPosition(astrumEntity);
-                }
+                entity.World?.HitSystem?.UpdateEntityPosition(entity);
             }
-            
         }
-
-        /// <summary>
-        /// 检查是否可以执行移动
-        /// </summary>
-        /// <returns>是否可以执行</returns>
-        public override bool CanExecute()
-        {
-            if (!base.CanExecute()) return false;
-
-            // 检查必需的组件是否存在
-            return OwnerHasComponent<LSInputComponent>() && 
-                   OwnerHasComponent<MovementComponent>() && 
-                   OwnerHasComponent<TransComponent>();
-        }
-        
     }
 }

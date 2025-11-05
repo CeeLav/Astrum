@@ -5,6 +5,7 @@ using cfg;
 using cfg.Entity;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 
 namespace Astrum.LogicCore.Managers
@@ -133,6 +134,49 @@ namespace Astrum.LogicCore.Managers
             skillActionInfo.ActualCost = skillActionTable.ActualCost;
             skillActionInfo.ActualCooldown = skillActionTable.ActualCooldown;
             skillActionInfo.TriggerFrames = skillActionTable.TriggerFrames ?? string.Empty;
+            
+            // 加载根节点位移数据
+            skillActionInfo.RootMotionData = LoadRootMotionData(skillActionTable, skillActionInfo.Id);
+        }
+        
+        /// <summary>
+        /// 从 SkillActionTable 加载根节点位移数据
+        /// </summary>
+        /// <param name="skillActionTable">技能动作表数据</param>
+        /// <param name="actionId">动作ID（用于日志）</param>
+        /// <returns>根节点位移数据，如果不存在或加载失败则返回空的 AnimationRootMotionData</returns>
+        private AnimationRootMotionData LoadRootMotionData(cfg.Skill.SkillActionTable skillActionTable, int actionId)
+        {
+            // 检查 RootMotionData 是否为空
+            if (skillActionTable.RootMotionData == null || skillActionTable.RootMotionData.Length == 0)
+            {
+                return new AnimationRootMotionData();
+            }
+            
+            // 转换为 List<int>（RootMotionDataConverter 需要 List<int>）
+            var rootMotionDataList = new System.Collections.Generic.List<int>(skillActionTable.RootMotionData);
+            
+            // 转换为运行时数据（整型转定点数）
+            try
+            {
+                var rootMotionData = RootMotionDataConverter.ConvertFromIntArray(rootMotionDataList);
+                
+                if (rootMotionData != null && rootMotionData.HasMotion)
+                {
+                    ASLogger.Instance.Debug($"[ActionConfig] Loaded root motion data for action {actionId}: {rootMotionData.TotalFrames} frames");
+                    return rootMotionData;
+                }
+                else
+                {
+                    // 数据转换成功但没有有效位移
+                    return new AnimationRootMotionData();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Warning($"[ActionConfig] Failed to convert root motion data for action {actionId}: {ex.Message}");
+                return new AnimationRootMotionData();
+            }
         }
         
         // ========== 以下是 JSON 解析方法 ==========

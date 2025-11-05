@@ -152,7 +152,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 ActionId = editorData.ActionId,
                 ActualCost = editorData.ActualCost,
                 ActualCooldown = editorData.ActualCooldown,
-                TriggerFrames = editorData.TriggerFrames ?? ""
+                TriggerFrames = editorData.TriggerFrames ?? "",
+                RootMotionData = editorData.RootMotionDataArray ?? new List<int>()
             };
             
             return tableData;

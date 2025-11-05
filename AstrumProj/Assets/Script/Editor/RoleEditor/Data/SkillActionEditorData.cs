@@ -40,6 +40,70 @@ namespace Astrum.Editor.RoleEditor.Data
         [HideInInspector]
         public List<TriggerFrameData> TriggerEffects = new List<TriggerFrameData>();
         
+        // === 根节点位移数据 ===
+        
+        /// <summary>
+        /// 位移提取模式
+        /// </summary>
+        public enum RootMotionExtractMode
+        {
+            RootTransform,      // 模式1：提取根骨骼位移
+            HipsDifference     // 模式2：使用参考动画计算Hips差值
+        }
+        
+        [HideInInspector]
+        public RootMotionExtractMode ExtractMode = RootMotionExtractMode.RootTransform;
+        
+        /// <summary>
+        /// 参考动画文件路径（模式2使用，带位移的动画）
+        /// </summary>
+        [HideInInspector]
+        public string ReferenceAnimationPath = "";
+        
+        /// <summary>
+        /// 参考动画片段（模式2使用）
+        /// </summary>
+        [HideInInspector]
+        public AnimationClip ReferenceAnimationClip;
+        
+        /// <summary>
+        /// Hips骨骼名称（模式2使用）
+        /// </summary>
+        [HideInInspector]
+        public string HipsBoneName = "Hips";
+        
+        /// <summary>
+        /// 是否提取旋转数据
+        /// </summary>
+        [HideInInspector]
+        public bool ExtractRotation = false;
+        
+        /// <summary>
+        /// 是否只提取水平方向位移（X和Z，忽略Y）
+        /// </summary>
+        [HideInInspector]
+        public bool ExtractHorizontalOnly = true;
+        
+        /// <summary>
+        /// 根节点位移数据（整型数组格式，用于保存到CSV）
+        /// Luban 类型：(array#sep=,),int
+        /// 编辑器端直接使用运行时数据结构，提取时直接转为定点数并序列化
+        /// </summary>
+        [HideInInspector]
+        public List<int> RootMotionDataArray = new List<int>();
+        
+        /// <summary>
+        /// 获取提取模式选项（用于下拉菜单）
+        /// </summary>
+        private static ValueDropdownList<RootMotionExtractMode> GetExtractModeOptions()
+        {
+            return new ValueDropdownList<RootMotionExtractMode>
+            {
+                { "根骨骼位移 (RootTransform)", RootMotionExtractMode.RootTransform },
+                { "Hips差值 (HipsDifference)", RootMotionExtractMode.HipsDifference }
+            };
+        }
+        
         // === 核心方法 ===
         
         /// <summary>
@@ -112,6 +176,15 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.ActualCost = this.ActualCost;
             clone.ActualCooldown = this.ActualCooldown;
             clone.TriggerFrames = this.TriggerFrames;
+            
+            // 根节点位移数据
+            clone.ExtractMode = this.ExtractMode;
+            clone.ReferenceAnimationPath = this.ReferenceAnimationPath;
+            clone.ReferenceAnimationClip = this.ReferenceAnimationClip;
+            clone.HipsBoneName = this.HipsBoneName;
+            clone.ExtractRotation = this.ExtractRotation;
+            clone.ExtractHorizontalOnly = this.ExtractHorizontalOnly;
+            clone.RootMotionDataArray = new List<int>(this.RootMotionDataArray);
             
             // 深拷贝触发帧数据
             clone.TriggerEffects = new List<TriggerFrameData>();

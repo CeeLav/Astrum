@@ -2,102 +2,121 @@ using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Linq;
 using cfg;
-using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
-    /// 动作能力 - 管理单个实体的动作系统
+    /// 动作能力（新架构，基于 Capability&lt;T&gt;）
+    /// 管理单个实体的动作系统
     /// </summary>
-    [MemoryPackable]
-    public partial class ActionCapability : Capability
+    public class ActionCapability : Capability<ActionCapability>
     {
+        // ====== 元数据 ======
+        public override int Priority => 200; // 动作系统优先级较高
         
-        /// <summary>
-        /// 初始化动作能力
-        /// </summary>
-        public override void Initialize()
+        public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
+        private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
+        { 
+            CapabilityTag.Control, 
+            CapabilityTag.Animation 
+        };
+        
+        // ====== 生命周期 ======
+        
+        public override void OnAttached(Entity entity)
         {
-            base.Initialize();
+            base.OnAttached(entity);
             
             // 检查动作组件是否存在
-            var actionComponent = GetOwnerComponent<ActionComponent>();
+            var actionComponent = GetComponent<ActionComponent>(entity);
             if (actionComponent == null)
             {
-                ASLogger.Instance.Error($"ActionCapability.Initialize: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Error($"ActionCapability.OnAttached: ActionComponent not found on entity {entity.UniqueId}");
                 return;
             }
             
             // 预加载所有可用的ActionInfo
-            LoadAvailableActions();
+            LoadAvailableActions(entity);
         }
         
-        /// <summary>
-        /// 每帧更新
-        /// </summary>
-        public override void Tick()
+        public override bool ShouldActivate(Entity entity)
         {
-            if (!CanExecute()) return;
+            // 检查必需组件是否存在
+            return base.ShouldActivate(entity) &&
+                   HasComponent<ActionComponent>(entity);
+        }
+        
+        public override bool ShouldDeactivate(Entity entity)
+        {
+            // 缺少任何必需组件则停用
+            return base.ShouldDeactivate(entity) ||
+                   !HasComponent<ActionComponent>(entity);
+        }
+        
+        // ====== 每帧逻辑 ======
+        
+        public override void Tick(Entity entity)
+        {
             // 1. 更新当前动作
-            UpdateCurrentAction();
+            UpdateCurrentAction(entity);
             
             // 2. 检查所有动作的取消条件
-            CheckActionCancellation();
+            CheckActionCancellation(entity);
             
             // 3. 从候选列表选择动作
-            SelectActionFromCandidates();
-            
+            SelectActionFromCandidates(entity);
         }
+        
+        // ====== 辅助方法 ======
         
         /// <summary>
         /// 加载所有可用动作
         /// </summary>
-        private void LoadAvailableActions()
+        private void LoadAvailableActions(Entity entity)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
+            var actionComponent = GetComponent<ActionComponent>(entity);
             if (actionComponent == null)
             {
-                ASLogger.Instance.Error($"ActionCapability.LoadAvailableActions: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Error($"ActionCapability.LoadAvailableActions: ActionComponent not found on entity {entity.UniqueId}");
                 return;
             }
             
-            //actionComponent.AvailableActions.Clear();
-            
-            // 获取所有可用的动作ID（这里需要根据实际需求实现）
-            var availableActionIds = GetAvailableActionIds();
+            // 获取所有可用的动作ID
+            var availableActionIds = GetAvailableActionIds(entity);
             
             foreach (var actionId in availableActionIds)
             {
-                var actionInfo = ActionConfig.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
+                var actionInfo = ActionConfig.Instance?.GetAction(actionId, entity.UniqueId);
                 if (actionInfo != null)
                 {
                     actionComponent.AvailableActions[actionId] = actionInfo;
                 }
             }
             
-            // 设置初始动作ID（自动通过访问器查找）
+            // 设置初始动作ID
             if (actionComponent.AvailableActions.Count > 0 && availableActionIds.Count > 0)
             {
                 actionComponent.CurrentActionId = availableActionIds[0];
                 ASLogger.Instance.Debug($"ActionCapability.LoadAvailableActions: Set initial action ActionId={actionComponent.CurrentActionId} " +
-                    $"on entity {OwnerEntity?.UniqueId}");
+                    $"on entity {entity.UniqueId}");
             }
             else
             {
-                ASLogger.Instance.Warning($"ActionCapability.LoadAvailableActions: No available actions found for entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Warning($"ActionCapability.LoadAvailableActions: No available actions found for entity {entity.UniqueId}");
             }
         }
         
         /// <summary>
         /// 获取可用动作ID列表
         /// </summary>
-        private List<int> GetAvailableActionIds()
+        private List<int> GetAvailableActionIds(Entity entity)
         {
-            var config = OwnerEntity.EntityConfig;
+            var config = entity.EntityConfig;
             var list = new List<int>();
             list.Add(config.IdleAction);
             list.Add(config.WalkAction);
@@ -109,12 +128,12 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查动作取消条件
         /// </summary>
-        private void CheckActionCancellation()
+        private void CheckActionCancellation(Entity entity)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
+            var actionComponent = GetComponent<ActionComponent>(entity);
             if (actionComponent == null)
             {
-                ASLogger.Instance.Error($"ActionCapability.CheckActionCancellation: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Error($"ActionCapability.CheckActionCancellation: ActionComponent not found on entity {entity.UniqueId}");
                 return;
             }
             if (actionComponent.CurrentAction == null) return;
@@ -126,14 +145,14 @@ namespace Astrum.LogicCore.Capabilities
             var actionDuration = GetActionDuration(actionComponent.CurrentAction);
             
             var shouldTerminate = 
-                (actionComponent.CurrentAction.AutoTerminate && !HasValidCommand(actionComponent.CurrentAction));
+                (actionComponent.CurrentAction.AutoTerminate && !HasValidCommand(entity, actionComponent.CurrentAction));
             if (actionComponent.CurrentAction.AutoTerminate)
             {
                 ASLogger.Instance.Debug($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
-                                       $"HasValidCommand={HasValidCommand(actionComponent.CurrentAction)} on entity {OwnerEntity?.UniqueId}");
+                                       $"HasValidCommand={HasValidCommand(entity, actionComponent.CurrentAction)} on entity {entity.UniqueId}");
             }
 
-            var shouldContinue = !IsActionFinished(actionDuration) || HasValidCommand(actionComponent.CurrentAction);
+            var shouldContinue = !IsActionFinished(actionComponent, actionDuration) || HasValidCommand(entity, actionComponent.CurrentAction);
             if (!shouldContinue || shouldTerminate)
             {
                 // 添加默认下一个动作到预订单列表
@@ -155,13 +174,13 @@ namespace Astrum.LogicCore.Capabilities
                 }
             }
             // 检查其他动作的取消条件
-            var availableActions = GetAvailableActions();
+            var availableActions = GetAvailableActions(actionComponent);
             
             foreach (var action in availableActions)
             {
-                if (CanCancelToAction(action))
+                if (CanCancelToAction(actionComponent, action))
                 {
-                    if (HasValidCommand(action))
+                    if (HasValidCommand(entity, action))
                     {
                         actionComponent.PreorderActions.Add(new PreorderActionInfo
                         {
@@ -179,12 +198,12 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 从预订单列表选择动作
         /// </summary>
-        private void SelectActionFromCandidates()
+        private void SelectActionFromCandidates(Entity entity)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
+            var actionComponent = GetComponent<ActionComponent>(entity);
             if (actionComponent == null)
             {
-                ASLogger.Instance.Error($"ActionCapability.SelectActionFromCandidates: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Error($"ActionCapability.SelectActionFromCandidates: ActionComponent not found on entity {entity.UniqueId}");
                 return;
             }
             if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0) return;
@@ -199,15 +218,15 @@ namespace Astrum.LogicCore.Capabilities
             if (actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out var actionInfo))
             {
                 ASLogger.Instance.Debug($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
-                    $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {OwnerEntity?.UniqueId}");
+                    $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {entity.UniqueId}");
                 
                 // 切换到新动作
-                SwitchToAction(actionInfo, selectedAction);
+                SwitchToAction(actionComponent, actionInfo, selectedAction, entity);
             }
             else
             {
                 ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
-                    $"not found in AvailableActions dictionary on entity {OwnerEntity?.UniqueId}");
+                    $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
             }
             
             // 清空候选列表
@@ -217,15 +236,8 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 切换到指定动作
         /// </summary>
-        private void SwitchToAction(ActionInfo actionInfo, PreorderActionInfo preorderInfo)
+        private void SwitchToAction(ActionComponent actionComponent, ActionInfo actionInfo, PreorderActionInfo preorderInfo, Entity entity)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent == null)
-            {
-                ASLogger.Instance.Error($"ActionCapability.SwitchToAction: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
-                return;
-            }
-            
             // 记录切换前的动作信息
             var previousActionId = actionComponent.CurrentAction?.Id ?? 0;
             var previousFrame = actionComponent.CurrentFrame;
@@ -234,7 +246,7 @@ namespace Astrum.LogicCore.Capabilities
             actionComponent.CurrentFrame = preorderInfo.FromFrame;
             
             // 记录切换成功的日志
-            ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {OwnerEntity?.UniqueId} " +
+            ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {entity.UniqueId} " +
                 $"from ActionId={previousActionId}(Frame={previousFrame}) to ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame}) " +
                 $"[Priority={preorderInfo.Priority}, TransitionFrames={preorderInfo.TransitionFrames}]");
         }
@@ -242,12 +254,12 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 更新当前动作
         /// </summary>
-        private void UpdateCurrentAction()
+        private void UpdateCurrentAction(Entity entity)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
+            var actionComponent = GetComponent<ActionComponent>(entity);
             if (actionComponent == null)
             {
-                ASLogger.Instance.Error($"ActionCapability.UpdateCurrentAction: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Error($"ActionCapability.UpdateCurrentAction: ActionComponent not found on entity {entity.UniqueId}");
                 return;
             }
             if (actionComponent.CurrentAction == null) return;
@@ -259,39 +271,26 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查动作是否已结束
         /// </summary>
-        private bool IsActionFinished(int actionDuration)
+        private bool IsActionFinished(ActionComponent actionComponent, int actionDuration)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent == null)
-            {
-                ASLogger.Instance.Error($"ActionCapability.IsActionFinished: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
-                return false;
-            }
-            if (actionComponent.CurrentAction == null) return false;
-            
+            if (actionComponent == null || actionComponent.CurrentAction == null) return false;
             return actionComponent.CurrentFrame >= actionDuration;
         }
         
         /// <summary>
         /// 获取动作信息
         /// </summary>
-        private ActionInfo? GetActionInfo(int actionId)
+        private ActionInfo? GetActionInfo(int actionId, long entityId)
         {
-            return ActionConfig.Instance?.GetAction(actionId, OwnerEntity?.UniqueId ?? 0);
+            return ActionConfig.Instance?.GetAction(actionId, entityId);
         }
         
         /// <summary>
         /// 获取可用动作列表
         /// </summary>
-        private IEnumerable<ActionInfo> GetAvailableActions()
+        private IEnumerable<ActionInfo> GetAvailableActions(ActionComponent actionComponent)
         {
-            // 从ActionComponent获取所有可用的ActionInfo
-            var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent == null)
-            {
-                ASLogger.Instance.Error($"ActionCapability.GetAvailableActions: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
-                return new List<ActionInfo>();
-            }
+            if (actionComponent == null) return new List<ActionInfo>();
             return actionComponent.AvailableActions?.Values ?? (IEnumerable<ActionInfo>)new List<ActionInfo>();
         }
         
@@ -300,26 +299,16 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private int GetActionDuration(ActionInfo actionInfo)
         {
-            if (actionInfo == null)
-            {
-                ASLogger.Instance.Error($"ActionCapability.GetActionDuration: ActionInfo is null on entity {OwnerEntity?.UniqueId}");
-                return 0;
-            }
+            if (actionInfo == null) return 0;
             return actionInfo.Duration;
         }
         
         /// <summary>
         /// 检查是否可以取消到指定动作
         /// </summary>
-        private bool CanCancelToAction(ActionInfo targetAction)
+        private bool CanCancelToAction(ActionComponent actionComponent, ActionInfo targetAction)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent == null)
-            {
-                ASLogger.Instance.Error($"ActionCapability.CanCancelToAction: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
-                return false;
-            }
-            if (actionComponent.CurrentAction == null || targetAction == null) return false;
+            if (actionComponent == null || actionComponent.CurrentAction == null || targetAction == null) return false;
             
             // 检查CancelTag是否匹配BeCancelledTag
             foreach (var cancelTag in targetAction.CancelTags)
@@ -330,7 +319,7 @@ namespace Astrum.LogicCore.Capabilities
                     {
                         // 检查时间范围
                         if (beCancelledTag.RangeFrames.Count >= 2 && 
-                            IsInTimeRange(beCancelledTag.RangeFrames[0], beCancelledTag.RangeFrames[1]))
+                            IsInTimeRange(actionComponent, beCancelledTag.RangeFrames[0], beCancelledTag.RangeFrames[1]))
                         {
                             return true;
                         }
@@ -344,11 +333,11 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查是否有有效命令
         /// </summary>
-        private bool HasValidCommand(ActionInfo actionInfo)
+        private bool HasValidCommand(Entity entity, ActionInfo actionInfo)
         {
             foreach (var command in actionInfo.Commands)
             {
-                if (IsCommandValid(command))
+                if (IsCommandValid(entity, command))
                 {
                     return true;
                 }
@@ -367,16 +356,9 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查是否在时间范围内
         /// </summary>
-        private bool IsInTimeRange(int startFrame, int endFrame)
+        private bool IsInTimeRange(ActionComponent actionComponent, int startFrame, int endFrame)
         {
-            var actionComponent = GetOwnerComponent<ActionComponent>();
-            if (actionComponent == null)
-            {
-                ASLogger.Instance.Error($"ActionCapability.IsInTimeRange: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
-                return false;
-            }
-            if (actionComponent.CurrentAction == null) return false;
-            
+            if (actionComponent == null || actionComponent.CurrentAction == null) return false;
             // 直接按帧数判断
             return actionComponent.CurrentFrame >= startFrame && actionComponent.CurrentFrame <= endFrame;
         }
@@ -384,19 +366,19 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查命令是否有效
         /// </summary>
-        private bool IsCommandValid(ActionCommand command)
+        private bool IsCommandValid(Entity entity, ActionCommand command)
         {
             // 检查命令名称是否匹配
-            return CheckCommandMatch(command.CommandName);
+            return CheckCommandMatch(entity, command.CommandName);
         }
         
         /// <summary>
         /// 检查命令是否匹配
         /// </summary>
-        private bool CheckCommandMatch(string commandName)
+        private bool CheckCommandMatch(Entity entity, string commandName)
         {
             // 获取输入组件（Monster等非玩家控制实体可能没有此组件，这是正常的）
-            var inputComponent = GetOwnerComponent<LSInputComponent>();
+            var inputComponent = GetComponent<LSInputComponent>(entity);
             if (inputComponent == null)
             {
                 // 没有输入组件的实体（如Monster）无法匹配玩家输入命令
@@ -405,7 +387,6 @@ namespace Astrum.LogicCore.Capabilities
             if (inputComponent.CurrentInput == null) return false;
             
             var currentInput = inputComponent.CurrentInput;
-            //ASLogger.Instance.Warning($"CheckCommandMatch: Command={commandName}, Input=[MoveX={currentInput.MoveX}, MoveY={currentInput.MoveY}, Attack={currentInput.Attack}, Skill1={currentInput.Skill1}, Skill2={currentInput.Skill2}]");
             // 根据命令名称匹配输入
             return commandName.ToLower() switch
             {
@@ -416,6 +397,5 @@ namespace Astrum.LogicCore.Capabilities
                 _ => false
             };
         }
-        
     }
 }

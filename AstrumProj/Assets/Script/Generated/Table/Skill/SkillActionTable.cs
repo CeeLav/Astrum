@@ -20,6 +20,7 @@ public sealed partial class SkillActionTable : Luban.BeanBase
         ActualCost = _buf.ReadInt();
         ActualCooldown = _buf.ReadInt();
         TriggerFrames = _buf.ReadString();
+        {int __n0 = _buf.ReadSize(); RootMotionData = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); RootMotionData[__index0] = __e0;}}
     }
 
     public static SkillActionTable DeserializeSkillActionTable(ByteBuf _buf)
@@ -43,6 +44,10 @@ public sealed partial class SkillActionTable : Luban.BeanBase
     /// 触发帧信息(含碰撞盒)
     /// </summary>
     public readonly string TriggerFrames;
+    /// <summary>
+    /// 根节点位移数据
+    /// </summary>
+    public readonly int[] RootMotionData;
    
     public const int __ID__ = 117048932;
     public override int GetTypeId() => __ID__;
@@ -58,6 +63,7 @@ public sealed partial class SkillActionTable : Luban.BeanBase
         + "actualCost:" + ActualCost + ","
         + "actualCooldown:" + ActualCooldown + ","
         + "triggerFrames:" + TriggerFrames + ","
+        + "rootMotionData:" + Luban.StringUtil.CollectionToString(RootMotionData) + ","
         + "}";
     }
 }

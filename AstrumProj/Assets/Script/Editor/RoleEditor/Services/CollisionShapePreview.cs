@@ -42,7 +42,8 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <param name="camera">预览相机</param>
         /// <param name="color">线框颜色（默认绿色）</param>
         /// <param name="modelPosition">模型在预览场景中的位置（默认为原点）</param>
-        public static void DrawCollisionData(string collisionData, Camera camera, Color? color = null, Vector3? modelPosition = null)
+        /// <param name="modelRotation">模型在预览场景中的旋转（默认为单位旋转）</param>
+        public static void DrawCollisionData(string collisionData, Camera camera, Color? color = null, Vector3? modelPosition = null, Quaternion? modelRotation = null)
         {
             if (string.IsNullOrEmpty(collisionData) || camera == null)
                 return;
@@ -54,6 +55,7 @@ namespace Astrum.Editor.RoleEditor.Services
             
             Color wireColor = color ?? new Color(0f, 1f, 0f, 0.8f);  // 默认半透明绿色
             Vector3 basePosition = modelPosition ?? Vector3.zero;
+            Quaternion baseRotation = modelRotation ?? Quaternion.identity;
             
             // 设置 GL 绘制上下文
             GetLineMaterial().SetPass(0);
@@ -62,10 +64,10 @@ namespace Astrum.Editor.RoleEditor.Services
             GL.LoadProjectionMatrix(camera.projectionMatrix);
             GL.modelview = camera.worldToCameraMatrix;
             
-            // 绘制每个碰撞形状（考虑模型位置）
+            // 绘制每个碰撞形状（考虑模型位置和旋转）
             foreach (var shape in shapes)
             {
-                DrawShape(shape, wireColor, basePosition);
+                DrawShape(shape, wireColor, basePosition, baseRotation);
             }
             
             GL.PopMatrix();
@@ -79,7 +81,8 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <param name="camera">预览相机</param>
         /// <param name="color">线框颜色（默认黄色）</param>
         /// <param name="modelPosition">模型在预览场景中的位置（默认为原点）</param>
-        public static void DrawCollisionInfo(string collisionInfo, Camera camera, Color? color = null, Vector3? modelPosition = null)
+        /// <param name="modelRotation">模型在预览场景中的旋转（默认为单位旋转）</param>
+        public static void DrawCollisionInfo(string collisionInfo, Camera camera, Color? color = null, Vector3? modelPosition = null, Quaternion? modelRotation = null)
         {
             if (string.IsNullOrEmpty(collisionInfo) || camera == null)
                 return;
@@ -91,6 +94,7 @@ namespace Astrum.Editor.RoleEditor.Services
             
             Color wireColor = color ?? new Color(1f, 1f, 0f, 0.8f);  // 默认半透明黄色（技能碰撞盒）
             Vector3 basePosition = modelPosition ?? Vector3.zero;
+            Quaternion baseRotation = modelRotation ?? Quaternion.identity;
             
             // 设置 GL 绘制上下文
             GetLineMaterial().SetPass(0);
@@ -99,8 +103,8 @@ namespace Astrum.Editor.RoleEditor.Services
             GL.LoadProjectionMatrix(camera.projectionMatrix);
             GL.modelview = camera.worldToCameraMatrix;
             
-            // 绘制碰撞形状（考虑模型位置）
-            DrawShape(shape.Value, wireColor, basePosition);
+            // 绘制碰撞形状（考虑模型位置和旋转）
+            DrawShape(shape.Value, wireColor, basePosition, baseRotation);
             
             GL.PopMatrix();
         }
@@ -111,24 +115,35 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <param name="shape">碰撞形状</param>
         /// <param name="color">绘制颜色</param>
         /// <param name="basePosition">基准位置（模型在预览场景中的位置）</param>
-        private static void DrawShape(CollisionShape shape, Color color, Vector3 basePosition = default)
+        /// <param name="baseRotation">基准旋转（模型在预览场景中的旋转）</param>
+        private static void DrawShape(CollisionShape shape, Color color, Vector3 basePosition = default, Quaternion baseRotation = default)
         {
+            if (baseRotation == default)
+            {
+                baseRotation = Quaternion.identity;
+            }
+            
             // 将 TrueSync 类型转换为 Unity 类型
-            Vector3 offset = new Vector3(
+            Vector3 localOffset = new Vector3(
                 (float)shape.LocalOffset.x,
                 (float)shape.LocalOffset.y,
                 (float)shape.LocalOffset.z
             );
             
-            // 碰撞盒的实际中心位置 = 模型位置 + 相对偏移
-            Vector3 center = basePosition + offset;
+            // 将相对偏移从模型本地坐标系转换到世界坐标系
+            Vector3 worldOffset = baseRotation * localOffset;
             
-            Quaternion rotation = new Quaternion(
+            // 碰撞盒的实际中心位置 = 模型位置 + 世界坐标系下的偏移
+            Vector3 center = basePosition + worldOffset;
+            
+            // 碰撞盒的旋转 = 模型旋转 * 相对旋转
+            Quaternion localRotation = new Quaternion(
                 (float)shape.LocalRotation.x,
                 (float)shape.LocalRotation.y,
                 (float)shape.LocalRotation.z,
                 (float)shape.LocalRotation.w
             );
+            Quaternion rotation = baseRotation * localRotation;
             
             switch (shape.ShapeType)
             {

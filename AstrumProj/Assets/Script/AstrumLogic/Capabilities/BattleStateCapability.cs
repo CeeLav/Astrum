@@ -1,35 +1,66 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using TrueSync;
-using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
-    [MemoryPackable]
-    public partial class BattleStateCapability : Capability
+    /// <summary>
+    /// Battle 状态能力（新架构，基于 Capability&lt;T&gt;）
+    /// </summary>
+    public class BattleStateCapability : Capability<BattleStateCapability>
     {
+        // ====== 元数据 ======
+        public override int Priority => 450; // 状态能力优先级
+        
+        public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
+        private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
+        { 
+            CapabilityTag.AI,
+            CapabilityTag.Combat 
+        };
+        
+        // ====== 常量 ======
         private const float BattleEnterDistance = 1.5f; // 进入战斗的距离阈值
         private const float LoseTargetDistance = 6.0f;  // 目标过远则切回追击
-
-        public override void Tick()
+        
+        // ====== 生命周期 ======
+        
+        public override bool ShouldActivate(Entity entity)
         {
-            if (!CanExecute()) return;
-            var fsm = GetOwnerComponent<AIStateMachineComponent>();
+            // 检查必需组件是否存在
+            return base.ShouldActivate(entity) &&
+                   HasComponent<AIStateMachineComponent>(entity) &&
+                   HasComponent<TransComponent>(entity);
+        }
+        
+        public override bool ShouldDeactivate(Entity entity)
+        {
+            // 缺少任何必需组件则停用
+            return base.ShouldDeactivate(entity) ||
+                   !HasComponent<AIStateMachineComponent>(entity) ||
+                   !HasComponent<TransComponent>(entity);
+        }
+        
+        // ====== 每帧逻辑 ======
+        
+        public override void Tick(Entity entity)
+        {
+            var fsm = GetComponent<AIStateMachineComponent>(entity);
             if (fsm == null) return;
             if (!string.Equals(fsm.CurrentState, "Battle", StringComparison.Ordinal)) return;
 
-            var world = OwnerEntity?.World;
-            var selfPos = GetOwnerComponent<TransComponent>()?.Position ?? TSVector.zero;
+            var world = entity.World;
+            var selfPos = GetComponent<TransComponent>(entity)?.Position ?? TSVector.zero;
             if (world == null)
             {
                 return;
             }
 
             // 寻找最近目标
-            var target = FindNearestEnemy(world, selfPos);
+            var target = FindNearestEnemy(world, selfPos, entity);
             if (target == null)
             {
                 fsm.CurrentTargetId = -1;
@@ -49,32 +80,34 @@ namespace Astrum.LogicCore.Capabilities
             }
 
 			// 在战斗距离内：基于冷却脉冲式攻击
-			var inputComp = GetOwnerComponent<LSInputComponent>();
+			var inputComp = GetComponent<LSInputComponent>(entity);
 			if (inputComp == null) return;
-			var curFrame = OwnerEntity?.World?.CurFrame ?? 0;
+			var curFrame = entity.World?.CurFrame ?? 0;
 			if (curFrame >= fsm.NextAttackFrame)
 			{
 				// 仅这一帧置 Attack=true，并推进冷却帧
-				var atk = CreateInput(0, 0, attack: true);
+				var atk = CreateInput(entity, 0, 0, attack: true);
 				inputComp.SetInput(atk);
-				fsm.NextAttackFrame = curFrame + TSMath.Max(1, (TrueSync.FP)fsm.AttackIntervalFrames).AsInt();
+				fsm.NextAttackFrame = curFrame + TSMath.Max(1, (FP)fsm.AttackIntervalFrames).AsInt();
 			}
 			else
 			{
 				// 冷却中：显式写入 Attack=false，避免持续为真
-				var idle = CreateInput(0, 0, attack: false);
+				var idle = CreateInput(entity, 0, 0, attack: false);
 				inputComp.SetInput(idle);
 			}
         }
-
-        private Entity? FindNearestEnemy(World world, TSVector selfPos)
+        
+        // ====== 辅助方法 ======
+        
+        private Entity? FindNearestEnemy(World world, TSVector selfPos, Entity selfEntity)
         {
             Entity? nearest = null;
             FP best = FP.MaxValue;
             foreach (var kv in world.Entities)
             {
                 var e = kv.Value;
-                if (e == null || e.UniqueId == OwnerEntity?.UniqueId) continue;
+                if (e == null || e.UniqueId == selfEntity.UniqueId) continue;
                 if (e.GetComponent<RoleInfoComponent>() == null) continue; // 只考虑角色
                 var pos = e.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
                 var d = (pos - selfPos).sqrMagnitude;
@@ -87,11 +120,11 @@ namespace Astrum.LogicCore.Capabilities
             return nearest;
         }
 
-        private Astrum.Generated.LSInput CreateInput(float moveX, float moveY, bool attack = false, bool skill1 = false, bool skill2 = false)
+        private Astrum.Generated.LSInput CreateInput(Entity entity, float moveX, float moveY, bool attack = false, bool skill1 = false, bool skill2 = false)
         {
             var input = Astrum.Generated.LSInput.Create();
-            input.PlayerId = OwnerEntity?.UniqueId ?? 0;
-            input.Frame = OwnerEntity?.World?.CurFrame ?? 0;
+            input.PlayerId = entity.UniqueId;
+            input.Frame = entity.World?.CurFrame ?? 0;
             input.MoveX = (long)(moveX * (1L << 32));
             input.MoveY = (long)(moveY * (1L << 32));
             input.Attack = attack;
@@ -102,5 +135,3 @@ namespace Astrum.LogicCore.Capabilities
         }
     }
 }
-
-

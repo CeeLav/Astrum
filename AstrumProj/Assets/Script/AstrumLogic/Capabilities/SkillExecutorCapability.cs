@@ -1,33 +1,59 @@
 using System.Linq;
+using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.SkillSystem;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
-using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
-    /// 技能动作执行能力 - 负责处理技能动作的触发帧逻辑
+    /// 技能动作执行能力（新架构，基于 Capability&lt;T&gt;）
+    /// 负责处理技能动作的触发帧逻辑
     /// 独立轮询，不依赖其他 Capability
     /// </summary>
-    [MemoryPackable]
-    public partial class SkillExecutorCapability : Capability
+    public class SkillExecutorCapability : Capability<SkillExecutorCapability>
     {
-        public override void Initialize()
+        // ====== 元数据 ======
+        public override int Priority => 250; // 优先级高于 SkillCapability (300)，确保执行逻辑优先
+        
+        public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
+        private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
+        { 
+            CapabilityTag.Skill, 
+            CapabilityTag.Combat 
+        };
+        
+        // ====== 生命周期 ======
+        
+        public override void OnAttached(Entity entity)
         {
-            base.Initialize();
-            ASLogger.Instance.Info($"SkillExecutorCapability initialized for entity {OwnerEntity?.UniqueId}");
+            base.OnAttached(entity);
+            ASLogger.Instance.Info($"SkillExecutorCapability attached to entity {entity.UniqueId}");
         }
         
-        public override void Tick()
+        public override bool ShouldActivate(Entity entity)
         {
-            if (!CanExecute()) return;
-            
+            // 检查必需组件是否存在
+            return base.ShouldActivate(entity) &&
+                   HasComponent<ActionComponent>(entity);
+        }
+        
+        public override bool ShouldDeactivate(Entity entity)
+        {
+            // 缺少任何必需组件则停用
+            return base.ShouldDeactivate(entity) ||
+                   !HasComponent<ActionComponent>(entity);
+        }
+        
+        // ====== 每帧逻辑 ======
+        
+        public override void Tick(Entity entity)
+        {
             // 1. 获取 ActionComponent
-            var actionComponent = GetOwnerComponent<ActionComponent>();
+            var actionComponent = GetComponent<ActionComponent>(entity);
             if (actionComponent == null) return;
             
             // 2. 检查当前动作是否是技能动作
@@ -38,8 +64,10 @@ namespace Astrum.LogicCore.Capabilities
             int currentFrame = actionComponent.CurrentFrame;
             
             // 4. 处理当前帧的触发事件
-            ProcessFrame(OwnerEntity, skillAction, currentFrame);
+            ProcessFrame(entity, skillAction, currentFrame);
         }
+        
+        // ====== 辅助方法 ======
         
         /// <summary>
         /// 处理技能动作的当前帧
@@ -109,7 +137,7 @@ namespace Astrum.LogicCore.Capabilities
             // 2. 构造碰撞过滤器
             var filter = new CollisionFilter
             {
-                ExcludedEntityIds = new System.Collections.Generic.HashSet<long> { caster.UniqueId },
+                ExcludedEntityIds = new HashSet<long> { caster.UniqueId },
                 OnlyEnemies = false  // 暂时移除敌对过滤（team系统未实现）
             };
             

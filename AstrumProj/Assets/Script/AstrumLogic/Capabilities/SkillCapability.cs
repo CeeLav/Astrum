@@ -1,50 +1,82 @@
 using Astrum.CommonBase;
 using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.Components;
+using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.SkillSystem;
-using MemoryPack;
 using System.Collections.Generic;
 
 namespace Astrum.LogicCore.Capabilities
 {
 	/// <summary>
-	/// 技能能力 - 管理实体的技能学习与动作注册
+	/// 技能能力（新架构，基于 Capability&lt;T&gt;）
+	/// 管理实体的技能学习与动作注册
 	/// </summary>
-	[MemoryPackable]
-	public partial class SkillCapability : Capability
+	public class SkillCapability : Capability<SkillCapability>
 	{
-		public override void Initialize()
+		// ====== 元数据 ======
+		public override int Priority => 300; // 技能系统优先级较高
+		
+		public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
+		private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
+		{ 
+			CapabilityTag.Skill, 
+			CapabilityTag.Combat 
+		};
+		
+		// ====== 生命周期 ======
+		
+		public override void OnAttached(Entity entity)
 		{
-			base.Initialize();
+			base.OnAttached(entity);
 
-			var skillComponent = GetOwnerComponent<SkillComponent>();
+			var skillComponent = GetComponent<SkillComponent>(entity);
 			if (skillComponent == null)
 			{
-				ASLogger.Instance.Error($"SkillCapability.Initialize: SkillComponent not found on entity {OwnerEntity?.UniqueId}");
+				ASLogger.Instance.Error($"SkillCapability.OnAttached: SkillComponent not found on entity {entity.UniqueId}");
 				return;
 			}
 
-			var actionComponent = GetOwnerComponent<ActionComponent>();
+			var actionComponent = GetComponent<ActionComponent>(entity);
 			if (actionComponent == null)
 			{
-				ASLogger.Instance.Error($"SkillCapability.Initialize: ActionComponent not found on entity {OwnerEntity?.UniqueId}");
+				ASLogger.Instance.Error($"SkillCapability.OnAttached: ActionComponent not found on entity {entity.UniqueId}");
 				return;
 			}
 
-			LoadInitialSkills();
-			RegisterAllSkillActions();
+			LoadInitialSkills(entity);
+			RegisterAllSkillActions(entity);
+		}
+		
+		public override bool ShouldActivate(Entity entity)
+		{
+			// 检查必需组件是否存在
+			return base.ShouldActivate(entity) &&
+				   HasComponent<SkillComponent>(entity) &&
+				   HasComponent<ActionComponent>(entity);
+		}
+		
+		public override bool ShouldDeactivate(Entity entity)
+		{
+			// 缺少任何必需组件则停用
+			return base.ShouldDeactivate(entity) ||
+				   !HasComponent<SkillComponent>(entity) ||
+				   !HasComponent<ActionComponent>(entity);
 		}
 
-		public override void Tick()
+		// ====== 每帧逻辑 ======
+		
+		public override void Tick(Entity entity)
 		{
-			if (!CanExecute()) return;
 			// 当前阶段无每帧逻辑（预留冷却/触发）
+			// 技能学习/注销在 OnAttached 和公共方法中完成
 		}
 
-		public bool LearnSkill(int skillId, int level = 1)
+		// ====== 公共方法 ======
+		
+		public bool LearnSkill(Entity entity, int skillId, int level = 1)
 		{
-			var skillComponent = GetOwnerComponent<SkillComponent>();
+			var skillComponent = GetComponent<SkillComponent>(entity);
 			if (skillComponent == null)
 			{
 				ASLogger.Instance.Error("SkillCapability.LearnSkill: SkillComponent not found");
@@ -65,57 +97,59 @@ namespace Astrum.LogicCore.Capabilities
 			}
 
 			skillComponent.AddSkill(skillInfo);
-			RegisterSkillActions(skillInfo);
+			RegisterSkillActions(entity, skillInfo);
 
-			ASLogger.Instance.Info($"SkillCapability.LearnSkill: Entity {OwnerEntity?.UniqueId} learned skill {skillId} (Lv{level})");
+			ASLogger.Instance.Info($"SkillCapability.LearnSkill: Entity {entity.UniqueId} learned skill {skillId} (Lv{level})");
 			return true;
 		}
 
-		public bool ForgetSkill(int skillId)
+		public bool ForgetSkill(Entity entity, int skillId)
 		{
-			var skillComponent = GetOwnerComponent<SkillComponent>();
+			var skillComponent = GetComponent<SkillComponent>(entity);
 			if (skillComponent == null) return false;
 
 			var skill = skillComponent.GetSkill(skillId);
 			if (skill == null) return false;
 
-			UnregisterSkillActions(skill);
+			UnregisterSkillActions(entity, skill);
 			bool removed = skillComponent.RemoveSkill(skillId);
 			if (removed)
 			{
-				ASLogger.Instance.Info($"SkillCapability.ForgetSkill: Entity {OwnerEntity?.UniqueId} forgot skill {skillId}");
+				ASLogger.Instance.Info($"SkillCapability.ForgetSkill: Entity {entity.UniqueId} forgot skill {skillId}");
 			}
 			return removed;
 		}
 
-		private void LoadInitialSkills()
+		// ====== 辅助方法 ======
+		
+		private void LoadInitialSkills(Entity entity)
 		{
-			var roleInfo = GetOwnerComponent<RoleInfoComponent>();
+			var roleInfo = GetComponent<RoleInfoComponent>(entity);
 			if (roleInfo?.RoleConfig == null) return;
 
 			var cfg = roleInfo.RoleConfig;
 			// 轻击/重击（也作为技能处理）
-			if (cfg.LightAttackSkillId > 0) { LearnSkill(cfg.LightAttackSkillId, 1); }
-			if (cfg.HeavyAttackSkillId > 0) { LearnSkill(cfg.HeavyAttackSkillId, 1); }
+			if (cfg.LightAttackSkillId > 0) { LearnSkill(entity, cfg.LightAttackSkillId, 1); }
+			if (cfg.HeavyAttackSkillId > 0) { LearnSkill(entity, cfg.HeavyAttackSkillId, 1); }
 			// 其它两个配置技能位
-			if (cfg.Skill1Id > 0) { LearnSkill(cfg.Skill1Id, 1); }
-			if (cfg.Skill2Id > 0) { LearnSkill(cfg.Skill2Id, 1); }
+			if (cfg.Skill1Id > 0) { LearnSkill(entity, cfg.Skill1Id, 1); }
+			if (cfg.Skill2Id > 0) { LearnSkill(entity, cfg.Skill2Id, 1); }
 		}
 
-		private void RegisterAllSkillActions()
+		private void RegisterAllSkillActions(Entity entity)
 		{
-			var skillComponent = GetOwnerComponent<SkillComponent>();
+			var skillComponent = GetComponent<SkillComponent>(entity);
 			if (skillComponent == null) return;
 
 			foreach (var kv in skillComponent.LearnedSkills)
 			{
-				RegisterSkillActions(kv.Value);
+				RegisterSkillActions(entity, kv.Value);
 			}
 		}
 
-		private void RegisterSkillActions(SkillInfo skill)
+		private void RegisterSkillActions(Entity entity, SkillInfo skill)
 		{
-			var actionComponent = GetOwnerComponent<ActionComponent>();
+			var actionComponent = GetComponent<ActionComponent>(entity);
 			if (actionComponent == null) return;
 
 			// 基于 SkillActionIds 动态构造新的 SkillActionInfo 实例
@@ -131,18 +165,11 @@ namespace Astrum.LogicCore.Capabilities
 			}
 		}
 
-		private void UnregisterSkillActions(SkillInfo skill)
+		private void UnregisterSkillActions(Entity entity, SkillInfo skill)
 		{
-			var actionComponent = GetOwnerComponent<ActionComponent>();
+			var actionComponent = GetComponent<ActionComponent>(entity);
 			if (actionComponent == null) return;
-/*
-			foreach (var action in skill.SkillActions)
-			{
-				actionComponent.AvailableActions.RemoveAll(a => a.Id == action.Id);
-				ASLogger.Instance.Debug($"SkillCapability: Unregistered action {action.Id} for skill");
-			}*/
+			// TODO: 实现技能动作注销逻辑
 		}
 	}
 }
-
-

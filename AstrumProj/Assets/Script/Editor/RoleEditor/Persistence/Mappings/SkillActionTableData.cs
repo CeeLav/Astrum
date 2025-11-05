@@ -20,6 +20,9 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(3, "triggerFrames")]
         public string TriggerFrames { get; set; }
         
+        [TableField(4, "rootMotionData")]
+        public List<int> RootMotionData { get; set; } = new List<int>();
+        
         /// <summary>
         /// 解析触发帧信息
         /// 格式: "Frame5:Collision:4001,Frame8:Direct:4002"
@@ -94,20 +97,20 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                     VarNames = new List<string>
                     {
                         "actionId", "actualCost",
-                        "actualCooldown", "triggerFrames"
+                        "actualCooldown", "triggerFrames", "rootMotionData"
                     },
                     Types = new List<string>
                     {
-                        "int", "int", "int", "string"
+                        "int", "int", "int", "string", "(array#sep=,),int"
                     },
                     Groups = new List<string>
                     {
-                        "", "", "", ""
+                        "", "", "", "", ""
                     },
                     Descriptions = new List<string>
                     {
                         "动作ID", "实际法力消耗",
-                        "实际冷却时间(帧)", "触发帧信息(含碰撞盒)"
+                        "实际冷却时间(帧)", "触发帧信息(含碰撞盒)", "根节点位移数据"
                     }
                 }
             };

@@ -149,6 +149,9 @@ namespace Astrum.Editor.RoleEditor.Windows
             _previewModule = new AnimationPreviewModule();
             _previewModule.Initialize();
             
+            // 将预览模块引用传递给配置模块（用于提取Hips位移）
+            _configModule.SetPreviewModule(_previewModule);
+            
             // 时间轴模块
             _timelineModule = new TimelineEditorModule();
             _timelineModule.Initialize(60);
@@ -398,7 +401,33 @@ namespace Astrum.Editor.RoleEditor.Windows
             }
             
             // 加载动画片段
+            AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(action.AnimationPath);
             _previewModule.LoadAnimationFromPath(action.AnimationPath);
+            
+            // 提取根节点位移数据并直接序列化为整型数组
+            if (clip != null)
+            {
+                action.RootMotionDataArray = AnimationRootMotionExtractor.ExtractRootMotionToIntArray(
+                    clip, action.ExtractRotation, action.ExtractHorizontalOnly);
+                
+                // 将位移数据传递给预览模块（用于手动累加位移）
+                if (action.RootMotionDataArray != null && action.RootMotionDataArray.Count > 0)
+                {
+                    _previewModule.SetRootMotionData(action.RootMotionDataArray);
+                    
+                    // 获取帧数（数组第一个元素）
+                    int frameCount = action.RootMotionDataArray[0];
+                    Debug.Log($"[SkillActionEditor] Extracted root motion for action {action.ActionId}: " +
+                              $"{frameCount} frames, " +
+                              $"data array size: {action.RootMotionDataArray.Count} integers");
+                }
+                else
+                {
+                    action.RootMotionDataArray = new List<int>();
+                    // 清空预览模块的位移数据
+                    _previewModule.SetRootMotionData(null);
+                }
+            }
             
             // 计算动画总帧数
             int animationTotalFrames = _previewModule.GetTotalFrames();
@@ -411,6 +440,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                 {
                     action.Duration = animationTotalFrames;
                 }
+                
+                // 设置预览模块的最大播放时长（基于Duration）
+                _previewModule.SetMaxPlaybackDuration(action.Duration);
                 
                 // 时间轴显示完整动画帧数，可编辑范围为Duration
                 _timelineModule.SetFrameRange(animationTotalFrames, action.Duration);
@@ -451,6 +483,13 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             if (_selectedSkillAction == null || _previewModule == null) return;
             _previewModule.Stop();
+            _timelineModule.SetCurrentFrame(0);
+        }
+        
+        private void ResetAnimation()
+        {
+            if (_selectedSkillAction == null || _previewModule == null) return;
+            _previewModule.Reset();
             _timelineModule.SetCurrentFrame(0);
         }
         
@@ -618,11 +657,20 @@ namespace Astrum.Editor.RoleEditor.Windows
                     skillAction.Duration = skillAction.AnimationDuration;
                 }
                 
+                // 更新预览模块的最大播放时长（如果只修改了Duration，不需要重新加载动画）
+                if (_previewModule != null)
+                {
+                    _previewModule.SetMaxPlaybackDuration(skillAction.Duration);
+                }
+                
                 // 时间轴显示完整动画帧数，可编辑范围为Duration
                 int timelineFrames = skillAction.AnimationDuration > 0 
                     ? skillAction.AnimationDuration 
                     : skillAction.Duration;
                 _timelineModule.SetFrameRange(timelineFrames, skillAction.Duration);
+                
+                // 如果修改了动画路径或其他需要重新加载的字段，才重新加载动画
+                // 这里暂时保留 LoadAnimationForAction，但可以考虑优化为只更新必要的内容
                 LoadAnimationForAction(skillAction);
             }
         }
@@ -765,9 +813,16 @@ namespace Astrum.Editor.RoleEditor.Windows
                 return;
             }
             
+            float offsetInfoHeight = 60f;
             float controlHeight = 80f;
-            Rect previewRect = new Rect(rect.x, rect.y, rect.width, rect.height - controlHeight);
+            float previewHeight = rect.height - offsetInfoHeight - controlHeight;
+            
+            Rect offsetInfoRect = new Rect(rect.x, rect.y, rect.width, offsetInfoHeight);
+            Rect previewRect = new Rect(rect.x, rect.y + offsetInfoHeight, rect.width, previewHeight);
             Rect controlRect = new Rect(rect.x, rect.y + rect.height - controlHeight, rect.width, controlHeight);
+            
+            // 绘制当前动作偏移信息
+            DrawCurrentFrameOffset(offsetInfoRect);
             
             if (_previewModule != null)
             {
@@ -792,6 +847,77 @@ namespace Astrum.Editor.RoleEditor.Windows
             DrawAnimationControl(controlRect);
         }
         
+        /// <summary>
+        /// 绘制当前帧的位移偏移信息
+        /// </summary>
+        private void DrawCurrentFrameOffset(Rect rect)
+        {
+            GUILayout.BeginArea(rect);
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("当前动作偏移", EditorStyles.boldLabel);
+                
+                if (_selectedSkillAction == null || 
+                    _selectedSkillAction.RootMotionDataArray == null || 
+                    _selectedSkillAction.RootMotionDataArray.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("暂无位移数据", MessageType.Info);
+                }
+                else
+                {
+                    int currentFrame = _previewModule != null ? _previewModule.GetCurrentFrame() : 0;
+                    int frameCount = _selectedSkillAction.RootMotionDataArray[0];
+                    
+                    if (currentFrame >= 0 && currentFrame < frameCount)
+                    {
+                        // 获取当前帧的位移数据
+                        int baseIndex = 1 + currentFrame * 7;
+                        if (baseIndex + 6 < _selectedSkillAction.RootMotionDataArray.Count)
+                        {
+                            int dxInt = _selectedSkillAction.RootMotionDataArray[baseIndex];
+                            int dyInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 1];
+                            int dzInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 2];
+                            int rxInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 3];
+                            int ryInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 4];
+                            int rzInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 5];
+                            int rwInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 6];
+                            
+                            // 转换为浮点数显示（除以1000）
+                            float dx = dxInt / 1000.0f;
+                            float dy = dyInt / 1000.0f;
+                            float dz = dzInt / 1000.0f;
+                            float rx = rxInt / 1000.0f;
+                            float ry = ryInt / 1000.0f;
+                            float rz = rzInt / 1000.0f;
+                            float rw = rwInt / 1000.0f;
+                            
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                EditorGUILayout.LabelField($"帧: {currentFrame}/{frameCount - 1}", GUILayout.Width(100));
+                                
+                                EditorGUILayout.LabelField("位移:", GUILayout.Width(40));
+                                EditorGUILayout.LabelField($"({dx:F3}, {dy:F3}, {dz:F3})", EditorStyles.miniLabel);
+                                
+                                EditorGUILayout.LabelField("旋转:", GUILayout.Width(40));
+                                EditorGUILayout.LabelField($"({rx:F3}, {ry:F3}, {rz:F3}, {rw:F3})", EditorStyles.miniLabel);
+                            }
+                            EditorGUILayout.EndHorizontal();
+                        }
+                        else
+                        {
+                            EditorGUILayout.HelpBox($"数据不完整 (帧 {currentFrame})", MessageType.Warning);
+                        }
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox($"帧索引超出范围 (当前: {currentFrame}, 总数: {frameCount})", MessageType.Warning);
+                    }
+                }
+            }
+            EditorGUILayout.EndVertical();
+            GUILayout.EndArea();
+        }
+        
         private void DrawAnimationControl(Rect rect)
         {
             GUILayout.BeginArea(rect);
@@ -801,19 +927,33 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 EditorGUILayout.BeginHorizontal();
                 {
-                    if (GUILayout.Button("▶ 播放", GUILayout.Height(25)))
+                    // 播放/暂停切换按钮
+                    bool isPlaying = _previewModule != null && _previewModule.IsPlaying();
+                    string playButtonText = isPlaying ? "⏸ 暂停" : "▶ 播放";
+                    if (GUILayout.Button(playButtonText, GUILayout.Height(25)))
                     {
-                        PlayAnimation();
+                        if (isPlaying)
+                        {
+                            PauseAnimation();
+                        }
+                        else
+                        {
+                            PlayAnimation();
+                        }
                     }
                     
-                    if (GUILayout.Button("⏸ 暂停", GUILayout.Height(25)))
+                    // 重置按钮
+                    if (GUILayout.Button("⏹ 重置", GUILayout.Height(25)))
                     {
-                        PauseAnimation();
+                        ResetAnimation();
                     }
                     
-                    if (GUILayout.Button("⏹ 停止", GUILayout.Height(25)))
+                    // 循环播放勾选
+                    bool isLooping = _previewModule != null && _previewModule.IsLooping();
+                    bool newLooping = GUILayout.Toggle(isLooping, "循环", GUILayout.Height(25));
+                    if (newLooping != isLooping && _previewModule != null)
                     {
-                        StopAnimation();
+                        _previewModule.SetLooping(newLooping);
                     }
                 }
                 EditorGUILayout.EndHorizontal();

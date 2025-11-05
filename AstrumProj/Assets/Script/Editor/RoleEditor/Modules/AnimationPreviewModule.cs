@@ -23,6 +23,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 播放状态（特有） ===
         private int _currentFrame = 0;
         private float _accumulatedTime = 0f;             // 累积时间，用于逐帧播放
+        private double _playStartTime = 0.0;             // 开始播放的时间戳（用于基于时间戳的播放）
         
         // === 碰撞盒显示 ===
         private string _currentFrameCollisionInfo = null; // 当前帧的碰撞盒信息
@@ -30,6 +31,16 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 网格显示 ===
         private bool _showGrid = true;                  // 是否显示网格
         private Material _gridMaterial;                 // 网格绘制材质
+        
+        // === 根节点位移数据 ===
+        private System.Collections.Generic.List<int> _rootMotionDataArray = null; // 位移数据数组
+        private Vector3 _initialPosition = Vector3.zero; // 模型的初始位置（用于重置）
+        
+        // === 播放时长限制 ===
+        private float _maxPlaybackTime = -1f; // 最大播放时长（秒），-1表示不限制（播放完整动画）
+        
+        // === 循环播放 ===
+        private bool _isLooping = false; // 是否循环播放
         
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
@@ -126,9 +137,33 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 _isPlaying = true;
                 _currentAnimState.Speed = 0; // 保持Speed=0，完全由我们手动控制Time
-                _lastUpdateTime = UnityEditor.EditorApplication.timeSinceStartup;
-                _accumulatedTime = 0f; // 重置累积时间，防止跳帧
-                Debug.Log($"{LogPrefix} Playing (manual frame control)");
+                
+                // 重置所有时间相关状态
+                double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+                _playStartTime = currentTimestamp;
+                _accumulatedTime = 0f;
+                
+                // 输出精确到毫秒的时间戳
+                long milliseconds = (long)(currentTimestamp * 1000.0);
+                Debug.Log($"{LogPrefix} Playing (manual frame control) - Timestamp: {milliseconds}ms (Time: {currentTimestamp:F6}s, AnimationTime: {_currentAnimState.Time:F6}s, Frame: {_currentFrame}, Speed: {_animationSpeed})");
+            }
+        }
+        
+        public override void Pause()
+        {
+            if (_currentAnimState != null)
+            {
+                _isPlaying = false;
+                _currentAnimState.Speed = 0;
+                
+                double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+                long milliseconds = (long)(currentTimestamp * 1000.0);
+                double elapsedPlayTime = _playStartTime > 0 ? (currentTimestamp - _playStartTime) : 0.0;
+                long elapsedMs = (long)(elapsedPlayTime * 1000.0);
+                
+                Debug.Log($"{LogPrefix} Paused - Timestamp: {milliseconds}ms, Elapsed: {elapsedMs}ms ({elapsedPlayTime:F6}s), " +
+                          $"AnimationTime: {_currentAnimState.Time:F6}s, Frame: {_currentFrame}, ExpectedFrame: {Mathf.RoundToInt(_currentAnimState.Time * LOGIC_FRAME_RATE)}, " +
+                          $"ClipLength: {(_currentClip != null ? _currentClip.length.ToString("F6") : "N/A")}s");
             }
         }
         
@@ -137,6 +172,14 @@ namespace Astrum.Editor.RoleEditor.Modules
             base.Stop();
             _currentFrame = 0;
             _accumulatedTime = 0f;
+            _playStartTime = 0.0;
+            
+            // 重置模型位置到初始位置
+            if (_previewInstance != null)
+            {
+                _previewInstance.transform.position = _initialPosition;
+                _previewInstance.transform.rotation = Quaternion.identity;
+            }
         }
         
         /// <summary>
@@ -158,6 +201,9 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 AnimationHelper.EvaluateAnimancer(_animancer, 0);
             }
+            
+            // 根据位移数据手动累加位移（RootMotion关闭时需要手动应用）
+            ApplyAccumulatedDisplacement(_currentFrame);
         }
         
         /// <summary>
@@ -181,6 +227,194 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 动画总时长(秒) * 逻辑帧率(20fps) = 逻辑帧数
             return Mathf.RoundToInt(_currentClip.length * LOGIC_FRAME_RATE);
+        }
+        
+        /// <summary>
+        /// 获取预览模型实例（用于提取Hips位移）
+        /// </summary>
+        public GameObject GetPreviewModel()
+        {
+            return _previewInstance;
+        }
+        
+        /// <summary>
+        /// 设置根节点位移数据（用于手动累加位移）
+        /// </summary>
+        public void SetRootMotionData(System.Collections.Generic.List<int> rootMotionDataArray)
+        {
+            _rootMotionDataArray = rootMotionDataArray;
+            
+            // 重置模型位置到初始位置
+            if (_previewInstance != null)
+            {
+                _previewInstance.transform.position = _initialPosition;
+            }
+        }
+        
+        /// <summary>
+        /// 设置最大播放时长（基于Duration帧数）
+        /// </summary>
+        /// <param name="durationFrames">持续时间（逻辑帧数），-1表示不限制（播放完整动画）</param>
+        public void SetMaxPlaybackDuration(int durationFrames)
+        {
+            if (durationFrames <= 0)
+            {
+                // 不限制，播放完整动画
+                _maxPlaybackTime = -1f;
+            }
+            else
+            {
+                // 转换为时间（秒）
+                _maxPlaybackTime = durationFrames * FRAME_TIME;
+            }
+        }
+        
+        /// <summary>
+        /// 根据浮点时间计算插值后的累积位移并应用到模型
+        /// 使用线性插值在逻辑帧之间平滑过渡
+        /// </summary>
+        private void ApplyInterpolatedDisplacement(float time)
+        {
+            if (_previewInstance == null || _rootMotionDataArray == null || _rootMotionDataArray.Count == 0)
+            {
+                return;
+            }
+            
+            int frameCount = _rootMotionDataArray[0];
+            if (frameCount <= 0)
+            {
+                return;
+            }
+            
+            // 将时间转换为逻辑帧索引（浮点）
+            float frameFloat = time * LOGIC_FRAME_RATE;
+            
+            // 确保在有效范围内（处理循环）
+            frameFloat = frameFloat % frameCount;
+            if (frameFloat < 0)
+            {
+                frameFloat += frameCount;
+            }
+            
+            // 计算当前所在的逻辑帧索引和下帧索引
+            int frameIndex0 = Mathf.FloorToInt(frameFloat);
+            int frameIndex1 = (frameIndex0 + 1) % frameCount;
+            
+            // 计算插值因子 [0, 1)
+            float t = frameFloat - frameIndex0;
+            
+            const float SCALE = 1000f; // 与提取时使用的缩放因子相同
+            
+            // 计算累积位移的辅助函数
+            Vector3 GetAccumulatedPosition(int endFrame)
+            {
+                Vector3 pos = Vector3.zero;
+                for (int f = 1; f <= endFrame && f < frameCount; f++)
+                {
+                    int baseIndex = 1 + f * 7;
+                    if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                    {
+                        break;
+                    }
+                    float dx = _rootMotionDataArray[baseIndex] / SCALE;
+                    float dy = _rootMotionDataArray[baseIndex + 1] / SCALE;
+                    float dz = _rootMotionDataArray[baseIndex + 2] / SCALE;
+                    pos += new Vector3(dx, dy, dz);
+                }
+                return pos;
+            }
+            
+            Quaternion GetAccumulatedRotation(int endFrame)
+            {
+                Quaternion rot = Quaternion.identity;
+                for (int f = 1; f <= endFrame && f < frameCount; f++)
+                {
+                    int baseIndex = 1 + f * 7;
+                    if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                    {
+                        break;
+                    }
+                    float rx = _rootMotionDataArray[baseIndex + 3] / SCALE;
+                    float ry = _rootMotionDataArray[baseIndex + 4] / SCALE;
+                    float rz = _rootMotionDataArray[baseIndex + 5] / SCALE;
+                    float rw = _rootMotionDataArray[baseIndex + 6] / SCALE;
+                    Quaternion deltaRot = new Quaternion(rx, ry, rz, rw);
+                    rot = rot * deltaRot;
+                }
+                return rot;
+            }
+            
+            // 计算两个逻辑帧的累积位移
+            Vector3 accumulatedPos0 = GetAccumulatedPosition(frameIndex0);
+            Quaternion accumulatedRot0 = GetAccumulatedRotation(frameIndex0);
+            
+            Vector3 accumulatedPos1 = GetAccumulatedPosition(frameIndex1);
+            Quaternion accumulatedRot1 = GetAccumulatedRotation(frameIndex1);
+            
+            // 在两个逻辑帧之间进行线性插值
+            Vector3 interpolatedPosition = Vector3.Lerp(accumulatedPos0, accumulatedPos1, t);
+            Quaternion interpolatedRotation = Quaternion.Lerp(accumulatedRot0, accumulatedRot1, t);
+            
+            // 应用到模型位置（初始位置 + 插值后的累积位移）
+            _previewInstance.transform.position = _initialPosition + interpolatedPosition;
+            
+            // 应用插值后的旋转
+            _previewInstance.transform.rotation = interpolatedRotation;
+        }
+        
+        /// <summary>
+        /// 根据帧索引计算累积位移并应用到模型（用于SetFrame，不使用插值）
+        /// </summary>
+        private void ApplyAccumulatedDisplacement(int frame)
+        {
+            if (_previewInstance == null || _rootMotionDataArray == null || _rootMotionDataArray.Count == 0)
+            {
+                return;
+            }
+            
+            int frameCount = _rootMotionDataArray[0];
+            if (frameCount <= 0 || frame < 0 || frame >= frameCount)
+            {
+                return;
+            }
+            
+            // 计算累积位移：从第0帧到当前帧的所有增量位移之和
+            Vector3 accumulatedPosition = Vector3.zero;
+            Quaternion accumulatedRotation = Quaternion.identity;
+            
+            const float SCALE = 1000f; // 与提取时使用的缩放因子相同
+            
+            // 累加从第1帧到当前帧的所有增量位移（第0帧的delta是0）
+            for (int f = 1; f <= frame && f < frameCount; f++)
+            {
+                int baseIndex = 1 + f * 7; // 跳过 frameCount，每帧7个值
+                if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                {
+                    break;
+                }
+                
+                // 读取增量位移（整数，需要除以1000）
+                float dx = _rootMotionDataArray[baseIndex] / SCALE;
+                float dy = _rootMotionDataArray[baseIndex + 1] / SCALE;
+                float dz = _rootMotionDataArray[baseIndex + 2] / SCALE;
+                float rx = _rootMotionDataArray[baseIndex + 3] / SCALE;
+                float ry = _rootMotionDataArray[baseIndex + 4] / SCALE;
+                float rz = _rootMotionDataArray[baseIndex + 5] / SCALE;
+                float rw = _rootMotionDataArray[baseIndex + 6] / SCALE;
+                
+                // 累加位置
+                accumulatedPosition += new Vector3(dx, dy, dz);
+                
+                // 累加旋转（四元数乘法）
+                Quaternion deltaRot = new Quaternion(rx, ry, rz, rw);
+                accumulatedRotation = accumulatedRotation * deltaRot;
+            }
+            
+            // 应用到模型位置（初始位置 + 累积位移）
+            _previewInstance.transform.position = _initialPosition + accumulatedPosition;
+            
+            // 应用累积旋转（初始旋转 * 累积旋转）
+            _previewInstance.transform.rotation = accumulatedRotation;
         }
         
         /// <summary>
@@ -334,42 +568,147 @@ namespace Astrum.Editor.RoleEditor.Modules
             GL.PopMatrix();
         }
         
-        // === 更新动画（重写以支持逐帧）===
+        // === 更新动画（统一更新逻辑，重写以支持平滑渲染帧更新）===
         
+        /// <summary>
+        /// 统一动画更新入口 - 确保每帧只更新一次
+        /// </summary>
+        private void UpdateAnimationInternal()
+        {
+            // 如果不在播放状态，直接返回
+            if (!_isPlaying || _currentAnimState == null || _animancer == null || _currentClip == null)
+            {
+                return;
+            }
+            
+            // 获取当前时间戳
+            double currentRealTime = UnityEditor.EditorApplication.timeSinceStartup;
+            
+            // 检查时间是否异常（防止编辑器暂停、调试断点等情况）
+            if (currentRealTime < _playStartTime)
+            {
+                // 时间倒流（通常发生在编辑器暂停恢复时），重置播放起点
+                _playStartTime = currentRealTime;
+                return;
+            }
+            
+            // 计算从播放开始经过的时间
+            double elapsedTime = currentRealTime - _playStartTime;
+            
+            // 如果时间跳跃过大（超过1秒，可能是编辑器暂停后恢复），重置播放起点
+            if (elapsedTime > (_currentAnimState.Time + 1.0))
+            {
+                _playStartTime = currentRealTime - _currentAnimState.Time;
+                elapsedTime = _currentAnimState.Time;
+            }
+            
+            // 计算新的动画时间：基于绝对时间戳 * 播放速度（即使多次调用结果也一致）
+            float newAnimationTime = (float)elapsedTime * _animationSpeed;
+            
+            // 检查播放边界
+            bool shouldStop = false;
+            float maxTime = _maxPlaybackTime > 0f ? _maxPlaybackTime : _currentClip.length;
+            
+            if (newAnimationTime >= maxTime)
+            {
+                if (_isLooping)
+                {
+                    // 循环播放：重置播放时间
+                    double currentTimestamp = UnityEditor.EditorApplication.timeSinceStartup;
+                    _playStartTime = currentTimestamp; // 重置播放开始时间
+                    newAnimationTime = 0f;
+                }
+                else
+                {
+                    // 不循环：停在最后一帧
+                    newAnimationTime = maxTime;
+                    shouldStop = true;
+                }
+            }
+            
+            // 确保时间不小于0
+            if (newAnimationTime < 0)
+            {
+                newAnimationTime = 0f;
+            }
+            
+            // 应用新的动画时间
+            _currentAnimState.Time = newAnimationTime;
+            
+            // 更新当前逻辑帧（用于UI显示）
+            _currentFrame = Mathf.RoundToInt(newAnimationTime * LOGIC_FRAME_RATE);
+            
+            // 更新Animancer（传入0，因为我们完全手动控制Time，Speed=0）
+            // Evaluate 只会应用当前的Time值，不会累加时间
+            AnimationHelper.EvaluateAnimancer(_animancer, 0f);
+            
+            // 应用位移插值
+            ApplyInterpolatedDisplacement(newAnimationTime);
+            
+            // 如果应该停止，停止播放
+            if (shouldStop)
+            {
+                Pause();
+            }
+        }
+        
+        /// <summary>
+        /// 重写基类的UpdateAnimation - 统一调用内部更新逻辑
+        /// </summary>
         protected override void UpdateAnimation()
         {
-            if (_isPlaying && _currentAnimState != null && _animancer != null)
+            // 直接调用统一更新逻辑，不调用基类方法（避免基类的自动更新干扰）
+            UpdateAnimationInternal();
+        }
+        
+        /// <summary>
+        /// 重置动画到第一帧（不播放）
+        /// </summary>
+        public void Reset()
+        {
+            if (_currentAnimState != null)
             {
-                double currentTime = UnityEditor.EditorApplication.timeSinceStartup;
-                float deltaTime = (float)(currentTime - _lastUpdateTime);
-                _lastUpdateTime = currentTime;
+                _currentAnimState.Time = 0f;
+                _currentFrame = 0;
+                _accumulatedTime = 0f;
+                _playStartTime = 0.0;
+                _isPlaying = false;
+                _currentAnimState.Speed = 0;
                 
-                // 累积时间
-                _accumulatedTime += deltaTime;
-                
-                // 按照逻辑帧率（20fps）逐帧更新
-                while (_accumulatedTime >= FRAME_TIME)
+                // 重置模型位置到初始位置
+                if (_previewInstance != null)
                 {
-                    _accumulatedTime -= FRAME_TIME;
-                    
-                    // 前进一帧
-                    _currentFrame++;
-                    
-                    // 检查是否到达结尾
-                    int totalFrames = GetTotalFrames();
-                    if (_currentFrame >= totalFrames)
-                    {
-                        // 循环播放
-                        _currentFrame = 0;
-                    }
-                    
-                    // 设置动画时间
-                    _currentAnimState.Time = _currentFrame * FRAME_TIME;
+                    _previewInstance.transform.position = _initialPosition;
+                    _previewInstance.transform.rotation = Quaternion.identity;
                 }
                 
-                // 手动更新Animancer（不传入deltaTime，因为我们直接设置了Time）
-                AnimationHelper.EvaluateAnimancer(_animancer, 0);
+                // 手动更新Animancer
+                if (_animancer != null)
+                {
+                    AnimationHelper.EvaluateAnimancer(_animancer, 0);
+                }
+                
+                // 重置位移
+                ApplyAccumulatedDisplacement(0);
             }
+        }
+        
+        /// <summary>
+        /// 获取是否循环播放
+        /// </summary>
+        /// <returns>是否循环播放</returns>
+        public bool IsLooping()
+        {
+            return _isLooping;
+        }
+        
+        /// <summary>
+        /// 设置是否循环播放
+        /// </summary>
+        /// <param name="isLooping">是否循环播放</param>
+        public void SetLooping(bool isLooping)
+        {
+            _isLooping = isLooping;
         }
         
         // === 清理资源 ===

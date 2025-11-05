@@ -79,6 +79,11 @@ namespace Astrum.LogicCore.Core
         public SkillEffectSystem SkillEffectSystem { get; private set; }
 
         /// <summary>
+        /// Capability 统一调度系统
+        /// </summary>
+        public CapabilitySystem CapabilitySystem { get; private set; }
+
+        /// <summary>
         /// 默认构造函数
         /// </summary>
         public World()
@@ -86,6 +91,9 @@ namespace Astrum.LogicCore.Core
             Entities = new Dictionary<long, Entity>();
             HitSystem = new HitSystem();
             SkillEffectSystem = new SkillEffectSystem();
+            CapabilitySystem = new CapabilitySystem();
+            CapabilitySystem.World = this;
+            CapabilitySystem.Initialize();
         }
 
         /// <summary>
@@ -94,7 +102,7 @@ namespace Astrum.LogicCore.Core
         [MemoryPackConstructor]
         public World(int worldId, string name, DateTime creationTime, Dictionary<long, Entity> entities,
             float deltaTime, float totalTime, LSUpdater updater, long roomId, int curFrame,
-            HitSystem hitSystem, SkillEffectSystem skillEffectSystem)
+            HitSystem hitSystem, SkillEffectSystem skillEffectSystem, CapabilitySystem capabilitySystem)
         {
             WorldId = worldId;
             Name = name;
@@ -107,6 +115,11 @@ namespace Astrum.LogicCore.Core
             CurFrame = curFrame;
             HitSystem = hitSystem ?? new HitSystem();
             SkillEffectSystem = skillEffectSystem ?? new SkillEffectSystem();
+            CapabilitySystem = capabilitySystem ?? new CapabilitySystem();
+            CapabilitySystem.World = this;
+            
+            // 确保静态数据已初始化
+            CapabilitySystem.Initialize();
             
             // 重建关系
             foreach (var entity in Entities.Values)
@@ -124,6 +137,12 @@ namespace Astrum.LogicCore.Core
                 foreach (var capability in entity.Capabilities)
                 {
                     capability.OwnerEntity = entity;
+                }
+                
+                // 重建 CapabilitySystem 的注册（从 Entity 的 CapabilityStates 恢复）
+                foreach (var kvp in entity.CapabilityStates)
+                {
+                    CapabilitySystem.RegisterEntityCapability(entity.UniqueId, kvp.Key);
                 }
             }
             
@@ -159,6 +178,9 @@ namespace Astrum.LogicCore.Core
             {
                 // 发布实体销毁事件
                 PublishEntityDestroyedEvent(entity);
+                
+                // 清理 CapabilitySystem 中的注册
+                CapabilitySystem?.UnregisterEntity(entityId);
                 
                 entity.Destroy();
                 Entities.Remove(entityId);
@@ -204,6 +226,10 @@ namespace Astrum.LogicCore.Core
             SkillEffectSystem = new SkillEffectSystem();
             SkillEffectSystem.CurrentWorld = this;
             SkillEffectSystem.Initialize();
+            
+            CapabilitySystem = new CapabilitySystem();
+            CapabilitySystem.World = this;
+            CapabilitySystem.Initialize();
 
             // 工厂与原型管理器初始化应由 GameApplication 负责
         }

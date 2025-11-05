@@ -24,7 +24,8 @@ namespace Astrum.LogicCore.Archetypes
         private static readonly Type[] _caps =
         {
             typeof(SkillCapability),
-            typeof(SkillExecutorCapability)
+            typeof(SkillExecutorCapability),
+            typeof(SkillDisplacementCapability)  // 使用新架构的 SkillDisplacementCapability
         };
 
         public override Type[] Components => _comps;
