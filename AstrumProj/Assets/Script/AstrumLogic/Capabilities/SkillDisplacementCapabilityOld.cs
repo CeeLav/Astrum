@@ -1,60 +1,40 @@
-using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.SkillSystem;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using TrueSync;
+using MemoryPack;
+// 使用别名避免与 BEPU 的 Entity 类冲突
+using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
-    /// 技能位移能力（新架构，基于 Capability&lt;T&gt;）
+    /// 技能位移能力（旧架构，已废弃，保留用于兼容）
     /// 处理技能释放时的位移逻辑
     /// 基于动画根节点位移数据（Root Motion Data），在技能动作执行过程中逐帧应用位移和旋转
     /// </summary>
-    public class SkillDisplacementCapabilityV2 : Capability<SkillDisplacementCapabilityV2>
+    [MemoryPackable]
+    public partial class SkillDisplacementCapabilityOld : Capability
     {
-        // ====== 元数据 ======
-        public override int Priority => 150; // 优先级高于 MovementCapability (100)，确保技能位移优先
-        
-        public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
-        private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
-        { 
-            CapabilityTag.Movement, 
-            CapabilityTag.Skill 
-        };
-        
-        // ====== 生命周期 ======
-        
-        public override void OnAttached(Entity entity)
+        public SkillDisplacementCapabilityOld()
         {
-            base.OnAttached(entity);
-            ASLogger.Instance.Debug($"SkillDisplacementCapabilityV2 attached to entity {entity.UniqueId}");
+            Priority = 150; // 优先级高于 MovementCapability (100)，确保技能位移优先
         }
         
-        public override bool ShouldActivate(Entity entity)
+        public override void Initialize()
         {
-            // 检查必需组件是否存在
-            return base.ShouldActivate(entity) &&
-                   HasComponent<ActionComponent>(entity) &&
-                   HasComponent<TransComponent>(entity);
+            base.Initialize();
+            ASLogger.Instance.Debug($"SkillDisplacementCapabilityOld initialized for entity {OwnerEntity?.UniqueId}");
         }
         
-        public override bool ShouldDeactivate(Entity entity)
+        public override void Tick()
         {
-            // 缺少任何必需组件则停用
-            return base.ShouldDeactivate(entity) ||
-                   !HasComponent<ActionComponent>(entity) ||
-                   !HasComponent<TransComponent>(entity);
-        }
-        
-        // ====== 每帧逻辑 ======
-        
-        public override void Tick(Entity entity)
-        {
+            if (!CanExecute()) return;
+            
             // 1. 获取当前动作信息
-            var actionComponent = GetComponent<ActionComponent>(entity);
+            var actionComponent = GetOwnerComponent<ActionComponent>();
             if (actionComponent == null || actionComponent.CurrentAction == null)
             {
                 return;
@@ -75,18 +55,15 @@ namespace Astrum.LogicCore.Capabilities
             
             // 4. 应用当前帧的位移
             int currentFrame = actionComponent.CurrentFrame;
-            ApplyRootMotion(entity, skillAction, currentFrame);
+            ApplyRootMotion(skillAction, currentFrame);
         }
-        
-        // ====== 辅助方法 ======
         
         /// <summary>
         /// 应用动画根节点位移
         /// </summary>
-        /// <param name="entity">实体</param>
         /// <param name="skillAction">技能动作信息</param>
         /// <param name="currentFrame">当前帧索引</param>
-        private void ApplyRootMotion(Entity entity, SkillActionInfo skillAction, int currentFrame)
+        private void ApplyRootMotion(SkillActionInfo skillAction, int currentFrame)
         {
             // 1. 检查帧索引有效性
             if (currentFrame < 0 || 
@@ -99,7 +76,7 @@ namespace Astrum.LogicCore.Capabilities
             var frameData = skillAction.RootMotionData.Frames[currentFrame];
             
             // 3. 获取实体的变换组件
-            var transComponent = GetComponent<TransComponent>(entity);
+            var transComponent = GetOwnerComponent<TransComponent>();
             if (transComponent == null)
             {
                 return;
@@ -128,9 +105,9 @@ namespace Astrum.LogicCore.Capabilities
             // }
             
             // 6. 【物理世界同步】更新实体在物理世界中的位置
-            if (entity.World != null)
+            if (OwnerEntity is AstrumEntity astrumEntity && astrumEntity.World != null)
             {
-                entity.World.HitSystem?.UpdateEntityPosition(entity);
+                astrumEntity.World.HitSystem?.UpdateEntityPosition(astrumEntity);
             }
         }
         
@@ -147,13 +124,24 @@ namespace Astrum.LogicCore.Capabilities
         }
         
         /// <summary>
+        /// 检查是否可以执行技能位移
+        /// </summary>
+        public override bool CanExecute()
+        {
+            if (!base.CanExecute()) return false;
+            
+            // 检查必需的组件是否存在
+            return OwnerHasComponent<ActionComponent>() && 
+                   OwnerHasComponent<TransComponent>();
+        }
+        
+        /// <summary>
         /// 检查技能位移是否激活（运行时获取）
         /// </summary>
-        /// <param name="entity">实体</param>
         /// <returns>是否正在应用技能位移</returns>
-        public bool IsDisplacementActive(Entity entity)
+        public bool IsDisplacementActive()
         {
-            var actionComponent = GetComponent<ActionComponent>(entity);
+            var actionComponent = GetOwnerComponent<ActionComponent>();
             if (actionComponent?.CurrentAction is SkillActionInfo skillAction)
             {
                 return skillAction.RootMotionData != null && 
@@ -165,11 +153,10 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 获取当前技能动作ID（运行时获取）
         /// </summary>
-        /// <param name="entity">实体</param>
         /// <returns>当前技能动作ID，如果没有则返回0</returns>
-        public int GetCurrentSkillActionId(Entity entity)
+        public int GetCurrentSkillActionId()
         {
-            var actionComponent = GetComponent<ActionComponent>(entity);
+            var actionComponent = GetOwnerComponent<ActionComponent>();
             if (actionComponent?.CurrentAction is SkillActionInfo skillAction)
             {
                 return skillAction.Id;

@@ -5,15 +5,15 @@ namespace Astrum.LogicCore.Capabilities
     /// <summary>
     /// Capability 的 MemoryPack 序列化特性定义
     /// </summary>
-    [MemoryPackUnion(0, typeof(MovementCapability))]
-    [MemoryPackUnion(1, typeof(ActionCapability))]
-    [MemoryPackUnion(2, typeof(SkillCapability))]
-    [MemoryPackUnion(3, typeof(SkillExecutorCapability))]
-    [MemoryPackUnion(4, typeof(AIFSMCapability))]
-    [MemoryPackUnion(5, typeof(IdleStateCapability))]
-    [MemoryPackUnion(6, typeof(MoveStateCapability))]
-    [MemoryPackUnion(7, typeof(BattleStateCapability))]
-    [MemoryPackUnion(8, typeof(SkillDisplacementCapability))]
+    [MemoryPackUnion(0, typeof(MovementCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(1, typeof(ActionCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(2, typeof(SkillCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(3, typeof(SkillExecutorCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(4, typeof(AIFSMCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(5, typeof(IdleStateCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(6, typeof(MoveStateCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(7, typeof(BattleStateCapabilityOld))]  // 旧架构，保留用于兼容
+    [MemoryPackUnion(8, typeof(SkillDisplacementCapabilityOld))]  // 旧架构，保留用于兼容
     [MemoryPackable]
     public abstract partial class Capability
     {

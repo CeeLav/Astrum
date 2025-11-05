@@ -4,99 +4,169 @@ using System.Linq;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Stats;
+using Astrum.LogicCore.Systems;
 using Astrum.CommonBase;
 using TrueSync;
-using MemoryPack;
 
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
-    /// 死亡能力 - 集中管理实体死亡后的能力停用/恢复
+    /// 死亡能力（新架构，基于 Capability&lt;T&gt;）
+    /// 集中管理实体死亡后的能力停用/恢复
     /// </summary>
-    [MemoryPackable]
-    public partial class DeadCapability : Capability
+    public class DeadCapability : Capability<DeadCapability>
     {
-        /// <summary>白名单：死亡后仍可执行的能力类型</summary>
-        private static readonly HashSet<Type> _whitelistCapabilityTypes = new HashSet<Type>
-        {
-            typeof(DeadCapability), // 自身必须保持活跃
-            // 未来可添加：AnimationCapability、ViewSyncCapability 等
+        // ====== 元数据 ======
+        public override int Priority => 1000; // 最高优先级，确保最先执行
+        
+        public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
+        private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
+        { 
+            CapabilityTag.Combat 
         };
         
-        /// <summary>死亡前被停用的能力列表（用于复活时恢复）</summary>
-        [MemoryPackIgnore]
-        private List<Capability> _disabledCapabilities = new List<Capability>();
+        // ====== 常量配置 ======
+        private const string KEY_IS_DEAD = "IsDead";
+        private const string KEY_DISABLED_TYPE_IDS = "DisabledTypeIds";
         
-        /// <summary>是否已处于死亡状态</summary>
-        private bool _isDead = false;
-        
-        public DeadCapability()
+        /// <summary>
+        /// 白名单：死亡后仍可执行的 Capability TypeId 集合
+        /// </summary>
+        private static readonly HashSet<int> _whitelistTypeIds = new HashSet<int>
         {
-            Priority = 1000; // 最高优先级，确保最先执行
-        }
+            // DeadCapability 自身必须保持活跃
+            TypeId
+        };
         
-        public override void Initialize()
+        // ====== 生命周期 ======
+        
+        public override void OnAttached(Entity entity)
         {
-            base.Initialize();
+            base.OnAttached(entity);
+            
+            // 初始化自定义数据
+            var state = GetCapabilityState(entity);
+            if (state.CustomData == null)
+                state.CustomData = new Dictionary<string, object>();
+            
+            state.CustomData[KEY_IS_DEAD] = false;
+            state.CustomData[KEY_DISABLED_TYPE_IDS] = new List<int>();
+            SetCapabilityState(entity, state);
+            
+            // 为这个 Entity 创建事件订阅器（使用闭包绑定 Entity）
+            // 注意：由于事件系统是全局的，我们需要为每个 Entity 创建独立的订阅器
+            // 这里使用闭包来绑定 Entity 引用
+            var diedHandler = new Action<EntityDiedEventData>(evt => OnEntityDied(entity, evt));
+            var revivedHandler = new Action<EntityRevivedEventData>(evt => OnEntityRevived(entity, evt));
+            
+            // 将处理器存储在 CustomData 中，以便在 OnDetached 时取消订阅
+            state.CustomData["_diedHandler"] = diedHandler;
+            state.CustomData["_revivedHandler"] = revivedHandler;
+            SetCapabilityState(entity, state);
             
             // 订阅死亡事件
-            EventSystem.Instance.Subscribe<EntityDiedEventData>(OnEntityDied);
+            EventSystem.Instance.Subscribe(diedHandler);
             
-            // 订阅复活事件（预留）
-            EventSystem.Instance.Subscribe<EntityRevivedEventData>(OnEntityRevived);
+            // 订阅复活事件
+            EventSystem.Instance.Subscribe(revivedHandler);
         }
         
-        public override void Tick()
+        public override void OnDetached(Entity entity)
+        {
+            // 取消订阅事件
+            var state = GetCapabilityState(entity);
+            if (state.CustomData != null)
+            {
+                if (state.CustomData.TryGetValue("_diedHandler", out var diedHandler) && diedHandler is Action<EntityDiedEventData> dh)
+                {
+                    EventSystem.Instance.Unsubscribe(dh);
+                }
+                
+                if (state.CustomData.TryGetValue("_revivedHandler", out var revivedHandler) && revivedHandler is Action<EntityRevivedEventData> rh)
+                {
+                    EventSystem.Instance.Unsubscribe(rh);
+                }
+            }
+            
+            base.OnDetached(entity);
+        }
+        
+        public override bool ShouldActivate(Entity entity)
+        {
+            // 始终激活（死亡能力本身应该一直可用）
+            return base.ShouldActivate(entity);
+        }
+        
+        // ====== 每帧逻辑 ======
+        
+        public override void Tick(Entity entity)
         {
             // 死亡能力本身不需要每帧逻辑，仅响应事件
         }
         
+        // ====== 事件处理 ======
+        
         /// <summary>
-        /// 处理实体死亡事件
+        /// 处理实体死亡事件（带 Entity 参数，通过闭包绑定）
         /// </summary>
-        private void OnEntityDied(EntityDiedEventData eventData)
+        private void OnEntityDied(Entity entity, EntityDiedEventData eventData)
         {
-            // 只处理自己的死亡事件
-            if (OwnerEntity == null || eventData.EntityId != OwnerEntity.UniqueId)
-                return;
+            if (entity == null || entity.UniqueId != eventData.EntityId) return;
             
-            if (_isDead)
+            var state = GetCapabilityState(entity);
+            var isDead = (bool)(state.CustomData?.TryGetValue(KEY_IS_DEAD, out var deadValue) == true ? deadValue : false);
+            
+            if (isDead)
             {
-                ASLogger.Instance.Warning($"[DeadCapability] Entity {OwnerEntity.UniqueId} already dead, ignoring duplicate event");
+                ASLogger.Instance.Warning($"[DeadCapability] Entity {entity.UniqueId} already dead, ignoring duplicate event");
                 return;
             }
             
-            _isDead = true;
-            ASLogger.Instance.Info($"[DeadCapability] Entity {OwnerEntity.UniqueId} died, disabling non-whitelisted capabilities");
+            // 标记为死亡
+            if (state.CustomData == null)
+                state.CustomData = new Dictionary<string, object>();
+            
+            state.CustomData[KEY_IS_DEAD] = true;
+            
+            ASLogger.Instance.Info($"[DeadCapability] Entity {entity.UniqueId} died, disabling non-whitelisted capabilities");
             
             // 停用非白名单能力
-            DisableNonWhitelistedCapabilities();
+            DisableNonWhitelistedCapabilities(entity);
+            
+            SetCapabilityState(entity, state);
         }
         
         /// <summary>
-        /// 处理实体复活事件（预留）
+        /// 处理实体复活事件（带 Entity 参数，通过闭包绑定）
         /// </summary>
-        private void OnEntityRevived(EntityRevivedEventData eventData)
+        private void OnEntityRevived(Entity entity, EntityRevivedEventData eventData)
         {
-            if (OwnerEntity == null || eventData.EntityId != OwnerEntity.UniqueId)
-                return;
+            if (entity == null || entity.UniqueId != eventData.EntityId) return;
             
-            if (!_isDead)
+            var state = GetCapabilityState(entity);
+            var isDead = (bool)(state.CustomData?.TryGetValue(KEY_IS_DEAD, out var deadValue) == true ? deadValue : false);
+            
+            if (!isDead)
             {
-                ASLogger.Instance.Warning($"[DeadCapability] Entity {OwnerEntity.UniqueId} not dead, ignoring revive event");
+                ASLogger.Instance.Warning($"[DeadCapability] Entity {entity.UniqueId} not dead, ignoring revive event");
                 return;
             }
             
-            _isDead = false;
-            ASLogger.Instance.Info($"[DeadCapability] Entity {OwnerEntity.UniqueId} revived, restoring capabilities");
+            // 标记为未死亡
+            if (state.CustomData == null)
+                state.CustomData = new Dictionary<string, object>();
+            
+            state.CustomData[KEY_IS_DEAD] = false;
+            
+            ASLogger.Instance.Info($"[DeadCapability] Entity {entity.UniqueId} revived, restoring capabilities");
             
             // 清除死亡状态
-            var stateComp = GetOwnerComponent<StateComponent>();
+            var stateComp = GetComponent<StateComponent>(entity);
             stateComp?.Set(StateType.DEAD, false);
             
             // 恢复生命值
-            var dynamicStats = GetOwnerComponent<DynamicStatsComponent>();
-            var derivedStats = GetOwnerComponent<DerivedStatsComponent>();
+            var dynamicStats = GetComponent<DynamicStatsComponent>(entity);
+            var derivedStats = GetComponent<DerivedStatsComponent>(entity);
             if (dynamicStats != null && derivedStats != null)
             {
                 FP maxHP = derivedStats.Get(StatType.HP);
@@ -105,72 +175,149 @@ namespace Astrum.LogicCore.Capabilities
             }
             
             // 恢复能力
-            RestoreDisabledCapabilities();
+            RestoreDisabledCapabilities(entity);
+            
+            SetCapabilityState(entity, state);
         }
+        
+        // ====== 辅助方法 ======
         
         /// <summary>
         /// 停用非白名单能力
+        /// 使用 Tag 系统批量禁用（Movement、Control、Attack、Skill 等）
+        /// 同时处理新旧两套系统
         /// </summary>
-        private void DisableNonWhitelistedCapabilities()
+        private void DisableNonWhitelistedCapabilities(Entity entity)
         {
-            if (OwnerEntity == null) return;
+            if (entity?.World == null) return;
             
-            _disabledCapabilities.Clear();
+            var disabledTypeIds = new List<int>();
             
-            foreach (var capability in OwnerEntity.Capabilities)
+            // 处理新系统：遍历实体上所有新架构的 Capability
+            foreach (var kvp in entity.CapabilityStates)
             {
-                if (capability == this) continue; // 跳过自己
+                var typeId = kvp.Key;
+                var capabilityState = kvp.Value;
                 
-                // 检查是否在白名单
-                if (_whitelistCapabilityTypes.Contains(capability.GetType()))
+                // 跳过白名单
+                if (_whitelistTypeIds.Contains(typeId))
                     continue;
                 
-                // 停用能力
-                if (capability.IsActive)
+                // 跳过已经停用的
+                if (!capabilityState.IsActive)
+                    continue;
+                
+                // 获取 Capability 实例
+                var capability = CapabilitySystem.GetCapability(typeId);
+                if (capability == null)
+                    continue;
+                
+                // 使用 Tag 系统禁用（通过禁用所有相关 Tag）
+                foreach (var tag in capability.Tags)
                 {
-                    capability.OnDeactivate();
-                    _disabledCapabilities.Add(capability);
-                    ASLogger.Instance.Debug($"[DeadCapability] Disabled capability: {capability.Name}");
+                    entity.World.CapabilitySystem.DisableCapabilitiesByTag(entity, tag, entity.UniqueId);
+                }
+                
+                disabledTypeIds.Add(typeId);
+                ASLogger.Instance.Debug($"[DeadCapability] Disabled new capability TypeId: {typeId}");
+            }
+            
+            // 处理旧系统：遍历旧架构的 Capability 实例
+            // 注意：旧系统使用 Type 作为白名单，需要转换为 TypeId
+            var whitelistTypes = new HashSet<Type> { typeof(DeadCapability) };
+            
+            foreach (var oldCapability in entity.Capabilities)
+            {
+                if (oldCapability == null) continue;
+                
+                var capType = oldCapability.GetType();
+                
+                // 跳过白名单类型（旧系统）
+                if (whitelistTypes.Contains(capType))
+                    continue;
+                
+                // 停用旧系统的 Capability
+                if (oldCapability.IsActive)
+                {
+                    oldCapability.OnDeactivate();
+                    ASLogger.Instance.Debug($"[DeadCapability] Disabled old capability: {oldCapability.Name}");
                 }
             }
+            
+            // 保存被禁用的 TypeId 列表（仅新系统）
+            var state = GetCapabilityState(entity);
+            if (state.CustomData == null)
+                state.CustomData = new Dictionary<string, object>();
+            
+            state.CustomData[KEY_DISABLED_TYPE_IDS] = disabledTypeIds;
+            SetCapabilityState(entity, state);
         }
         
         /// <summary>
         /// 恢复被停用的能力
+        /// 通过移除 Tag 禁用来恢复（新系统）
+        /// 同时恢复旧系统的 Capability（旧系统会自动恢复，因为只调用了 OnDeactivate）
         /// </summary>
-        private void RestoreDisabledCapabilities()
+        private void RestoreDisabledCapabilities(Entity entity)
         {
-            foreach (var capability in _disabledCapabilities)
+            if (entity?.World == null) return;
+            
+            var state = GetCapabilityState(entity);
+            var disabledTypeIds = state.CustomData?.TryGetValue(KEY_DISABLED_TYPE_IDS, out var idsValue) == true 
+                ? idsValue as List<int> 
+                : null;
+            
+            // 恢复新系统的 Capability（通过移除 Tag 禁用）
+            if (disabledTypeIds != null && disabledTypeIds.Count > 0)
             {
-                capability.OnActivate();
-                ASLogger.Instance.Debug($"[DeadCapability] Restored capability: {capability.Name}");
+                foreach (var typeId in disabledTypeIds)
+                {
+                    var capability = CapabilitySystem.GetCapability(typeId);
+                    if (capability == null)
+                        continue;
+                    
+                    // 通过移除 Tag 禁用来恢复
+                    foreach (var tag in capability.Tags)
+                    {
+                        entity.World.CapabilitySystem.EnableCapabilitiesByTag(entity, tag, entity.UniqueId);
+                    }
+                    
+                    ASLogger.Instance.Debug($"[DeadCapability] Restored new capability TypeId: {typeId}");
+                }
             }
             
-            _disabledCapabilities.Clear();
-        }
-        
-        /// <summary>
-        /// 清理时取消订阅
-        /// </summary>
-        public override void OnDeactivate()
-        {
-            base.OnDeactivate();
-            EventSystem.Instance.Unsubscribe<EntityDiedEventData>(OnEntityDied);
-            EventSystem.Instance.Unsubscribe<EntityRevivedEventData>(OnEntityRevived);
-        }
-        
-        /// <summary>
-        /// 添加白名单能力类型（静态方法，供外部配置）
-        /// </summary>
-        public static void AddWhitelistCapability(Type capabilityType)
-        {
-            if (capabilityType.IsSubclassOf(typeof(Capability)))
+            // 恢复旧系统的 Capability
+            foreach (var oldCapability in entity.Capabilities)
             {
-                _whitelistCapabilityTypes.Add(capabilityType);
+                if (oldCapability == null) continue;
+                
+                // 跳过白名单类型
+                if (oldCapability.GetType() == typeof(DeadCapabilityOld) || 
+                    oldCapability.GetType() == typeof(DeadCapability))
+                    continue;
+                
+                // 恢复旧系统的 Capability
+                if (!oldCapability.IsActive)
+                {
+                    oldCapability.OnActivate();
+                    ASLogger.Instance.Debug($"[DeadCapability] Restored old capability: {oldCapability.Name}");
+                }
             }
+            
+            // 清空被禁用的列表
+            if (state.CustomData == null)
+                state.CustomData = new Dictionary<string, object>();
+            
+            state.CustomData[KEY_DISABLED_TYPE_IDS] = new List<int>();
+            SetCapabilityState(entity, state);
+        }
+        
+        /// <summary>
+        /// 添加白名单 Capability TypeId（静态方法，供外部配置）
+        /// </summary>
+        public static void AddWhitelistTypeId(int typeId)
+        {
+            _whitelistTypeIds.Add(typeId);
         }
     }
 }
-
-
-

@@ -21,9 +21,9 @@
 ## 开发状态总览
 
 ### 当前版本
-- **版本号**: v1.6 (基础架构完成，开始迁移)
-- **状态**: 🟢 基础架构完成，开始 Capability 迁移
-- **功能完成度**: 40% (基础架构 100%，系统集成 100%，Capability 迁移 10%)
+- **版本号**: v1.7 (Capability 迁移进行中)
+- **状态**: 🟡 基础架构完成，Capability 迁移进行中（6/10 已完成）
+- **功能完成度**: 80% (基础架构 100%，系统集成 100%，Capability 迁移 80%)
 
 ### 阶段划分
 - ✅ **Phase 0**: 技术方案设计 - **已完成**
@@ -44,11 +44,18 @@
   - ✅ EntityFactory 和 Archetype 装配流程调整
   - ✅ LSUpdater 更新逻辑调整
   - ✅ 序列化兼容性（MemoryPack 支持）
-- 🟡 **Phase 2**: 简单 Capability 迁移 - **进行中**
-  - ✅ MovementCapabilityV2 实现（新架构示例，BaseUnitArchetype 已切换）
-  - ✅ DeadCapabilityV2 实现（支持新旧系统并存，事件处理通过闭包绑定 Entity）
-  - ✅ SkillDisplacementCapabilityV2 实现（CombatArchetype 已切换，注：Unity 可能需要刷新才能识别新文件）
-- ⏳ **Phase 3**: 复杂 Capability 迁移 - **待开发**
+- ✅ **Phase 2**: 简单 Capability 迁移 - **已完成**
+  - ✅ MovementCapability（已重命名，BaseUnitArchetype 已切换）
+  - ✅ DeadCapability（已重命名，支持新旧系统并存，事件处理通过闭包绑定 Entity）
+  - ✅ SkillDisplacementCapability（已重命名，CombatArchetype 已切换）
+- ✅ **Phase 3**: 复杂 Capability 迁移 - **已完成**
+  - ✅ ActionCapability（已重命名，ActionArchetype 兼容）
+  - ✅ SkillCapability（已重命名，CombatArchetype 兼容）
+  - ✅ SkillExecutorCapability（已重命名，CombatArchetype 兼容）
+  - ✅ AIFSMCapability（已重命名，AIArchetype 兼容）
+  - ✅ IdleStateCapability（已重命名，AIArchetype 兼容）
+  - ✅ MoveStateCapability（已重命名，AIArchetype 兼容）
+  - ✅ BattleStateCapability（已重命名，AIArchetype 兼容）
 - ⏳ **Phase 4**: 集成与优化 - **待开发**
 - ⏳ **Phase 5**: 清理与文档 - **待开发**
 
@@ -405,12 +412,31 @@ public void DestroyEntity(long entityId)
 
 ## 变更记录
 
+### 2025-11-04 (下午 - 第五阶段)
+- ✅ 迁移 AIFSMCapability 及相关状态 Capability
+  - ✅ AIFSMCapability（AI状态机调度）
+  - ✅ IdleStateCapability（空闲状态）
+  - ✅ MoveStateCapability（移动状态）
+  - ✅ BattleStateCapability（战斗状态）
+  - ✅ 所有AI相关Capability已迁移到新架构
+  - ✅ 更新MemoryPack注册
+
+### 2025-11-04 (下午 - 第四阶段)
+- ✅ 重命名已迁移的 Capability
+  - ✅ 旧文件重命名为 *Old（MovementCapabilityOld、DeadCapabilityOld、SkillDisplacementCapabilityOld、ActionCapabilityOld、SkillCapabilityOld、SkillExecutorCapabilityOld）
+  - ✅ 新文件去掉 V2 后缀（使用标准名称）
+  - ✅ 更新所有 Archetype 引用
+  - ✅ 更新 MemoryPack 注册
+- ✅ 迁移 ActionCapability、SkillCapability、SkillExecutorCapability
+  - ✅ 完整实现新架构版本
+  - ✅ 创建对应的 Old 版本用于兼容
+
 ### 2025-11-04 (下午 - 第三阶段)
-- ✅ 迁移 SkillDisplacementCapabilityV2
+- ✅ 迁移 SkillDisplacementCapability
   - ✅ 实现技能位移逻辑（基于 RootMotionData）
   - ✅ 优先级 150（高于 MovementCapability 的 100）
   - ✅ Tag：Movement、Skill
-  - ✅ CombatArchetype 已切换（注：Unity 可能需要刷新才能识别新文件）
+  - ✅ CombatArchetype 已切换
 
 ### 2025-11-04 (下午 - 第二阶段)
 - ✅ 迁移 DeadCapabilityV2
