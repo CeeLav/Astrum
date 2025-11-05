@@ -45,9 +45,9 @@
   - ✅ LSUpdater 更新逻辑调整
   - ✅ 序列化兼容性（MemoryPack 支持）
 - 🟡 **Phase 2**: 简单 Capability 迁移 - **进行中**
-  - ✅ MovementCapabilityV2 实现（新架构示例）
-  - ⏳ 迁移 DeadCapability
-  - ⏳ 迁移 SkillDisplacementCapability
+  - ✅ MovementCapabilityV2 实现（新架构示例，BaseUnitArchetype 已切换）
+  - ✅ DeadCapabilityV2 实现（支持新旧系统并存，事件处理通过闭包绑定 Entity）
+  - ✅ SkillDisplacementCapabilityV2 实现（CombatArchetype 已切换，注：Unity 可能需要刷新才能识别新文件）
 - ⏳ **Phase 3**: 复杂 Capability 迁移 - **待开发**
 - ⏳ **Phase 4**: 集成与优化 - **待开发**
 - ⏳ **Phase 5**: 清理与文档 - **待开发**
@@ -405,7 +405,22 @@ public void DestroyEntity(long entityId)
 
 ## 变更记录
 
-### 2025-11-04 (下午)
+### 2025-11-04 (下午 - 第三阶段)
+- ✅ 迁移 SkillDisplacementCapabilityV2
+  - ✅ 实现技能位移逻辑（基于 RootMotionData）
+  - ✅ 优先级 150（高于 MovementCapability 的 100）
+  - ✅ Tag：Movement、Skill
+  - ✅ CombatArchetype 已切换（注：Unity 可能需要刷新才能识别新文件）
+
+### 2025-11-04 (下午 - 第二阶段)
+- ✅ 迁移 DeadCapabilityV2
+  - ✅ 实现事件处理（通过闭包绑定 Entity）
+  - ✅ 支持新旧系统并存（同时处理 Tag 禁用和旧 Capability 实例）
+  - ✅ 白名单机制（TypeId 方式）
+  - ✅ 死亡/复活逻辑完整实现
+- ✅ BaseUnitArchetype 切换到 MovementCapabilityV2（真实环境测试通过）
+
+### 2025-11-04 (下午 - 第一阶段)
 - ✅ 完成基础架构实现
   - ✅ ICapability 接口、Capability<T> 基类
   - ✅ CapabilitySystem 调度系统
