@@ -477,12 +477,19 @@ namespace Astrum.Editor.RoleEditor.Modules
                 DrawGrid(_previewRenderUtility.camera);
             }
             
-            // 在相机渲染后，绘制碰撞盒（模型在原点，相对偏移直接绘制）
+            // 在相机渲染后，绘制碰撞盒（跟随模型的位移和旋转）
             if (!string.IsNullOrEmpty(_currentFrameCollisionInfo))
             {
+                // 获取模型当前的位置和旋转（考虑根节点位移）
+                Vector3 modelPosition = _previewInstance != null ? _previewInstance.transform.position : Vector3.zero;
+                Quaternion modelRotation = _previewInstance != null ? _previewInstance.transform.rotation : Quaternion.identity;
+                
                 Services.CollisionShapePreview.DrawCollisionInfo(
                     _currentFrameCollisionInfo, 
-                    _previewRenderUtility.camera
+                    _previewRenderUtility.camera,
+                    null, // 使用默认颜色
+                    modelPosition,
+                    modelRotation
                 );
             }
             

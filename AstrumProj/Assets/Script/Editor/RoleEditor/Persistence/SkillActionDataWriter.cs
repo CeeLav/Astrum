@@ -243,7 +243,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 校验触发帧格式
+        /// 校验触发帧格式（JSON格式）
         /// </summary>
         private static bool ValidateTriggerFramesFormat(string triggerFramesStr)
         {
@@ -252,60 +252,52 @@ namespace Astrum.Editor.RoleEditor.Persistence
             
             try
             {
-                // 使用智能分割（忽略括号内的逗号）
-                string[] frames = SplitIgnoringParentheses(triggerFramesStr, ',');
-                foreach (string frameStr in frames)
+                // 尝试解析JSON数组
+                var triggerFrames = Data.TriggerFrameData.ParseFromJSON(triggerFramesStr);
+                if (triggerFrames == null)
+                    return false;
+                
+                // 验证每个触发帧数据
+                foreach (var triggerFrame in triggerFrames)
                 {
-                    string trimmed = frameStr.Trim();
-                    if (string.IsNullOrEmpty(trimmed))
-                        continue;
-                    
-                    // 智能解析三部分：Frame / Trigger+Collision / EffectID
-                    int firstColonIndex = trimmed.IndexOf(':');
-                    if (firstColonIndex < 0)
+                    // 验证Type字段
+                    if (string.IsNullOrEmpty(triggerFrame.Type))
                         return false;
                     
-                    // 找到右括号位置（如果有）
-                    int lastParenIndex = trimmed.LastIndexOf(')');
-                    
-                    // 在右括号之后查找最后一个冒号
-                    int searchStartIndex = lastParenIndex > 0 ? lastParenIndex : firstColonIndex + 1;
-                    int lastColonIndex = trimmed.IndexOf(':', searchStartIndex);
-                    
-                    if (lastColonIndex < 0)
+                    // 验证帧范围（必须有Frame或StartFrame/EndFrame）
+                    if (!triggerFrame.Frame.HasValue && 
+                        (!triggerFrame.StartFrame.HasValue || !triggerFrame.EndFrame.HasValue))
                         return false;
                     
-                    // 分割三部分
-                    string framePart = trimmed.Substring(0, firstColonIndex).Trim();
-                    string triggerPart = trimmed.Substring(firstColonIndex + 1, lastColonIndex - firstColonIndex - 1).Trim();
-                    string effectIdPart = trimmed.Substring(lastColonIndex + 1).Trim();
+                    // 验证帧值有效性
+                    if (triggerFrame.Frame.HasValue && triggerFrame.Frame.Value < 0)
+                        return false;
+                    if (triggerFrame.StartFrame.HasValue && triggerFrame.StartFrame.Value < 0)
+                        return false;
+                    if (triggerFrame.EndFrame.HasValue && triggerFrame.EndFrame.Value < 0)
+                        return false;
+                    if (triggerFrame.StartFrame.HasValue && triggerFrame.EndFrame.HasValue &&
+                        triggerFrame.StartFrame.Value > triggerFrame.EndFrame.Value)
+                        return false;
                     
-                    // 验证帧号（支持范围：Frame5-10）
-                    string frameNumStr = framePart.Replace("Frame", "").Trim();
-                    if (frameNumStr.Contains("-"))
+                    // 根据类型验证特定字段
+                    switch (triggerFrame.Type)
                     {
-                        // 多帧格式：Frame5-10
-                        string[] frameRange = frameNumStr.Split('-');
-                        if (frameRange.Length != 2 || 
-                            !int.TryParse(frameRange[0].Trim(), out int startFrame) ||
-                            !int.TryParse(frameRange[1].Trim(), out int endFrame) ||
-                            startFrame < 0 || endFrame < 0 || startFrame > endFrame)
-                            return false;
+                        case "SkillEffect":
+                            if (string.IsNullOrEmpty(triggerFrame.TriggerType))
+                                return false;
+                            if (!triggerFrame.EffectId.HasValue || triggerFrame.EffectId.Value <= 0)
+                                return false;
+                            break;
+                        case "VFX":
+                            if (string.IsNullOrEmpty(triggerFrame.ResourcePath))
+                                return false;
+                            break;
+                        case "SFX":
+                            if (string.IsNullOrEmpty(triggerFrame.ResourcePath))
+                                return false;
+                            break;
                     }
-                    else
-                    {
-                        // 单帧格式：Frame5
-                        if (!int.TryParse(frameNumStr, out int frameNum) || frameNum < 0)
-                            return false;
-                    }
-                    
-                    // 验证触发类型
-                    if (string.IsNullOrEmpty(triggerPart))
-                        return false;
-                    
-                    // 验证效果ID
-                    if (!int.TryParse(effectIdPart, out int effectId) || effectId < 0)
-                        return false;
                 }
                 
                 return true;

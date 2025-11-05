@@ -4,6 +4,7 @@ using System.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using Astrum.Editor.RoleEditor.Timeline;
+using Newtonsoft.Json;
 
 namespace Astrum.Editor.RoleEditor.Data
 {
@@ -192,11 +193,21 @@ namespace Astrum.Editor.RoleEditor.Data
             {
                 clone.TriggerEffects.Add(new TriggerFrameData
                 {
+                    Frame = effect.Frame,
                     StartFrame = effect.StartFrame,
                     EndFrame = effect.EndFrame,
+                    Type = effect.Type,
                     TriggerType = effect.TriggerType,
+                    EffectId = effect.EffectId,
                     CollisionInfo = effect.CollisionInfo,
-                    EffectId = effect.EffectId
+                    ResourcePath = effect.ResourcePath,
+                    PositionOffset = effect.PositionOffset,
+                    Rotation = effect.Rotation,
+                    Scale = effect.Scale,
+                    PlaybackSpeed = effect.PlaybackSpeed,
+                    FollowCharacter = effect.FollowCharacter,
+                    Loop = effect.Loop,
+                    Volume = effect.Volume
                 });
             }
             
@@ -209,8 +220,8 @@ namespace Astrum.Editor.RoleEditor.Data
         // === 触发帧与时间轴事件的双向同步（Phase 4 实现） ===
         
         /// <summary>
-        /// 从时间轴事件同步到触发帧数据
-        /// 主数据源：TimelineEvents -> TriggerEffects -> TriggerFrames
+        /// 从时间轴事件同步到触发帧数据（统一JSON格式）
+        /// 主数据源：TimelineEvents -> TriggerEffects -> TriggerFrames JSON
         /// </summary>
         public void SyncFromTimelineEvents(List<TimelineEvent> events)
         {
@@ -218,36 +229,47 @@ namespace Astrum.Editor.RoleEditor.Data
             
             if (events == null || events.Count == 0)
             {
-                TriggerFrames = "";
+                TriggerFrames = "[]";
                 return;
             }
             
             foreach (var evt in events)
             {
-                // 只处理技能效果轨道的事件
-                if (evt.TrackType != "SkillEffect")
-                    continue;
+                TriggerFrameData data = null;
                 
                 try
                 {
-                    // 反序列化事件数据
-                    var eventData = evt.GetEventData<Timeline.EventData.SkillEffectEventData>();
-                    
-                    if (eventData == null)
+                    switch (evt.TrackType)
                     {
-                        Debug.LogWarning($"[SkillActionData] 无法解析事件数据: {evt.EventId}");
-                        continue;
+                        case "SkillEffect":
+                            data = ConvertSkillEffectToTriggerFrame(evt);
+                            break;
+                        case "VFX":
+                            data = ConvertVFXToTriggerFrame(evt);
+                            break;
+                        case "SFX":
+                            data = ConvertSFXToTriggerFrame(evt);
+                            break;
+                        default:
+                            // 忽略其他轨道类型（如BeCancelTag）
+                            continue;
                     }
                     
-                    // 创建触发帧数据
-                    TriggerEffects.Add(new TriggerFrameData
+                    if (data != null)
                     {
-                        StartFrame = evt.StartFrame,
-                        EndFrame = evt.EndFrame,
-                        TriggerType = eventData.TriggerType,
-                        CollisionInfo = eventData.CollisionInfo,
-                        EffectId = eventData.EffectId
-                    });
+                        // 设置帧范围（单帧或多帧）
+                        if (evt.IsSingleFrame())
+                        {
+                            data.Frame = evt.StartFrame;
+                        }
+                        else
+                        {
+                            data.StartFrame = evt.StartFrame;
+                            data.EndFrame = evt.EndFrame;
+                        }
+                        
+                        TriggerEffects.Add(data);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -255,48 +277,110 @@ namespace Astrum.Editor.RoleEditor.Data
                 }
             }
             
-            // 更新 TriggerFrames 字符串
-            TriggerFrames = TriggerFrameData.SerializeToString(TriggerEffects);
+            // 序列化为JSON
+            TriggerFrames = TriggerFrameData.SerializeToJSON(TriggerEffects);
             
-            Debug.Log($"[SkillActionData] SyncFromTimelineEvents: 同步 {TriggerEffects.Count} 个触发帧, TriggerFrames=\"{TriggerFrames}\"");
+            Debug.Log($"[SkillActionData] SyncFromTimelineEvents: 同步 {TriggerEffects.Count} 个触发帧");
         }
         
         /// <summary>
-        /// 从触发帧数据构建时间轴事件
-        /// 加载流程：TriggerFrames -> TriggerEffects -> TimelineEvents
+        /// 转换技能效果事件为触发帧数据
+        /// </summary>
+        private TriggerFrameData ConvertSkillEffectToTriggerFrame(TimelineEvent evt)
+        {
+            var eventData = evt.GetEventData<Timeline.EventData.SkillEffectEventData>();
+            if (eventData == null)
+            {
+                Debug.LogWarning($"[SkillActionData] 无法解析技能效果事件数据: {evt.EventId}");
+                return null;
+            }
+            
+            return new TriggerFrameData
+            {
+                Type = "SkillEffect",
+                TriggerType = eventData.TriggerType,
+                EffectId = eventData.EffectId,
+                CollisionInfo = eventData.CollisionInfo
+            };
+        }
+        
+        /// <summary>
+        /// 转换特效事件为触发帧数据
+        /// </summary>
+        private TriggerFrameData ConvertVFXToTriggerFrame(TimelineEvent evt)
+        {
+            var eventData = evt.GetEventData<Timeline.EventData.VFXEventData>();
+            if (eventData == null)
+            {
+                Debug.LogWarning($"[SkillActionData] 无法解析特效事件数据: {evt.EventId}");
+                return null;
+            }
+            
+            return new TriggerFrameData
+            {
+                Type = "VFX",
+                ResourcePath = eventData.ResourcePath,
+                PositionOffset = eventData.PositionOffset,
+                Rotation = eventData.Rotation,
+                Scale = eventData.Scale,
+                PlaybackSpeed = eventData.PlaybackSpeed,
+                FollowCharacter = eventData.FollowCharacter,
+                Loop = eventData.Loop
+            };
+        }
+        
+        /// <summary>
+        /// 转换音效事件为触发帧数据
+        /// </summary>
+        private TriggerFrameData ConvertSFXToTriggerFrame(TimelineEvent evt)
+        {
+            var eventData = evt.GetEventData<Timeline.EventData.SFXEventData>();
+            if (eventData == null)
+            {
+                Debug.LogWarning($"[SkillActionData] 无法解析音效事件数据: {evt.EventId}");
+                return null;
+            }
+            
+            return new TriggerFrameData
+            {
+                Type = "SFX",
+                ResourcePath = eventData.ResourcePath,
+                Volume = eventData.Volume
+            };
+        }
+        
+        /// <summary>
+        /// 从触发帧数据构建时间轴事件（统一JSON格式）
+        /// 加载流程：TriggerFrames JSON -> TriggerEffects -> TimelineEvents
         /// </summary>
         public List<TimelineEvent> BuildTimelineFromTriggerEffects()
         {
             var timelineEvents = new List<TimelineEvent>();
             
-            foreach (var effect in TriggerEffects)
+            foreach (var triggerData in TriggerEffects)
             {
-                // 创建技能效果事件数据
-                var eventData = new Timeline.EventData.SkillEffectEventData
+                TimelineEvent evt = null;
+                
+                switch (triggerData.Type)
                 {
-                    EffectId = effect.EffectId,
-                    TriggerType = effect.TriggerType,
-                    CollisionInfo = effect.CollisionInfo
-                };
+                    case "SkillEffect":
+                        evt = ConvertSkillEffectToTimelineEvent(triggerData);
+                        break;
+                    case "VFX":
+                        evt = ConvertVFXToTimelineEvent(triggerData);
+                        break;
+                    case "SFX":
+                        evt = ConvertSFXToTimelineEvent(triggerData);
+                        break;
+                    default:
+                        Debug.LogWarning($"[SkillActionData] 未知的触发类型: {triggerData.Type}");
+                        continue;
+                }
                 
-                // 刷新效果详情（从配置表读取）
-                eventData.RefreshFromTable();
-                eventData.ParseCollisionInfo();
-                
-                // 创建时间轴事件
-                var evt = new TimelineEvent
+                if (evt != null)
                 {
-                    EventId = System.Guid.NewGuid().ToString(),
-                    TrackType = "SkillEffect",
-                    StartFrame = effect.StartFrame,
-                    EndFrame = effect.EndFrame,
-                    DisplayName = eventData.GetDisplayName()
-                };
-                
-                // 序列化事件数据
-                evt.SetEventData(eventData);
-                
-                timelineEvents.Add(evt);
+                    timelineEvents.Add(evt);
+                }
             }
             
             Debug.Log($"[SkillActionData] BuildTimelineFromTriggerEffects: 创建 {timelineEvents.Count} 个时间轴事件");
@@ -304,38 +388,236 @@ namespace Astrum.Editor.RoleEditor.Data
         }
         
         /// <summary>
-        /// 解析 TriggerFrames 字符串为 TriggerEffects 列表
+        /// 转换技能效果触发帧数据为时间轴事件
+        /// </summary>
+        private TimelineEvent ConvertSkillEffectToTimelineEvent(TriggerFrameData triggerData)
+        {
+            var eventData = new Timeline.EventData.SkillEffectEventData
+            {
+                EffectId = triggerData.EffectId ?? 0,
+                TriggerType = triggerData.TriggerType,
+                CollisionInfo = triggerData.CollisionInfo
+            };
+            
+            // 刷新效果详情（从配置表读取）
+            eventData.RefreshFromTable();
+            eventData.ParseCollisionInfo();
+            
+            var evt = new TimelineEvent
+            {
+                EventId = System.Guid.NewGuid().ToString(),
+                TrackType = "SkillEffect",
+                StartFrame = triggerData.GetStartFrame(),
+                EndFrame = triggerData.GetEndFrame(),
+                DisplayName = eventData.GetDisplayName()
+            };
+            
+            evt.SetEventData(eventData);
+            return evt;
+        }
+        
+        /// <summary>
+        /// 转换特效触发帧数据为时间轴事件
+        /// </summary>
+        private TimelineEvent ConvertVFXToTimelineEvent(TriggerFrameData triggerData)
+        {
+            var eventData = new Timeline.EventData.VFXEventData
+            {
+                ResourcePath = triggerData.ResourcePath,
+                PositionOffset = triggerData.PositionOffset ?? Vector3.zero,
+                Rotation = triggerData.Rotation ?? Vector3.zero,
+                Scale = triggerData.Scale ?? 1.0f,
+                PlaybackSpeed = triggerData.PlaybackSpeed ?? 1.0f,
+                FollowCharacter = triggerData.FollowCharacter ?? false,
+                Loop = triggerData.Loop ?? false
+            };
+            
+            var evt = new TimelineEvent
+            {
+                EventId = System.Guid.NewGuid().ToString(),
+                TrackType = "VFX",
+                StartFrame = triggerData.GetStartFrame(),
+                EndFrame = triggerData.GetEndFrame(),
+                DisplayName = eventData.GetDisplayName()
+            };
+            
+            evt.SetEventData(eventData);
+            return evt;
+        }
+        
+        /// <summary>
+        /// 转换音效触发帧数据为时间轴事件
+        /// </summary>
+        private TimelineEvent ConvertSFXToTimelineEvent(TriggerFrameData triggerData)
+        {
+            var eventData = new Timeline.EventData.SFXEventData
+            {
+                ResourcePath = triggerData.ResourcePath,
+                Volume = triggerData.Volume ?? 0.8f
+            };
+            
+            var evt = new TimelineEvent
+            {
+                EventId = System.Guid.NewGuid().ToString(),
+                TrackType = "SFX",
+                StartFrame = triggerData.GetStartFrame(),
+                EndFrame = triggerData.GetEndFrame(),
+                DisplayName = eventData.GetDisplayName()
+            };
+            
+            evt.SetEventData(eventData);
+            return evt;
+        }
+        
+        /// <summary>
+        /// 解析 TriggerFrames JSON 为 TriggerEffects 列表
         /// </summary>
         public void ParseTriggerFrames()
         {
-            TriggerEffects = TriggerFrameData.ParseFromString(TriggerFrames);
+            TriggerEffects = TriggerFrameData.ParseFromJSON(TriggerFrames);
         }
     }
     
     /// <summary>
-    /// 触发帧数据结构
-    /// 用于解析和序列化 TriggerFrames 字符串
-    /// 支持单帧和多帧范围
+    /// 触发帧数据结构（统一JSON格式）
+    /// 支持所有类型的触发帧：SkillEffect、VFX、SFX等
     /// </summary>
     [Serializable]
     public class TriggerFrameData
     {
-        public int StartFrame;       // 起始帧
-        public int EndFrame;         // 结束帧（单帧时 StartFrame == EndFrame）
-        public string TriggerType;   // Collision, Direct, Condition
-        public string CollisionInfo; // 碰撞盒信息（仅Collision类型使用）格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point
-        public int EffectId;         // 效果ID
+        // === 帧范围（二选一） ===
         
-        // 辅助属性
-        public bool IsSingleFrame => StartFrame == EndFrame;
-        public int Duration => EndFrame - StartFrame + 1;
+        /// <summary>单帧触发（与StartFrame/EndFrame互斥）</summary>
+        public int? Frame;
+        
+        /// <summary>多帧范围起始帧（与Frame互斥）</summary>
+        public int? StartFrame;
+        
+        /// <summary>多帧范围结束帧（与Frame互斥）</summary>
+        public int? EndFrame;
+        
+        // === 通用字段 ===
+        
+        /// <summary>触发类型（顶层类型）：SkillEffect、VFX、SFX等</summary>
+        public string Type = "";
+        
+        // === SkillEffect 字段 ===
+        
+        /// <summary>触发方式（SkillEffect内部）：Collision、Direct、Condition</summary>
+        public string TriggerType = "";
+        
+        /// <summary>效果ID（SkillEffect使用）</summary>
+        public int? EffectId;
+        
+        /// <summary>碰撞盒信息（仅Collision类型使用）</summary>
+        public string CollisionInfo = "";
+        
+        // === VFX 字段 ===
+        
+        /// <summary>特效资源路径（VFX使用）</summary>
+        public string ResourcePath = "";
+        
+        /// <summary>位置偏移（VFX使用）</summary>
+        public Vector3? PositionOffset;
+        
+        /// <summary>旋转（VFX使用）</summary>
+        public Vector3? Rotation;
+        
+        /// <summary>缩放（VFX使用）</summary>
+        public float? Scale;
+        
+        /// <summary>播放速度（VFX使用）</summary>
+        public float? PlaybackSpeed;
+        
+        /// <summary>是否跟随角色（VFX使用）</summary>
+        public bool? FollowCharacter;
+        
+        /// <summary>是否循环播放（VFX使用）</summary>
+        public bool? Loop;
+        
+        // === SFX 字段（预留） ===
+        
+        /// <summary>音量（SFX使用）</summary>
+        public float? Volume;
+        
+        // === 辅助属性 ===
+        
+        /// <summary>是否为单帧事件</summary>
+        public bool IsSingleFrame => Frame.HasValue || (StartFrame.HasValue && EndFrame.HasValue && StartFrame == EndFrame);
+        
+        /// <summary>获取起始帧</summary>
+        public int GetStartFrame()
+        {
+            if (Frame.HasValue) return Frame.Value;
+            if (StartFrame.HasValue) return StartFrame.Value;
+            return 0;
+        }
+        
+        /// <summary>获取结束帧</summary>
+        public int GetEndFrame()
+        {
+            if (Frame.HasValue) return Frame.Value;
+            if (EndFrame.HasValue) return EndFrame.Value;
+            return 0;
+        }
+        
+        /// <summary>获取持续时间（帧数）</summary>
+        public int Duration => GetEndFrame() - GetStartFrame() + 1;
         
         /// <summary>
-        /// 解析字符串为触发帧列表
+        /// 从JSON字符串解析触发帧列表
+        /// </summary>
+        public static List<TriggerFrameData> ParseFromJSON(string jsonStr)
+        {
+            var result = new List<TriggerFrameData>();
+            
+            if (string.IsNullOrWhiteSpace(jsonStr))
+                return result;
+            
+            try
+            {
+                // 使用Newtonsoft.Json直接解析数组
+                result = JsonConvert.DeserializeObject<List<TriggerFrameData>>(jsonStr);
+                if (result == null)
+                {
+                    result = new List<TriggerFrameData>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[TriggerFrameData] JSON解析错误: {ex.Message}\nJSON内容: {jsonStr}");
+            }
+            
+            return result;
+        }
+        
+        /// <summary>
+        /// 序列化触发帧列表为JSON字符串
+        /// </summary>
+        public static string SerializeToJSON(List<TriggerFrameData> triggerFrames)
+        {
+            if (triggerFrames == null || triggerFrames.Count == 0)
+                return "[]";
+            
+            try
+            {
+                // 使用Newtonsoft.Json直接序列化数组
+                return JsonConvert.SerializeObject(triggerFrames, Formatting.None);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[TriggerFrameData] JSON序列化错误: {ex.Message}");
+                return "[]";
+            }
+        }
+        
+        /// <summary>
+        /// 解析字符串为触发帧列表（旧格式，用于数据迁移）
         /// 支持单帧和多帧格式
         /// 单帧: "Frame5:Collision(Box:5x2x1):4001"
         /// 多帧: "Frame5-10:Collision(Box:5x2x1):4001"
         /// </summary>
+        [System.Obsolete("使用ParseFromJSON替代，此方法仅用于数据迁移")]
         public static List<TriggerFrameData> ParseFromString(string triggerFramesStr)
         {
             var result = new List<TriggerFrameData>();
@@ -440,14 +722,27 @@ namespace Astrum.Editor.RoleEditor.Data
                         continue;
                     }
                     
-                    result.Add(new TriggerFrameData
+                    // 转换为新格式：添加Type字段
+                    var data = new TriggerFrameData
                     {
-                        StartFrame = startFrame,
-                        EndFrame = endFrame,
+                        Type = "SkillEffect",
                         TriggerType = triggerType,
                         CollisionInfo = collisionInfo,
                         EffectId = effectId
-                    });
+                    };
+                    
+                    // 设置帧范围（单帧或多帧）
+                    if (startFrame == endFrame)
+                    {
+                        data.Frame = startFrame;
+                    }
+                    else
+                    {
+                        data.StartFrame = startFrame;
+                        data.EndFrame = endFrame;
+                    }
+                    
+                    result.Add(data);
                 }
             }
             catch (Exception ex)
@@ -504,22 +799,26 @@ namespace Astrum.Editor.RoleEditor.Data
         }
         
         /// <summary>
-        /// 序列化触发帧列表为字符串
+        /// 序列化触发帧列表为字符串（旧格式，用于数据迁移）
         /// 自动判断单帧/多帧格式
         /// </summary>
+        [System.Obsolete("使用SerializeToJSON替代，此方法仅用于数据迁移")]
         public static string SerializeToString(List<TriggerFrameData> triggerEffects)
         {
             if (triggerEffects == null || triggerEffects.Count == 0)
                 return "";
             
             var parts = triggerEffects
-                .OrderBy(t => t.StartFrame)
+                .OrderBy(t => t.GetStartFrame())
                 .Select(t => 
                 {
+                    int startFrame = t.GetStartFrame();
+                    int endFrame = t.GetEndFrame();
+                    
                     // 帧范围部分
                     string framePart = t.IsSingleFrame 
-                        ? $"Frame{t.StartFrame}" 
-                        : $"Frame{t.StartFrame}-{t.EndFrame}";
+                        ? $"Frame{startFrame}" 
+                        : $"Frame{startFrame}-{endFrame}";
                     
                     // 触发类型部分（如果有碰撞盒信息，格式化为 Collision(Box:5x2x1)）
                     string triggerPart = t.TriggerType;

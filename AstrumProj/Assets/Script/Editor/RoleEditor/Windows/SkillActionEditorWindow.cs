@@ -557,7 +557,10 @@ namespace Astrum.Editor.RoleEditor.Windows
             
             // 回退：从 TriggerEffects 中查找（兼容旧数据）
             var frameData = _selectedSkillAction.TriggerEffects
-                .FirstOrDefault(t => frame >= t.StartFrame && frame <= t.EndFrame && 
+                .FirstOrDefault(t => t.Type == "SkillEffect" && 
+                                     t.TriggerType == "Collision" &&
+                                     frame >= t.GetStartFrame() && 
+                                     frame <= t.GetEndFrame() && 
                                      !string.IsNullOrEmpty(t.CollisionInfo));
             
             if (frameData != null)
