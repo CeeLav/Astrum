@@ -260,7 +260,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 更新特效预览
             if (_vfxPreviewManager != null)
             {
-                _vfxPreviewManager.UpdateFrame(_currentFrame);
+                _vfxPreviewManager.UpdateFrame(_currentFrame, _isPlaying);
                 _vfxPreviewManager.UpdateVFXPositions();
             }
         }
@@ -741,7 +741,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 更新特效预览
             if (_vfxPreviewManager != null)
             {
-                _vfxPreviewManager.UpdateFrame(_currentFrame);
+                _vfxPreviewManager.UpdateFrame(_currentFrame, _isPlaying);
                 _vfxPreviewManager.UpdateVFXPositions();
             }
             

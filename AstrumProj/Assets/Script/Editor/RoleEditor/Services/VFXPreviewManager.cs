@@ -21,6 +21,7 @@ namespace Astrum.Editor.RoleEditor.Services
         
         // === 当前帧和事件列表 ===
         private int _currentFrame = -1;
+        private bool _isPlaying = false;
         private List<TimelineEvent> _vfxEvents = new List<TimelineEvent>();
         
         protected string LogPrefix => "[VFXPreviewManager]";
@@ -52,18 +53,30 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <summary>
         /// 更新当前帧，检测并触发/停止特效
         /// </summary>
-        public void UpdateFrame(int frame)
+        /// <param name="frame">当前帧</param>
+        /// <param name="isPlaying">是否正在播放动画</param>
+        public void UpdateFrame(int frame, bool isPlaying = true)
         {
-            if (_currentFrame == frame)
-                return; // 同一帧不需要重复更新
+            bool frameChanged = _currentFrame != frame;
+            bool playStateChanged = _isPlaying != isPlaying;
+            
+            if (!frameChanged && !playStateChanged && isPlaying)
+                return; // 同一帧、同一播放状态且在播放，不需要重复更新
             
             _currentFrame = frame;
+            _isPlaying = isPlaying;
             
             // 清理已结束的特效
             CleanupFinishedVFX(frame);
             
             // 检测并触发新的特效
             TriggerVFXAtFrame(frame);
+            
+            // 如果不在播放状态，需要让特效模拟到对应时间
+            if (!isPlaying)
+            {
+                UpdateVFXToFrame(frame);
+            }
         }
         
         /// <summary>
@@ -102,7 +115,6 @@ namespace Astrum.Editor.RoleEditor.Services
                 {
                     Object.DestroyImmediate(vfxInstance);
                     _activeVFX.Remove(eventId);
-                    Debug.Log($"{LogPrefix} 清理特效: {eventId}");
                 }
             }
         }
@@ -178,8 +190,6 @@ namespace Astrum.Editor.RoleEditor.Services
             vfxInstance.transform.position = position;
             vfxInstance.transform.rotation = rotation;
             
-            Debug.Log($"{LogPrefix} 特效位置设置: Position={position}, Rotation={rotation.eulerAngles}, Parent={_parentObject.transform.position}");
-            
             // 应用缩放
             if (vfxData.Scale != 1.0f)
             {
@@ -190,7 +200,6 @@ namespace Astrum.Editor.RoleEditor.Services
             if (vfxData.FollowCharacter)
             {
                 vfxInstance.transform.SetParent(_parentObject.transform);
-                Debug.Log($"{LogPrefix} 特效设置为跟随角色: {vfxData.ResourcePath}");
             }
             
             // 无论是否跟随角色，都需要添加到 PreviewRenderUtility 才能被渲染
@@ -198,27 +207,15 @@ namespace Astrum.Editor.RoleEditor.Services
             // 如果不跟随，需要单独添加
             if (_previewRenderUtility != null)
             {
-                if (vfxData.FollowCharacter)
-                {
-                    // 跟随角色时，父对象已经在预览场景中，特效作为子对象会自动包含
-                    // 但为了确保，我们仍然添加一次（如果父对象已经在预览场景中，AddSingleGO 不会重复添加）
-                    Debug.Log($"{LogPrefix} 特效跟随角色，已通过父对象包含在预览场景中");
-                }
-                else
+                if (!vfxData.FollowCharacter)
                 {
                     // 不跟随角色时，需要手动添加到 PreviewRenderUtility
                     _previewRenderUtility.AddSingleGO(vfxInstance);
-                    Debug.Log($"{LogPrefix} 特效添加到 PreviewRenderUtility: {vfxData.ResourcePath}, Position={vfxInstance.transform.position}");
                 }
-            }
-            else
-            {
-                Debug.LogWarning($"{LogPrefix} PreviewRenderUtility 为空，无法添加特效到预览场景");
             }
             
             // 设置播放速度（如果有 ParticleSystem）
             var particleSystems = vfxInstance.GetComponentsInChildren<ParticleSystem>();
-            Debug.Log($"{LogPrefix} 找到 {particleSystems.Length} 个粒子系统");
             
             foreach (var ps in particleSystems)
             {
@@ -227,14 +224,6 @@ namespace Astrum.Editor.RoleEditor.Services
                 
                 // 播放粒子系统
                 ps.Play(true); // 使用 withChildren=true 确保子粒子系统也被播放
-                
-                Debug.Log($"{LogPrefix} 播放粒子系统: {ps.name}, simulationSpeed={vfxData.PlaybackSpeed}, isPlaying={ps.isPlaying}");
-            }
-            
-            // 如果没有粒子系统，记录警告
-            if (particleSystems.Length == 0)
-            {
-                Debug.LogWarning($"{LogPrefix} 特效中没有找到粒子系统: {vfxData.ResourcePath}");
             }
             
             // 设置循环（如果有 ParticleSystem）
@@ -252,8 +241,6 @@ namespace Astrum.Editor.RoleEditor.Services
             
             // 添加到活跃列表
             _activeVFX[evt.EventId] = vfxInstance;
-            
-            Debug.Log($"{LogPrefix} 播放特效: {vfxData.ResourcePath} (EventId: {evt.EventId}, Frame: {evt.StartFrame}-{evt.EndFrame})");
         }
         
         /// <summary>
@@ -261,21 +248,20 @@ namespace Astrum.Editor.RoleEditor.Services
         /// </summary>
         public void UpdateParticleSystems(float deltaTime)
         {
+            // 如果不在播放状态，特效已经在 UpdateVFXToFrame 中设置到对应时间，不需要继续累积更新
+            if (!_isPlaying)
+                return;
+            
             foreach (var kvp in _activeVFX)
             {
                 GameObject vfxInstance = kvp.Value;
                 if (vfxInstance == null || !vfxInstance.activeSelf)
-                {
-                    Debug.LogWarning($"{LogPrefix} 特效实例为空或未激活: {kvp.Key}");
                     continue;
-                }
                 
                 // 更新所有粒子系统
                 var particleSystems = vfxInstance.GetComponentsInChildren<ParticleSystem>(true); // 包含未激活的
                 if (particleSystems.Length == 0)
-                {
                     continue;
-                }
                 
                 foreach (var ps in particleSystems)
                 {
@@ -297,6 +283,66 @@ namespace Astrum.Editor.RoleEditor.Services
                     // 手动模拟粒子系统（PreviewRenderUtility 不会自动更新）
                     // 使用 withChildren=true 确保子粒子系统也被更新
                     ps.Simulate(deltaTime, true, false);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 更新特效到指定帧（用于暂停状态下预览）
+        /// </summary>
+        private void UpdateVFXToFrame(int frame)
+        {
+            const float FRAME_TIME = 0.05f; // 20fps = 50ms/帧
+            
+            // 遍历所有活跃的特效，更新它们到对应时间
+            foreach (var kvp in _activeVFX)
+            {
+                string eventId = kvp.Key;
+                GameObject vfxInstance = kvp.Value;
+                
+                if (vfxInstance == null || !vfxInstance.activeSelf)
+                    continue;
+                
+                // 查找对应的事件
+                var evt = _vfxEvents.Find(e => e.EventId == eventId);
+                if (evt == null)
+                    continue;
+                
+                // 检查当前帧是否在特效范围内
+                if (frame < evt.StartFrame || frame > evt.EndFrame)
+                    continue;
+                
+                var vfxData = evt.GetEventData<Timeline.EventData.VFXEventData>();
+                if (vfxData == null)
+                    continue;
+                
+                // 计算特效已经播放的时间（从开始帧到当前帧）
+                int framesElapsed = frame - evt.StartFrame;
+                float timeElapsed = framesElapsed * FRAME_TIME;
+                
+                // 应用播放速度
+                float actualTime = timeElapsed / vfxData.PlaybackSpeed;
+                
+                // 更新所有粒子系统到对应时间
+                var particleSystems = vfxInstance.GetComponentsInChildren<ParticleSystem>(true);
+                foreach (var ps in particleSystems)
+                {
+                    if (ps == null)
+                        continue;
+                    
+                    // 确保粒子系统已激活
+                    if (!ps.gameObject.activeSelf)
+                    {
+                        ps.gameObject.SetActive(true);
+                    }
+                    
+                    // 重置并播放到指定时间
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    ps.Play(true);
+                    
+                    // 模拟到指定时间（使用 withChildren=true 确保子粒子系统也被更新）
+                    // 第三个参数 restart=true 表示从开始播放，然后模拟到指定时间
+                    ps.Simulate(actualTime, true, true);
                 }
             }
         }
