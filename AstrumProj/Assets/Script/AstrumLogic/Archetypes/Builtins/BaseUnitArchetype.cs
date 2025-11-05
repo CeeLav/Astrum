@@ -16,7 +16,7 @@ namespace Astrum.LogicCore.Archetypes
 
         private static readonly Type[] _caps =
         {
-            typeof(MovementCapability)
+            typeof(MovementCapabilityV2)  // 使用新架构的 MovementCapability
         };
 
         public override Type[] Components => _comps;
