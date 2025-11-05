@@ -420,6 +420,12 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 // 更新预览模块：加载动画
                 LoadAnimationForAction(_selectedSkillAction);
+                
+                // 设置 VFX 事件列表（用于特效预览）
+                if (_previewModule != null && _selectedSkillAction.TimelineEvents != null)
+                {
+                    _previewModule.SetVFXEvents(_selectedSkillAction.TimelineEvents);
+                }
             }
         }
         
@@ -722,6 +728,12 @@ namespace Astrum.Editor.RoleEditor.Windows
                 // 如果修改了动画路径或其他需要重新加载的字段，才重新加载动画
                 // 这里暂时保留 LoadAnimationForAction，但可以考虑优化为只更新必要的内容
                 LoadAnimationForAction(skillAction);
+                
+                // 更新 VFX 事件列表（如果修改了事件）
+                if (_previewModule != null && skillAction.TimelineEvents != null)
+                {
+                    _previewModule.SetVFXEvents(skillAction.TimelineEvents);
+                }
             }
         }
         
@@ -738,6 +750,12 @@ namespace Astrum.Editor.RoleEditor.Windows
                     // 直接从修改的事件中获取最新的碰撞盒信息
                     UpdateFrameCollisionInfoFromEvent(evt);
                     Repaint();
+                }
+                
+                // 更新 VFX 事件列表（如果修改了 VFX 事件）
+                if (_previewModule != null && _selectedSkillAction.TimelineEvents != null)
+                {
+                    _previewModule.SetVFXEvents(_selectedSkillAction.TimelineEvents);
                 }
             }
         }

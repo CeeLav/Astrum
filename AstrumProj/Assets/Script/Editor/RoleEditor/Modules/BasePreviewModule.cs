@@ -53,6 +53,11 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _previewRenderUtility.camera.farClipPlane = 100f;
                 _previewRenderUtility.camera.fieldOfView = 60f;
                 
+                // 确保相机能渲染粒子系统
+                _previewRenderUtility.camera.renderingPath = RenderingPath.Forward;
+                _previewRenderUtility.camera.allowHDR = false;
+                _previewRenderUtility.camera.allowMSAA = false;
+                
                 // 灯光
                 _previewRenderUtility.lights[0].intensity = 1.0f;
                 _previewRenderUtility.lights[0].transform.rotation = Quaternion.Euler(50f, 50f, 0f);

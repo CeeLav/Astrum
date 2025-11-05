@@ -42,6 +42,9 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 循环播放 ===
         private bool _isLooping = false; // 是否循环播放
         
+        // === 特效预览 ===
+        private VFXPreviewManager _vfxPreviewManager;
+        
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
         // === 实体管理 ===
@@ -75,6 +78,19 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 加载模型（使用基类方法）
             LoadModel(modelData.ModelPath);
+            
+            // 初始化特效预览管理器
+            if (_vfxPreviewManager == null)
+            {
+                _vfxPreviewManager = new VFXPreviewManager();
+            }
+            
+            // 设置父对象和预览渲染工具
+            if (_previewInstance != null)
+            {
+                _vfxPreviewManager.SetParent(_previewInstance);
+                _vfxPreviewManager.SetPreviewRenderUtility(_previewRenderUtility);
+            }
         }
         
         // === 动画加载 ===
@@ -196,6 +212,12 @@ namespace Astrum.Editor.RoleEditor.Modules
             _accumulatedTime = 0f;
             _playStartTime = 0.0;
             
+            // 清理所有特效
+            if (_vfxPreviewManager != null)
+            {
+                _vfxPreviewManager.ClearAll();
+            }
+            
             // 重置模型位置到初始位置
             if (_previewInstance != null)
             {
@@ -234,6 +256,31 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 根据位移数据手动累加位移（RootMotion关闭时需要手动应用）
             ApplyAccumulatedDisplacement(_currentFrame);
+            
+            // 更新特效预览
+            if (_vfxPreviewManager != null)
+            {
+                _vfxPreviewManager.UpdateFrame(_currentFrame);
+                _vfxPreviewManager.UpdateVFXPositions();
+            }
+        }
+        
+        /// <summary>
+        /// 设置 VFX 事件列表（用于特效预览）
+        /// </summary>
+        public void SetVFXEvents(System.Collections.Generic.List<Timeline.TimelineEvent> events)
+        {
+            if (_vfxPreviewManager == null)
+            {
+                _vfxPreviewManager = new VFXPreviewManager();
+                if (_previewInstance != null)
+                {
+                    _vfxPreviewManager.SetParent(_previewInstance);
+                }
+            }
+            
+            _vfxPreviewManager.SetVFXEvents(events);
+            _vfxPreviewManager.SetPreviewRenderUtility(_previewRenderUtility);
         }
         
         /// <summary>
@@ -497,6 +544,15 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 更新动画
             UpdateAnimation();
             
+            // 更新特效粒子系统（PreviewRenderUtility 不会自动更新）
+            if (_vfxPreviewManager != null)
+            {
+                // 使用固定时间步（PreviewRenderUtility 每帧都会调用，使用固定时间步更稳定）
+                // 约60fps的时间步
+                float deltaTime = 0.016f;
+                _vfxPreviewManager.UpdateParticleSystems(deltaTime);
+            }
+            
             // 渲染
             _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
             _previewRenderUtility.camera.Render();
@@ -682,6 +738,13 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 应用位移插值
             ApplyInterpolatedDisplacement(newAnimationTime);
             
+            // 更新特效预览
+            if (_vfxPreviewManager != null)
+            {
+                _vfxPreviewManager.UpdateFrame(_currentFrame);
+                _vfxPreviewManager.UpdateVFXPositions();
+            }
+            
             // 如果应该停止，停止播放
             if (shouldStop)
             {
@@ -727,6 +790,12 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 // 重置位移
                 ApplyAccumulatedDisplacement(0);
+                
+                // 清理所有特效
+                if (_vfxPreviewManager != null)
+                {
+                    _vfxPreviewManager.ClearAll();
+                }
             }
         }
         
@@ -752,6 +821,13 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         public override void Cleanup()
         {
+            // 清理特效预览管理器
+            if (_vfxPreviewManager != null)
+            {
+                _vfxPreviewManager.Cleanup();
+                _vfxPreviewManager = null;
+            }
+            
             // 清理网格材质
             if (_gridMaterial != null)
             {
