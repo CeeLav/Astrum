@@ -52,6 +52,15 @@
 - [伤害计算公式](数值系统/Damage-Calculation%20伤害计算.md) - 完整伤害计算流程
 - [配置表设计](数值系统/Stats-Config-Tables%20配置表.md) - 配置表扩展和数值规则
 
+### [受击与击退](技能效果/Hit-Reaction-And-Knockback%20受击与击退.md) ⭐ 新增
+受击反馈和击退效果的运行时实现
+
+**核心内容**:
+- HitReactionCapability - 受击处理
+- KnockbackCapability - 击退位移
+- KnockbackComponent - 击退数据
+- 基于事件队列的处理流程
+
 ---
 
 ## 🚀 开发进展
