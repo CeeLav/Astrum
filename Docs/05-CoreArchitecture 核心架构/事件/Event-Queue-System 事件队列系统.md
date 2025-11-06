@@ -27,31 +27,43 @@
 
 ### 1.1 设计目标
 
-当前系统中，实体通过 `EventSystem.Subscribe/Unsubscribe` 来监听事件。这种方式存在以下问题：
+**双轨制事件系统**：
 
-1. **订阅管理复杂**：需要在合适的时机订阅和取消订阅
-2. **生命周期耦合**：实体销毁时容易忘记取消订阅，导致内存泄漏
-3. **性能开销**：每次事件触发都需要遍历所有订阅者
-4. **实体主动性过强**：实体需要知道哪些事件需要监听
+1. **EventSystem（绑定式，保留）**：用于 View 层和系统级通信
+   - UI 交互、特效播放、音效触发
+   - 需要立即响应，无需排队
 
-**新设计**：引入**全局事件队列**，实体不再主动监听事件，而是在 Capability 更新时**主动消费**自己关心的事件。
+2. **EntityEventQueue（队列式，新增）**：用于 Logic 层实体间通信
+   - 伤害、治疗、击退、Buff/Debuff
+   - 需要排队处理，确保顺序和一致性
+   - **静态声明处理函数，预处理，专门的事件处理循环**
 
 ### 1.2 核心思想
 
 ```
-旧模式（推送模式）：
-事件发布者 --推送--> EventSystem --通知--> 订阅者
+【EventSystem - 绑定式（保留）】
+View组件 --发布--> EventSystem --立即回调--> 订阅者
 
-新模式（拉取模式）：
-事件发布者 --入队--> EntityEventQueue <--拉取-- Capability
+【EntityEventQueue - 队列式（新增）】
+系统/实体 --入队--> EntityEventQueue
+           ↓
+      CapabilitySystem.ProcessEntityEvents()
+           ↓
+      根据事件类型 → 查找预处理的回调映射 → 调用 Capability 处理函数
 ```
 
+**新模式的核心特性**：
+1. **静态声明**：Capability 类中声明自己处理的事件类型和处理函数
+2. **预处理**：CapabilitySystem 注册时提取并缓存事件映射
+3. **集中调度**：专门的事件处理循环统一分发事件
+4. **自动生命周期**：Capability 销毁时自动停止接收事件
+
 **优点**：
+- ✅ 声明式设计，一目了然
+- ✅ 预处理避免运行时反射
+- ✅ 集中调度，性能更优
 - ✅ 无需管理订阅/取消订阅
-- ✅ 生命周期由 Capability 自动管理
-- ✅ 只处理自己需要的事件
-- ✅ 更好的性能（批量处理）
-- ✅ 更清晰的职责分离
+- ✅ 生命周期自动管理
 
 ---
 
@@ -125,28 +137,38 @@ public void Publish<T>(T eventData)
 ### 2.2 新设计优势
 
 ```csharp
-// 新设计（无需订阅）
-public class HitReactionCapability : Capability
+// 新设计（静态声明）
+public class HitReactionCapability : Capability<HitReactionCapability>
 {
-    public override void Tick(Entity entity)
+    // 静态声明事件处理映射（类级别，只初始化一次）
+    protected override void RegisterEventHandlers()
     {
-        // 直接从队列中拉取针对自己的事件
-        var events = entity.World.EntityEventQueue.ConsumeEvents<SkillEffectEvent>(entity.UniqueId);
-        
-        // 批量处理
-        foreach (var evt in events)
-        {
-            ProcessSkillEffect(entity, evt);
-        }
+        RegisterEventHandler<SkillEffectEvent>(OnSkillEffect);
+        RegisterEventHandler<DamageEvent>(OnDamage);
+    }
+    
+    // 事件处理函数（自动被 CapabilitySystem 调度）
+    private void OnSkillEffect(Entity entity, SkillEffectEvent evt)
+    {
+        ProcessSkillEffect(entity, evt);
+    }
+    
+    private void OnDamage(Entity entity, DamageEvent evt)
+    {
+        ProcessDamage(entity, evt);
     }
 }
+
+// CapabilitySystem 会在注册时预处理这些映射，然后在事件循环中自动调度
 ```
 
 **优点**：
+- ✅ 声明式，一眼看出 Capability 处理哪些事件
+- ✅ 预处理，避免运行时开销
+- ✅ 集中调度，统一管理
 - ✅ 不需要订阅/取消订阅
-- ✅ Capability 销毁时自动停止消费
-- ✅ 只获取自己关心的事件，性能更好
-- ✅ 代码更简洁，职责更清晰
+- ✅ Capability 销毁时自动停止接收事件
+- ✅ 代码更清晰，职责更明确
 
 ---
 
@@ -157,45 +179,61 @@ public class HitReactionCapability : Capability
 ```
 ┌─────────────────────────────────────────┐
 │         EventSystem (View层)            │
-│  (保留用于View层组件间通信)              │
+│      (绑定式，保留不变)                   │
+│  Subscribe/Unsubscribe/Publish          │
 └─────────────────────────────────────────┘
 
-┌─────────────────────────────────────────┐
-│      EntityEventQueue (Logic层)         │
-│                                          │
-│  ┌────────────────────────────────┐    │
-│  │  Dictionary<long, EventQueue>  │    │
-│  │  EntityId -> 该实体的事件队列    │    │
-│  └────────────────────────────────┘    │
-│                                          │
-│  入队：QueueEvent(targetId, event)      │
-│  出队：ConsumeEvents<T>(targetId)        │
-│  清理：ClearEvents(targetId)             │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│               CapabilitySystem (Logic层)                 │
+│                                                           │
+│  ┌────────────────────────────────────────────────┐    │
+│  │  事件处理映射（预处理缓存）                      │    │
+│  │  Dictionary<Type, List<CapabilityEventHandler>> │    │
+│  │  EventType -> [处理该事件的Capability回调列表]   │    │
+│  └────────────────────────────────────────────────┘    │
+│                                                           │
+│  注册：RegisterCapability() 时提取 EventHandlers        │
+│  调度：ProcessEntityEvents() 遍历队列分发事件            │
+└─────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────┐
-│           World                          │
-│  - EntityEventQueue                      │
-│  - Entities                              │
-│  - Systems                               │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│               EntityEventQueue (Logic层)                 │
+│                                                           │
+│  ┌──────────────────────────────────────────────┐      │
+│  │  Dictionary<long, Queue<EntityEvent>>        │      │
+│  │  EntityId -> 该实体的事件队列                  │      │
+│  └──────────────────────────────────────────────┘      │
+│                                                           │
+│  入队：QueueEvent(targetId, eventType, eventData)        │
+│  清理：Clear(targetId)                                   │
+└─────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────┐
-│         Capability                       │
-│  - Tick() 中主动消费事件                  │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                  Capability (Logic层)                    │
+│                                                           │
+│  静态声明：RegisterEventHandlers()                        │
+│  处理函数：OnXXXEvent(Entity entity, XXXEvent evt)       │
+└─────────────────────────────────────────────────────────┘
+
+【调度流程】
+1. 系统/实体 → EntityEventQueue.QueueEvent(targetId, event)
+2. World.Update() → CapabilitySystem.ProcessEntityEvents()
+3. CapabilitySystem 遍历事件队列:
+   - 获取事件类型和目标实体
+   - 查找预处理的回调映射
+   - 调用实体对应 Capability 的处理函数
 ```
 
 ### 3.2 分层职责
 
-| 层级 | 事件系统 | 用途 |
-|------|----------|------|
-| **View层** | `EventSystem` | View组件间通信（UI、特效、音效） |
-| **Logic层** | `EntityEventQueue` | 实体间游戏逻辑事件 |
+| 层级 | 事件系统 | 模式 | 用途 |
+|------|----------|------|------|
+| **View层** | `EventSystem` | 绑定式 | View组件间通信（UI、特效、音效） |
+| **Logic层** | `EntityEventQueue` + `CapabilitySystem` | 队列式 | 实体间游戏逻辑事件（伤害、治疗、击退） |
 
 **分离原因**：
-- View层事件：立即响应，无需排队（如UI按钮点击）
-- Logic层事件：需要排队，确保顺序和一致性（如伤害、治疗）
+- **View层事件**：立即响应，无需排队（如UI按钮点击、特效播放）
+- **Logic层事件**：需要排队，集中调度，确保顺序和一致性（如伤害、治疗、击退）
 
 ---
 
@@ -203,22 +241,40 @@ public class HitReactionCapability : Capability
 
 ### 4.1 核心数据结构
 
-#### EntityEventQueue
+#### EntityEvent（事件包装）
 
 ```csharp
 namespace Astrum.LogicCore.Events
 {
     /// <summary>
-    /// 全局实体事件队列
-    /// 存储针对特定实体的事件，由 Capability 主动消费
+    /// 实体事件包装（统一的事件容器）
+    /// </summary>
+    public struct EntityEvent
+    {
+        public long TargetEntityId;  // 目标实体ID
+        public Type EventType;        // 事件类型
+        public object EventData;      // 事件数据（struct装箱）
+        public int Frame;             // 触发帧（用于排序/调试）
+    }
+}
+```
+
+#### EntityEventQueue（全局队列）
+
+```csharp
+namespace Astrum.LogicCore.Events
+{
+    /// <summary>
+    /// 全局实体事件队列（简化版，只负责存储）
+    /// 事件的分发由 CapabilitySystem 处理
     /// </summary>
     public class EntityEventQueue
     {
-        // 每个实体有自己的事件队列
-        private readonly Dictionary<long, EntityEventList> _entityQueues = new();
+        // 全局事件队列（按目标实体ID索引）
+        private readonly Dictionary<long, Queue<EntityEvent>> _entityQueues = new();
         
         // 对象池，减少GC
-        private readonly Queue<EntityEventList> _eventListPool = new();
+        private readonly Queue<Queue<EntityEvent>> _queuePool = new();
         
         /// <summary>
         /// 将事件加入目标实体的队列
@@ -227,42 +283,44 @@ namespace Astrum.LogicCore.Events
         {
             if (!_entityQueues.TryGetValue(targetEntityId, out var queue))
             {
-                queue = GetOrCreateEventList();
+                queue = GetOrCreateQueue();
                 _entityQueues[targetEntityId] = queue;
             }
             
-            queue.Add(eventData);
+            queue.Enqueue(new EntityEvent
+            {
+                TargetEntityId = targetEntityId,
+                EventType = typeof(T),
+                EventData = eventData, // 装箱
+                Frame = 0 // 可以从 World 获取当前帧
+            });
         }
         
         /// <summary>
-        /// 消费指定类型的事件（批量获取并清除）
+        /// 获取指定实体的所有事件（不消费，供 CapabilitySystem 调度）
         /// </summary>
-        public List<T> ConsumeEvents<T>(long targetEntityId) where T : struct
+        internal Queue<EntityEvent> GetEvents(long targetEntityId)
         {
-            if (!_entityQueues.TryGetValue(targetEntityId, out var queue))
-                return EmptyList<T>();
-            
-            var result = queue.GetEvents<T>();
-            
-            // 如果该实体的事件队列为空，回收队列对象
-            if (queue.IsEmpty)
-            {
-                _entityQueues.Remove(targetEntityId);
-                RecycleEventList(queue);
-            }
-            
-            return result;
+            return _entityQueues.TryGetValue(targetEntityId, out var queue) ? queue : null;
+        }
+        
+        /// <summary>
+        /// 获取所有有事件的实体ID
+        /// </summary>
+        internal IEnumerable<long> GetEntityIdsWithEvents()
+        {
+            return _entityQueues.Keys;
         }
         
         /// <summary>
         /// 清除指定实体的所有事件（实体销毁时调用）
         /// </summary>
-        public void ClearEvents(long targetEntityId)
+        public void Clear(long targetEntityId)
         {
             if (_entityQueues.TryGetValue(targetEntityId, out var queue))
             {
                 _entityQueues.Remove(targetEntityId);
-                RecycleEventList(queue);
+                RecycleQueue(queue);
             }
         }
         
@@ -273,81 +331,243 @@ namespace Astrum.LogicCore.Events
         {
             foreach (var queue in _entityQueues.Values)
             {
-                RecycleEventList(queue);
+                RecycleQueue(queue);
             }
             _entityQueues.Clear();
         }
         
-        private EntityEventList GetOrCreateEventList()
+        private Queue<EntityEvent> GetOrCreateQueue()
         {
-            if (_eventListPool.Count > 0)
-                return _eventListPool.Dequeue();
+            if (_queuePool.Count > 0)
+                return _queuePool.Dequeue();
             
-            return new EntityEventList();
+            return new Queue<EntityEvent>(16);
         }
         
-        private void RecycleEventList(EntityEventList list)
+        private void RecycleQueue(Queue<EntityEvent> queue)
         {
-            list.Clear();
-            _eventListPool.Enqueue(list);
+            queue.Clear();
+            _queuePool.Enqueue(queue);
         }
-        
-        private static List<T> EmptyList<T>() => new List<T>(0);
     }
 }
 ```
 
-#### EntityEventList
+### 4.2 Capability 事件处理声明
+
+#### Capability 基类扩展
 
 ```csharp
-namespace Astrum.LogicCore.Events
+namespace Astrum.LogicCore.Capabilities
 {
-    /// <summary>
-    /// 单个实体的事件列表（支持多种事件类型）
-    /// </summary>
-    internal class EntityEventList
+    public abstract class Capability<T> : CapabilityBase where T : Capability<T>, new()
     {
-        // 按类型存储事件
-        private readonly Dictionary<Type, IList> _eventsByType = new();
+        // 事件处理委托类型
+        protected delegate void EntityEventHandler<TEvent>(Entity entity, TEvent evt) where TEvent : struct;
         
-        public bool IsEmpty => _eventsByType.Count == 0;
+        // 存储注册的事件处理器
+        private Dictionary<Type, Delegate> _eventHandlers;
         
-        public void Add<T>(T eventData) where T : struct
+        /// <summary>
+        /// 注册事件处理函数（在子类中重写）
+        /// </summary>
+        protected virtual void RegisterEventHandlers() { }
+        
+        /// <summary>
+        /// 注册单个事件处理器
+        /// </summary>
+        protected void RegisterEventHandler<TEvent>(EntityEventHandler<TEvent> handler) where TEvent : struct
         {
-            var type = typeof(T);
+            if (_eventHandlers == null)
+                _eventHandlers = new Dictionary<Type, Delegate>();
             
-            if (!_eventsByType.TryGetValue(type, out var list))
-            {
-                list = new List<T>();
-                _eventsByType[type] = list;
-            }
-            
-            ((List<T>)list).Add(eventData);
+            _eventHandlers[typeof(TEvent)] = handler;
         }
         
-        public List<T> GetEvents<T>() where T : struct
+        /// <summary>
+        /// 获取所有注册的事件处理器（供 CapabilitySystem 使用）
+        /// </summary>
+        internal Dictionary<Type, Delegate> GetEventHandlers()
         {
-            var type = typeof(T);
-            
-            if (_eventsByType.TryGetValue(type, out var list))
+            if (_eventHandlers == null)
             {
-                var result = new List<T>((List<T>)list);
-                _eventsByType.Remove(type); // 消费后移除
-                return result;
+                RegisterEventHandlers(); // 延迟初始化
             }
-            
-            return new List<T>(0);
-        }
-        
-        public void Clear()
-        {
-            _eventsByType.Clear();
+            return _eventHandlers;
         }
     }
 }
 ```
 
-### 4.2 集成到 World
+#### 使用示例：HitReactionCapability
+
+```csharp
+namespace Astrum.LogicCore.Capabilities
+{
+    public class HitReactionCapability : Capability<HitReactionCapability>
+    {
+        public override int Priority => 200;
+        
+        // 声明处理的事件
+        protected override void RegisterEventHandlers()
+        {
+            RegisterEventHandler<SkillEffectEvent>(OnSkillEffect);
+            RegisterEventHandler<DamageEvent>(OnDamage);
+        }
+        
+        // 事件处理函数
+        private void OnSkillEffect(Entity entity, SkillEffectEvent evt)
+        {
+            // 处理技能效果
+            var effectConfig = GetEffectConfig(evt.EffectId);
+            if (effectConfig == null)
+                return;
+            
+            switch (effectConfig.EffectType)
+            {
+                case 3: // 击退
+                    ProcessKnockback(entity, evt, effectConfig);
+                    break;
+                // ... 其他效果类型
+            }
+        }
+        
+        private void OnDamage(Entity entity, DamageEvent evt)
+        {
+            // 处理伤害
+            PlayHitAction(entity, evt.CasterId);
+            PlayHitVFX(entity, evt.CasterId);
+        }
+    }
+}
+```
+
+### 4.3 CapabilitySystem 预处理和调度
+
+```csharp
+namespace Astrum.LogicCore.Core
+{
+    public class CapabilitySystem
+    {
+        // 事件处理映射（预处理缓存）
+        // Key: (EventType, CapabilityType), Value: Handler
+        private readonly Dictionary<(Type, Type), Delegate> _eventHandlerCache = new();
+        
+        // 快速查找：EventType -> List<(CapabilityType, Handler)>
+        private readonly Dictionary<Type, List<(Type, Delegate)>> _eventToHandlers = new();
+        
+        private World _world;
+        
+        /// <summary>
+        /// 注册 Capability 时预处理事件处理器
+        /// </summary>
+        public void RegisterCapability<T>(Entity entity) where T : Capability<T>, new()
+        {
+            var capability = new T();
+            capability.OnAttached(entity);
+            
+            // 提取事件处理器
+            var handlers = capability.GetEventHandlers();
+            if (handlers != null && handlers.Count > 0)
+            {
+                var capType = typeof(T);
+                foreach (var kvp in handlers)
+                {
+                    var eventType = kvp.Key;
+                    var handler = kvp.Value;
+                    
+                    // 缓存到全局映射
+                    _eventHandlerCache[(eventType, capType)] = handler;
+                    
+                    // 建立快速查找索引
+                    if (!_eventToHandlers.TryGetValue(eventType, out var list))
+                    {
+                        list = new List<(Type, Delegate)>();
+                        _eventToHandlers[eventType] = list;
+                    }
+                    list.Add((capType, handler));
+                }
+            }
+            
+            // ... 其他注册逻辑
+        }
+        
+        /// <summary>
+        /// 专门的事件处理循环（在 World.Update 中调用）
+        /// </summary>
+        public void ProcessEntityEvents()
+        {
+            var eventQueue = _world.EntityEventQueue;
+            var entityIds = eventQueue.GetEntityIdsWithEvents();
+            
+            foreach (var entityId in entityIds)
+            {
+                var entity = _world.GetEntity(entityId);
+                if (entity == null)
+                {
+                    eventQueue.Clear(entityId); // 实体不存在，清除事件
+                    continue;
+                }
+                
+                var events = eventQueue.GetEvents(entityId);
+                if (events == null || events.Count == 0)
+                    continue;
+                
+                // 处理该实体的所有事件
+                while (events.Count > 0)
+                {
+                    var evt = events.Dequeue();
+                    DispatchEvent(entity, evt);
+                }
+                
+                // 清理空队列
+                eventQueue.Clear(entityId);
+            }
+        }
+        
+        /// <summary>
+        /// 分发单个事件到对应的 Capability
+        /// </summary>
+        private void DispatchEvent(Entity entity, EntityEvent evt)
+        {
+            // 查找处理该事件类型的所有 Capability
+            if (!_eventToHandlers.TryGetValue(evt.EventType, out var handlers))
+                return; // 没有 Capability 处理此事件
+            
+            foreach (var (capType, handler) in handlers)
+            {
+                // 检查实体是否有该 Capability 且激活
+                if (!entity.HasCapability(capType))
+                    continue;
+                
+                var capability = entity.GetCapability(capType);
+                if (!capability.IsActive)
+                    continue;
+                
+                // 调用处理函数（反射调用，或通过 dynamic）
+                InvokeHandler(handler, entity, evt.EventData);
+            }
+        }
+        
+        /// <summary>
+        /// 调用事件处理器
+        /// </summary>
+        private void InvokeHandler(Delegate handler, Entity entity, object eventData)
+        {
+            try
+            {
+                handler.DynamicInvoke(entity, eventData); // 拆箱
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"Event handler invocation failed: {ex}");
+            }
+        }
+    }
+}
+```
+
+### 4.4 集成到 World
 
 ```csharp
 namespace Astrum.LogicCore.Core
@@ -357,20 +577,34 @@ namespace Astrum.LogicCore.Core
         // 全局事件队列
         public EntityEventQueue EntityEventQueue { get; private set; }
         
+        // Capability 系统
+        public CapabilitySystem CapabilitySystem { get; private set; }
+        
         // 其他系统...
         public HitSystem HitSystem { get; private set; }
-        public SkillEffectSystem SkillEffectSystem { get; private set; }
         
         public World(string name)
         {
             EntityEventQueue = new EntityEventQueue();
+            CapabilitySystem = new CapabilitySystem(this);
             // ...
+        }
+        
+        public void Update(float deltaTime)
+        {
+            // 1. 更新所有 Capability（可能会产生新事件）
+            CapabilitySystem.UpdateCapabilities(deltaTime);
+            
+            // 2. 处理本帧产生的所有事件
+            CapabilitySystem.ProcessEntityEvents();
+            
+            // 3. 更新其他系统...
         }
         
         public void OnEntityDestroyed(Entity entity)
         {
             // 清除该实体的所有待处理事件
-            EntityEventQueue.ClearEvents(entity.UniqueId);
+            EntityEventQueue.Clear(entity.UniqueId);
         }
         
         public void Reset()
@@ -436,29 +670,28 @@ _world.EntityEventQueue.QueueEvent(targetId, new BuffEvent
 });
 ```
 
-### 5.2 消费事件
+### 5.2 处理事件（静态声明）
 
-#### HitReactionCapability（消费者）
+#### HitReactionCapability（处理者）
 
 ```csharp
 public class HitReactionCapability : Capability<HitReactionCapability>
 {
-    public override void Tick(Entity entity)
+    public override int Priority => 200;
+    
+    // 静态声明：该 Capability 处理哪些事件
+    protected override void RegisterEventHandlers()
     {
-        // 从队列中获取针对该实体的技能效果事件
-        var events = entity.World.EntityEventQueue.ConsumeEvents<SkillEffectEvent>(entity.UniqueId);
-        
-        // 批量处理
-        foreach (var evt in events)
-        {
-            ProcessSkillEffect(entity, evt);
-        }
+        RegisterEventHandler<SkillEffectEvent>(OnSkillEffect);
     }
     
-    private void ProcessSkillEffect(Entity entity, SkillEffectEvent evt)
+    // 事件处理函数（由 CapabilitySystem 自动调度）
+    private void OnSkillEffect(Entity entity, SkillEffectEvent evt)
     {
         // 获取效果配置
         var config = GetEffectConfig(evt.EffectId);
+        if (config == null)
+            return;
         
         // 根据效果类型处理
         switch (config.EffectType)
@@ -469,36 +702,59 @@ public class HitReactionCapability : Capability<HitReactionCapability>
             // ...
         }
     }
+    
+    private void ProcessKnockback(Entity entity, SkillEffectEvent evt, SkillEffectConfig config)
+    {
+        // 写入击退数据到 KnockbackComponent
+        var knockback = GetOrAddComponent<KnockbackComponent>(entity);
+        knockback.IsKnockingBack = true;
+        knockback.Direction = CalculateDirection(evt.CasterId, entity.UniqueId);
+        knockback.TotalDistance = FP.FromFloat(config.EffectValue);
+        knockback.RemainingTime = FP.FromFloat(config.EffectDuration);
+        knockback.Speed = knockback.TotalDistance / knockback.RemainingTime;
+    }
 }
 ```
 
-#### 消费多种事件
+#### 处理多种事件
 
 ```csharp
 public class CombatCapability : Capability<CombatCapability>
 {
-    public override void Tick(Entity entity)
+    // 静态声明：处理多种事件
+    protected override void RegisterEventHandlers()
     {
-        // 消费伤害事件
-        var damageEvents = entity.World.EntityEventQueue.ConsumeEvents<DamageEvent>(entity.UniqueId);
-        foreach (var evt in damageEvents)
+        RegisterEventHandler<DamageEvent>(OnDamage);
+        RegisterEventHandler<HealEvent>(OnHeal);
+        RegisterEventHandler<BuffEvent>(OnBuff);
+    }
+    
+    // 每个事件类型对应一个处理函数
+    private void OnDamage(Entity entity, DamageEvent evt)
+    {
+        var health = GetComponent<HealthComponent>(entity);
+        if (health != null)
         {
-            ApplyDamage(entity, evt);
+            health.CurrentHP -= evt.Damage;
+            ASLogger.Instance.Debug($"Entity {entity.UniqueId} took {evt.Damage} damage");
         }
-        
-        // 消费治疗事件
-        var healEvents = entity.World.EntityEventQueue.ConsumeEvents<HealEvent>(entity.UniqueId);
-        foreach (var evt in healEvents)
+    }
+    
+    private void OnHeal(Entity entity, HealEvent evt)
+    {
+        var health = GetComponent<HealthComponent>(entity);
+        if (health != null)
         {
-            ApplyHeal(entity, evt);
+            health.CurrentHP += evt.HealAmount;
+            ASLogger.Instance.Debug($"Entity {entity.UniqueId} healed {evt.HealAmount} HP");
         }
-        
-        // 消费Buff事件
-        var buffEvents = entity.World.EntityEventQueue.ConsumeEvents<BuffEvent>(entity.UniqueId);
-        foreach (var evt in buffEvents)
-        {
-            AddBuff(entity, evt);
-        }
+    }
+    
+    private void OnBuff(Entity entity, BuffEvent evt)
+    {
+        var buff = GetOrAddComponent<BuffComponent>(entity);
+        buff.AddBuff(evt.BuffId, evt.Duration);
+        ASLogger.Instance.Debug($"Entity {entity.UniqueId} received buff {evt.BuffId}");
     }
 }
 ```

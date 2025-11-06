@@ -296,20 +296,17 @@ namespace Astrum.LogicCore.Capabilities
             return base.ShouldActivate(entity) &&
                    HasComponent<ActionComponent>(entity);
         }
-  
-        public override void Tick(Entity entity)
+        
+        // 静态声明：该 Capability 处理的事件
+        protected override void RegisterEventHandlers()
         {
-            // 从全局事件队列消费针对该实体的事件
-            var eventQueue = entity.World?.EntityEventQueue;
-            if (eventQueue == null)
-                return;
-    
-            // 获取并处理针对该实体的技能效果事件
-            var events = eventQueue.ConsumeEvents<SkillEffectEvent>(entity.UniqueId);
-            foreach (var evt in events)
-            {
-                ProcessSkillEffect(entity, evt);
-            }
+            RegisterEventHandler<SkillEffectEvent>(OnSkillEffect);
+        }
+        
+        // 事件处理函数（由 CapabilitySystem 自动调度）
+        private void OnSkillEffect(Entity entity, SkillEffectEvent evt)
+        {
+            ProcessSkillEffect(entity, evt);
         }
   
         private void ProcessSkillEffect(Entity entity, SkillEffectEvent evt)
