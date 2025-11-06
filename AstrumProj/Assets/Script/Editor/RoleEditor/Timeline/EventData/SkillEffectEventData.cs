@@ -13,8 +13,8 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
     {
         // === 核心数据 ===
         
-        /// <summary>效果ID</summary>
-        public int EffectId = 0;
+        /// <summary>效果ID列表（支持多个效果）</summary>
+        public List<int> EffectIds = new List<int>();
         
         /// <summary>触发类型</summary>
         public string TriggerType = "Direct"; // Direct, Collision, Condition
@@ -59,7 +59,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         {
             return new SkillEffectEventData
             {
-                EffectId = 0,
+                EffectIds = new List<int>(),
                 TriggerType = "Direct",
                 CollisionInfo = "",
                 EffectName = "",
@@ -76,11 +76,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         /// <summary>
         /// 从配置表创建（带效果详情）
         /// </summary>
-        public static SkillEffectEventData CreateFromTable(int effectId, string triggerType = "Direct", string collisionInfo = "")
+        public static SkillEffectEventData CreateFromTable(List<int> effectIds, string triggerType = "Direct", string collisionInfo = "")
         {
             var data = new SkillEffectEventData
             {
-                EffectId = effectId,
+                EffectIds = effectIds ?? new List<int>(),
                 TriggerType = triggerType,
                 CollisionInfo = collisionInfo
             };
@@ -92,13 +92,21 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         }
         
         /// <summary>
+        /// 从配置表创建（单个效果ID，兼容旧代码）
+        /// </summary>
+        public static SkillEffectEventData CreateFromTable(int effectId, string triggerType = "Direct", string collisionInfo = "")
+        {
+            return CreateFromTable(new List<int> { effectId }, triggerType, collisionInfo);
+        }
+        
+        /// <summary>
         /// 克隆数据
         /// </summary>
         public SkillEffectEventData Clone()
         {
             return new SkillEffectEventData
             {
-                EffectId = this.EffectId,
+                EffectIds = new List<int>(this.EffectIds),
                 TriggerType = this.TriggerType,
                 CollisionInfo = this.CollisionInfo,
                 EffectName = this.EffectName,
@@ -115,11 +123,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         // === 辅助方法 ===
         
         /// <summary>
-        /// 从配置表刷新效果详情
+        /// 从配置表刷新效果详情（使用第一个效果ID）
         /// </summary>
         public void RefreshFromTable()
         {
-            if (EffectId <= 0)
+            if (EffectIds == null || EffectIds.Count == 0 || EffectIds[0] <= 0)
             {
                 ClearEffectDetails();
                 return;
@@ -127,20 +135,30 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             
             try
             {
-                var effectConfig = Services.SkillEffectDataReader.GetSkillEffect(EffectId);
-                       if (effectConfig != null)
-                       {
-                           // 根据效果类型和数值生成友好的名称
-                           EffectName = GenerateEffectName(effectConfig);
-                           EffectType = effectConfig.EffectType;
-                           EffectValue = effectConfig.EffectValue;
-                           EffectRange = effectConfig.EffectRange;
-                           TargetType = effectConfig.TargetType;
-                           EffectDuration = effectConfig.EffectDuration;
-                       }
+                // 使用第一个效果ID来显示详情
+                int primaryEffectId = EffectIds[0];
+                var effectConfig = Services.SkillEffectDataReader.GetSkillEffect(primaryEffectId);
+                if (effectConfig != null)
+                {
+                    // 根据效果类型和数值生成友好的名称
+                    if (EffectIds.Count > 1)
+                    {
+                        EffectName = GenerateEffectName(effectConfig) + $" +{EffectIds.Count - 1}";
+                    }
+                    else
+                    {
+                        EffectName = GenerateEffectName(effectConfig);
+                    }
+                    
+                    EffectType = effectConfig.EffectType;
+                    EffectValue = effectConfig.EffectValue;
+                    EffectRange = effectConfig.EffectRange;
+                    TargetType = effectConfig.TargetType;
+                    EffectDuration = effectConfig.EffectDuration;
+                }
                 else
                 {
-                    Debug.LogWarning($"[SkillEffectEventData] 效果ID {EffectId} 在配置表中不存在");
+                    Debug.LogWarning($"[SkillEffectEventData] 效果ID {primaryEffectId} 在配置表中不存在");
                     ClearEffectDetails();
                 }
             }
@@ -214,9 +232,10 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                /// </summary>
                public string GetDisplayName()
                {
-                   if (EffectId == 0) return "[未设置效果]";
+                   if (EffectIds == null || EffectIds.Count == 0 || EffectIds[0] == 0) return "[未设置效果]";
                    
-                   return !string.IsNullOrEmpty(EffectName) ? EffectName : $"效果_{EffectId}";
+                   int primaryEffectId = EffectIds[0];
+                   return !string.IsNullOrEmpty(EffectName) ? EffectName : $"效果_{primaryEffectId}";
                }
         
         /// <summary>
@@ -224,7 +243,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         /// </summary>
         public string GetDetailText()
         {
-            if (EffectId == 0) return "未设置效果";
+            if (EffectIds == null || EffectIds.Count == 0 || EffectIds[0] == 0) return "未设置效果";
             
             string text = $"{GetDisplayName()}\n";
             text += $"类型: {GetEffectTypeName()}\n";
@@ -313,9 +332,19 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         {
             errors = new List<string>();
             
-            if (EffectId <= 0)
+            if (EffectIds == null || EffectIds.Count == 0)
             {
-                errors.Add("效果ID必须大于0");
+                errors.Add("至少需要一个效果ID");
+            }
+            else
+            {
+                foreach (var effectId in EffectIds)
+                {
+                    if (effectId <= 0)
+                    {
+                        errors.Add($"效果ID {effectId} 无效（必须大于0）");
+                    }
+                }
             }
             
             if (string.IsNullOrEmpty(TriggerType))

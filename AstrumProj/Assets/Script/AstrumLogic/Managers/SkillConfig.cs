@@ -285,30 +285,63 @@ namespace Astrum.LogicCore.Managers
                     {
                         // SkillEffect 类型
                         string triggerType = GetValue(TriggerFrameJsonKeys.TriggerType)?.ToString() ?? "";
-                        int effectId = 0;
                         
-                        var effectIdObj = GetValue(TriggerFrameJsonKeys.EffectId);
-                        if (effectIdObj != null)
+                        // 解析效果ID列表（支持单个或多个）
+                        List<int> effectIds = new List<int>();
+                        
+                        // 首先尝试解析 effectIds 数组
+                        var effectIdsObj = GetValue(TriggerFrameJsonKeys.EffectIds);
+                        if (effectIdsObj is Newtonsoft.Json.Linq.JArray effectIdsArray)
                         {
-                            if (!int.TryParse(effectIdObj.ToString(), out effectId))
-                                continue;
+                            foreach (var element in effectIdsArray)
+                            {
+                                if (int.TryParse(element.ToString(), out int id) && id > 0)
+                                {
+                                    effectIds.Add(id);
+                                }
+                            }
                         }
+                        // 兼容旧数据：如果没有 effectIds，尝试解析单个 effectId
                         else
                         {
-                            ASLogger.Instance.Warning("SkillEffect trigger missing effectId");
-                            continue;
+#pragma warning disable CS0618 // 类型或成员已过时
+                            var effectIdObj = GetValue(TriggerFrameJsonKeys.EffectId);
+#pragma warning restore CS0618
+                            if (effectIdObj != null && int.TryParse(effectIdObj.ToString(), out int singleId) && singleId > 0)
+                            {
+                                effectIds.Add(singleId);
+                            }
                         }
                         
-                        // 应用等级映射
-                        int baseEffectId = effectId;
-                        var effectResult = GetEffectValue(baseEffectId, skillLevel);
-                        if (effectResult.EffectData == null)
+                        if (effectIds.Count == 0)
                         {
-                            ASLogger.Instance.Warning($"Failed to get effect for base {baseEffectId} level {skillLevel}");
+                            ASLogger.Instance.Warning("SkillEffect trigger missing effectIds");
                             continue;
                         }
                         
-                        effectId = effectResult.EffectId;
+                        // 应用等级映射到每个效果ID
+                        List<int> mappedEffectIdsList = new List<int>();
+                        foreach (var baseEffectId in effectIds)
+                        {
+                            var effectResult = GetEffectValue(baseEffectId, skillLevel);
+                            if (effectResult.EffectData != null)
+                            {
+                                mappedEffectIdsList.Add(effectResult.EffectId);
+                            }
+                            else
+                            {
+                                ASLogger.Instance.Warning($"Failed to get effect for base {baseEffectId} level {skillLevel}");
+                            }
+                        }
+                        
+                        if (mappedEffectIdsList.Count == 0)
+                        {
+                            ASLogger.Instance.Warning("No valid effects after level mapping");
+                            continue;
+                        }
+                        
+                        // 转换为数组（MemoryPack 要求）
+                        int[] mappedEffectIds = mappedEffectIdsList.ToArray();
                         
                         // 解析碰撞信息
                         CollisionShape? collisionShape = null;
@@ -337,7 +370,7 @@ namespace Astrum.LogicCore.Managers
                                 Frame = frame.Value,
                                 Type = TriggerFrameJsonKeys.TypeSkillEffect,
                                 TriggerType = triggerType,
-                                EffectId = effectId,
+                                EffectIds = mappedEffectIds,
                                 CollisionShape = collisionShape,
                                 Condition = condition
                             });
@@ -354,7 +387,7 @@ namespace Astrum.LogicCore.Managers
                                     Frame = frameNum, // 当前帧号
                                     Type = TriggerFrameJsonKeys.TypeSkillEffect,
                                     TriggerType = triggerType,
-                                    EffectId = effectId,
+                                    EffectIds = mappedEffectIds,
                                     CollisionShape = collisionShape,
                                     Condition = condition
                                 });
@@ -611,9 +644,9 @@ namespace Astrum.LogicCore.Managers
                         TriggerFrameInfo triggerInfo = new TriggerFrameInfo
                         {
                             Frame = frame,
-                            Type = "SkillEffect",
+                            Type = TriggerFrameJsonKeys.TypeSkillEffect,
                             TriggerType = triggerType,
-                            EffectId = effectResult.EffectId
+                            EffectIds = new int[] { effectResult.EffectId }
                         };
                         
                         // 如果是 Collision 类型，从内联的碰撞盒信息解析 CollisionShape

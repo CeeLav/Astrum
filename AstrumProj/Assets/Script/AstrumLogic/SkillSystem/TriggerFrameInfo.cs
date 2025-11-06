@@ -1,6 +1,7 @@
 using MemoryPack;
 using Astrum.LogicCore.Physics;
 using System;
+using System.Collections.Generic;
 
 namespace Astrum.LogicCore.SkillSystem
 {
@@ -34,8 +35,8 @@ namespace Astrum.LogicCore.SkillSystem
         /// </summary>
         public string TriggerType { get; set; } = string.Empty;
         
-        /// <summary>效果ID（仅用于 SkillEffect 类型）</summary>
-        public int EffectId { get; set; }
+        /// <summary>效果ID列表（仅用于 SkillEffect 类型，支持多个效果）</summary>
+        public int[] EffectIds { get; set; } = new int[0];
         
         /// <summary>
         /// 碰撞形状（仅用于 SkillEffect.Collision 类型，已在配置解析时构造）
@@ -73,7 +74,7 @@ namespace Astrum.LogicCore.SkillSystem
         
         [MemoryPackConstructor]
         public TriggerFrameInfo(int frame, int? startFrame, int? endFrame, string type, string triggerType, 
-            int effectId, CollisionShape? collisionShape, TriggerCondition? condition,
+            int[] effectIds, CollisionShape? collisionShape, TriggerCondition? condition,
             string vfxResourcePath, float[] vfxPositionOffset, float[] vfxRotation,
             float vfxScale, float vfxPlaybackSpeed, bool vfxFollowCharacter, bool vfxLoop)
         {
@@ -82,7 +83,7 @@ namespace Astrum.LogicCore.SkillSystem
             EndFrame = endFrame;
             Type = type ?? "SkillEffect";
             TriggerType = triggerType ?? string.Empty;
-            EffectId = effectId;
+            EffectIds = effectIds ?? new int[0];
             CollisionShape = collisionShape;
             Condition = condition;
             VFXResourcePath = vfxResourcePath ?? string.Empty;

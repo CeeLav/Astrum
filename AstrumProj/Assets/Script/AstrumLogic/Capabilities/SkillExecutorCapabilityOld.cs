@@ -129,10 +129,16 @@ namespace Astrum.LogicCore.Capabilities
                 //skillInstanceId: skillAction.Id
             );
 
-            // 4. 对每个命中目标触发效果
+            // 4. 对每个命中目标触发所有效果
             foreach (var target in hits)
             {
-                TriggerSkillEffect(caster, target, trigger.EffectId);
+                if (trigger.EffectIds != null)
+                {
+                    foreach (var effectId in trigger.EffectIds)
+                    {
+                        TriggerSkillEffect(caster, target, effectId);
+                    }
+                }
             }
         }
         
@@ -141,7 +147,13 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void HandleDirectTrigger(Entity caster, TriggerFrameInfo trigger)
         {
-            TriggerSkillEffect(caster, caster, trigger.EffectId);
+            if (trigger.EffectIds != null)
+            {
+                foreach (var effectId in trigger.EffectIds)
+                {
+                    TriggerSkillEffect(caster, caster, effectId);
+                }
+            }
         }
         
         /// <summary>
@@ -170,8 +182,14 @@ namespace Astrum.LogicCore.Capabilities
                 // }
             }
             
-            // 触发效果
-            TriggerSkillEffect(caster, caster, trigger.EffectId);
+            // 触发所有效果
+            if (trigger.EffectIds != null)
+            {
+                foreach (var effectId in trigger.EffectIds)
+                {
+                    TriggerSkillEffect(caster, caster, effectId);
+                }
+            }
         }
         
         /// <summary>

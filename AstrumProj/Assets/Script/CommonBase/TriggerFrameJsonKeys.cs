@@ -24,8 +24,12 @@ namespace Astrum.CommonBase
         /// <summary>触发类型（SkillEffect 内部：Collision, Direct, Condition）</summary>
         public const string TriggerType = "triggerType";
         
-        /// <summary>效果ID</summary>
+        /// <summary>效果ID（单个，已废弃）</summary>
+        [System.Obsolete("使用 EffectIds 替代")]
         public const string EffectId = "effectId";
+        
+        /// <summary>效果ID列表（支持多个效果）</summary>
+        public const string EffectIds = "effectIds";
         
         /// <summary>碰撞信息（字符串格式）</summary>
         public const string CollisionInfo = "collisionInfo";

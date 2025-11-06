@@ -123,7 +123,10 @@ namespace Astrum.View.Components
                 {
                     var worldTransform = shape.ToWorldTransform(positionComp.Position, positionComp.Rotation);
                     Vector3 worldPos = TSVectorToVector3(worldTransform.WorldCenter);
-                    DrawLabel(worldPos, $"Frame {trigger.Frame}\nEffect {trigger.EffectId}");
+                    string effectText = trigger.EffectIds != null && trigger.EffectIds.Length > 0
+                        ? $"Effects [{string.Join(",", trigger.EffectIds)}]"
+                        : "No Effects";
+                    DrawLabel(worldPos, $"Frame {trigger.Frame}\n{effectText}");
                 }
                 
                 Gizmos.color = AttackBoxColor; // 恢复颜色

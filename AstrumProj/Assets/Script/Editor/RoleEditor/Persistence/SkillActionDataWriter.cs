@@ -286,7 +286,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                         case "SkillEffect":
                             if (string.IsNullOrEmpty(triggerFrame.TriggerType))
                                 return false;
-                            if (!triggerFrame.EffectId.HasValue || triggerFrame.EffectId.Value <= 0)
+                            if (triggerFrame.EffectIds == null || triggerFrame.EffectIds.Count == 0 || triggerFrame.EffectIds[0] <= 0)
                                 return false;
                             break;
                         case "VFX":

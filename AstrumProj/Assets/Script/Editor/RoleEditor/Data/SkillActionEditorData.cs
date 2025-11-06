@@ -199,7 +199,7 @@ namespace Astrum.Editor.RoleEditor.Data
                     EndFrame = effect.EndFrame,
                     Type = effect.Type,
                     TriggerType = effect.TriggerType,
-                    EffectId = effect.EffectId,
+                    EffectIds = effect.EffectIds != null ? new List<int>(effect.EffectIds) : new List<int>(),
                     CollisionInfo = effect.CollisionInfo,
                     ResourcePath = effect.ResourcePath,
                     PositionOffset = effect.PositionOffset,
@@ -300,7 +300,7 @@ namespace Astrum.Editor.RoleEditor.Data
             {
                 Type = TriggerFrameJsonKeys.TypeSkillEffect,
                 TriggerType = eventData.TriggerType,
-                EffectId = eventData.EffectId,
+                EffectIds = eventData.EffectIds != null ? new List<int>(eventData.EffectIds) : new List<int>(),
                 CollisionInfo = eventData.CollisionInfo
             };
         }
@@ -395,7 +395,7 @@ namespace Astrum.Editor.RoleEditor.Data
         {
             var eventData = new Timeline.EventData.SkillEffectEventData
             {
-                EffectId = triggerData.EffectId ?? 0,
+                EffectIds = triggerData.EffectIds != null ? new List<int>(triggerData.EffectIds) : new List<int>(),
                 TriggerType = triggerData.TriggerType,
                 CollisionInfo = triggerData.CollisionInfo
             };
@@ -507,8 +507,8 @@ namespace Astrum.Editor.RoleEditor.Data
         /// <summary>触发方式（SkillEffect内部）：Collision、Direct、Condition</summary>
         public string TriggerType = "";
         
-        /// <summary>效果ID（SkillEffect使用）</summary>
-        public int? EffectId;
+        /// <summary>效果ID列表（SkillEffect使用，支持多个效果）</summary>
+        public List<int> EffectIds = new List<int>();
         
         /// <summary>碰撞盒信息（仅Collision类型使用）</summary>
         public string CollisionInfo = "";
@@ -747,7 +747,7 @@ namespace Astrum.Editor.RoleEditor.Data
                         Type = "SkillEffect",
                         TriggerType = triggerType,
                         CollisionInfo = collisionInfo,
-                        EffectId = effectId
+                        EffectIds = new List<int> { effectId }
                     };
                     
                     // 设置帧范围（单帧或多帧）
@@ -846,7 +846,12 @@ namespace Astrum.Editor.RoleEditor.Data
                         triggerPart = $"{t.TriggerType}({t.CollisionInfo})";
                     }
                     
-                    return $"{framePart}:{triggerPart}:{t.EffectId}";
+                    // 效果ID部分（使用第一个效果ID，兼容旧格式）
+                    string effectIdPart = t.EffectIds != null && t.EffectIds.Count > 0
+                        ? t.EffectIds[0].ToString()
+                        : "0";
+                    
+                    return $"{framePart}:{triggerPart}:{effectIdPart}";
                 });
             
             return string.Join(",", parts);

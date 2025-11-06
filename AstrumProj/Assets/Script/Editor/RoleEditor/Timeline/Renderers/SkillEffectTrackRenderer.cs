@@ -28,7 +28,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             }
             
             // 刷新效果详情（如果需要）
-            if (effectData.EffectId > 0 && string.IsNullOrEmpty(effectData.EffectName))
+            if (effectData.EffectIds != null && effectData.EffectIds.Count > 0 && string.IsNullOrEmpty(effectData.EffectName))
             {
                 effectData.RefreshFromTable();
             }
@@ -154,44 +154,60 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             EditorGUILayout.LabelField("技能效果配置", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            // === 效果ID ===
+            // === 效果ID列表 ===
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.LabelField("效果信息", EditorStyles.boldLabel);
                 
-                EditorGUI.BeginChangeCheck();
-                int newEffectId = EditorGUILayout.IntField("效果ID", effectData.EffectId);
-                if (EditorGUI.EndChangeCheck())
+                // 显示当前效果ID列表
+                if (effectData.EffectIds == null)
                 {
-                    effectData.EffectId = newEffectId;
-                    effectData.RefreshFromTable();
+                    effectData.EffectIds = new System.Collections.Generic.List<int>();
+                }
+                
+                EditorGUILayout.LabelField($"效果数量: {effectData.EffectIds.Count}", EditorStyles.miniLabel);
+                
+                // 显示每个效果ID
+                for (int i = 0; i < effectData.EffectIds.Count; i++)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        int newEffectId = EditorGUILayout.IntField($"效果ID {i + 1}", effectData.EffectIds[i]);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            effectData.EffectIds[i] = newEffectId;
+                            effectData.RefreshFromTable();
+                            modified = true;
+                        }
+                        
+                        // 删除按钮
+                        if (GUILayout.Button("✖", GUILayout.Width(25), GUILayout.Height(18)))
+                        {
+                            effectData.EffectIds.RemoveAt(i);
+                            effectData.RefreshFromTable();
+                            modified = true;
+                            break;
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                
+                // 添加效果ID按钮
+                if (GUILayout.Button("➕ 添加效果ID", GUILayout.Height(25)))
+                {
+                    effectData.EffectIds.Add(0);
                     modified = true;
                 }
                 
-                // 显示效果详情（只读）
-                if (effectData.EffectId > 0)
+                // 显示效果详情（使用第一个效果ID）
+                if (effectData.EffectIds.Count > 0 && effectData.EffectIds[0] > 0)
                 {
                     EditorGUILayout.Space(3);
                     EditorGUILayout.LabelField("效果类型:", effectData.GetEffectTypeName(), EditorStyles.miniLabel);
                     EditorGUILayout.LabelField("效果数值:", effectData.EffectValue.ToString(), EditorStyles.miniLabel);
                     EditorGUILayout.LabelField("效果范围:", effectData.EffectRange + "m", EditorStyles.miniLabel);
                     EditorGUILayout.LabelField("目标类型:", effectData.GetTargetTypeName(), EditorStyles.miniLabel);
-                }
-                
-                if (GUILayout.Button("📋 选择效果...", GUILayout.Height(25)))
-                {
-                    // 打开效果选择器
-                    SkillEffectSelectorWindow.ShowWindow((selectedEffectId) =>
-                    {
-                        effectData.EffectId = selectedEffectId;
-                        effectData.RefreshFromTable();
-                        effectData.ParseCollisionInfo();
-                        modified = true;
-                        
-                        // 更新事件数据
-                        evt.SetEventData(effectData);
-                        evt.DisplayName = effectData.GetDisplayName();
-                    });
                 }
             }
             EditorGUILayout.EndVertical();
