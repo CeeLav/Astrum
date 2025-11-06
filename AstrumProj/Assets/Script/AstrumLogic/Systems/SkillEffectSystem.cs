@@ -87,8 +87,10 @@ namespace Astrum.LogicCore.Systems
             // 注册治疗处理器 (EffectType = 2)
             RegisterHandler(2, new HealEffectHandler());
             
+            // 注册击退处理器 (EffectType = 3)
+            RegisterHandler(3, new KnockbackEffectHandler());
+            
             // TODO: 注册其他处理器
-            // RegisterHandler(3, new KnockbackEffectHandler());
             // RegisterHandler(4, new BuffEffectHandler());
             // RegisterHandler(5, new DebuffEffectHandler());
             

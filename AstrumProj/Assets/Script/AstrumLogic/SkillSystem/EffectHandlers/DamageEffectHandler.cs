@@ -1,6 +1,7 @@
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Stats;
+using Astrum.LogicCore.Events;
 using Astrum.CommonBase;
 using cfg.Skill;
 using TrueSync;
@@ -65,11 +66,41 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
                 ASLogger.Instance.Info($"[DamageEffect] Target {target.UniqueId} DIED - Killer: {caster.UniqueId}, Skill: {effectConfig.SkillEffectId}");
             }
             
-            // 6. TODO: 播放视觉效果
-            // if (effectConfig.VisualEffectId > 0) { ... }
+            // 6. 发送受击反馈事件（用于播放受击动作和特效）
+            var hitDirection = CalculateHitDirection(caster, target);
+            var hitReactionEvent = new HitReactionEvent
+            {
+                CasterId = caster.UniqueId,
+                TargetId = target.UniqueId,
+                EffectId = effectConfig.SkillEffectId,
+                EffectType = effectConfig.EffectType,
+                HitDirection = hitDirection,
+                CausesStun = damageResult.IsCritical // 暴击产生硬直
+            };
             
-            // 7. TODO: 播放音效
-            // if (effectConfig.SoundEffectId > 0) { ... }
+            target.QueueEvent(hitReactionEvent);
+            ASLogger.Instance.Info($"[DamageEffect] Sent HitReactionEvent to target {target.UniqueId}");
+        }
+        
+        /// <summary>
+        /// 计算受击方向
+        /// </summary>
+        private TSVector CalculateHitDirection(Entity caster, Entity target)
+        {
+            var casterTrans = caster.GetComponent<TransComponent>();
+            var targetTrans = target.GetComponent<TransComponent>();
+            
+            if (casterTrans == null || targetTrans == null)
+                return TSVector.forward;
+            
+            // 从施法者指向目标
+            TSVector direction = targetTrans.Position - casterTrans.Position;
+            direction.y = FP.Zero; // 只在水平面
+            
+            if (direction.sqrMagnitude < FP.EN4) // 避免零向量
+                return TSVector.forward;
+            
+            return TSVector.Normalize(direction);
         }
         
         /// <summary>

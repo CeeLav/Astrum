@@ -5,9 +5,9 @@ using Astrum.LogicCore.SkillSystem;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
-using Astrum.LogicCore.Events;
 using Astrum.CommonBase;
 using Astrum.CommonBase.Events;
+using static Astrum.CommonBase.TriggerFrameJsonKeys;
 
 namespace Astrum.LogicCore.Capabilities
 {
@@ -319,22 +319,29 @@ namespace Astrum.LogicCore.Capabilities
         
         /// <summary>
         /// 触发技能效果（统一入口）
-        /// 使用新的事件队列系统：直接向目标实体发布事件
+        /// 直接调用 SkillEffectSystem 处理效果
         /// </summary>
         private void TriggerSkillEffect(Entity caster, Entity target, int effectId)
         {
-            // 构造事件
-            var evt = new SkillEffectEvent
+            // 构造效果数据
+            var effectData = new SkillSystem.SkillEffectData
             {
                 CasterId = caster.UniqueId,
-                EffectId = effectId,
-                TriggerFrame = caster.World?.CurFrame ?? 0
+                TargetId = target.UniqueId,
+                EffectId = effectId
             };
             
-            // 直接向目标实体发布事件（面向个体）
-            target.QueueEvent(evt);
-            
-            ASLogger.Instance.Info($"[SkillExecutorCapability] Queued SkillEffectEvent to entity {target.UniqueId}, effectId={effectId}, caster={caster.UniqueId}");
+            // 加入 SkillEffectSystem 队列
+            var skillEffectSystem = caster.World?.SkillEffectSystem;
+            if (skillEffectSystem != null)
+            {
+                skillEffectSystem.QueueSkillEffect(effectData);
+                ASLogger.Instance.Info($"[SkillExecutorCapability] Queued SkillEffect to SkillEffectSystem: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
+            }
+            else
+            {
+                ASLogger.Instance.Error($"[SkillExecutorCapability] SkillEffectSystem not found in World");
+            }
         }
     }
 }
