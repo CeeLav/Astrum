@@ -244,6 +244,7 @@ namespace Astrum.Client.Core
             UIManager.Instance?.Update();
             AudioManager.Instance?.Update();
             CameraManager.Instance?.Update();
+            VFXManager.Instance?.Update();
             // GamePlayManager 已删除，其功能已分散到其他管理器
         }
         

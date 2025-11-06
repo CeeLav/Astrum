@@ -165,6 +165,8 @@ namespace Astrum.Client.Managers.GameModes
             stage.SetRoom(MainRoom);
             
             MainStage = stage;
+            View.Managers.VFXManager.Instance.CurrentStage = stage;
+            
             ASLogger.Instance.Info("SinglePlayerGameMode: 创建Stage");
         }
         

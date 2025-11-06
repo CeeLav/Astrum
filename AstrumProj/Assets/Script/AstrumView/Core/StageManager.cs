@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Astrum.CommonBase;
-using Astrum.View.Stages;
 
 namespace Astrum.View.Core
 {

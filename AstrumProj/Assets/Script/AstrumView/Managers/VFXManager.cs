@@ -11,43 +11,58 @@ namespace Astrum.View.Managers
     /// </summary>
     public class VFXManager : Singleton<VFXManager>
     {
-        // 当前Stage引用
-        private Stage _currentStage;
-        
         // 活跃的特效实例管理
         // Key: InstanceId (来自 VFXTriggerEventData)
-        // Value: GameObject (特效实例)
-        private Dictionary<int, GameObject> _activeVFX = new Dictionary<int, GameObject>();
+        // Value: VFXInstanceInfo (特效实例信息)
+        private Dictionary<int, VFXInstanceInfo> _activeVFX = new Dictionary<int, VFXInstanceInfo>();
         
         // 特效实例ID计数器（用于生成唯一ID）
         private int _nextInstanceId = 1;
         
-        /// <summary>
-        /// 初始化VFX管理器
-        /// </summary>
-        /// <param name="stage">当前Stage实例</param>
-        public void Initialize(Stage stage)
-        {
-            _currentStage = stage;
-            
-            // 订阅VFX触发事件
-            EventSystem.Instance.Subscribe<VFXTriggerEventData>(OnVFXTriggered);
-            
-            ASLogger.Instance.Info("VFXManager initialized");
-        }
+        // 是否已订阅事件
+        private bool _isSubscribed = false;
         
         /// <summary>
-        /// 清理资源
+        /// 特效实例信息
         /// </summary>
-        public void Cleanup()
+        private class VFXInstanceInfo
+        {
+            public GameObject Instance { get; set; }
+            public float StartTime { get; set; }
+            public float Duration { get; set; }
+            public bool Loop { get; set; }
+        }
+        
+        public Stage CurrentStage
+        {
+            get;
+            set;
+        }
+        
+        protected override void Awake()
+        {
+            base.Awake();
+            
+            // 订阅VFX触发事件
+            if (!_isSubscribed)
+            {
+                EventSystem.Instance.Subscribe<VFXTriggerEventData>(OnVFXTriggered);
+                _isSubscribed = true;
+                ASLogger.Instance.Info("VFXManager initialized");
+            }
+        }
+        
+        private void OnDestroy()
         {
             // 取消订阅事件
-            EventSystem.Instance.Unsubscribe<VFXTriggerEventData>(OnVFXTriggered);
+            if (_isSubscribed)
+            {
+                EventSystem.Instance.Unsubscribe<VFXTriggerEventData>(OnVFXTriggered);
+                _isSubscribed = false;
+            }
             
             // 清理所有活跃特效
             ClearAll();
-            
-            _currentStage = null;
             
             ASLogger.Instance.Info("VFXManager cleaned up");
         }
@@ -57,15 +72,17 @@ namespace Astrum.View.Managers
         /// </summary>
         private void OnVFXTriggered(VFXTriggerEventData eventData)
         {
-            if (_currentStage == null)
+            // 通过ViewManager获取当前Stage
+            var currentStage = CurrentStage;//GameDirector.Instance.CurrentGameMode.MainStage;
+            if (currentStage == null)
             {
-                ASLogger.Instance.Warning("VFXManager: Stage not initialized, cannot play VFX");
+                ASLogger.Instance.Warning("VFXManager: No current Stage available, cannot play VFX");
                 return;
             }
             
             // 通过EntityId获取EntityView
             EntityView entityView = null;
-            if (_currentStage.EntityViews != null && _currentStage.EntityViews.TryGetValue(eventData.EntityId, out entityView))
+            if (currentStage.EntityViews != null && currentStage.EntityViews.TryGetValue(eventData.EntityId, out entityView))
             {
                 PlayVFX(entityView, eventData);
             }
@@ -103,7 +120,7 @@ namespace Astrum.View.Managers
             }
             
             // 实例化特效
-            GameObject vfxInstance = Object.Instantiate(vfxPrefab);
+            GameObject vfxInstance = UnityEngine.Object.Instantiate(vfxPrefab);
             vfxInstance.name = $"VFX_{data.ResourcePath}_{_nextInstanceId}";
             
             // 生成唯一实例ID（如果未指定）
@@ -168,52 +185,34 @@ namespace Astrum.View.Managers
                 }
             }
             
-            // 添加到活跃列表
-            _activeVFX[data.InstanceId] = vfxInstance;
-            
-            // 如果不循环，设置自动清理
-            if (!data.Loop)
+            // 计算特效持续时间（使用最长的粒子系统）
+            float maxDuration = 0f;
+            foreach (var ps in particleSystems)
             {
-                // 计算特效持续时间（使用最长的粒子系统）
-                float maxDuration = 0f;
-                foreach (var ps in particleSystems)
+                if (ps != null)
                 {
-                    if (ps != null)
-                    {
-                        float duration = ps.main.duration + ps.main.startLifetime.constantMax;
-                        if (duration > maxDuration)
-                            maxDuration = duration;
-                    }
-                }
-                
-                // 延迟销毁（如果持续时间大于0）
-                if (maxDuration > 0)
-                {
-                    // 使用协程延迟销毁
-                    MonoBehaviour coroutineRunner = _currentStage?.StageRoot?.GetComponent<MonoBehaviour>();
-                    if (coroutineRunner == null && _currentStage?.StageRoot != null)
-                    {
-                        // 如果没有MonoBehaviour，创建一个临时组件用于协程
-                        coroutineRunner = _currentStage.StageRoot.AddComponent<CoroutineRunner>();
-                    }
-                    
-                    if (coroutineRunner != null)
-                    {
-                        coroutineRunner.StartCoroutine(DestroyVFXAfterDelay(data.InstanceId, maxDuration / data.PlaybackSpeed));
-                    }
+                    float duration = ps.main.duration + ps.main.startLifetime.constantMax;
+                    if (duration > maxDuration)
+                        maxDuration = duration;
                 }
             }
             
+            // 考虑播放速度调整持续时间
+            if (maxDuration > 0 && data.PlaybackSpeed > 0)
+            {
+                maxDuration /= data.PlaybackSpeed;
+            }
+            
+            // 添加到活跃列表
+            _activeVFX[data.InstanceId] = new VFXInstanceInfo
+            {
+                Instance = vfxInstance,
+                StartTime = Time.time,
+                Duration = maxDuration,
+                Loop = data.Loop
+            };
+            
             ASLogger.Instance.Debug($"VFXManager: Playing VFX {data.ResourcePath} for Entity {target.EntityId}, InstanceId={data.InstanceId}");
-        }
-        
-        /// <summary>
-        /// 延迟销毁特效（协程）
-        /// </summary>
-        private System.Collections.IEnumerator DestroyVFXAfterDelay(int instanceId, float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            StopVFX(instanceId);
         }
         
         /// <summary>
@@ -222,20 +221,23 @@ namespace Astrum.View.Managers
         /// <param name="instanceId">特效实例ID</param>
         public void StopVFX(int instanceId)
         {
-            if (_activeVFX.TryGetValue(instanceId, out var vfxInstance))
+            if (_activeVFX.TryGetValue(instanceId, out var vfxInfo))
             {
-                // 停止所有粒子系统
-                var particleSystems = vfxInstance.GetComponentsInChildren<ParticleSystem>(true);
-                foreach (var ps in particleSystems)
+                if (vfxInfo.Instance != null)
                 {
-                    if (ps != null)
+                    // 停止所有粒子系统
+                    var particleSystems = vfxInfo.Instance.GetComponentsInChildren<ParticleSystem>(true);
+                    foreach (var ps in particleSystems)
                     {
-                        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                        if (ps != null)
+                        {
+                            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                        }
                     }
+                    
+                    // 销毁GameObject
+                    UnityEngine.Object.Destroy(vfxInfo.Instance);
                 }
-                
-                // 销毁GameObject
-                Object.Destroy(vfxInstance);
                 
                 // 从活跃列表移除
                 _activeVFX.Remove(instanceId);
@@ -251,9 +253,9 @@ namespace Astrum.View.Managers
         {
             foreach (var kvp in _activeVFX)
             {
-                if (kvp.Value != null)
+                if (kvp.Value != null && kvp.Value.Instance != null)
                 {
-                    Object.Destroy(kvp.Value);
+                    UnityEngine.Object.Destroy(kvp.Value.Instance);
                 }
             }
             
@@ -262,20 +264,50 @@ namespace Astrum.View.Managers
         }
         
         /// <summary>
-        /// 更新特效位置（用于跟随角色的特效）
+        /// 更新特效（检查并清理已结束的特效）
         /// </summary>
         public void Update()
         {
-            // 对于跟随角色的特效，位置会自动更新（因为它们是子对象）
-            // 这里可以添加其他更新逻辑，如检查特效是否已结束等
-        }
-        
-        /// <summary>
-        /// 临时协程运行器（用于在StageRoot上运行协程）
-        /// </summary>
-        private class CoroutineRunner : MonoBehaviour
-        {
-            // 空类，仅用于运行协程
+            if (_activeVFX.Count == 0)
+                return;
+            
+            float currentTime = Time.time;
+            List<int> toRemove = null;
+            
+            // 检查每个特效是否已结束
+            foreach (var kvp in _activeVFX)
+            {
+                var vfxInfo = kvp.Value;
+                
+                // 跳过循环特效
+                if (vfxInfo.Loop)
+                    continue;
+                
+                // 检查特效是否已过期
+                if (vfxInfo.Duration > 0 && currentTime - vfxInfo.StartTime >= vfxInfo.Duration)
+                {
+                    // 标记为需要销毁
+                    if (toRemove == null)
+                        toRemove = new List<int>();
+                    toRemove.Add(kvp.Key);
+                }
+                // 如果特效实例已被销毁，也需要清理
+                else if (vfxInfo.Instance == null)
+                {
+                    if (toRemove == null)
+                        toRemove = new List<int>();
+                    toRemove.Add(kvp.Key);
+                }
+            }
+            
+            // 销毁已结束的特效
+            if (toRemove != null)
+            {
+                foreach (var instanceId in toRemove)
+                {
+                    StopVFX(instanceId);
+                }
+            }
         }
     }
 }

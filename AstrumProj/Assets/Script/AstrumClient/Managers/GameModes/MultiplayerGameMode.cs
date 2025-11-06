@@ -8,6 +8,7 @@ using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
 using Unity.Plastic.Newtonsoft.Json;
 using AstrumClient.MonitorTools;
+using UnityEngine.VFX;
 
 namespace Astrum.Client.Managers.GameModes
 {
@@ -188,6 +189,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             MainRoom = room;
             MainStage = stage;
+            View.Managers.VFXManager.Instance.CurrentStage = stage;
             IsRunning = true;
         }
         

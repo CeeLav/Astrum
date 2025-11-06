@@ -105,15 +105,15 @@ namespace Astrum.LogicCore.Capabilities
             
             switch (type)
             {
-                case "SkillEffect":
+                case TriggerFrameJsonKeys.TypeSkillEffect:
                     ProcessSkillEffectTrigger(caster, skillAction, trigger);
                     break;
                     
-                case "VFX":
+                case TriggerFrameJsonKeys.TypeVFX:
                     ProcessVFXTrigger(caster, trigger);
                     break;
                     
-                case "SFX":
+                case TriggerFrameJsonKeys.TypeSFX:
                     // TODO: 实现 SFX 处理
                     ASLogger.Instance.Warning("SFX trigger not yet implemented");
                     break;
@@ -131,17 +131,17 @@ namespace Astrum.LogicCore.Capabilities
         {
             string triggerType = trigger.TriggerType ?? "";
             
-            switch (triggerType.ToLower())
+            switch (triggerType)
             {
-                case "collision":
+                case TriggerFrameJsonKeys.TriggerTypeCollision:
                     HandleCollisionTrigger(caster, skillAction, trigger);
                     break;
                     
-                case "direct":
+                case TriggerFrameJsonKeys.TriggerTypeDirect:
                     HandleDirectTrigger(caster, trigger);
                     break;
                     
-                case "condition":
+                case TriggerFrameJsonKeys.TriggerTypeCondition:
                     HandleConditionTrigger(caster, skillAction, trigger);
                     break;
                     

@@ -5,6 +5,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using Astrum.Editor.RoleEditor.Timeline;
 using Newtonsoft.Json;
+using Astrum.CommonBase;
 
 namespace Astrum.Editor.RoleEditor.Data
 {
@@ -297,7 +298,7 @@ namespace Astrum.Editor.RoleEditor.Data
             
             return new TriggerFrameData
             {
-                Type = "SkillEffect",
+                Type = TriggerFrameJsonKeys.TypeSkillEffect,
                 TriggerType = eventData.TriggerType,
                 EffectId = eventData.EffectId,
                 CollisionInfo = eventData.CollisionInfo
@@ -318,7 +319,7 @@ namespace Astrum.Editor.RoleEditor.Data
             
             return new TriggerFrameData
             {
-                Type = "VFX",
+                Type = TriggerFrameJsonKeys.TypeVFX,
                 ResourcePath = eventData.ResourcePath,
                 PositionOffset = eventData.PositionOffset,
                 Rotation = eventData.Rotation,
@@ -343,7 +344,7 @@ namespace Astrum.Editor.RoleEditor.Data
             
             return new TriggerFrameData
             {
-                Type = "SFX",
+                Type = TriggerFrameJsonKeys.TypeSFX,
                 ResourcePath = eventData.ResourcePath,
                 Volume = eventData.Volume
             };
@@ -363,13 +364,13 @@ namespace Astrum.Editor.RoleEditor.Data
                 
                 switch (triggerData.Type)
                 {
-                    case "SkillEffect":
+                    case TriggerFrameJsonKeys.TypeSkillEffect:
                         evt = ConvertSkillEffectToTimelineEvent(triggerData);
                         break;
-                    case "VFX":
+                    case TriggerFrameJsonKeys.TypeVFX:
                         evt = ConvertVFXToTimelineEvent(triggerData);
                         break;
-                    case "SFX":
+                    case TriggerFrameJsonKeys.TypeSFX:
                         evt = ConvertSFXToTimelineEvent(triggerData);
                         break;
                     default:

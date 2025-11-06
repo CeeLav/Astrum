@@ -1,4 +1,5 @@
 using Astrum.LogicCore.SkillSystem;
+using Astrum.LogicCore.Physics;
 using Astrum.CommonBase;
 using System.Collections.Generic;
 using Newtonsoft.Json;
@@ -246,42 +247,50 @@ namespace Astrum.LogicCore.Managers
                 
                 foreach (var item in jsonData)
                 {
+                    // 辅助方法：查找键（不区分大小写）
+                    object GetValue(string key)
+                    {
+                        // 先尝试精确匹配
+                        if (item.ContainsKey(key))
+                            return item[key];
+                        // 尝试首字母大写（PascalCase）
+                        string pascalKey = char.ToUpper(key[0]) + key.Substring(1);
+                        if (item.ContainsKey(pascalKey))
+                            return item[pascalKey];
+                        return null;
+                    }
+                    
                     // 获取类型
-                    string type = item.ContainsKey("type") ? item["type"]?.ToString() ?? "SkillEffect" : "SkillEffect";
+                    string type = GetValue(TriggerFrameJsonKeys.Type)?.ToString() ?? TriggerFrameJsonKeys.TypeSkillEffect;
                     
                     // 解析帧范围
                     int? frame = null;
                     int? startFrame = null;
                     int? endFrame = null;
                     
-                    if (item.ContainsKey("frame") && item["frame"] != null)
-                    {
-                        if (int.TryParse(item["frame"].ToString(), out int f))
-                            frame = f;
-                    }
+                    var frameObj = GetValue(TriggerFrameJsonKeys.Frame);
+                    if (frameObj != null && int.TryParse(frameObj.ToString(), out int f))
+                        frame = f;
                     
-                    if (item.ContainsKey("startFrame") && item["startFrame"] != null)
-                    {
-                        if (int.TryParse(item["startFrame"].ToString(), out int sf))
-                            startFrame = sf;
-                    }
+                    var startFrameObj = GetValue(TriggerFrameJsonKeys.StartFrame);
+                    if (startFrameObj != null && int.TryParse(startFrameObj.ToString(), out int sf))
+                        startFrame = sf;
                     
-                    if (item.ContainsKey("endFrame") && item["endFrame"] != null)
-                    {
-                        if (int.TryParse(item["endFrame"].ToString(), out int ef))
-                            endFrame = ef;
-                    }
+                    var endFrameObj = GetValue(TriggerFrameJsonKeys.EndFrame);
+                    if (endFrameObj != null && int.TryParse(endFrameObj.ToString(), out int ef))
+                        endFrame = ef;
                     
                     // 根据类型处理
-                    if (type == "SkillEffect")
+                    if (type == TriggerFrameJsonKeys.TypeSkillEffect)
                     {
                         // SkillEffect 类型
-                        string triggerType = item.ContainsKey("triggerType") ? item["triggerType"]?.ToString() ?? "" : "";
+                        string triggerType = GetValue(TriggerFrameJsonKeys.TriggerType)?.ToString() ?? "";
                         int effectId = 0;
                         
-                        if (item.ContainsKey("effectId") && item["effectId"] != null)
+                        var effectIdObj = GetValue(TriggerFrameJsonKeys.EffectId);
+                        if (effectIdObj != null)
                         {
-                            if (!int.TryParse(item["effectId"].ToString(), out effectId))
+                            if (!int.TryParse(effectIdObj.ToString(), out effectId))
                                 continue;
                         }
                         else
@@ -303,9 +312,9 @@ namespace Astrum.LogicCore.Managers
                         
                         // 解析碰撞信息
                         CollisionShape? collisionShape = null;
-                        string collisionInfo = item.ContainsKey("collisionInfo") ? item["collisionInfo"]?.ToString() ?? "" : "";
+                        string collisionInfo = GetValue(TriggerFrameJsonKeys.CollisionInfo)?.ToString() ?? "";
                         
-                        if (triggerType.Equals("Collision", System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(collisionInfo))
+                        if (triggerType.Equals(TriggerFrameJsonKeys.TriggerTypeCollision, System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(collisionInfo))
                         {
                             var parsed = SkillSystem.CollisionInfoParser.Parse(collisionInfo);
                             if (parsed.HasValue)
@@ -314,7 +323,7 @@ namespace Astrum.LogicCore.Managers
                         
                         // 解析条件
                         TriggerCondition? condition = null;
-                        if (triggerType.Equals("Condition", System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(collisionInfo))
+                        if (triggerType.Equals(TriggerFrameJsonKeys.TriggerTypeCondition, System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(collisionInfo))
                         {
                             condition = ParseCondition(collisionInfo);
                         }
@@ -326,7 +335,7 @@ namespace Astrum.LogicCore.Managers
                             results.Add(new TriggerFrameInfo
                             {
                                 Frame = frame.Value,
-                                Type = "SkillEffect",
+                                Type = TriggerFrameJsonKeys.TypeSkillEffect,
                                 TriggerType = triggerType,
                                 EffectId = effectId,
                                 CollisionShape = collisionShape,
@@ -336,14 +345,14 @@ namespace Astrum.LogicCore.Managers
                         else if (startFrame.HasValue && endFrame.HasValue)
                         {
                             // 多帧范围：展开为单帧列表
-                            for (int f = startFrame.Value; f <= endFrame.Value; f++)
+                            for (int frameNum = startFrame.Value; frameNum <= endFrame.Value; frameNum++)
                             {
                                 results.Add(new TriggerFrameInfo
                                 {
                                     StartFrame = startFrame,
                                     EndFrame = endFrame,
-                                    Frame = f, // 当前帧号
-                                    Type = "SkillEffect",
+                                    Frame = frameNum, // 当前帧号
+                                    Type = TriggerFrameJsonKeys.TypeSkillEffect,
                                     TriggerType = triggerType,
                                     EffectId = effectId,
                                     CollisionShape = collisionShape,
@@ -352,21 +361,22 @@ namespace Astrum.LogicCore.Managers
                             }
                         }
                     }
-                    else if (type == "VFX")
+                    else if (type == TriggerFrameJsonKeys.TypeVFX)
                     {
                         // VFX 类型
-                        string resourcePath = item.ContainsKey("resourcePath") ? item["resourcePath"]?.ToString() ?? "" : "";
+                        string resourcePath = GetValue(TriggerFrameJsonKeys.ResourcePath)?.ToString() ?? "";
                         if (string.IsNullOrEmpty(resourcePath))
                         {
                             ASLogger.Instance.Warning("VFX trigger missing resourcePath");
                             continue;
                         }
                         
-                        // 解析位置偏移
+                        // 解析位置偏移（支持 Vector3 对象格式）
                         float[] positionOffset = null;
-                        if (item.ContainsKey("positionOffset") && item["positionOffset"] != null)
+                        var posObj = GetValue(TriggerFrameJsonKeys.PositionOffset);
+                        if (posObj != null)
                         {
-                            var posObj = item["positionOffset"];
+                            // 尝试解析为数组
                             if (posObj is Newtonsoft.Json.Linq.JArray posArray && posArray.Count >= 3)
                             {
                                 positionOffset = new float[3];
@@ -377,13 +387,25 @@ namespace Astrum.LogicCore.Managers
                                 if (float.TryParse(posArray[2].ToString(), out float z))
                                     positionOffset[2] = z;
                             }
+                            // 尝试解析为 Vector3 对象（Unity 序列化格式）
+                            else if (posObj is Newtonsoft.Json.Linq.JObject posJObj)
+                            {
+                                positionOffset = new float[3];
+                                if (posJObj["x"] != null && float.TryParse(posJObj["x"].ToString(), out float x))
+                                    positionOffset[0] = x;
+                                if (posJObj["y"] != null && float.TryParse(posJObj["y"].ToString(), out float y))
+                                    positionOffset[1] = y;
+                                if (posJObj["z"] != null && float.TryParse(posJObj["z"].ToString(), out float z))
+                                    positionOffset[2] = z;
+                            }
                         }
                         
-                        // 解析旋转
+                        // 解析旋转（支持 Vector3 对象格式）
                         float[] rotation = null;
-                        if (item.ContainsKey("rotation") && item["rotation"] != null)
+                        var rotObj = GetValue(TriggerFrameJsonKeys.Rotation);
+                        if (rotObj != null)
                         {
-                            var rotObj = item["rotation"];
+                            // 尝试解析为数组
                             if (rotObj is Newtonsoft.Json.Linq.JArray rotArray && rotArray.Count >= 3)
                             {
                                 rotation = new float[3];
@@ -394,24 +416,39 @@ namespace Astrum.LogicCore.Managers
                                 if (float.TryParse(rotArray[2].ToString(), out float z))
                                     rotation[2] = z;
                             }
+                            // 尝试解析为 Vector3 对象（Unity 序列化格式）
+                            else if (rotObj is Newtonsoft.Json.Linq.JObject rotJObj)
+                            {
+                                rotation = new float[3];
+                                if (rotJObj["x"] != null && float.TryParse(rotJObj["x"].ToString(), out float x))
+                                    rotation[0] = x;
+                                if (rotJObj["y"] != null && float.TryParse(rotJObj["y"].ToString(), out float y))
+                                    rotation[1] = y;
+                                if (rotJObj["z"] != null && float.TryParse(rotJObj["z"].ToString(), out float z))
+                                    rotation[2] = z;
+                            }
                         }
                         
                         // 解析其他参数
                         float scale = 1.0f;
-                        if (item.ContainsKey("scale") && item["scale"] != null)
-                            float.TryParse(item["scale"].ToString(), out scale);
+                        var scaleObj = GetValue(TriggerFrameJsonKeys.Scale);
+                        if (scaleObj != null)
+                            float.TryParse(scaleObj.ToString(), out scale);
                         
                         float playbackSpeed = 1.0f;
-                        if (item.ContainsKey("playbackSpeed") && item["playbackSpeed"] != null)
-                            float.TryParse(item["playbackSpeed"].ToString(), out playbackSpeed);
+                        var playbackSpeedObj = GetValue(TriggerFrameJsonKeys.PlaybackSpeed);
+                        if (playbackSpeedObj != null)
+                            float.TryParse(playbackSpeedObj.ToString(), out playbackSpeed);
                         
                         bool followCharacter = true;
-                        if (item.ContainsKey("followCharacter") && item["followCharacter"] != null)
-                            bool.TryParse(item["followCharacter"].ToString(), out followCharacter);
+                        var followCharObj = GetValue(TriggerFrameJsonKeys.FollowCharacter);
+                        if (followCharObj != null)
+                            bool.TryParse(followCharObj.ToString(), out followCharacter);
                         
                         bool loop = false;
-                        if (item.ContainsKey("loop") && item["loop"] != null)
-                            bool.TryParse(item["loop"].ToString(), out loop);
+                        var loopObj = GetValue(TriggerFrameJsonKeys.Loop);
+                        if (loopObj != null)
+                            bool.TryParse(loopObj.ToString(), out loop);
                         
                         // 创建触发帧信息（支持单帧和多帧范围）
                         if (frame.HasValue)
@@ -420,7 +457,7 @@ namespace Astrum.LogicCore.Managers
                             results.Add(new TriggerFrameInfo
                             {
                                 Frame = frame.Value,
-                                Type = "VFX",
+                                Type = TriggerFrameJsonKeys.TypeVFX,
                                 VFXResourcePath = resourcePath,
                                 VFXPositionOffset = positionOffset,
                                 VFXRotation = rotation,
@@ -433,14 +470,14 @@ namespace Astrum.LogicCore.Managers
                         else if (startFrame.HasValue && endFrame.HasValue)
                         {
                             // 多帧范围：展开为单帧列表（只在开始帧触发）
-                            for (int f = startFrame.Value; f <= endFrame.Value; f++)
+                            for (int frameNum = startFrame.Value; frameNum <= endFrame.Value; frameNum++)
                             {
                                 results.Add(new TriggerFrameInfo
                                 {
                                     StartFrame = startFrame,
                                     EndFrame = endFrame,
-                                    Frame = f, // 当前帧号
-                                    Type = "VFX",
+                                    Frame = frameNum, // 当前帧号
+                                    Type = TriggerFrameJsonKeys.TypeVFX,
                                     VFXResourcePath = resourcePath,
                                     VFXPositionOffset = positionOffset,
                                     VFXRotation = rotation,
