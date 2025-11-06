@@ -14,9 +14,9 @@ namespace Astrum.LogicCore.Events
         public Type EventType;
         
         /// <summary>
-        /// 事件数据（struct 装箱）
+        /// 事件数据（IEvent 接口，避免装箱）
         /// </summary>
-        public object EventData;
+        public IEvent EventData;
         
         /// <summary>
         /// 触发帧（用于调试和排序）

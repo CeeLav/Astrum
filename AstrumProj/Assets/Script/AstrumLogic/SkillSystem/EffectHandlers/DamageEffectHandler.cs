@@ -15,58 +15,39 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
     {
         public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
         {
-            ASLogger.Instance.Info($"[DamageEffect] START - Caster: {caster.UniqueId}, Target: {target.UniqueId}, EffectId: {effectConfig.SkillEffectId}");
+            ASLogger.Instance.Info($"[DamageEffectHandler] Processing damage: Caster={caster.UniqueId}, Target={target.UniqueId}, EffectId={effectConfig.SkillEffectId}");
             
-            // 1. 获取目标组件
-            var dynamicStats = target.GetComponent<DynamicStatsComponent>();
-            var derivedStats = target.GetComponent<DerivedStatsComponent>();
-            var stateComp = target.GetComponent<StateComponent>();
+            // 1. 读取组件（只读，用于计算）
+            var casterStats = caster.GetComponent<DerivedStatsComponent>();
+            var targetStats = target.GetComponent<DynamicStatsComponent>();
+            var targetDerived = target.GetComponent<DerivedStatsComponent>();
             
-            if (dynamicStats == null || derivedStats == null)
+            if (targetStats == null || targetDerived == null)
             {
-                ASLogger.Instance.Warning($"[DamageEffect] Target {target.UniqueId} missing stats components");
+                ASLogger.Instance.Warning($"[DamageEffectHandler] Target {target.UniqueId} missing stats components");
                 return;
             }
             
-            // 2. 检查是否可以受到伤害
-            if (stateComp != null && !stateComp.CanTakeDamage())
-            {
-                ASLogger.Instance.Info($"[DamageEffect] Target {target.UniqueId} cannot take damage (invincible or dead)");
-                return;
-            }
-            
-            // 3. 计算伤害
+            // 2. 计算伤害（纯计算，不修改状态）
             int currentFrame = GetCurrentFrame(caster);
             var damageResult = DamageCalculator.Calculate(caster, target, effectConfig, currentFrame);
-            ASLogger.Instance.Info($"[DamageEffect] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
+            ASLogger.Instance.Info($"[DamageEffectHandler] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
             
-            // 4. 应用伤害
-            FP beforeHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
-            FP actualDamage = dynamicStats.TakeDamage(damageResult.FinalDamage, derivedStats);
-            FP afterHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
-            
-            ASLogger.Instance.Info($"[DamageEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
-            
-            // 5. 检查死亡
-            if (afterHP <= FP.Zero && stateComp != null && !stateComp.Get(StateType.DEAD))
+            // 3. 发送伤害事件给目标（由 DamageCapability 接收并扣血）
+            var damageEvent = new DamageEvent
             {
-                // 设置死亡状态
-                stateComp.Set(StateType.DEAD, true);
-                
-                // 发布死亡事件
-                var diedEvent = new EntityDiedEventData(
-                    entity: target,
-                    worldId: 0,  // TODO: 从Room或World获取真实ID
-                    roomId: 0,   // TODO: 从Room获取真实ID
-                    killerId: caster.UniqueId,
-                    skillId: effectConfig.SkillEffectId
-                );
-                EventSystem.Instance.Publish(diedEvent);
-                
-                ASLogger.Instance.Info($"[DamageEffect] Target {target.UniqueId} DIED - Killer: {caster.UniqueId}, Skill: {effectConfig.SkillEffectId}");
-            }
+                CasterId = caster.UniqueId,
+                EffectId = effectConfig.SkillEffectId,
+                Damage = damageResult.FinalDamage,
+                IsCritical = damageResult.IsCritical,
+                DamageType = effectConfig.DamageType,
+                TriggerWhenInactive = true // 即使 DamageCapability 未激活也触发（主动激活）
+            };
             
-            // 6. 发送受击反馈事件（用于播放受击动作和特效）
+            target.QueueEvent(damageEvent);
+            ASLogger.Instance.Info($"[DamageEffectHandler] Sent DamageEvent to target {target.UniqueId}");
+            
+            // 4. 发送受击反馈事件（用于播放受击动作和特效）
             var hitDirection = CalculateHitDirection(caster, target);
             var hitReactionEvent = new HitReactionEvent
             {
@@ -75,11 +56,12 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
                 EffectId = effectConfig.SkillEffectId,
                 EffectType = effectConfig.EffectType,
                 HitDirection = hitDirection,
-                CausesStun = damageResult.IsCritical // 暴击产生硬直
+                CausesStun = damageResult.IsCritical, // 暴击产生硬直
+                TriggerWhenInactive = true // 即使 HitReactionCapability 未激活也触发（主动激活）
             };
             
             target.QueueEvent(hitReactionEvent);
-            ASLogger.Instance.Info($"[DamageEffect] Sent HitReactionEvent to target {target.UniqueId}");
+            ASLogger.Instance.Info($"[DamageEffectHandler] Sent HitReactionEvent to target {target.UniqueId}");
         }
         
         /// <summary>

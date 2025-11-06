@@ -28,9 +28,9 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 向该实体发布事件（面向个体）
         /// </summary>
-        /// <typeparam name="T">事件类型</typeparam>
+        /// <typeparam name="T">事件类型（必须实现 IEvent 接口）</typeparam>
         /// <param name="eventData">事件数据</param>
-        public void QueueEvent<T>(T eventData) where T : struct
+        public void QueueEvent<T>(T eventData) where T : struct, IEvent
         {
             if (_eventQueue == null)
                 _eventQueue = new Queue<EntityEvent>(4); // 延迟创建，初始容量4
@@ -38,11 +38,12 @@ namespace Astrum.LogicCore.Core
             _eventQueue.Enqueue(new EntityEvent
             {
                 EventType = typeof(T),
-                EventData = eventData, // 装箱
+                EventData = eventData, // 装箱为 IEvent
                 Frame = World?.CurFrame ?? 0
             });
             
-            Astrum.CommonBase.ASLogger.Instance.Info($"[Entity.QueueEvent] Entity {UniqueId} queued event {typeof(T).Name}, queue size: {_eventQueue.Count}");
+            Astrum.CommonBase.ASLogger.Instance.Info($"[Entity.QueueEvent] Entity {UniqueId} queued event {typeof(T).Name}, " +
+                $"queue size: {_eventQueue.Count}, triggerWhenInactive: {eventData.TriggerWhenInactive}");
         }
         
         /// <summary>

@@ -647,20 +647,30 @@ namespace Astrum.LogicCore.Systems
                 
                 var typeId = capability.TypeId;
                 
-                // 检查实体是否有该 Capability 且激活
+                // 检查实体是否有该 Capability
                 if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                 {
                     // 实体没有该 Capability，跳过（不输出日志，太高频）
                     continue;
                 }
                 
-                if (!state.IsActive)
+                // 检查激活状态（如果事件标记为 TriggerWhenInactive，则跳过激活检查）
+                if (!state.IsActive && !evt.EventData.TriggerWhenInactive)
                 {
-                    ASLogger.Instance.Debug($"[DispatchEventToEntity] {capabilityType.Name} on entity {entity.UniqueId} is not active");
+                    ASLogger.Instance.Debug($"[DispatchEventToEntity] {capabilityType.Name} on entity {entity.UniqueId} is not active, " +
+                        $"event does not trigger when inactive");
                     continue;
                 }
                 
-                ASLogger.Instance.Info($"[DispatchEventToEntity] Invoking {capabilityType.Name} for entity {entity.UniqueId}");
+                if (!state.IsActive && evt.EventData.TriggerWhenInactive)
+                {
+                    ASLogger.Instance.Info($"[DispatchEventToEntity] {capabilityType.Name} on entity {entity.UniqueId} is not active, " +
+                        $"but event triggers when inactive (will be activated)");
+                }
+                else
+                {
+                    ASLogger.Instance.Info($"[DispatchEventToEntity] Invoking {capabilityType.Name} for entity {entity.UniqueId}");
+                }
                 
                 // 调用处理函数（第一个参数是 Entity）
                 InvokeHandler(handler, entity, evt.EventData);

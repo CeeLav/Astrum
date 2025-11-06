@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Events;
+using Astrum.LogicCore.FrameSync;
 using Astrum.CommonBase;
 using TrueSync;
 
@@ -27,6 +29,48 @@ namespace Astrum.LogicCore.Capabilities
         /// 用于标识是击退系统禁用用户输入位移的 instigatorId
         /// </summary>
         private long _knockbackInstigatorId;
+        
+        // ====== 事件处理声明 ======
+        
+        /// <summary>
+        /// 静态声明：该 Capability 处理的事件
+        /// </summary>
+        protected override void RegisterEventHandlers()
+        {
+            RegisterEventHandler<KnockbackEvent>(OnKnockback);
+        }
+        
+        // ====== 事件处理函数 ======
+        
+        /// <summary>
+        /// 接收击退事件，写入组件数据
+        /// </summary>
+        private void OnKnockback(Entity entity, KnockbackEvent evt)
+        {
+            ASLogger.Instance.Info($"[KnockbackCapability] OnKnockback called for entity {entity.UniqueId}, " +
+                $"distance={evt.Distance}m, duration={evt.Duration}s");
+            
+            // 获取或添加击退组件
+            var knockback = GetComponent<KnockbackComponent>(entity);
+            if (knockback == null)
+            {
+                knockback = new KnockbackComponent();
+                entity.AddComponent(knockback);
+                ASLogger.Instance.Info($"[KnockbackCapability] Created KnockbackComponent for entity {entity.UniqueId}");
+            }
+            
+            // 写入击退数据（修改自身组件）
+            knockback.IsKnockingBack = true;
+            knockback.Direction = evt.Direction;
+            knockback.TotalDistance = evt.Distance;
+            knockback.RemainingTime = evt.Duration;
+            knockback.Speed = evt.Distance / evt.Duration;
+            knockback.MovedDistance = FP.Zero;
+            knockback.Type = evt.Type;
+            knockback.CasterId = evt.CasterId;
+            
+            ASLogger.Instance.Info($"[KnockbackCapability] Knockback data written: speed={knockback.Speed}m/s, direction={evt.Direction}");
+        }
         
         // ====== 生命周期 ======
         
@@ -95,8 +139,8 @@ namespace Astrum.LogicCore.Capabilities
             if (transComponent == null)
                 return;
             
-            // 计算本帧位移
-            FP deltaTime = entity.World.DeltaTime;
+            // 计算本帧位移（使用帧同步固定间隔）
+            FP deltaTime = FP.FromFloat(LSConstValue.UpdateInterval / 1000f); // 50ms = 0.05s
             FP moveDistance = CalculateMoveDistance(knockback, deltaTime);
             
             // 应用位移

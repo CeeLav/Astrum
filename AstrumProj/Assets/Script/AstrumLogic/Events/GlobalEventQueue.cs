@@ -16,12 +16,12 @@ namespace Astrum.LogicCore.Events
         /// </summary>
         /// <typeparam name="T">事件类型</typeparam>
         /// <param name="eventData">事件数据</param>
-        public void QueueGlobalEvent<T>(T eventData) where T : struct
+        public void QueueGlobalEvent<T>(T eventData) where T : struct, IEvent
         {
             _globalEvents.Enqueue(new EntityEvent
             {
                 EventType = typeof(T),
-                EventData = eventData, // 装箱
+                EventData = eventData, // 装箱为 IEvent
                 Frame = 0 // 可以从 World 获取
             });
         }

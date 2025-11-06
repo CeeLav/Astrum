@@ -26,7 +26,8 @@ namespace Astrum.LogicCore.Archetypes
         private static readonly Type[] _caps =
         {
             typeof(SkillCapability),
-            typeof(SkillExecutorCapability),     // Priority 250
+            typeof(SkillExecutorCapability),     // Priority 250 - 技能执行
+            typeof(DamageCapability),            // Priority 200 - 伤害处理
             typeof(HitReactionCapability),       // Priority 200 - 受击反应
             typeof(KnockbackCapability),         // Priority 150 - 击退
             typeof(SkillDisplacementCapability)  // Priority 150 - 技能位移

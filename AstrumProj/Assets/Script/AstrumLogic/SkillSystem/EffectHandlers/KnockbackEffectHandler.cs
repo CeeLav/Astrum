@@ -17,26 +17,31 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             ASLogger.Instance.Info($"[KnockbackEffectHandler] Processing knockback: effectId={effectConfig.SkillEffectId}, " +
                 $"distance={effectConfig.EffectValue}, duration={effectConfig.EffectDuration}");
             
-            // 1. 获取或添加击退组件
-            var knockback = target.GetComponent<KnockbackComponent>();
-            
-            // 2. 计算击退方向（从施法者指向目标）
+            // 1. 计算击退方向（只读组件数据）
             var direction = CalculateKnockbackDirection(caster, target);
             
-            // 3. 设置击退参数
-            knockback.IsKnockingBack = true;
-            knockback.Direction = direction;
-            knockback.TotalDistance = FP.FromFloat(effectConfig.EffectValue / 1000f); // 配置值单位是毫米，转为米
-            knockback.RemainingTime = FP.FromFloat(effectConfig.EffectDuration); // 秒
-            knockback.Speed = knockback.TotalDistance / knockback.RemainingTime;
-            knockback.MovedDistance = FP.Zero;
-            knockback.Type = KnockbackType.Linear; // 默认线性
-            knockback.CasterId = caster.UniqueId;
+            // 2. 读取配置参数
+            FP distance = FP.FromFloat(effectConfig.EffectValue / 1000f); // 配置值单位是毫米，转为米
+            FP duration = FP.FromFloat(effectConfig.EffectDuration); // 秒
             
-            ASLogger.Instance.Info($"[KnockbackEffectHandler] Knockback applied: distance={knockback.TotalDistance}m, " +
-                $"speed={knockback.Speed}m/s, direction={direction}");
+            ASLogger.Instance.Info($"[KnockbackEffectHandler] Calculated: distance={distance}m, duration={duration}s, direction={direction}");
             
-            // 4. 发送受击反馈事件
+            // 3. 发送击退事件给目标（由 KnockbackCapability 接收并写入组件）
+            var knockbackEvent = new KnockbackEvent
+            {
+                CasterId = caster.UniqueId,
+                EffectId = effectConfig.SkillEffectId,
+                Direction = direction,
+                Distance = distance,
+                Duration = duration,
+                Type = KnockbackType.Linear, // 默认线性，后续可从配置读取
+                TriggerWhenInactive = true // 即使 KnockbackCapability 未激活也触发（主动激活）
+            };
+            
+            target.QueueEvent(knockbackEvent);
+            ASLogger.Instance.Info($"[KnockbackEffectHandler] Sent KnockbackEvent to target {target.UniqueId}");
+            
+            // 4. 发送受击反馈事件（用于播放受击动作和特效）
             var hitReactionEvent = new HitReactionEvent
             {
                 CasterId = caster.UniqueId,
@@ -44,10 +49,12 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
                 EffectId = effectConfig.SkillEffectId,
                 EffectType = effectConfig.EffectType,
                 HitDirection = direction,
-                CausesStun = true // 击退通常产生硬直
+                CausesStun = true, // 击退通常产生硬直
+                TriggerWhenInactive = true // 即使 HitReactionCapability 未激活也触发（主动激活）
             };
             
             target.QueueEvent(hitReactionEvent);
+            ASLogger.Instance.Info($"[KnockbackEffectHandler] Sent HitReactionEvent to target {target.UniqueId}");
         }
         
         /// <summary>
