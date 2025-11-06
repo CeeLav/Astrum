@@ -1,9 +1,9 @@
 ##var,skillEffectId,effectType,effectValue,targetType,effectDuration,effectRange,castTime,effectParams,damageType,scalingStat,scalingRatio,visualEffectId,soundEffectId
 ##type,int,int,int,int,float,float,float,string,int,int,int,int,int
-##group,,,,,,,,,,,,,,
+##group,,,,,,,,,,,,,
 ##desc,技能效果ID,效果类型,效果数值*1000,目标类型,效果持续时间,效果范围,施法时间,效果参数,伤害类型(1=物理/2=魔法/3=真实),缩放属性(1=攻击/2=防御/3=生命),缩放比例*1000,视觉效果ID,音效ID
 ,4001,1,1500,1,0.0,2.0,0.0,DamageType:Physical,1,1,1500,5001,6001
-,4002,3,3000,1,0.0,2.0,0.0,Direction:Forward,1,1,0,5002,6002
+,4002,3,1000,1,0.2,2.0,0.0,Direction:Forward,1,1,0,5002,6002
 ,4003,1,800,1,0.0,1.0,0.0,DamageType:Physical,1,1,800,5003,6003
 ,4004,1,1200,1,0.0,1.5,0.0,DamageType:Physical,1,1,1200,5004,6004
 ,4005,1,600,1,0.0,1.0,0.0,DamageType:Physical,1,1,600,5005,6005

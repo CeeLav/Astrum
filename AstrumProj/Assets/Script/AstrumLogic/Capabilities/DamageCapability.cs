@@ -82,23 +82,10 @@ namespace Astrum.LogicCore.Capabilities
             
             ASLogger.Instance.Info($"[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
             
-            // 4. 检查死亡
-            if (afterHP <= FP.Zero && stateComp != null && !stateComp.Get(StateType.DEAD))
+            // 4. 死亡判定由 DeadCapability 自动检测血量处理
+            if (afterHP <= FP.Zero)
             {
-                // 设置死亡状态（修改自身组件）
-                stateComp.Set(StateType.DEAD, true);
-                
-                // 发布死亡事件（View 层）
-                var diedEvent = new EntityDiedEventData(
-                    entity: entity,
-                    worldId: 0,  // TODO: 从 Room 或 World 获取真实 ID
-                    roomId: 0,   // TODO: 从 Room 获取真实 ID
-                    killerId: evt.CasterId,
-                    skillId: evt.EffectId
-                );
-                EventSystem.Instance.Publish(diedEvent);
-                
-                ASLogger.Instance.Info($"[DamageCapability] Entity {entity.UniqueId} DIED - Killer: {evt.CasterId}");
+                ASLogger.Instance.Info($"[DamageCapability] Entity {entity.UniqueId} HP reached 0 - Death will be handled by DeadCapability");
             }
         }
     }

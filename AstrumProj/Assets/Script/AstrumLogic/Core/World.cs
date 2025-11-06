@@ -47,11 +47,6 @@ namespace Astrum.LogicCore.Core
         public Dictionary<long, Entity> Entities { get; private set; }
 
         /// <summary>
-        /// 当前帧时间差
-        /// </summary>
-        public float DeltaTime { get; set; }
-
-        /// <summary>
         /// 总运行时间
         /// </summary>
         public float TotalTime { get; set; }
@@ -108,14 +103,13 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         [MemoryPackConstructor]
         public World(int worldId, string name, DateTime creationTime, Dictionary<long, Entity> entities,
-            float deltaTime, float totalTime, LSUpdater updater, long roomId, int curFrame,
+            float totalTime, LSUpdater updater, long roomId, int curFrame,
             HitSystem hitSystem, SkillEffectSystem skillEffectSystem, CapabilitySystem capabilitySystem)
         {
             WorldId = worldId;
             Name = name;
             CreationTime = creationTime;
             Entities = entities ?? new Dictionary<long, Entity>();
-            DeltaTime = deltaTime;
             TotalTime = totalTime;
             Updater = updater;
             RoomId = roomId;

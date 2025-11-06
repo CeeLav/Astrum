@@ -157,8 +157,8 @@ namespace Astrum.LogicCore.Managers
                 return new EffectValueResult { Value = 0f };
             }
             
-            // 计算实际效果ID：BaseEffectId + Level
-            int actualEffectId = baseEffectId + level;
+            // 计算实际效果ID：BaseEffectId + Level - 1
+            int actualEffectId = baseEffectId + level - 1;
             
             // 精确查找对应等级的效果
             var effect = configManager.Tables.TbSkillEffectTable.GetOrDefault(actualEffectId);
