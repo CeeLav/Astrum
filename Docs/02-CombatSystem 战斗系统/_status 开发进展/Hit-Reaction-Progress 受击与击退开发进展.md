@@ -1,18 +1,25 @@
 # 受击与击退系统开发进展
 
-**版本**: v1.0  
+**版本**: v1.1  
 **创建日期**: 2025-01-08  
-**状态**: 设计完成，待实现  
+**更新日期**: 2025-01-08  
+**状态**: 设计完成（双模式事件），待实现  
 
 > 📖 **相关文档**：
-> - [受击与击退设计](Hit-Reaction-And-Knockback%20受击与击退.md)
-> - [事件队列开发进展](../../../05-CoreArchitecture%20核心架构/事件/Event-Queue-Progress%20事件队列开发进展.md)
+> - [受击与击退设计](../技能效果/Hit-Reaction-And-Knockback%20受击与击退.md)
+> - [事件队列开发进展](../../../05-CoreArchitecture%20核心架构/开发进展/Event-Queue-Progress%20事件队列开发进展.md)
 
 ---
 
 ## TL;DR
 
-**目标**：实现击退效果和受击反馈系统，作为事件队列系统的第一个应用场景。
+**目标**：实现击退效果和受击反馈系统，作为**双模式事件队列系统**的第一个应用场景。
+
+**核心特性**：
+- ✅ **使用面向个体事件**：SkillEffectEvent 发布到目标实体
+- ✅ **静态声明处理**：HitReactionCapability 声明处理 SkillEffectEvent
+- ✅ **自动调度**：CapabilitySystem 自动分发事件
+- ✅ **移动输入禁用**：与 SkillDisplacementCapability 保持一致
 
 **进展**：✅ 设计完成，📋 待实现
 
@@ -28,6 +35,7 @@
 
 | 版本 | 日期 | 变更内容 | 作者 |
 |------|------|----------|------|
+| v1.1 | 2025-01-08 | 更新为双模式事件系统（面向个体事件） | AI Assistant |
 | v1.0 | 2025-01-08 | 初始版本，设计完成 | AI Assistant |
 
 ---
@@ -39,13 +47,17 @@
 **预估工时**: 1 小时
 
 - [ ] **P0.1**: 确认事件队列系统已完成 Phase 1-4
+  - Entity 扩展（EventQueue）
+  - Capability 事件声明
+  - CapabilitySystem 调度
 - [ ] **P0.2**: 阅读 `SkillDisplacementCapability` 实现（参考移动输入禁用）
 - [ ] **P0.3**: 确认 `CapabilitySystem.DisableCapabilitiesByTag` API
-- [ ] **P0.4**: 确认 `SkillEffectSystem` 发布事件的位置
+- [ ] **P0.4**: 确认 `SkillExecutorCapability` 如何获取碰撞目标实体
 
 **验收标准**：
 - 事件队列系统可用
 - 清楚了解相关 API
+- 了解如何禁用移动输入
 
 ---
 
@@ -73,13 +85,13 @@
   - `Decelerate` (减速)
   - `Launch` (抛射，可选)
 
-#### 1.3 SkillEffectEvent（已存在，确认）
+#### 1.3 SkillEffectEvent（确认存在）
 
 - [ ] **P1.3.1**: 确认 `SkillEffectEvent` 结构
   - `long CasterId`
-  - `long TargetId`
   - `int EffectId`
   - `int TriggerFrame`
+  - **注意**：不需要 `TargetId`（面向个体事件，直接发到实体上）
 
 **验收标准**：
 - 数据结构定义清晰
@@ -145,11 +157,12 @@
   - `Priority = 200`
   - `Tags = [Combat, Animation]`
 
-#### 3.2 事件处理声明
+#### 3.2 事件处理声明（双模式事件系统）
 
 - [ ] **P3.2.1**: 实现 `RegisterEventHandlers()`
   - 注册 `SkillEffectEvent` 处理器
 - [ ] **P3.2.2**: 实现 `OnSkillEffect(Entity entity, SkillEffectEvent evt)`
+  - **注意**：第一个参数必须是 `Entity`
   - 调用 `ProcessSkillEffect()`
 
 #### 3.3 事件处理逻辑
@@ -166,7 +179,7 @@
   - 播放受击动作 `PlayHitAction()`
   - 播放受击特效 `PlayHitVFX()`
   - 获取或添加 `KnockbackComponent`
-  - 获取施法者实体
+  - 获取施法者实体（通过 `evt.CasterId`）
   - 计算击退方向 `CalculateKnockbackDirection()`
   - 写入击退数据
     - `IsKnockingBack = true`
@@ -190,27 +203,28 @@
   - 从配置表获取
 
 **验收标准**：
-- 接收到技能效果事件
+- 接收到技能效果事件（通过静态声明）
 - 正确识别击退效果
 - 击退数据正确写入 `KnockbackComponent`
+- 处理函数签名正确（第一个参数是 Entity）
 - 编译通过，无运行时错误
 
 ---
 
-### Phase 4: SkillEffectSystem 集成 🔧
+### Phase 4: SkillExecutorCapability 集成 🔧
 
 **预估工时**: 1-2 小时
 
-- [ ] **P4.1**: 确认 `SkillEffectSystem` 现有逻辑
-- [ ] **P4.2**: 在合适位置调用 `World.EntityEventQueue.QueueEvent<SkillEffectEvent>()`
+- [ ] **P4.1**: 确认 `SkillExecutorCapability` 现有逻辑
+- [ ] **P4.2**: 在碰撞命中时发布事件（面向个体）
   - 构造 `SkillEffectEvent`
-  - 指定 `TargetId`
-  - 入队
+  - 调用 `targetEntity.QueueEvent(evt)` ⭐ 关键变更
+  - **不再使用** `world.EntityEventQueue.QueueEvent(targetId, evt)`
 - [ ] **P4.3**: 添加日志和调试信息
 
 **验收标准**：
-- 技能效果触发时正确发布事件
-- 事件成功入队
+- 技能效果触发时正确发布事件到目标实体
+- 事件成功入队到实体本地队列
 - 日志输出正确
 
 ---
@@ -251,7 +265,8 @@
 
 - [ ] **P6.2.1**: 创建测试场景
   - 创建施法者和目标实体
-  - 发布击退效果
+  - 发布击退效果（通过 `targetEntity.QueueEvent`）
+  - 验证事件处理（通过静态声明）
   - 验证击退位移
   - 验证移动输入禁用
   - 验证击退结束后恢复
@@ -259,15 +274,18 @@
   - 击退中再次击退（后者覆盖）
   - 击退中实体销毁
   - 目标没有 PositionComponent
+  - Capability 未激活时不接收事件
 
 #### 6.3 性能测试
 
 - [ ] **P6.3.1**: 测试多个实体同时击退（10+）
 - [ ] **P6.3.2**: 测试击退开销（CPU profiling）
+- [ ] **P6.3.3**: 验证事件不会发送给非目标实体
 
 **验收标准**：
 - 所有测试通过
 - 击退表现符合预期
+- 事件只发送给目标实体（面向个体）
 - 性能满足要求
 - 无内存泄漏
 
@@ -277,12 +295,12 @@
 
 | 系统 | 状态 | 说明 |
 |------|------|------|
-| EntityEventQueue | ⏳ 待实现 | 必须先完成 |
-| CapabilitySystem.ProcessEntityEvents | ⏳ 待实现 | 必须先完成 |
-| Capability 事件声明 | ⏳ 待实现 | 必须先完成 |
+| Entity.EventQueue | ⏳ 待实现 | 必须先完成（事件队列 Phase 1） |
+| Capability 事件声明 | ⏳ 待实现 | 必须先完成（事件队列 Phase 2） |
+| CapabilitySystem.ProcessEntityEvents | ⏳ 待实现 | 必须先完成（事件队列 Phase 3-4） |
 | SkillDisplacementCapability | ✅ 已存在 | 参考其移动输入禁用实现 |
 | MovementCapability | ✅ 已存在 | 已支持 UserInputMovement 标签检查 |
-| SkillEffectSystem | ✅ 已存在 | 需要添加事件发布 |
+| SkillExecutorCapability | ✅ 已存在 | 需要添加事件发布（面向个体） |
 
 ---
 
@@ -299,8 +317,10 @@
 
 | 决策 | 理由 |
 |------|------|
+| 使用面向个体事件 | 击退是针对特定实体的，性能更优，生命周期自动管理 |
+| 使用静态事件声明 | 配合新的双模式事件队列系统 |
+| 处理函数第一个参数是 Entity | 明确操作目标，符合系统设计 |
 | 使用方案一（主动禁用） | 与 SkillDisplacementCapability 保持架构一致 |
-| 使用静态事件声明 | 配合新的事件队列系统 |
 | 击退优先级 150 | 高于普通移动，低于受击反应 |
 | 击退类型支持 | 线性、减速，抛射可选（后续扩展） |
 
@@ -309,8 +329,9 @@
 ## 验收标准
 
 ### 功能完整性
-- ✅ 技能效果触发时正确发布 SkillEffectEvent
-- ✅ HitReactionCapability 正确接收事件
+- ✅ 技能效果触发时正确发布 SkillEffectEvent 到目标实体
+- ✅ HitReactionCapability 正确接收事件（通过静态声明）
+- ✅ 事件只发送给目标实体，不影响其他实体
 - ✅ 击退数据正确写入 KnockbackComponent
 - ✅ KnockbackCapability 正确应用击退位移
 - ✅ 击退期间禁用移动输入
@@ -327,12 +348,12 @@
 - ✅ 单元测试覆盖核心逻辑
 - ✅ 代码符合项目规范
 - ✅ 有清晰的注释和日志
+- ✅ 事件处理函数签名正确（第一个参数是 Entity）
 
 ---
 
 ## 相关文档
 
-- [受击与击退设计](Hit-Reaction-And-Knockback%20受击与击退.md) - 技术方案
-- [事件队列开发进展](../../../05-CoreArchitecture%20核心架构/事件/Event-Queue-Progress%20事件队列开发进展.md) - 依赖系统
+- [受击与击退设计](../技能效果/Hit-Reaction-And-Knockback%20受击与击退.md) - 技术方案
+- [事件队列开发进展](../../../05-CoreArchitecture%20核心架构/开发进展/Event-Queue-Progress%20事件队列开发进展.md) - 依赖系统
 - [技能位移能力](../../移动-位移/SkillDisplacementCapability%20技能位移能力.md) - 参考实现
-

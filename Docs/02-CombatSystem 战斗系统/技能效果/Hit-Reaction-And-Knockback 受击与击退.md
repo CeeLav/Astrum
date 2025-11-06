@@ -303,7 +303,7 @@ namespace Astrum.LogicCore.Capabilities
             RegisterEventHandler<SkillEffectEvent>(OnSkillEffect);
         }
         
-        // 事件处理函数（由 CapabilitySystem 自动调度）
+        // 事件处理函数（由 CapabilitySystem 自动调度，第一个参数必须是 Entity）
         private void OnSkillEffect(Entity entity, SkillEffectEvent evt)
         {
             ProcessSkillEffect(entity, evt);

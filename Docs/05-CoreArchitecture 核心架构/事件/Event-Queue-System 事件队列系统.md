@@ -44,24 +44,40 @@
 【EventSystem - 绑定式（保留）】
 View组件 --发布--> EventSystem --立即回调--> 订阅者
 
-【EntityEventQueue - 队列式（新增）】
-系统/实体 --入队--> EntityEventQueue
-           ↓
-      CapabilitySystem.ProcessEntityEvents()
-           ↓
-      根据事件类型 → 查找预处理的回调映射 → 调用 Capability 处理函数
+【EntityEventQueue - 队列式（新增，双模式）】
+
+┌──────────────────────────────────────────────┐
+│  模式1: 面向个体事件 (Entity-Targeted)        │
+│  系统/实体 --入队--> Entity.EventQueue        │
+│           ↓                                   │
+│  CapabilitySystem 只处理该实体的 Capability   │
+└──────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────┐
+│  模式2: 面向全体事件 (Broadcast)              │
+│  系统 --入队--> World.GlobalEventQueue        │
+│           ↓                                   │
+│  CapabilitySystem 处理所有激活实体的 Capability│
+└──────────────────────────────────────────────┘
+
+【调度流程】
+CapabilitySystem.ProcessEntityEvents()
+  ├─ 处理个体事件：遍历有事件的实体 → 调用其 Capability
+  └─ 处理全体事件：遍历全局事件 → 对每个激活实体调用 Capability
 ```
 
 **新模式的核心特性**：
 1. **静态声明**：Capability 类中声明自己处理的事件类型和处理函数
 2. **预处理**：CapabilitySystem 注册时提取并缓存事件映射
-3. **集中调度**：专门的事件处理循环统一分发事件
-4. **自动生命周期**：Capability 销毁时自动停止接收事件
+3. **双模式**：支持面向个体和面向全体两种事件发布
+4. **集中调度**：专门的事件处理循环统一分发事件
+5. **自动生命周期**：Capability 销毁时自动停止接收事件
 
 **优点**：
 - ✅ 声明式设计，一目了然
 - ✅ 预处理避免运行时反射
-- ✅ 集中调度，性能更优
+- ✅ 双模式灵活应对不同场景
+- ✅ 数据局部性好（个体事件存实体上）
 - ✅ 无需管理订阅/取消订阅
 - ✅ 生命周期自动管理
 
@@ -251,104 +267,102 @@ namespace Astrum.LogicCore.Events
     /// </summary>
     public struct EntityEvent
     {
-        public long TargetEntityId;  // 目标实体ID
-        public Type EventType;        // 事件类型
-        public object EventData;      // 事件数据（struct装箱）
-        public int Frame;             // 触发帧（用于排序/调试）
+        public Type EventType;       // 事件类型
+        public object EventData;     // 事件数据（struct装箱）
+        public int Frame;            // 触发帧（用于排序/调试）
     }
 }
 ```
 
-#### EntityEventQueue（全局队列）
+#### Entity 扩展（面向个体事件）
+
+```csharp
+namespace Astrum.LogicCore.Core
+{
+    public partial class Entity
+    {
+        // 个体事件队列（延迟创建）
+        internal Queue<EntityEvent> EventQueue { get; private set; }
+        
+        /// <summary>
+        /// 是否有待处理事件
+        /// </summary>
+        public bool HasPendingEvents => EventQueue != null && EventQueue.Count > 0;
+        
+        /// <summary>
+        /// 向该实体发布事件（面向个体）
+        /// </summary>
+        public void QueueEvent<T>(T eventData) where T : struct
+        {
+            if (EventQueue == null)
+                EventQueue = new Queue<EntityEvent>(4); // 延迟创建，初始容量4
+            
+            EventQueue.Enqueue(new EntityEvent
+            {
+                EventType = typeof(T),
+                EventData = eventData,
+                Frame = World?.CurrentFrame ?? 0
+            });
+        }
+        
+        /// <summary>
+        /// 清空该实体的事件队列
+        /// </summary>
+        internal void ClearEventQueue()
+        {
+            EventQueue?.Clear();
+        }
+    }
+}
+```
+
+#### GlobalEventQueue（面向全体事件）
 
 ```csharp
 namespace Astrum.LogicCore.Events
 {
     /// <summary>
-    /// 全局实体事件队列（简化版，只负责存储）
-    /// 事件的分发由 CapabilitySystem 处理
+    /// 全局广播事件队列
+    /// 用于需要所有实体响应的事件（阶段切换、全局公告等）
     /// </summary>
-    public class EntityEventQueue
+    public class GlobalEventQueue
     {
-        // 全局事件队列（按目标实体ID索引）
-        private readonly Dictionary<long, Queue<EntityEvent>> _entityQueues = new();
-        
-        // 对象池，减少GC
-        private readonly Queue<Queue<EntityEvent>> _queuePool = new();
+        // 全局事件队列
+        private readonly Queue<EntityEvent> _globalEvents = new Queue<EntityEvent>(16);
         
         /// <summary>
-        /// 将事件加入目标实体的队列
+        /// 发布全局事件（面向全体）
         /// </summary>
-        public void QueueEvent<T>(long targetEntityId, T eventData) where T : struct
+        public void QueueGlobalEvent<T>(T eventData) where T : struct
         {
-            if (!_entityQueues.TryGetValue(targetEntityId, out var queue))
+            _globalEvents.Enqueue(new EntityEvent
             {
-                queue = GetOrCreateQueue();
-                _entityQueues[targetEntityId] = queue;
-            }
-            
-            queue.Enqueue(new EntityEvent
-            {
-                TargetEntityId = targetEntityId,
                 EventType = typeof(T),
-                EventData = eventData, // 装箱
-                Frame = 0 // 可以从 World 获取当前帧
+                EventData = eventData,
+                Frame = 0 // 可以从 World 获取
             });
         }
         
         /// <summary>
-        /// 获取指定实体的所有事件（不消费，供 CapabilitySystem 调度）
+        /// 获取所有全局事件（供 CapabilitySystem 调度）
         /// </summary>
-        internal Queue<EntityEvent> GetEvents(long targetEntityId)
+        internal Queue<EntityEvent> GetEvents()
         {
-            return _entityQueues.TryGetValue(targetEntityId, out var queue) ? queue : null;
+            return _globalEvents;
         }
         
         /// <summary>
-        /// 获取所有有事件的实体ID
-        /// </summary>
-        internal IEnumerable<long> GetEntityIdsWithEvents()
-        {
-            return _entityQueues.Keys;
-        }
-        
-        /// <summary>
-        /// 清除指定实体的所有事件（实体销毁时调用）
-        /// </summary>
-        public void Clear(long targetEntityId)
-        {
-            if (_entityQueues.TryGetValue(targetEntityId, out var queue))
-            {
-                _entityQueues.Remove(targetEntityId);
-                RecycleQueue(queue);
-            }
-        }
-        
-        /// <summary>
-        /// 清除所有事件（World重置时调用）
+        /// 清空所有全局事件
         /// </summary>
         public void ClearAll()
         {
-            foreach (var queue in _entityQueues.Values)
-            {
-                RecycleQueue(queue);
-            }
-            _entityQueues.Clear();
+            _globalEvents.Clear();
         }
         
-        private Queue<EntityEvent> GetOrCreateQueue()
-        {
-            if (_queuePool.Count > 0)
-                return _queuePool.Dequeue();
-            
-            return new Queue<EntityEvent>(16);
-        }
-        
-        private void RecycleQueue(Queue<EntityEvent> queue)
-        {
-            queue.Clear();
-            _queuePool.Enqueue(queue);
-        }
+        /// <summary>
+        /// 是否有待处理事件
+        /// </summary>
+        public bool HasPendingEvents => _globalEvents.Count > 0;
     }
 }
 ```
@@ -497,38 +511,61 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void ProcessEntityEvents()
         {
-            var eventQueue = _world.EntityEventQueue;
-            var entityIds = eventQueue.GetEntityIdsWithEvents();
+            // 1. 处理个体事件（Entity-Targeted Events）
+            ProcessTargetedEvents();
             
-            foreach (var entityId in entityIds)
+            // 2. 处理全体事件（Broadcast Events）
+            ProcessBroadcastEvents();
+        }
+        
+        /// <summary>
+        /// 处理面向个体的事件
+        /// </summary>
+        private void ProcessTargetedEvents()
+        {
+            // 遍历所有有事件的实体
+            foreach (var entity in _world.Entities)
             {
-                var entity = _world.GetEntity(entityId);
-                if (entity == null)
-                {
-                    eventQueue.Clear(entityId); // 实体不存在，清除事件
-                    continue;
-                }
-                
-                var events = eventQueue.GetEvents(entityId);
-                if (events == null || events.Count == 0)
+                if (!entity.HasPendingEvents)
                     continue;
                 
                 // 处理该实体的所有事件
-                while (events.Count > 0)
+                while (entity.EventQueue.Count > 0)
                 {
-                    var evt = events.Dequeue();
-                    DispatchEvent(entity, evt);
+                    var evt = entity.EventQueue.Dequeue();
+                    DispatchEventToEntity(entity, evt);
                 }
-                
-                // 清理空队列
-                eventQueue.Clear(entityId);
             }
         }
         
         /// <summary>
-        /// 分发单个事件到对应的 Capability
+        /// 处理面向全体的事件
         /// </summary>
-        private void DispatchEvent(Entity entity, EntityEvent evt)
+        private void ProcessBroadcastEvents()
+        {
+            var globalQueue = _world.GlobalEventQueue;
+            if (!globalQueue.HasPendingEvents)
+                return;
+            
+            var events = globalQueue.GetEvents();
+            
+            // 对每个全局事件
+            while (events.Count > 0)
+            {
+                var evt = events.Dequeue();
+                
+                // 广播给所有激活实体
+                foreach (var entity in _world.Entities)
+                {
+                    DispatchEventToEntity(entity, evt);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 分发单个事件到指定实体的 Capability
+        /// </summary>
+        private void DispatchEventToEntity(Entity entity, EntityEvent evt)
         {
             // 查找处理该事件类型的所有 Capability
             if (!_eventToHandlers.TryGetValue(evt.EventType, out var handlers))
@@ -544,7 +581,7 @@ namespace Astrum.LogicCore.Core
                 if (!capability.IsActive)
                     continue;
                 
-                // 调用处理函数（反射调用，或通过 dynamic）
+                // 调用处理函数（第一个参数是 Entity）
                 InvokeHandler(handler, entity, evt.EventData);
             }
         }
@@ -574,8 +611,8 @@ namespace Astrum.LogicCore.Core
 {
     public class World
     {
-        // 全局事件队列
-        public EntityEventQueue EntityEventQueue { get; private set; }
+        // 全局广播事件队列
+        public GlobalEventQueue GlobalEventQueue { get; private set; }
         
         // Capability 系统
         public CapabilitySystem CapabilitySystem { get; private set; }
@@ -585,7 +622,7 @@ namespace Astrum.LogicCore.Core
         
         public World(string name)
         {
-            EntityEventQueue = new EntityEventQueue();
+            GlobalEventQueue = new GlobalEventQueue();
             CapabilitySystem = new CapabilitySystem(this);
             // ...
         }
@@ -595,7 +632,7 @@ namespace Astrum.LogicCore.Core
             // 1. 更新所有 Capability（可能会产生新事件）
             CapabilitySystem.UpdateCapabilities(deltaTime);
             
-            // 2. 处理本帧产生的所有事件
+            // 2. 处理本帧产生的所有事件（个体+全体）
             CapabilitySystem.ProcessEntityEvents();
             
             // 3. 更新其他系统...
@@ -603,14 +640,21 @@ namespace Astrum.LogicCore.Core
         
         public void OnEntityDestroyed(Entity entity)
         {
-            // 清除该实体的所有待处理事件
-            EntityEventQueue.Clear(entity.UniqueId);
+            // 清除该实体的个体事件队列
+            entity.ClearEventQueue();
         }
         
         public void Reset()
         {
-            // 清除所有事件
-            EntityEventQueue.ClearAll();
+            // 清除所有全局事件
+            GlobalEventQueue.ClearAll();
+            
+            // 清除所有实体的个体事件
+            foreach (var entity in Entities)
+            {
+                entity.ClearEventQueue();
+            }
+            
             // ...
         }
     }
@@ -623,7 +667,9 @@ namespace Astrum.LogicCore.Core
 
 ### 5.1 发布事件
 
-#### SkillEffectSystem（发布者）
+#### 模式1：面向个体事件（Entity-Targeted）
+
+用于针对特定实体的效果：伤害、治疗、击退、Buff等。
 
 ```csharp
 namespace Astrum.LogicCore.Systems
@@ -632,41 +678,82 @@ namespace Astrum.LogicCore.Systems
     {
         private World _world;
         
-        public void QueueSkillEffect(SkillEffectData data)
+        public void TriggerSkillEffect(Entity caster, Entity target, int effectId)
         {
             // 构造事件
             var evt = new SkillEffectEvent
             {
-                CasterId = data.CasterId,
-                TargetId = data.TargetId,
-                EffectId = data.EffectId,
+                CasterId = caster.UniqueId,
+                EffectId = effectId,
                 TriggerFrame = _world.CurrentFrame
             };
             
-            // 加入目标实体的事件队列
-            _world.EntityEventQueue.QueueEvent(data.TargetId, evt);
+            // 直接向目标实体发布（面向个体）
+            target.QueueEvent(evt);
             
-            ASLogger.Instance.Debug($"Queued SkillEffect event: {data.CasterId} → {data.TargetId}, effectId={data.EffectId}");
+            ASLogger.Instance.Debug($"Queued SkillEffect to entity {target.UniqueId}");
         }
     }
 }
 ```
 
-#### 其他发布示例
+#### 模式2：面向全体事件（Broadcast）
+
+用于所有实体都需要响应的事件：阶段切换、全局公告、环境变化等。
 
 ```csharp
-// 伤害事件
-_world.EntityEventQueue.QueueEvent(targetId, new DamageEvent
+namespace Astrum.LogicCore.Systems
+{
+    public class GameStageSystem
+    {
+        private World _world;
+        
+        public void SwitchPhase(int newPhase)
+        {
+            // 构造事件
+            var evt = new PhaseChangeEvent
+            {
+                OldPhase = _currentPhase,
+                NewPhase = newPhase
+            };
+            
+            // 发布全局事件（面向全体）
+            _world.GlobalEventQueue.QueueGlobalEvent(evt);
+            
+            ASLogger.Instance.Info($"Broadcast PhaseChange: {_currentPhase} → {newPhase}");
+        }
+    }
+}
+```
+
+#### 发布示例对比
+
+```csharp
+// ===== 面向个体事件 =====
+// 伤害事件 - 只有目标实体处理
+targetEntity.QueueEvent(new DamageEvent
 {
     AttackerId = attackerId,
     Damage = 100
 });
 
-// Buff事件
-_world.EntityEventQueue.QueueEvent(targetId, new BuffEvent
+// 治疗事件 - 只有目标实体处理
+targetEntity.QueueEvent(new HealEvent
 {
-    BuffId = 2001,
-    Duration = 10.0f
+    HealAmount = 50
+});
+
+// ===== 面向全体事件 =====
+// 阶段切换 - 所有实体都处理
+world.GlobalEventQueue.QueueGlobalEvent(new PhaseChangeEvent
+{
+    NewPhase = 2
+});
+
+// 环境变化 - 所有实体都处理
+world.GlobalEventQueue.QueueGlobalEvent(new EnvironmentChangeEvent
+{
+    Temperature = -10
 });
 ```
 
@@ -809,6 +896,82 @@ public struct BuffEvent
     public float Duration;
 }
 ```
+
+---
+
+## 双模式应用场景
+
+### 面向个体事件（Entity-Targeted）
+
+**使用场景**：
+- ✅ 技能效果（伤害、治疗、击退、Buff、Debuff）
+- ✅ 实体间交互（碰撞、对话、交易）
+- ✅ 特定实体状态变化通知
+
+**特点**：
+- 事件存储在目标实体上
+- 只有该实体的 Capability 处理
+- 数据局部性好，性能优
+- 实体销毁时自动清理
+
+**API**：
+```csharp
+// 发布
+targetEntity.QueueEvent(new DamageEvent { Damage = 100 });
+
+// 处理（Capability 静态声明）
+protected override void RegisterEventHandlers()
+{
+    RegisterEventHandler<DamageEvent>(OnDamage);
+}
+
+private void OnDamage(Entity entity, DamageEvent evt)
+{
+    // 只有该实体会执行此函数
+}
+```
+
+### 面向全体事件（Broadcast）
+
+**使用场景**：
+- ✅ 游戏阶段切换（开始、结束、暂停）
+- ✅ 全局公告（Boss出现、活动开始）
+- ✅ 环境变化（天气、时间、温度）
+- ✅ 全局buff（所有玩家获得经验加成）
+
+**特点**：
+- 事件存储在全局队列中
+- 所有激活实体的相关 Capability 都处理
+- 适合需要大范围广播的事件
+- 处理次数 = 实体数 × 事件数
+
+**API**：
+```csharp
+// 发布
+world.GlobalEventQueue.QueueGlobalEvent(new PhaseChangeEvent { NewPhase = 2 });
+
+// 处理（Capability 静态声明，与个体事件相同）
+protected override void RegisterEventHandlers()
+{
+    RegisterEventHandler<PhaseChangeEvent>(OnPhaseChange);
+}
+
+private void OnPhaseChange(Entity entity, PhaseChangeEvent evt)
+{
+    // 每个激活实体都会执行此函数
+}
+```
+
+### 选择指南
+
+| 问题 | 答案 | 推荐模式 |
+|------|------|----------|
+| 事件只针对特定实体？ | 是 | 面向个体 |
+| 需要所有实体响应？ | 是 | 面向全体 |
+| 事件数量多，实体少？ | 是 | 面向个体 |
+| 事件数量少，实体多？ | 是 | 面向全体 |
+| 需要精确控制目标？ | 是 | 面向个体 |
+| 无法确定目标实体？ | 是 | 面向全体 |
 
 ---
 
@@ -978,13 +1141,17 @@ EventSystem.Instance.Publish(new PlaySoundEvent { SoundId = "sword_hit" });
 EventSystem.Instance.Publish(new VFXTriggerEvent { EffectPath = "Effects/Explosion" });
 ```
 
-#### Logic层事件使用 EntityEventQueue
+#### Logic层事件使用双模式
 
 ```csharp
-// Logic层事件使用 EntityEventQueue（排队处理）
-_world.EntityEventQueue.QueueEvent(targetId, new DamageEvent { ... });
-_world.EntityEventQueue.QueueEvent(targetId, new BuffEvent { ... });
-_world.EntityEventQueue.QueueEvent(targetId, new KnockbackEvent { ... });
+// 面向个体事件（存实体上，更推荐）
+targetEntity.QueueEvent(new DamageEvent { ... });
+targetEntity.QueueEvent(new BuffEvent { ... });
+targetEntity.QueueEvent(new KnockbackEvent { ... });
+
+// 面向全体事件（全局广播）
+world.GlobalEventQueue.QueueGlobalEvent(new PhaseChangeEvent { ... });
+world.GlobalEventQueue.QueueGlobalEvent(new EnvironmentChangeEvent { ... });
 ```
 
 ---
@@ -1004,15 +1171,14 @@ public class SkillExecutorCapability : Capability<SkillExecutorCapability>
         // ... 技能逻辑 ...
         
         // 碰撞检测命中目标
-        var targets = HitSystem.QueryHits(caster, collisionShape);
+        var targets = HitSystem.QueryHits(entity, collisionShape);
         
-        foreach (var target in targets)
+        foreach (var targetEntity in targets)
         {
-            // 发布技能效果事件到目标实体的队列
-            entity.World.EntityEventQueue.QueueEvent(target.UniqueId, new SkillEffectEvent
+            // 直接向目标实体发布事件（面向个体）
+            targetEntity.QueueEvent(new SkillEffectEvent
             {
                 CasterId = entity.UniqueId,
-                TargetId = target.UniqueId,
                 EffectId = 5001, // 击退效果
                 TriggerFrame = entity.World.CurrentFrame
             });
@@ -1023,23 +1189,25 @@ public class SkillExecutorCapability : Capability<SkillExecutorCapability>
 // ========== 消费者：HitReactionCapability ==========
 public class HitReactionCapability : Capability<HitReactionCapability>
 {
-    public override void Tick(Entity entity)
+    // 静态声明处理的事件
+    protected override void RegisterEventHandlers()
     {
-        // 消费技能效果事件
-        var events = entity.World.EntityEventQueue.ConsumeEvents<SkillEffectEvent>(entity.UniqueId);
+        RegisterEventHandler<SkillEffectEvent>(OnSkillEffect);
+    }
+    
+    // 事件处理函数（由 CapabilitySystem 自动调用）
+    private void OnSkillEffect(Entity entity, SkillEffectEvent evt)
+    {
+        // 获取效果配置
+        var config = TableConfig.Instance.Tables.TbSkillEffectTable.GetOrDefault(evt.EffectId);
         
-        foreach (var evt in events)
+        if (config.EffectType == 3) // 击退
         {
-            // 获取效果配置
-            var config = TableConfig.Instance.Tables.TbSkillEffectTable.GetOrDefault(evt.EffectId);
+            // 播放受击动作
+            PlayHitAnimation(entity, evt.CasterId);
             
-            if (config.EffectType == 3) // 击退
-            {
-                // 播放受击动作
-                PlayHitAnimation(entity, evt.CasterId);
-                
-                // 写入击退数据
-                var knockback = entity.GetOrAddComponent<KnockbackComponent>();
+            // 写入击退数据
+            var knockback = entity.GetOrAddComponent<KnockbackComponent>();
                 knockback.IsKnockingBack = true;
                 knockback.Distance = config.EffectValue;
                 knockback.Duration = config.EffectDuration;
