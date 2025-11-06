@@ -28,9 +28,14 @@ namespace Astrum.View.Stages
         
         protected override void OnInitialize()
         {
-            
             // 初始化游戏特定的组件
             SetupGameComponents();
+            
+            // 初始化VFX管理器
+            if (VFXManager.Instance != null)
+            {
+                VFXManager.Instance.Initialize(this);
+            }
         }
         
         protected override void OnLoad()
@@ -44,6 +49,12 @@ namespace Astrum.View.Stages
         protected override void OnUnload()
         {
             ASLogger.Instance.Info("GameStage: 卸载游戏资源");
+            
+            // 清理VFX管理器
+            if (VFXManager.Instance != null)
+            {
+                VFXManager.Instance.Cleanup();
+            }
             
             // 卸载游戏资源
             UnloadGameResources();

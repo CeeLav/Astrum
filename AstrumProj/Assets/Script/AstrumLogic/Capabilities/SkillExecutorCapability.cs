@@ -6,6 +6,7 @@ using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
+using Astrum.CommonBase.Events;
 
 namespace Astrum.LogicCore.Capabilities
 {
@@ -77,9 +78,9 @@ namespace Astrum.LogicCore.Capabilities
             if (skillAction.TriggerEffects == null || skillAction.TriggerEffects.Count == 0)
                 return;
             
-            // 过滤出当前帧的触发事件
+            // 过滤出当前帧的触发事件（支持单帧和多帧范围）
             var triggersAtFrame = skillAction.TriggerEffects
-                .Where(t => t.Frame == currentFrame)
+                .Where(t => t.IsFrameInRange(currentFrame))
                 .ToList();
             
             if (triggersAtFrame.Count == 0)
@@ -99,8 +100,38 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void ProcessTrigger(Entity caster, SkillActionInfo skillAction, TriggerFrameInfo trigger)
         {
-            // 根据触发类型分发
-            switch (trigger.TriggerType.ToLower())
+            // 根据顶层类型分发
+            string type = trigger.Type ?? "SkillEffect";
+            
+            switch (type)
+            {
+                case "SkillEffect":
+                    ProcessSkillEffectTrigger(caster, skillAction, trigger);
+                    break;
+                    
+                case "VFX":
+                    ProcessVFXTrigger(caster, trigger);
+                    break;
+                    
+                case "SFX":
+                    // TODO: 实现 SFX 处理
+                    ASLogger.Instance.Warning("SFX trigger not yet implemented");
+                    break;
+                    
+                default:
+                    ASLogger.Instance.Warning($"Unknown trigger type: {type}");
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// 处理 SkillEffect 类型触发（内部根据 triggerType 进一步分发）
+        /// </summary>
+        private void ProcessSkillEffectTrigger(Entity caster, SkillActionInfo skillAction, TriggerFrameInfo trigger)
+        {
+            string triggerType = trigger.TriggerType ?? "";
+            
+            switch (triggerType.ToLower())
             {
                 case "collision":
                     HandleCollisionTrigger(caster, skillAction, trigger);
@@ -115,9 +146,73 @@ namespace Astrum.LogicCore.Capabilities
                     break;
                     
                 default:
-                    ASLogger.Instance.Warning($"Unknown trigger type: {trigger.TriggerType}");
+                    ASLogger.Instance.Warning($"Unknown SkillEffect triggerType: {triggerType}");
                     break;
             }
+        }
+        
+        /// <summary>
+        /// 处理 VFX 类型触发（发布事件到 View 层）
+        /// </summary>
+        private void ProcessVFXTrigger(Entity caster, TriggerFrameInfo trigger)
+        {
+            // 获取当前帧（从 ActionComponent）
+            var actionComponent = GetComponent<ActionComponent>(caster);
+            int currentFrame = actionComponent?.CurrentFrame ?? 0;
+            
+            // 检查是否为开始帧（对于多帧范围的 VFX，只在开始帧触发一次）
+            bool shouldTrigger = false;
+            
+            if (trigger.StartFrame.HasValue && trigger.EndFrame.HasValue)
+            {
+                // 多帧范围：只在开始帧触发
+                shouldTrigger = (currentFrame == trigger.StartFrame.Value);
+            }
+            else if (trigger.Frame > 0)
+            {
+                // 单帧：直接触发
+                shouldTrigger = (currentFrame == trigger.Frame);
+            }
+            
+            if (!shouldTrigger)
+                return;
+            
+            // 构建 VFX 事件数据
+            var eventData = new VFXTriggerEventData
+            {
+                EntityId = caster.UniqueId,
+                ResourcePath = trigger.VFXResourcePath ?? string.Empty,
+                Scale = trigger.VFXScale,
+                PlaybackSpeed = trigger.VFXPlaybackSpeed,
+                FollowCharacter = trigger.VFXFollowCharacter,
+                Loop = trigger.VFXLoop,
+                InstanceId = trigger.GetHashCode() // 使用触发帧的哈希作为实例ID
+            };
+            
+            // 转换位置偏移（从 float[] 转换为 Unity Vector3）
+            if (trigger.VFXPositionOffset != null && trigger.VFXPositionOffset.Length >= 3)
+            {
+                eventData.PositionOffset = new UnityEngine.Vector3(
+                    trigger.VFXPositionOffset[0],
+                    trigger.VFXPositionOffset[1],
+                    trigger.VFXPositionOffset[2]
+                );
+            }
+            
+            // 转换旋转（从 float[] 转换为 Unity Vector3）
+            if (trigger.VFXRotation != null && trigger.VFXRotation.Length >= 3)
+            {
+                eventData.Rotation = new UnityEngine.Vector3(
+                    trigger.VFXRotation[0],
+                    trigger.VFXRotation[1],
+                    trigger.VFXRotation[2]
+                );
+            }
+            
+            // 发布事件
+            EventSystem.Instance.Publish(eventData);
+            
+            ASLogger.Instance.Debug($"Published VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
         }
         
         /// <summary>

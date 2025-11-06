@@ -1,6 +1,8 @@
 using Astrum.LogicCore.SkillSystem;
 using Astrum.CommonBase;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using System.Linq;
 
 namespace Astrum.LogicCore.Managers
 {
@@ -206,8 +208,9 @@ namespace Astrum.LogicCore.Managers
         // ========== 触发帧解析 ==========
         
         /// <summary>
-        /// 解析触发帧信息（应用等级映射，并解析碰撞形状）
-        /// 新格式：Frame5:Collision(Box:5x2x1):10000,Frame8:Direct:10100
+        /// 解析触发帧信息（支持 JSON 格式和旧字符串格式）
+        /// JSON 格式：{"frame":10,"type":"SkillEffect","triggerType":"Collision",...}
+        /// 旧格式：Frame5:Collision(Box:5x2x1):10000,Frame8:Direct:10100
         /// </summary>
         public List<TriggerFrameInfo> ParseTriggerFrames(string triggerFramesStr, int skillLevel)
         {
@@ -215,6 +218,257 @@ namespace Astrum.LogicCore.Managers
             
             if (string.IsNullOrEmpty(triggerFramesStr))
                 return results;
+            
+            // 检测是否为 JSON 格式（以 [ 或 { 开头）
+            string trimmed = triggerFramesStr.Trim();
+            if (trimmed.StartsWith("[") || trimmed.StartsWith("{"))
+            {
+                return ParseTriggerFramesFromJSON(triggerFramesStr, skillLevel);
+            }
+            
+            // 否则使用旧格式解析
+            return ParseTriggerFramesFromString(triggerFramesStr, skillLevel);
+        }
+        
+        /// <summary>
+        /// 从 JSON 格式解析触发帧信息
+        /// </summary>
+        private List<TriggerFrameInfo> ParseTriggerFramesFromJSON(string jsonStr, int skillLevel)
+        {
+            var results = new List<TriggerFrameInfo>();
+            
+            try
+            {
+                // 定义 JSON 数据结构（与编辑器端 TriggerFrameData 对应）
+                var jsonData = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonStr);
+                if (jsonData == null)
+                    return results;
+                
+                foreach (var item in jsonData)
+                {
+                    // 获取类型
+                    string type = item.ContainsKey("type") ? item["type"]?.ToString() ?? "SkillEffect" : "SkillEffect";
+                    
+                    // 解析帧范围
+                    int? frame = null;
+                    int? startFrame = null;
+                    int? endFrame = null;
+                    
+                    if (item.ContainsKey("frame") && item["frame"] != null)
+                    {
+                        if (int.TryParse(item["frame"].ToString(), out int f))
+                            frame = f;
+                    }
+                    
+                    if (item.ContainsKey("startFrame") && item["startFrame"] != null)
+                    {
+                        if (int.TryParse(item["startFrame"].ToString(), out int sf))
+                            startFrame = sf;
+                    }
+                    
+                    if (item.ContainsKey("endFrame") && item["endFrame"] != null)
+                    {
+                        if (int.TryParse(item["endFrame"].ToString(), out int ef))
+                            endFrame = ef;
+                    }
+                    
+                    // 根据类型处理
+                    if (type == "SkillEffect")
+                    {
+                        // SkillEffect 类型
+                        string triggerType = item.ContainsKey("triggerType") ? item["triggerType"]?.ToString() ?? "" : "";
+                        int effectId = 0;
+                        
+                        if (item.ContainsKey("effectId") && item["effectId"] != null)
+                        {
+                            if (!int.TryParse(item["effectId"].ToString(), out effectId))
+                                continue;
+                        }
+                        else
+                        {
+                            ASLogger.Instance.Warning("SkillEffect trigger missing effectId");
+                            continue;
+                        }
+                        
+                        // 应用等级映射
+                        int baseEffectId = effectId;
+                        var effectResult = GetEffectValue(baseEffectId, skillLevel);
+                        if (effectResult.EffectData == null)
+                        {
+                            ASLogger.Instance.Warning($"Failed to get effect for base {baseEffectId} level {skillLevel}");
+                            continue;
+                        }
+                        
+                        effectId = effectResult.EffectId;
+                        
+                        // 解析碰撞信息
+                        CollisionShape? collisionShape = null;
+                        string collisionInfo = item.ContainsKey("collisionInfo") ? item["collisionInfo"]?.ToString() ?? "" : "";
+                        
+                        if (triggerType.Equals("Collision", System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(collisionInfo))
+                        {
+                            var parsed = SkillSystem.CollisionInfoParser.Parse(collisionInfo);
+                            if (parsed.HasValue)
+                                collisionShape = parsed.Value;
+                        }
+                        
+                        // 解析条件
+                        TriggerCondition? condition = null;
+                        if (triggerType.Equals("Condition", System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(collisionInfo))
+                        {
+                            condition = ParseCondition(collisionInfo);
+                        }
+                        
+                        // 创建触发帧信息（支持单帧和多帧范围）
+                        if (frame.HasValue)
+                        {
+                            // 单帧
+                            results.Add(new TriggerFrameInfo
+                            {
+                                Frame = frame.Value,
+                                Type = "SkillEffect",
+                                TriggerType = triggerType,
+                                EffectId = effectId,
+                                CollisionShape = collisionShape,
+                                Condition = condition
+                            });
+                        }
+                        else if (startFrame.HasValue && endFrame.HasValue)
+                        {
+                            // 多帧范围：展开为单帧列表
+                            for (int f = startFrame.Value; f <= endFrame.Value; f++)
+                            {
+                                results.Add(new TriggerFrameInfo
+                                {
+                                    StartFrame = startFrame,
+                                    EndFrame = endFrame,
+                                    Frame = f, // 当前帧号
+                                    Type = "SkillEffect",
+                                    TriggerType = triggerType,
+                                    EffectId = effectId,
+                                    CollisionShape = collisionShape,
+                                    Condition = condition
+                                });
+                            }
+                        }
+                    }
+                    else if (type == "VFX")
+                    {
+                        // VFX 类型
+                        string resourcePath = item.ContainsKey("resourcePath") ? item["resourcePath"]?.ToString() ?? "" : "";
+                        if (string.IsNullOrEmpty(resourcePath))
+                        {
+                            ASLogger.Instance.Warning("VFX trigger missing resourcePath");
+                            continue;
+                        }
+                        
+                        // 解析位置偏移
+                        float[] positionOffset = null;
+                        if (item.ContainsKey("positionOffset") && item["positionOffset"] != null)
+                        {
+                            var posObj = item["positionOffset"];
+                            if (posObj is Newtonsoft.Json.Linq.JArray posArray && posArray.Count >= 3)
+                            {
+                                positionOffset = new float[3];
+                                if (float.TryParse(posArray[0].ToString(), out float x))
+                                    positionOffset[0] = x;
+                                if (float.TryParse(posArray[1].ToString(), out float y))
+                                    positionOffset[1] = y;
+                                if (float.TryParse(posArray[2].ToString(), out float z))
+                                    positionOffset[2] = z;
+                            }
+                        }
+                        
+                        // 解析旋转
+                        float[] rotation = null;
+                        if (item.ContainsKey("rotation") && item["rotation"] != null)
+                        {
+                            var rotObj = item["rotation"];
+                            if (rotObj is Newtonsoft.Json.Linq.JArray rotArray && rotArray.Count >= 3)
+                            {
+                                rotation = new float[3];
+                                if (float.TryParse(rotArray[0].ToString(), out float x))
+                                    rotation[0] = x;
+                                if (float.TryParse(rotArray[1].ToString(), out float y))
+                                    rotation[1] = y;
+                                if (float.TryParse(rotArray[2].ToString(), out float z))
+                                    rotation[2] = z;
+                            }
+                        }
+                        
+                        // 解析其他参数
+                        float scale = 1.0f;
+                        if (item.ContainsKey("scale") && item["scale"] != null)
+                            float.TryParse(item["scale"].ToString(), out scale);
+                        
+                        float playbackSpeed = 1.0f;
+                        if (item.ContainsKey("playbackSpeed") && item["playbackSpeed"] != null)
+                            float.TryParse(item["playbackSpeed"].ToString(), out playbackSpeed);
+                        
+                        bool followCharacter = true;
+                        if (item.ContainsKey("followCharacter") && item["followCharacter"] != null)
+                            bool.TryParse(item["followCharacter"].ToString(), out followCharacter);
+                        
+                        bool loop = false;
+                        if (item.ContainsKey("loop") && item["loop"] != null)
+                            bool.TryParse(item["loop"].ToString(), out loop);
+                        
+                        // 创建触发帧信息（支持单帧和多帧范围）
+                        if (frame.HasValue)
+                        {
+                            // 单帧
+                            results.Add(new TriggerFrameInfo
+                            {
+                                Frame = frame.Value,
+                                Type = "VFX",
+                                VFXResourcePath = resourcePath,
+                                VFXPositionOffset = positionOffset,
+                                VFXRotation = rotation,
+                                VFXScale = scale,
+                                VFXPlaybackSpeed = playbackSpeed,
+                                VFXFollowCharacter = followCharacter,
+                                VFXLoop = loop
+                            });
+                        }
+                        else if (startFrame.HasValue && endFrame.HasValue)
+                        {
+                            // 多帧范围：展开为单帧列表（只在开始帧触发）
+                            for (int f = startFrame.Value; f <= endFrame.Value; f++)
+                            {
+                                results.Add(new TriggerFrameInfo
+                                {
+                                    StartFrame = startFrame,
+                                    EndFrame = endFrame,
+                                    Frame = f, // 当前帧号
+                                    Type = "VFX",
+                                    VFXResourcePath = resourcePath,
+                                    VFXPositionOffset = positionOffset,
+                                    VFXRotation = rotation,
+                                    VFXScale = scale,
+                                    VFXPlaybackSpeed = playbackSpeed,
+                                    VFXFollowCharacter = followCharacter,
+                                    VFXLoop = loop
+                                });
+                            }
+                        }
+                    }
+                    // SFX 类型暂时跳过（后续实现）
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Error($"Failed to parse trigger frames from JSON: {ex.Message}\nJSON: {jsonStr}");
+            }
+            
+            return results;
+        }
+        
+        /// <summary>
+        /// 从旧字符串格式解析触发帧信息（兼容旧数据）
+        /// </summary>
+        private List<TriggerFrameInfo> ParseTriggerFramesFromString(string triggerFramesStr, int skillLevel)
+        {
+            var results = new List<TriggerFrameInfo>();
             
             // 智能分割触发帧字符串（忽略括号内的逗号）
             var parts = SplitIgnoringParentheses(triggerFramesStr, ',');
@@ -320,6 +574,7 @@ namespace Astrum.LogicCore.Managers
                         TriggerFrameInfo triggerInfo = new TriggerFrameInfo
                         {
                             Frame = frame,
+                            Type = "SkillEffect",
                             TriggerType = triggerType,
                             EffectId = effectResult.EffectId
                         };
