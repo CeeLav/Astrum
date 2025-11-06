@@ -1,6 +1,9 @@
 # 受击与击退效果技术设计
 
-**版本**: v1.0**创建日期**: 2025-01-08**状态**: 设计中
+**版本**: v1.2.1  
+**创建日期**: 2025-01-08  
+**最后更新**: 2025-11-06  
+**状态**: 架构修订中（完全封装版）
 
 > 📖 **相关文档**：
 >
@@ -53,25 +56,79 @@
   - `EffectDuration`: 击退持续时间（单位：秒）
   - 方向：默认为施法者朝向，可扩展为自定义方向
 
-### 1.3 核心流程
+### 1.3 核心流程（v1.2.1 完全封装版）
 
 ```
-技能触发 → 碰撞检测 → 应用技能效果
+【1. 碰撞检测】
+SkillExecutorCapability → 检测命中目标
     ↓
-SkillEffectSystem.QueueSkillEffect
+【2. 效果入队】
+SkillEffectSystem.QueueSkillEffect(SkillEffectData)
     ↓
-全局事件队列：EntityEventQueue
+【3. 效果处理】
+SkillEffectSystem.Update() → EffectHandler.Handle()（只读不写）
     ↓
-HitReactionCapability.Tick
-    ↓ (消费事件)
-    ├─→ 播放受击动作
-    ├─→ 播放受击特效/音效
-    └─→ 写入 KnockbackComponent
-           ↓
-    KnockbackCapability.Tick
-           ↓
-    应用击退位移
+    ├─ DamageEffectHandler (type=1)
+    │   ├─ 读取 Stats 组件（计算伤害）
+    │   ├─ ❌ 不修改任何组件
+    │   ├─ 发送 DamageEvent → DamageCapability
+    │   └─ 发送 HitReactionEvent → HitReactionCapability
+    │
+    ├─ KnockbackEffectHandler (type=3)
+    │   ├─ 读取 Trans 组件（计算方向）
+    │   ├─ ❌ 不修改任何组件
+    │   ├─ 发送 KnockbackEvent → KnockbackCapability
+    │   └─ 发送 HitReactionEvent → HitReactionCapability
+    │
+    └─ ... (其他 Handler)
+    
+【4. Capability 响应】（只能修改自身实体组件）
+    ├─ DamageCapability (接收 DamageEvent)
+    │   ├─ 修改 DynamicStats（扣血）
+    │   └─ 检查死亡状态
+    │
+    ├─ HitReactionCapability (接收 HitReactionEvent)
+    │   ├─ 播放受击动作
+    │   └─ 播放受击特效
+    │
+    └─ KnockbackCapability (接收 KnockbackEvent)
+        ├─ 写入 KnockbackComponent
+        ├─ 禁用移动输入
+        └─ Tick: 应用击退位移
 ```
+
+### 1.4 架构原则（v1.2.1 完全封装版）
+
+#### **职责分离**：
+
+**EffectHandler（计算器）**：
+- ✅ 读取配置表
+- ✅ 读取实体组件（只读，用于计算）
+- ✅ 计算效果参数（伤害、方向、距离等）
+- ❌ **不修改任何组件**（包括立即生效的效果）
+- ✅ 发送事件给目标实体的 Capability
+
+**Capability（执行器）**：
+- ✅ 接收 Handler 发送的事件
+- ✅ 修改自身实体的组件
+- ✅ 管理生命周期
+- ✅ 触发表现（动作、特效）
+
+#### **统一原则**：
+
+| 组件           | Handler 是否可修改 | Capability 是否可修改 |
+| -------------- | ------------------ | --------------------- |
+| DynamicStats   | ❌ 不可以          | ✅ 只能修改自身       |
+| KnockbackComp  | ❌ 不可以          | ✅ 只能修改自身       |
+| StateComp      | ❌ 不可以          | ✅ 只能修改自身       |
+| 所有组件       | ❌ **统一不可修改** | ✅ **只能修改自身**   |
+
+#### **好处**：
+- 🔒 **完全封装**：组件数据只能由实体自身的 Capability 修改
+- 📐 **统一原则**：无例外情况，所有 Handler 都遵循相同规则
+- 🔄 **可测试性**：Handler 纯计算函数，Capability 职责单一
+- 🛡️ **安全性**：避免跨实体的状态修改
+- 📦 **扩展性**：新增效果模式统一（Handler → Event → Capability）
 
 ---
 
@@ -136,11 +193,339 @@ namespace Astrum.LogicCore.Components
 
 ---
 
-### 2.2 Capability 设计
+### 2.2 事件设计（v1.2.1 完全封装版）
 
-#### KnockbackCapability
+#### DamageEvent（新增）
 
-负责处理击退位移逻辑。
+伤害事件，由 `DamageEffectHandler` 发送给目标实体的 `DamageCapability`。
+
+```csharp
+namespace Astrum.LogicCore.Events
+{
+    /// <summary>
+    /// 伤害事件（由 DamageEffectHandler 发送给 DamageCapability）
+    /// </summary>
+    public struct DamageEvent
+    {
+        /// <summary>施法者ID</summary>
+        public long CasterId;
+        
+        /// <summary>效果ID</summary>
+        public int EffectId;
+        
+        /// <summary>计算后的最终伤害值</summary>
+        public FP Damage;
+        
+        /// <summary>是否暴击</summary>
+        public bool IsCritical;
+        
+        /// <summary>伤害类型（1=物理/2=魔法/3=真实）</summary>
+        public int DamageType;
+    }
+}
+```
+
+---
+
+#### KnockbackEvent
+
+击退事件，由 `KnockbackEffectHandler` 发送给目标实体的 `KnockbackCapability`。
+
+```csharp
+namespace Astrum.LogicCore.Events
+{
+    /// <summary>
+    /// 击退事件（由 KnockbackEffectHandler 发送给 KnockbackCapability）
+    /// </summary>
+    public struct KnockbackEvent
+    {
+        /// <summary>施法者ID</summary>
+        public long CasterId;
+        
+        /// <summary>效果ID</summary>
+        public int EffectId;
+        
+        /// <summary>击退方向（世界空间，单位向量）</summary>
+        public TSVector Direction;
+        
+        /// <summary>击退距离（米）</summary>
+        public FP Distance;
+        
+        /// <summary>击退持续时间（秒）</summary>
+        public FP Duration;
+        
+        /// <summary>击退类型</summary>
+        public KnockbackType Type;
+    }
+}
+```
+
+---
+
+#### HitReactionEvent
+
+受击反馈事件，由各类效果处理器（DamageEffectHandler, KnockbackEffectHandler 等）发送给 `HitReactionCapability`，用于触发受击表现。
+
+```csharp
+namespace Astrum.LogicCore.Events
+{
+    /// <summary>
+    /// 受击反馈事件（由效果处理器发送给 HitReactionCapability）
+    /// </summary>
+    public struct HitReactionEvent
+    {
+        /// <summary>施法者ID</summary>
+        public long CasterId;
+        
+        /// <summary>受击者ID</summary>
+        public long TargetId;
+        
+        /// <summary>效果ID</summary>
+        public int EffectId;
+        
+        /// <summary>效果类型（1=伤害, 2=治疗, 3=击退等）</summary>
+        public int EffectType;
+        
+        /// <summary>受击方向（用于播放受击动作）</summary>
+        public TSVector HitDirection;
+        
+        /// <summary>是否产生硬直</summary>
+        public bool CausesStun;
+    }
+}
+```
+
+---
+
+### 2.3 EffectHandler 设计（v1.2 修订）
+
+#### KnockbackEffectHandler
+
+**职责**：
+- ✅ 计算击退方向（从施法者指向目标）
+- ✅ 计算击退距离和速度
+- ✅ 发送 `KnockbackEvent` 给目标
+- ✅ 发送 `HitReactionEvent` 给目标（用于表现）
+- ❌ **不直接修改 KnockbackComponent**
+
+```csharp
+namespace Astrum.LogicCore.SkillSystem.EffectHandlers
+{
+    public class KnockbackEffectHandler : IEffectHandler
+    {
+        public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
+        {
+            // 1. 计算击退方向
+            var direction = CalculateKnockbackDirection(caster, target);
+            
+            // 2. 读取配置参数
+            FP distance = FP.FromFloat(effectConfig.EffectValue / 1000f); // 毫米 → 米
+            FP duration = FP.FromFloat(effectConfig.EffectDuration); // 秒
+            
+            // 3. 构造击退事件
+            var knockbackEvent = new KnockbackEvent
+            {
+                CasterId = caster.UniqueId,
+                EffectId = effectConfig.SkillEffectId,
+                Direction = direction,
+                Distance = distance,
+                Duration = duration,
+                Type = KnockbackType.Linear // 默认线性，后续可从配置读取
+            };
+            
+            // 4. 发送事件给目标的 KnockbackCapability
+            target.QueueEvent(knockbackEvent);
+            
+            // 5. 发送受击反馈事件（用于表现）
+            var hitReactionEvent = new HitReactionEvent
+            {
+                CasterId = caster.UniqueId,
+                TargetId = target.UniqueId,
+                EffectId = effectConfig.SkillEffectId,
+                EffectType = effectConfig.EffectType,
+                HitDirection = direction,
+                CausesStun = true // 击退产生硬直
+            };
+            
+            target.QueueEvent(hitReactionEvent);
+        }
+        
+        private TSVector CalculateKnockbackDirection(Entity caster, Entity target)
+        {
+            // 只读组件数据，用于计算
+            var casterTrans = caster.GetComponent<TransComponent>();
+            var targetTrans = target.GetComponent<TransComponent>();
+            // ... 计算逻辑 ...
+        }
+    }
+}
+```
+
+#### DamageEffectHandler（v1.2.1 完全封装版）
+
+**职责**：
+- ✅ 读取配置表
+- ✅ 读取 Stats 组件（只读，用于计算）
+- ✅ 计算伤害（使用 DamageCalculator）
+- ❌ **不修改任何组件**
+- ✅ 发送 `DamageEvent` 给目标
+- ✅ 发送 `HitReactionEvent` 给目标
+
+```csharp
+namespace Astrum.LogicCore.SkillSystem.EffectHandlers
+{
+    public class DamageEffectHandler : IEffectHandler
+    {
+        public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
+        {
+            // 1. 读取组件（只读）
+            var casterStats = caster.GetComponent<DerivedStatsComponent>();
+            var targetStats = target.GetComponent<DynamicStatsComponent>();
+            var targetDerived = target.GetComponent<DerivedStatsComponent>();
+            
+            if (targetStats == null || targetDerived == null)
+                return;
+            
+            // 2. 计算伤害（纯计算，不修改状态）
+            var damageResult = DamageCalculator.Calculate(
+                caster, target, effectConfig, 
+                caster.World?.CurFrame ?? 0
+            );
+            
+            // 3. 发送伤害事件给目标（由 DamageCapability 接收并扣血）
+            var damageEvent = new DamageEvent
+            {
+                CasterId = caster.UniqueId,
+                EffectId = effectConfig.SkillEffectId,
+                Damage = damageResult.FinalDamage,
+                IsCritical = damageResult.IsCritical,
+                DamageType = effectConfig.DamageType
+            };
+            
+            target.QueueEvent(damageEvent);
+            
+            // 4. 发送受击反馈事件（用于播放受击动作和特效）
+            var hitReactionEvent = new HitReactionEvent
+            {
+                CasterId = caster.UniqueId,
+                TargetId = target.UniqueId,
+                EffectId = effectConfig.SkillEffectId,
+                EffectType = effectConfig.EffectType,
+                HitDirection = CalculateHitDirection(caster, target),
+                CausesStun = damageResult.IsCritical // 暴击产生硬直
+            };
+            
+            target.QueueEvent(hitReactionEvent);
+        }
+        
+        private TSVector CalculateHitDirection(Entity caster, Entity target)
+        {
+            // 只读组件数据，用于计算
+            var casterTrans = caster.GetComponent<TransComponent>();
+            var targetTrans = target.GetComponent<TransComponent>();
+            // ... 计算逻辑 ...
+        }
+    }
+}
+```
+
+---
+
+### 2.4 Capability 设计
+
+#### DamageCapability（v1.2.1 新增）
+
+**职责**：
+- ✅ 接收 `DamageEvent`，应用伤害
+- ✅ 修改 DynamicStatsComponent（扣血）
+- ✅ 检查死亡状态
+- ✅ 发布死亡事件（View 层）
+
+```csharp
+namespace Astrum.LogicCore.Capabilities
+{
+    /// <summary>
+    /// 伤害处理能力 - 处理实体受到的伤害
+    /// 优先级：200（与 HitReactionCapability 同级）
+    /// </summary>
+    public class DamageCapability : Capability<DamageCapability>
+    {
+        public override int Priority => 200;
+  
+        public override IReadOnlyCollection<CapabilityTag> Tags => new[] 
+        { 
+            CapabilityTag.Combat
+        };
+  
+        public override bool ShouldActivate(Entity entity)
+        {
+            return base.ShouldActivate(entity) &&
+                   HasComponent<DynamicStatsComponent>(entity);
+        }
+        
+        // ====== 事件处理 ======
+        
+        protected override void RegisterEventHandlers()
+        {
+            RegisterEventHandler<DamageEvent>(OnDamage);
+        }
+        
+        /// <summary>
+        /// 接收伤害事件，应用伤害
+        /// </summary>
+        private void OnDamage(Entity entity, DamageEvent evt)
+        {
+            // 1. 获取组件（自身实体）
+            var dynamicStats = GetComponent<DynamicStatsComponent>(entity);
+            var derivedStats = GetComponent<DerivedStatsComponent>(entity);
+            var stateComp = GetComponent<StateComponent>(entity);
+            
+            if (dynamicStats == null || derivedStats == null)
+                return;
+            
+            // 2. 检查是否可以受到伤害
+            if (stateComp != null && !stateComp.CanTakeDamage())
+                return;
+            
+            // 3. 应用伤害（修改自身组件）
+            FP beforeHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
+            FP actualDamage = dynamicStats.TakeDamage(evt.Damage, derivedStats);
+            FP afterHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
+            
+            ASLogger.Instance.Info($"[DamageCapability] HP: {beforeHP} → {afterHP} (-{actualDamage})");
+            
+            // 4. 检查死亡
+            if (afterHP <= FP.Zero && stateComp != null && !stateComp.Get(StateType.DEAD))
+            {
+                // 设置死亡状态（修改自身组件）
+                stateComp.Set(StateType.DEAD, true);
+                
+                // 发布死亡事件（View 层）
+                var diedEvent = new EntityDiedEventData(
+                    entity: entity,
+                    worldId: 0,
+                    roomId: 0,
+                    killerId: evt.CasterId,
+                    skillId: evt.EffectId
+                );
+                EventSystem.Instance.Publish(diedEvent);
+                
+                ASLogger.Instance.Info($"[DamageCapability] Entity {entity.UniqueId} DIED");
+            }
+        }
+    }
+}
+```
+
+---
+
+#### KnockbackCapability（v1.2 修订）
+
+**职责**：
+- ✅ 接收 `KnockbackEvent`，写入 `KnockbackComponent`
+- ✅ 在激活时禁用移动输入
+- ✅ 每帧应用击退位移
+- ✅ 击退结束时清理状态
 
 ```csharp
 namespace Astrum.LogicCore.Capabilities
@@ -159,14 +544,40 @@ namespace Astrum.LogicCore.Capabilities
             CapabilityTag.Combat,
         };
         
-        /// <summary>
-        /// 用于标识是击退系统禁用用户输入位移的 instigatorId
-        /// </summary>
         private long _knockbackInstigatorId;
+        
+        // ====== 事件处理 ======
+        
+        protected override void RegisterEventHandlers()
+        {
+            RegisterEventHandler<KnockbackEvent>(OnKnockback);
+        }
+        
+        /// <summary>
+        /// 接收击退事件，写入组件数据
+        /// </summary>
+        private void OnKnockback(Entity entity, KnockbackEvent evt)
+        {
+            var knockback = GetOrAddComponent<KnockbackComponent>(entity);
+            
+            // 写入击退数据
+            knockback.IsKnockingBack = true;
+            knockback.Direction = evt.Direction;
+            knockback.TotalDistance = evt.Distance;
+            knockback.RemainingTime = evt.Duration;
+            knockback.Speed = evt.Distance / evt.Duration;
+            knockback.MovedDistance = FP.Zero;
+            knockback.Type = evt.Type;
+            knockback.CasterId = evt.CasterId;
+            
+            ASLogger.Instance.Info($"[KnockbackCapability] Knockback data written: " +
+                $"distance={evt.Distance}m, duration={evt.Duration}s");
+        }
+        
+        // ====== 生命周期 ======
   
         public override bool ShouldActivate(Entity entity)
         {
-            // 只在开始击退时激活
             var knockback = GetComponent<KnockbackComponent>(entity);
             return base.ShouldActivate(entity) &&
                    knockback != null &&
@@ -176,7 +587,6 @@ namespace Astrum.LogicCore.Capabilities
     
         public override bool ShouldDeactivate(Entity entity)
         {
-            // 击退结束时停用
             var knockback = GetComponent<KnockbackComponent>(entity);
             return base.ShouldDeactivate(entity) ||
                    knockback == null ||
@@ -188,7 +598,6 @@ namespace Astrum.LogicCore.Capabilities
         {
             base.OnActivate(entity);
             
-            // 获取击退施法者ID作为标识
             var knockback = GetComponent<KnockbackComponent>(entity);
             _knockbackInstigatorId = knockback?.CasterId ?? entity.UniqueId;
             
@@ -203,7 +612,6 @@ namespace Astrum.LogicCore.Capabilities
         
         public override void OnDeactivate(Entity entity)
         {
-            // 恢复用户输入位移
             entity.World?.CapabilitySystem?.EnableCapabilitiesByTag(
                 entity, 
                 CapabilityTag.UserInputMovement, 
@@ -802,6 +1210,104 @@ namespace Astrum.LogicCore.Configuration
 
 ## 版本历史
 
-| 版本 | 日期       | 说明     |
-| ---- | ---------- | -------- |
-| v1.0 | 2025-01-08 | 初始设计 |
+| 版本   | 日期       | 说明                                                         |
+| ------ | ---------- | ------------------------------------------------------------ |
+| v1.0   | 2025-01-08 | 初始设计                                                     |
+| v1.1   | 2025-01-08 | 引入双模式事件系统，优化移动输入禁用机制                     |
+| v1.2   | 2025-11-06 | 架构修订：职责分离优化                                       |
+| v1.2.1 | 2025-11-06 | 完全封装：所有 Handler 都不修改组件，统一发送事件给 Capability |
+
+---
+
+## 架构变更说明（v1.2.1 完全封装版）
+
+### 🔄 **核心变更**
+
+#### **变更前（v1.0/v1.1）**：
+```
+SkillExecutorCapability → 发送 SkillEffectEvent → HitReactionCapability
+                                                      ↓
+                                        处理效果逻辑 + 修改组件 + 播放表现
+```
+
+**问题**：
+- ❌ HitReactionCapability 职责过重（效果逻辑 + 表现）
+- ❌ 外部 Capability 直接修改其他实体的组件
+- ❌ 难以扩展和测试
+
+#### **v1.2 中间版（部分改进）**：
+```
+SkillExecutorCapability → SkillEffectSystem
+                              ↓
+                        EffectHandler
+                              ↓
+                    ┌─────────┴──────────┐
+                    ↓                    ↓
+            直接修改组件          发送事件
+         (伤害直接扣血)      (击退发事件)  ← 不一致！
+```
+
+**问题**：
+- ❌ 伤害和击退处理方式不统一
+- ❌ Handler 仍然可以修改组件（破坏封装）
+
+#### **变更后（v1.2.1 完全封装版）**：
+```
+SkillExecutorCapability → SkillEffectSystem
+                              ↓
+                        EffectHandler（只读不写）
+                              ↓
+                         只发送事件
+                              ↓
+            ┌─────────────────┼─────────────────┐
+            ↓                 ↓                 ↓
+      DamageEvent      KnockbackEvent   HitReactionEvent
+            ↓                 ↓                 ↓
+   DamageCapability   KnockbackCapability  HitReactionCapability
+            ↓                 ↓                 ↓
+       修改自身组件      修改自身组件         播放表现
+```
+
+**优势**：
+- ✅ **完全封装**：Handler 完全不修改组件
+- ✅ **统一原则**：所有效果都通过事件，无例外
+- ✅ **职责清晰**：Handler 纯计算，Capability 纯执行
+- ✅ **安全性**：防止跨实体的组件修改
+
+### 📋 **新增事件**
+
+1. **`DamageEvent`**（v1.2.1 新增）
+   - 由 `DamageEffectHandler` 发送
+   - 接收方：`DamageCapability`
+   - 包含：伤害值、是否暴击、伤害类型
+
+2. **`KnockbackEvent`**
+   - 由 `KnockbackEffectHandler` 发送
+   - 接收方：`KnockbackCapability`
+   - 包含：方向、距离、持续时间、类型
+
+3. **`HitReactionEvent`**
+   - 由所有 EffectHandler 发送
+   - 接收方：`HitReactionCapability`
+   - 包含：受击方向、效果类型、是否硬直
+
+### 🔧 **职责重新分配**
+
+#### EffectHandler（只读外部，只发送事件）：
+| Handler                  | 读取数据      | 修改数据 | 发送事件                         |
+| ------------------------ | ------------- | -------- | -------------------------------- |
+| `DamageEffectHandler`    | Stats 组件    | ❌ 不修改 | DamageEvent, HitReactionEvent    |
+| `KnockbackEffectHandler` | Trans 组件    | ❌ 不修改 | KnockbackEvent, HitReactionEvent |
+| `HealEffectHandler`      | Stats 组件    | ❌ 不修改 | HealEvent, HitReactionEvent      |
+
+> **核心原则**：**Handler 只读不写，所有组件修改都由实体自身的 Capability 完成**
+
+#### Capability（接收事件，修改自身组件）：
+| Capability              | 接收事件         | 修改组件            | Tick 职责        |
+| ----------------------- | ---------------- | ------------------- | ---------------- |
+| `DamageCapability`      | DamageEvent      | DynamicStats（扣血） | 检查死亡状态     |
+| `HealCapability`        | HealEvent        | DynamicStats（加血） | -                |
+| `HitReactionCapability` | HitReactionEvent | ❌ 不修改           | 播放受击表现     |
+| `KnockbackCapability`   | KnockbackEvent   | KnockbackComponent  | 应用击退位移     |
+
+> **核心原则**：**Capability 只能修改自身实体的组件，不能修改其他实体**
