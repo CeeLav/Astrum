@@ -16,6 +16,9 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
         private const float DIAMOND_SIZE = 10f;
         private const float LABEL_OFFSET_X = 15f;
         
+        // === 编辑器状态 ===
+        private static System.Collections.Generic.Dictionary<string, bool> _effectFoldouts = new System.Collections.Generic.Dictionary<string, bool>();
+        
         /// <summary>
         /// 渲染技能效果事件
         /// </summary>
@@ -157,7 +160,10 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             // === 效果ID列表 ===
             EditorGUILayout.BeginVertical("box");
             {
-                EditorGUILayout.LabelField("效果信息", EditorStyles.boldLabel);
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("技能效果列表", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"共 {effectData.EffectIds?.Count ?? 0} 个", EditorStyles.miniLabel, GUILayout.Width(60));
+                EditorGUILayout.EndHorizontal();
                 
                 // 显示当前效果ID列表
                 if (effectData.EffectIds == null)
@@ -165,49 +171,159 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                     effectData.EffectIds = new System.Collections.Generic.List<int>();
                 }
                 
-                EditorGUILayout.LabelField($"效果数量: {effectData.EffectIds.Count}", EditorStyles.miniLabel);
+                EditorGUILayout.Space(5);
                 
-                // 显示每个效果ID
+                // 显示每个效果ID（可折叠）
                 for (int i = 0; i < effectData.EffectIds.Count; i++)
                 {
-                    EditorGUILayout.BeginHorizontal();
+                    int effectId = effectData.EffectIds[i];
+                    string foldoutKey = $"{evt.EventId}_effect_{i}";
+                    
+                    // 获取该效果ID的配置信息
+                    string effectName = "";
+                    int effectType = 0;
+                    float effectValue = 0f;
+                    float effectRange = 0f;
+                    int targetType = 0;
+                    
+                    if (effectId > 0)
                     {
-                        EditorGUI.BeginChangeCheck();
-                        int newEffectId = EditorGUILayout.IntField($"效果ID {i + 1}", effectData.EffectIds[i]);
-                        if (EditorGUI.EndChangeCheck())
+                        try
                         {
-                            effectData.EffectIds[i] = newEffectId;
-                            effectData.RefreshFromTable();
-                            modified = true;
+                            var config = Services.SkillEffectDataReader.GetSkillEffect(effectId);
+                            if (config != null)
+                            {
+                                effectType = config.EffectType;
+                                effectValue = config.EffectValue;
+                                effectRange = config.EffectRange;
+                                targetType = config.TargetType;
+                                
+                                string typeName = effectType switch
+                                {
+                                    1 => "伤害",
+                                    2 => "治疗",
+                                    3 => "击退",
+                                    4 => "Buff",
+                                    5 => "Debuff",
+                                    _ => "效果"
+                                };
+                                effectName = effectValue > 0 ? $"{typeName} {effectValue}" : $"{typeName}_{effectId}";
+                            }
                         }
-                        
-                        // 删除按钮
-                        if (GUILayout.Button("✖", GUILayout.Width(25), GUILayout.Height(18)))
+                        catch { }
+                    }
+                    
+                    // 效果框
+                    EditorGUILayout.BeginVertical("box");
+                    {
+                        // 折叠标题行
+                        EditorGUILayout.BeginHorizontal();
                         {
-                            effectData.EffectIds.RemoveAt(i);
-                            effectData.RefreshFromTable();
-                            modified = true;
-                            break;
+                            // 折叠箭头和标题
+                            if (!_effectFoldouts.ContainsKey(foldoutKey))
+                                _effectFoldouts[foldoutKey] = false;
+                            
+                            _effectFoldouts[foldoutKey] = EditorGUILayout.Foldout(
+                                _effectFoldouts[foldoutKey],
+                                effectId > 0 ? $"效果 {i + 1}: {effectName}" : $"效果 {i + 1}: [未设置]",
+                                true,
+                                EditorStyles.foldoutHeader
+                            );
+                            
+                            // 删除按钮
+                            if (GUILayout.Button("✖", GUILayout.Width(25), GUILayout.Height(20)))
+                            {
+                                effectData.EffectIds.RemoveAt(i);
+                                effectData.RefreshFromTable();
+                                modified = true;
+                                _effectFoldouts.Remove(foldoutKey);
+                                break;
+                            }
+                        }
+                        EditorGUILayout.EndHorizontal();
+                        
+                        // 折叠内容
+                        if (_effectFoldouts[foldoutKey])
+                        {
+                            EditorGUILayout.Space(3);
+                            
+                            // 效果ID编辑和选择按钮
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                EditorGUI.BeginChangeCheck();
+                                int newEffectId = EditorGUILayout.IntField("效果ID", effectId);
+                                if (EditorGUI.EndChangeCheck())
+                                {
+                                    effectData.EffectIds[i] = newEffectId;
+                                    effectData.RefreshFromTable();
+                                    modified = true;
+                                }
+                                
+                                // 选择效果按钮
+                                if (GUILayout.Button("📋", GUILayout.Width(30), GUILayout.Height(18)))
+                                {
+                                    int capturedIndex = i; // 捕获当前索引
+                                    SkillEffectSelectorWindow.ShowWindow((selectedEffectId) =>
+                                    {
+                                        effectData.EffectIds[capturedIndex] = selectedEffectId;
+                                        effectData.RefreshFromTable();
+                                        effectData.ParseCollisionInfo();
+                                        
+                                        // 更新事件数据
+                                        evt.SetEventData(effectData);
+                                        evt.DisplayName = effectData.GetDisplayName();
+                                    });
+                                }
+                            }
+                            EditorGUILayout.EndHorizontal();
+                            
+                            // 显示效果详情（只读）
+                            if (effectId > 0)
+                            {
+                                EditorGUILayout.Space(5);
+                                
+                                GUI.enabled = false;
+                                EditorGUILayout.LabelField("效果详情", EditorStyles.boldLabel);
+                                EditorGUILayout.BeginVertical("box");
+                                {
+                                    string typeText = effectType switch
+                                    {
+                                        1 => "伤害",
+                                        2 => "治疗",
+                                        3 => "击退",
+                                        4 => "Buff",
+                                        5 => "Debuff",
+                                        _ => "未知"
+                                    };
+                                    EditorGUILayout.TextField("类型", typeText);
+                                    EditorGUILayout.FloatField("数值", effectValue);
+                                    EditorGUILayout.FloatField("范围 (m)", effectRange);
+                                    
+                                    string targetText = targetType switch
+                                    {
+                                        1 => "敌人",
+                                        2 => "友军",
+                                        3 => "自身",
+                                        4 => "全体",
+                                        _ => "未知"
+                                    };
+                                    EditorGUILayout.TextField("目标", targetText);
+                                }
+                                EditorGUILayout.EndVertical();
+                                GUI.enabled = true;
+                            }
                         }
                     }
-                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.EndVertical();
+                    
+                    EditorGUILayout.Space(3);
                 }
                 
                 // 添加效果ID按钮
-                if (GUILayout.Button("➕ 添加效果ID", GUILayout.Height(25)))
+                if (GUILayout.Button("➕ 添加技能效果", GUILayout.Height(25)))
                 {
                     effectData.EffectIds.Add(0);
                     modified = true;
-                }
-                
-                // 显示效果详情（使用第一个效果ID）
-                if (effectData.EffectIds.Count > 0 && effectData.EffectIds[0] > 0)
-                {
-                    EditorGUILayout.Space(3);
-                    EditorGUILayout.LabelField("效果类型:", effectData.GetEffectTypeName(), EditorStyles.miniLabel);
-                    EditorGUILayout.LabelField("效果数值:", effectData.EffectValue.ToString(), EditorStyles.miniLabel);
-                    EditorGUILayout.LabelField("效果范围:", effectData.EffectRange + "m", EditorStyles.miniLabel);
-                    EditorGUILayout.LabelField("目标类型:", effectData.GetTargetTypeName(), EditorStyles.miniLabel);
                 }
             }
             EditorGUILayout.EndVertical();
