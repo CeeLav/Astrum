@@ -116,23 +116,6 @@ namespace Astrum.LogicCore.Factories
                         ASLogger.Instance.LogException(ex);
                     }
                 }
-                else
-                {
-                    // 旧方式：兼容旧的 Capability 实例模式
-                    try
-                    {
-                        var capability = Activator.CreateInstance(capType) as LogicCore.Capabilities.Capability;
-                        if (capability != null)
-                        {
-                            entity.AddCapability(capability);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        ASLogger.Instance.Error($"创建能力 {capType.Name} 失败: {ex.Message}");
-                        ASLogger.Instance.LogException(ex);
-                    }
-                }
             }
 
             // 【生命周期钩子】能力挂载后
@@ -150,9 +133,14 @@ namespace Astrum.LogicCore.Factories
             foreach (var t in info.Capabilities ?? Array.Empty<Type>())
             {
                 var key = t.AssemblyQualifiedName ?? t.FullName;
-                if (entity.Capabilities.Any(c => c.GetType() == t))
+                // 检查是否是新的 ICapability 接口
+                if (typeof(LogicCore.Capabilities.ICapability).IsAssignableFrom(t))
                 {
-                    entity.CapabilityRefCounts[key] = 1;
+                    var capability = LogicCore.Systems.CapabilitySystem.GetCapability(t);
+                    if (capability != null && entity.CapabilityStates.ContainsKey(capability.TypeId))
+                    {
+                        entity.CapabilityRefCounts[key] = 1;
+                    }
                 }
             }
             world.Entities[entity.UniqueId] = entity;
@@ -214,27 +202,8 @@ namespace Astrum.LogicCore.Factories
                 }
             }
 
-            // 构建能力
-            var capabilityTypes = entity.GetRequiredCapabilityTypes();
-
-            foreach (var capabilityType in capabilityTypes)
-            {
-                if (capabilityType.IsSubclassOf(typeof(LogicCore.Capabilities.Capability)))
-                {
-                    try
-                    {
-                        var capability = Activator.CreateInstance(capabilityType) as LogicCore.Capabilities.Capability;
-                        if (capability != null)
-                        {
-                            entity.AddCapability(capability);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"创建能力 {capabilityType.Name} 失败: {ex.Message}");
-                    }
-                }
-            }
+            // 构建能力已在 CreateByArchetype 中通过 CapabilitySystem 完成
+            // 旧代码已移除
         }
 
         /// <summary>

@@ -141,12 +141,6 @@ namespace Astrum.LogicCore.Core
                     component.EntityId = entity.UniqueId;
                 }
                 
-                // 重建 Capability 的 OwnerEntity 关系
-                foreach (var capability in entity.Capabilities)
-                {
-                    capability.OwnerEntity = entity;
-                }
-                
                 // 重建 CapabilitySystem 的注册（从 Entity 的 CapabilityStates 恢复）
                 foreach (var kvp in entity.CapabilityStates)
                 {

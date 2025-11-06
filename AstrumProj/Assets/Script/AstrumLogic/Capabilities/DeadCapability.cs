@@ -222,28 +222,6 @@ namespace Astrum.LogicCore.Capabilities
                 ASLogger.Instance.Debug($"[DeadCapability] Disabled new capability TypeId: {typeId}");
             }
             
-            // 处理旧系统：遍历旧架构的 Capability 实例
-            // 注意：旧系统使用 Type 作为白名单，需要转换为 TypeId
-            var whitelistTypes = new HashSet<Type> { typeof(DeadCapability) };
-            
-            foreach (var oldCapability in entity.Capabilities)
-            {
-                if (oldCapability == null) continue;
-                
-                var capType = oldCapability.GetType();
-                
-                // 跳过白名单类型（旧系统）
-                if (whitelistTypes.Contains(capType))
-                    continue;
-                
-                // 停用旧系统的 Capability
-                if (oldCapability.IsActive)
-                {
-                    oldCapability.OnDeactivate();
-                    ASLogger.Instance.Debug($"[DeadCapability] Disabled old capability: {oldCapability.Name}");
-                }
-            }
-            
             // 保存被禁用的 TypeId 列表（仅新系统）
             var state = GetCapabilityState(entity);
             if (state.CustomData == null)
@@ -283,24 +261,6 @@ namespace Astrum.LogicCore.Capabilities
                     }
                     
                     ASLogger.Instance.Debug($"[DeadCapability] Restored new capability TypeId: {typeId}");
-                }
-            }
-            
-            // 恢复旧系统的 Capability
-            foreach (var oldCapability in entity.Capabilities)
-            {
-                if (oldCapability == null) continue;
-                
-                // 跳过白名单类型
-                if (oldCapability.GetType() == typeof(DeadCapabilityOld) || 
-                    oldCapability.GetType() == typeof(DeadCapability))
-                    continue;
-                
-                // 恢复旧系统的 Capability
-                if (!oldCapability.IsActive)
-                {
-                    oldCapability.OnActivate();
-                    ASLogger.Instance.Debug($"[DeadCapability] Restored old capability: {oldCapability.Name}");
                 }
             }
             

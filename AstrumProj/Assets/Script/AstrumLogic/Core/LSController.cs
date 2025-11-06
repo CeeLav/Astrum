@@ -286,7 +286,7 @@ namespace Astrum.LogicCore.Core
                 {
                     foreach (var entity in world.Entities.Values)
                     {
-                        ASLogger.Instance.Debug($"  - 保存实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.Capabilities?.Count ?? 0}", "FrameSync.SaveState");
+                        ASLogger.Instance.Debug($"  - 保存实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.CapabilityStates?.Count ?? 0}", "FrameSync.SaveState");
                     }
                 }
             }
@@ -322,7 +322,7 @@ namespace Astrum.LogicCore.Core
                 {
                     foreach (var entity in world.Entities.Values)
                     {
-                        ASLogger.Instance.Debug($"  - 加载实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.Capabilities?.Count ?? 0}", "FrameSync.LoadState");
+                        ASLogger.Instance.Debug($"  - 加载实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.CapabilityStates?.Count ?? 0}", "FrameSync.LoadState");
                     }
                 }
             }

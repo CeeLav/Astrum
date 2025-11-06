@@ -83,11 +83,6 @@ namespace Astrum.LogicCore.Core
         public List<long> ChildrenIds { get; private set; } = new List<long>();
 
         /// <summary>
-        /// 实体具备的能力列表
-        /// </summary>
-        public List<Capability> Capabilities { get; private set; } = new List<Capability>();
-
-        /// <summary>
         /// Capability 状态字典（TypeId -> 状态）
         /// 使用 int 类型的 TypeId 作为 Key，基于 TypeHash 生成，性能更高
         /// </summary>
@@ -123,7 +118,7 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, List<Capability> capabilities, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<string> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
+        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<string> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
@@ -136,19 +131,12 @@ namespace Astrum.LogicCore.Core
             Components = components;
             ParentId = parentId;
             ChildrenIds = childrenIds;
-            Capabilities = capabilities;
             CapabilityStates = capabilityStates ?? new Dictionary<int, CapabilityState>();
             DisabledTags = disabledTags ?? new Dictionary<CapabilityTag, HashSet<long>>();
 
             foreach (var component in Components)
             {
                 component.EntityId = UniqueId;
-            }
-            
-            // 重建 Capability 的 OwnerEntity 关系
-            foreach (var capability in Capabilities)
-            {
-                capability.OwnerEntity = this;
             }
 
             ActiveSubArchetypes = activeSubArchetypes ?? new List<string>();
@@ -236,22 +224,8 @@ namespace Astrum.LogicCore.Core
                 }
                 else
                 {
-                    // 旧方式：兼容旧的 Capability 实例模式
-                    if (n == 0)
-                    {
-                        try
-                        {
-                            var cap = Activator.CreateInstance(capType) as Capability;
-                            if (cap == null) { reason = $"Create capability '{capType.Name}' failed"; return false; }
-                            AddCapability(cap);
-                        }
-                        catch (Exception ex)
-                        {
-                            reason = $"Create capability '{capType.Name}' failed: {ex.Message}";
-                            return false;
-                        }
-                    }
-                    CapabilityRefCounts[key] = n + 1;
+                    reason = $"Capability {capType.Name} does not implement ICapability interface";
+                    return false;
                 }
             }
 
@@ -307,12 +281,7 @@ namespace Astrum.LogicCore.Core
                 }
                 else
                 {
-                    // 旧方式：兼容旧的 Capability 实例模式
-                    if (n == 0)
-                    {
-                        var inst = Capabilities.FirstOrDefault(c => c.GetType() == t);
-                        if (inst != null) RemoveCapability(inst);
-                    }
+                    // 不是 ICapability 的类型（已废弃）
                 }
             }
 
@@ -341,14 +310,7 @@ namespace Astrum.LogicCore.Core
 
         private void RollbackAdded(string subArchetypeName, List<string> addedCompTypes, List<string> addedCapTypes)
         {
-            // 移除刚添加的能力
-            foreach (var tName in addedCapTypes)
-            {
-                var t = Type.GetType(tName);
-                if (t == null) continue;
-                var inst = Capabilities.FirstOrDefault(c => c.GetType() == t);
-                if (inst != null) RemoveCapability(inst);
-            }
+            // 旧 Capability 已废弃，不需要回滚
             // 移除刚添加的组件
             foreach (var tName in addedCompTypes)
             {
@@ -465,12 +427,8 @@ namespace Astrum.LogicCore.Core
             // 清理组件
             Components.Clear();
             
-            // 清理能力
-            foreach (var capability in Capabilities)
-            {
-                capability.OnDeactivate();
-            }
-            Capabilities.Clear();
+            // 清理 Capability 状态
+            CapabilityStates.Clear();
         }
 
         /// <summary>
@@ -512,31 +470,6 @@ namespace Astrum.LogicCore.Core
             ChildrenIds.Remove(childId);
         }
 
-        /// <summary>
-        /// 添加能力
-        /// </summary>
-        /// <param name="capability">能力实例</param>
-        public void AddCapability(Capability capability)
-        {
-            if (capability != null)
-            {
-                capability.OwnerEntity = this;
-                Capabilities.Add(capability);
-                capability.Initialize();
-            }
-        }
-
-        /// <summary>
-        /// 移除能力
-        /// </summary>
-        /// <param name="capability">能力实例</param>
-        public void RemoveCapability(Capability capability)
-        {
-            if (Capabilities.Remove(capability))
-            {
-                capability.OnDeactivate();
-            }
-        }
 
         /// <summary>
         /// 更新组件掩码
@@ -600,7 +533,7 @@ namespace Astrum.LogicCore.Core
         /// <returns>字符串表示</returns>
         public override string ToString()
         {
-            return $"Entity[Id={UniqueId}, Name={Name}, Active={IsActive}, Components={Components.Count}, Capabilities={Capabilities.Count}]";
+            return $"Entity[Id={UniqueId}, Name={Name}, Active={IsActive}, Components={Components.Count}, Capabilities={CapabilityStates.Count}]";
         }
     }
 }
