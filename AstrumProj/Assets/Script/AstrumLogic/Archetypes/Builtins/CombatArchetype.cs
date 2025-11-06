@@ -18,14 +18,18 @@ namespace Astrum.LogicCore.Archetypes
             typeof(BuffComponent),
             typeof(StateComponent),
             typeof(LevelComponent),
-            typeof(GrowthComponent)
+            typeof(GrowthComponent),
+            // 击退组件
+            typeof(KnockbackComponent)
         };
 
         private static readonly Type[] _caps =
         {
             typeof(SkillCapability),
-            typeof(SkillExecutorCapability),
-            typeof(SkillDisplacementCapability)  // 使用新架构的 SkillDisplacementCapability
+            typeof(SkillExecutorCapability),     // Priority 250
+            typeof(HitReactionCapability),       // Priority 200 - 受击反应
+            typeof(KnockbackCapability),         // Priority 150 - 击退
+            typeof(SkillDisplacementCapability)  // Priority 150 - 技能位移
         };
 
         public override Type[] Components => _comps;

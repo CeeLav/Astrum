@@ -49,6 +49,21 @@ namespace Astrum.LogicCore.Systems
             = new Dictionary<int, ICapability>();
         
         /// <summary>
+        /// 事件处理映射缓存（静态，所有 World 共享）
+        /// Key: (EventType, CapabilityType), Value: Handler
+        /// </summary>
+        [MemoryPackIgnore]
+        private static readonly Dictionary<(Type, Type), Delegate> _eventHandlerCache 
+            = new Dictionary<(Type, Type), Delegate>();
+        
+        /// <summary>
+        /// 快速查找：EventType -> List<(CapabilityType, Handler)>
+        /// </summary>
+        [MemoryPackIgnore]
+        private static readonly Dictionary<Type, List<(Type, Delegate)>> _eventToHandlers 
+            = new Dictionary<Type, List<(Type, Delegate)>>();
+        
+        /// <summary>
         /// 静态初始化标志（确保只初始化一次）
         /// </summary>
         [MemoryPackIgnore]
@@ -105,6 +120,9 @@ namespace Astrum.LogicCore.Systems
                 
                 // 构建 Tag 映射
                 BuildTagMapping();
+                
+                // 构建事件处理映射
+                BuildEventHandlerMapping();
                 
                 _isStaticInitialized = true;
             }
@@ -210,6 +228,62 @@ namespace Astrum.LogicCore.Systems
                     }
                     typeIds.Add(typeId);
                 }
+            }
+        }
+        
+        /// <summary>
+        /// 构建事件处理映射（预处理）
+        /// 使用反射获取 GetEventHandlers 方法
+        /// </summary>
+        private static void BuildEventHandlerMapping()
+        {
+            _eventHandlerCache.Clear();
+            _eventToHandlers.Clear();
+            
+            // 遍历所有已注册的 Capability
+            foreach (var kvp in _registeredCapabilities)
+            {
+                var capabilityType = kvp.Key;
+                var capability = kvp.Value;
+                
+                // 使用反射获取 GetEventHandlers 方法（Capability<T> 中的 internal 方法）
+                var method = capabilityType.GetMethod("GetEventHandlers", 
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                
+                if (method == null)
+                    continue;
+                
+                // 调用方法获取事件处理器
+                var handlersObj = method.Invoke(capability, null);
+                if (handlersObj is Dictionary<Type, Delegate> handlers && handlers.Count > 0)
+                {
+                    foreach (var handlerKvp in handlers)
+                    {
+                        var eventType = handlerKvp.Key;
+                        var handler = handlerKvp.Value;
+                        
+                        // 缓存到全局映射
+                        _eventHandlerCache[(eventType, capabilityType)] = handler;
+                        
+                        // 建立快速查找索引
+                        if (!_eventToHandlers.TryGetValue(eventType, out var list))
+                        {
+                            list = new List<(Type, Delegate)>();
+                            _eventToHandlers[eventType] = list;
+                        }
+                        list.Add((capabilityType, handler));
+                    }
+                }
+            }
+            
+            ASLogger.Instance.Info($"[CapabilitySystem] Built event handler mapping: {_eventHandlerCache.Count} handlers for {_eventToHandlers.Count} event types");
+            
+            // 详细输出注册的事件映射
+            foreach (var kvp in _eventToHandlers)
+            {
+                var eventType = kvp.Key;
+                var capabilityHandlers = kvp.Value;
+                ASLogger.Instance.Info($"  Event {eventType.Name} -> {capabilityHandlers.Count} handlers: {string.Join(", ", capabilityHandlers.ConvertAll(h => h.Item1.Name))}");
             }
         }
         
@@ -458,6 +532,155 @@ namespace Astrum.LogicCore.Systems
         public bool IsTagDisabled(Entity entity, CapabilityTag tag)
         {
             return entity.DisabledTags.ContainsKey(tag) && entity.DisabledTags[tag].Count > 0;
+        }
+        
+        // ====== 事件处理循环 ======
+        
+        /// <summary>
+        /// 专门的事件处理循环（在 World.Update 中调用）
+        /// 处理双模式事件：面向个体 + 面向全体
+        /// </summary>
+        public void ProcessEntityEvents()
+        {
+            if (World == null)
+                return;
+            
+            // 1. 处理个体事件（Entity-Targeted Events）
+            ProcessTargetedEvents();
+            
+            // 2. 处理全体事件（Broadcast Events）
+            ProcessBroadcastEvents();
+        }
+        
+        /// <summary>
+        /// 处理面向个体的事件（存储在实体本地）
+        /// </summary>
+        private void ProcessTargetedEvents()
+        {
+            if (World == null || World.Entities == null)
+                return;
+            
+            int totalEventsProcessed = 0;
+            
+            // 遍历所有实体，查找有待处理事件的
+            foreach (var entity in World.Entities.Values)
+            {
+                if (entity == null || !entity.HasPendingEvents)
+                    continue;
+                
+                // 处理该实体的所有事件
+                var eventQueue = entity.EventQueue;
+                if (eventQueue == null)
+                    continue;
+                
+                int eventCount = eventQueue.Count;
+                ASLogger.Instance.Info($"[ProcessTargetedEvents] Entity {entity.UniqueId} has {eventCount} pending events");
+                
+                while (eventQueue.Count > 0)
+                {
+                    var evt = eventQueue.Dequeue();
+                    ASLogger.Instance.Info($"[ProcessTargetedEvents] Dispatching event {evt.EventType.Name} to entity {entity.UniqueId}");
+                    DispatchEventToEntity(entity, evt);
+                    totalEventsProcessed++;
+                }
+            }
+            
+            // 只在有事件处理时才输出总结
+            if (totalEventsProcessed > 0)
+            {
+                ASLogger.Instance.Info($"[ProcessTargetedEvents] Processed {totalEventsProcessed} events this frame");
+            }
+        }
+        
+        /// <summary>
+        /// 处理面向全体的事件（存储在全局队列）
+        /// </summary>
+        private void ProcessBroadcastEvents()
+        {
+            if (World == null || World.GlobalEventQueue == null)
+                return;
+            
+            var globalQueue = World.GlobalEventQueue;
+            if (!globalQueue.HasPendingEvents)
+                return;
+            
+            var events = globalQueue.GetEvents();
+            
+            // 对每个全局事件
+            while (events.Count > 0)
+            {
+                var evt = events.Dequeue();
+                
+                // 广播给所有激活实体
+                foreach (var entity in World.Entities.Values)
+                {
+                    if (entity == null || !entity.IsActive || entity.IsDestroyed)
+                        continue;
+                    
+                    DispatchEventToEntity(entity, evt);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 分发单个事件到指定实体的 Capability
+        /// </summary>
+        private void DispatchEventToEntity(Entity entity, Events.EntityEvent evt)
+        {
+            // 查找处理该事件类型的所有 Capability
+            if (!_eventToHandlers.TryGetValue(evt.EventType, out var handlers))
+            {
+                ASLogger.Instance.Warning($"[DispatchEventToEntity] No handlers registered for event type: {evt.EventType.Name}");
+                return; // 没有 Capability 处理此事件
+            }
+            
+            ASLogger.Instance.Info($"[DispatchEventToEntity] Event {evt.EventType.Name} -> {handlers.Count} handlers");
+            
+            foreach (var (capabilityType, handler) in handlers)
+            {
+                // 获取 Capability（静态单例）
+                if (!_registeredCapabilities.TryGetValue(capabilityType, out var capability))
+                {
+                    ASLogger.Instance.Warning($"[DispatchEventToEntity] Capability type {capabilityType.Name} not found in registry");
+                    continue;
+                }
+                
+                var typeId = capability.TypeId;
+                
+                // 检查实体是否有该 Capability 且激活
+                if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
+                {
+                    // 实体没有该 Capability，跳过（不输出日志，太高频）
+                    continue;
+                }
+                
+                if (!state.IsActive)
+                {
+                    ASLogger.Instance.Debug($"[DispatchEventToEntity] {capabilityType.Name} on entity {entity.UniqueId} is not active");
+                    continue;
+                }
+                
+                ASLogger.Instance.Info($"[DispatchEventToEntity] Invoking {capabilityType.Name} for entity {entity.UniqueId}");
+                
+                // 调用处理函数（第一个参数是 Entity）
+                InvokeHandler(handler, entity, evt.EventData);
+            }
+        }
+        
+        /// <summary>
+        /// 调用事件处理器
+        /// </summary>
+        private void InvokeHandler(Delegate handler, Entity entity, object eventData)
+        {
+            try
+            {
+                handler.DynamicInvoke(entity, eventData); // 拆箱，第一个参数是 entity
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"[CapabilitySystem] Event handler invocation failed: {ex.Message}");
+                ASLogger.Instance.LogException(ex);
+            }
         }
     }
 }

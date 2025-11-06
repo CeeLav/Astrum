@@ -5,6 +5,7 @@ using Astrum.LogicCore.SkillSystem;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Events;
 using Astrum.CommonBase;
 using Astrum.CommonBase.Events;
 
@@ -251,6 +252,8 @@ namespace Astrum.LogicCore.Capabilities
                 //skillInstanceId: skillAction.Id
             );
 
+            ASLogger.Instance.Info($"[SkillExecutorCapability] Collision trigger hit {hits.Count} targets, EffectIds: [{string.Join(",", trigger.EffectIds ?? new int[0])}]");
+
             // 4. 对每个命中目标触发所有效果
             foreach (var target in hits)
             {
@@ -316,25 +319,22 @@ namespace Astrum.LogicCore.Capabilities
         
         /// <summary>
         /// 触发技能效果（统一入口）
+        /// 使用新的事件队列系统：直接向目标实体发布事件
         /// </summary>
         private void TriggerSkillEffect(Entity caster, Entity target, int effectId)
         {
-            // 从 World 获取 SkillEffectSystem
-            var effectSystem = caster.World?.SkillEffectSystem;
-            if (effectSystem == null)
-            {
-                ASLogger.Instance.Error("SkillEffectSystem not available from World");
-                return;
-            }
-            
-            effectSystem.QueueSkillEffect(new SkillEffectData
+            // 构造事件
+            var evt = new SkillEffectEvent
             {
                 CasterId = caster.UniqueId,
-                TargetId = target.UniqueId,
-                EffectId = effectId
-            });
+                EffectId = effectId,
+                TriggerFrame = caster.World?.CurFrame ?? 0
+            };
             
-            ASLogger.Instance.Debug($"Queued effect {effectId}: {caster.UniqueId} → {target.UniqueId}");
+            // 直接向目标实体发布事件（面向个体）
+            target.QueueEvent(evt);
+            
+            ASLogger.Instance.Info($"[SkillExecutorCapability] Queued SkillEffectEvent to entity {target.UniqueId}, effectId={effectId}, caster={caster.UniqueId}");
         }
     }
 }

@@ -82,6 +82,12 @@ namespace Astrum.LogicCore.Core
         /// Capability 统一调度系统
         /// </summary>
         public CapabilitySystem CapabilitySystem { get; private set; }
+        
+        /// <summary>
+        /// 全局广播事件队列（不序列化，瞬时数据）
+        /// </summary>
+        [MemoryPackIgnore]
+        public Events.GlobalEventQueue GlobalEventQueue { get; private set; }
 
         /// <summary>
         /// 默认构造函数
@@ -94,6 +100,7 @@ namespace Astrum.LogicCore.Core
             CapabilitySystem = new CapabilitySystem();
             CapabilitySystem.World = this;
             CapabilitySystem.Initialize();
+            GlobalEventQueue = new Events.GlobalEventQueue(); // 初始化全局事件队列
         }
 
         /// <summary>
@@ -117,6 +124,7 @@ namespace Astrum.LogicCore.Core
             SkillEffectSystem = skillEffectSystem ?? new SkillEffectSystem();
             CapabilitySystem = capabilitySystem ?? new CapabilitySystem();
             CapabilitySystem.World = this;
+            GlobalEventQueue = new Events.GlobalEventQueue(); // 初始化全局事件队列（不序列化）
             
             // 确保静态数据已初始化
             CapabilitySystem.Initialize();
@@ -182,6 +190,9 @@ namespace Astrum.LogicCore.Core
                 // 清理 CapabilitySystem 中的注册
                 CapabilitySystem?.UnregisterEntity(entityId);
                 
+                // 清理该实体的个体事件队列
+                entity.ClearEventQueue();
+                
                 entity.Destroy();
                 Entities.Remove(entityId);
             }
@@ -204,7 +215,13 @@ namespace Astrum.LogicCore.Core
         /// <param name="deltaTime">时间差</param>
         public void Update()
         {
+            // 1. 更新所有 Capability（可能会产生新事件）
             Updater?.UpdateWorld(this);
+            
+            // 2. 处理本帧产生的所有事件（个体+全体）
+            CapabilitySystem?.ProcessEntityEvents();
+            
+            // 3. 帧计数和后处理
             CurFrame++;
             ApplyQueuedSubArchetypeChangesAtFrameEnd();
         }
@@ -269,6 +286,15 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public virtual void Cleanup()
         {
+            // 清理所有全局事件
+            GlobalEventQueue?.ClearAll();
+            
+            // 清理所有实体的个体事件
+            foreach (var entity in Entities.Values)
+            {
+                entity?.ClearEventQueue();
+            }
+            
             foreach (var entity in Entities.Values)
             {
                 entity.Destroy();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
@@ -11,6 +12,52 @@ namespace Astrum.LogicCore.Capabilities
     /// <typeparam name="T">Capability 自身类型</typeparam>
     public abstract class Capability<T> : ICapability where T : ICapability
     {
+        // ====== 事件处理支持 ======
+        
+        /// <summary>
+        /// 事件处理委托类型
+        /// 第一个参数必须是 Entity，第二个参数是事件数据
+        /// </summary>
+        protected delegate void EntityEventHandler<TEvent>(Entity entity, TEvent evt) where TEvent : struct;
+        
+        /// <summary>
+        /// 存储注册的事件处理器（延迟初始化）
+        /// Key: 事件类型, Value: 处理委托
+        /// </summary>
+        private Dictionary<Type, Delegate> _eventHandlers;
+        
+        /// <summary>
+        /// 注册事件处理函数（在子类中重写此方法来声明处理的事件）
+        /// </summary>
+        protected virtual void RegisterEventHandlers() { }
+        
+        /// <summary>
+        /// 注册单个事件处理器
+        /// </summary>
+        /// <typeparam name="TEvent">事件类型</typeparam>
+        /// <param name="handler">处理函数</param>
+        protected void RegisterEventHandler<TEvent>(EntityEventHandler<TEvent> handler) where TEvent : struct
+        {
+            if (_eventHandlers == null)
+                _eventHandlers = new Dictionary<Type, Delegate>();
+            
+            _eventHandlers[typeof(TEvent)] = handler;
+        }
+        
+        /// <summary>
+        /// 获取所有注册的事件处理器（供 CapabilitySystem 使用）
+        /// </summary>
+        internal Dictionary<Type, Delegate> GetEventHandlers()
+        {
+            if (_eventHandlers == null)
+            {
+                RegisterEventHandlers(); // 延迟初始化
+            }
+            return _eventHandlers;
+        }
+        
+        // ====== 原有代码 ======
+        
         /// <summary>
         /// 类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
         /// </summary>
