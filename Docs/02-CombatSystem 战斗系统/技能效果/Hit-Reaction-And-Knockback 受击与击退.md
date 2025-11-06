@@ -1,10 +1,9 @@
 # 受击与击退效果技术设计
 
-**版本**: v1.0  
-**创建日期**: 2025-01-08  
-**状态**: 设计中  
+**版本**: v1.0**创建日期**: 2025-01-08**状态**: 设计中
 
 > 📖 **相关文档**：
+>
 > - [技能效果运行时](../技能系统/Skill-Effect-Runtime%20技能效果运行时.md) - 技能效果系统总览
 > - [事件系统升级](../../05-CoreArchitecture%20核心架构/事件/Event-Queue-System%20事件队列系统.md) - 全局事件队列设计
 > - [动作系统](../技能系统/Action-System%20动作系统.md) - 受击动作播放
@@ -30,16 +29,17 @@
 击退效果是战斗系统中常见的控制效果，本设计旨在实现：
 
 1. **清晰的职责分离**：
+
    - `HitReactionCapability` - 处理受击逻辑（动作、音效、特效）
    - `KnockbackCapability` - 处理击退位移
    - `KnockbackComponent` - 存储击退数据
-
 2. **事件驱动架构**：
+
    - 基于全局事件队列
    - Capability 主动消费事件，而非被动监听
    - 避免订阅/取消订阅的复杂性
-
 3. **可扩展性**：
+
    - 支持多种击退类型（线性、抛物线、击飞等）
    - 支持击退打断、抵抗、减免等机制
    - 为后续硬直、霸体等效果预留接口
@@ -47,6 +47,7 @@
 ### 1.2 效果类型
 
 根据技能效果表格定义：
+
 - **类型 3 = 击退效果**
   - `EffectValue`: 击退距离（单位：米）
   - `EffectDuration`: 击退持续时间（单位：秒）
@@ -93,29 +94,29 @@ namespace Astrum.LogicCore.Components
     {
         /// <summary>是否正在击退</summary>
         public bool IsKnockingBack { get; set; }
-        
+  
         /// <summary>击退方向（世界空间，单位向量）</summary>
         public TSVector Direction { get; set; }
-        
+  
         /// <summary>击退速度（米/秒）</summary>
         public FP Speed { get; set; }
-        
+  
         /// <summary>击退剩余时间（秒）</summary>
         public FP RemainingTime { get; set; }
-        
+  
         /// <summary>击退总距离（用于计算）</summary>
         public FP TotalDistance { get; set; }
-        
+  
         /// <summary>已移动距离</summary>
         public FP MovedDistance { get; set; }
-        
+  
         /// <summary>击退类型</summary>
         public KnockbackType Type { get; set; }
-        
+  
         /// <summary>施法者ID（用于方向计算）</summary>
         public long CasterId { get; set; }
     }
-    
+  
     /// <summary>
     /// 击退类型
     /// </summary>
@@ -123,10 +124,10 @@ namespace Astrum.LogicCore.Components
     {
         /// <summary>线性击退（匀速）</summary>
         Linear = 0,
-        
+  
         /// <summary>减速击退（先快后慢）</summary>
         Decelerate = 1,
-        
+  
         /// <summary>击飞（抛物线，预留）</summary>
         Launch = 2,
     }
@@ -151,40 +152,87 @@ namespace Astrum.LogicCore.Capabilities
     public class KnockbackCapability : Capability<KnockbackCapability>
     {
         public override int Priority => 150;
-        
+  
         public override IReadOnlyCollection<CapabilityTag> Tags => new[] 
         { 
             CapabilityTag.Movement, 
-            CapabilityTag.Combat 
+            CapabilityTag.Combat,
         };
         
+        /// <summary>
+        /// 用于标识是击退系统禁用用户输入位移的 instigatorId
+        /// </summary>
+        private long _knockbackInstigatorId;
+  
         public override bool ShouldActivate(Entity entity)
         {
+            // 只在开始击退时激活
+            var knockback = GetComponent<KnockbackComponent>(entity);
             return base.ShouldActivate(entity) &&
-                   HasComponent<KnockbackComponent>(entity) &&
+                   knockback != null &&
+                   knockback.IsKnockingBack &&
                    HasComponent<PositionComponent>(entity);
         }
+    
+        public override bool ShouldDeactivate(Entity entity)
+        {
+            // 击退结束时停用
+            var knockback = GetComponent<KnockbackComponent>(entity);
+            return base.ShouldDeactivate(entity) ||
+                   knockback == null ||
+                   !knockback.IsKnockingBack ||
+                   !HasComponent<PositionComponent>(entity);
+        }
         
+        public override void OnActivate(Entity entity)
+        {
+            base.OnActivate(entity);
+            
+            // 获取击退施法者ID作为标识
+            var knockback = GetComponent<KnockbackComponent>(entity);
+            _knockbackInstigatorId = knockback?.CasterId ?? entity.UniqueId;
+            
+            // 禁用用户输入位移
+            entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(
+                entity, 
+                CapabilityTag.UserInputMovement, 
+                _knockbackInstigatorId, 
+                "Knockback active"
+            );
+        }
+        
+        public override void OnDeactivate(Entity entity)
+        {
+            // 恢复用户输入位移
+            entity.World?.CapabilitySystem?.EnableCapabilitiesByTag(
+                entity, 
+                CapabilityTag.UserInputMovement, 
+                _knockbackInstigatorId
+            );
+            
+            base.OnDeactivate(entity);
+        }
+  
         public override void Tick(Entity entity)
         {
             var knockback = GetComponent<KnockbackComponent>(entity);
             if (knockback == null || !knockback.IsKnockingBack)
                 return;
-            
+  
             var position = GetComponent<PositionComponent>(entity);
             if (position == null)
                 return;
-            
+  
             // 计算本帧位移
             FP deltaTime = entity.World.DeltaTime;
             FP moveDistance = CalculateMoveDistance(knockback, deltaTime);
-            
+  
             // 应用位移
             TSVector movement = knockback.Direction * moveDistance;
             position.Position += movement;
             knockback.MovedDistance += moveDistance;
             knockback.RemainingTime -= deltaTime;
-            
+  
             // 检查是否结束
             if (knockback.RemainingTime <= FP.Zero || 
                 knockback.MovedDistance >= knockback.TotalDistance)
@@ -192,26 +240,26 @@ namespace Astrum.LogicCore.Capabilities
                 EndKnockback(knockback);
             }
         }
-        
+  
         private FP CalculateMoveDistance(KnockbackComponent knockback, FP deltaTime)
         {
             switch (knockback.Type)
             {
                 case KnockbackType.Linear:
                     return knockback.Speed * deltaTime;
-                    
+          
                 case KnockbackType.Decelerate:
                     // 使用线性减速：速度随时间衰减
                     FP progress = FP.One - (knockback.RemainingTime / 
                         (knockback.TotalDistance / knockback.Speed));
                     FP currentSpeed = knockback.Speed * (FP.One - progress);
                     return currentSpeed * deltaTime;
-                    
+          
                 default:
                     return knockback.Speed * deltaTime;
             }
         }
-        
+  
         private void EndKnockback(KnockbackComponent knockback)
         {
             knockback.IsKnockingBack = false;
@@ -236,26 +284,26 @@ namespace Astrum.LogicCore.Capabilities
     public class HitReactionCapability : Capability<HitReactionCapability>
     {
         public override int Priority => 200;
-        
+  
         public override IReadOnlyCollection<CapabilityTag> Tags => new[] 
         { 
             CapabilityTag.Combat,
             CapabilityTag.Animation
         };
-        
+  
         public override bool ShouldActivate(Entity entity)
         {
             return base.ShouldActivate(entity) &&
                    HasComponent<ActionComponent>(entity);
         }
-        
+  
         public override void Tick(Entity entity)
         {
             // 从全局事件队列消费针对该实体的事件
             var eventQueue = entity.World?.EntityEventQueue;
             if (eventQueue == null)
                 return;
-            
+    
             // 获取并处理针对该实体的技能效果事件
             var events = eventQueue.ConsumeEvents<SkillEffectEvent>(entity.UniqueId);
             foreach (var evt in events)
@@ -263,56 +311,56 @@ namespace Astrum.LogicCore.Capabilities
                 ProcessSkillEffect(entity, evt);
             }
         }
-        
+  
         private void ProcessSkillEffect(Entity entity, SkillEffectEvent evt)
         {
             // 获取效果配置
             var effectConfig = GetEffectConfig(evt.EffectId);
             if (effectConfig == null)
                 return;
-            
+    
             // 根据效果类型处理
             switch (effectConfig.EffectType)
             {
                 case 1: // 伤害
                     ProcessDamage(entity, evt, effectConfig);
                     break;
-                    
+            
                 case 2: // 治疗
                     ProcessHeal(entity, evt, effectConfig);
                     break;
-                    
+            
                 case 3: // 击退
                     ProcessKnockback(entity, evt, effectConfig);
                     break;
-                    
+            
                 case 4: // Buff
                     ProcessBuff(entity, evt, effectConfig);
                     break;
-                    
+            
                 case 5: // Debuff
                     ProcessDebuff(entity, evt, effectConfig);
                     break;
             }
         }
-        
+  
         private void ProcessKnockback(Entity entity, SkillEffectEvent evt, SkillEffectConfig config)
         {
             // 1. 播放受击动作
             PlayHitAction(entity, evt.CasterId);
-            
+    
             // 2. 播放受击特效
             PlayHitVFX(entity, evt.CasterId);
-            
+    
             // 3. 写入击退数据
             var knockback = GetOrAddComponent<KnockbackComponent>(entity);
             var caster = entity.World?.GetEntity(evt.CasterId);
-            
+    
             if (caster != null)
             {
                 // 计算击退方向（施法者朝向目标）
                 var direction = CalculateKnockbackDirection(caster, entity);
-                
+        
                 // 设置击退参数
                 knockback.IsKnockingBack = true;
                 knockback.Direction = direction;
@@ -322,26 +370,26 @@ namespace Astrum.LogicCore.Capabilities
                 knockback.MovedDistance = FP.Zero;
                 knockback.Type = KnockbackType.Linear; // 默认线性
                 knockback.CasterId = evt.CasterId;
-                
+        
                 ASLogger.Instance.Debug($"Applied knockback: distance={config.EffectValue}m, " +
                     $"duration={config.EffectDuration}s, speed={knockback.Speed}m/s");
             }
         }
-        
+  
         private TSVector CalculateKnockbackDirection(Entity caster, Entity target)
         {
             var casterPos = GetComponent<PositionComponent>(caster);
             var targetPos = GetComponent<PositionComponent>(target);
-            
+    
             if (casterPos == null || targetPos == null)
                 return TSVector.forward;
-            
+    
             // 从施法者指向目标
             TSVector direction = targetPos.Position - casterPos.Position;
             direction.y = FP.Zero; // 只在水平面击退
             return TSVector.Normalize(direction);
         }
-        
+  
         private void PlayHitAction(Entity entity, long casterId)
         {
             // TODO: 根据攻击方向播放不同的受击动作
@@ -352,35 +400,35 @@ namespace Astrum.LogicCore.Capabilities
                 // action.PlayAction("Hit", priority: ActionPriority.High);
             }
         }
-        
+  
         private void PlayHitVFX(Entity entity, long casterId)
         {
             // TODO: 发布受击特效事件到 View 层
             // EventSystem.Instance.Publish(new HitVFXEvent { ... });
         }
-        
+  
         private void ProcessDamage(Entity entity, SkillEffectEvent evt, SkillEffectConfig config)
         {
             // TODO: 伤害处理
             PlayHitAction(entity, evt.CasterId);
             PlayHitVFX(entity, evt.CasterId);
         }
-        
+  
         private void ProcessHeal(Entity entity, SkillEffectEvent evt, SkillEffectConfig config)
         {
             // TODO: 治疗处理
         }
-        
+  
         private void ProcessBuff(Entity entity, SkillEffectEvent evt, SkillEffectConfig config)
         {
             // TODO: Buff处理
         }
-        
+  
         private void ProcessDebuff(Entity entity, SkillEffectEvent evt, SkillEffectConfig config)
         {
             // TODO: Debuff处理
         }
-        
+  
         private SkillEffectConfig GetEffectConfig(int effectId)
         {
             var config = TableConfig.Instance?.Tables?.TbSkillEffectTable?.GetOrDefault(effectId);
@@ -396,11 +444,11 @@ namespace Astrum.LogicCore.Capabilities
 
 ### 3.1 击退类型
 
-| 类型 | 说明 | 速度曲线 | 适用场景 |
-|------|------|----------|----------|
-| `Linear` | 线性击退 | 匀速 | 普通击退 |
-| `Decelerate` | 减速击退 | 先快后慢 | 重击、爆炸 |
-| `Launch` | 击飞（预留） | 抛物线 | 上挑、击飞技能 |
+| 类型           | 说明         | 速度曲线 | 适用场景       |
+| -------------- | ------------ | -------- | -------------- |
+| `Linear`     | 线性击退     | 匀速     | 普通击退       |
+| `Decelerate` | 减速击退     | 先快后慢 | 重击、爆炸     |
+| `Launch`     | 击飞（预留） | 抛物线   | 上挑、击飞技能 |
 
 ### 3.2 击退计算
 
@@ -422,6 +470,7 @@ namespace Astrum.LogicCore.Capabilities
 ### 3.3 击退中断
 
 击退可被以下情况中断：
+
 1. 受到新的击退效果（覆盖）
 2. 实体死亡
 3. 碰撞到障碍物（预留，需要物理碰撞支持）
@@ -449,15 +498,16 @@ namespace Astrum.LogicCore.Capabilities
 
 ### 4.2 受击动作优先级
 
-| 优先级 | 类型 | 说明 |
-|--------|------|------|
-| 高 | 死亡、击退 | 强制打断当前动作 |
-| 中 | 受击、硬直 | 可打断普通动作 |
-| 低 | Buff/Debuff特效 | 不打断动作 |
+| 优先级 | 类型            | 说明             |
+| ------ | --------------- | ---------------- |
+| 高     | 死亡、击退      | 强制打断当前动作 |
+| 中     | 受击、硬直      | 可打断普通动作   |
+| 低     | Buff/Debuff特效 | 不打断动作       |
 
 ### 4.3 受击方向判定
 
 根据施法者和目标的相对位置：
+
 - **正面受击**：0° - 45°
 - **侧面受击**：45° - 135°
 - **背面受击**：135° - 180°
@@ -505,14 +555,14 @@ SkillEffectSystem.QueueSkillEffect(caster, target, effectId)
 
 ### 5.2 关键时序
 
-| 帧 | 操作 | 组件状态 |
-|----|------|----------|
-| N | 技能触发，碰撞检测 | - |
-| N | QueueSkillEffect | 事件入队 |
-| N+1 | HitReactionCapability.Tick | 消费事件，写入 KnockbackComponent |
-| N+1 | KnockbackCapability.Tick | 开始击退，应用第一帧位移 |
-| N+2 ~ N+M | KnockbackCapability.Tick | 持续应用位移 |
-| N+M | 击退结束 | IsKnockingBack = false |
+| 帧        | 操作                       | 组件状态                          |
+| --------- | -------------------------- | --------------------------------- |
+| N         | 技能触发，碰撞检测         | -                                 |
+| N         | QueueSkillEffect           | 事件入队                          |
+| N+1       | HitReactionCapability.Tick | 消费事件，写入 KnockbackComponent |
+| N+1       | KnockbackCapability.Tick   | 开始击退，应用第一帧位移          |
+| N+2 ~ N+M | KnockbackCapability.Tick   | 持续应用位移                      |
+| N+M       | 击退结束                   | IsKnockingBack = false            |
 
 ---
 
@@ -529,13 +579,13 @@ skillEffectId,effectType,effectValue,effectDuration,targetType,effectRange,descr
 5003,3,3.0,0.2,1,0,小击退：3米，0.2秒
 ```
 
-| 字段 | 说明 | 击退用途 |
-|------|------|----------|
-| `effectType` | 效果类型 | 固定为 `3` |
-| `effectValue` | 效果数值 | 击退距离（米） |
+| 字段               | 说明     | 击退用途       |
+| ------------------ | -------- | -------------- |
+| `effectType`     | 效果类型 | 固定为 `3`   |
+| `effectValue`    | 效果数值 | 击退距离（米） |
 | `effectDuration` | 持续时间 | 击退时长（秒） |
-| `targetType` | 目标类型 | 1=敌人 |
-| `effectRange` | 范围 | 击退不使用 |
+| `targetType`     | 目标类型 | 1=敌人         |
+| `effectRange`    | 范围     | 击退不使用     |
 
 ### 6.2 扩展配置（预留）
 
@@ -545,72 +595,161 @@ skillEffectId,knockbackType,knockbackCurve,canInterrupt,canBeResisted
 5002,1,Decelerate,1,0
 ```
 
-| 字段 | 说明 |
-|------|------|
-| `knockbackType` | 击退类型：0=线性，1=减速，2=击飞 |
-| `knockbackCurve` | 速度曲线名称（预留） |
-| `canInterrupt` | 是否可打断当前动作 |
-| `canBeResisted` | 是否可被抵抗 |
+| 字段               | 说明                             |
+| ------------------ | -------------------------------- |
+| `knockbackType`  | 击退类型：0=线性，1=减速，2=击飞 |
+| `knockbackCurve` | 速度曲线名称（预留）             |
+| `canInterrupt`   | 是否可打断当前动作               |
+| `canBeResisted`  | 是否可被抵抗                     |
 
 ---
 
 ## 实现细节
 
-### 7.1 优先级设定
+### 7.1 优先级与标签
 
-| Capability | Priority | 说明 |
-|------------|----------|------|
-| SkillExecutorCapability | 250 | 最先执行技能逻辑 |
-| HitReactionCapability | 200 | 处理受击反馈 |
-| KnockbackCapability | 150 | 应用击退位移 |
-| MovementCapability | 100 | 正常移动（会被击退覆盖） |
+#### Capability 优先级
+
+| Capability              | Priority | 说明                     |
+| ----------------------- | -------- | ------------------------ |
+| SkillExecutorCapability | 250      | 最先执行技能逻辑         |
+| HitReactionCapability   | 200      | 处理受击反馈             |
+| KnockbackCapability     | 150      | 应用击退位移             |
+| MovementCapability      | 100      | 正常移动（会被击退覆盖） |
+
+#### Capability 标签
+
+**KnockbackCapability 标签**：
+
+```csharp
+Tags => new[] 
+{ 
+    CapabilityTag.Movement,  // 移动类
+    CapabilityTag.Combat     // 战斗类
+}
+```
+
+**HitReactionCapability 标签**：
+
+```csharp
+Tags => new[] 
+{ 
+    CapabilityTag.Combat,    // 战斗类
+    CapabilityTag.Animation  // 动画类
+}
+```
+
+#### 移动输入禁用机制
+
+**设计原则**：
+- 击退激活时，通过 `CapabilitySystem.DisableCapabilitiesByTag` 主动禁用 `UserInputMovement` 标签
+- 击退结束时，通过 `CapabilitySystem.EnableCapabilitiesByTag` 恢复用户输入
+- 与 `SkillDisplacementCapability` 使用相同的机制，保持架构一致
+
+**实现方式**：
+
+```csharp
+// KnockbackCapability
+private long _knockbackInstigatorId;
+
+public override void OnActivate(Entity entity)
+{
+    base.OnActivate(entity);
+    
+    // 获取击退施法者ID作为标识
+    var knockback = GetComponent<KnockbackComponent>(entity);
+    _knockbackInstigatorId = knockback?.CasterId ?? entity.UniqueId;
+    
+    // 禁用用户输入位移
+    entity.World?.CapabilitySystem?.DisableCapabilitiesByTag(
+        entity, 
+        CapabilityTag.UserInputMovement, 
+        _knockbackInstigatorId, 
+        "Knockback active"
+    );
+}
+
+public override void OnDeactivate(Entity entity)
+{
+    // 恢复用户输入位移
+    entity.World?.CapabilitySystem?.EnableCapabilitiesByTag(
+        entity, 
+        CapabilityTag.UserInputMovement, 
+        _knockbackInstigatorId
+    );
+    
+    base.OnDeactivate(entity);
+}
+```
+
+**MovementCapability 现有实现**：
+
+`MovementCapability` 已经通过检查 `UserInputMovement` 标签是否被禁用来决定是否处理移动输入：
+
+```csharp
+// MovementCapability.Tick (已实现)
+public override void Tick(Entity entity)
+{
+    // ... 朝向更新 ...
+    
+    // 检查用户输入位移是否被禁用（由技能位移/击退系统禁用）
+    bool isUserInputMovementDisabled = IsUserInputMovementDisabled(entity);
+    
+    // 处理移动（如果用户输入位移未被禁用）
+    if (!isUserInputMovementDisabled && inputMagnitude > threshold && movementComponent.CanMove)
+    {
+        // 应用移动...
+    }
+}
+
+private bool IsUserInputMovementDisabled(Entity entity)
+{
+    if (entity.DisabledTags == null)
+        return false;
+    
+    if (!entity.DisabledTags.TryGetValue(CapabilityTag.UserInputMovement, out var instigators))
+        return false;
+    
+    return instigators.Count > 0;
+}
+```
 
 ### 7.2 状态互斥
 
 #### 击退与移动
 
-击退期间，`MovementCapability` 应该被禁用或忽略输入：
+击退期间，通过 Tag 系统自动禁用移动输入。
 
-```csharp
-// MovementCapability.Tick
-var knockback = entity.GetComponent<KnockbackComponent>();
-if (knockback != null && knockback.IsKnockingBack)
-{
-    // 击退中，禁用移动输入
-    return;
-}
-```
+**设计思路**：
+
+- `KnockbackCapability` 激活时，调用 `CapabilitySystem.DisableCapabilitiesByTag` 禁用 `UserInputMovement` 标签
+- `MovementCapability` 在处理移动输入前，检查 `UserInputMovement` 标签是否被禁用
+- 击退结束时，调用 `EnableCapabilitiesByTag` 恢复用户输入
+- 与 `SkillDisplacementCapability` 使用相同机制，保持架构一致
+
+**实现流程**：
+
+1. **击退激活** → 禁用 `UserInputMovement`
+2. **MovementCapability.Tick** → 检测到标签被禁用 → 跳过移动输入处理
+3. **击退结束** → 恢复 `UserInputMovement`
+4. **MovementCapability.Tick** → 标签已恢复 → 正常处理移动输入
+
+**优势**：
+
+- ✅ 与现有 `SkillDisplacementCapability` 机制一致，架构统一
+- ✅ 无需修改 `MovementCapability`，已支持此机制
+- ✅ 可扩展：硬直、眩晕等控制效果可复用同一机制
+- ✅ 自动恢复：击退结束时自动恢复移动输入
+- ✅ 支持多来源禁用：多个效果可同时禁用移动（通过不同 instigatorId）
 
 #### 击退与技能
 
 击退期间是否可以释放技能：
+
 - **可以**：允许玩家使用位移技能逃脱
 - **不可以**：完全硬直，更适合强控效果
 
 根据策划需求配置。
-
-### 7.3 网络同步
-
-#### 客户端预测
-- 客户端接收到击退事件时，立即应用击退（预测）
-- 服务器计算权威击退轨迹
-- 客户端收到服务器位置更新时，进行插值修正
-
-#### 同步数据
-- 击退起始位置
-- 击退方向
-- 击退速度
-- 击退持续时间
-
-### 7.4 性能优化
-
-#### 批处理
-- 同一帧多个目标的击退事件，批量处理
-- 避免重复查询配置表
-
-#### 对象池
-- KnockbackComponent 复用
-- SkillEffectEvent 复用
 
 ---
 
@@ -630,13 +769,13 @@ namespace Astrum.LogicCore.Events
     {
         /// <summary>施法者ID</summary>
         public long CasterId;
-        
+  
         /// <summary>目标ID</summary>
         public long TargetId;
-        
+  
         /// <summary>效果ID</summary>
         public int EffectId;
-        
+  
         /// <summary>触发时间（帧）</summary>
         public int TriggerFrame;
     }
@@ -664,36 +803,8 @@ namespace Astrum.LogicCore.Configuration
 }
 ```
 
-### A.2 测试场景
-
-#### 测试用例 1：基础击退
-
-1. 角色A释放击退技能
-2. 命中角色B
-3. 角色B播放受击动作
-4. 角色B向后移动 5 米，耗时 0.3 秒
-5. 击退结束，角色B恢复正常
-
-#### 测试用例 2：击退打断
-
-1. 角色B正在移动
-2. 受到击退
-3. 移动输入被忽略，执行击退
-4. 击退结束后，恢复移动控制
-
-#### 测试用例 3：连续击退
-
-1. 角色B受到第一次击退（5米，0.3秒）
-2. 击退进行到一半
-3. 受到第二次击退（10米，0.5秒）
-4. 第一次击退被覆盖，执行第二次击退
-
----
-
 ## 版本历史
 
-| 版本 | 日期 | 说明 |
-|------|------|------|
+| 版本 | 日期       | 说明     |
+| ---- | ---------- | -------- |
 | v1.0 | 2025-01-08 | 初始设计 |
-
-
