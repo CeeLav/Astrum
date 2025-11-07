@@ -682,11 +682,7 @@ namespace Astrum.View.Components
             if (totalFrames <= 0) return 0f;
             
             // 获取当前物理时间
-            long currentTime = TimeInfo.Instance.ServerNow() - LSConstValue.UpdateInterval;
-            if (currentTime < 0)
-            {
-                currentTime = 0;
-            }
+            long currentTime = TimeInfo.Instance.ServerNow();
             
             // 获取帧同步的当前帧（PredictionFrame）
             int currentPredictionFrame = GetCurrentPredictionFrame();

@@ -483,9 +483,22 @@ namespace Astrum.View.Components
             else
             {
                 _visualSync.timeSinceLastLogicUpdate += deltaTime;
-                _visualSync.visualOffset += animDelta;
+                float logicFrameInterval = LSConstValue.UpdateInterval / 1000.0f;
+                float t = logicFrameInterval > 0f
+                    ? Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval)
+                    : 0f;
 
-                
+                Vector3 logicStep = currentLogicPos - _visualSync.previousLogicPos;
+                if (logicStep.sqrMagnitude > 0.000001f && t > 0f)
+                {
+                    Vector3 projectedPos = currentLogicPos + logicStep * t;
+                    _visualSync.visualOffset = projectedPos - currentLogicPos;
+                }
+                else
+                {
+                    _visualSync.visualOffset = Vector3.Lerp(_visualSync.visualOffset, Vector3.zero, Mathf.Clamp01(deltaTime * 10f));
+                }
+                _visualSync.visualOffset += animDelta * motionBlendWeight;
             }
             
             // 4. 累积动画偏移（RootMotion模式：直接使用动画位移，不应用权重）
@@ -529,6 +542,8 @@ namespace Astrum.View.Components
             if (logicFrameAdvanced)
             {
                 float logicFrameInterval = LSConstValue.UpdateInterval / 1000.0f; // 50ms = 0.05秒
+                _visualSync.timeSinceLastLogicUpdate -= logicFrameInterval;
+                
                 float t = logicFrameInterval > 0f
                     ? Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval)
                     : 0f;
@@ -538,9 +553,8 @@ namespace Astrum.View.Components
                 _visualSync.previousLogicPos = previousLogicPos;
                 _visualSync.lastLogicPos = currentLogicPos;
                 _visualSync.lastLogicFrame = currentLogicFrame;
-                _visualSync.timeSinceLastLogicUpdate = 0f;
-                
-                ASLogger.Instance.Debug(
+            if(previousLogicPos != currentLogicPos)
+                ASLogger.Instance.Info(
                     $"[TransViewComponent] [Interpolation] Logic frame advanced: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
                     $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}",
                     "View.VisualFollow");
@@ -555,22 +569,21 @@ namespace Astrum.View.Components
                 Vector3 logicStep = _visualSync.lastLogicPos - _visualSync.previousLogicPos;
                 if (logicStep.sqrMagnitude > 0.000001f && t > 0f)
                 {
-                    Vector3 projectedPos = _visualSync.lastLogicPos + logicStep * t;
+                    Vector3 projectedPos = _visualSync.previousLogicPos + logicStep * t;
                     _visualSync.visualOffset = projectedPos - currentLogicPos;
                 }
                 else
                 {
-                    _visualSync.visualOffset = Vector3.zero;
+                    _visualSync.visualOffset = Vector3.Lerp(_visualSync.visualOffset, Vector3.zero, Mathf.Clamp01(deltaTime * 10f));
+                    _visualSync.timeSinceLastLogicUpdate = 0;
                 }
+                if(_visualSync.visualOffset != Vector3.zero)
+                    ASLogger.Instance.Info(
+                        $"[TransViewComponent] [Interpolation] EntityID:{ownerEntity.UniqueId} Logic: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
+                        $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, visualOffset={_visualSync.visualOffset}",
+                        "View.VisualFollow");
             }
-            
-            // 3. 误差钳制防护（避免浮点长时间漂移）
-            if (_visualSync.visualOffset.magnitude > maxVisualOffset)
-            {
-                ASLogger.Instance.Warning($"[TransViewComponent] [Interpolation] Visual offset exceeded max ({_visualSync.visualOffset.magnitude:F3} > {maxVisualOffset}), resetting to zero", "View.VisualFollow");
-                _visualSync.visualOffset = Vector3.zero;
-            }
-            
+
             // 4. 应用最终视觉位置
             Vector3 finalVisualPos = currentLogicPos + _visualSync.visualOffset;
             _ownerEntityView.SetWorldPosition(finalVisualPos);

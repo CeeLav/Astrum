@@ -579,7 +579,7 @@ namespace Astrum.LogicCore.Systems
                 while (eventQueue.Count > 0)
                 {
                     var evt = eventQueue.Dequeue();
-                    ASLogger.Instance.Info($"[ProcessTargetedEvents] Dispatching event {evt.EventType.Name} to entity {entity.UniqueId}");
+                    ASLogger.Instance.Debug($"[ProcessTargetedEvents] Dispatching event {evt.EventType.Name} to entity {entity.UniqueId}");
                     DispatchEventToEntity(entity, evt);
                     totalEventsProcessed++;
                 }
