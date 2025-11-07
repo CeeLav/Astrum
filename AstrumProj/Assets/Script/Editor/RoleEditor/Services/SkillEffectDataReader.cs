@@ -45,10 +45,10 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <summary>
         /// 按效果类型分组
         /// </summary>
-        public static Dictionary<int, List<SkillEffectTableData>> GroupByEffectType()
+        public static Dictionary<string, List<SkillEffectTableData>> GroupByEffectType()
         {
             var allEffects = ReadAllSkillEffects();
-            return allEffects.GroupBy(e => e.EffectType)
+            return allEffects.GroupBy(e => e.EffectType ?? string.Empty)
                             .ToDictionary(g => g.Key, g => g.ToList());
         }
         
@@ -80,29 +80,34 @@ namespace Astrum.Editor.RoleEditor.Services
             
             return allEffects.Where(e => 
                 e.SkillEffectId.ToString().Contains(keyword) ||
-                GetEffectTypeName(e.EffectType).Contains(keyword)
+                GetEffectTypeDisplayName(e.EffectType).ToLower().Contains(keyword)
             ).ToList();
         }
         
         /// <summary>
         /// 按效果类型筛选
         /// </summary>
-        public static List<SkillEffectTableData> FilterByEffectType(int effectType)
+        public static List<SkillEffectTableData> FilterByEffectType(string effectType)
         {
-            if (effectType == 0)
+            if (string.IsNullOrWhiteSpace(effectType))
                 return ReadAllSkillEffects();
             
             var allEffects = ReadAllSkillEffects();
-            return allEffects.Where(e => e.EffectType == effectType).ToList();
+            return allEffects.Where(e => string.Equals(e.EffectType, effectType, System.StringComparison.OrdinalIgnoreCase)).ToList();
         }
         
         /// <summary>
         /// 获取所有效果类型列表
         /// </summary>
-        public static List<int> GetAllEffectTypes()
+        public static List<string> GetAllEffectTypes()
         {
             var allEffects = ReadAllSkillEffects();
-            return allEffects.Select(e => e.EffectType).Distinct().OrderBy(t => t).ToList();
+            return allEffects
+                .Select(e => e.EffectType)
+                .Where(t => !string.IsNullOrEmpty(t))
+                .Distinct()
+                .OrderBy(t => t)
+                .ToList();
         }
         
         /// <summary>
@@ -118,47 +123,42 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <summary>
         /// 获取效果类型名称
         /// </summary>
-        public static string GetEffectTypeName(int effectType)
+        public static string GetEffectTypeDisplayName(string effectType)
         {
-            return effectType switch
+            if (string.IsNullOrEmpty(effectType))
+                return "未知";
+
+            return effectType.ToLower() switch
             {
-                1 => "伤害",
-                2 => "治疗",
-                3 => "击退",
-                4 => "Buff",
-                5 => "Debuff",
-                _ => "未知"
-            };
-        }
-        
-        /// <summary>
-        /// 获取目标类型名称
-        /// </summary>
-        public static string GetTargetTypeName(int targetType)
-        {
-            return targetType switch
-            {
-                1 => "敌人",
-                2 => "友军",
-                3 => "自身",
-                4 => "全体",
-                _ => "未知"
+                "damage" => "伤害",
+                "heal" => "治疗",
+                "knockback" => "击退",
+                "buff" => "增益",
+                "debuff" => "减益",
+                "status" => "状态",
+                "teleport" => "瞬移",
+                _ => effectType
             };
         }
         
         /// <summary>
         /// 获取效果类型图标
         /// </summary>
-        public static string GetEffectTypeIcon(int effectType)
+        public static string GetEffectTypeIcon(string effectType)
         {
-            return effectType switch
+            if (string.IsNullOrEmpty(effectType))
+                return "❓";
+
+            return effectType.ToLower() switch
             {
-                1 => "⚔️", // 伤害
-                2 => "💚", // 治疗
-                3 => "💨", // 击退
-                4 => "✨", // Buff
-                5 => "🔻", // Debuff
-                _ => "❓"  // 未知
+                "damage" => "⚔️",
+                "heal" => "💚",
+                "knockback" => "💨",
+                "buff" => "✨",
+                "debuff" => "🔻",
+                "status" => "🌀",
+                "teleport" => "🌀",
+                _ => "❓"
             };
         }
     }

@@ -5,6 +5,7 @@ using Astrum.LogicCore.Events;
 using Astrum.CommonBase;
 using cfg.Skill;
 using TrueSync;
+using Astrum.LogicCore.SkillSystem;
 
 namespace Astrum.LogicCore.SkillSystem.EffectHandlers
 {
@@ -16,6 +17,14 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
         public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
         {
             ASLogger.Instance.Info($"[DamageEffectHandler] Processing damage: Caster={caster.UniqueId}, Target={target.UniqueId}, EffectId={effectConfig.SkillEffectId}");
+
+            if (effectConfig.IntParams == null || effectConfig.IntParams.Count < 3)
+            {
+                ASLogger.Instance.Error($"[DamageEffectHandler] Effect {effectConfig.SkillEffectId} missing intParams");
+                return;
+            }
+            
+            int damageTypeCode = effectConfig.GetDamageTypeCode();
             
             // 1. 读取组件（只读，用于计算）
             var casterStats = caster.GetComponent<DerivedStatsComponent>();
@@ -40,7 +49,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
                 EffectId = effectConfig.SkillEffectId,
                 Damage = damageResult.FinalDamage,
                 IsCritical = damageResult.IsCritical,
-                DamageType = effectConfig.DamageType,
+                DamageType = damageTypeCode,
                 TriggerWhenInactive = true // 即使 DamageCapability 未激活也触发（主动激活）
             };
             

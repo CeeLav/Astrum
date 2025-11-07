@@ -1,5 +1,6 @@
 using Astrum.Editor.RoleEditor.Persistence.Core;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Astrum.Editor.RoleEditor.Persistence.Mappings
 {
@@ -12,31 +13,13 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         public int SkillEffectId { get; set; }
         
         [TableField(1, "effectType")]
-        public int EffectType { get; set; }
+        public string EffectType { get; set; }
         
-        [TableField(2, "effectValue")]
-        public float EffectValue { get; set; }
+        [TableField(2, "intParams")]
+        public List<int> IntParams { get; set; } = new List<int>();
         
-        [TableField(3, "targetType")]
-        public int TargetType { get; set; }
-        
-        [TableField(4, "effectDuration")]
-        public float EffectDuration { get; set; }
-        
-        [TableField(5, "effectRange")]
-        public float EffectRange { get; set; }
-        
-        [TableField(6, "castTime")]
-        public float CastTime { get; set; }
-        
-        [TableField(7, "effectParams")]
-        public string EffectParams { get; set; }
-        
-        [TableField(8, "visualEffectId")]
-        public int VisualEffectId { get; set; }
-        
-        [TableField(9, "soundEffectId")]
-        public int SoundEffectId { get; set; }
+        [TableField(3, "stringParams")]
+        public List<string> StringParams { get; set; } = new List<string>();
         
         /// <summary>
         /// 解析效果参数
@@ -46,13 +29,15 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         {
             var result = new Dictionary<string, string>();
             
-            if (string.IsNullOrEmpty(EffectParams))
+            if (StringParams == null || StringParams.Count == 0)
                 return result;
             
-            var pairs = EffectParams.Split(',');
-            foreach (var pair in pairs)
+            foreach (var entry in StringParams)
             {
-                var parts = pair.Split(':');
+                if (string.IsNullOrWhiteSpace(entry))
+                    continue;
+
+                var parts = entry.Split(':');
                 if (parts.Length == 2)
                 {
                     result[parts[0].Trim()] = parts[1].Trim();
@@ -69,17 +54,13 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         {
             if (parameters == null || parameters.Count == 0)
             {
-                EffectParams = string.Empty;
+                StringParams = new List<string>();
                 return;
             }
             
-            var parts = new List<string>();
-            foreach (var kvp in parameters)
-            {
-                parts.Add($"{kvp.Key}:{kvp.Value}");
-            }
-            
-            EffectParams = string.Join(",", parts);
+            StringParams = parameters
+                .Select(kvp => $"{kvp.Key}:{kvp.Value}")
+                .ToList();
         }
         
         /// <summary>
@@ -96,25 +77,19 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 {
                     VarNames = new List<string>
                     {
-                        "skillEffectId", "effectType", "effectValue", "targetType",
-                        "effectDuration", "effectRange", "castTime", "effectParams",
-                        "visualEffectId", "soundEffectId"
+                        "skillEffectId", "effectType", "intParams", "stringParams"
                     },
                     Types = new List<string>
                     {
-                        "int", "int", "float", "int",
-                        "float", "float", "float", "string",
-                        "int", "int"
+                        "int", "string", "(array#sep=|,int)", "(array#sep=|,string)"
                     },
                     Groups = new List<string>
                     {
-                        "", "", "", "", "", "", "", "", "", ""
+                        "", "", "", ""
                     },
                     Descriptions = new List<string>
                     {
-                        "技能效果ID", "效果类型", "效果数值", "目标类型",
-                        "效果持续时间", "效果范围", "施法时间", "效果参数",
-                        "视觉效果ID", "音效ID"
+                        "技能效果ID", "效果类型键", "整数参数数组", "字符串参数数组"
                     }
                 }
             };

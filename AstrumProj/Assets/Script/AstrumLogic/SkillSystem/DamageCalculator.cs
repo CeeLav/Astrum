@@ -49,8 +49,22 @@ namespace Astrum.LogicCore.SkillSystem
             ASLogger.Instance.Debug($"[DamageCalc] Caster ATK={casterAttack}, CRIT={casterCritRate}, Target DEF={targetDefense}");
             ASLogger.Instance.Debug($"[DamageCalc] Frame={currentFrame}, CasterId={caster.UniqueId}, TargetId={target.UniqueId}");
             
+            Stats.DamageType damageType = effectConfig.GetDamageTypeEnum();
+
             // 4. 计算基础伤害
             FP baseDamage = CalculateBaseDamage(casterAttack, effectConfig);
+            // 属性缩放
+            int scalingStatCode = effectConfig.GetIntParam(3, 0);
+            int scalingRatio = effectConfig.GetIntParam(4, 0);
+            if (scalingStatCode > 0 && scalingRatio != 0)
+            {
+                FP scalingValue = GetScalingStatValue(casterDerived, scalingStatCode);
+                if (scalingValue > FP.Zero)
+                {
+                    FP scalingMultiplier = (FP)scalingRatio / (FP)1000;
+                    baseDamage += scalingValue * scalingMultiplier;
+                }
+            }
             ASLogger.Instance.Debug($"[DamageCalc] Base damage: {(float)baseDamage:F2}");
             /*
             // 5. 命中判定
@@ -85,7 +99,6 @@ namespace Astrum.LogicCore.SkillSystem
             }*/
             
             // 8. 应用防御减免
-            Stats.DamageType damageType = (Stats.DamageType)effectConfig.DamageType;
             FP afterDefense = ApplyDefense(baseDamage, targetDefense, damageType);
             ASLogger.Instance.Debug($"[DamageCalc] After defense: {(float)baseDamage:F2} → {(float)afterDefense:F2}");
             
@@ -121,8 +134,24 @@ namespace Astrum.LogicCore.SkillSystem
         private static FP CalculateBaseDamage(FP attack, SkillEffectTable effectConfig)
         {
             // effectValue 通常是百分比*1000（如1500表示150%攻击力）
-            FP ratio = (FP)effectConfig.EffectValue / (FP)1000;
+            int baseCoefficient = effectConfig.GetIntParam(2);
+            FP ratio = (FP)baseCoefficient / (FP)1000;
             return attack * ratio;
+        }
+
+        private static FP GetScalingStatValue(DerivedStatsComponent casterDerived, int code)
+        {
+            if (casterDerived == null)
+                return FP.Zero;
+
+            return code switch
+            {
+                1 => casterDerived.Get(StatType.ATK),
+                2 => casterDerived.Get(StatType.DEF),
+                3 => casterDerived.Get(StatType.HP),
+                4 => casterDerived.Get(StatType.MAX_MANA),
+                _ => FP.Zero
+            };
         }
         
         /// <summary>

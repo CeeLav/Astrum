@@ -23,7 +23,7 @@ namespace Astrum.LogicCore.Systems
         /// <summary>
         /// 效果类型 -> Handler 映射（静态，全局共享，只注册一次）
         /// </summary>
-        private static readonly Dictionary<int, IEffectHandler> _handlers = new Dictionary<int, IEffectHandler>();
+        private static readonly Dictionary<string, IEffectHandler> _handlers = new Dictionary<string, IEffectHandler>(System.StringComparer.OrdinalIgnoreCase);
         
         /// <summary>
         /// 处理器是否已注册
@@ -81,35 +81,32 @@ namespace Astrum.LogicCore.Systems
         /// </summary>
         private static void RegisterAllHandlers()
         {
-            // 注册伤害处理器 (EffectType = 1)
-            RegisterHandler(1, new DamageEffectHandler());
-            
-            // 注册治疗处理器 (EffectType = 2)
-            RegisterHandler(2, new HealEffectHandler());
-            
-            // 注册击退处理器 (EffectType = 3)
-            RegisterHandler(3, new KnockbackEffectHandler());
-            
-            // TODO: 注册其他处理器
-            // RegisterHandler(4, new BuffEffectHandler());
-            // RegisterHandler(5, new DebuffEffectHandler());
-            
+            RegisterHandler("Damage", new DamageEffectHandler());
+            RegisterHandler("Heal", new HealEffectHandler());
+            RegisterHandler("Knockback", new KnockbackEffectHandler());
+
             ASLogger.Instance.Info("SkillEffectSystem: All handlers registered successfully");
         }
         
         /// <summary>
         /// 注册效果处理器（静态方法）
         /// </summary>
-        /// <param name="effectType">效果类型（1=伤害, 2=治疗, 3=击退, 4=Buff, 5=Debuff）</param>
+        /// <param name="effectType">效果类型键</param>
         /// <param name="handler">效果处理器实例</param>
-        public static void RegisterHandler(int effectType, IEffectHandler handler)
+        public static void RegisterHandler(string effectType, IEffectHandler handler)
         {
             if (handler == null)
             {
-                ASLogger.Instance.Error($"SkillEffectSystem.RegisterHandler: Handler is null for type {effectType}");
+                ASLogger.Instance.Error("SkillEffectSystem.RegisterHandler: Handler is null");
                 return;
             }
-            
+
+            if (string.IsNullOrEmpty(effectType))
+            {
+                ASLogger.Instance.Warning("SkillEffectSystem.RegisterHandler: effectType is empty");
+                return;
+            }
+
             _handlers[effectType] = handler;
             ASLogger.Instance.Info($"SkillEffectSystem: Registered handler for effect type {effectType}");
         }
@@ -178,7 +175,7 @@ namespace Astrum.LogicCore.Systems
             }
             
             // 3. 获取对应的处理器
-            if (!_handlers.TryGetValue(effectConfig.EffectType, out var handler))
+            if (!_handlers.TryGetValue(effectConfig.EffectType ?? string.Empty, out var handler))
             {
                 ASLogger.Instance.Warning($"No handler registered for effect type: {effectConfig.EffectType}");
                 return;

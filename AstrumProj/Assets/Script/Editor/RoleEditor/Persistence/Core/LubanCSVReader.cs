@@ -61,6 +61,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                         csv.Context.TypeConverterCache.AddConverter<double>(new NullableDoubleConverter());
                         csv.Context.TypeConverterCache.AddConverter<bool>(new NullableBooleanConverter());
                         csv.Context.TypeConverterCache.AddConverter<List<int>>(new IntListTypeConverter());
+                        csv.Context.TypeConverterCache.AddConverter<List<string>>(new StringListTypeConverter());
                         
                         // 动态注册ClassMap
                         var classMap = CreateDynamicClassMap<T>(config);
@@ -117,6 +118,10 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                     {
                         memberMap.TypeConverter(new IntListTypeConverter());
                     }
+                    else if (property.PropertyType == typeof(List<string>))
+                    {
+                        memberMap.TypeConverter(new StringListTypeConverter());
+                    }
                 }
                 else if (member is FieldInfo field)
                 {
@@ -132,6 +137,10 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                     else if (field.FieldType == typeof(List<int>))
                     {
                         memberMap.TypeConverter(new IntListTypeConverter());
+                    }
+                    else if (field.FieldType == typeof(List<string>))
+                    {
+                        memberMap.TypeConverter(new StringListTypeConverter());
                     }
                 }
             }

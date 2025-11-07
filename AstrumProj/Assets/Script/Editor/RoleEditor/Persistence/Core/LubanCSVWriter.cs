@@ -155,8 +155,12 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
             }
             else if (memberType == typeof(List<int>))
             {
-                // List<int>类型：使用自定义转换器，序列化为逗号分隔的字符串
+                // List<int>类型：使用自定义转换器，序列化为竖线分隔的字符串
                 memberMap.TypeConverter(new IntListTypeConverter());
+            }
+            else if (memberType == typeof(List<string>))
+            {
+                memberMap.TypeConverter(new StringListTypeConverter());
             }
         }
         
@@ -220,18 +224,16 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
     {
         public object ConvertFromString(string text, CsvHelper.IReaderRow row, CsvHelper.Configuration.MemberMapData memberMapData)
         {
-            // 读取时：从逗号分隔的字符串解析为List<int>
             if (string.IsNullOrWhiteSpace(text))
                 return new List<int>();
             
-            // 移除引号（如果有）
             text = text.Trim().Trim('"');
-            
             if (string.IsNullOrWhiteSpace(text))
                 return new List<int>();
             
+            var separators = text.Contains("|") ? new[] { '|' } : new[] { ',' };
             var result = new List<int>();
-            var parts = text.Split(',');
+            var parts = text.Split(separators, StringSplitOptions.RemoveEmptyEntries);
             foreach (var part in parts)
             {
                 if (int.TryParse(part.Trim(), out int value))
@@ -244,7 +246,6 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
         
         public string ConvertToString(object value, CsvHelper.IWriterRow row, CsvHelper.Configuration.MemberMapData memberMapData)
         {
-            // 写入时：将List<int>序列化为逗号分隔的字符串
             if (value == null)
                 return "";
             
@@ -253,10 +254,46 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                 if (list.Count == 0)
                     return "";
                 
-                // 使用逗号分隔，CsvHelper会根据ShouldQuoteField自动加引号
-                return string.Join(",", list);
+                return string.Join("|", list);
             }
             
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// List<string> 类型转换器：序列化为竖线分隔的字符串
+    /// </summary>
+    public class StringListTypeConverter : CsvHelper.TypeConversion.ITypeConverter
+    {
+        public object ConvertFromString(string text, CsvHelper.IReaderRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<string>();
+            
+            text = text.Trim().Trim('"');
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<string>();
+            
+            var separators = text.Contains("|") ? new[] { '|' } : new[] { ',' };
+            return text.Split(separators, StringSplitOptions.RemoveEmptyEntries)
+                       .Select(s => s.Trim())
+                       .ToList();
+        }
+
+        public string ConvertToString(object value, CsvHelper.IWriterRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            if (value == null)
+                return "";
+            
+            if (value is List<string> list)
+            {
+                if (list.Count == 0)
+                    return "";
+                
+                return string.Join("|", list);
+            }
+
             return "";
         }
     }

@@ -167,7 +167,7 @@ namespace Astrum.LogicCore.Managers
                 return new EffectValueResult
                 {
                     EffectId = actualEffectId,
-                    Value = effect.EffectValue,
+                    Value = ExtractPrimaryValue(effect),
                     IsInterpolated = false,
                     EffectData = effect
                 };
@@ -182,7 +182,7 @@ namespace Astrum.LogicCore.Managers
                 return new EffectValueResult
                 {
                     EffectId = baseEffectId,
-                    Value = baseEffect.EffectValue,
+                    Value = ExtractPrimaryValue(baseEffect),
                     IsInterpolated = false,
                     EffectData = baseEffect
                 };
@@ -193,6 +193,28 @@ namespace Astrum.LogicCore.Managers
                 $"nor base effect {baseEffectId} found!");
             
             return new EffectValueResult { Value = 0f };
+        }
+
+        private float ExtractPrimaryValue(cfg.Skill.SkillEffectTable effect)
+        {
+            if (effect == null)
+                return 0f;
+
+            var type = effect.EffectType?.ToLower();
+            switch (type)
+            {
+                case "damage":
+                case "heal":
+                    return effect.GetIntParam(2, 0) / 10f;
+                case "knockback":
+                    return effect.GetIntParam(1, 0) / 1000f;
+                case "status":
+                    return effect.GetIntParam(2, 0) / 1000f;
+                case "teleport":
+                    return effect.GetIntParam(1, 0) / 1000f;
+                default:
+                    return 0f;
+            }
         }
         
         /// <summary>

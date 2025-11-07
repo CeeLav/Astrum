@@ -17,18 +17,25 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     public SkillEffectTable(ByteBuf _buf) 
     {
         SkillEffectId = _buf.ReadInt();
-        EffectType = _buf.ReadInt();
-        EffectValue = _buf.ReadInt();
-        TargetType = _buf.ReadInt();
-        EffectDuration = _buf.ReadFloat();
-        EffectRange = _buf.ReadFloat();
-        CastTime = _buf.ReadFloat();
-        EffectParams = _buf.ReadString();
-        DamageType = _buf.ReadInt();
-        ScalingStat = _buf.ReadInt();
-        ScalingRatio = _buf.ReadInt();
-        VisualEffectId = _buf.ReadInt();
-        SoundEffectId = _buf.ReadInt();
+        EffectType = _buf.ReadString();
+        {
+            int _n = _buf.ReadSize();
+            var _list = new System.Collections.Generic.List<int>(_n);
+            for (int _i = _n; _i > 0; --_i)
+            {
+                _list.Add(_buf.ReadInt());
+            }
+            IntParams = _list;
+        }
+        {
+            int _n = _buf.ReadSize();
+            var _list = new System.Collections.Generic.List<string>(_n);
+            for (int _i = _n; _i > 0; --_i)
+            {
+                _list.Add(_buf.ReadString());
+            }
+            StringParams = _list;
+        }
     }
 
     public static SkillEffectTable DeserializeSkillEffectTable(ByteBuf _buf)
@@ -41,53 +48,17 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     /// </summary>
     public readonly int SkillEffectId;
     /// <summary>
-    /// 效果类型
+    /// 效果类型键
     /// </summary>
-    public readonly int EffectType;
+    public readonly string EffectType;
     /// <summary>
-    /// 效果数值*1000
+    /// 效果整数参数
     /// </summary>
-    public readonly int EffectValue;
+    public readonly System.Collections.Generic.List<int> IntParams;
     /// <summary>
-    /// 目标类型
+    /// 效果字符串参数
     /// </summary>
-    public readonly int TargetType;
-    /// <summary>
-    /// 效果持续时间
-    /// </summary>
-    public readonly float EffectDuration;
-    /// <summary>
-    /// 效果范围
-    /// </summary>
-    public readonly float EffectRange;
-    /// <summary>
-    /// 施法时间
-    /// </summary>
-    public readonly float CastTime;
-    /// <summary>
-    /// 效果参数
-    /// </summary>
-    public readonly string EffectParams;
-    /// <summary>
-    /// 伤害类型(1=物理/2=魔法/3=真实)
-    /// </summary>
-    public readonly int DamageType;
-    /// <summary>
-    /// 缩放属性(1=攻击/2=防御/3=生命)
-    /// </summary>
-    public readonly int ScalingStat;
-    /// <summary>
-    /// 缩放比例*1000
-    /// </summary>
-    public readonly int ScalingRatio;
-    /// <summary>
-    /// 视觉效果ID
-    /// </summary>
-    public readonly int VisualEffectId;
-    /// <summary>
-    /// 音效ID
-    /// </summary>
-    public readonly int SoundEffectId;
+    public readonly System.Collections.Generic.List<string> StringParams;
    
     public const int __ID__ = 194554857;
     public override int GetTypeId() => __ID__;
@@ -101,17 +72,8 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
         return "{ "
         + "skillEffectId:" + SkillEffectId + ","
         + "effectType:" + EffectType + ","
-        + "effectValue:" + EffectValue + ","
-        + "targetType:" + TargetType + ","
-        + "effectDuration:" + EffectDuration + ","
-        + "effectRange:" + EffectRange + ","
-        + "castTime:" + CastTime + ","
-        + "effectParams:" + EffectParams + ","
-        + "damageType:" + DamageType + ","
-        + "scalingStat:" + ScalingStat + ","
-        + "scalingRatio:" + ScalingRatio + ","
-        + "visualEffectId:" + VisualEffectId + ","
-        + "soundEffectId:" + SoundEffectId + ","
+        + "intParams:" + string.Join("|", IntParams ?? new System.Collections.Generic.List<int>()) + ","
+        + "stringParams:" + string.Join("|", StringParams ?? new System.Collections.Generic.List<string>()) + ","
         + "}";
     }
 }

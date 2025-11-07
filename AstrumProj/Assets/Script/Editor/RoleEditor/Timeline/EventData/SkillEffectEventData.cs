@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Astrum.Editor.RoleEditor.Services;
+using System.Linq;
 
 namespace Astrum.Editor.RoleEditor.Timeline.EventData
 {
@@ -28,19 +30,19 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         public string EffectName = "";
         
         [HideInInspector]
-        public int EffectType = 0; // 1=伤害, 2=治疗, 3=击退, 4=Buff, 5=Debuff
+        public string EffectTypeKey = string.Empty;
         
         [HideInInspector]
-        public float EffectValue = 0f;
+        public float PrimaryValue = 0f;
         
         [HideInInspector]
-        public float EffectRange = 0f;
+        public int TargetSelector = 0;
         
         [HideInInspector]
-        public int TargetType = 0;
+        public List<int> IntParamsSnapshot = new List<int>();
         
         [HideInInspector]
-        public float EffectDuration = 0f;
+        public List<string> StringParamsSnapshot = new List<string>();
         
         // === 碰撞盒解析结果 ===
         
@@ -63,11 +65,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 TriggerType = "Direct",
                 CollisionInfo = "",
                 EffectName = "",
-                EffectType = 0,
-                EffectValue = 0f,
-                EffectRange = 0f,
-                TargetType = 0,
-                EffectDuration = 0f,
+                EffectTypeKey = string.Empty,
+                PrimaryValue = 0f,
+                TargetSelector = 0,
+                IntParamsSnapshot = new List<int>(),
+                StringParamsSnapshot = new List<string>(),
                 CollisionShapeType = "",
                 CollisionShapeSize = ""
             };
@@ -110,11 +112,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 TriggerType = this.TriggerType,
                 CollisionInfo = this.CollisionInfo,
                 EffectName = this.EffectName,
-                EffectType = this.EffectType,
-                EffectValue = this.EffectValue,
-                EffectRange = this.EffectRange,
-                TargetType = this.TargetType,
-                EffectDuration = this.EffectDuration,
+                EffectTypeKey = this.EffectTypeKey,
+                PrimaryValue = this.PrimaryValue,
+                TargetSelector = this.TargetSelector,
+                IntParamsSnapshot = new List<int>(this.IntParamsSnapshot ?? new List<int>()),
+                StringParamsSnapshot = new List<string>(this.StringParamsSnapshot ?? new List<string>()),
                 CollisionShapeType = this.CollisionShapeType,
                 CollisionShapeSize = this.CollisionShapeSize
             };
@@ -140,7 +142,6 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 var effectConfig = Services.SkillEffectDataReader.GetSkillEffect(primaryEffectId);
                 if (effectConfig != null)
                 {
-                    // 根据效果类型和数值生成友好的名称
                     if (EffectIds.Count > 1)
                     {
                         EffectName = GenerateEffectName(effectConfig) + $" +{EffectIds.Count - 1}";
@@ -149,12 +150,12 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                     {
                         EffectName = GenerateEffectName(effectConfig);
                     }
-                    
-                    EffectType = effectConfig.EffectType;
-                    EffectValue = effectConfig.EffectValue;
-                    EffectRange = effectConfig.EffectRange;
-                    TargetType = effectConfig.TargetType;
-                    EffectDuration = effectConfig.EffectDuration;
+
+                    EffectTypeKey = effectConfig.EffectType ?? string.Empty;
+                    IntParamsSnapshot = new List<int>(effectConfig.IntParams ?? new List<int>());
+                    StringParamsSnapshot = new List<string>(effectConfig.StringParams ?? new List<string>());
+                    TargetSelector = IntParamsSnapshot.Count > 0 ? IntParamsSnapshot[0] : 0;
+                    PrimaryValue = ComputePrimaryValue(effectConfig);
                 }
                 else
                 {
@@ -175,11 +176,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         private void ClearEffectDetails()
         {
             EffectName = "";
-            EffectType = 0;
-            EffectValue = 0f;
-            EffectRange = 0f;
-            TargetType = 0;
-            EffectDuration = 0f;
+            EffectTypeKey = string.Empty;
+            PrimaryValue = 0f;
+            TargetSelector = 0;
+            IntParamsSnapshot = new List<int>();
+            StringParamsSnapshot = new List<string>();
         }
         
         /// <summary>
@@ -206,26 +207,47 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                /// <summary>
                /// 根据效果配置生成友好的名称
                /// </summary>
-               private static string GenerateEffectName(Persistence.Mappings.SkillEffectTableData config)
-               {
-                   string typeName = config.EffectType switch
-                   {
-                       1 => "伤害",
-                       2 => "治疗", 
-                       3 => "击退",
-                       4 => "Buff",
-                       5 => "Debuff",
-                       _ => "效果"
-                   };
-                   
-                   // 格式：类型 + 数值
-                   if (config.EffectValue > 0)
-                   {
-                       return $"{typeName} {config.EffectValue}";
-                   }
-                   
-                   return $"{typeName}_{config.SkillEffectId}";
-               }
+        private static string GenerateEffectName(Persistence.Mappings.SkillEffectTableData config)
+        {
+            string typeName = SkillEffectDataReader.GetEffectTypeDisplayName(config.EffectType);
+            float primary = ComputePrimaryValue(config);
+
+            if (primary > 0f)
+            {
+                if (config.EffectType != null && config.EffectType.Equals("knockback", StringComparison.OrdinalIgnoreCase))
+                {
+                    return $"{typeName} {primary:0.##}m";
+                }
+
+                if (config.EffectType != null && (config.EffectType.Equals("damage", StringComparison.OrdinalIgnoreCase) || config.EffectType.Equals("heal", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return $"{typeName} {primary:0.#}%";
+                }
+
+                return $"{typeName} {primary:0.##}";
+            }
+
+            return $"{typeName}_{config.SkillEffectId}";
+        }
+        
+        private static float ComputePrimaryValue(Persistence.Mappings.SkillEffectTableData config)
+        {
+            var ints = config.IntParams ?? new List<int>();
+            switch ((config.EffectType ?? string.Empty).ToLower())
+            {
+                case "damage":
+                case "heal":
+                    return ints.Count > 2 ? ints[2] / 10f : 0f;
+                case "knockback":
+                    return ints.Count > 1 ? ints[1] / 1000f : 0f;
+                case "status":
+                    return ints.Count > 2 ? ints[2] / 1000f : 0f;
+                case "teleport":
+                    return ints.Count > 1 ? ints[1] / 1000f : 0f;
+                default:
+                    return 0f;
+            }
+        }
                
                /// <summary>
                /// 获取显示名称
@@ -247,13 +269,17 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             
             string text = $"{GetDisplayName()}\n";
             text += $"类型: {GetEffectTypeName()}\n";
-            text += $"数值: {EffectValue}\n";
-            text += $"范围: {EffectRange}m\n";
+            text += $"主值: {FormatPrimaryValue()}\n";
             text += $"目标: {GetTargetTypeName()}\n";
-            
-            if (EffectDuration > 0)
+
+            if (IntParamsSnapshot != null && IntParamsSnapshot.Count > 0)
             {
-                text += $"持续: {EffectDuration}秒\n";
+                text += $"参数(Int): {string.Join("|", IntParamsSnapshot)}\n";
+            }
+
+            if (StringParamsSnapshot != null && StringParamsSnapshot.Count > 0)
+            {
+                text += $"参数(Str): {string.Join(" | ", StringParamsSnapshot)}\n";
             }
             
             if (!string.IsNullOrEmpty(CollisionInfo))
@@ -269,15 +295,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         /// </summary>
         public string GetEffectTypeName()
         {
-            return EffectType switch
-            {
-                1 => "伤害",
-                2 => "治疗",
-                3 => "击退",
-                4 => "Buff",
-                5 => "Debuff",
-                _ => "未知"
-            };
+            return SkillEffectDataReader.GetEffectTypeDisplayName(EffectTypeKey);
         }
         
         /// <summary>
@@ -285,14 +303,34 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         /// </summary>
         public string GetTargetTypeName()
         {
-            return TargetType switch
+            return TargetSelector switch
             {
+                0 => "自身",
                 1 => "敌人",
                 2 => "友军",
-                3 => "自身",
-                4 => "全体",
+                3 => "区域",
                 _ => "未知"
             };
+        }
+
+        private string FormatPrimaryValue()
+        {
+            if (PrimaryValue <= 0f)
+                return "--";
+
+            switch ((EffectTypeKey ?? string.Empty).ToLower())
+            {
+                case "damage":
+                case "heal":
+                    return $"{PrimaryValue:0.#}%";
+                case "knockback":
+                case "teleport":
+                    return $"{PrimaryValue:0.##}m";
+                case "status":
+                    return $"{PrimaryValue:0.##}s";
+                default:
+                    return PrimaryValue.ToString("0.##");
+            }
         }
         
         /// <summary>
@@ -314,15 +352,25 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         /// </summary>
         public Color GetEffectTypeColor()
         {
-            return EffectType switch
+            switch ((EffectTypeKey ?? string.Empty).ToLower())
             {
-                1 => new Color(1f, 0.3f, 0.3f),    // 伤害 - 红色
-                2 => new Color(0.3f, 1f, 0.3f),    // 治疗 - 绿色
-                3 => new Color(1f, 0.7f, 0.2f),    // 击退 - 橙色
-                4 => new Color(0.4f, 0.7f, 1f),    // Buff - 蓝色
-                5 => new Color(0.8f, 0.4f, 1f),    // Debuff - 紫色
-                _ => Color.gray                     // 未知 - 灰色
-            };
+                case "damage":
+                    return new Color(1f, 0.3f, 0.3f);
+                case "heal":
+                    return new Color(0.3f, 1f, 0.3f);
+                case "knockback":
+                    return new Color(1f, 0.7f, 0.2f);
+                case "buff":
+                    return new Color(0.4f, 0.7f, 1f);
+                case "debuff":
+                    return new Color(0.8f, 0.4f, 1f);
+                case "status":
+                    return new Color(0.9f, 0.6f, 0.2f);
+                case "teleport":
+                    return new Color(0.4f, 0.9f, 0.9f);
+                default:
+                    return Color.gray;
+            }
         }
         
         /// <summary>

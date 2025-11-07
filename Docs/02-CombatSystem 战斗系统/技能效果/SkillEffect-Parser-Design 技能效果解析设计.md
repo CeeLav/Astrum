@@ -81,20 +81,18 @@ public sealed class DamageEffectParser : IEffectParser
 
     public ISkillEffect Parse(SkillEffectRawData data)
     {
-        if (data.IntParams.Length < 6)
-            throw new SkillEffectConfigException("Damage effect requires int params: targetType|baseCoefficient|scalingStat|scalingRatio|vfxId|sfxId");
+        if (data.IntParams.Length < 7)
+            throw new SkillEffectConfigException("Damage effect requires int params: targetType|damageType|baseCoefficient|scalingStat|scalingRatio|vfxId|sfxId");
 
         var targetType = (TargetSelector)data.IntParams[0];
-        int baseCoefficient = data.IntParams[1];
-        int scalingStat = data.IntParams[2];
-        float scalingRatio = data.IntParams[3] / 1000f;
-        int visualEffectId = data.IntParams[4];
-        int soundEffectId = data.IntParams[5];
+        DamageType damageType = (DamageType)data.IntParams[1];
+        int baseCoefficient = data.IntParams[2];
+        int scalingStat = data.IntParams[3];
+        float scalingRatio = data.IntParams[4] / 1000f;
+        int visualEffectId = data.IntParams[5];
+        int soundEffectId = data.IntParams[6];
 
-        DamageType damageType = data.TryGetEnum("DamageType", DamageType.Physical);
-        string element = data.TryGetString("Element", fallback: "None");
-
-        return new DamageEffect(targetType, baseCoefficient, scalingStat, scalingRatio, damageType, element, visualEffectId, soundEffectId);
+        return new DamageEffect(targetType, baseCoefficient, scalingStat, scalingRatio, damageType, visualEffectId, soundEffectId);
     }
 }
 ```

@@ -16,8 +16,8 @@ namespace Astrum.LogicCore.Events
         /// <summary>效果ID</summary>
         public int EffectId;
         
-        /// <summary>效果类型（1=伤害, 2=治疗, 3=击退等）</summary>
-        public int EffectType;
+        /// <summary>效果类型键</summary>
+        public string EffectType;
         
         /// <summary>伤害方向（用于播放受击动作）</summary>
         public TSVector HitDirection;

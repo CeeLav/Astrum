@@ -4,6 +4,7 @@ using Astrum.LogicCore.Stats;
 using Astrum.CommonBase;
 using cfg.Skill;
 using TrueSync;
+using Astrum.LogicCore.SkillSystem;
 
 namespace Astrum.LogicCore.SkillSystem.EffectHandlers
 {
@@ -35,7 +36,14 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             }
             
             // 3. 计算治疗量（TODO: 根据effectConfig配置计算）
-            FP healAmount = (FP)effectConfig.EffectValue; // 临时使用配置值
+            if (effectConfig.IntParams == null || effectConfig.IntParams.Count < 3)
+            {
+                ASLogger.Instance.Error($"[HealEffect] Effect {effectConfig.SkillEffectId} missing intParams");
+                return;
+            }
+
+            int baseCoefficient = effectConfig.GetIntParam(2, 0);
+            FP healAmount = (FP)baseCoefficient / (FP)10; // 1500 => 150
             
             // 4. 应用治疗
             FP beforeHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
@@ -45,7 +53,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             ASLogger.Instance.Info($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
             
             // 5. TODO: 播放视觉效果
-            // if (effectConfig.VisualEffectId > 0) { ... }
+            // if (effectConfig.GetIntParam(5) > 0) { ... }
         }
     }
 }

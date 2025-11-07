@@ -1,7 +1,11 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using Astrum.Editor.RoleEditor.Timeline.EventData;
 using Astrum.Editor.RoleEditor.Windows;
+using Astrum.Editor.RoleEditor.Services;
+using Astrum.Editor.RoleEditor.Persistence.Mappings;
 
 namespace Astrum.Editor.RoleEditor.Timeline.Renderers
 {
@@ -178,14 +182,14 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 {
                     int effectId = effectData.EffectIds[i];
                     string foldoutKey = $"{evt.EventId}_effect_{i}";
-                    
-                    // 获取该效果ID的配置信息
-                    string effectName = "";
-                    int effectType = 0;
-                    float effectValue = 0f;
-                    float effectRange = 0f;
-                    int targetType = 0;
-                    
+
+                    string effectName = effectId > 0 ? $"效果_{effectId}" : "[未设置]";
+                    string effectTypeKey = string.Empty;
+                    float primaryValue = 0f;
+                    int targetSelector = 0;
+                    System.Collections.Generic.List<int> intParams = null;
+                    System.Collections.Generic.List<string> stringParams = null;
+
                     if (effectId > 0)
                     {
                         try
@@ -193,21 +197,12 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                             var config = Services.SkillEffectDataReader.GetSkillEffect(effectId);
                             if (config != null)
                             {
-                                effectType = config.EffectType;
-                                effectValue = config.EffectValue;
-                                effectRange = config.EffectRange;
-                                targetType = config.TargetType;
-                                
-                                string typeName = effectType switch
-                                {
-                                    1 => "伤害",
-                                    2 => "治疗",
-                                    3 => "击退",
-                                    4 => "Buff",
-                                    5 => "Debuff",
-                                    _ => "效果"
-                                };
-                                effectName = effectValue > 0 ? $"{typeName} {effectValue}" : $"{typeName}_{effectId}";
+                                effectTypeKey = config.EffectType ?? string.Empty;
+                                intParams = config.IntParams ?? new System.Collections.Generic.List<int>();
+                                stringParams = config.StringParams ?? new System.Collections.Generic.List<string>();
+                                targetSelector = intParams.Count > 0 ? intParams[0] : 0;
+                                primaryValue = ComputePrimaryValue(config);
+                                effectName = BuildEffectDisplayName(effectTypeKey, primaryValue, effectId);
                             }
                         }
                         catch { }
@@ -286,28 +281,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                                 EditorGUILayout.LabelField("效果详情", EditorStyles.boldLabel);
                                 EditorGUILayout.BeginVertical("box");
                                 {
-                                    string typeText = effectType switch
-                                    {
-                                        1 => "伤害",
-                                        2 => "治疗",
-                                        3 => "击退",
-                                        4 => "Buff",
-                                        5 => "Debuff",
-                                        _ => "未知"
-                                    };
-                                    EditorGUILayout.TextField("类型", typeText);
-                                    EditorGUILayout.FloatField("数值", effectValue);
-                                    EditorGUILayout.FloatField("范围 (m)", effectRange);
-                                    
-                                    string targetText = targetType switch
-                                    {
-                                        1 => "敌人",
-                                        2 => "友军",
-                                        3 => "自身",
-                                        4 => "全体",
-                                        _ => "未知"
-                                    };
-                                    EditorGUILayout.TextField("目标", targetText);
+                                    EditorGUILayout.TextField("类型", Services.SkillEffectDataReader.GetEffectTypeDisplayName(effectTypeKey));
+                                    EditorGUILayout.TextField("主值", FormatPrimaryValue(effectTypeKey, primaryValue));
+                                    EditorGUILayout.TextField("目标", GetTargetSelectorName(targetSelector));
+                                    EditorGUILayout.TextField("Int 参数", intParams != null && intParams.Count > 0 ? string.Join("|", intParams) : "--");
+                                    EditorGUILayout.TextField("String 参数", stringParams != null && stringParams.Count > 0 ? string.Join(" | ", stringParams) : "--");
                                 }
                                 EditorGUILayout.EndVertical();
                                 GUI.enabled = true;
@@ -490,6 +468,64 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 
                 GUI.Box(tooltipRect, tooltip, tooltipStyle);
             }
+        }
+
+        private static string BuildEffectDisplayName(string effectTypeKey, float primaryValue, int effectId)
+        {
+            string typeName = SkillEffectDataReader.GetEffectTypeDisplayName(effectTypeKey);
+            string primaryText = FormatPrimaryValue(effectTypeKey, primaryValue);
+            return primaryValue > 0f ? $"{typeName} {primaryText}" : $"{typeName}_{effectId}";
+        }
+
+        private static float ComputePrimaryValue(SkillEffectTableData config)
+        {
+            var ints = config.IntParams ?? new List<int>();
+            switch ((config.EffectType ?? string.Empty).ToLower())
+            {
+                case "damage":
+                case "heal":
+                    return ints.Count > 2 ? ints[2] / 10f : 0f;
+                case "knockback":
+                    return ints.Count > 1 ? ints[1] / 1000f : 0f;
+                case "status":
+                    return ints.Count > 2 ? ints[2] / 1000f : 0f;
+                case "teleport":
+                    return ints.Count > 1 ? ints[1] / 1000f : 0f;
+                default:
+                    return 0f;
+            }
+        }
+
+        private static string FormatPrimaryValue(string effectTypeKey, float primaryValue)
+        {
+            if (primaryValue <= 0f)
+                return "--";
+
+            switch ((effectTypeKey ?? string.Empty).ToLower())
+            {
+                case "damage":
+                case "heal":
+                    return $"{primaryValue:0.#}%";
+                case "knockback":
+                case "teleport":
+                    return $"{primaryValue:0.##}m";
+                case "status":
+                    return $"{primaryValue:0.##}s";
+                default:
+                    return primaryValue.ToString("0.##");
+            }
+        }
+
+        private static string GetTargetSelectorName(int selector)
+        {
+            return selector switch
+            {
+                0 => "自身",
+                1 => "敌人",
+                2 => "友军",
+                3 => "区域",
+                _ => "未知"
+            };
         }
     }
 }

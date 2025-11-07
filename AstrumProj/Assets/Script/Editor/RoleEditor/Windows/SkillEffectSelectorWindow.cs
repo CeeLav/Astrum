@@ -20,13 +20,14 @@ namespace Astrum.Editor.RoleEditor.Windows
         private List<SkillEffectTableData> _filteredEffects = new List<SkillEffectTableData>();
         
         // === UI状态 ===
-        private string _searchText = "";
-        private int _filterType = 0; // 0=全部, 1=伤害, 2=治疗, 3=击退, 4=Buff, 5=Debuff
+        private string _searchText = string.Empty;
+        private int _filterTypeIndex = 0;
         private Vector2 _scrollPosition;
         private SkillEffectTableData _selectedEffect;
         
         // === 回调 ===
         private Action<int> _onEffectSelected;
+        private static readonly string[] FilterKeys = { "", "Damage", "Heal", "Knockback", "Buff", "Debuff", "Status", "Teleport" };
         
         // === 静态方法 ===
         
@@ -97,8 +98,8 @@ namespace Astrum.Editor.RoleEditor.Windows
                 // 类型筛选
                 GUILayout.Label("类型:", GUILayout.Width(40));
                 EditorGUI.BeginChangeCheck();
-                string[] filterOptions = { "全部", "伤害", "治疗", "击退", "Buff", "Debuff" };
-                _filterType = GUILayout.SelectionGrid(_filterType, filterOptions, 6, EditorStyles.toolbarButton);
+                string[] filterOptions = { "全部", "伤害", "治疗", "击退", "Buff", "Debuff", "状态", "瞬移" };
+                _filterTypeIndex = GUILayout.SelectionGrid(_filterTypeIndex, filterOptions, filterOptions.Length, EditorStyles.toolbarButton);
                 if (EditorGUI.EndChangeCheck())
                 {
                     ApplyFilters();
@@ -132,51 +133,44 @@ namespace Astrum.Editor.RoleEditor.Windows
         private void DrawEffectItem(SkillEffectTableData effect)
         {
             bool isSelected = _selectedEffect == effect;
-            
-            // 开始垂直布局
+
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.BeginHorizontal();
                 {
-                    // ID和图标
-                    GUIStyle idStyle = new GUIStyle(EditorStyles.boldLabel);
-                    idStyle.fontSize = 14;
+                    GUIStyle idStyle = new GUIStyle(EditorStyles.boldLabel)
+                    {
+                        fontSize = 14
+                    };
                     idStyle.normal.textColor = GetEffectTypeColor(effect.EffectType);
-                    EditorGUILayout.LabelField($"{GetEffectTypeIcon(effect.EffectType)} {effect.SkillEffectId}", idStyle, GUILayout.Width(80));
-                    
-                    // 效果信息
+                    EditorGUILayout.LabelField($"{GetEffectTypeIcon(effect.EffectType)} {effect.SkillEffectId}", idStyle, GUILayout.Width(110));
+
                     EditorGUILayout.BeginVertical();
                     {
-                        // 名称
-                        string name = GenerateEffectName(effect);
-                        EditorGUILayout.LabelField(name, EditorStyles.boldLabel);
-                        
-                        // 详细信息
+                        EditorGUILayout.LabelField(GenerateEffectName(effect), EditorStyles.boldLabel);
+
                         EditorGUILayout.BeginHorizontal();
                         {
-                            EditorGUILayout.LabelField($"类型: {GetEffectTypeName(effect.EffectType)}", EditorStyles.miniLabel, GUILayout.Width(120));
-                            EditorGUILayout.LabelField($"数值: {effect.EffectValue}", EditorStyles.miniLabel, GUILayout.Width(120));
-                            EditorGUILayout.LabelField($"范围: {effect.EffectRange}m", EditorStyles.miniLabel, GUILayout.Width(120));
-                            EditorGUILayout.LabelField($"目标: {GetTargetTypeName(effect.TargetType)}", EditorStyles.miniLabel, GUILayout.Width(100));
-                            
-                            if (effect.EffectDuration > 0)
+                            EditorGUILayout.LabelField($"类型: {GetEffectTypeDisplayName(effect.EffectType)}", EditorStyles.miniLabel, GUILayout.Width(150));
+                            string primaryValue = GetPrimaryValueDescription(effect);
+                            if (!string.IsNullOrEmpty(primaryValue))
                             {
-                                EditorGUILayout.LabelField($"持续: {effect.EffectDuration}s", EditorStyles.miniLabel);
+                                EditorGUILayout.LabelField($"主值: {primaryValue}", EditorStyles.miniLabel, GUILayout.Width(160));
                             }
+                            EditorGUILayout.LabelField($"目标: {GetTargetTypeName(effect)}", EditorStyles.miniLabel, GUILayout.Width(140));
                         }
                         EditorGUILayout.EndHorizontal();
-                        
-                        // 参数
-                        if (!string.IsNullOrEmpty(effect.EffectParams))
+
+                        string paramText = FormatStringParams(effect.StringParams);
+                        if (!string.IsNullOrEmpty(paramText))
                         {
-                            EditorGUILayout.LabelField($"参数: {effect.EffectParams}", EditorStyles.miniLabel);
+                            EditorGUILayout.LabelField($"参数: {paramText}", EditorStyles.miniLabel);
                         }
                     }
                     EditorGUILayout.EndVertical();
-                    
+
                     GUILayout.FlexibleSpace();
-                    
-                    // 选择按钮
+
                     if (GUILayout.Button("选择", GUILayout.Width(60), GUILayout.Height(40)))
                     {
                         SelectEffect(effect);
@@ -185,34 +179,27 @@ namespace Astrum.Editor.RoleEditor.Windows
                 EditorGUILayout.EndHorizontal();
             }
             EditorGUILayout.EndVertical();
-            
-            // 在内容绘制完成后获取Rect并绘制背景/处理交互
+
             if (Event.current.type == EventType.Repaint)
             {
                 Rect rect = GUILayoutUtility.GetLastRect();
-                
-                // 绘制选中背景（在底层）
                 if (isSelected)
                 {
                     Color bgColor = new Color(0.3f, 0.5f, 0.8f, 0.3f);
                     EditorGUI.DrawRect(rect, bgColor);
                 }
             }
-            
-            // 处理鼠标交互（在Layout/MouseDown事件中）
+
             if (Event.current.type == EventType.MouseDown)
             {
                 Rect rect = GUILayoutUtility.GetLastRect();
-                
                 if (rect.Contains(Event.current.mousePosition))
                 {
-                    // 双击确认
                     if (Event.current.clickCount == 2)
                     {
                         SelectEffect(effect);
                         Event.current.Use();
                     }
-                    // 单击选中
                     else
                     {
                         _selectedEffect = effect;
@@ -221,7 +208,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                     }
                 }
             }
-            
+
             EditorGUILayout.Space(2);
         }
         
@@ -257,28 +244,29 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             _filteredEffects = _allEffects.Where(effect =>
             {
-                // 搜索筛选
                 if (!string.IsNullOrWhiteSpace(_searchText))
                 {
                     string search = _searchText.ToLower();
                     string effectId = effect.SkillEffectId.ToString();
-                    string effectValue = effect.EffectValue.ToString();
-                    string effectParams = effect.EffectParams?.ToLower() ?? "";
-                    
-                    if (!effectId.Contains(search) && 
-                        !effectValue.Contains(search) && 
-                        !effectParams.Contains(search))
+                    string effectType = effect.EffectType?.ToLower() ?? string.Empty;
+                    string intParams = string.Join("|", effect.IntParams ?? new List<int>()).ToLower();
+                    string strParams = string.Join("|", effect.StringParams ?? new List<string>()).ToLower();
+
+                    if (!effectId.Contains(search) &&
+                        !effectType.Contains(search) &&
+                        !intParams.Contains(search) &&
+                        !strParams.Contains(search))
                     {
                         return false;
                     }
                 }
-                
-                // 类型筛选
-                if (_filterType > 0 && effect.EffectType != _filterType)
+
+                string filterKey = _filterTypeIndex >= 0 && _filterTypeIndex < FilterKeys.Length ? FilterKeys[_filterTypeIndex] : string.Empty;
+                if (!string.IsNullOrEmpty(filterKey) && !string.Equals(effect.EffectType, filterKey, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
-                
+
                 return true;
             }).ToList();
         }
@@ -293,73 +281,103 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private string GenerateEffectName(SkillEffectTableData config)
         {
-            string typeName = config.EffectType switch
+            string typeName = GetEffectTypeDisplayName(config.EffectType);
+            string primary = GetPrimaryValueDescription(config);
+            return string.IsNullOrEmpty(primary)
+                ? $"{typeName}_{config.SkillEffectId}"
+                : $"{typeName} {primary}";
+        }
+        
+        private string GetEffectTypeDisplayName(string effectType)
+        {
+            return SkillEffectDataReader.GetEffectTypeDisplayName(effectType);
+        }
+        
+        private string GetEffectTypeIcon(string effectType)
+        {
+            return SkillEffectDataReader.GetEffectTypeIcon(effectType);
+        }
+        
+        private Color GetEffectTypeColor(string effectType)
+        {
+            switch ((effectType ?? string.Empty).ToLower())
             {
-                1 => "伤害",
-                2 => "治疗",
-                3 => "击退",
-                4 => "Buff",
-                5 => "Debuff",
-                _ => "效果"
-            };
-            
-            if (config.EffectValue > 0)
-            {
-                return $"{typeName} {config.EffectValue}";
+                case "damage":
+                    return new Color(1f, 0.3f, 0.3f);
+                case "heal":
+                    return new Color(0.3f, 1f, 0.3f);
+                case "knockback":
+                    return new Color(1f, 0.7f, 0.2f);
+                case "buff":
+                    return new Color(0.5f, 0.8f, 1f);
+                case "debuff":
+                    return new Color(0.8f, 0.3f, 1f);
+                case "status":
+                    return new Color(0.9f, 0.6f, 0.2f);
+                case "teleport":
+                    return new Color(0.4f, 0.9f, 0.9f);
+                default:
+                    return Color.gray;
             }
-            
-            return $"{typeName}_{config.SkillEffectId}";
         }
         
-        private string GetEffectTypeName(int type)
+        private string GetTargetTypeName(SkillEffectTableData config)
         {
-            return type switch
+            if (config.IntParams == null || config.IntParams.Count == 0)
+                return "未知";
+            return config.IntParams[0] switch
             {
-                1 => "伤害",
-                2 => "治疗",
-                3 => "击退",
-                4 => "Buff",
-                5 => "Debuff",
+                0 => "自身",
+                1 => "敌人",
+                2 => "友军",
+                3 => "区域",
                 _ => "未知"
             };
         }
         
-        private string GetEffectTypeIcon(int type)
+        private string GetPrimaryValueDescription(SkillEffectTableData config)
         {
-            return type switch
+            var ints = config.IntParams ?? new List<int>();
+            switch ((config.EffectType ?? string.Empty).ToLower())
             {
-                1 => "⚔️",  // 伤害
-                2 => "💚",  // 治疗
-                3 => "💥",  // 击退
-                4 => "✨",  // Buff
-                5 => "🔥",  // Debuff
-                _ => "❓"
-            };
+                case "damage":
+                case "heal":
+                    if (ints.Count > 2)
+                    {
+                        float percent = ints[2] / 10f;
+                        return $"{percent:0.#}%";
+                    }
+                    break;
+                case "knockback":
+                    if (ints.Count > 1)
+                    {
+                        float meters = ints[1] / 1000f;
+                        return $"{meters:0.##}m";
+                    }
+                    break;
+                case "status":
+                    if (ints.Count > 2)
+                    {
+                        float seconds = ints[2] / 1000f;
+                        return $"{seconds:0.##}s";
+                    }
+                    break;
+                case "teleport":
+                    if (ints.Count > 1)
+                    {
+                        float meters = ints[1] / 1000f;
+                        return $"{meters:0.##}m";
+                    }
+                    break;
+            }
+            return string.Empty;
         }
         
-        private Color GetEffectTypeColor(int type)
+        private string FormatStringParams(List<string> stringParams)
         {
-            return type switch
-            {
-                1 => new Color(1f, 0.3f, 0.3f),     // 红色 - 伤害
-                2 => new Color(0.3f, 1f, 0.3f),     // 绿色 - 治疗
-                3 => new Color(1f, 0.7f, 0.2f),     // 橙色 - 击退
-                4 => new Color(0.5f, 0.8f, 1f),     // 蓝色 - Buff
-                5 => new Color(0.8f, 0.3f, 1f),     // 紫色 - Debuff
-                _ => Color.gray
-            };
-        }
-        
-        private string GetTargetTypeName(int type)
-        {
-            return type switch
-            {
-                1 => "自身",
-                2 => "敌人",
-                3 => "友方",
-                4 => "区域",
-                _ => "未知"
-            };
+            if (stringParams == null || stringParams.Count == 0)
+                return string.Empty;
+            return string.Join(" | ", stringParams);
         }
     }
 }
