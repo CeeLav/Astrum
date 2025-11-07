@@ -93,7 +93,7 @@ namespace Astrum.LogicCore.Capabilities
             
             var deltaTime = LSConstValue.UpdateInterval / 1000f;
             
-            // 更新朝向（即使位移被禁用，也要更新朝向）
+            // 更新朝向
             if (inputMagnitude > threshold)
             {
                 TSVector inputDirection = new TSVector(moveX, FP.Zero, moveY);
@@ -103,11 +103,9 @@ namespace Astrum.LogicCore.Capabilities
                 }
             }
             
-            // 检查用户输入位移是否被禁用（由技能位移系统禁用）
-            bool isUserInputMovementDisabled = IsUserInputMovementDisabled(entity);
-            
+
             // 处理移动（如果用户输入位移未被禁用）
-            if (!isUserInputMovementDisabled && inputMagnitude > threshold && movementComponent.CanMove)
+            if (inputMagnitude > threshold && movementComponent.CanMove)
             {
                 FP speed = movementComponent.Speed;
                 FP dt = (FP)deltaTime;
@@ -120,22 +118,6 @@ namespace Astrum.LogicCore.Capabilities
                 entity.World?.HitSystem?.UpdateEntityPosition(entity);
             }
         }
-        
-        // ====== 辅助方法 ======
-        
-        /// <summary>
-        /// 检查用户输入位移是否被禁用（由技能位移系统禁用）
-        /// </summary>
-        private bool IsUserInputMovementDisabled(Entity entity)
-        {
-            if (entity.DisabledTags == null)
-                return false;
-            
-            if (!entity.DisabledTags.TryGetValue(CapabilityTag.UserInputMovement, out var instigators))
-                return false;
-            
-            // 如果 UserInputMovement Tag 被禁用，则用户输入位移被禁用
-            return instigators.Count > 0;
-        }
+
     }
 }

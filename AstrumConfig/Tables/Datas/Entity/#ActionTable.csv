@@ -15,7 +15,7 @@
   {
     ""Tag"": ""skill"",
     ""StartFromFrames"": 0,
-    ""BlendInFrames"": 4,
+    ""BlendInFrames"": 0,
     ""Priority"": 0
   }
 ]",
