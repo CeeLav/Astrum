@@ -682,7 +682,11 @@ namespace Astrum.View.Components
             if (totalFrames <= 0) return 0f;
             
             // 获取当前物理时间
-            long currentTime = TimeInfo.Instance.ServerNow();
+            long currentTime = TimeInfo.Instance.ServerNow() - LSConstValue.UpdateInterval;
+            if (currentTime < 0)
+            {
+                currentTime = 0;
+            }
             
             // 获取帧同步的当前帧（PredictionFrame）
             int currentPredictionFrame = GetCurrentPredictionFrame();
@@ -760,7 +764,8 @@ namespace Astrum.View.Components
             // 如果无法获取帧同步基准时间，使用当前时间作为参考
             // 这种情况下插值可能不够准确，但至少不会出错
             ASLogger.Instance.Warning($"AnimationViewComponent.GetFrameSyncBaseTime: Cannot get frame sync base time for entity {OwnerEntity?.UniqueId}, using current time as fallback");
-            return TimeInfo.Instance.ServerNow();
+            long fallbackTime = TimeInfo.Instance.ServerNow() - LSConstValue.UpdateInterval;
+            return fallbackTime < 0 ? 0 : fallbackTime;
         }
         
         /// <summary>

@@ -133,7 +133,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         private void DrawEffectItem(SkillEffectTableData effect)
         {
             bool isSelected = _selectedEffect == effect;
-
+            
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.BeginHorizontal();
@@ -144,11 +144,11 @@ namespace Astrum.Editor.RoleEditor.Windows
                     };
                     idStyle.normal.textColor = GetEffectTypeColor(effect.EffectType);
                     EditorGUILayout.LabelField($"{GetEffectTypeIcon(effect.EffectType)} {effect.SkillEffectId}", idStyle, GUILayout.Width(110));
-
+                    
                     EditorGUILayout.BeginVertical();
                     {
                         EditorGUILayout.LabelField(GenerateEffectName(effect), EditorStyles.boldLabel);
-
+                        
                         EditorGUILayout.BeginHorizontal();
                         {
                             EditorGUILayout.LabelField($"类型: {GetEffectTypeDisplayName(effect.EffectType)}", EditorStyles.miniLabel, GUILayout.Width(150));
@@ -160,7 +160,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                             EditorGUILayout.LabelField($"目标: {GetTargetTypeName(effect)}", EditorStyles.miniLabel, GUILayout.Width(140));
                         }
                         EditorGUILayout.EndHorizontal();
-
+                        
                         string paramText = FormatStringParams(effect.StringParams);
                         if (!string.IsNullOrEmpty(paramText))
                         {
@@ -168,9 +168,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                         }
                     }
                     EditorGUILayout.EndVertical();
-
+                    
                     GUILayout.FlexibleSpace();
-
+                    
                     if (GUILayout.Button("编辑", GUILayout.Width(60), GUILayout.Height(40)))
                     {
                         OpenEditor(effect.SkillEffectId);
@@ -184,7 +184,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                 EditorGUILayout.EndHorizontal();
             }
             EditorGUILayout.EndVertical();
-
+            
             if (Event.current.type == EventType.Repaint)
             {
                 Rect rect = GUILayoutUtility.GetLastRect();
@@ -194,7 +194,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                     EditorGUI.DrawRect(rect, bgColor);
                 }
             }
-
+            
             if (Event.current.type == EventType.MouseDown)
             {
                 Rect rect = GUILayoutUtility.GetLastRect();
@@ -213,7 +213,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                     }
                 }
             }
-
+            
             EditorGUILayout.Space(2);
         }
         
@@ -256,8 +256,8 @@ namespace Astrum.Editor.RoleEditor.Windows
                     string effectType = effect.EffectType?.ToLower() ?? string.Empty;
                     string intParams = string.Join("|", effect.IntParams ?? new List<int>()).ToLower();
                     string strParams = string.Join("|", effect.StringParams ?? new List<string>()).ToLower();
-
-                    if (!effectId.Contains(search) &&
+                    
+                    if (!effectId.Contains(search) && 
                         !effectType.Contains(search) &&
                         !intParams.Contains(search) &&
                         !strParams.Contains(search))
@@ -265,13 +265,13 @@ namespace Astrum.Editor.RoleEditor.Windows
                         return false;
                     }
                 }
-
+                
                 string filterKey = _filterTypeIndex >= 0 && _filterTypeIndex < FilterKeys.Length ? FilterKeys[_filterTypeIndex] : string.Empty;
                 if (!string.IsNullOrEmpty(filterKey) && !string.Equals(effect.EffectType, filterKey, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
-
+                
                 return true;
             }).ToList();
         }
@@ -304,15 +304,15 @@ namespace Astrum.Editor.RoleEditor.Windows
         }
         
         private string GetEffectTypeDisplayName(string effectType)
-        {
+            {
             return SkillEffectDataReader.GetEffectTypeDisplayName(effectType);
         }
         
         private string GetEffectTypeIcon(string effectType)
         {
             return SkillEffectDataReader.GetEffectTypeIcon(effectType);
-        }
-        
+            }
+            
         private Color GetEffectTypeColor(string effectType)
         {
             switch ((effectType ?? string.Empty).ToLower())
@@ -361,11 +361,11 @@ namespace Astrum.Editor.RoleEditor.Windows
                     {
                         float percent = ints[2] / 10f;
                         return $"{percent:0.#}%";
-                    }
+        }
                     break;
                 case "knockback":
                     if (ints.Count > 1)
-                    {
+        {
                         float meters = ints[1] / 1000f;
                         return $"{meters:0.##}m";
                     }

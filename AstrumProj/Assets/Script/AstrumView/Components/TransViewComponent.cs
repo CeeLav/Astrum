@@ -28,7 +28,7 @@ namespace Astrum.View.Components
         [Header("视觉跟随设置")]
         [SerializeField] private bool enableVisualFollow = true;
         [SerializeField] private float motionBlendWeight = 0.5f;  // 动画Root感强度（0-1）
-        [SerializeField] private float maxVisualOffset = 0.5f;    // 最大视觉偏移阈值（米）
+        [SerializeField] private float maxVisualOffset = 5f;    // 最大视觉偏移阈值（米）
         
         /// <summary>
         /// 视觉跟随模式
@@ -483,33 +483,12 @@ namespace Astrum.View.Components
             else
             {
                 _visualSync.timeSinceLastLogicUpdate += deltaTime;
+                _visualSync.visualOffset += animDelta;
 
-                float logicFrameInterval = LSConstValue.UpdateInterval / 1000.0f;
-                float t = logicFrameInterval > 0f
-                    ? Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval)
-                    : 0f;
-
-                Vector3 logicStep = _visualSync.lastLogicPos - _visualSync.previousLogicPos;
-                if (logicStep.sqrMagnitude > 0.000001f && t > 0f)
-                {
-                    Vector3 projectedPos = _visualSync.lastLogicPos + logicStep * t;
-                    _visualSync.visualOffset = projectedPos - currentLogicPos;
-                }
-                else
-                {
-                    _visualSync.visualOffset = Vector3.zero;
-                }
+                
             }
             
             // 4. 累积动画偏移（RootMotion模式：直接使用动画位移，不应用权重）
-            _visualSync.visualOffset += animDelta * motionBlendWeight;
-            
-            // 5. 误差钳制防护（避免浮点长时间漂移）
-            if (_visualSync.visualOffset.magnitude > maxVisualOffset)
-            {
-                ASLogger.Instance.Warning($"[TransViewComponent] Visual offset exceeded max ({_visualSync.visualOffset.magnitude:F3} > {maxVisualOffset}), resetting to zero", "View.VisualFollow");
-                _visualSync.visualOffset = Vector3.zero;
-            }
             
             // 6. 应用最终视觉位置
             Vector3 finalVisualPos = currentLogicPos + _visualSync.visualOffset;

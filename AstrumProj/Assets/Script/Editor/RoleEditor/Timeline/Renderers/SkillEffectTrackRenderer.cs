@@ -182,14 +182,14 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 {
                     int effectId = effectData.EffectIds[i];
                     string foldoutKey = $"{evt.EventId}_effect_{i}";
-
+                    
                     string effectName = effectId > 0 ? $"效果_{effectId}" : "[未设置]";
                     string effectTypeKey = string.Empty;
                     float primaryValue = 0f;
                     int targetSelector = 0;
                     System.Collections.Generic.List<int> intParams = null;
                     System.Collections.Generic.List<string> stringParams = null;
-
+                    
                     if (effectId > 0)
                     {
                         try
@@ -238,7 +238,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                         EditorGUILayout.EndHorizontal();
                         
                         // 折叠内容
-                            if (_effectFoldouts[foldoutKey])
+                        if (_effectFoldouts[foldoutKey])
                         {
                             EditorGUILayout.Space(3);
                                 EditorGUILayout.BeginHorizontal();
@@ -256,7 +256,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                                     });
                                 }
                                 EditorGUILayout.EndHorizontal();
-                                EditorGUILayout.Space(3);
+                            EditorGUILayout.Space(3);
                             
                             // 效果ID编辑和选择按钮
                             EditorGUILayout.BeginHorizontal();

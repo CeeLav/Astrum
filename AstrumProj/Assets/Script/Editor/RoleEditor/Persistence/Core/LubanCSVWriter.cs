@@ -293,7 +293,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                 
                 return string.Join("|", list);
             }
-
+            
             return "";
         }
     }

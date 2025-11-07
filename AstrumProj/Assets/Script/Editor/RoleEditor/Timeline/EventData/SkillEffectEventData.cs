@@ -150,7 +150,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                     {
                         EffectName = GenerateEffectName(effectConfig);
                     }
-
+                    
                     EffectTypeKey = effectConfig.EffectType ?? string.Empty;
                     IntParamsSnapshot = new List<int>(effectConfig.IntParams ?? new List<int>());
                     StringParamsSnapshot = new List<string>(effectConfig.StringParams ?? new List<string>());
@@ -207,8 +207,8 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                /// <summary>
                /// 根据效果配置生成友好的名称
                /// </summary>
-        private static string GenerateEffectName(Persistence.Mappings.SkillEffectTableData config)
-        {
+               private static string GenerateEffectName(Persistence.Mappings.SkillEffectTableData config)
+               {
             string typeName = SkillEffectDataReader.GetEffectTypeDisplayName(config.EffectType);
             float primary = ComputePrimaryValue(config);
 
@@ -220,15 +220,15 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 }
 
                 if (config.EffectType != null && (config.EffectType.Equals("damage", StringComparison.OrdinalIgnoreCase) || config.EffectType.Equals("heal", StringComparison.OrdinalIgnoreCase)))
-                {
+                   {
                     return $"{typeName} {primary:0.#}%";
                 }
 
                 return $"{typeName} {primary:0.##}";
-            }
-
-            return $"{typeName}_{config.SkillEffectId}";
-        }
+                   }
+                   
+                   return $"{typeName}_{config.SkillEffectId}";
+               }
         
         private static float ComputePrimaryValue(Persistence.Mappings.SkillEffectTableData config)
         {
@@ -271,7 +271,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             text += $"类型: {GetEffectTypeName()}\n";
             text += $"主值: {FormatPrimaryValue()}\n";
             text += $"目标: {GetTargetTypeName()}\n";
-
+            
             if (IntParamsSnapshot != null && IntParamsSnapshot.Count > 0)
             {
                 text += $"参数(Int): {string.Join("|", IntParamsSnapshot)}\n";
