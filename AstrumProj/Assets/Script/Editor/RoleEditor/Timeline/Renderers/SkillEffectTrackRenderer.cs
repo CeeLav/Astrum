@@ -238,9 +238,25 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                         EditorGUILayout.EndHorizontal();
                         
                         // 折叠内容
-                        if (_effectFoldouts[foldoutKey])
+                            if (_effectFoldouts[foldoutKey])
                         {
                             EditorGUILayout.Space(3);
+                                EditorGUILayout.BeginHorizontal();
+                                GUILayout.FlexibleSpace();
+                                if (GUILayout.Button("编辑效果", GUILayout.Width(90)))
+                                {
+                                    int capturedEffectId = effectId;
+                                    SkillEffectEditorWindow.ShowWindow(capturedEffectId, () =>
+                                    {
+                                        SkillEffectDataReader.ClearCache();
+                                        effectData.RefreshFromTable();
+                                        effectData.ParseCollisionInfo();
+                                        evt.SetEventData(effectData);
+                                        evt.DisplayName = effectData.GetDisplayName();
+                                    });
+                                }
+                                EditorGUILayout.EndHorizontal();
+                                EditorGUILayout.Space(3);
                             
                             // 效果ID编辑和选择按钮
                             EditorGUILayout.BeginHorizontal();

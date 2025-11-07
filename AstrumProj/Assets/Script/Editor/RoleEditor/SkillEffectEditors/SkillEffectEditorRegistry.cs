@@ -1,0 +1,40 @@
+using System.Collections.Generic;
+
+namespace Astrum.Editor.RoleEditor.SkillEffectEditors
+{
+    internal static class SkillEffectEditorRegistry
+    {
+        private static readonly Dictionary<string, ISkillEffectEditorPanel> Panels = new Dictionary<string, ISkillEffectEditorPanel>(System.StringComparer.OrdinalIgnoreCase);
+        private static readonly ISkillEffectEditorPanel GenericPanel = new GenericSkillEffectEditorPanel();
+
+        static SkillEffectEditorRegistry()
+        {
+            Register(new DamageEffectEditorPanel());
+            Register(new HealEffectEditorPanel());
+            Register(new KnockbackEffectEditorPanel());
+            Register(new StatusEffectEditorPanel());
+            Register(new TeleportEffectEditorPanel());
+        }
+
+        private static void Register(ISkillEffectEditorPanel panel)
+        {
+            Panels[panel.EffectType] = panel;
+        }
+
+        public static ISkillEffectEditorPanel GetPanel(string effectType)
+        {
+            if (string.IsNullOrEmpty(effectType))
+                return GenericPanel;
+
+            return Panels.TryGetValue(effectType, out var panel) ? panel : GenericPanel;
+        }
+
+        public static IReadOnlyList<string> GetKnownEffectTypes()
+        {
+            var list = new List<string>(Panels.Keys);
+            list.Sort(System.StringComparer.OrdinalIgnoreCase);
+            return list;
+        }
+    }
+}
+

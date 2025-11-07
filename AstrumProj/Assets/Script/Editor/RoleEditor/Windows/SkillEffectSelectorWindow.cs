@@ -171,6 +171,11 @@ namespace Astrum.Editor.RoleEditor.Windows
 
                     GUILayout.FlexibleSpace();
 
+                    if (GUILayout.Button("编辑", GUILayout.Width(60), GUILayout.Height(40)))
+                    {
+                        OpenEditor(effect.SkillEffectId);
+                    }
+
                     if (GUILayout.Button("选择", GUILayout.Width(60), GUILayout.Height(40)))
                     {
                         SelectEffect(effect);
@@ -275,6 +280,16 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             _onEffectSelected?.Invoke(effect.SkillEffectId);
             Close();
+        }
+
+        private void OpenEditor(int effectId)
+        {
+            SkillEffectEditorWindow.ShowWindow(effectId, () =>
+            {
+                SkillEffectDataReader.ClearCache();
+                LoadData();
+                Repaint();
+            });
         }
         
         // === 辅助方法 ===

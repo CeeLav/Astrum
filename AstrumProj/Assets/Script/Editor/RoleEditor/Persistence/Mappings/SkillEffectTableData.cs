@@ -94,6 +94,17 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 }
             };
         }
+
+        public SkillEffectTableData Clone()
+        {
+            return new SkillEffectTableData
+            {
+                SkillEffectId = SkillEffectId,
+                EffectType = EffectType,
+                IntParams = new List<int>(IntParams ?? new List<int>()),
+                StringParams = new List<string>(StringParams ?? new List<string>())
+            };
+        }
     }
 }
 
