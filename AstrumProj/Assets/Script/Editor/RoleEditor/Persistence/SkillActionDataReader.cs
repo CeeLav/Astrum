@@ -7,6 +7,7 @@ using Astrum.Editor.RoleEditor.Data;
 using Astrum.Editor.RoleEditor.Persistence.Core;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
 using Astrum.LogicCore.ActionSystem;
+using Astrum.Editor.RoleEditor.Timeline;
 
 namespace Astrum.Editor.RoleEditor.Persistence
 {
@@ -137,8 +138,15 @@ namespace Astrum.Editor.RoleEditor.Persistence
             // 解析触发帧字符串为触发效果列表
             editorData.ParseTriggerFrames();
             
-            // 从触发效果列表构建时间轴事件
-            editorData.TimelineEvents = editorData.BuildTimelineFromTriggerEffects();
+            // 从触发效果列表构建时间轴事件，并与基础轨道事件合并
+            var triggerTimelineEvents = editorData.BuildTimelineFromTriggerEffects() ?? new List<TimelineEvent>();
+            if (editorData.TimelineEvents == null)
+            {
+                editorData.TimelineEvents = new List<TimelineEvent>();
+            }
+
+            editorData.TimelineEvents.AddRange(triggerTimelineEvents);
+            editorData.TimelineEvents.Sort((a, b) => a.StartFrame.CompareTo(b.StartFrame));
             
             // 清除新建和脏标记（从文件读取的数据是干净的）
             editorData.IsNew = false;

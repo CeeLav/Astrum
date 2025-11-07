@@ -56,16 +56,37 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 evt.SetEventData(data);
             }
             
+            bool modified = false;
+            
             EditorGUILayout.LabelField("被取消标签编辑", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
             // 帧范围
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("起始帧:", GUILayout.Width(60));
-            evt.StartFrame = EditorGUILayout.IntField(evt.StartFrame, GUILayout.Width(60));
+            EditorGUI.BeginChangeCheck();
+            int newStart = EditorGUILayout.IntField(evt.StartFrame, GUILayout.Width(60));
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (newStart != evt.StartFrame)
+                {
+                    evt.StartFrame = Mathf.Max(0, newStart);
+                    modified = true;
+                }
+            }
+            
             GUILayout.Space(10);
             EditorGUILayout.LabelField("结束帧:", GUILayout.Width(60));
-            evt.EndFrame = EditorGUILayout.IntField(evt.EndFrame, GUILayout.Width(60));
+            EditorGUI.BeginChangeCheck();
+            int newEnd = EditorGUILayout.IntField(evt.EndFrame, GUILayout.Width(60));
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (newEnd != evt.EndFrame)
+                {
+                    evt.EndFrame = Mathf.Max(evt.StartFrame, newEnd);
+                    modified = true;
+                }
+            }
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
             
@@ -78,10 +99,18 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 for (int i = 0; i < data.Tags.Count; i++)
                 {
                     EditorGUILayout.BeginHorizontal();
-                    data.Tags[i] = EditorGUILayout.TextField(data.Tags[i]);
+                    EditorGUI.BeginChangeCheck();
+                    string newTag = EditorGUILayout.TextField(data.Tags[i]);
+                    if (EditorGUI.EndChangeCheck() && newTag != data.Tags[i])
+                    {
+                        data.Tags[i] = newTag;
+                        modified = true;
+                    }
                     if (GUILayout.Button("×", GUILayout.Width(25)))
                     {
                         data.Tags.RemoveAt(i);
+                        modified = true;
+                        EditorGUILayout.EndHorizontal();
                         break;
                     }
                     EditorGUILayout.EndHorizontal();
@@ -90,6 +119,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                 if (GUILayout.Button("+ 添加标签"))
                 {
                     data.Tags.Add("new_tag");
+                    modified = true;
                 }
             }
             EditorGUILayout.EndVertical();
@@ -97,17 +127,41 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             EditorGUILayout.Space(5);
             
             // 其他参数
-            data.BlendOutFrames = EditorGUILayout.IntField("融合时间(帧):", data.BlendOutFrames);
-            data.Priority = EditorGUILayout.IntField("优先级:", data.Priority);
-            data.Note = EditorGUILayout.TextField("备注:", data.Note);
+            EditorGUI.BeginChangeCheck();
+            int newBlend = EditorGUILayout.IntField("融合时间(帧):", data.BlendOutFrames);
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (newBlend != data.BlendOutFrames)
+                {
+                    data.BlendOutFrames = Mathf.Max(0, newBlend);
+                    modified = true;
+                }
+            }
+            EditorGUI.BeginChangeCheck();
+            int newPriority = EditorGUILayout.IntField("优先级:", data.Priority);
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (newPriority != data.Priority)
+                {
+                    data.Priority = newPriority;
+                    modified = true;
+                }
+            }
+            EditorGUI.BeginChangeCheck();
+            string newNote = EditorGUILayout.TextField("备注:", data.Note);
+            if (EditorGUI.EndChangeCheck() && newNote != data.Note)
+            {
+                data.Note = newNote;
+                modified = true;
+            }
             
-            // 更新显示名称
-            evt.DisplayName = data.GetDisplayName();
+            if (modified)
+            {
+                evt.DisplayName = data.GetDisplayName();
+                evt.SetEventData(data);
+            }
             
-            // 保存修改
-            evt.SetEventData(data);
-            
-            return true;
+            return modified;
         }
         
         private static void DrawDefaultBar(Rect rect)
