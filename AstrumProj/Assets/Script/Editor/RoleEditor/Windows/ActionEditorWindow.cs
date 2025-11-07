@@ -433,6 +433,16 @@ namespace Astrum.Editor.RoleEditor.Windows
             
             Debug.Log("[ActionEditor] Stop animation");
         }
+
+        private void ResetAnimation()
+        {
+            if (_selectedAction == null || _previewModule == null) return;
+
+            _previewModule.Reset();
+            _timelineModule.SetCurrentFrame(0);
+
+            Debug.Log("[ActionEditor] Reset animation");
+        }
         
         private void PreviousFrame()
         {
@@ -679,38 +689,63 @@ namespace Astrum.Editor.RoleEditor.Windows
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.LabelField("动画控制", EditorStyles.boldLabel);
-                
+
                 EditorGUILayout.BeginHorizontal();
                 {
-                    // 播放/暂停按钮
-                    if (GUILayout.Button("▶ 播放", GUILayout.Height(25)))
+                    bool isPlaying = _previewModule != null && _previewModule.IsPlaying();
+                    string playButtonText = isPlaying ? "⏸ 暂停" : "▶ 播放";
+                    if (GUILayout.Button(playButtonText, GUILayout.Height(25)))
                     {
-                        PlayAnimation();
+                        if (isPlaying)
+                        {
+                            PauseAnimation();
+                        }
+                        else
+                        {
+                            PlayAnimation();
+                        }
                     }
-                    
-                    if (GUILayout.Button("⏸ 暂停", GUILayout.Height(25)))
+
+                    if (GUILayout.Button("⏹ 重置", GUILayout.Height(25)))
                     {
-                        PauseAnimation();
+                        ResetAnimation();
                     }
-                    
-                    if (GUILayout.Button("⏹ 停止", GUILayout.Height(25)))
+
+                    bool isLooping = _previewModule != null && _previewModule.IsLooping();
+                    bool newLooping = GUILayout.Toggle(isLooping, "循环", GUILayout.Height(25));
+                    if (_previewModule != null && newLooping != isLooping)
                     {
-                        StopAnimation();
+                        _previewModule.SetLooping(newLooping);
                     }
                 }
                 EditorGUILayout.EndHorizontal();
-                
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    EditorGUILayout.LabelField("缩放:", GUILayout.Width(40));
+                    float currentScale = _previewModule != null ? _previewModule.GetModelScale() : 1.0f;
+                    EditorGUI.BeginChangeCheck();
+                    float newScale = EditorGUILayout.Slider(currentScale, 0.1f, 10.0f, GUILayout.Height(25));
+                    if (EditorGUI.EndChangeCheck() && _previewModule != null)
+                    {
+                        _previewModule.SetModelScale(newScale);
+                        Repaint();
+                    }
+                    EditorGUILayout.LabelField($"{newScale:F2}x", GUILayout.Width(50));
+                }
+                EditorGUILayout.EndHorizontal();
+
                 EditorGUILayout.BeginHorizontal();
                 {
                     if (GUILayout.Button("◀", GUILayout.Width(30)))
                     {
                         PreviousFrame();
                     }
-                    
+
                     int currentFrame = _timelineModule.GetCurrentFrame();
                     int totalFrames = _timelineModule.GetTotalFrames();
                     EditorGUILayout.LabelField($"当前: {currentFrame} / {totalFrames}帧", EditorStyles.centeredGreyMiniLabel);
-                    
+
                     if (GUILayout.Button("▶", GUILayout.Width(30)))
                     {
                         NextFrame();
