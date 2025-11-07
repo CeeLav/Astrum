@@ -955,46 +955,72 @@ namespace Astrum.Editor.RoleEditor.Windows
                 {
                     int currentFrame = _previewModule != null ? _previewModule.GetCurrentFrame() : 0;
                     int frameCount = _selectedSkillAction.RootMotionDataArray[0];
+                    frameCount = Mathf.Max(frameCount, 1);
                     
                     if (currentFrame >= 0 && currentFrame < frameCount)
                     {
-                        // 获取当前帧的位移数据
-                        int baseIndex = 1 + currentFrame * 7;
-                        if (baseIndex + 6 < _selectedSkillAction.RootMotionDataArray.Count)
+                        // 累积位移（相对于初始位置）
+                        Vector3 cumulativePos = _previewModule != null
+                            ? _previewModule.GetAccumulatedPositionFromData(currentFrame)
+                            : Vector3.zero;
+                        float totalDistance = cumulativePos.magnitude;
+                        
+                        // 当前世界坐标偏移（考虑预览实例实时状态）
+                        Vector3 runtimeOffset = _previewModule != null
+                            ? _previewModule.GetCurrentAccumulatedPosition()
+                            : Vector3.zero;
+                        
+                        // 本帧增量（用于对比）
+                        Vector3 deltaPos = Vector3.zero;
+                        if (currentFrame > 0)
                         {
-                            int dxInt = _selectedSkillAction.RootMotionDataArray[baseIndex];
-                            int dyInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 1];
-                            int dzInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 2];
-                            int rxInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 3];
-                            int ryInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 4];
-                            int rzInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 5];
-                            int rwInt = _selectedSkillAction.RootMotionDataArray[baseIndex + 6];
-                            
-                            // 转换为浮点数显示（除以1000）
-                            float dx = dxInt / 1000.0f;
-                            float dy = dyInt / 1000.0f;
-                            float dz = dzInt / 1000.0f;
-                            float rx = rxInt / 1000.0f;
-                            float ry = ryInt / 1000.0f;
-                            float rz = rzInt / 1000.0f;
-                            float rw = rwInt / 1000.0f;
-                            
-                            EditorGUILayout.BeginHorizontal();
-                            {
-                                EditorGUILayout.LabelField($"帧: {currentFrame}/{frameCount - 1}", GUILayout.Width(100));
-                                
-                                EditorGUILayout.LabelField("位移:", GUILayout.Width(40));
-                                EditorGUILayout.LabelField($"({dx:F3}, {dy:F3}, {dz:F3})", EditorStyles.miniLabel);
-                                
-                                EditorGUILayout.LabelField("旋转:", GUILayout.Width(40));
-                                EditorGUILayout.LabelField($"({rx:F3}, {ry:F3}, {rz:F3}, {rw:F3})", EditorStyles.miniLabel);
-                            }
-                            EditorGUILayout.EndHorizontal();
+                            Vector3 prevPos = _previewModule != null
+                                ? _previewModule.GetAccumulatedPositionFromData(currentFrame - 1)
+                                : Vector3.zero;
+                            deltaPos = cumulativePos - prevPos;
                         }
                         else
                         {
-                            EditorGUILayout.HelpBox($"数据不完整 (帧 {currentFrame})", MessageType.Warning);
+                            deltaPos = cumulativePos;
                         }
+                        
+                        // 累积旋转
+                        Quaternion cumulativeRot = _previewModule != null
+                            ? _previewModule.GetAccumulatedRotationFromData(currentFrame)
+                            : Quaternion.identity;
+                        Vector3 cumulativeEuler = cumulativeRot.eulerAngles;
+                        
+                        EditorGUILayout.LabelField($"帧: {currentFrame}/{frameCount - 1}", EditorStyles.miniBoldLabel);
+                        
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            EditorGUILayout.LabelField("累计位移:", GUILayout.Width(70));
+                            EditorGUILayout.LabelField($"({cumulativePos.x:F3}, {cumulativePos.y:F3}, {cumulativePos.z:F3}) m", EditorStyles.miniLabel);
+                        }
+                        EditorGUILayout.EndHorizontal();
+                        
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            EditorGUILayout.LabelField("当前坐标偏移:", GUILayout.Width(90));
+                            EditorGUILayout.LabelField($"({runtimeOffset.x:F3}, {runtimeOffset.y:F3}, {runtimeOffset.z:F3}) m", EditorStyles.miniLabel);
+                        }
+                        EditorGUILayout.EndHorizontal();
+                        
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            EditorGUILayout.LabelField("本帧增量:", GUILayout.Width(70));
+                            EditorGUILayout.LabelField($"({deltaPos.x:F3}, {deltaPos.y:F3}, {deltaPos.z:F3}) m", EditorStyles.miniLabel);
+                        }
+                        EditorGUILayout.EndHorizontal();
+                        
+                        EditorGUILayout.LabelField($"总位移长度: {totalDistance:F3} m", EditorStyles.miniBoldLabel);
+                        
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            EditorGUILayout.LabelField("累计旋转(欧拉):", GUILayout.Width(100));
+                            EditorGUILayout.LabelField($"({cumulativeEuler.x:F1}, {cumulativeEuler.y:F1}, {cumulativeEuler.z:F1})°", EditorStyles.miniLabel);
+                        }
+                        EditorGUILayout.EndHorizontal();
                     }
                     else
                     {

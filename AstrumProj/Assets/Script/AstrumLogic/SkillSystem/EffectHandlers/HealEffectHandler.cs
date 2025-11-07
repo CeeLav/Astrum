@@ -36,7 +36,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             }
             
             // 3. 计算治疗量（TODO: 根据effectConfig配置计算）
-            if (effectConfig.IntParams == null || effectConfig.IntParams.Count < 3)
+            if (effectConfig.IntParams == null || effectConfig.IntParams.Length < 3)
             {
                 ASLogger.Instance.Error($"[HealEffect] Effect {effectConfig.SkillEffectId} missing intParams");
                 return;

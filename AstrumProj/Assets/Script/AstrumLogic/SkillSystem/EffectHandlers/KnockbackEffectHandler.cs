@@ -16,7 +16,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
     {
         public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
         {
-            if (effectConfig.IntParams == null || effectConfig.IntParams.Count < 3)
+            if (effectConfig.IntParams == null || effectConfig.IntParams.Length < 3)
             {
                 ASLogger.Instance.Error($"[KnockbackEffectHandler] Effect {effectConfig.SkillEffectId} missing intParams");
                 return;

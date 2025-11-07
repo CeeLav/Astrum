@@ -501,6 +501,21 @@ namespace Astrum.Editor.RoleEditor.Modules
                 {
                     EditorGUILayout.HelpBox($"⚠️ 数据格式异常 (期望: {expectedSize}, 实际: {dataSize})", MessageType.Warning);
                 }
+                
+                // 显示当前累积位移
+                if (_previewModule != null)
+                {
+                    Vector3 currentPos = _previewModule.GetAccumulatedPositionFromData(_previewModule.GetCurrentFrame());
+                    EditorGUILayout.Space(5);
+                    EditorGUILayout.LabelField("当前累积位移", EditorStyles.boldLabel);
+                    EditorGUILayout.LabelField($"X: {currentPos.x:F3} m", EditorStyles.label);
+                    EditorGUILayout.LabelField($"Y: {currentPos.y:F3} m", EditorStyles.label);
+                    EditorGUILayout.LabelField($"Z: {currentPos.z:F3} m", EditorStyles.label);
+                    
+                    // 计算总位移长度
+                    float distance = Vector3.Magnitude(currentPos);
+                    EditorGUILayout.LabelField($"总位移: {distance:F3} m", EditorStyles.boldLabel);
+                }
             }
             EditorGUILayout.EndVertical();
         }

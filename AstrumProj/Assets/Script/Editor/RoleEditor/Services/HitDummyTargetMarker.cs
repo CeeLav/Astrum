@@ -51,18 +51,10 @@ namespace Astrum.Editor.RoleEditor.Services
 
         public void ResetState()
         {
-            Initialize();
-
-            if (_transform == null)
-                return;
-
             _transform.localPosition = _initialLocalPosition;
             _transform.localRotation = _initialLocalRotation;
-            _transform.localScale = _initialLocalScale;
-            _lastKnockbackDistance = 0f;
             _lastKnockbackDirection = Vector3.zero;
             _lastAppliedFrame = -1;
-            Debug.Log($"[HitDummyMarker] Reset {Name} localPos={_transform.localPosition}");
         }
 
         public bool ApplyKnockback(Vector3 direction, float distance, int frame)
@@ -80,7 +72,6 @@ namespace Astrum.Editor.RoleEditor.Services
 
             _transform.position += _lastKnockbackDirection * distance;
             _lastAppliedFrame = frame;
-            Debug.Log($"[HitDummyMarker] ApplyKnockback {Name} distance={distance:F3} dir={_lastKnockbackDirection}");
             return true;
         }
 

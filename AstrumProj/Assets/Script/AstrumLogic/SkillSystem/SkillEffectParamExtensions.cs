@@ -21,7 +21,7 @@ namespace Astrum.LogicCore.SkillSystem
         public static int GetIntParam(this SkillEffectTable effect, int index, int defaultValue = 0)
         {
             var list = effect?.IntParams;
-            if (list == null || index < 0 || index >= list.Count)
+            if (list == null || index < 0 || index >= list.Length)
             {
                 return defaultValue;
             }
@@ -32,6 +32,17 @@ namespace Astrum.LogicCore.SkillSystem
         public static IReadOnlyList<string> GetStringParams(this SkillEffectTable effect)
         {
             return effect?.StringParams ?? (IReadOnlyList<string>)EmptyStringArray;
+        }
+
+        public static string GetStringParam(this SkillEffectTable effect, int index, string defaultValue = "")
+        {
+            var list = effect?.StringParams;
+            if (list == null || index < 0 || index >= list.Length)
+            {
+                return defaultValue;
+            }
+
+            return list[index];
         }
 
         public static Dictionary<string, string> GetStringParamMap(this SkillEffectTable effect)

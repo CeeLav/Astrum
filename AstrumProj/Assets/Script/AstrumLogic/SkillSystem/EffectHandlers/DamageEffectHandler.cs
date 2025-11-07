@@ -18,7 +18,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
         {
             ASLogger.Instance.Info($"[DamageEffectHandler] Processing damage: Caster={caster.UniqueId}, Target={target.UniqueId}, EffectId={effectConfig.SkillEffectId}");
 
-            if (effectConfig.IntParams == null || effectConfig.IntParams.Count < 3)
+            if (effectConfig.IntParams == null || effectConfig.IntParams.Length < 3)
             {
                 ASLogger.Instance.Error($"[DamageEffectHandler] Effect {effectConfig.SkillEffectId} missing intParams");
                 return;

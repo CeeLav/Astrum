@@ -21,19 +21,11 @@ namespace Astrum.Editor.RoleEditor.Services
         {
             _anchor = anchor;
             _previewRenderUtility = previewRenderUtility;
-            Debug.Log($"[HitDummyPreview] SetPreviewContext anchor={anchor != null} previewUtility={previewRenderUtility != null}");
-
-            if (_currentTemplate != null)
-            {
-                RefreshInstances();
-                ResetTargets();
-            }
         }
 
         public void ApplyTemplate(SkillHitDummyTemplate template)
         {
             _currentTemplate = template;
-            Debug.Log($"[HitDummyPreview] ApplyTemplate template={template?.DisplayName ?? "<null>"} placements={template?.Placements?.Count ?? 0}");
             RefreshInstances();
             ResetTargets();
         }
@@ -69,13 +61,11 @@ namespace Astrum.Editor.RoleEditor.Services
 
             if (_currentTemplate == null)
             {
-                Debug.LogWarning("[HitDummyPreview] Cannot refresh, template is null");
                 return;
             }
 
             if (_anchor == null && _previewRenderUtility == null)
             {
-                Debug.LogWarning("[HitDummyPreview] Cannot refresh, preview context not ready");
                 // 预览环境尚未完成初始化，下一次上下文设置时再刷新
                 return;
             }
@@ -103,7 +93,6 @@ namespace Astrum.Editor.RoleEditor.Services
 
             if (_currentTemplate.Placements == null || _currentTemplate.Placements.Count == 0)
             {
-                Debug.LogWarning("[HitDummyPreview] Template has no placements");
                 return;
             }
 
@@ -128,12 +117,9 @@ namespace Astrum.Editor.RoleEditor.Services
 
                 var marker = new HitDummyTargetMarker(dummyInstance);
                 _markers.Add(marker);
-                Debug.Log($"[HitDummyPreview] Added marker {marker.Name} localPos={marker.Transform.localPosition}");
 
                 _dummyInstances.Add(dummyInstance);
             }
-
-            Debug.Log($"[HitDummyPreview] Refresh complete markers={_markers.Count}");
         }
 
         private void ApplyRootTransform()
@@ -229,7 +215,6 @@ namespace Astrum.Editor.RoleEditor.Services
 
         public void ResetTargets()
         {
-            Debug.Log($"[HitDummyPreview] ResetTargets count={_markers.Count}");
             foreach (var marker in _markers)
             {
                 marker?.ResetState();
@@ -242,10 +227,6 @@ namespace Astrum.Editor.RoleEditor.Services
                 return false;
 
             var applied = marker.ApplyKnockback(direction, distance, frame);
-            if (applied)
-            {
-                Debug.Log($"[HitDummyPreview] ApplyKnockback target={marker.Name} distance={distance:F3} dir={direction} frame={frame}");
-            }
             return applied;
         }
     }

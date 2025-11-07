@@ -55,7 +55,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         private SkillHitDummyTemplate _currentHitDummyTemplate;
         private List<TimelineEvent> _timelineEvents = new List<TimelineEvent>();
         private const string HitDummyLogPrefix = "[AnimationPreview/HitDummy]";
-        private const bool HitDummyDebugLog = true;
+        private const bool HitDummyDebugLog = false;
         private int _lastEvaluatedHitDummyFrame = -1;
         
         protected override string LogPrefix => "[AnimationPreviewModule]";
@@ -320,14 +320,6 @@ namespace Astrum.Editor.RoleEditor.Modules
         public void SetTimelineEvents(List<TimelineEvent> events)
         {
             _timelineEvents = events ?? new List<TimelineEvent>();
-            if (HitDummyDebugLog)
-            {
-                foreach (var evt in _timelineEvents)
-                {
-                    Debug.Log($"{HitDummyLogPrefix} Track={evt.TrackType} id={evt.EventId} frames={evt.StartFrame}-{evt.EndFrame} data={evt.EventData}");
-                }
-                Debug.Log($"{HitDummyLogPrefix} SetTimelineEvents count={_timelineEvents.Count}");
-            }
             _lastEvaluatedHitDummyFrame = -1;
             EvaluateHitDummyInteractions(_currentFrame);
         }
@@ -351,10 +343,6 @@ namespace Astrum.Editor.RoleEditor.Modules
 
             if (_lastEvaluatedHitDummyFrame >= 0 && frame < _lastEvaluatedHitDummyFrame)
             {
-                if (HitDummyDebugLog)
-                {
-                    Debug.Log($"{HitDummyLogPrefix} frame={frame} rewind from {_lastEvaluatedHitDummyFrame}, reset markers");
-                }
                 _hitDummyPreviewController.ResetTargets();
             }
 
@@ -409,17 +397,8 @@ namespace Astrum.Editor.RoleEditor.Modules
 
                 if (_hitDummyPreviewController.ApplyKnockback(entry.Target, direction, entry.KnockbackDistance, frame))
                 {
-                    if (HitDummyDebugLog)
-                    {
-                        Debug.Log($"{HitDummyLogPrefix} frame={frame} target={entry.Target.Name} distance={entry.KnockbackDistance:F3} dir={direction}");
-                    }
                     hadKnockback = true;
                 }
-            }
-
-            if (HitDummyDebugLog && hadKnockback)
-            {
-                Debug.Log($"{HitDummyLogPrefix} frame={frame} totalTargets={aggregated.Count}");
             }
 
             _lastEvaluatedHitDummyFrame = frame;
@@ -441,10 +420,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         /// </summary>
         public int GetCurrentFrame()
         {
-            if (_currentAnimState == null)
-                return 0;
-            
-            return Mathf.RoundToInt(_currentAnimState.Time * LOGIC_FRAME_RATE);
+            return _currentFrame;
         }
         
         /// <summary>
@@ -465,6 +441,95 @@ namespace Astrum.Editor.RoleEditor.Modules
         public GameObject GetPreviewModel()
         {
             return _previewInstance;
+        }
+        
+        /// <summary>
+        /// 获取模型当前的累积位移（相对于初始位置）
+        /// </summary>
+        public Vector3 GetCurrentAccumulatedPosition()
+        {
+            if (_previewInstance == null)
+                return Vector3.zero;
+            
+            return _previewInstance.transform.position - _initialPosition;
+        }
+        
+        /// <summary>
+        /// 根据根运动数据计算指定帧的累积位移
+        /// </summary>
+        /// <param name="frame">要计算的帧索引</param>
+        /// <returns>累积位移向量</returns>
+        public Vector3 GetAccumulatedPositionFromData(int frame)
+        {
+            if (_rootMotionDataArray == null || _rootMotionDataArray.Count == 0)
+                return Vector3.zero;
+            
+            int frameCount = _rootMotionDataArray[0];
+            if (frameCount <= 0 || frame < 0)
+                return Vector3.zero;
+            
+            frame = Mathf.Min(frame, frameCount - 1);
+            
+            // 计算累积位移：从第0帧到当前帧的所有增量位移之和
+            Vector3 accumulatedPosition = Vector3.zero;
+            const float SCALE = 1000f; // 与提取时使用的缩放因子相同
+            
+            // 累加从第1帧到当前帧的所有增量位移（第0帧的delta是0）
+            for (int f = 1; f <= frame && f < frameCount; f++)
+            {
+                int baseIndex = 1 + f * 7; // 跳过 frameCount，每帧7个值
+                if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                {
+                    break;
+                }
+                
+                // 读取增量位移（整数，需要除以1000）
+                float dx = _rootMotionDataArray[baseIndex] / SCALE;
+                float dy = _rootMotionDataArray[baseIndex + 1] / SCALE;
+                float dz = _rootMotionDataArray[baseIndex + 2] / SCALE;
+                
+                // 累加位置
+                accumulatedPosition += new Vector3(dx, dy, dz);
+            }
+            
+            return accumulatedPosition;
+        }
+        
+        /// <summary>
+        /// 根据根运动数据计算指定帧的累积旋转
+        /// </summary>
+        public Quaternion GetAccumulatedRotationFromData(int frame)
+        {
+            if (_rootMotionDataArray == null || _rootMotionDataArray.Count == 0)
+                return Quaternion.identity;
+            
+            int frameCount = _rootMotionDataArray[0];
+            if (frameCount <= 0 || frame < 0)
+                return Quaternion.identity;
+            
+            frame = Mathf.Min(frame, frameCount - 1);
+            
+            const float SCALE = 1000f;
+            Quaternion accumulatedRotation = Quaternion.identity;
+            
+            for (int f = 1; f <= frame && f < frameCount; f++)
+            {
+                int baseIndex = 1 + f * 7;
+                if (baseIndex + 6 >= _rootMotionDataArray.Count)
+                {
+                    break;
+                }
+                
+                float rx = _rootMotionDataArray[baseIndex + 3] / SCALE;
+                float ry = _rootMotionDataArray[baseIndex + 4] / SCALE;
+                float rz = _rootMotionDataArray[baseIndex + 5] / SCALE;
+                float rw = _rootMotionDataArray[baseIndex + 6] / SCALE;
+                
+                Quaternion deltaRot = new Quaternion(rx, ry, rz, rw);
+                accumulatedRotation = accumulatedRotation * deltaRot;
+            }
+            
+            return accumulatedRotation;
         }
         
         /// <summary>
@@ -962,10 +1027,6 @@ namespace Astrum.Editor.RoleEditor.Modules
              {
                  _hitDummyPreviewController.SetPreviewContext(_previewInstance, _previewRenderUtility);
                  _hitDummyPreviewController.ApplyTemplate(_currentHitDummyTemplate);
-                if (HitDummyDebugLog)
-                {
-                    Debug.Log($"{HitDummyLogPrefix} Applied template {_currentHitDummyTemplate.DisplayName} targetSelector={_currentHitDummyTemplate.TargetSelector}");
-                }
              }
         }
 
@@ -982,14 +1043,6 @@ namespace Astrum.Editor.RoleEditor.Modules
             if (defaultTemplate != null)
             {
                 _currentHitDummyTemplate = defaultTemplate;
-                if (HitDummyDebugLog)
-                {
-                    Debug.Log($"{HitDummyLogPrefix} Using default template {_currentHitDummyTemplate.DisplayName}");
-                }
-            }
-            else if (HitDummyDebugLog)
-            {
-                Debug.LogWarning($"{HitDummyLogPrefix} No default hit dummy template available");
             }
         }
         

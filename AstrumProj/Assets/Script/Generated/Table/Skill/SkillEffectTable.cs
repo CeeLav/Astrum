@@ -18,24 +18,8 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     {
         SkillEffectId = _buf.ReadInt();
         EffectType = _buf.ReadString();
-        {
-            int _n = _buf.ReadSize();
-            var _list = new System.Collections.Generic.List<int>(_n);
-            for (int _i = _n; _i > 0; --_i)
-            {
-                _list.Add(_buf.ReadInt());
-            }
-            IntParams = _list;
-        }
-        {
-            int _n = _buf.ReadSize();
-            var _list = new System.Collections.Generic.List<string>(_n);
-            for (int _i = _n; _i > 0; --_i)
-            {
-                _list.Add(_buf.ReadString());
-            }
-            StringParams = _list;
-        }
+        {int __n0 = _buf.ReadSize(); IntParams = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); IntParams[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); StringParams = new string[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { string __e0;__e0 = _buf.ReadString(); StringParams[__index0] = __e0;}}
     }
 
     public static SkillEffectTable DeserializeSkillEffectTable(ByteBuf _buf)
@@ -52,13 +36,13 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
     /// </summary>
     public readonly string EffectType;
     /// <summary>
-    /// 效果整数参数
+    /// 整数参数数组
     /// </summary>
-    public readonly System.Collections.Generic.List<int> IntParams;
+    public readonly int[] IntParams;
     /// <summary>
-    /// 效果字符串参数
+    /// 字符串参数数组
     /// </summary>
-    public readonly System.Collections.Generic.List<string> StringParams;
+    public readonly string[] StringParams;
    
     public const int __ID__ = 194554857;
     public override int GetTypeId() => __ID__;
@@ -72,8 +56,8 @@ public sealed partial class SkillEffectTable : Luban.BeanBase
         return "{ "
         + "skillEffectId:" + SkillEffectId + ","
         + "effectType:" + EffectType + ","
-        + "intParams:" + string.Join("|", IntParams ?? new System.Collections.Generic.List<int>()) + ","
-        + "stringParams:" + string.Join("|", StringParams ?? new System.Collections.Generic.List<string>()) + ","
+        + "intParams:" + Luban.StringUtil.CollectionToString(IntParams) + ","
+        + "stringParams:" + Luban.StringUtil.CollectionToString(StringParams) + ","
         + "}";
     }
 }
