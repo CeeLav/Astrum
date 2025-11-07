@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using Animancer;
+using Astrum.Editor.RoleEditor.Data;
 using Astrum.Editor.RoleEditor.Services;
 using Astrum.Editor.RoleEditor.Persistence;
 
@@ -48,6 +49,8 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 特效预览 ===
         private VFXPreviewManager _vfxPreviewManager;
+        private HitDummyPreviewController _hitDummyPreviewController;
+        private SkillHitDummyTemplate _currentHitDummyTemplate;
         
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
@@ -102,6 +105,13 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 _vfxPreviewManager.SetParent(_previewInstance);
                 _vfxPreviewManager.SetPreviewRenderUtility(_previewRenderUtility);
+            }
+
+            EnsureHitDummyController();
+            if (_hitDummyPreviewController != null)
+            {
+                _hitDummyPreviewController.SetPreviewContext(_previewInstance, _previewRenderUtility);
+                _hitDummyPreviewController.ApplyTemplate(_currentHitDummyTemplate);
             }
         }
         
@@ -229,6 +239,8 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 _vfxPreviewManager.ClearAll();
             }
+
+            _hitDummyPreviewController?.Clear();
             
             // 重置模型位置到初始位置
             if (_previewInstance != null)
@@ -275,6 +287,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.UpdateFrame(_currentFrame, _isPlaying);
                 _vfxPreviewManager.UpdateVFXPositions();
             }
+
+            _hitDummyPreviewController?.UpdateFrame();
         }
         
         /// <summary>
@@ -791,6 +805,35 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 直接调用统一更新逻辑，不调用基类方法（避免基类的自动更新干扰）
             UpdateAnimationInternal();
         }
+
+        /// <summary>
+        /// 设置当前预览使用的木桩模板
+        /// </summary>
+        public void SetHitDummyTemplate(SkillHitDummyTemplate template)
+        {
+            _currentHitDummyTemplate = template;
+            EnsureHitDummyController();
+
+            if (_hitDummyPreviewController == null)
+                return;
+
+            if (_previewInstance == null && _previewRenderUtility == null)
+            {
+                // 等预览上下文准备好后再刷新
+                return;
+            }
+
+            _hitDummyPreviewController.SetPreviewContext(_previewInstance, _previewRenderUtility);
+            _hitDummyPreviewController.ApplyTemplate(_currentHitDummyTemplate);
+        }
+
+        private void EnsureHitDummyController()
+        {
+            if (_hitDummyPreviewController == null)
+            {
+                _hitDummyPreviewController = new HitDummyPreviewController();
+            }
+        }
         
         /// <summary>
         /// 重置动画到第一帧（不播放）
@@ -902,6 +945,12 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 Object.DestroyImmediate(_gridMaterial);
                 _gridMaterial = null;
+            }
+
+            if (_hitDummyPreviewController != null)
+            {
+                _hitDummyPreviewController.Clear();
+                _hitDummyPreviewController = null;
             }
             
             base.Cleanup();

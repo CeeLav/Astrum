@@ -6,6 +6,7 @@ using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Astrum.Editor.RoleEditor.Data;
 using Astrum.Editor.RoleEditor.Persistence;
+using Astrum.Editor.RoleEditor.Services;
 
 namespace Astrum.Editor.RoleEditor.Modules
 {
@@ -25,6 +26,12 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 折叠状态 ===
         private bool _skillCostFoldout = true;
+        private bool _hitDummyFoldout = true;
+
+        // === 木桩模板 ===
+        private SkillHitDummyTemplateCollection _hitDummyCollection;
+        private int _selectedHitDummyIndex = -1;
+        private Vector2 _hitDummyScroll;
         
         // === 事件 ===
         public event Action<ActionEditorData> OnActionModified;
@@ -66,6 +73,7 @@ namespace Astrum.Editor.RoleEditor.Modules
                 
                 // 绘制技能专属内容
                 DrawSkillCost();
+                DrawHitDummyTemplateSection();
             }
             EditorGUILayout.EndScrollView();
             
@@ -86,6 +94,10 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 _propertyTree = PropertyTree.Create(_currentSkillAction);
             }
+
+            EnsureHitDummyCollection();
+            UpdateSelectedTemplateIndex(true);
+            ApplySelectedTemplateToPreview();
         }
         
         /// <summary>
@@ -586,6 +598,306 @@ namespace Astrum.Editor.RoleEditor.Modules
             }
             
             EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+
+        private void DrawHitDummyTemplateSection()
+        {
+            if (_currentSkillAction == null)
+                return;
+
+            EnsureHitDummyCollection();
+
+            if (_hitDummyCollection == null)
+            {
+                return;
+            }
+
+            int beforeCount = _hitDummyCollection.Templates.Count;
+            _hitDummyCollection.EnsureDefaultTemplates();
+            if (_hitDummyCollection.Templates.Count != beforeCount)
+            {
+                SaveTemplateChanges();
+            }
+
+            if (_hitDummyCollection.Templates == null || _hitDummyCollection.Templates.Count == 0)
+            {
+                EditorGUILayout.HelpBox("木桩模板集合为空，创建默认模板失败。", MessageType.Warning);
+                return;
+            }
+
+            _hitDummyFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_hitDummyFoldout, "木桩模板");
+            if (_hitDummyFoldout)
+            {
+                EditorGUILayout.BeginVertical("box");
+                {
+                    DrawHitDummyTemplateSelector();
+                    EditorGUILayout.Space(5);
+                    DrawHitDummyTemplateEditor();
+                }
+                EditorGUILayout.EndVertical();
+            }
+            EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+
+        private void DrawHitDummyTemplateSelector()
+        {
+            var templates = _hitDummyCollection.Templates;
+            if (templates == null || templates.Count == 0)
+                return;
+
+            string[] displayNames = new string[templates.Count];
+            for (int i = 0; i < templates.Count; i++)
+            {
+                displayNames[i] = string.IsNullOrEmpty(templates[i].DisplayName)
+                    ? $"模板 {i + 1}"
+                    : templates[i].DisplayName;
+            }
+
+            EditorGUI.BeginChangeCheck();
+            _selectedHitDummyIndex = Mathf.Clamp(_selectedHitDummyIndex, 0, templates.Count - 1);
+            int newIndex = EditorGUILayout.Popup("当前模板", _selectedHitDummyIndex, displayNames);
+            if (EditorGUI.EndChangeCheck())
+            {
+                _selectedHitDummyIndex = newIndex;
+                UpdateCurrentSkillActionTemplateId();
+                ApplySelectedTemplateToPreview();
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("新增模板", GUILayout.Width(100)))
+            {
+                CreateNewTemplate();
+            }
+
+            GUI.enabled = templates.Count > 1;
+            if (GUILayout.Button("删除模板", GUILayout.Width(100)))
+            {
+                DeleteCurrentTemplate();
+            }
+            GUI.enabled = true;
+
+            if (GUILayout.Button("复制模板", GUILayout.Width(100)))
+            {
+                DuplicateCurrentTemplate();
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawHitDummyTemplateEditor()
+        {
+            var template = GetSelectedTemplate();
+            if (template == null)
+                return;
+
+            EditorGUI.BeginChangeCheck();
+            template.DisplayName = EditorGUILayout.TextField("模板名称", template.DisplayName);
+            template.Notes = EditorGUILayout.TextField("备注", template.Notes);
+            template.BasePrefab = EditorGUILayout.ObjectField("默认Prefab", template.BasePrefab, typeof(GameObject), false) as GameObject;
+            template.FollowAnchorPosition = EditorGUILayout.Toggle("跟随角色位置", template.FollowAnchorPosition);
+            template.FollowAnchorRotation = EditorGUILayout.Toggle("跟随角色朝向", template.FollowAnchorRotation);
+            template.LockY = EditorGUILayout.Toggle("锁定Y>=0", template.LockY);
+            template.RootOffset = EditorGUILayout.Vector3Field("整体偏移", template.RootOffset);
+            template.RootRotation = EditorGUILayout.Vector3Field("整体旋转", template.RootRotation);
+            template.RootScale = EditorGUILayout.Vector3Field("整体缩放", template.RootScale);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                SaveTemplateChanges();
+                ApplySelectedTemplateToPreview();
+            }
+
+            EditorGUILayout.Space(5);
+
+            EditorGUILayout.LabelField("木桩列表", EditorStyles.boldLabel);
+            _hitDummyScroll = EditorGUILayout.BeginScrollView(_hitDummyScroll, GUILayout.Height(180));
+            {
+                if (template.Placements == null)
+                {
+                    template.Placements = new List<SkillHitDummyPlacement>();
+                }
+
+                for (int i = 0; i < template.Placements.Count; i++)
+                {
+                    var placement = template.Placements[i] ?? SkillHitDummyPlacement.CreateDefault($"木桩{i + 1}");
+                    bool remove = false;
+                    EditorGUILayout.BeginVertical("box");
+                    {
+                        EditorGUILayout.BeginHorizontal();
+                        placement.Name = EditorGUILayout.TextField("名称", placement.Name);
+                        remove = GUILayout.Button("删除", GUILayout.Width(60));
+                        EditorGUILayout.EndHorizontal();
+
+                        if (!remove)
+                        {
+                            EditorGUI.BeginChangeCheck();
+                            placement.OverridePrefab = EditorGUILayout.ObjectField("覆盖Prefab", placement.OverridePrefab, typeof(GameObject), false) as GameObject;
+                            placement.Position = EditorGUILayout.Vector3Field("位置", placement.Position);
+                            placement.Rotation = EditorGUILayout.Vector3Field("旋转", placement.Rotation);
+                            placement.Scale = EditorGUILayout.Vector3Field("缩放", placement.Scale);
+                            placement.DebugColor = EditorGUILayout.ColorField("调试颜色", placement.DebugColor);
+
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                SaveTemplateChanges();
+                                ApplySelectedTemplateToPreview();
+                            }
+                        }
+                    }
+                    EditorGUILayout.EndVertical();
+
+                    if (remove)
+                    {
+                        template.Placements.RemoveAt(i);
+                        SaveTemplateChanges();
+                        ApplySelectedTemplateToPreview();
+                        i--;
+                    }
+                }
+            }
+            EditorGUILayout.EndScrollView();
+
+            if (GUILayout.Button("新增木桩", GUILayout.Height(24)))
+            {
+                template.Placements.Add(SkillHitDummyPlacement.CreateDefault($"木桩{template.Placements.Count + 1}"));
+                SaveTemplateChanges();
+                ApplySelectedTemplateToPreview();
+            }
+        }
+
+        private void EnsureHitDummyCollection()
+        {
+            if (_hitDummyCollection != null) return;
+
+            _hitDummyCollection = SkillHitDummyTemplateService.GetCollection();
+            _hitDummyCollection?.EnsureDefaultTemplates();
+        }
+
+        private void UpdateSelectedTemplateIndex(bool forceReset = false)
+        {
+            if (_hitDummyCollection == null || _hitDummyCollection.Templates.Count == 0)
+            {
+                _selectedHitDummyIndex = -1;
+                return;
+            }
+
+            if (_currentSkillAction == null)
+            {
+                _selectedHitDummyIndex = Mathf.Clamp(_selectedHitDummyIndex, 0, _hitDummyCollection.Templates.Count - 1);
+                return;
+            }
+
+            if (!forceReset && _selectedHitDummyIndex >= 0 && _selectedHitDummyIndex < _hitDummyCollection.Templates.Count)
+            {
+                return;
+            }
+
+            string templateId = _currentSkillAction.HitDummyTemplateId;
+            if (string.IsNullOrEmpty(templateId))
+            {
+                templateId = SkillHitDummyTemplateService.GetLastTemplateId();
+            }
+
+            int index = -1;
+            for (int i = 0; i < _hitDummyCollection.Templates.Count; i++)
+            {
+                if (_hitDummyCollection.Templates[i].TemplateId == templateId)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index < 0)
+            {
+                index = 0;
+            }
+
+            _selectedHitDummyIndex = index;
+            UpdateCurrentSkillActionTemplateId();
+        }
+
+        private SkillHitDummyTemplate GetSelectedTemplate()
+        {
+            if (_hitDummyCollection == null) return null;
+            if (_selectedHitDummyIndex < 0 || _selectedHitDummyIndex >= _hitDummyCollection.Templates.Count)
+                return null;
+
+            return _hitDummyCollection.Templates[_selectedHitDummyIndex];
+        }
+
+        private void UpdateCurrentSkillActionTemplateId()
+        {
+            if (_currentSkillAction == null) return;
+            var template = GetSelectedTemplate();
+            if (template == null) return;
+
+            if (_currentSkillAction.HitDummyTemplateId != template.TemplateId)
+            {
+                _currentSkillAction.HitDummyTemplateId = template.TemplateId;
+                _currentSkillAction.MarkDirty();
+                SkillHitDummyTemplateService.SetLastTemplateId(template.TemplateId);
+            }
+        }
+
+        private void ApplySelectedTemplateToPreview()
+        {
+            if (_previewModule == null) return;
+
+            var template = GetSelectedTemplate();
+            _previewModule.SetHitDummyTemplate(template);
+        }
+
+        private void SaveTemplateChanges()
+        {
+            if (_hitDummyCollection == null) return;
+
+            EditorUtility.SetDirty(_hitDummyCollection);
+            SkillHitDummyTemplateService.SaveCollection();
+        }
+
+        private void CreateNewTemplate()
+        {
+            if (_hitDummyCollection == null)
+                return;
+
+            var newTemplate = SkillHitDummyTemplate.CreateDefault($"模板{_hitDummyCollection.Templates.Count + 1}");
+            _hitDummyCollection.AddTemplate(newTemplate);
+            SaveTemplateChanges();
+            _selectedHitDummyIndex = _hitDummyCollection.Templates.Count - 1;
+            UpdateCurrentSkillActionTemplateId();
+            ApplySelectedTemplateToPreview();
+        }
+
+        private void DuplicateCurrentTemplate()
+        {
+            var template = GetSelectedTemplate();
+            if (template == null || _hitDummyCollection == null)
+                return;
+
+            var copy = template.DeepCopy();
+            _hitDummyCollection.AddTemplate(copy);
+            SaveTemplateChanges();
+            _selectedHitDummyIndex = _hitDummyCollection.Templates.Count - 1;
+            UpdateCurrentSkillActionTemplateId();
+            ApplySelectedTemplateToPreview();
+        }
+
+        private void DeleteCurrentTemplate()
+        {
+            var template = GetSelectedTemplate();
+            if (template == null || _hitDummyCollection == null)
+                return;
+
+            if (!EditorUtility.DisplayDialog("删除模板", $"确定要删除模板 {template.DisplayName} 吗？", "删除", "取消"))
+            {
+                return;
+            }
+
+            _hitDummyCollection.RemoveTemplate(template);
+            SaveTemplateChanges();
+            _selectedHitDummyIndex = Mathf.Clamp(_selectedHitDummyIndex - 1, 0, _hitDummyCollection.Templates.Count - 1);
+            UpdateCurrentSkillActionTemplateId();
+            ApplySelectedTemplateToPreview();
         }
     }
 }

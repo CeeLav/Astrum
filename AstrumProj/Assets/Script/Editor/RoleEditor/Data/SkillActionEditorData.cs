@@ -93,6 +93,12 @@ namespace Astrum.Editor.RoleEditor.Data
         /// </summary>
         [HideInInspector]
         public List<int> RootMotionDataArray = new List<int>();
+
+        /// <summary>
+        /// 使用的木桩模板ID
+        /// </summary>
+        [HideInInspector]
+        public string HitDummyTemplateId = "";
         
         /// <summary>
         /// 获取提取模式选项（用于下拉菜单）
@@ -137,6 +143,7 @@ namespace Astrum.Editor.RoleEditor.Data
             data.ActualCooldown = 60;
             data.TriggerFrames = "";
             data.TriggerEffects = new List<TriggerFrameData>();
+            data.HitDummyTemplateId = string.Empty;
             
             data.IsNew = true;
             data.IsDirty = true;
@@ -187,6 +194,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.ExtractRotation = this.ExtractRotation;
             clone.ExtractHorizontalOnly = this.ExtractHorizontalOnly;
             clone.RootMotionDataArray = new List<int>(this.RootMotionDataArray);
+            clone.HitDummyTemplateId = this.HitDummyTemplateId;
             
             // 深拷贝触发帧数据
             clone.TriggerEffects = new List<TriggerFrameData>();

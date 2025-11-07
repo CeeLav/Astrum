@@ -33,6 +33,9 @@ namespace Astrum.Editor.RoleEditor.Core
         public const string ANIMATION_ROOT = "Assets/ArtRes/Animations";
         public const string EFFECT_ROOT = "Assets/ArtRes/Effects";
         public const string SOUND_ROOT = "Assets/ArtRes/Sounds";
+
+        /// <summary>木桩模板 ScriptableObject 路径</summary>
+        public const string HitDummyTemplateAssetPath = "Assets/Script/Editor/RoleEditor/Data/SkillHitDummyTemplateCollection.asset";
         
         // ===== 编辑器设置 =====
         
