@@ -11,6 +11,7 @@ namespace Astrum.Editor.RoleEditor.Services
     public class HitDummyPreviewController
     {
         private readonly List<GameObject> _dummyInstances = new List<GameObject>();
+        private readonly List<HitDummyTargetMarker> _markers = new List<HitDummyTargetMarker>();
         private GameObject _rootContainer;
         private GameObject _anchor;
         private PreviewRenderUtility _previewRenderUtility;
@@ -20,17 +21,21 @@ namespace Astrum.Editor.RoleEditor.Services
         {
             _anchor = anchor;
             _previewRenderUtility = previewRenderUtility;
+            Debug.Log($"[HitDummyPreview] SetPreviewContext anchor={anchor != null} previewUtility={previewRenderUtility != null}");
 
             if (_currentTemplate != null)
             {
                 RefreshInstances();
+                ResetTargets();
             }
         }
 
         public void ApplyTemplate(SkillHitDummyTemplate template)
         {
             _currentTemplate = template;
+            Debug.Log($"[HitDummyPreview] ApplyTemplate template={template?.DisplayName ?? "<null>"} placements={template?.Placements?.Count ?? 0}");
             RefreshInstances();
+            ResetTargets();
         }
 
         public void UpdateFrame()
@@ -60,14 +65,17 @@ namespace Astrum.Editor.RoleEditor.Services
         private void RefreshInstances()
         {
             DestroyInstances();
+            _markers.Clear();
 
             if (_currentTemplate == null)
             {
+                Debug.LogWarning("[HitDummyPreview] Cannot refresh, template is null");
                 return;
             }
 
             if (_anchor == null && _previewRenderUtility == null)
             {
+                Debug.LogWarning("[HitDummyPreview] Cannot refresh, preview context not ready");
                 // 预览环境尚未完成初始化，下一次上下文设置时再刷新
                 return;
             }
@@ -95,6 +103,7 @@ namespace Astrum.Editor.RoleEditor.Services
 
             if (_currentTemplate.Placements == null || _currentTemplate.Placements.Count == 0)
             {
+                Debug.LogWarning("[HitDummyPreview] Template has no placements");
                 return;
             }
 
@@ -117,31 +126,14 @@ namespace Astrum.Editor.RoleEditor.Services
                     dummyInstance.transform.localPosition = pos;
                 }
 
-                var marker = dummyInstance.GetComponent<HitDummyTargetMarker>();
-                if (marker == null)
-                {
-                    try
-                    {
-                        marker = dummyInstance.AddComponent<HitDummyTargetMarker>();
-                    }
-                    catch (System.Exception ex)
-                    {
-                        Debug.LogError($"[HitDummyPreview] Failed to add HitDummyTargetMarker: {ex.Message}", dummyInstance);
-                    }
-                }
-
-                if (marker != null)
-                {
-                    marker.Initialize();
-                }
-                else
-                {
-                    Debug.LogWarning("[HitDummyPreview] Hit dummy instance is missing HitDummyTargetMarker and will be skipped.", dummyInstance);
-                    continue;
-                }
+                var marker = new HitDummyTargetMarker(dummyInstance);
+                _markers.Add(marker);
+                Debug.Log($"[HitDummyPreview] Added marker {marker.Name} localPos={marker.Transform.localPosition}");
 
                 _dummyInstances.Add(dummyInstance);
             }
+
+            Debug.Log($"[HitDummyPreview] Refresh complete markers={_markers.Count}");
         }
 
         private void ApplyRootTransform()
@@ -221,12 +213,40 @@ namespace Astrum.Editor.RoleEditor.Services
                 }
             }
             _dummyInstances.Clear();
+            _markers.Clear();
 
             if (_rootContainer != null)
             {
                 Object.DestroyImmediate(_rootContainer);
                 _rootContainer = null;
             }
+        }
+
+        public IReadOnlyList<HitDummyTargetMarker> GetMarkers()
+        {
+            return _markers;
+        }
+
+        public void ResetTargets()
+        {
+            Debug.Log($"[HitDummyPreview] ResetTargets count={_markers.Count}");
+            foreach (var marker in _markers)
+            {
+                marker?.ResetState();
+            }
+        }
+
+        public bool ApplyKnockback(HitDummyTargetMarker marker, Vector3 direction, float distance, int frame)
+        {
+            if (marker == null)
+                return false;
+
+            var applied = marker.ApplyKnockback(direction, distance, frame);
+            if (applied)
+            {
+                Debug.Log($"[HitDummyPreview] ApplyKnockback target={marker.Name} distance={distance:F3} dir={direction} frame={frame}");
+            }
+            return applied;
         }
     }
 }

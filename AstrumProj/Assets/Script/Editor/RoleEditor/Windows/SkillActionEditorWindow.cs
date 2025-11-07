@@ -422,9 +422,11 @@ namespace Astrum.Editor.RoleEditor.Windows
                 LoadAnimationForAction(_selectedSkillAction);
                 
                 // 设置 VFX 事件列表（用于特效预览）
-                if (_previewModule != null && _selectedSkillAction.TimelineEvents != null)
+                if (_previewModule != null)
                 {
-                    _previewModule.SetVFXEvents(_selectedSkillAction.TimelineEvents);
+                    var timelineEvents = _selectedSkillAction.TimelineEvents;
+                    _previewModule.SetTimelineEvents(timelineEvents);
+                    _previewModule.SetVFXEvents(timelineEvents);
                 }
             }
         }
@@ -624,6 +626,8 @@ namespace Astrum.Editor.RoleEditor.Windows
                 // 当前帧没有碰撞盒，清除显示
                 _previewModule.ClearCollisionInfo();
             }
+
+            _previewModule.RefreshHitDummyPreview();
         }
         
         /// <summary>
@@ -730,9 +734,11 @@ namespace Astrum.Editor.RoleEditor.Windows
                 LoadAnimationForAction(skillAction);
                 
                 // 更新 VFX 事件列表（如果修改了事件）
-                if (_previewModule != null && skillAction.TimelineEvents != null)
+                if (_previewModule != null)
                 {
-                    _previewModule.SetVFXEvents(skillAction.TimelineEvents);
+                    var timelineEvents = skillAction.TimelineEvents;
+                    _previewModule.SetTimelineEvents(timelineEvents);
+                    _previewModule.SetVFXEvents(timelineEvents);
                 }
             }
         }
@@ -759,6 +765,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                     // 更新 VFX 事件列表（确保事件数据是最新的）
                     if (_selectedSkillAction.TimelineEvents != null)
                     {
+                        _previewModule.SetTimelineEvents(_selectedSkillAction.TimelineEvents);
                         _previewModule.SetVFXEvents(_selectedSkillAction.TimelineEvents);
                     }
                     

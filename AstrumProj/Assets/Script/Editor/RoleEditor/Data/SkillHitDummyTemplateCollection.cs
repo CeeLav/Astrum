@@ -79,6 +79,7 @@ namespace Astrum.Editor.RoleEditor.Data
         public bool FollowAnchorPosition = false;
         public bool FollowAnchorRotation = false;
         public bool LockY = true;
+        public int TargetSelector = 0;
         public Vector3 RootOffset = new Vector3(0f, 0f, 2f);
         public Vector3 RootRotation = Vector3.zero;
         public Vector3 RootScale = Vector3.one;
@@ -94,6 +95,7 @@ namespace Astrum.Editor.RoleEditor.Data
                 FollowAnchorPosition = false,
                 FollowAnchorRotation = false,
                 LockY = true,
+                TargetSelector = 1,
                 RootOffset = new Vector3(0f, 0f, 2f),
                 RootRotation = Vector3.zero,
                 RootScale = Vector3.one
@@ -114,6 +116,7 @@ namespace Astrum.Editor.RoleEditor.Data
                 FollowAnchorPosition = FollowAnchorPosition,
                 FollowAnchorRotation = FollowAnchorRotation,
                 LockY = LockY,
+                TargetSelector = TargetSelector,
                 RootOffset = RootOffset,
                 RootRotation = RootRotation,
                 RootScale = RootScale,

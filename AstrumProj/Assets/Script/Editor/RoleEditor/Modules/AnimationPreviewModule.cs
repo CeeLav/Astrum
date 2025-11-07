@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using Animancer;
 using Astrum.Editor.RoleEditor.Data;
 using Astrum.Editor.RoleEditor.Services;
 using Astrum.Editor.RoleEditor.Persistence;
+using Astrum.Editor.RoleEditor.Timeline;
 
 namespace Astrum.Editor.RoleEditor.Modules
 {
@@ -51,6 +53,10 @@ namespace Astrum.Editor.RoleEditor.Modules
         private VFXPreviewManager _vfxPreviewManager;
         private HitDummyPreviewController _hitDummyPreviewController;
         private SkillHitDummyTemplate _currentHitDummyTemplate;
+        private List<TimelineEvent> _timelineEvents = new List<TimelineEvent>();
+        private const string HitDummyLogPrefix = "[AnimationPreview/HitDummy]";
+        private const bool HitDummyDebugLog = true;
+        private int _lastEvaluatedHitDummyFrame = -1;
         
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
@@ -240,7 +246,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.ClearAll();
             }
 
-            _hitDummyPreviewController?.Clear();
+            _hitDummyPreviewController?.ResetTargets();
+            EvaluateHitDummyInteractions(_currentFrame);
             
             // 重置模型位置到初始位置
             if (_previewInstance != null)
@@ -289,6 +296,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             }
 
             _hitDummyPreviewController?.UpdateFrame();
+            EvaluateHitDummyInteractions(_currentFrame);
         }
         
         /// <summary>
@@ -307,6 +315,114 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             _vfxPreviewManager.SetVFXEvents(events);
             _vfxPreviewManager.SetPreviewRenderUtility(_previewRenderUtility);
+        }
+
+        public void SetTimelineEvents(List<TimelineEvent> events)
+        {
+            _timelineEvents = events ?? new List<TimelineEvent>();
+            if (HitDummyDebugLog)
+            {
+                foreach (var evt in _timelineEvents)
+                {
+                    Debug.Log($"{HitDummyLogPrefix} Track={evt.TrackType} id={evt.EventId} frames={evt.StartFrame}-{evt.EndFrame} data={evt.EventData}");
+                }
+                Debug.Log($"{HitDummyLogPrefix} SetTimelineEvents count={_timelineEvents.Count}");
+            }
+            _lastEvaluatedHitDummyFrame = -1;
+            EvaluateHitDummyInteractions(_currentFrame);
+        }
+
+        public void RefreshHitDummyPreview()
+        {
+            EvaluateHitDummyInteractions(_currentFrame);
+        }
+
+        private void EvaluateHitDummyInteractions(int frame)
+        {
+            if (_hitDummyPreviewController == null)
+                return;
+
+            var markers = _hitDummyPreviewController.GetMarkers();
+            if (markers == null || markers.Count == 0)
+            {
+                _lastEvaluatedHitDummyFrame = frame;
+                return;
+            }
+
+            if (_lastEvaluatedHitDummyFrame >= 0 && frame < _lastEvaluatedHitDummyFrame)
+            {
+                if (HitDummyDebugLog)
+                {
+                    Debug.Log($"{HitDummyLogPrefix} frame={frame} rewind from {_lastEvaluatedHitDummyFrame}, reset markers");
+                }
+                _hitDummyPreviewController.ResetTargets();
+            }
+
+            if (_timelineEvents == null || _timelineEvents.Count == 0)
+            {
+                _lastEvaluatedHitDummyFrame = frame;
+                return;
+            }
+
+            var casterTransform = _previewInstance != null ? _previewInstance.transform : null;
+            var results = HitDummyInteractionEvaluator.ProcessFrame(frame, _timelineEvents, markers, casterTransform, _currentHitDummyTemplate?.TargetSelector ?? 0);
+
+            if (results == null || results.Count == 0)
+            {
+                _lastEvaluatedHitDummyFrame = frame;
+                return;
+            }
+
+            var aggregated = new Dictionary<HitDummyTargetMarker, HitDummyInteractionEvaluator.HitDummyFrameResult>();
+
+            foreach (var result in results)
+            {
+                if (result == null || result.Target == null || result.KnockbackDistance <= 0f)
+                    continue;
+
+                if (aggregated.TryGetValue(result.Target, out var existing))
+                {
+                    if (result.KnockbackDistance > existing.KnockbackDistance)
+                    {
+                        aggregated[result.Target] = result;
+                    }
+                }
+                else
+                {
+                    aggregated[result.Target] = result;
+                }
+            }
+
+            bool hadKnockback = false;
+
+            foreach (var entry in aggregated.Values)
+            {
+                var direction = entry.KnockbackDirection;
+                if (direction.sqrMagnitude > 1e-6f)
+                {
+                    direction = direction.normalized;
+                }
+                else
+                {
+                    direction = entry.Target.Transform.forward;
+                }
+
+                if (_hitDummyPreviewController.ApplyKnockback(entry.Target, direction, entry.KnockbackDistance, frame))
+                {
+                    if (HitDummyDebugLog)
+                    {
+                        Debug.Log($"{HitDummyLogPrefix} frame={frame} target={entry.Target.Name} distance={entry.KnockbackDistance:F3} dir={direction}");
+                    }
+                    hadKnockback = true;
+                }
+            }
+
+            if (HitDummyDebugLog && hadKnockback)
+            {
+                Debug.Log($"{HitDummyLogPrefix} frame={frame} totalTargets={aggregated.Count}");
+            }
+
+            _lastEvaluatedHitDummyFrame = frame;
         }
         
         /// <summary>
@@ -789,6 +905,9 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.UpdateFrame(_currentFrame, _isPlaying);
                 _vfxPreviewManager.UpdateVFXPositions();
             }
+
+            _hitDummyPreviewController?.UpdateFrame();
+            EvaluateHitDummyInteractions(_currentFrame);
             
             // 如果应该停止，停止播放
             if (shouldStop)
@@ -825,6 +944,7 @@ namespace Astrum.Editor.RoleEditor.Modules
 
             _hitDummyPreviewController.SetPreviewContext(_previewInstance, _previewRenderUtility);
             _hitDummyPreviewController.ApplyTemplate(_currentHitDummyTemplate);
+            EvaluateHitDummyInteractions(_currentFrame);
         }
 
         private void EnsureHitDummyController()
@@ -832,6 +952,44 @@ namespace Astrum.Editor.RoleEditor.Modules
             if (_hitDummyPreviewController == null)
             {
                 _hitDummyPreviewController = new HitDummyPreviewController();
+            }
+
+            EnsureDefaultHitDummyTemplate();
+
+             if (_currentHitDummyTemplate != null &&
+                 _hitDummyPreviewController != null &&
+                 (_previewInstance != null || _previewRenderUtility != null))
+             {
+                 _hitDummyPreviewController.SetPreviewContext(_previewInstance, _previewRenderUtility);
+                 _hitDummyPreviewController.ApplyTemplate(_currentHitDummyTemplate);
+                if (HitDummyDebugLog)
+                {
+                    Debug.Log($"{HitDummyLogPrefix} Applied template {_currentHitDummyTemplate.DisplayName} targetSelector={_currentHitDummyTemplate.TargetSelector}");
+                }
+             }
+        }
+
+        private void EnsureDefaultHitDummyTemplate()
+        {
+            if (_currentHitDummyTemplate != null)
+                return;
+
+            var collection = SkillHitDummyTemplateService.GetCollection(false);
+            var defaultTemplate = collection != null && collection.Templates != null && collection.Templates.Count > 0
+                ? collection.Templates[0]
+                : null;
+
+            if (defaultTemplate != null)
+            {
+                _currentHitDummyTemplate = defaultTemplate;
+                if (HitDummyDebugLog)
+                {
+                    Debug.Log($"{HitDummyLogPrefix} Using default template {_currentHitDummyTemplate.DisplayName}");
+                }
+            }
+            else if (HitDummyDebugLog)
+            {
+                Debug.LogWarning($"{HitDummyLogPrefix} No default hit dummy template available");
             }
         }
         
@@ -870,7 +1028,12 @@ namespace Astrum.Editor.RoleEditor.Modules
                 {
                     _vfxPreviewManager.ClearAll();
                 }
+
+                _hitDummyPreviewController?.ResetTargets();
             }
+
+            _lastEvaluatedHitDummyFrame = -1;
+            EvaluateHitDummyInteractions(_currentFrame);
         }
         
         /// <summary>
