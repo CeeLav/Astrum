@@ -9,7 +9,7 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/11/5 17:36:15",
+    "PackageNote": "2025/11/7 12:11:41",
     "AssetList": [
         {
             "Address": "",
@@ -733,6 +733,14 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_A_1.anim",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 5,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_B_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
@@ -1100,7 +1108,7 @@
             "UnityCRC": 0,
             "FileHash": "95fa6045a9eb8f94224b208b6b95911e",
             "FileCRC": 0,
-            "FileSize": 50698807,
+            "FileSize": 50860166,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -1130,7 +1138,7 @@
             "UnityCRC": 0,
             "FileHash": "cea67fae521d4ef419fedc4a328320b1",
             "FileCRC": 0,
-            "FileSize": 8735342,
+            "FileSize": 8735216,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []

@@ -80,6 +80,11 @@ namespace Astrum.View.Components
             /// 自上次逻辑更新以来的累积时间
             /// </summary>
             public float timeSinceLastLogicUpdate;
+
+            /// <summary>
+            /// 上一帧记录的逻辑帧编号
+            /// </summary>
+            public int lastLogicFrame;
         }
         
         private VisualSyncData _visualSync;
@@ -110,6 +115,7 @@ namespace Astrum.View.Components
                 _visualSync.previousLogicPos = _targetPosition;
                 _visualSync.visualOffset = Vector3.zero;
                 _visualSync.timeSinceLastLogicUpdate = 0f;
+                _visualSync.lastLogicFrame = _ownerEntityView.OwnerEntity?.World?.CurFrame ?? 0;
             }
         }
         
@@ -448,35 +454,51 @@ namespace Astrum.View.Components
                 }
             }
             
-            // 3. 检测 LogicRoot 是否发生逻辑跳变
-            Vector3 logicDelta = currentLogicPos - _visualSync.lastLogicPos;
-            bool logicUpdated = logicDelta.sqrMagnitude > 0.0001f;
-            
-            if (logicUpdated)
+            int previousLogicFrame = _visualSync.lastLogicFrame;
+            int currentLogicFrame = ownerEntity.World?.CurFrame ?? previousLogicFrame;
+            Vector3 previousLogicPos = _visualSync.lastLogicPos;
+            Vector3 logicDelta = currentLogicPos - previousLogicPos;
+            bool logicFrameAdvanced = currentLogicFrame != previousLogicFrame;
+
+            if (logicFrameAdvanced)
             {
-                // 逻辑帧更新：使用插值计算视觉偏移
-                // 计算插值因子（当前渲染帧在两个逻辑帧之间的位置）
                 float logicFrameInterval = LSConstValue.UpdateInterval / 1000.0f; // 50ms = 0.05秒
-                float t = Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval);
-                
-                // 在上一逻辑帧和当前逻辑帧之间插值
-                Vector3 interpolatedPos = Vector3.Lerp(_visualSync.lastLogicPos, currentLogicPos, t);
-                
-                // 计算新的视觉偏移（插值位置相对于当前逻辑位置的偏移）
+                float t = logicFrameInterval > 0f
+                    ? Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval)
+                    : 0f;
+
+                Vector3 interpolatedPos = Vector3.Lerp(previousLogicPos, currentLogicPos, t);
                 _visualSync.visualOffset = interpolatedPos - currentLogicPos;
-                
-                // 更新逻辑位置记录
-                _visualSync.previousLogicPos = _visualSync.lastLogicPos;
+
+                _visualSync.previousLogicPos = previousLogicPos;
                 _visualSync.lastLogicPos = currentLogicPos;
+                _visualSync.lastLogicFrame = currentLogicFrame;
                 _visualSync.timeSinceLastLogicUpdate = 0f;
-                
-                ASLogger.Instance.Debug($"[TransViewComponent] [RootMotion] Logic updated: lastPos={_visualSync.previousLogicPos}, currentPos={currentLogicPos}, " +
-                    $"logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}", "View.VisualFollow");
+
+                ASLogger.Instance.Debug(
+                    $"[TransViewComponent] [RootMotion] Logic frame advanced: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
+                    $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}",
+                    "View.VisualFollow");
             }
             else
             {
-                // 逻辑帧未更新：累积时间
                 _visualSync.timeSinceLastLogicUpdate += deltaTime;
+
+                float logicFrameInterval = LSConstValue.UpdateInterval / 1000.0f;
+                float t = logicFrameInterval > 0f
+                    ? Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval)
+                    : 0f;
+
+                Vector3 logicStep = _visualSync.lastLogicPos - _visualSync.previousLogicPos;
+                if (logicStep.sqrMagnitude > 0.000001f && t > 0f)
+                {
+                    Vector3 projectedPos = _visualSync.lastLogicPos + logicStep * t;
+                    _visualSync.visualOffset = projectedPos - currentLogicPos;
+                }
+                else
+                {
+                    _visualSync.visualOffset = Vector3.zero;
+                }
             }
             
             // 4. 累积动画偏移（RootMotion模式：直接使用动画位移，不应用权重）
@@ -519,44 +541,48 @@ namespace Astrum.View.Components
                 (float)fixedPos.z
             );
             
-            // 2. 检测 LogicRoot 是否发生逻辑跳变
-            Vector3 logicDelta = currentLogicPos - _visualSync.lastLogicPos;
-            bool logicUpdated = logicDelta.sqrMagnitude > 0.0001f;
+            int previousLogicFrame = _visualSync.lastLogicFrame;
+            int currentLogicFrame = ownerEntity.World?.CurFrame ?? previousLogicFrame;
+            Vector3 previousLogicPos = _visualSync.lastLogicPos;
+            Vector3 logicDelta = currentLogicPos - previousLogicPos;
+            bool logicFrameAdvanced = currentLogicFrame != previousLogicFrame;
             
-            if (logicUpdated)
+            if (logicFrameAdvanced)
             {
-                // 逻辑帧更新：使用插值计算视觉偏移
                 float logicFrameInterval = LSConstValue.UpdateInterval / 1000.0f; // 50ms = 0.05秒
-                float t = Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval);
+                float t = logicFrameInterval > 0f
+                    ? Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval)
+                    : 0f;
+                Vector3 interpolatedPos = Vector3.Lerp(previousLogicPos, currentLogicPos, t);
                 
-                // 在上一逻辑帧和当前逻辑帧之间插值
-                Vector3 interpolatedPos = Vector3.Lerp(_visualSync.lastLogicPos, currentLogicPos, t);
-                
-                // 计算新的视觉偏移（插值位置相对于当前逻辑位置的偏移）
                 _visualSync.visualOffset = interpolatedPos - currentLogicPos;
-                
-                // 更新逻辑位置记录
-                _visualSync.previousLogicPos = _visualSync.lastLogicPos;
+                _visualSync.previousLogicPos = previousLogicPos;
                 _visualSync.lastLogicPos = currentLogicPos;
+                _visualSync.lastLogicFrame = currentLogicFrame;
                 _visualSync.timeSinceLastLogicUpdate = 0f;
                 
-                ASLogger.Instance.Debug($"[TransViewComponent] [Interpolation] Logic updated: lastPos={_visualSync.previousLogicPos}, currentPos={currentLogicPos}, " +
-                    $"logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}", "View.VisualFollow");
+                ASLogger.Instance.Debug(
+                    $"[TransViewComponent] [Interpolation] Logic frame advanced: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
+                    $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}",
+                    "View.VisualFollow");
             }
             else
             {
-                // 逻辑帧未更新：累积时间并继续插值
                 _visualSync.timeSinceLastLogicUpdate += deltaTime;
                 
-                // 继续插值计算（基于累积时间）
                 float logicFrameInterval = LSConstValue.UpdateInterval / 1000.0f;
                 float t = Mathf.Clamp01(_visualSync.timeSinceLastLogicUpdate / logicFrameInterval);
                 
-                // 在上一逻辑帧和当前逻辑帧之间插值
-                Vector3 interpolatedPos = Vector3.Lerp(_visualSync.lastLogicPos, currentLogicPos, t);
-                
-                // 更新视觉偏移（插值位置相对于当前逻辑位置的偏移）
-                _visualSync.visualOffset = interpolatedPos - currentLogicPos;
+                Vector3 logicStep = _visualSync.lastLogicPos - _visualSync.previousLogicPos;
+                if (logicStep.sqrMagnitude > 0.000001f && t > 0f)
+                {
+                    Vector3 projectedPos = _visualSync.lastLogicPos + logicStep * t;
+                    _visualSync.visualOffset = projectedPos - currentLogicPos;
+                }
+                else
+                {
+                    _visualSync.visualOffset = Vector3.zero;
+                }
             }
             
             // 3. 误差钳制防护（避免浮点长时间漂移）
