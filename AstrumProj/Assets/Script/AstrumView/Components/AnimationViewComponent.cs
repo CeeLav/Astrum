@@ -327,8 +327,20 @@ namespace Astrum.View.Components
             {
                 if (currentAction.KeepPlayingAnim)
                 {
+                    _lastActionFrame = currentFrame;
                     return;
                 }
+                
+                bool restarted = currentFrame < _lastActionFrame || (currentFrame == 0 && _lastActionFrame > 0);
+                if (restarted)
+                {
+                    PlayAnimationByActionId(currentAction.Id, 0.1f, true);
+                    _lastActionFrame = currentFrame;
+                    SyncAnimationTime(currentAction, currentFrame);
+                    ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Restarted action {currentAction.Id} on entity {OwnerEntity.UniqueId} (frame reset)");
+                    return;
+                }
+                _lastActionFrame = currentFrame;
             }
             /*
             // 3. 检查动作帧数是否发生显著变化
@@ -439,7 +451,7 @@ namespace Astrum.View.Components
         /// </summary>
         /// <param name="actionId">动作ID</param>
         /// <param name="fadeTime">过渡时间</param>
-        public void PlayAnimationByActionId(int actionId, float fadeTime = 0.25f)
+        public void PlayAnimationByActionId(int actionId, float fadeTime = 0.25f, bool forceRestart = false)
         {
             if (_animancerComponent == null)
             {
@@ -451,11 +463,13 @@ namespace Astrum.View.Components
             string animationName = GetAnimationNameByActionId(actionId);
             
             // 2. 检查动画是否已经在播放
-            if (_currentAnimationName == animationName && _isPlaying)
+            bool isSameAnimationPlaying = _currentAnimationName == animationName && _isPlaying;
+            if (isSameAnimationPlaying && !forceRestart)
             {
                 ASLogger.Instance.Debug($"AnimationViewComponent.PlayAnimationByActionId: Animation {animationName} is already playing for entity {OwnerEntity?.UniqueId}");
                 return;
             }
+            bool restartRequired = forceRestart;
 
             // 3. 停止当前动画
             //StopCurrentAnimation();
@@ -468,6 +482,12 @@ namespace Astrum.View.Components
                 
                 if (_currentAnimationState != null)
                 {
+                    if (restartRequired)
+                    {
+                        _currentAnimationState.Time = 0f;
+                        _currentAnimationState.Play();
+                    }
+                    
                     // 设置动画属性
                     _currentAnimationState.Speed = _animationSpeed;
                     // 注意：IsLooping 是只读属性，需要在创建动画状态时设置
@@ -477,8 +497,8 @@ namespace Astrum.View.Components
                     _currentAnimationName = animationName;
                     _isPlaying = true;
                     
-                    ASLogger.Instance.Debug($"AnimationViewComponent.PlayAnimationByActionId: Started playing animation '{animationName}' " +
-                        $"(actionId: {actionId}, fadeTime: {fadeTime:F2}s) for entity {OwnerEntity?.UniqueId}");
+                    ASLogger.Instance.Debug($"AnimationViewComponent.PlayAnimationByActionId: { (restartRequired ? "Restarted" : "Started") } animation '{animationName}' " +
+                        $"(actionId: {actionId}, fadeTime: {fadeTime:F2}s, forceRestart: {forceRestart}) for entity {OwnerEntity?.UniqueId}");
                 }
                 else
                 {
