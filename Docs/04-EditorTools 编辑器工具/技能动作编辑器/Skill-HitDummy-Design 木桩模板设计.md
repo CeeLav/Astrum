@@ -10,7 +10,7 @@
 - 预览面板接入模板选择器，可在不离开技能编辑流程的情况下快速切换木桩布局。
 - 模板可视化编辑支持拖拽、偏移、旋转、缩放以及颜色标记，实时反映在 `AnimationPreviewModule` 预览结果中。
 - 模板切换不影响技能数据保存，仅作用于调试场景，同步保存在本地配置文件中以便共享。
-- Timeline 触发器与木桩交互（命中、击退、特效预览）通过统一的场景代理组件实现，避免耦合到动作数据结构。
+- Timeline 触发器的命中、击退、特效播放通过“木桩交互层”代理到木桩实例，记录击退路径并在木桩节点上触发命中特效。
 
 ## 1. 概述
 
@@ -78,7 +78,7 @@ AnimationPreviewModule
 - `SkillActionEditorWindow.cs`：引入模板工具条、生命周期挂钩。
 - `SkillActionConfigModule.cs`：新增模板折叠区，连接 Odin UI。
 - `AnimationPreviewModule.cs`：托管 `HitDummyPreviewController`，在 `SetEntity` / `SetFrame` 时同步目标。
-- `Services` 目录：新增 `SkillHitDummyTemplateService`、`HitDummyPreviewController`。
+- `Services` 目录：新增 `SkillHitDummyTemplateService`、`HitDummyPreviewController`、`HitDummyInteractionEvaluator`。
 - `Data` 目录：新增 `SkillHitDummyTemplateCollection.cs` 定义（仅在文档阶段规划，尚未提交）。
 
 ## 4. 数据结构
@@ -135,7 +135,29 @@ AnimationPreviewModule
    - 对每个 `Placement` 实例化 GameObject，应用偏移和调试材质。
 3. 若启用了 LockY，将 Y 设置为地面高度（Y=0）。
 
-### 5.5 调试辅助
+### 5.5 木桩交互逻辑
+1. `HitDummyPreviewController` 为每个木桩挂载 `HitDummyTargetMarker`（新组件），暴露以下接口：
+   - `ApplyKnockback(Vector3 direction, float distance)`：执行并记录击退位移，同时绘制箭头与距离数值。
+   - `OnSkillEffectTriggered(TriggerFrameData frameData)`：接收技能效果帧信息，刷新命中标记、数值面板。
+   - `PlayHitVFX(string resourcePath, Vector3 localOffset)`：调用 `VFXPreviewManager` 在木桩局部坐标系中播放特效。
+2. `HitDummyInteractionEvaluator.ProcessFrame(...)`（新服务）负责在每帧解析并调用接口：
+   - 输入：当前帧的 `TriggerFrameData` 列表、角色与木桩的世界 Transform。
+   - 输出：命中木桩集合、击退方向/距离、需要播放的特效/音效。
+3. 命中判定：
+   - 按技能效果的 `collisionInfo` 计算碰撞体（球/盒/胶囊）。
+   - 与每个木桩的包围盒相交测试，找到命中木桩并计算命中点。
+4. 击退应用：
+   - 若效果类型包含击退（`EffectType == 3` 或存在 `KnockbackDistance` 扩展字段），Evaluator 根据命中点朝向木桩中心计算单位向量。
+   - 调用 `ApplyKnockback`，木桩在预览中即时移动；控制面板展示击退距离、方向角度。
+5. 命中特效：
+   - 当 `TriggerFrameData` 包含 `type == "VFX"` 或技能效果携带 `HitVFX` 字段时，Evaluator 将请求转发至 `VFXPreviewManager`。
+   - 若特效要求跟随木桩，使用 `FollowCharacter=false` 但将父物体设置为木桩 Transform，实现视效固定在木桩位置。
+6. 调试反馈：
+   - 木桩在命中帧高亮显示（材质变色/启用光环）。
+   - 控制面板新增“命中详情”区块，列出命中帧、击退距离、播放的特效资源、命中木桩名称。
+   - 提供“重置木桩状态”按钮，快速复位被击退的木桩。
+
+### 5.6 调试辅助
 - 在预览窗口添加“显示木桩 Gizmos”勾选项。
 - 自动为木桩添加 `HitDummyTargetMarker` 脚本，用于测试击退方向/距离。
 - 提供 `Copy World Position` 按钮，便于将调试结果同步到技能表或脚本。
