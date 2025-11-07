@@ -45,13 +45,16 @@ SkillEffectTable
 
 ### 枚举约定
 
-| 枚举 | 说明 | 推荐映射 |
-|------|------|----------|
-| `TargetSelector` | 目标筛选 | `0=Self`, `1=Enemy`, `2=Ally`, `3=AreaAll` |
-| `DamageType` | 伤害类型 | `0=None`, `1=Physical`, `2=Magical`, `3=True` |
-| `ScalingStat` | 缩放属性 | `0=None`, `1=ATK`, `2=DEF`, `3=HPMax`, `4=AP` |
-| `StatusType` | 状态ID | 对应 `StatusTable` 中的枚举/整型ID |
-| `DirectionMode` | 位移/击退方向 | `0=Forward`, `1=Backward`, `2=Outward`, `3=Inward` |
+| 枚举 | 中文说明 | 推荐映射 |
+|------|----------|----------|
+| `TargetSelector` | 目标筛选方式 | `0=自身`, `1=敌人`, `2=友军`, `3=区域内全部` |
+| `DamageType` | 伤害/元素类型 | 建议统一映射：`0=无`, `1=物理`, `2=魔法`, `3=火`, `4=冰`, `5=雷`, `6=毒`, `7=真实` |
+| `ScalingStat` | 缩放属性 | `0=无`, `1=攻击`, `2=防御`, `3=生命上限`, `4=法强` |
+| `HealMode` | 治疗方式 | `0=瞬发`, `1=持续` |
+| `StatusType` | 状态枚举ID | 对应 `StatusTable` 中定义的状态 |
+| `DirectionMode` | 位移/击退方向 | `0=向前`, `1=向后`, `2=远离施法者`, `3=靠近施法者`, `4=瞬移点` |
+| `CurveType` | 速度曲线 | `0=线性`, `1=减速`, `2=加速`, `3=自定义` |
+| `StatusApplicationMode` | 状态叠加模式 | `0=刷新时长`, `1=叠加层数` |
 
 > ⚠️ 枚举值需同步至解析器与代码中定义的 `enum`，避免魔法数字失配。
 
@@ -60,76 +63,76 @@ SkillEffectTable
 ### Damage（伤害）
 
 **IntParams 顺序**
-1. `TargetSelector` (int)
-2. `BaseCoefficient` (int, *1000，1500=150%)
-3. `ScalingStat` (int)
-4. `ScalingRatio` (int, *1000)
-5. `VisualEffectId` (int)
-6. `SoundEffectId` (int)
+1. `TargetSelector`（目标筛选枚举）
+2. `DamageType`（伤害/元素枚举）
+3. `BaseCoefficient`（基础倍率×1000，例如1500=150%）
+4. `ScalingStat`（属性缩放枚举）
+5. `ScalingRatio`（属性缩放倍率×1000）
+6. `VisualEffectId`（视觉特效ID）
+7. `SoundEffectId`（音效ID）
 
 **StringParams** *(可选)*
-- `DamageType:<enum>` → 例：`DamageType:1`
-- `CastTime:<float>` → 例：`CastTime:0.5`
-- `Variance:<float>` → 随机浮动比例，如 `Variance:0.1`
+- 默认留空；如需文本标签可写 `Note:BossOnly`
+- 若需配置公式，可写 `Formula:ATK*1.5+50`
 
 **示例**
 ```csv
-4001,Damage,1|1500|1|1500|5001|6001,DamageType:1|CastTime:0.0
+4001,Damage,1|1|0|1500|1|1500|0|2000|5001|6001,
 ```
 
 ### Heal（治疗）
 
 **IntParams**
-1. `TargetSelector`
-2. `BaseCoefficient` (*1000)
-3. `ScalingStat`
-4. `ScalingRatio` (*1000)
-5. `VisualEffectId`
-6. `SoundEffectId`
+1. `TargetSelector`（目标筛选）
+2. `HealMode`（治疗方式枚举）
+3. `BaseCoefficient`（基础治疗量×1000）
+4. `ScalingStat`（属性缩放枚举）
+5. `ScalingRatio`（缩放倍率×1000）
+6. `VisualEffectId`（视觉特效）
+7. `SoundEffectId`（音效）
 
 **StringParams**
-- `HealType:<enum>` (如 0=Instant,1=HoT)
-- `DurationMs:<int>` （HoT 时长）
+- 默认留空；可用于备注：`Note:TriggerOnCritical`
 
 ### Knockback（击退）
 
 **IntParams**
-1. `TargetSelector`
-2. `DistanceMm` (int)
-3. `DurationMs` (int)
-4. `VisualEffectId`
-5. `SoundEffectId`
+1. `TargetSelector`（目标筛选）
+2. `DistanceMm`（击退距离，毫米）
+3. `DurationMs`（击退持续时长，毫秒）
+4. `DirectionMode`（方向枚举）
+5. `CurveType`（速度曲线枚举）
+6. `VisualEffectId`（视觉特效）
+7. `SoundEffectId`（音效）
 
 **StringParams**
-- `Direction:<enum>` (`Direction:0` 表示 Forward)
-- `Curve:<enum>` (速度曲线)
+- 默认留空；可用于备注或效果标签
 
 ### Status（状态附加）
 
 **IntParams**
-1. `TargetSelector`
-2. `DurationMs`
-3. `StatusType` (引用状态ID)
-4. `MaxStacks`
-5. `VisualEffectId`
-6. `SoundEffectId`
+1. `TargetSelector`（目标筛选）
+2. `StatusType`（状态类型ID）
+3. `DurationMs`（持续时间，毫秒）
+4. `MaxStacks`（最大叠加层数）
+5. `ApplicationMode`（叠加模式枚举，0=刷新时长，1=叠加层）
+6. `VisualEffectId`（视觉特效）
+7. `SoundEffectId`（音效）
 
 **StringParams**
-- `ApplicationMode:<enum>` (叠加方式)
-- `IntervalMs:<int>`（持续伤害/治疗间隔）
+- 默认留空；若有备注可写 `Note:BossOnly`
 
 ### Teleport（瞬移/位移）
 
 **IntParams**
-1. `TargetSelector`
-2. `OffsetMm`
-3. `CastDelayMs`
-4. `VisualEffectId`
-5. `SoundEffectId`
+1. `TargetSelector`（目标筛选）
+2. `OffsetMm`（位移距离，毫米，可正负）
+3. `DirectionMode`（方向枚举）
+4. `VisualEffectId`（视觉特效）
+5. `SoundEffectId`（音效）
 
 **StringParams**
-- `Direction:<enum>`
-- `Phase:<enum>` （触发阶段：BeforeHit / AfterHit）
+- 默认留空；若需特殊阶段可使用 `Phase:AfterHit`（极少数情况）
 
 ### 自定义效果（示例）
 
