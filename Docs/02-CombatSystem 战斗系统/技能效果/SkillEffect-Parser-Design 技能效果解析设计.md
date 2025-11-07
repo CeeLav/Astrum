@@ -39,17 +39,27 @@ SkillEffectManager → IEffectHandler
 | 列名 | 类型声明 (`##type`) | 说明 |
 |------|-------------------|------|
 | `skillEffectId` | `int` | 主键，保持不变 |
-| `effectType` | `string` | 语义化类型键，例如 `Damage`,`Heal`,`Knockback` |
-| `targetType` | `int` | 目标筛选/派发仍保留现有数值 |
-| `effectDuration` | `float` | 保留时长字段，供持续性效果使用 |
-| `effectRange` | `float` | 保留范围字段（米） |
-| `castTime` | `float` | 施法前摇/延迟 |
-| `intParams` | `(array#sep=|,int)` | 任意整数参数按顺序解读；示例：`1500|1|100` |
-| `stringParams` | `(array#sep=|,string)` | 补充字符串/路径/公式；示例：`Fire|DamageType:Physical` |
-| `visualEffectId` | `int` | 保留视觉表现引用 |
-| `soundEffectId` | `int` | 保留音效引用 |
+| `effectType` | `string` | 语义化类型键，例如 `Damage`,`Knockback`,`Teleport`,`Status` |
+| `intParams` | `"(array#sep=|,int)"` | 整数参数，竖线分隔，由解析器定义含义 |
+| `stringParams` | `"(array#sep=|,string)"` | 字符串/表达式参数，竖线分隔，通常为 `key:value` |
 
-> ⚠️ `effectValue`,`damageType`,`scalingStat`,`scalingRatio`,`effectParams` 等旧列将在 CSV 中迁移至 `intParams`/`stringParams`，同时更新 `##desc` 描述确保表意准确。
+> ⚠️ 旧版列（`effectValue`,`damageType`,`targetType`,`effectDuration`,`visualEffectId` 等）**已从表结构彻底移除**。所有数值与资源引用必须编码在 `intParams` 中；语义型数据使用 `stringParams`。
+
+### 效果类型参数约定
+- **Damage**
+  - `IntParams`: `targetType|baseCoefficient|scalingStat|scalingRatio|visualEffectId|soundEffectId`
+  - `StringParams`: 可选 `DamageType:Physical`、`Element:Fire`、`Variance:0.1`
+- **Knockback**
+  - `IntParams`: `targetType|distanceMm|durationMs|visualEffectId|soundEffectId`
+  - `StringParams`: `Direction:Forward`、`Curve:EaseOut`
+- **Status**
+  - `IntParams`: `targetType|durationMs|maxStacks|visualEffectId|soundEffectId`
+  - `StringParams`: `Status:Freeze`、`Immunity:true`
+- **Teleport**
+  - `IntParams`: `targetType|offsetMm|castDelayMs|visualEffectId|soundEffectId`
+  - `StringParams`: `Direction:Forward`、`Phase:AfterHit`
+
+解析器需在 `Parse` 中校验参数长度并提供默认值，缺少必需字段时记录错误并拒绝加载对应效果。
 
 ### 参数序列化规范
 - 数组分隔符使用竖线 `|`，避免与 CSV 逗号冲突，兼容 Luban `array#sep` 语法。
@@ -71,12 +81,20 @@ public sealed class DamageEffectParser : IEffectParser
 
     public ISkillEffect Parse(SkillEffectRawData data)
     {
-        int baseDamage = data.IntParams[0];
-        int damageType = data.IntParams.Length > 1 ? data.IntParams[1] : 0;
-        float ratio = data.IntParams.Length > 2 ? data.IntParams[2] / 100f : 1f;
-        string element = data.StringParams.Length > 0 ? data.StringParams[0] : "None";
+        if (data.IntParams.Length < 6)
+            throw new SkillEffectConfigException("Damage effect requires int params: targetType|baseCoefficient|scalingStat|scalingRatio|vfxId|sfxId");
 
-        return new DamageEffect(baseDamage, damageType, ratio, element);
+        var targetType = (TargetSelector)data.IntParams[0];
+        int baseCoefficient = data.IntParams[1];
+        int scalingStat = data.IntParams[2];
+        float scalingRatio = data.IntParams[3] / 1000f;
+        int visualEffectId = data.IntParams[4];
+        int soundEffectId = data.IntParams[5];
+
+        DamageType damageType = data.TryGetEnum("DamageType", DamageType.Physical);
+        string element = data.TryGetString("Element", fallback: "None");
+
+        return new DamageEffect(targetType, baseCoefficient, scalingStat, scalingRatio, damageType, element, visualEffectId, soundEffectId);
     }
 }
 ```
@@ -88,14 +106,11 @@ public sealed class DamageEffectParser : IEffectParser
 
 ## 运行时流程调整
 
-1. `SkillEffectManager` 查询 `cfg.Skill.SkillEffectTable` → 获取 `SkillEffectRawData`。
-2. 按 `effectType` 调用注册解析器并缓存 `ISkillEffect` 结果。
-3. 将 `ISkillEffect` 与施法上下文打包成 `SkillEffectData`（保留 `CasterId`,`TargetId`）。
-4. 根据 `effectType` 映射到现有 `IEffectHandler`：
-   - `Damage` → `DamageEffectHandler`
-   - `Knockback` → `KnockbackEffectHandler`
-   - `Buff` → `BuffEffectHandler`
-5. 处理器只关注领域模型，不再直接访问 CSV 字段。
+1. `SkillEffectManager` 查询 `cfg.Skill.SkillEffectTable` → 构建仅含四列的 `SkillEffectRawData`。
+2. 按 `effectType` 调用注册解析器，如有缺失直接记录错误并停止。
+3. 解析结果缓存为 `ISkillEffect`，并与施法上下文 `CasterId/TargetId` 封装进 `SkillEffectData`。
+4. 管线以 `effectType` 分派处理器：`Damage`→`DamageEffectHandler`、`Knockback`→`KnockbackEffectHandler`、`Status`→状态处理器等。
+5. 处理器仅消费领域模型数据（如 `DamageEffect`），不再读取 `cfg.Skill.SkillEffectTable` 原始字段。
 
 ## 关键决策与取舍
 - **问题**: 旧版配置列固定化，新增效果需改动多张表/代码。

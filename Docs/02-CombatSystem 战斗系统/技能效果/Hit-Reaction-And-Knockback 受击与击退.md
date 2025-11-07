@@ -975,22 +975,20 @@ SkillEffectSystem.QueueSkillEffect(caster, target, effectId)
 
 ### 6.1 技能效果表（SkillEffectTable）
 
-击退效果配置示例：
+击退效果配置示例（新结构）：
 
 ```csv
-skillEffectId,effectType,effectValue,effectDuration,targetType,effectRange,description
-5001,3,5.0,0.3,1,0,轻击退：5米，0.3秒
-5002,3,10.0,0.5,1,0,重击退：10米，0.5秒
-5003,3,3.0,0.2,1,0,小击退：3米，0.2秒
+skillEffectId,effectType,intParams,stringParams
+4002,Knockback,1|1000|200|5002|6002,Direction:Forward
+4016,Knockback,1|5000|0|5016|6016,Direction:Outward
 ```
 
-| 字段               | 说明     | 击退用途       |
-| ------------------ | -------- | -------------- |
-| `effectType`     | 效果类型 | 固定为 `3`   |
-| `effectValue`    | 效果数值 | 击退距离（米） |
-| `effectDuration` | 持续时间 | 击退时长（秒） |
-| `targetType`     | 目标类型 | 1=敌人         |
-| `effectRange`    | 范围     | 击退不使用     |
+| 字段         | 说明                                           | 击退用途                                       |
+| ------------ | ---------------------------------------------- | ---------------------------------------------- |
+| `skillEffectId` | 效果配置主键                                 | 唯一标识技能效果                               |
+| `effectType` | 使用 `Knockback`                               | 指明解析器类型                                 |
+| `intParams`  | `targetType|distanceMm|durationMs|vfxId|sfxId` | 击退会读取目标类型、距离、时长及表现资源引用   |
+| `stringParams` | `key:value` 格式字符串数组                     | `Direction:Forward` 定义方向等可读配置         |
 
 ### 6.2 扩展配置（预留）
 

@@ -313,48 +313,44 @@ unlockSkillId, skillPoint
 
 ## 五、SkillEffectTable（技能效果表）
 
-### 5.1 现有字段评估
-
-**当前字段**：
-```csv
-skillEffectId, effectType, effectValue, targetType,
-effectDuration, effectRange, castTime, effectParams,
-visualEffectId, soundEffectId
-```
-
-**评估**：
-- ✅ 效果类型已定义（1=伤害, 2=治疗, 3=击退）
-- ✅ effectValue字段可用（当前是百分比，如150.0）
-- ⚠️ **effectValue语义不明确**（是百分比还是固定值？）
-
-### 5.2 优化字段设计
-
-**新增字段**：
+### 5.1 新字段结构
 
 ```csv
-##var,skillEffectId,...,effectValue,damageType,scalingStat,scalingRatio
-##type,int,...,int,int,int,int
-##desc,效果ID,...,效果数值,伤害类型(1=物理/2=魔法/3=真实),缩放属性(1=攻击/2=防御/3=生命),缩放比例*1000
+##var,skillEffectId,effectType,intParams,stringParams
+##type,int,string,"(array#sep=|,int)","(array#sep=|,string)"
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `skillEffectId` | 效果主键 |
+| `effectType` | 语义型字符串（如 `Damage`,`Knockback`,`Status`）|
+| `intParams` | 整数参数数组，所有数值/资源ID按解析器约定顺序编码 |
+| `stringParams` | 字符串参数数组，惯用 `key:value` 形式承载语义数据 |
+
+### 5.2 效果类型参数约定
+
+| `effectType` | `intParams` 约定 | `stringParams` 约定 |
+|--------------|------------------|----------------------|
+| `Damage` | `targetType|baseCoefficient|scalingStat|scalingRatio|visualEffectId|soundEffectId` | `DamageType:Physical`、`Element:Fire`、`CastTime:0.5` |
+| `Heal` | `targetType|baseCoefficient|scalingStat|scalingRatio|visualEffectId|soundEffectId` | `HealType:Direct`、`CastTime:0.3` |
+| `Knockback` | `targetType|distanceMm|durationMs|visualEffectId|soundEffectId` | `Direction:Forward`、`Curve:EaseOut` |
+| `Status` | `targetType|durationMs|maxStacks|visualEffectId|soundEffectId` | `Status:Freeze`、`Radius:6.0` |
+| `Teleport` | `targetType|offsetMm|castDelayMs|visualEffectId|soundEffectId` | `Direction:Forward`、`Phase:AfterHit` |
+
+> 解析器需在加载时验证参数长度，缺失必填项直接报错，避免运行时不确定性。
 
 ### 5.3 示例数据
 
 ```csv
-# 物理伤害，150%攻击力缩放
-4001,重击,1,1500,1,0.0,0.0,1,1,1500
+# 物理伤害技能（150%攻击力，附加1.5倍暴击放大）
+4001,Damage,1|1500|1|1500|5001|6001,DamageType:Physical|Element:Physical
 
-# 魔法伤害，200%攻击力缩放
-4013,火球术,1,2000,2,0.0,3.0,2,1,2000
+# 火焰击退（距离5米，方向朝外）
+4016,Knockback,1|5000|300|5016|6016,Direction:Outward|Element:Fire
 
-# 真实伤害，10%生命上限缩放（斩杀技能）
-4099,终结技,1,100,3,0.0,0.0,3,3,100
+# 冻结状态（持续3秒）
+4012,Status,1|3000|3|5012|6012,Status:Freeze|Immunity:true
 ```
-
-**字段说明**：
-- `effectValue`: 效果数值*1000（如150%存为1500）
-- `damageType`: 1=物理, 2=魔法, 3=真实
-- `scalingStat`: 缩放属性（1=攻击, 2=防御, 3=生命上限）
-- `scalingRatio`: 缩放比例*1000（如1.5存为1500）
 
 ---
 
@@ -437,9 +433,9 @@ visualEffectId, soundEffectId
    - 测试修饰器字符串解析
 
 4. **优化 SkillEffectTable**
-   - 添加伤害类型、缩放属性字段
-   - 更新现有技能效果数据
-   - 确保effectValue语义明确
+   - 切换至 `intParams` / `stringParams` 通用参数结构
+   - 更新现有技能效果数据并补齐解析器所需参数
+   - 补充测试覆盖，确保无效参数能在加载阶段被拒绝
 
 ### Phase 3：数据填充
 

@@ -82,11 +82,11 @@ public static DamageResult Calculate(Entity caster, Entity target, SkillEffectTa
 ### 2.1 基础公式
 
 ```csharp
-private static FP CalculateBaseDamage(FP attack, SkillEffectTable effectConfig)
+private static FP CalculateBaseDamage(FP attack, DamageEffect effect)
 {
-    // effectValue 通常是百分比（如150表示150%攻击力）
-    FP ratio = (FP)effectConfig.EffectValue / (FP)100;
-    return attack * ratio;
+    // IntParams[0] 保存倍率（*1000），例如 1500 = 150%
+    FP ratio = (FP)effect.BaseCoefficient / (FP)1000;
+    return attack * ratio * effect.ScalingRatio;
 }
 ```
 
@@ -94,8 +94,8 @@ private static FP CalculateBaseDamage(FP attack, SkillEffectTable effectConfig)
 
 ```
 攻击力 = FP(100)
-技能倍率 = FP(1.5)（配置表中 effectValue = 150）
-基础伤害 = FP(100) × FP(1.5) = FP(150)
+技能倍率 = FP(1.5)（配置表中 `intParams = 1500|1|1|1500` → 基础倍率1.5 × 缩放比1.5）
+基础伤害 = FP(100) × FP(1.5) × FP(1.5) = FP(225)
 ```
 
 ### 2.3 技能倍率建议
@@ -358,16 +358,16 @@ DerivedStats:
 **技能效果配置**：
 ```
 SkillEffectId: 4001
-EffectType: 1（伤害）
-EffectValue: 150（150%攻击力）
-DamageType: 1（物理）
+EffectType: Damage
+IntParams: 1500|1|1|1500   // baseCoefficient|damageType|scalingStat|scalingRatio
+StringParams: Element:Physical
 ```
 
 **计算流程**：
 
 ```
 [1] 基础伤害计算
-    = FinalAttack × (EffectValue / 100)
+    = FinalAttack × (baseCoefficient / 1000)
     = 134.4 × 1.5
     = 201.6
 
@@ -383,12 +383,12 @@ DamageType: 1（物理）
 [4] 暴击判定
     暴击概率 = FinalCritRate = 0.05（5%）
     随机数 = 0.03 → 暴击成功！💥
-    暴击伤害 = 201.6 × 3.0 = 604.8
+    暴击伤害 = 201.6 × 3.0 × ScalingRatio(1.5) = 907.2
 
 [5] 防御减免
     减伤百分比 = Defense / (Defense + 100)
                 = 48 / 148 = 0.324（32.4%）
-    伤害 = 604.8 × (1 - 0.324) = 408.8
+    伤害 = 907.2 × (1 - 0.324) = 613.0
 
 [6] 抗性减免（物理抗性）
     抗性 = FinalPhysicalResistance = 0.0
@@ -396,13 +396,13 @@ DamageType: 1（物理）
 
 [7] 随机浮动（±5%）
     随机数 = 0.62 → 浮动 = 0.97
-    最终伤害 = 408.8 × 0.97 = 396.5
+    最终伤害 = 613.0 × 0.97 = 594.6
 
 [8] 结果
     ✅ 命中
     ✅ 暴击
     ❌ 格挡失败
-    最终伤害：396.5
+    最终伤害：594.6
 ```
 
 ---
