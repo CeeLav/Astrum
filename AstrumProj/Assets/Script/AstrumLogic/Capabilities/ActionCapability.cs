@@ -189,19 +189,32 @@ namespace Astrum.LogicCore.Capabilities
             
             foreach (var action in availableActions)
             {
-                if (CanCancelToAction(actionComponent, action))
+                if (!HasValidCommand(entity, action))
                 {
-                    if (HasValidCommand(entity, action))
+                    continue;
+                }
+
+                if (TryGetMatchingCancelContext(actionComponent, action, out var cancelTag, out var beCancelledTag))
+                {
+                    actionComponent.PreorderActions.Add(new PreorderActionInfo
                     {
-                        actionComponent.PreorderActions.Add(new PreorderActionInfo
-                        {
-                            ActionId = action.Id,
-                            Priority = CalculatePriority(action),
-                            TransitionFrames = 3,
-                            FromFrame = 0,
-                            FreezingFrames = 0
-                        });
-                    }
+                        ActionId = action.Id,
+                        Priority = CalculatePriority(action, cancelTag),
+                        TransitionFrames = (cancelTag?.BlendInFrames > 0 ? cancelTag.BlendInFrames : 3),
+                        FromFrame = cancelTag?.StartFromFrames ?? 0,
+                        FreezingFrames = beCancelledTag?.BlendOutFrames ?? 0
+                    });
+                }
+                else if (CanCancelToAction(actionComponent, action))
+                {
+                    actionComponent.PreorderActions.Add(new PreorderActionInfo
+                    {
+                        ActionId = action.Id,
+                        Priority = CalculatePriority(action),
+                        TransitionFrames = 3,
+                        FromFrame = 0,
+                        FreezingFrames = 0
+                    });
                 }
             }
         }
@@ -321,26 +334,79 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool CanCancelToAction(ActionComponent actionComponent, ActionInfo targetAction)
         {
-            if (actionComponent == null || actionComponent.CurrentAction == null || targetAction == null) return false;
-            
-            // 检查CancelTag是否匹配BeCancelledTag
+            return TryGetMatchingCancelContext(actionComponent, targetAction, out _, out _);
+        }
+
+        private bool TryGetMatchingCancelContext(
+            ActionComponent actionComponent,
+            ActionInfo targetAction,
+            out CancelTag matchedCancelTag,
+            out BeCancelledTag matchedBeCancelledTag)
+        {
+            matchedCancelTag = null;
+            matchedBeCancelledTag = null;
+
+            if (actionComponent == null || actionComponent.CurrentAction == null || targetAction == null)
+            {
+                return false;
+            }
+
+            var currentAction = actionComponent.CurrentAction;
+
+            if (targetAction.CancelTags == null || targetAction.CancelTags.Count == 0 ||
+                currentAction.BeCancelledTags == null || currentAction.BeCancelledTags.Count == 0)
+            {
+                return false;
+            }
+
+            var bestScore = int.MinValue;
+
             foreach (var cancelTag in targetAction.CancelTags)
             {
-                foreach (var beCancelledTag in actionComponent.CurrentAction.BeCancelledTags)
+                if (cancelTag == null || string.IsNullOrEmpty(cancelTag.Tag))
                 {
-                    if (beCancelledTag.Tags.Contains(cancelTag.Tag))
+                    continue;
+                }
+
+                foreach (var beCancelledTag in currentAction.BeCancelledTags)
+                {
+                    if (beCancelledTag == null || beCancelledTag.Tags == null)
                     {
-                        // 检查时间范围
-                        if (beCancelledTag.RangeFrames.Count >= 2 && 
-                            IsInTimeRange(actionComponent, beCancelledTag.RangeFrames[0], beCancelledTag.RangeFrames[1]))
-                        {
-                            return true;
-                        }
+                        continue;
+                    }
+
+                    if (!beCancelledTag.Tags.Contains(cancelTag.Tag))
+                    {
+                        continue;
+                    }
+
+                    if (beCancelledTag.RangeFrames == null || beCancelledTag.RangeFrames.Count < 2)
+                    {
+                        continue;
+                    }
+
+                    var rangeStart = beCancelledTag.RangeFrames[0];
+                    var rangeEnd = beCancelledTag.RangeFrames[1];
+
+                    if (!IsInTimeRange(actionComponent, rangeStart, rangeEnd))
+                    {
+                        continue;
+                    }
+
+                    var cancelPriority = cancelTag.Priority;
+                    var beCancelledPriority = beCancelledTag.Priority;
+                    var score = cancelPriority + beCancelledPriority;
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        matchedCancelTag = cancelTag;
+                        matchedBeCancelledTag = beCancelledTag;
                     }
                 }
             }
-            
-            return false;
+
+            return matchedCancelTag != null;
         }
         
         /// <summary>
@@ -363,7 +429,12 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private int CalculatePriority(ActionInfo actionInfo)
         {
-            return actionInfo.Priority;
+            return actionInfo?.Priority ?? 0;
+        }
+
+        private int CalculatePriority(ActionInfo actionInfo, CancelTag cancelTag)
+        {
+            return CalculatePriority(actionInfo) + (cancelTag?.Priority ?? 0);
         }
         
         /// <summary>
