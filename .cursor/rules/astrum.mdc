@@ -1,7 +1,7 @@
 ---
 alwaysApply: true
 ---
-开始工作前，先阅读 QUICK_START_GUIDE.md 保证对项目的认知
+开始工作前，先阅读 QUICK_START.md 保证对项目的认知
 编写技术文档时注意先阅读 Docs\README.md 来确认文档规范
 编译前先使用 Assets/Refresh 刷新 Unity 使其识别新增的文件
 编译sln以处理报错时，先找到正确的 sln 位置 再使用 dotnet build AstrumProj.sln 来编译获取报错

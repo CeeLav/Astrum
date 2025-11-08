@@ -88,7 +88,7 @@ namespace Astrum.Editor.RoleEditor.Data
         
         /// <summary>
         /// 根节点位移数据（整型数组格式，用于保存到CSV）
-        /// Luban 类型：(array#sep=,),int
+        /// Luban 类型：(array#sep=|),int
         /// 编辑器端直接使用运行时数据结构，提取时直接转为定点数并序列化
         /// </summary>
         [HideInInspector]
