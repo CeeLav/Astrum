@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Astrum.Editor.RoleEditor.Persistence.Core;
 
 namespace Astrum.Editor.RoleEditor.Persistence.Mappings
@@ -19,17 +20,8 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(3, "RoleType")]
         public int RoleType { get; set; }
         
-        [TableField(4, "LightAttackSkillId")]
-        public int LightAttackSkillId { get; set; }
-        
-        [TableField(5, "HeavyAttackSkillId")]
-        public int HeavyAttackSkillId { get; set; }
-        
-        [TableField(6, "Skill1Id")]
-        public int Skill1Id { get; set; }
-        
-        [TableField(7, "Skill2Id")]
-        public int Skill2Id { get; set; }
+        [TableField(4, "DefaultSkillIds")]
+        public List<int> DefaultSkillIds { get; set; } = new List<int>();
         
         /// <summary>
         /// 获取表配置
@@ -43,25 +35,25 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 HasEmptyFirstColumn = true,
                 Header = new TableHeader
                 {
-                    VarNames = new System.Collections.Generic.List<string>
+                    VarNames = new List<string>
                     {
                         "id", "name", "description", "roleType",
-                        "lightAttackSkillId", "heavyAttackSkillId", "skill1Id", "skill2Id"
+                        "defaultSkillIds"
                     },
-                    Types = new System.Collections.Generic.List<string>
+                    Types = new List<string>
                     {
                         "int", "string", "string", "int",
-                        "int", "int", "int", "int"
+                        "(array#sep=|),int"
                     },
-                    Groups = new System.Collections.Generic.List<string>
+                    Groups = new List<string>
                     {
                         "", "", "", "",
-                        "", "", "", ""
+                        ""
                     },
-                    Descriptions = new System.Collections.Generic.List<string>
+                    Descriptions = new List<string>
                     {
                         "角色ID", "角色名称", "角色描述", "角色类型",
-                        "轻击技能ID", "重击技能ID", "技能1ID", "技能2ID"
+                        "默认技能ID列表"
                     }
                 }
             };

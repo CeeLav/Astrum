@@ -64,6 +64,10 @@ namespace Astrum.Editor.RoleEditor.Data
         [LabelText("死亡动作ID")]
         public int DeathAction = 0;
         
+        [TitleGroup("实体配置/基础动作配置")]
+        [LabelText("受击动作ID")]
+        public int HitAction = 0;
+        
         [TitleGroup("实体配置/物理碰撞")]
         [LabelText("碰撞盒数据")]
         [MultiLineProperty(3)]
@@ -98,6 +102,10 @@ namespace Astrum.Editor.RoleEditor.Data
         }
         
         // ===== RoleBaseTable 数据 =====
+        [TitleGroup("角色配置/默认技能")]
+        [LabelText("默认技能ID列表")]        
+        [ListDrawerSettings(Expanded = true, ShowPaging = false)]
+        public List<int> DefaultSkillIds = new List<int>();
         
         [TitleGroup("角色配置")]
         [LabelText("角色ID"), ReadOnly]
@@ -147,21 +155,7 @@ namespace Astrum.Editor.RoleEditor.Data
         [LabelText("速度成长"), Range(0, 5)]
         public float SpeedGrowth = 0.1f;
         
-        [TitleGroup("角色配置/技能槽位")]
-        [LabelText("轻击技能ID")]
-        public int LightAttackSkillId = 0;
-        
-        [TitleGroup("角色配置/技能槽位")]
-        [LabelText("重击技能ID")]
-        public int HeavyAttackSkillId = 0;
-        
-        [TitleGroup("角色配置/技能槽位")]
-        [LabelText("技能槽1 ID")]
-        public int Skill1Id = 0;
-        
-        [TitleGroup("角色配置/技能槽位")]
-        [LabelText("技能槽2 ID")]
-        public int Skill2Id = 0;
+
         
         // ===== 编辑器辅助字段 =====
         
@@ -206,6 +200,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.JumpAction = this.JumpAction;
             clone.BirthAction = this.BirthAction;
             clone.DeathAction = this.DeathAction;
+            clone.HitAction = this.HitAction;
             clone.CollisionData = this.CollisionData;
             clone.RadiusScale = this.RadiusScale;
             
@@ -222,10 +217,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.DefenseGrowth = this.DefenseGrowth;
             clone.HealthGrowth = this.HealthGrowth;
             clone.SpeedGrowth = this.SpeedGrowth;
-            clone.LightAttackSkillId = this.LightAttackSkillId;
-            clone.HeavyAttackSkillId = this.HeavyAttackSkillId;
-            clone.Skill1Id = this.Skill1Id;
-            clone.Skill2Id = this.Skill2Id;
+            clone.DefaultSkillIds = new List<int>(this.DefaultSkillIds);
             
             // 编辑器状态
             clone.ValidationErrors = new List<string>();

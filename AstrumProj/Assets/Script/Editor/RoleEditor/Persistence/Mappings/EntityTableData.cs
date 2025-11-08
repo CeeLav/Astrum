@@ -37,6 +37,9 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(9, "DeathAction")]
         public int DeathAction { get; set; }
         
+        [TableField(10, "HitAction")]
+        public int HitAction { get; set; }
+        
         /// <summary>
         /// 获取表配置
         /// </summary>
@@ -53,23 +56,23 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                     {
                         "entityId", "entityName", "archetypeName", "modelId",
                         "idleAction", "walkAction", "runAction", "jumpAction",
-                        "birthAction", "deathAction"
+                        "birthAction", "deathAction", "hitAction"
                     },
                     Types = new System.Collections.Generic.List<string>
                     {
                         "int", "string", "string", "int",
                         "int", "int", "int", "int",
-                        "int", "int"
+                        "int", "int", "int"
                     },
                     Groups = new System.Collections.Generic.List<string>
                     {
-                        "", "", "", "", "", "", "", "", "", ""
+                        "", "", "", "", "", "", "", "", "", "", ""
                     },
                     Descriptions = new System.Collections.Generic.List<string>
                     {
                         "实体ID", "实体名称", "原型名", "模型ID",
                         "静止动作", "走路动作", "跑步动作", "跳跃动作",
-                        "出生动作", "死亡动作"
+                        "出生动作", "死亡动作", "受击动作"
                     }
                 }
             };

@@ -86,7 +86,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 RunAction = r.RunAction,
                 JumpAction = r.JumpAction,
                 BirthAction = r.BirthAction,
-                DeathAction = r.DeathAction
+                DeathAction = r.DeathAction,
+                HitAction = r.HitAction
             }).ToList();
         }
         
@@ -140,10 +141,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 RoleName = r.RoleName,
                 RoleDescription = r.RoleDescription,
                 RoleType = (int)r.RoleType,
-                LightAttackSkillId = r.LightAttackSkillId,
-                HeavyAttackSkillId = r.HeavyAttackSkillId,
-                Skill1Id = r.Skill1Id,
-                Skill2Id = r.Skill2Id
+                DefaultSkillIds = new List<int>(r.DefaultSkillIds ?? new List<int>())
             }).ToList();
         }
     }

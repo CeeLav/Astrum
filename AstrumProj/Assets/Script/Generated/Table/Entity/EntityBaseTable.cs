@@ -43,7 +43,7 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     /// </summary>
     public readonly string EntityName;
     /// <summary>
-    /// 原型名称
+    /// 原型名
     /// </summary>
     public readonly string ArchetypeName;
     /// <summary>
@@ -51,15 +51,15 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     /// </summary>
     public readonly int ModelId;
     /// <summary>
-    /// 待机动作
+    /// 静止动作
     /// </summary>
     public readonly int IdleAction;
     /// <summary>
-    /// 行走动作
+    /// 走路动作
     /// </summary>
     public readonly int WalkAction;
     /// <summary>
-    /// 奔跑动作
+    /// 跑步动作
     /// </summary>
     public readonly int RunAction;
     /// <summary>

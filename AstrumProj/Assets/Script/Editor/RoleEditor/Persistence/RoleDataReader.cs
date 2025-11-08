@@ -80,6 +80,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     roleData.JumpAction = entityData.JumpAction;
                     roleData.BirthAction = entityData.BirthAction;
                     roleData.DeathAction = entityData.DeathAction;
+                    roleData.HitAction = entityData.HitAction;
                     
                     // 从 EntityModelTable 获取模型路径和碰撞数据
                     if (entityData.ModelId > 0 && modelDataDict.TryGetValue(entityData.ModelId, out var modelData))
@@ -97,6 +98,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 else
                 {
                     roleData.EntityId = id;
+                    roleData.HitAction = 0;
                 }
                 
                 // 从RoleBaseTable填充数据
@@ -106,14 +108,14 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     roleData.RoleName = roleTableData.RoleName;
                     roleData.RoleDescription = roleTableData.RoleDescription;
                     roleData.RoleType = (RoleTypeEnum)roleTableData.RoleType;
-                    roleData.LightAttackSkillId = roleTableData.LightAttackSkillId;
-                    roleData.HeavyAttackSkillId = roleTableData.HeavyAttackSkillId;
-                    roleData.Skill1Id = roleTableData.Skill1Id;
-                    roleData.Skill2Id = roleTableData.Skill2Id;
+                    roleData.DefaultSkillIds = roleTableData.DefaultSkillIds != null
+                        ? new List<int>(roleTableData.DefaultSkillIds)
+                        : new List<int>();
                 }
                 else
                 {
                     roleData.RoleId = id;
+                    roleData.DefaultSkillIds = new List<int>();
                 }
                 
                 roleData.IsNew = false;

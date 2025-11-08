@@ -20,10 +20,7 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
         Name = _buf.ReadString();
         Description = _buf.ReadString();
         RoleType = _buf.ReadInt();
-        LightAttackSkillId = _buf.ReadInt();
-        HeavyAttackSkillId = _buf.ReadInt();
-        Skill1Id = _buf.ReadInt();
-        Skill2Id = _buf.ReadInt();
+        {int __n0 = _buf.ReadSize(); DefaultSkillIds = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); DefaultSkillIds[__index0] = __e0;}}
     }
 
     public static RoleBaseTable DeserializeRoleBaseTable(ByteBuf _buf)
@@ -48,21 +45,9 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
     /// </summary>
     public readonly int RoleType;
     /// <summary>
-    /// 轻击技能ID
+    /// 默认技能ID列表
     /// </summary>
-    public readonly int LightAttackSkillId;
-    /// <summary>
-    /// 重击技能ID
-    /// </summary>
-    public readonly int HeavyAttackSkillId;
-    /// <summary>
-    /// 技能1ID
-    /// </summary>
-    public readonly int Skill1Id;
-    /// <summary>
-    /// 技能2ID
-    /// </summary>
-    public readonly int Skill2Id;
+    public readonly int[] DefaultSkillIds;
    
     public const int __ID__ = 458507311;
     public override int GetTypeId() => __ID__;
@@ -78,10 +63,7 @@ public sealed partial class RoleBaseTable : Luban.BeanBase
         + "name:" + Name + ","
         + "description:" + Description + ","
         + "roleType:" + RoleType + ","
-        + "lightAttackSkillId:" + LightAttackSkillId + ","
-        + "heavyAttackSkillId:" + HeavyAttackSkillId + ","
-        + "skill1Id:" + Skill1Id + ","
-        + "skill2Id:" + Skill2Id + ","
+        + "defaultSkillIds:" + Luban.StringUtil.CollectionToString(DefaultSkillIds) + ","
         + "}";
     }
 }

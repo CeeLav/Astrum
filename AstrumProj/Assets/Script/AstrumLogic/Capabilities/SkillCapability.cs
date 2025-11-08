@@ -128,12 +128,18 @@ namespace Astrum.LogicCore.Capabilities
 			if (roleInfo?.RoleConfig == null) return;
 
 			var cfg = roleInfo.RoleConfig;
-			// 轻击/重击（也作为技能处理）
-			if (cfg.LightAttackSkillId > 0) { LearnSkill(entity, cfg.LightAttackSkillId, 1); }
-			if (cfg.HeavyAttackSkillId > 0) { LearnSkill(entity, cfg.HeavyAttackSkillId, 1); }
-			// 其它两个配置技能位
-			if (cfg.Skill1Id > 0) { LearnSkill(entity, cfg.Skill1Id, 1); }
-			if (cfg.Skill2Id > 0) { LearnSkill(entity, cfg.Skill2Id, 1); }
+			if (cfg.DefaultSkillIds == null || cfg.DefaultSkillIds.Length == 0)
+			{
+				return;
+			}
+
+			foreach (var skillId in cfg.DefaultSkillIds)
+			{
+				if (skillId > 0)
+				{
+					LearnSkill(entity, skillId, 1);
+				}
+			}
 		}
 
 		private void RegisterAllSkillActions(Entity entity)
