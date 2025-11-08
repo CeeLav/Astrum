@@ -25,6 +25,8 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             }
             
             int damageTypeCode = effectConfig.GetDamageTypeCode();
+            string visualEffectPath = effectConfig.GetVisualEffectPath();
+            string soundEffectPath = effectConfig.GetSoundEffectPath();
             
             // 1. 读取组件（只读，用于计算）
             var casterStats = caster.GetComponent<DerivedStatsComponent>();
@@ -66,6 +68,8 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
                 EffectType = effectConfig.EffectType,
                 HitDirection = hitDirection,
                 CausesStun = damageResult.IsCritical, // 暴击产生硬直
+                VisualEffectPath = visualEffectPath,
+                SoundEffectPath = soundEffectPath,
                 TriggerWhenInactive = true // 即使 HitReactionCapability 未激活也触发（主动激活）
             };
             

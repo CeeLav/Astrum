@@ -68,16 +68,14 @@ SkillEffectTable
 3. `BaseCoefficient`（基础倍率×1000，例如1500=150%）
 4. `ScalingStat`（属性缩放枚举）
 5. `ScalingRatio`（属性缩放倍率×1000）
-6. `VisualEffectId`（视觉特效ID）
-7. `SoundEffectId`（音效ID）
 
-**StringParams** *(可选)*
-- 默认留空；如需文本标签可写 `Note:BossOnly`
-- 若需配置公式，可写 `Formula:ATK*1.5+50`
+**StringParams**
+- `visualEffectPath`：技能命中特效的 Prefab 路径（例如 `Assets/ArtRes/Effect/.../FX_hit_01.prefab`）
+- `soundEffectPath`：命中音效资源路径（可为空，预留位置供后续使用）
 
 **示例**
 ```csv
-4001,Damage,1|1|0|1500|1|1500|0|2000|5001|6001,
+4001,Damage,1|1|1500|1|1500,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab|Assets/Audio/SFX/Skill/Skill_Hit_01.wav
 ```
 
 ### Heal（治疗）
@@ -154,8 +152,8 @@ SkillEffectTable
 
 *文档版本：v0.1*  
 *创建时间：2025-11-07*  
-*最后更新：2025-11-07*  
+*最后更新：2025-11-08*  
 *状态：草稿*  
 *Owner*: Combat System Team  
-*变更摘要*: 定义技能效果配置参数格式与枚举约定
+*变更摘要*: 调整伤害类效果使用字符串资源路径并更新示例
 

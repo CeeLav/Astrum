@@ -12,6 +12,8 @@ namespace Astrum.LogicCore.SkillSystem
     {
         private static readonly int[] EmptyIntArray = Array.Empty<int>();
         private static readonly string[] EmptyStringArray = Array.Empty<string>();
+        private const int VisualEffectPathIndex = 0;
+        private const int SoundEffectPathIndex = 1;
 
         public static IReadOnlyList<int> GetIntParams(this SkillEffectTable effect)
         {
@@ -67,6 +69,28 @@ namespace Astrum.LogicCore.SkillSystem
             }
 
             return map;
+        }
+
+        public static string GetVisualEffectPath(this SkillEffectTable effect)
+        {
+            var list = effect?.StringParams;
+            if (list == null || list.Length <= VisualEffectPathIndex)
+            {
+                return string.Empty;
+            }
+
+            return list[VisualEffectPathIndex] ?? string.Empty;
+        }
+
+        public static string GetSoundEffectPath(this SkillEffectTable effect)
+        {
+            var list = effect?.StringParams;
+            if (list == null || list.Length <= SoundEffectPathIndex)
+            {
+                return string.Empty;
+            }
+
+            return list[SoundEffectPathIndex] ?? string.Empty;
         }
 
         public static int GetDamageTypeCode(this SkillEffectTable effect)

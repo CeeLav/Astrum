@@ -30,7 +30,9 @@ namespace Astrum.Editor.RoleEditor.Services
             ResetTargets();
         }
 
-        public void UpdateFrame()
+        private const float DefaultFrameDelta = 1f / 20f;
+
+        public void UpdateFrame(float deltaTime = DefaultFrameDelta)
         {
             if (_currentTemplate == null || _rootContainer == null)
             {
@@ -45,6 +47,11 @@ namespace Astrum.Editor.RoleEditor.Services
             if (_currentTemplate.FollowAnchorRotation && _anchor != null)
             {
                 _rootContainer.transform.rotation = _anchor.transform.rotation;
+            }
+
+            foreach (var marker in _markers)
+            {
+                marker?.Update(deltaTime);
             }
         }
 
@@ -221,12 +228,12 @@ namespace Astrum.Editor.RoleEditor.Services
             }
         }
 
-        public bool ApplyKnockback(HitDummyTargetMarker marker, Vector3 direction, float distance, int frame)
+        public bool ApplyKnockback(HitDummyTargetMarker marker, Vector3 direction, float distance, int frame, float durationSeconds, HitDummyKnockbackCurve curve)
         {
             if (marker == null)
                 return false;
 
-            var applied = marker.ApplyKnockback(direction, distance, frame);
+            var applied = marker.ApplyKnockback(direction, distance, frame, durationSeconds, curve);
             return applied;
         }
     }

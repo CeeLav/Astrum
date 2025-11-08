@@ -295,8 +295,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.UpdateVFXPositions();
             }
 
-            _hitDummyPreviewController?.UpdateFrame();
             EvaluateHitDummyInteractions(_currentFrame);
+            _hitDummyPreviewController?.UpdateFrame(FRAME_TIME);
         }
         
         /// <summary>
@@ -381,8 +381,6 @@ namespace Astrum.Editor.RoleEditor.Modules
                 }
             }
 
-            bool hadKnockback = false;
-
             foreach (var entry in aggregated.Values)
             {
                 var direction = entry.KnockbackDirection;
@@ -395,10 +393,7 @@ namespace Astrum.Editor.RoleEditor.Modules
                     direction = entry.Target.Transform.forward;
                 }
 
-                if (_hitDummyPreviewController.ApplyKnockback(entry.Target, direction, entry.KnockbackDistance, frame))
-                {
-                    hadKnockback = true;
-                }
+                _hitDummyPreviewController.ApplyKnockback(entry.Target, direction, entry.KnockbackDistance, frame, entry.KnockbackDuration, entry.KnockbackCurve);
             }
 
             _lastEvaluatedHitDummyFrame = frame;
@@ -971,8 +966,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.UpdateVFXPositions();
             }
 
-            _hitDummyPreviewController?.UpdateFrame();
             EvaluateHitDummyInteractions(_currentFrame);
+            _hitDummyPreviewController?.UpdateFrame(FRAME_TIME);
             
             // 如果应该停止，停止播放
             if (shouldStop)

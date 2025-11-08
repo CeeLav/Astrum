@@ -52,8 +52,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             
             ASLogger.Instance.Info($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
             
-            // 5. TODO: 播放视觉效果
-            // if (effectConfig.GetIntParam(5) > 0) { ... }
+            // 5. TODO: 播放视觉效果/音效（使用 effectConfig.GetVisualEffectPath() / GetSoundEffectPath()）
         }
     }
 }

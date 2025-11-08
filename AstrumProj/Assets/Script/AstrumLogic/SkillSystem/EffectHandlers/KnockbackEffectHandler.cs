@@ -62,6 +62,8 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
                 EffectType = effectConfig.EffectType,
                 HitDirection = direction,
                 CausesStun = true, // 击退通常产生硬直
+                VisualEffectPath = effectConfig.GetVisualEffectPath(),
+                SoundEffectPath = effectConfig.GetSoundEffectPath(),
                 TriggerWhenInactive = true // 即使 HitReactionCapability 未激活也触发（主动激活）
             };
             

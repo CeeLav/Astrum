@@ -24,6 +24,12 @@ namespace Astrum.LogicCore.Events
         
         /// <summary>是否产生硬直</summary>
         public bool CausesStun;
+
+        /// <summary>视觉特效预制体路径</summary>
+        public string VisualEffectPath;
+
+        /// <summary>音效资源路径</summary>
+        public string SoundEffectPath;
         
         /// <summary>
         /// 是否在 Capability 未激活时也触发

@@ -21,6 +21,13 @@ namespace Astrum.Editor.RoleEditor.Services
         private Vector3 _lastKnockbackDirection;
         private int _lastAppliedFrame = -1;
 
+        private bool _knockbackActive;
+        private float _knockbackDuration;
+        private float _knockbackElapsed;
+        private Vector3 _knockbackStartPosition;
+        private Vector3 _knockbackEndPosition;
+        private HitDummyKnockbackCurve _knockbackCurve = HitDummyKnockbackCurve.Linear;
+
         public Transform Transform => _transform;
         public GameObject Instance => _instance;
 
@@ -51,13 +58,19 @@ namespace Astrum.Editor.RoleEditor.Services
 
         public void ResetState()
         {
+            if (_transform == null)
+                return;
+
             _transform.localPosition = _initialLocalPosition;
             _transform.localRotation = _initialLocalRotation;
             _lastKnockbackDirection = Vector3.zero;
             _lastAppliedFrame = -1;
+            _knockbackActive = false;
+            _knockbackElapsed = 0f;
+            _knockbackDuration = 0f;
         }
 
-        public bool ApplyKnockback(Vector3 direction, float distance, int frame)
+        public bool ApplyKnockback(Vector3 direction, float distance, int frame, float durationSeconds, HitDummyKnockbackCurve curve)
         {
             Initialize();
 
@@ -70,9 +83,45 @@ namespace Astrum.Editor.RoleEditor.Services
             _lastKnockbackDirection = direction.sqrMagnitude > 1e-6f ? direction.normalized : Vector3.forward;
             _lastKnockbackDistance = distance;
 
-            _transform.position += _lastKnockbackDirection * distance;
+            if (durationSeconds <= 1e-5f)
+            {
+                _transform.position += _lastKnockbackDirection * distance;
+                _knockbackActive = false;
+            }
+            else
+            {
+                _knockbackActive = true;
+                _knockbackDuration = Mathf.Max(durationSeconds, 1e-4f);
+                _knockbackElapsed = 0f;
+                _knockbackCurve = curve;
+
+                // 以当前世界位置作为新的起点，支持击退叠加
+                _knockbackStartPosition = _transform.position;
+                _knockbackEndPosition = _knockbackStartPosition + _lastKnockbackDirection * distance;
+            }
+
             _lastAppliedFrame = frame;
             return true;
+        }
+
+        public void Update(float deltaTime)
+        {
+            if (!_knockbackActive || _transform == null)
+                return;
+
+            _knockbackElapsed += Mathf.Max(0f, deltaTime);
+            float normalizedTime = _knockbackDuration > 1e-6f
+                ? Mathf.Clamp01(_knockbackElapsed / _knockbackDuration)
+                : 1f;
+
+            float progress = EvaluateCurve(normalizedTime, _knockbackCurve);
+            _transform.position = Vector3.Lerp(_knockbackStartPosition, _knockbackEndPosition, progress);
+
+            if (_knockbackElapsed >= _knockbackDuration)
+            {
+                _transform.position = _knockbackEndPosition;
+                _knockbackActive = false;
+            }
         }
 
         public void ApplyHighlight(Color color)
@@ -85,6 +134,22 @@ namespace Astrum.Editor.RoleEditor.Services
             {
                 if (renderer.sharedMaterial == null) continue;
                 renderer.sharedMaterial.SetColor("_Color", color);
+            }
+        }
+
+        private static float EvaluateCurve(float normalizedTime, HitDummyKnockbackCurve curve)
+        {
+            normalizedTime = Mathf.Clamp01(normalizedTime);
+            switch (curve)
+            {
+                case HitDummyKnockbackCurve.Decelerate:
+                    return Mathf.SmoothStep(0f, 1f, normalizedTime);
+                case HitDummyKnockbackCurve.Accelerate:
+                    return normalizedTime * normalizedTime;
+                case HitDummyKnockbackCurve.Custom:
+                case HitDummyKnockbackCurve.Linear:
+                default:
+                    return normalizedTime;
             }
         }
     }

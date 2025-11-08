@@ -20,6 +20,9 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         
         [TableField(3, "stringParams")]
         public List<string> StringParams { get; set; } = new List<string>();
+
+        public const int VisualEffectPathIndex = 0;
+        public const int SoundEffectPathIndex = 1;
         
         /// <summary>
         /// 解析效果参数
@@ -61,6 +64,43 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
             StringParams = parameters
                 .Select(kvp => $"{kvp.Key}:{kvp.Value}")
                 .ToList();
+        }
+
+        private void EnsureStringParamsCapacity(int size)
+        {
+            if (StringParams == null)
+            {
+                StringParams = new List<string>(size);
+            }
+
+            while (StringParams.Count < size)
+            {
+                StringParams.Add(string.Empty);
+            }
+        }
+
+        public string GetVisualEffectPath()
+        {
+            EnsureStringParamsCapacity(VisualEffectPathIndex + 1);
+            return StringParams[VisualEffectPathIndex] ?? string.Empty;
+        }
+
+        public void SetVisualEffectPath(string path)
+        {
+            EnsureStringParamsCapacity(VisualEffectPathIndex + 1);
+            StringParams[VisualEffectPathIndex] = path ?? string.Empty;
+        }
+
+        public string GetSoundEffectPath()
+        {
+            EnsureStringParamsCapacity(SoundEffectPathIndex + 1);
+            return StringParams[SoundEffectPathIndex] ?? string.Empty;
+        }
+
+        public void SetSoundEffectPath(string path)
+        {
+            EnsureStringParamsCapacity(SoundEffectPathIndex + 1);
+            StringParams[SoundEffectPathIndex] = path ?? string.Empty;
         }
         
         /// <summary>

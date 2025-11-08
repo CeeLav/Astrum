@@ -1,5 +1,6 @@
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
 using UnityEditor;
+using UnityEngine;
 
 namespace Astrum.Editor.RoleEditor.SkillEffectEditors
 {
@@ -20,7 +21,8 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         {
             bool changed = false;
 
-            SkillEffectEditorUtility.EnsureListSize(data.IntParams, 7);
+            SkillEffectEditorUtility.EnsureListSize(data.IntParams, 5);
+            SkillEffectEditorUtility.EnsureListSize(data.StringParams, SkillEffectTableData.SoundEffectPathIndex + 1);
 
             EditorGUILayout.LabelField("伤害效果参数", EditorStyles.boldLabel);
 
@@ -47,10 +49,64 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 changed = true;
             }
 
-            changed |= SkillEffectEditorUtility.DrawIntField("视觉效果ID", data.IntParams, 5);
-            changed |= SkillEffectEditorUtility.DrawIntField("音效ID", data.IntParams, 6);
+            changed |= DrawVisualEffectField(data);
+            changed |= DrawSoundEffectField(data);
 
             return changed;
+        }
+
+        private bool DrawVisualEffectField(SkillEffectTableData data)
+        {
+            string currentPath = data.GetVisualEffectPath();
+            GameObject currentPrefab = string.IsNullOrEmpty(currentPath)
+                ? null
+                : AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
+
+            EditorGUI.BeginChangeCheck();
+            GameObject newPrefab = (GameObject)EditorGUILayout.ObjectField("视觉特效 Prefab", currentPrefab, typeof(GameObject), false);
+            if (EditorGUI.EndChangeCheck())
+            {
+                string newPath = newPrefab != null ? AssetDatabase.GetAssetPath(newPrefab) : string.Empty;
+                if (!string.Equals(newPath, currentPath))
+                {
+                    data.SetVisualEffectPath(newPath);
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(currentPath))
+            {
+                EditorGUILayout.LabelField("当前路径", currentPath, EditorStyles.miniLabel);
+            }
+
+            return false;
+        }
+
+        private bool DrawSoundEffectField(SkillEffectTableData data)
+        {
+            string currentPath = data.GetSoundEffectPath();
+            AudioClip currentClip = string.IsNullOrEmpty(currentPath)
+                ? null
+                : AssetDatabase.LoadAssetAtPath<AudioClip>(currentPath);
+
+            EditorGUI.BeginChangeCheck();
+            AudioClip newClip = (AudioClip)EditorGUILayout.ObjectField("音效 AudioClip", currentClip, typeof(AudioClip), false);
+            if (EditorGUI.EndChangeCheck())
+            {
+                string newPath = newClip != null ? AssetDatabase.GetAssetPath(newClip) : string.Empty;
+                if (!string.Equals(newPath, currentPath))
+                {
+                    data.SetSoundEffectPath(newPath);
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(currentPath))
+            {
+                EditorGUILayout.LabelField("当前路径", currentPath, EditorStyles.miniLabel);
+            }
+
+            return false;
         }
     }
 }

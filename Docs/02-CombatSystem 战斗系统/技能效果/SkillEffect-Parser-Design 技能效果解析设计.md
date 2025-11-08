@@ -41,14 +41,14 @@ SkillEffectManager → IEffectHandler
 | `skillEffectId` | `int` | 主键，保持不变 |
 | `effectType` | `string` | 语义化类型键，例如 `Damage`,`Knockback`,`Teleport`,`Status` |
 | `intParams` | `"(array#sep=|,int)"` | 整数参数，竖线分隔，由解析器定义含义 |
-| `stringParams` | `"(array#sep=|,string)"` | 字符串/表达式参数，竖线分隔，通常为 `key:value` |
+| `stringParams` | `"(array#sep=|,string)"` | 字符串参数，竖线分隔，可直接存储资源路径或 `key:value` 键值 |
 
-> ⚠️ 旧版列（`effectValue`,`damageType`,`targetType`,`effectDuration`,`visualEffectId` 等）**已从表结构彻底移除**。所有数值与资源引用必须编码在 `intParams` 中；语义型数据使用 `stringParams`。
+> ⚠️ 旧版列（`effectValue`,`damageType`,`targetType`,`effectDuration`,`visualEffectId` 等）**已从表结构彻底移除**。所有数值仍编码在 `intParams` 中，资源引用统一存放在 `stringParams` 里（使用 Unity 资源路径，例如 `Assets/ArtRes/...`）。
 
 ### 效果类型参数约定
 - **Damage**
-  - `IntParams`: `targetType|baseCoefficient|scalingStat|scalingRatio|visualEffectId|soundEffectId`
-  - `StringParams`: 可选 `DamageType:Physical`、`Element:Fire`、`Variance:0.1`
+  - `IntParams`: `targetType|damageType|baseCoefficient|scalingStat|scalingRatio`
+  - `StringParams`: `visualEffectPath|soundEffectPath`
 - **Knockback**
   - `IntParams`: `targetType|distanceMm|durationMs|visualEffectId|soundEffectId`
   - `StringParams`: `Direction:Forward`、`Curve:EaseOut`
@@ -59,12 +59,12 @@ SkillEffectManager → IEffectHandler
   - `IntParams`: `targetType|offsetMm|castDelayMs|visualEffectId|soundEffectId`
   - `StringParams`: `Direction:Forward`、`Phase:AfterHit`
 
-解析器需在 `Parse` 中校验参数长度并提供默认值，缺少必需字段时记录错误并拒绝加载对应效果。
+解析器需在 `Parse` 中校验参数长度并提供默认值，缺少必需字段时记录错误并拒绝加载对应效果；对资源路径等可选字段，应在日志中标记以便美术补齐。
 
 ### 参数序列化规范
 - 数组分隔符使用竖线 `|`，避免与 CSV 逗号冲突，兼容 Luban `array#sep` 语法。
 - 空数组写作空字符串（`intParams` 或 `stringParams` 单元留空）。
-- `stringParams` 建议使用 `key:value` 格式供解析器识别可选参数；解析器需处理缺省键。
+- `stringParams` 可以存放资源路径或自定义文本，由解析器自行约定格式并处理缺省值。
 
 ## 解析器接口
 
@@ -81,25 +81,26 @@ public sealed class DamageEffectParser : IEffectParser
 
     public ISkillEffect Parse(SkillEffectRawData data)
     {
-        if (data.IntParams.Length < 7)
-            throw new SkillEffectConfigException("Damage effect requires int params: targetType|damageType|baseCoefficient|scalingStat|scalingRatio|vfxId|sfxId");
+        if (data.IntParams.Length < 5)
+            throw new SkillEffectConfigException("Damage effect requires int params: targetType|damageType|baseCoefficient|scalingStat|scalingRatio");
 
         var targetType = (TargetSelector)data.IntParams[0];
         DamageType damageType = (DamageType)data.IntParams[1];
         int baseCoefficient = data.IntParams[2];
         int scalingStat = data.IntParams[3];
         float scalingRatio = data.IntParams[4] / 1000f;
-        int visualEffectId = data.IntParams[5];
-        int soundEffectId = data.IntParams[6];
 
-        return new DamageEffect(targetType, baseCoefficient, scalingStat, scalingRatio, damageType, visualEffectId, soundEffectId);
+        string visualEffectPath = data.StringParams.Length > 0 ? data.StringParams[0] : string.Empty;
+        string soundEffectPath = data.StringParams.Length > 1 ? data.StringParams[1] : string.Empty;
+
+        return new DamageEffect(targetType, baseCoefficient, scalingStat, scalingRatio, damageType, visualEffectPath, soundEffectPath);
     }
 }
 ```
 
 **关键约束**
 - `SkillEffectParserRegistry` 在启动时注册解析器，若缺少对应 `EffectType`，需记录错误并阻止技能触发。
-- 解析器负责校验必填参数（例如 `Damage` 至少需要一个 `baseDamage`）。
+- 解析器负责校验必填参数（例如 `Damage` 至少需要一个 `baseDamage`），并在资源路径缺失或非法时输出可追踪的警告。
 - 编辑器工具 (`SkillEffectDataReader`) 复用同一解析流程，确保可视化面板与运行时一致。
 
 ## 运行时流程调整
@@ -125,8 +126,8 @@ public sealed class DamageEffectParser : IEffectParser
 
 *文档版本：v0.1*  
 *创建时间：2025-11-07*  
-*最后更新：2025-11-07*  
+*最后更新：2025-11-08*  
 *状态：实现中*  
 *Owner*: Combat System Team  
-*变更摘要*: 定义技能效果解析器化方案与配置迁移规范
+*变更摘要*: 伤害类效果改用字符串资源路径，更新解析约定与示例
 

@@ -63,13 +63,18 @@ namespace Astrum.LogicCore.Capabilities
         private void OnHitReaction(Entity entity, HitReactionEvent evt)
         {
             ASLogger.Instance.Info($"[HitReactionCapability] OnHitReaction called for entity {entity.UniqueId}, " +
-                $"effectId {evt.EffectId}, effectType {evt.EffectType}, caster {evt.CasterId}");
+                $"effectId {evt.EffectId}, effectType {evt.EffectType}, caster {evt.CasterId}, " +
+                $"vfxPath {(string.IsNullOrEmpty(evt.VisualEffectPath) ? "<none>" : evt.VisualEffectPath)}, " +
+                $"sfxPath {(string.IsNullOrEmpty(evt.SoundEffectPath) ? "<none>" : evt.SoundEffectPath)}");
             
             // 1. 播放受击动作
             PlayHitAction(entity, evt);
             
             // 2. 播放受击特效
             PlayHitVFX(entity, evt);
+
+            // 3. 处理音效（当前仅占位）
+            HandleHitSound(entity, evt);
         }
         
         // ====== 受击表现方法 ======
@@ -94,8 +99,28 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void PlayHitVFX(Entity entity, HitReactionEvent evt)
         {
-            // TODO: 发布受击特效事件到 View 层
-            // EventSystem.Instance.Publish(new HitVFXEvent { ... });
+            if (string.IsNullOrEmpty(evt.VisualEffectPath))
+            {
+                ASLogger.Instance.Debug("[HitReactionCapability] 未配置受击特效路径，跳过");
+                return;
+            }
+
+            // TODO: 发布受击特效事件到视图层，由视图层负责通过 ResourceManager 按路径加载并实例化 Prefab
+            ASLogger.Instance.Info($"[HitReactionCapability] 请求播放受击特效: {evt.VisualEffectPath}");
+        }
+
+        /// <summary>
+        /// 处理受击音效
+        /// </summary>
+        private void HandleHitSound(Entity entity, HitReactionEvent evt)
+        {
+            if (string.IsNullOrEmpty(evt.SoundEffectPath))
+            {
+                return;
+            }
+
+            // TODO: 将音效路径推送到音频系统，由客户端层负责实际播放
+            ASLogger.Instance.Info($"[HitReactionCapability] 受击音效占位: {evt.SoundEffectPath}");
         }
     }
 }

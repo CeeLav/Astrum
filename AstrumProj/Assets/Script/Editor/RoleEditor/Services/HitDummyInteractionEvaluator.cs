@@ -7,6 +7,17 @@ using UnityEngine;
 namespace Astrum.Editor.RoleEditor.Services
 {
     /// <summary>
+    /// 木桩击退曲线类型
+    /// </summary>
+    public enum HitDummyKnockbackCurve
+    {
+        Linear = 0,
+        Decelerate = 1,
+        Accelerate = 2,
+        Custom = 3
+    }
+
+    /// <summary>
     /// 负责解析触发帧并将命中、击退、特效请求分发到木桩目标
     /// （当前为预处理骨架，后续可扩展具体命中计算）
     /// </summary>
@@ -26,6 +37,7 @@ namespace Astrum.Editor.RoleEditor.Services
             public int DirectionMode;
             public int EffectId;
             public float KnockbackDuration;
+            public HitDummyKnockbackCurve KnockbackCurve;
         }
 
         public static List<HitDummyFrameResult> ProcessFrame(
@@ -151,12 +163,14 @@ namespace Astrum.Editor.RoleEditor.Services
 
                         float duration = intParams.Count > 2 ? intParams[2] / 1000f : 0f;
                         int directionMode = intParams.Count > 3 ? intParams[3] : 2;
+                        int curveMode = intParams.Count > 4 ? intParams[4] : 0;
+                        HitDummyKnockbackCurve knockbackCurve = ParseCurve(curveMode);
 
-                foreach (var marker in markers)
+                        foreach (var marker in markers)
                         {
                             if (marker == null) continue;
 
-                    Vector3 direction = ComputeDirection(casterTransform, marker.Transform, directionMode);
+                            Vector3 direction = ComputeDirection(casterTransform, marker.Transform, directionMode);
 
                             results.Add(new HitDummyFrameResult
                             {
@@ -165,6 +179,7 @@ namespace Astrum.Editor.RoleEditor.Services
                                 KnockbackDistance = distance,
                                 KnockbackDirection = direction,
                                 KnockbackDuration = duration,
+                                KnockbackCurve = knockbackCurve,
                                 DirectionMode = directionMode,
                                 EffectId = effectId,
                                 VfxResourcePath = ExtractVfxPath(timelineEvent),
@@ -173,7 +188,7 @@ namespace Astrum.Editor.RoleEditor.Services
 
                             if (DEBUG_LOG)
                             {
-                        Debug.Log($"{LOG_PREFIX} Result marker={marker.Name} distance={distance:F3} dirMode={directionMode}");
+                            Debug.Log($"{LOG_PREFIX} Result marker={marker.Name} distance={distance:F3} dirMode={directionMode} curve={knockbackCurve}");
                             }
                         }
                     }
@@ -243,6 +258,22 @@ namespace Astrum.Editor.RoleEditor.Services
             }
 
             return null;
+        }
+
+        private static HitDummyKnockbackCurve ParseCurve(int curveMode)
+        {
+            switch (curveMode)
+            {
+                case 1:
+                    return HitDummyKnockbackCurve.Decelerate;
+                case 2:
+                    return HitDummyKnockbackCurve.Accelerate;
+                case 3:
+                    return HitDummyKnockbackCurve.Custom;
+                case 0:
+                default:
+                    return HitDummyKnockbackCurve.Linear;
+            }
         }
     }
 }
