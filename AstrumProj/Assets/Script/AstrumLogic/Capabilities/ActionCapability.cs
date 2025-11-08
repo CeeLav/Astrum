@@ -4,6 +4,7 @@ using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using cfg;
@@ -164,10 +165,12 @@ namespace Astrum.LogicCore.Capabilities
             
             // 检查当前动作是否已结束
             var actionDuration = GetActionDuration(actionComponent.CurrentAction);
-            
-            var shouldTerminate = 
-                (actionComponent.CurrentAction.AutoTerminate && !HasValidCommand(entity, actionComponent.CurrentAction));
-            var shouldContinue = !IsActionFinished(actionComponent, actionDuration) || HasValidCommand(entity, actionComponent.CurrentAction);
+            var hasValidCommand = HasValidCommand(entity, actionComponent.CurrentAction); //当前动作的指令是否还在输入
+            var shouldTerminate = (actionComponent.CurrentAction.AutoTerminate && !hasValidCommand); //当前动作是否自动终止且没有有效指令
+            var shouldContinue = !IsActionFinished(actionComponent, actionDuration) || hasValidCommand;//当前动作未结束或有有效指令则继续
+            ASLogger.Instance.Debug($"ActionCapability.CheckActionCancellation: CurrentActionId={actionComponent.CurrentAction.Id}, " +
+                $"CurrentFrame={actionComponent.CurrentFrame}, ActionDuration={actionDuration}, " +
+                $"ShouldContinue={shouldContinue}, ShouldTerminate={shouldTerminate} on entity {entity.UniqueId}");
             if (!shouldContinue || shouldTerminate)
             {
                 // 添加默认下一个动作到预订单列表
@@ -271,6 +274,8 @@ namespace Astrum.LogicCore.Capabilities
             // 记录切换前的动作信息
             var previousActionId = actionComponent.CurrentAction?.Id ?? 0;
             var previousFrame = actionComponent.CurrentFrame;
+
+            ConsumeCommandForAction(actionComponent, actionInfo);
             
             actionComponent.CurrentAction = actionInfo;
             actionComponent.CurrentFrame = preorderInfo.FromFrame;
@@ -425,7 +430,7 @@ namespace Astrum.LogicCore.Capabilities
 
             if (actionInfo.Commands == null || actionInfo.Commands.Count == 0)
             {
-                return true;
+                return false;
             }
 
             var actionComponent = GetComponent<ActionComponent>(entity);
@@ -454,7 +459,7 @@ namespace Astrum.LogicCore.Capabilities
                         continue;
                     }
 
-                    if (string.Equals(input.CommandName, command.CommandName, System.StringComparison.OrdinalIgnoreCase) &&
+                    if (string.Equals(input.CommandName, command.CommandName, StringComparison.OrdinalIgnoreCase) &&
                         input.ValidFrames >= command.ValidFrames)
                     {
                         return true;
@@ -507,23 +512,102 @@ namespace Astrum.LogicCore.Capabilities
 
             var currentInput = inputComponent.CurrentInput;
             var commands = actionComponent.InputCommands;
-            commands.Clear();
+            if (commands == null)
+            {
+                actionComponent.InputCommands = commands = new List<ActionCommand>();
+            }
 
-            AddInputCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0);
-            AddInputCommand(commands, "attack", currentInput.Attack ? 1 : 0);
-            AddInputCommand(commands, "normalattack", currentInput.Attack ? 1 : 0);
-            AddInputCommand(commands, "skill1", currentInput.Skill1 ? 1 : 0);
-            AddInputCommand(commands, "skill2", currentInput.Skill2 ? 1 : 0);
+            // 递减现有命令的剩余帧数，并移除已过期的命令
+            for (int i = commands.Count - 1; i >= 0; i--)
+            {
+                var cmd = commands[i];
+                if (cmd == null)
+                {
+                    commands.RemoveAt(i);
+                    continue;
+                }
+
+                if (cmd.ValidFrames > 0)
+                {
+                    cmd.ValidFrames -= 1;
+                }
+
+                if (cmd.ValidFrames <= 0)
+                {
+                    commands.RemoveAt(i);
+                }
+            }
+
+            // 同步最新输入，移动保留 1 帧，攻击类保留 3 帧
+            AddOrRefreshCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0);
+            AddOrRefreshCommand(commands, "attack", currentInput.Attack ? 3 : 0);
+            AddOrRefreshCommand(commands, "normalattack", currentInput.Attack ? 3 : 0);
+            AddOrRefreshCommand(commands, "skill1", currentInput.Skill1 ? 3 : 0);
+            AddOrRefreshCommand(commands, "skill2", currentInput.Skill2 ? 3 : 0);
         }
 
-        private static void AddInputCommand(List<ActionCommand> commands, string name, int validFrames)
+        private static void AddOrRefreshCommand(List<ActionCommand> commands, string name, int validFrames)
         {
-            if (validFrames <= 0)
+            if (validFrames <= 0 || commands == null)
             {
                 return;
             }
 
+            foreach (var cmd in commands)
+            {
+                if (cmd != null && string.Equals(cmd.CommandName, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (cmd.ValidFrames < validFrames)
+                    {
+                        cmd.ValidFrames = validFrames;
+                    }
+                    return;
+                }
+            }
+
             commands.Add(new ActionCommand(name, validFrames));
+        }
+
+        private void ConsumeCommandForAction(ActionComponent actionComponent, ActionInfo actionInfo)
+        {
+            if (actionComponent == null || actionInfo == null)
+            {
+                return;
+            }
+
+            var commands = actionComponent.InputCommands;
+            if (commands == null || commands.Count == 0)
+            {
+                return;
+            }
+
+            if (actionInfo.Commands == null || actionInfo.Commands.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var command in actionInfo.Commands)
+            {
+                if (command == null || string.IsNullOrEmpty(command.CommandName))
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < commands.Count; i++)
+                {
+                    var input = commands[i];
+                    if (input == null)
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(input.CommandName, command.CommandName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        commands.RemoveAt(i);
+                        return;
+                    }
+                }
+            }
         }
 
         /// <summary>
