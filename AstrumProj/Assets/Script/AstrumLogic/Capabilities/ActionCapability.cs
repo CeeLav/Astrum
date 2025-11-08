@@ -73,6 +73,10 @@ namespace Astrum.LogicCore.Capabilities
             // 1. 更新当前动作
             UpdateCurrentAction(entity);
             
+            // 同步输入命令缓存
+            var actionComponent = GetComponent<ActionComponent>(entity);
+            SyncInputCommands(entity, actionComponent);
+            
             // 2. 检查所有动作的取消条件
             CheckActionCancellation(entity);
             
@@ -414,13 +418,50 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool HasValidCommand(Entity entity, ActionInfo actionInfo)
         {
+            if (actionInfo == null)
+            {
+                return false;
+            }
+
+            if (actionInfo.Commands == null || actionInfo.Commands.Count == 0)
+            {
+                return true;
+            }
+
+            var actionComponent = GetComponent<ActionComponent>(entity);
+            if (actionComponent == null)
+            {
+                return false;
+            }
+
+            var inputCommands = actionComponent.InputCommands;
+            if (inputCommands == null || inputCommands.Count == 0)
+            {
+                return false;
+            }
+
             foreach (var command in actionInfo.Commands)
             {
-                if (IsCommandValid(entity, command))
+                if (command == null || string.IsNullOrEmpty(command.CommandName))
                 {
-                    return true;
+                    continue;
+                }
+
+                foreach (var input in inputCommands)
+                {
+                    if (input == null)
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(input.CommandName, command.CommandName, System.StringComparison.OrdinalIgnoreCase) &&
+                        input.ValidFrames >= command.ValidFrames)
+                    {
+                        return true;
+                    }
                 }
             }
+
             return false;
         }
         
@@ -450,36 +491,39 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查命令是否有效
         /// </summary>
-        private bool IsCommandValid(Entity entity, ActionCommand command)
+        private void SyncInputCommands(Entity entity, ActionComponent actionComponent)
         {
-            // 检查命令名称是否匹配
-            return CheckCommandMatch(entity, command.CommandName);
-        }
-        
-        /// <summary>
-        /// 检查命令是否匹配
-        /// </summary>
-        private bool CheckCommandMatch(Entity entity, string commandName)
-        {
-            // 获取输入组件（Monster等非玩家控制实体可能没有此组件，这是正常的）
-            var inputComponent = GetComponent<LSInputComponent>(entity);
-            if (inputComponent == null)
+            if (actionComponent == null)
             {
-                // 没有输入组件的实体（如Monster）无法匹配玩家输入命令
-                return false;
+                return;
             }
-            if (inputComponent.CurrentInput == null) return false;
-            
-            var currentInput = inputComponent.CurrentInput;
-            // 根据命令名称匹配输入
-            return commandName.ToLower() switch
+
+            var inputComponent = GetComponent<LSInputComponent>(entity);
+            if (inputComponent == null || inputComponent.CurrentInput == null)
             {
-                "move" => currentInput.MoveX != 0 || currentInput.MoveY != 0,
-                "attack" or "normalattack" => currentInput.Attack,
-                "skill1" => currentInput.Skill1,
-                "skill2" => currentInput.Skill2,
-                _ => false
-            };
+                actionComponent.InputCommands.Clear();
+                return;
+            }
+
+            var currentInput = inputComponent.CurrentInput;
+            var commands = actionComponent.InputCommands;
+            commands.Clear();
+
+            AddInputCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0);
+            AddInputCommand(commands, "attack", currentInput.Attack ? 1 : 0);
+            AddInputCommand(commands, "normalattack", currentInput.Attack ? 1 : 0);
+            AddInputCommand(commands, "skill1", currentInput.Skill1 ? 1 : 0);
+            AddInputCommand(commands, "skill2", currentInput.Skill2 ? 1 : 0);
+        }
+
+        private static void AddInputCommand(List<ActionCommand> commands, string name, int validFrames)
+        {
+            if (validFrames <= 0)
+            {
+                return;
+            }
+
+            commands.Add(new ActionCommand(name, validFrames));
         }
 
         /// <summary>
