@@ -4,6 +4,7 @@ using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Events;
 using Astrum.LogicCore.Managers;
 using Astrum.CommonBase;
+using Astrum.CommonBase.Events;
 using TrueSync;
 
 namespace Astrum.LogicCore.Capabilities
@@ -105,8 +106,34 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            // TODO: 发布受击特效事件到视图层，由视图层负责通过 ResourceManager 按路径加载并实例化 Prefab
-            ASLogger.Instance.Info($"[HitReactionCapability] 请求播放受击特效: {evt.VisualEffectPath}");
+            if (entity == null)
+            {
+                ASLogger.Instance.Warning("[HitReactionCapability] 实体为空，无法播放受击特效");
+                return;
+            }
+
+            var trans = entity.GetComponent<TransComponent>();
+            var positionOffset = UnityEngine.Vector3.zero;
+            if (evt.HitOffset != TSVector.zero)
+            {
+                positionOffset = new UnityEngine.Vector3((float)evt.HitOffset.x, (float)evt.HitOffset.y, (float)evt.HitOffset.z);
+            }
+
+            var triggerData = new VFXTriggerEventData
+            {
+                EntityId = entity.UniqueId,
+                ResourcePath = evt.VisualEffectPath,
+                PositionOffset = positionOffset,
+                Rotation = UnityEngine.Vector3.zero,
+                Scale = 1f,
+                PlaybackSpeed = 1f,
+                FollowCharacter = true,
+                Loop = false
+            };
+
+            EventSystem.Instance.Publish(triggerData);
+
+            ASLogger.Instance.Info($"[HitReactionCapability] 发布受击特效事件: entity={entity.UniqueId}, path={evt.VisualEffectPath}");
         }
 
         /// <summary>
@@ -119,7 +146,7 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            // TODO: 将音效路径推送到音频系统，由客户端层负责实际播放
+            // TODO: 接入运行时音频播放（目前仅记录日志）
             ASLogger.Instance.Info($"[HitReactionCapability] 受击音效占位: {evt.SoundEffectPath}");
         }
     }

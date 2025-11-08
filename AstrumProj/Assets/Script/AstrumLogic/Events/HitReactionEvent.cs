@@ -31,6 +31,9 @@ namespace Astrum.LogicCore.Events
         /// <summary>音效资源路径</summary>
         public string SoundEffectPath;
         
+        /// <summary>受击位置偏移（相对于目标）</summary>
+        public TrueSync.TSVector HitOffset;
+        
         /// <summary>
         /// 是否在 Capability 未激活时也触发
         /// true: 无论 Capability 是否激活都会处理该事件（可用于主动激活 Capability）

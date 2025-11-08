@@ -70,6 +70,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
                 CausesStun = damageResult.IsCritical, // 暴击产生硬直
                 VisualEffectPath = visualEffectPath,
                 SoundEffectPath = soundEffectPath,
+                HitOffset = TrueSync.TSVector.zero,
                 TriggerWhenInactive = true // 即使 HitReactionCapability 未激活也触发（主动激活）
             };
             
