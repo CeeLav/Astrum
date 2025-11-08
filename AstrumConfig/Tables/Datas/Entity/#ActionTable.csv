@@ -2,7 +2,7 @@
 ##type,int,string,string,int,string,int,bool,bool,string,int,string,string
 ##group,,,,,,,,,,,,
 ##desc,动作ID,动作名称,动作类型,帧数,动画路径,自动下一动作ID,保持播放动画,自动终止,命令,优先级,取消标签,被取消标签
-,1001,idle_01,idle,40,Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_A_1.anim,1001,True,False,,10,,"[{""tags"":[""move"",""skill"",""jump"",""interact""],""rangeFrames"":[0,39],""blendOutFrames"":3,""priority"":0}]"
+,1001,idle_01,idle,40,Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_A_1.anim,1001,True,False,,10,,"[{""tags"":[""move"",""skill"",""jump"",""interact"",""hit""],""rangeFrames"":[0,39],""blendOutFrames"":3,""priority"":0}]"
 ,1002,walk_01,walk,20,Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim,1001,True,True,Move,9,"[
   {
     ""Tag"": ""move"",
@@ -27,3 +27,11 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""move"",""skill""],""rangeFrames"":[24,46],""blendOutFrames"":3,""priority"":0}]"
+,1000,BeHit_01,idle,11,Assets/ArtRes/Unit/Role/Knight/Animation/Hit_F_2.anim,1000,False,True,,4,"[
+  {
+    ""Tag"": ""hit"",
+    ""StartFromFrames"": 0,
+    ""BlendInFrames"": 0,
+    ""Priority"": 0
+  }
+]",
