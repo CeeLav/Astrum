@@ -12,6 +12,9 @@ namespace Astrum.Editor.RoleEditor.Services
     {
         private readonly List<GameObject> _dummyInstances = new List<GameObject>();
         private readonly List<HitDummyTargetMarker> _markers = new List<HitDummyTargetMarker>();
+        private readonly Dictionary<HitDummyTargetMarker, GameObject> _activeHitEffects = new Dictionary<HitDummyTargetMarker, GameObject>();
+        private readonly Dictionary<GameObject, ParticleSystem[]> _effectParticleSystems = new Dictionary<GameObject, ParticleSystem[]>();
+        private GameObject _hitEffectRoot;
         private GameObject _rootContainer;
         private GameObject _anchor;
         private PreviewRenderUtility _previewRenderUtility;
@@ -53,6 +56,8 @@ namespace Astrum.Editor.RoleEditor.Services
             {
                 marker?.Update(deltaTime);
             }
+
+            UpdateHitEffects(deltaTime);
         }
 
         public void Clear()
@@ -65,6 +70,7 @@ namespace Astrum.Editor.RoleEditor.Services
         {
             DestroyInstances();
             _markers.Clear();
+            _activeHitEffects.Clear();
 
             if (_currentTemplate == null)
             {
@@ -213,6 +219,22 @@ namespace Astrum.Editor.RoleEditor.Services
                 Object.DestroyImmediate(_rootContainer);
                 _rootContainer = null;
             }
+
+            foreach (var vfx in _activeHitEffects.Values)
+            {
+                if (vfx != null)
+                {
+                    Object.DestroyImmediate(vfx);
+                }
+            }
+            _activeHitEffects.Clear();
+            _effectParticleSystems.Clear();
+
+            if (_hitEffectRoot != null)
+            {
+                Object.DestroyImmediate(_hitEffectRoot);
+                _hitEffectRoot = null;
+            }
         }
 
         public IReadOnlyList<HitDummyTargetMarker> GetMarkers()
@@ -226,6 +248,16 @@ namespace Astrum.Editor.RoleEditor.Services
             {
                 marker?.ResetState();
             }
+
+            foreach (var vfx in _activeHitEffects.Values)
+            {
+                if (vfx != null)
+                {
+                    Object.DestroyImmediate(vfx);
+                }
+            }
+            _activeHitEffects.Clear();
+            _effectParticleSystems.Clear();
         }
 
         public bool ApplyKnockback(HitDummyTargetMarker marker, Vector3 direction, float distance, int frame, float durationSeconds, HitDummyKnockbackCurve curve)
@@ -235,6 +267,147 @@ namespace Astrum.Editor.RoleEditor.Services
 
             var applied = marker.ApplyKnockback(direction, distance, frame, durationSeconds, curve);
             return applied;
+        }
+
+        public void PlayHitEffects(IEnumerable<HitDummyInteractionEvaluator.HitDummyFrameResult> damageResults)
+        {
+            if (damageResults == null)
+                return;
+
+            EnsureHitEffectRoot();
+
+            foreach (var result in damageResults)
+            {
+                if (result == null || result.Target == null || string.IsNullOrEmpty(result.VfxResourcePath))
+                    continue;
+
+                GameObject existing = null;
+                if (_activeHitEffects.TryGetValue(result.Target, out existing) && existing != null)
+                {
+                    Object.DestroyImmediate(existing);
+                }
+
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(result.VfxResourcePath);
+                if (prefab == null)
+                {
+                    Debug.LogWarning($"[HitDummyPreview] Unable to load hit VFX at path {result.VfxResourcePath}");
+                    continue;
+                }
+
+                var instance = Object.Instantiate(prefab);
+                instance.hideFlags = HideFlags.HideAndDontSave;
+
+                Vector3 position = result.HitPosition + result.VfxOffset;
+                instance.transform.position = position;
+                instance.transform.rotation = Quaternion.identity;
+
+                if (_hitEffectRoot != null)
+                {
+                    instance.transform.SetParent(_hitEffectRoot.transform, true);
+                }
+
+                var particleSystems = instance.GetComponentsInChildren<ParticleSystem>(true);
+                foreach (var ps in particleSystems)
+                {
+                    ps.Clear(true);
+                    ps.Play(true);
+                }
+
+                _activeHitEffects[result.Target] = instance;
+                _effectParticleSystems[instance] = particleSystems;
+            }
+        }
+
+        private void EnsureHitEffectRoot()
+        {
+            if (_hitEffectRoot != null)
+                return;
+
+            _hitEffectRoot = new GameObject("HitDummyVFXRoot");
+            _hitEffectRoot.hideFlags = HideFlags.HideAndDontSave;
+
+            if (_currentTemplate != null && _currentTemplate.FollowAnchorPosition && _anchor != null)
+            {
+                _hitEffectRoot.transform.SetParent(_anchor.transform, false);
+                _hitEffectRoot.transform.localPosition = Vector3.zero;
+                _hitEffectRoot.transform.localRotation = Quaternion.identity;
+            }
+            else
+            {
+                _hitEffectRoot.transform.position = Vector3.zero;
+                _hitEffectRoot.transform.rotation = Quaternion.identity;
+                if (_previewRenderUtility != null)
+                {
+                    _previewRenderUtility.AddSingleGO(_hitEffectRoot);
+                }
+            }
+        }
+
+        private void UpdateHitEffects(float deltaTime)
+        {
+            if (_effectParticleSystems.Count == 0)
+                return;
+
+            var finishedInstances = new List<GameObject>();
+
+            foreach (var kvp in _effectParticleSystems)
+            {
+                var instance = kvp.Key;
+                var systems = kvp.Value;
+
+                if (instance == null || systems == null || systems.Length == 0)
+                {
+                    finishedInstances.Add(instance);
+                    continue;
+                }
+
+                bool anyAlive = false;
+
+                foreach (var ps in systems)
+                {
+                    if (ps == null)
+                        continue;
+
+                    ps.Simulate(deltaTime, true, false);
+                    if (ps.IsAlive(true))
+                    {
+                        anyAlive = true;
+                    }
+                }
+
+                if (!anyAlive)
+                {
+                    finishedInstances.Add(instance);
+                }
+            }
+
+            if (finishedInstances.Count == 0)
+                return;
+
+            foreach (var instance in finishedInstances)
+            {
+                if (instance != null)
+                {
+                    Object.DestroyImmediate(instance);
+                }
+
+                _effectParticleSystems.Remove(instance);
+
+                HitDummyTargetMarker removeKey = null;
+                foreach (var entry in _activeHitEffects)
+                {
+                    if (entry.Value == instance)
+                    {
+                        removeKey = entry.Key;
+                        break;
+                    }
+                }
+
+                if (removeKey != null)
+                {
+                    _activeHitEffects.Remove(removeKey);
+                }
+            }
         }
     }
 }

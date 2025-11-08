@@ -362,22 +362,31 @@ namespace Astrum.Editor.RoleEditor.Modules
             }
 
             var aggregated = new Dictionary<HitDummyTargetMarker, HitDummyInteractionEvaluator.HitDummyFrameResult>();
+            var damageResults = new List<HitDummyInteractionEvaluator.HitDummyFrameResult>();
 
             foreach (var result in results)
             {
-                if (result == null || result.Target == null || result.KnockbackDistance <= 0f)
+                if (result == null || result.Target == null)
                     continue;
 
-                if (aggregated.TryGetValue(result.Target, out var existing))
+                if (result.KnockbackDistance > 0f)
                 {
-                    if (result.KnockbackDistance > existing.KnockbackDistance)
+                    if (aggregated.TryGetValue(result.Target, out var existing))
+                    {
+                        if (result.KnockbackDistance > existing.KnockbackDistance)
+                        {
+                            aggregated[result.Target] = result;
+                        }
+                    }
+                    else
                     {
                         aggregated[result.Target] = result;
                     }
                 }
-                else
+
+                if (result.HasDamage && !string.IsNullOrEmpty(result.VfxResourcePath))
                 {
-                    aggregated[result.Target] = result;
+                    damageResults.Add(result);
                 }
             }
 
@@ -397,6 +406,11 @@ namespace Astrum.Editor.RoleEditor.Modules
             }
 
             _lastEvaluatedHitDummyFrame = frame;
+
+            if (damageResults.Count > 0 && _hitDummyPreviewController != null)
+            {
+                _hitDummyPreviewController.PlayHitEffects(damageResults);
+            }
         }
         
         /// <summary>

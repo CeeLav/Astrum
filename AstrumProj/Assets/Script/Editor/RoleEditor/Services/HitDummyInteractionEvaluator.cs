@@ -38,6 +38,8 @@ namespace Astrum.Editor.RoleEditor.Services
             public int EffectId;
             public float KnockbackDuration;
             public HitDummyKnockbackCurve KnockbackCurve;
+            public bool HasDamage;
+            public Vector3 HitPosition;
         }
 
         public static List<HitDummyFrameResult> ProcessFrame(
@@ -51,7 +53,7 @@ namespace Astrum.Editor.RoleEditor.Services
 
             if (DEBUG_LOG)
             {
-                Debug.Log($"{LOG_PREFIX} Frame {frame} evaluate events={(events?.Count ?? 0)} markers={(markers?.Count ?? 0)}");
+                //Debug.Log($"{LOG_PREFIX} Frame {frame} evaluate events={(events?.Count ?? 0)} markers={(markers?.Count ?? 0)}");
             }
 
             if (events == null || markers == null || markers.Count == 0)
@@ -118,7 +120,11 @@ namespace Astrum.Editor.RoleEditor.Services
                             Debug.Log($"{LOG_PREFIX} Effect {effectId} type={type} intCount={count}");
                         }
 
-                        if (!string.Equals(effectConfig.EffectType, "Knockback", StringComparison.OrdinalIgnoreCase))
+                        bool isKnockback = string.Equals(effectConfig.EffectType, "Knockback", StringComparison.OrdinalIgnoreCase);
+                        bool isDamage = string.Equals(effectConfig.EffectType, "Damage", StringComparison.OrdinalIgnoreCase);
+                        bool isHeal = string.Equals(effectConfig.EffectType, "Heal", StringComparison.OrdinalIgnoreCase);
+
+                        if (!isKnockback && !isDamage && !isHeal)
                         {
                             if (DEBUG_LOG)
                             {
@@ -151,26 +157,20 @@ namespace Astrum.Editor.RoleEditor.Services
                             continue;
                         }
 
-                        float distance = intParams.Count > 1 ? intParams[1] / 1000f : 0f;
-                        if (distance <= 0f)
-                        {
-                            if (DEBUG_LOG)
-                            {
-                                Debug.LogWarning($"{LOG_PREFIX} Effect {effectId} distance {distance} <= 0");
-                            }
-                            continue;
-                        }
-
-                        float duration = intParams.Count > 2 ? intParams[2] / 1000f : 0f;
-                        int directionMode = intParams.Count > 3 ? intParams[3] : 2;
-                        int curveMode = intParams.Count > 4 ? intParams[4] : 0;
+                        float distance = isKnockback && intParams.Count > 1 ? intParams[1] / 1000f : 0f;
+                        float duration = isKnockback && intParams.Count > 2 ? intParams[2] / 1000f : 0f;
+                        int directionMode = isKnockback && intParams.Count > 3 ? intParams[3] : 2;
+                        int curveMode = isKnockback && intParams.Count > 4 ? intParams[4] : 0;
                         HitDummyKnockbackCurve knockbackCurve = ParseCurve(curveMode);
+
+                        string visualEffectPath = effectConfig.GetVisualEffectPath();
 
                         foreach (var marker in markers)
                         {
                             if (marker == null) continue;
 
                             Vector3 direction = ComputeDirection(casterTransform, marker.Transform, directionMode);
+                            Vector3 hitPosition = marker.Transform != null ? marker.Transform.position : Vector3.zero;
 
                             results.Add(new HitDummyFrameResult
                             {
@@ -182,13 +182,15 @@ namespace Astrum.Editor.RoleEditor.Services
                                 KnockbackCurve = knockbackCurve,
                                 DirectionMode = directionMode,
                                 EffectId = effectId,
-                                VfxResourcePath = ExtractVfxPath(timelineEvent),
-                                VfxOffset = Vector3.zero
+                                VfxResourcePath = !string.IsNullOrEmpty(visualEffectPath) ? visualEffectPath : ExtractVfxPath(timelineEvent),
+                                VfxOffset = Vector3.zero,
+                                HasDamage = isDamage,
+                                HitPosition = hitPosition
                             });
 
                             if (DEBUG_LOG)
                             {
-                            Debug.Log($"{LOG_PREFIX} Result marker={marker.Name} distance={distance:F3} dirMode={directionMode} curve={knockbackCurve}");
+                                Debug.Log($"{LOG_PREFIX} Result marker={marker.Name} distance={distance:F3} dirMode={directionMode} curve={knockbackCurve} vfx={visualEffectPath}");
                             }
                         }
                     }
