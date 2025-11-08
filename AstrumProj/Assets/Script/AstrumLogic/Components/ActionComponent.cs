@@ -33,6 +33,10 @@ namespace Astrum.LogicCore.Components
         /// <summary>预订单动作列表</summary>
         [MemoryPackAllowSerialize]
         public List<PreorderActionInfo> PreorderActions { get; set; } = new();
+
+        /// <summary>外部来源预约的动作（Key: 来源标签）</summary>
+        [MemoryPackAllowSerialize]
+        public Dictionary<string, PreorderActionInfo> ExternalPreorders { get; set; } = new();
         
         /// <summary>可用动作字典（Key: ActionId, Value: ActionInfo）</summary>
         [MemoryPackAllowSerialize]
@@ -51,7 +55,7 @@ namespace Astrum.LogicCore.Components
         [MemoryPackConstructor]
         public ActionComponent(int componentId, long entityId, int currentActionId, 
             int currentFrame, List<ActionCommand> inputCommands, List<PreorderActionInfo> preorderActions, 
-            Dictionary<int, ActionInfo> availableActions)
+            Dictionary<string, PreorderActionInfo> externalPreorders, Dictionary<int, ActionInfo> availableActions)
         {
             ComponentId = componentId;
             EntityId = entityId;
@@ -59,6 +63,7 @@ namespace Astrum.LogicCore.Components
             CurrentFrame = currentFrame;
             InputCommands = inputCommands ?? new List<ActionCommand>();
             PreorderActions = preorderActions ?? new List<PreorderActionInfo>();
+            ExternalPreorders = externalPreorders ?? new Dictionary<string, PreorderActionInfo>();
             AvailableActions = availableActions ?? new Dictionary<int, ActionInfo>();
         }
         

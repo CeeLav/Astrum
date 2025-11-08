@@ -26,6 +26,7 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
         JumpAction = _buf.ReadInt();
         BirthAction = _buf.ReadInt();
         DeathAction = _buf.ReadInt();
+        HitAction = _buf.ReadInt();
     }
 
     public static EntityBaseTable DeserializeEntityBaseTable(ByteBuf _buf)
@@ -34,45 +35,49 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// 实体ID
+    /// ʵ��ID
     /// </summary>
     public readonly int EntityId;
     /// <summary>
-    /// 实体名称
+    /// ʵ������
     /// </summary>
     public readonly string EntityName;
     /// <summary>
-    /// 原型名
+    /// ԭ����
     /// </summary>
     public readonly string ArchetypeName;
     /// <summary>
-    /// 模型ID
+    /// ģ��ID
     /// </summary>
     public readonly int ModelId;
     /// <summary>
-    /// 静止动作
+    /// ��ֹ����
     /// </summary>
     public readonly int IdleAction;
     /// <summary>
-    /// 走路动作
+    /// ��&#183;����
     /// </summary>
     public readonly int WalkAction;
     /// <summary>
-    /// 跑步动作
+    /// �ܲ�����
     /// </summary>
     public readonly int RunAction;
     /// <summary>
-    /// 跳跃动作
+    /// ��Ծ����
     /// </summary>
     public readonly int JumpAction;
     /// <summary>
-    /// 出生动作
+    /// ��������
     /// </summary>
     public readonly int BirthAction;
     /// <summary>
-    /// 死亡动作
+    /// ��������
     /// </summary>
     public readonly int DeathAction;
+    /// <summary>
+    /// ������
+    /// </summary>
+    public readonly int HitAction;
    
     public const int __ID__ = 807652047;
     public override int GetTypeId() => __ID__;
@@ -94,6 +99,7 @@ public sealed partial class EntityBaseTable : Luban.BeanBase
         + "jumpAction:" + JumpAction + ","
         + "birthAction:" + BirthAction + ","
         + "deathAction:" + DeathAction + ","
+        + "hitAction:" + HitAction + ","
         + "}";
     }
 }

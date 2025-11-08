@@ -290,7 +290,7 @@ namespace Astrum.LogicCore.Systems
         /// <summary>
         /// 根据 TypeId 获取 Capability
         /// </summary>
-        public static ICapability GetCapability(int typeId)
+        private static ICapability GetCapability(int typeId)
         {
             return _typeIdToCapability.TryGetValue(typeId, out var capability) ? capability : null;
         }

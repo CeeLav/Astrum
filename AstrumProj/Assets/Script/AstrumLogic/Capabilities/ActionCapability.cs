@@ -7,6 +7,7 @@ using Astrum.CommonBase;
 using System.Collections.Generic;
 using System.Linq;
 using cfg;
+using Astrum.LogicCore.Events;
 
 namespace Astrum.LogicCore.Capabilities
 {
@@ -25,8 +26,15 @@ namespace Astrum.LogicCore.Capabilities
             CapabilityTag.Control, 
             CapabilityTag.Animation 
         };
+
+        private const string DefaultExternalSourceTagPrefix = "ExternalAction";
         
-        // ====== 生命周期 ======
+        // ====== 生命周期 & 事件 ======
+
+        protected override void RegisterEventHandlers()
+        {
+            RegisterEventHandler<ActionPreorderEvent>(OnActionPreorder);
+        }
         
         public override void OnAttached(Entity entity)
         {
@@ -91,11 +99,7 @@ namespace Astrum.LogicCore.Capabilities
             
             foreach (var actionId in availableActionIds)
             {
-                var actionInfo = ActionConfig.Instance?.GetAction(actionId, entity.UniqueId);
-                if (actionInfo != null)
-                {
-                    actionComponent.AvailableActions[actionId] = actionInfo;
-                }
+                TryCacheAction(actionComponent, actionId, entity);
             }
             
             // 设置初始动作ID
@@ -118,11 +122,24 @@ namespace Astrum.LogicCore.Capabilities
         {
             var config = entity.EntityConfig;
             var list = new List<int>();
-            list.Add(config.IdleAction);
-            list.Add(config.WalkAction);
-            // TODO: 根据实际需求实现
-            // 例如：从配置、技能系统、装备等获取
+
+            if (config != null)
+            {
+                AddIfValid(list, config.IdleAction);
+                AddIfValid(list, config.WalkAction);
+                AddIfValid(list, config.RunAction);
+                AddIfValid(list, config.HitAction);
+            }
+
             return list;
+
+            static void AddIfValid(List<int> target, int actionId)
+            {
+                if (actionId > 0 && !target.Contains(actionId))
+                {
+                    target.Add(actionId);
+                }
+            }
         }
         
         /// <summary>
@@ -148,7 +165,7 @@ namespace Astrum.LogicCore.Capabilities
                 (actionComponent.CurrentAction.AutoTerminate && !HasValidCommand(entity, actionComponent.CurrentAction));
             if (actionComponent.CurrentAction.AutoTerminate)
             {
-                ASLogger.Instance.Debug($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
+                ASLogger.Instance.Info($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
                                        $"HasValidCommand={HasValidCommand(entity, actionComponent.CurrentAction)} on entity {entity.UniqueId}");
             }
 
@@ -206,6 +223,8 @@ namespace Astrum.LogicCore.Capabilities
                 ASLogger.Instance.Error($"ActionCapability.SelectActionFromCandidates: ActionComponent not found on entity {entity.UniqueId}");
                 return;
             }
+            MergeExternalPreorders(actionComponent, entity);
+
             if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0) return;
             
             // 按优先级排序
@@ -396,6 +415,126 @@ namespace Astrum.LogicCore.Capabilities
                 "skill2" => currentInput.Skill2,
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// 外部预约动作（例如受击、硬直等）
+        /// </summary>
+        public bool EnqueueExternalAction(Entity entity, string sourceTag, PreorderActionInfo preorderInfo)
+        {
+            if (entity == null)
+            {
+                ASLogger.Instance.Warning("[ActionCapability] EnqueueExternalAction called with null entity");
+                return false;
+            }
+
+            if (preorderInfo == null || preorderInfo.ActionId <= 0)
+            {
+                ASLogger.Instance.Warning($"[ActionCapability] Invalid preorder request for entity {entity.UniqueId}, actionId={preorderInfo?.ActionId ?? 0}");
+                return false;
+            }
+
+            var tag = string.IsNullOrWhiteSpace(sourceTag)
+                ? $"{DefaultExternalSourceTagPrefix}-{preorderInfo.ActionId}"
+                : sourceTag;
+
+            var actionComponent = GetComponent<ActionComponent>(entity);
+            if (actionComponent == null)
+            {
+                ASLogger.Instance.Warning($"[ActionCapability] Entity {entity.UniqueId} lacks ActionComponent, cannot enqueue external action.");
+                return false;
+            }
+
+            if (!TryCacheAction(actionComponent, preorderInfo.ActionId, entity))
+            {
+                ASLogger.Instance.Warning($"[ActionCapability] Unable to cache action {preorderInfo.ActionId} for entity {entity.UniqueId}, external request from {tag} ignored.");
+                return false;
+            }
+
+            var cloned = new PreorderActionInfo
+            {
+                ActionId = preorderInfo.ActionId,
+                Priority = preorderInfo.Priority,
+                TransitionFrames = preorderInfo.TransitionFrames,
+                FromFrame = preorderInfo.FromFrame,
+                FreezingFrames = preorderInfo.FreezingFrames
+            };
+
+            actionComponent.ExternalPreorders[tag] = cloned;
+
+            ASLogger.Instance.Debug($"[ActionCapability] External action queued: entity={entity.UniqueId}, actionId={cloned.ActionId}, source={tag}, priority={cloned.Priority}");
+            return true;
+        }
+
+        private void MergeExternalPreorders(ActionComponent actionComponent, Entity entity)
+        {
+            if (actionComponent.ExternalPreorders == null || actionComponent.ExternalPreorders.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var kvp in actionComponent.ExternalPreorders)
+            {
+                var preorder = kvp.Value;
+                if (preorder == null || preorder.ActionId <= 0)
+                {
+                    continue;
+                }
+
+                if (!actionComponent.AvailableActions.ContainsKey(preorder.ActionId) &&
+                    !TryCacheAction(actionComponent, preorder.ActionId, entity))
+                {
+                    ASLogger.Instance.Warning($"[ActionCapability] External preorder actionId={preorder.ActionId} unavailable for entity {entity.UniqueId}, source={kvp.Key}");
+                    continue;
+                }
+
+                actionComponent.PreorderActions.Add(new PreorderActionInfo(
+                    preorder.ActionId,
+                    preorder.Priority,
+                    preorder.TransitionFrames,
+                    preorder.FromFrame,
+                    preorder.FreezingFrames
+                ));
+            }
+
+            actionComponent.ExternalPreorders.Clear();
+        }
+
+        private bool TryCacheAction(ActionComponent actionComponent, int actionId, Entity entity)
+        {
+            if (actionComponent == null || actionId <= 0)
+            {
+                return false;
+            }
+
+            if (actionComponent.AvailableActions.ContainsKey(actionId))
+            {
+                return true;
+            }
+
+            var actionInfo = ActionConfig.Instance?.GetAction(actionId, entity?.UniqueId ?? 0);
+            if (actionInfo == null)
+            {
+                ASLogger.Instance.Warning($"[ActionCapability] ActionConfig missing actionId={actionId} for entity {entity?.UniqueId}");
+                return false;
+            }
+
+            actionComponent.AvailableActions[actionId] = actionInfo;
+            return true;
+        }
+
+        private void OnActionPreorder(Entity entity, ActionPreorderEvent evt)
+        {
+            var preorder = new PreorderActionInfo
+            {
+                ActionId = evt.ActionId,
+                Priority = evt.Priority,
+                TransitionFrames = evt.TransitionFrames,
+                FromFrame = evt.FromFrame,
+                FreezingFrames = evt.FreezingFrames
+            };
+
+            EnqueueExternalAction(entity, evt.SourceTag, preorder);
         }
     }
 }

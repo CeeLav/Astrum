@@ -98,7 +98,7 @@ namespace Astrum.LogicCore.Capabilities
             stateComp?.Set(StateType.DEAD, true);
             
             // 停用非白名单能力
-            DisableNonWhitelistedCapabilities(entity);
+            //DisableNonWhitelistedCapabilities(entity);
         }
         
         public override void OnDeactivate(Entity entity)
@@ -110,7 +110,7 @@ namespace Astrum.LogicCore.Capabilities
             stateComp?.Set(StateType.DEAD, false);
             
             // 恢复能力
-            RestoreDisabledCapabilities(entity);
+            //RestoreDisabledCapabilities(entity);
             
             base.OnDeactivate(entity);
         }
@@ -124,7 +124,7 @@ namespace Astrum.LogicCore.Capabilities
         }
         
         // ====== 辅助方法 ======
-        
+        /*
         /// <summary>
         /// 停用非白名单能力
         /// 使用 Tag 系统批量禁用（Movement、Control、Attack、Skill 等）
@@ -172,13 +172,14 @@ namespace Astrum.LogicCore.Capabilities
             
             state.CustomData[KEY_DISABLED_TYPE_IDS] = disabledTypeIds;
             SetCapabilityState(entity, state);
-        }
-        
+        }*/
+        /*
         /// <summary>
         /// 恢复被停用的能力
         /// 通过移除 Tag 禁用来恢复（新系统）
         /// 同时恢复旧系统的 Capability（旧系统会自动恢复，因为只调用了 OnDeactivate）
         /// </summary>
+        /// 
         private void RestoreDisabledCapabilities(Entity entity)
         {
             if (entity?.World == null) return;
@@ -213,7 +214,7 @@ namespace Astrum.LogicCore.Capabilities
             
             state.CustomData[KEY_DISABLED_TYPE_IDS] = new List<int>();
             SetCapabilityState(entity, state);
-        }
+        }*/
         
         /// <summary>
         /// 添加白名单 Capability TypeId（静态方法，供外部配置）

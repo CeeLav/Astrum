@@ -2,7 +2,7 @@
 ##type,int,string,string,int,string,int,bool,bool,string,int,string,string
 ##group,,,,,,,,,,,,
 ##desc,动作ID,动作名称,动作类型,帧数,动画路径,自动下一动作ID,保持播放动画,自动终止,命令,优先级,取消标签,被取消标签
-,1000,BeHit_01,custom,11,Assets/ArtRes/Unit/Role/Knight/Animation/Hit_F_2.anim,1000,False,True,,4,"[
+,1000,BeHit_01,custom,11,Assets/ArtRes/Unit/Role/Knight/Animation/Hit_F_2.anim,1001,False,False,,4,"[
   {
     ""Tag"": ""hit"",
     ""StartFromFrames"": 0,

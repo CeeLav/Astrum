@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Events;
 using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.Systems;
 using Astrum.CommonBase;
 using Astrum.CommonBase.Events;
 using TrueSync;
@@ -25,6 +27,11 @@ namespace Astrum.LogicCore.Capabilities
             CapabilityTag.Combat,
             CapabilityTag.Animation
         };
+
+        private const string HitReactionExternalActionSource = "HitReaction";
+        private const int HitActionPriority = 900;
+        private const int HitActionTransitionFrames = 2;
+        private const int HitActionFreezeFrames = 0;
         
         // ====== 生命周期 ======
         
@@ -85,14 +92,39 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void PlayHitAction(Entity entity, HitReactionEvent evt)
         {
-            // TODO: 根据攻击方向（evt.HitDirection）播放不同的受击动作
-            // 临时：播放通用受击动作
-            var action = GetComponent<ActionComponent>(entity);
-            if (action != null)
+            if (!HasComponent<ActionComponent>(entity))
             {
-                // 根据效果类型播放不同动作
-                // action.PlayAction("Hit", priority: ActionPriority.High);
+                ASLogger.Instance.Debug("[HitReactionCapability] ActionComponent missing, skip hit action.");
+                return;
             }
+
+            var config = entity.EntityConfig;
+            if (config == null)
+            {
+                ASLogger.Instance.Warning($"[HitReactionCapability] Entity {entity.UniqueId} has no config, unable to resolve HitAction.");
+                return;
+            }
+
+            if (config.HitAction <= 0)
+            {
+                ASLogger.Instance.Debug($"[HitReactionCapability] Entity {entity.UniqueId} has no HitAction configured, skip action switch.");
+                return;
+            }
+
+            UpdateFacingDirection(entity, evt);
+
+            var preorder = new ActionPreorderEvent
+            {
+                ActionId = config.HitAction,
+                Priority = HitActionPriority,
+                TransitionFrames = HitActionTransitionFrames,
+                FromFrame = 0,
+                FreezingFrames = HitActionFreezeFrames,
+                SourceTag = HitReactionExternalActionSource,
+                TriggerWhenInactive = true
+            };
+
+            entity.QueueEvent(preorder);
         }
         
         /// <summary>
@@ -148,6 +180,61 @@ namespace Astrum.LogicCore.Capabilities
 
             // TODO: 接入运行时音频播放（目前仅记录日志）
             ASLogger.Instance.Info($"[HitReactionCapability] 受击音效占位: {evt.SoundEffectPath}");
+        }
+
+        private void UpdateFacingDirection(Entity entity, HitReactionEvent evt)
+        {
+            var trans = GetComponent<TransComponent>(entity);
+            if (trans == null)
+            {
+                return;
+            }
+
+            var direction = evt.HitDirection;
+
+            if (direction.sqrMagnitude > FP.EN4)
+            {
+                direction = direction * (-FP.One);
+            }
+            else
+            {
+                direction = GetDirectionFromCaster(entity, trans, evt.CasterId);
+            }
+
+            direction.y = FP.Zero;
+
+            if (direction.sqrMagnitude <= FP.EN4)
+            {
+                return;
+            }
+
+            direction = TSVector.Normalize(direction);
+            var rotation = TSQuaternion.LookRotation(direction, TSVector.up);
+            trans.SetRotation(rotation);
+        }
+
+        private TSVector GetDirectionFromCaster(Entity target, TransComponent targetTrans, long casterId)
+        {
+            if (target == null || target.World == null)
+            {
+                return TSVector.zero;
+            }
+
+            var caster = target.World.GetEntity(casterId);
+            if (caster == null)
+            {
+                return TSVector.zero;
+            }
+
+            var casterTrans = caster.GetComponent<TransComponent>();
+            if (casterTrans == null || targetTrans == null)
+            {
+                return TSVector.zero;
+            }
+
+            var direction = casterTrans.Position - targetTrans.Position;
+            direction.y = FP.Zero;
+            return direction;
         }
     }
 }

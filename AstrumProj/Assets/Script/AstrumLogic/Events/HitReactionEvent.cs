@@ -41,5 +41,34 @@ namespace Astrum.LogicCore.Events
         /// </summary>
         public bool TriggerWhenInactive { get; set; }
     }
+
+    /// <summary>
+    /// 请求实体预约动作的事件（例如受击、硬直等外部系统发起）
+    /// </summary>
+    public struct ActionPreorderEvent : IEvent
+    {
+        /// <summary>动作来源标识（用于去重与日志）</summary>
+        public string SourceTag;
+
+        /// <summary>要预约的动作 ID</summary>
+        public int ActionId;
+
+        /// <summary>动作优先级</summary>
+        public int Priority;
+
+        /// <summary>融合帧数</summary>
+        public int TransitionFrames;
+
+        /// <summary>起始帧</summary>
+        public int FromFrame;
+
+        /// <summary>切换后硬直帧数</summary>
+        public int FreezingFrames;
+
+        /// <summary>
+        /// 是否在 Capability 未激活时也触发
+        /// </summary>
+        public bool TriggerWhenInactive { get; set; }
+    }
 }
 

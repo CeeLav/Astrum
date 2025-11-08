@@ -150,7 +150,7 @@ namespace Astrum.View.Components
                 // 如果模式发生变化，记录日志
                 if (_currentMode != requiredMode)
                 {
-                    ASLogger.Instance.Info($"[TransViewComponent] Visual follow mode changed: {_currentMode} -> {requiredMode}", "View.VisualFollow");
+                    ASLogger.Instance.Debug($"[TransViewComponent] Visual follow mode changed: {_currentMode} -> {requiredMode}", "View.VisualFollow");
                     _currentMode = requiredMode;
                 }
                 
@@ -554,7 +554,7 @@ namespace Astrum.View.Components
                 _visualSync.lastLogicPos = currentLogicPos;
                 _visualSync.lastLogicFrame = currentLogicFrame;
             if(previousLogicPos != currentLogicPos)
-                ASLogger.Instance.Info(
+                ASLogger.Instance.Debug(
                     $"[TransViewComponent] [Interpolation] Logic frame advanced: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
                     $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}",
                     "View.VisualFollow");
@@ -578,7 +578,7 @@ namespace Astrum.View.Components
                     _visualSync.timeSinceLastLogicUpdate = 0;
                 }
                 if(_visualSync.visualOffset != Vector3.zero)
-                    ASLogger.Instance.Info(
+                    ASLogger.Instance.Debug(
                         $"[TransViewComponent] [Interpolation] EntityID:{ownerEntity.UniqueId} Logic: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
                         $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, visualOffset={_visualSync.visualOffset}",
                         "View.VisualFollow");

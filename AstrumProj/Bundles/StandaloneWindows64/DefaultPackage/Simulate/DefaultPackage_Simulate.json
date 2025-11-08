@@ -9,7 +9,7 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/11/7 12:11:41",
+    "PackageNote": "2025/11/8 14:50:43",
     "AssetList": [
         {
             "Address": "",
@@ -489,6 +489,14 @@
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 1,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Hit_F_2.anim",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 5,
             "DependBundleIDs": []
         },
         {
@@ -1108,7 +1116,7 @@
             "UnityCRC": 0,
             "FileHash": "95fa6045a9eb8f94224b208b6b95911e",
             "FileCRC": 0,
-            "FileSize": 50860166,
+            "FileSize": 51201317,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
