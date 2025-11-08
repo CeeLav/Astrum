@@ -23,6 +23,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         private TimelineEditorModule _timelineModule;
         private EventDetailModule _eventDetailModule;
         private ActionEditorLayout _layoutManager;
+        private AnimationPlaybackCoordinator _playbackCoordinator;
         
         // === 数据 ===
         private List<ActionEditorData> _allActions = new List<ActionEditorData>();
@@ -141,18 +142,13 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             if (_previewModule != null && _previewModule.IsPlaying())
             {
-                int animFrame = _previewModule.GetCurrentFrame();
-                int timelineFrame = _timelineModule.GetCurrentFrame();
-                
-                // 如果动画帧和时间轴帧不同步，更新时间轴
-                if (animFrame != timelineFrame)
-                {
-                    _timelineModule.SetCurrentFrame(animFrame);
-                }
-                
-                // 持续重绘
                 Repaint();
             }
+        }
+
+        private void HandlePreviewFrameChanged(int frame)
+        {
+            Repaint();
         }
         
         // === 初始化 ===
@@ -178,6 +174,7 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 预览模块（使用简化的动画预览）
             _previewModule = new AnimationPreviewModule();
             _previewModule.Initialize();
+            _previewModule.SetHitDummyEnabled(false);
             
             // 时间轴模块
             _timelineModule = new TimelineEditorModule();
@@ -186,6 +183,10 @@ namespace Astrum.Editor.RoleEditor.Windows
             _timelineModule.OnCurrentFrameChanged += OnTimelineFrameChanged;
             _timelineModule.OnEventSelected += OnTimelineEventSelected;
             
+            _playbackCoordinator = new AnimationPlaybackCoordinator();
+            _playbackCoordinator.Attach(_previewModule, _timelineModule);
+            _playbackCoordinator.OnPreviewFrameChanged += HandlePreviewFrameChanged;
+            
             // 事件详情模块
             _eventDetailModule = new EventDetailModule();
             _eventDetailModule.OnActionModified += OnActionModified;
@@ -193,6 +194,13 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private void CleanupModules()
         {
+            if (_playbackCoordinator != null)
+            {
+                _playbackCoordinator.OnPreviewFrameChanged -= HandlePreviewFrameChanged;
+                _playbackCoordinator.Detach();
+                _playbackCoordinator = null;
+            }
+
             _configModule?.Cleanup();
             _previewModule?.Cleanup();
             _timelineModule?.Cleanup();
@@ -362,7 +370,9 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 更新时间轴
             if (action != null)
             {
-                _timelineModule.SetTotalFrames(action.Duration);
+                int totalFrames = action.AnimationDuration > 0 ? action.AnimationDuration : action.Duration;
+                totalFrames = Mathf.Max(totalFrames, 1);
+                _timelineModule.SetFrameRange(totalFrames, action.Duration);
                 _timelineModule.SetEvents(action.TimelineEvents);
                 _timelineModule.SetTracks(TimelineTrackRegistry.GetAllTracks());
                 
@@ -401,8 +411,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                     action.Duration = animationTotalFrames;
                 }
                 
-                // 时间轴使用动作总帧数
-                _timelineModule.SetTotalFrames(action.Duration);
+                // 设置动画播放与时间轴范围
+                _previewModule.SetMaxPlaybackDuration(action.Duration);
+                _timelineModule.SetFrameRange(animationTotalFrames, action.Duration);
             }
         }
         
@@ -462,11 +473,10 @@ namespace Astrum.Editor.RoleEditor.Windows
         /// </summary>
         private void OnTimelineFrameChanged(int frame)
         {
-            if (_previewModule != null)
+            _playbackCoordinator?.HandleTimelineFrameChanged(frame);
+
+            if (_previewModule == null || !_previewModule.IsPlaying())
             {
-                _previewModule.SetFrame(frame);
-                
-                // 触发重绘
                 Repaint();
             }
         }
@@ -538,7 +548,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                     action.Duration = action.AnimationDuration;
                 }
                 
-                _timelineModule.SetTotalFrames(action.Duration);
+                int totalFrames = action.AnimationDuration > 0 ? action.AnimationDuration : action.Duration;
+                totalFrames = Mathf.Max(totalFrames, 1);
+                _timelineModule.SetFrameRange(totalFrames, action.Duration);
                 
                 // 检查动画是否改变，如果改变则重新加载
                 LoadAnimationForAction(action);

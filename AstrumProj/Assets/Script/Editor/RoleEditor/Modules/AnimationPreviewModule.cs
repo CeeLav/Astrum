@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -25,6 +26,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 播放状态（特有） ===
         private int _currentFrame = 0;
+        private int _lastNotifiedFrame = -1;
         private float _accumulatedTime = 0f;             // 累积时间，用于逐帧播放
         private double _playStartTime = 0.0;             // 开始播放的时间戳（用于基于时间戳的播放）
         
@@ -49,6 +51,8 @@ namespace Astrum.Editor.RoleEditor.Modules
         // === 模型缩放 ===
         private float _modelScale = 1.0f; // 模型缩放比例
         
+        public event Action<int> PreviewFrameAdvanced;
+        
         // === 特效预览 ===
         private VFXPreviewManager _vfxPreviewManager;
         private HitDummyPreviewController _hitDummyPreviewController;
@@ -57,6 +61,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         private const string HitDummyLogPrefix = "[AnimationPreview/HitDummy]";
         private const bool HitDummyDebugLog = false;
         private int _lastEvaluatedHitDummyFrame = -1;
+        private bool _hitDummyEnabled = false;
         
         protected override string LogPrefix => "[AnimationPreviewModule]";
         
@@ -147,6 +152,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             _currentAnimState = _animancer.Play(clip);
             _currentAnimState.Speed = 0; // 默认暂停
             _isPlaying = false;
+            _lastNotifiedFrame = -1;
             
             Debug.Log($"{LogPrefix} Loaded animation: {clip.name}");
         }
@@ -246,8 +252,11 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.ClearAll();
             }
 
-            _hitDummyPreviewController?.ResetTargets();
-            EvaluateHitDummyInteractions(_currentFrame);
+            if (_hitDummyEnabled)
+            {
+                _hitDummyPreviewController?.ResetTargets();
+                EvaluateHitDummyInteractions(_currentFrame);
+            }
             
             // 重置模型位置到初始位置
             if (_previewInstance != null)
@@ -255,6 +264,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _previewInstance.transform.position = _initialPosition;
                 _previewInstance.transform.rotation = Quaternion.identity;
             }
+
+            NotifyPreviewFrameChanged(_currentFrame);
         }
         
         /// <summary>
@@ -295,8 +306,13 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.UpdateVFXPositions();
             }
 
-            EvaluateHitDummyInteractions(_currentFrame);
-            _hitDummyPreviewController?.UpdateFrame(FRAME_TIME);
+            if (_hitDummyEnabled)
+            {
+                EvaluateHitDummyInteractions(_currentFrame);
+                _hitDummyPreviewController?.UpdateFrame(FRAME_TIME);
+            }
+
+            NotifyPreviewFrameChanged(_currentFrame);
         }
         
         /// <summary>
@@ -321,16 +337,25 @@ namespace Astrum.Editor.RoleEditor.Modules
         {
             _timelineEvents = events ?? new List<TimelineEvent>();
             _lastEvaluatedHitDummyFrame = -1;
-            EvaluateHitDummyInteractions(_currentFrame);
+            if (_hitDummyEnabled)
+            {
+                EvaluateHitDummyInteractions(_currentFrame);
+            }
         }
 
         public void RefreshHitDummyPreview()
         {
-            EvaluateHitDummyInteractions(_currentFrame);
+            if (_hitDummyEnabled)
+            {
+                EvaluateHitDummyInteractions(_currentFrame);
+            }
         }
 
         private void EvaluateHitDummyInteractions(int frame)
         {
+            if (!_hitDummyEnabled)
+                return;
+
             if (_hitDummyPreviewController == null)
                 return;
 
@@ -932,6 +957,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 计算新的动画时间：基于绝对时间戳 * 播放速度（即使多次调用结果也一致）
             float newAnimationTime = (float)elapsedTime * _animationSpeed;
+            int previousFrame = _currentFrame;
             
             // 检查播放边界
             bool shouldStop = false;
@@ -965,6 +991,10 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             // 更新当前逻辑帧（用于UI显示）
             _currentFrame = Mathf.RoundToInt(newAnimationTime * LOGIC_FRAME_RATE);
+            if (_currentFrame != previousFrame)
+            {
+                NotifyPreviewFrameChanged(_currentFrame);
+            }
             
             // 更新Animancer（传入0，因为我们完全手动控制Time，Speed=0）
             // Evaluate 只会应用当前的Time值，不会累加时间
@@ -999,11 +1029,37 @@ namespace Astrum.Editor.RoleEditor.Modules
             UpdateAnimationInternal();
         }
 
+        public void SetHitDummyEnabled(bool enabled)
+        {
+            if (_hitDummyEnabled == enabled)
+                return;
+
+            _hitDummyEnabled = enabled;
+
+            if (!enabled)
+            {
+                _hitDummyPreviewController?.Clear();
+                _hitDummyPreviewController = null;
+                _currentHitDummyTemplate = null;
+                _lastEvaluatedHitDummyFrame = -1;
+            }
+            else
+            {
+                EnsureHitDummyController();
+                EvaluateHitDummyInteractions(_currentFrame);
+            }
+        }
+
         /// <summary>
         /// 设置当前预览使用的木桩模板
         /// </summary>
         public void SetHitDummyTemplate(SkillHitDummyTemplate template)
         {
+            if (template != null)
+            {
+                SetHitDummyEnabled(true);
+            }
+
             _currentHitDummyTemplate = template;
             EnsureHitDummyController();
 
@@ -1023,6 +1079,11 @@ namespace Astrum.Editor.RoleEditor.Modules
 
         private void EnsureHitDummyController()
         {
+            if (!_hitDummyEnabled)
+            {
+                return;
+            }
+
             if (_hitDummyPreviewController == null)
             {
                 _hitDummyPreviewController = new HitDummyPreviewController();
@@ -1041,6 +1102,9 @@ namespace Astrum.Editor.RoleEditor.Modules
 
         private void EnsureDefaultHitDummyTemplate()
         {
+            if (!_hitDummyEnabled)
+                return;
+
             if (_currentHitDummyTemplate != null)
                 return;
 
@@ -1091,11 +1155,19 @@ namespace Astrum.Editor.RoleEditor.Modules
                     _vfxPreviewManager.ClearAll();
                 }
 
-                _hitDummyPreviewController?.ResetTargets();
+                if (_hitDummyEnabled)
+                {
+                    _hitDummyPreviewController?.ResetTargets();
+                }
             }
 
             _lastEvaluatedHitDummyFrame = -1;
-            EvaluateHitDummyInteractions(_currentFrame);
+            if (_hitDummyEnabled)
+            {
+                EvaluateHitDummyInteractions(_currentFrame);
+            }
+
+            NotifyPreviewFrameChanged(_currentFrame);
         }
         
         /// <summary>
@@ -1131,6 +1203,15 @@ namespace Astrum.Editor.RoleEditor.Modules
         public bool GetShowCollision()
         {
             return _showCollision;
+        }
+
+        private void NotifyPreviewFrameChanged(int frame)
+        {
+            if (_lastNotifiedFrame == frame)
+                return;
+
+            _lastNotifiedFrame = frame;
+            PreviewFrameAdvanced?.Invoke(frame);
         }
         
         /// <summary>
@@ -1168,7 +1249,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             // 清理网格材质
             if (_gridMaterial != null)
             {
-                Object.DestroyImmediate(_gridMaterial);
+                UnityEngine.Object.DestroyImmediate(_gridMaterial);
                 _gridMaterial = null;
             }
 

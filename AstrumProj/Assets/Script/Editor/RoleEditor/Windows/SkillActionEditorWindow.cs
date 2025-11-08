@@ -24,6 +24,7 @@ namespace Astrum.Editor.RoleEditor.Windows
         private TimelineEditorModule _timelineModule;
         private EventDetailModule _eventDetailModule;
         private ActionEditorLayout _layoutManager;
+        private AnimationPlaybackCoordinator _playbackCoordinator;
         
         // === 数据 ===
         private List<SkillActionEditorData> _allSkillActions = new List<SkillActionEditorData>();
@@ -115,27 +116,15 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 如果动画正在播放，持续Repaint以更新预览，并同步时间轴
             if (_previewModule != null && _previewModule.IsPlaying())
             {
-                // 同步动画播放头到时间轴（避免频繁更新，只在帧变化时更新）
-                if (_timelineModule != null)
-                {
-                    int animFrame = _previewModule.GetCurrentFrame();
-                    int timelineFrame = _timelineModule.GetCurrentFrame();
-                    
-                    // 只在帧真正变化时更新（避免每帧都触发事件）
-                    if (animFrame != timelineFrame)
-                    {
-                        // 直接设置时间轴的内部帧，避免触发OnCurrentFrameChanged事件
-                        // 这样不会调用SetFrame，避免中断播放
-                        _timelineModule.SetCurrentFrame(animFrame);
-                        
-                        // 只在帧变化时更新碰撞盒信息
-                        UpdateFrameCollisionInfo(animFrame);
-                    }
-                }
-                
                 // 持续Repaint以更新动画预览（这是必要的，否则动画不会显示更新）
                 Repaint();
             }
+        }
+
+        private void HandlePreviewFrameChanged(int frame)
+        {
+            UpdateFrameCollisionInfo(frame);
+            Repaint();
         }
         
         private void OnDestroy()
@@ -185,6 +174,7 @@ namespace Astrum.Editor.RoleEditor.Windows
             // 预览模块
             _previewModule = new AnimationPreviewModule();
             _previewModule.Initialize();
+            _previewModule.SetHitDummyEnabled(true);
             
             // 将预览模块引用传递给配置模块（用于提取Hips位移）
             _configModule.SetPreviewModule(_previewModule);
@@ -196,6 +186,10 @@ namespace Astrum.Editor.RoleEditor.Windows
             _timelineModule.OnCurrentFrameChanged += OnTimelineFrameChanged;
             _timelineModule.OnEventSelected += OnTimelineEventSelected;
             
+            _playbackCoordinator = new AnimationPlaybackCoordinator();
+            _playbackCoordinator.Attach(_previewModule, _timelineModule);
+            _playbackCoordinator.OnPreviewFrameChanged += HandlePreviewFrameChanged;
+            
             // 事件详情模块
             _eventDetailModule = new EventDetailModule();
             _eventDetailModule.OnActionModified += OnActionModified;
@@ -204,6 +198,13 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private void CleanupModules()
         {
+            if (_playbackCoordinator != null)
+            {
+                _playbackCoordinator.OnPreviewFrameChanged -= HandlePreviewFrameChanged;
+                _playbackCoordinator.Detach();
+                _playbackCoordinator = null;
+            }
+
             _configModule?.Cleanup();
             _previewModule?.Cleanup();
             _timelineModule?.Cleanup();
@@ -553,22 +554,11 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private void OnTimelineFrameChanged(int frame)
         {
-            if (_previewModule != null)
+            _playbackCoordinator?.HandleTimelineFrameChanged(frame);
+
+            if (_previewModule == null || !_previewModule.IsPlaying())
             {
-                // 如果正在播放，时间轴帧变化是由播放驱动的，不需要调用SetFrame
-                // SetFrame会重置播放时间，导致播放中断
-                bool isPlaying = _previewModule.IsPlaying();
-                
-                if (!isPlaying)
-                {
-                    // 非播放状态：手动拖拽时间轴，需要同步到预览
-                    _previewModule.SetFrame(frame);
-                }
-                // 播放状态：时间轴帧由OnEditorUpdate同步，不需要反向同步
-                
-                // 获取当前帧的碰撞盒信息并传递给预览模块
                 UpdateFrameCollisionInfo(frame);
-                
                 Repaint();
             }
         }
@@ -1163,14 +1153,6 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             if (_previewModule != null && _previewModule.IsPlaying())
             {
-                int animFrame = _previewModule.GetCurrentFrame();
-                int timelineFrame = _timelineModule.GetCurrentFrame();
-                
-                if (animFrame != timelineFrame)
-                {
-                    _timelineModule.SetCurrentFrame(animFrame);
-                }
-                
                 Repaint();
             }
         }

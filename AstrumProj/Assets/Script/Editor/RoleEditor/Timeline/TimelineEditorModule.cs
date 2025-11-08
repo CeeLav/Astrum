@@ -173,6 +173,18 @@ namespace Astrum.Editor.RoleEditor.Timeline
                 OnCurrentFrameChanged?.Invoke(_currentFrame);
             }
         }
+
+        /// <summary>
+        /// 由动画播放驱动时设置当前帧，不触发回调，避免递归。
+        /// </summary>
+        public void SetCurrentFrameFromPlayback(int frame)
+        {
+            int clamped = Mathf.Clamp(frame, 0, _maxEditableFrame - 1);
+            if (_currentFrame != clamped)
+            {
+                _currentFrame = clamped;
+            }
+        }
         
         /// <summary>
         /// 设置总帧数（时间轴显示范围）

@@ -114,6 +114,11 @@ namespace Astrum.Editor.RoleEditor.Modules
         public void SetPreviewModule(AnimationPreviewModule previewModule)
         {
             _previewModule = previewModule;
+            
+            if (_previewModule != null)
+            {
+                _previewModule.SetHitDummyEnabled(true);
+            }
         }
         
         /// <summary>
