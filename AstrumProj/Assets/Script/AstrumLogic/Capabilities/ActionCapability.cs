@@ -163,12 +163,6 @@ namespace Astrum.LogicCore.Capabilities
             
             var shouldTerminate = 
                 (actionComponent.CurrentAction.AutoTerminate && !HasValidCommand(entity, actionComponent.CurrentAction));
-            if (actionComponent.CurrentAction.AutoTerminate)
-            {
-                ASLogger.Instance.Info($"shouldTerminate: {shouldTerminate}, ActionId={actionComponent.CurrentAction.Id}, CurrentFrame={actionComponent.CurrentFrame}, Duration={actionDuration}, AutoTerminate={actionComponent.CurrentAction.AutoTerminate}, " +
-                                       $"HasValidCommand={HasValidCommand(entity, actionComponent.CurrentAction)} on entity {entity.UniqueId}");
-            }
-
             var shouldContinue = !IsActionFinished(actionComponent, actionDuration) || HasValidCommand(entity, actionComponent.CurrentAction);
             if (!shouldContinue || shouldTerminate)
             {
@@ -228,7 +222,7 @@ namespace Astrum.LogicCore.Capabilities
             if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0) return;
             
             // 按优先级排序
-            actionComponent.PreorderActions.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+            actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
             
             // 选择优先级最高的动作
             var selectedAction = actionComponent.PreorderActions[0];
