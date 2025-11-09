@@ -607,7 +607,7 @@ namespace Astrum.LogicCore.Capabilities
                 
                 switch (mapping.TriggerCondition)
                 {
-                    case "True":
+                    case "TRUE":
                         if (GetBoolFieldValue(input, fieldName))
                             return true;
                         break;

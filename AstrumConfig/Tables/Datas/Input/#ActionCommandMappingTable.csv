@@ -1,10 +1,10 @@
 ##var,commandName,lsInputField,triggerCondition,validFrames,priority,description
 ##type,string,string,string,int,int,string
 ##group,,,,,,
-##desc,å‘½ä»¤åç§°,LSInputå­—æ®µå(|åˆ†éš”è¡¨ç¤ºORå…³ç³»),è§¦å‘æ¡ä»¶(NonZero/True/Always),æœ‰æ•ˆå¸§æ•°,ä¼˜å…ˆçº§,è¯´æ˜
-,move,MoveX|MoveY,NonZero,1,0,ç§»åŠ¨å‘½ä»¤(MoveXæˆ–MoveYéé›¶)
-,attack,Attack,True,3,10,æ™®é€šæ”»å‡»
-,skill1,Skill1,True,3,20,æŠ€èƒ½1
-,skill2,Skill2,True,3,20,æŠ€èƒ½2
-,roll,Roll,True,2,15,ç¿»æ»š
-,dash,Dash,True,5,15,å†²åˆº
+##desc,ÃüÁîÃû³Æ,LSInput×Ö¶ÎÃû(|·Ö¸ô±íÊ¾OR¹ØÏµ),´¥·¢Ìõ¼ş(NonZero/True/Always),ÓĞĞ§Ö¡Êı,ÓÅÏÈ¼¶,ËµÃ÷
+,move,MoveX|MoveY,NonZero,1,0,ÒÆ¶¯ÃüÁî(MoveX»òMoveY·ÇÁã)
+,attack,Attack,TRUE,2,10,ÆÕÍ¨¹¥»÷
+,skill1,Skill1,TRUE,2,20,¼¼ÄÜ1
+,skill2,Skill2,TRUE,2,20,¼¼ÄÜ2
+,roll,Roll,TRUE,2,15,·­¹ö
+,dash,Dash,TRUE,2,15,³å´Ì
