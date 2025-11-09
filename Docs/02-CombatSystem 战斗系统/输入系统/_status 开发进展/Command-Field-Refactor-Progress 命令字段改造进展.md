@@ -429,9 +429,96 @@ else
 
 ---
 
+---
+
+## 阶段7：Proto生成和Roll/Dash字段启用 ✅ 已完成
+
+**时间**：2025-11-09 23:45
+
+### 问题发现
+
+用户提醒Proto生成工具可能有问题，需要重新生成。
+
+### 执行操作
+
+**1. 运行Proto2CS工具**
+
+```bash
+cd AstrumTool/Proto2CS
+dotnet run
+```
+
+**生成结果**：
+- ✅ 成功处理4个proto文件
+- ✅ 生成客户端消息到 `AstrumProj/Assets/Script/Generated/Message/`
+- ✅ `LSInput`中已包含`Roll`和`Dash`字段
+
+**2. 启用ActionCapability中的Roll和Dash**
+
+**修改文件**：`ActionCapability.cs` (631-632行)
+
+**修改前**：
+```csharp
+// TODO: Roll和Dash字段等待Proto代码生成后启用
+// case "Roll": return input.Roll;
+// case "Dash": return input.Dash;
+```
+
+**修改后**：
+```csharp
+case "Roll": return input.Roll;
+case "Dash": return input.Dash;
+```
+
+**3. 启用LSInputAssembler中的Roll和Dash**
+
+**修改文件**：`LSInputAssembler.cs` (196-203行)
+
+**修改前**：
+```csharp
+// TODO: Roll和Dash字段等待Proto代码重新生成后启用
+// case "Roll":
+//     input.Roll = value;
+//     break;
+// case "Dash":
+//     input.Dash = value;
+//     break;
+```
+
+**修改后**：
+```csharp
+case "Roll":
+    input.Roll = value;
+    break;
+case "Dash":
+    input.Dash = value;
+    break;
+```
+
+**4. 编译验证**
+
+```
+✅ 0个错误
+⚠️ 104个警告（均为旧代码警告，不影响功能）
+⏱️ 编译时间：7.94秒
+```
+
+### 修改总结
+
+**涉及文件**：
+1. ✅ `ActionCapability.cs` - GetBoolFieldValue方法中启用Roll和Dash
+2. ✅ `LSInputAssembler.cs` - SetBoolField方法中启用Roll和Dash
+
+**影响范围**：
+- 输入系统现在完整支持Roll和Dash动作
+- LSInput可以正确传输Roll和Dash按键状态
+- ActionCapability可以正确识别Roll和Dash命令
+
+---
+
 ## 总结
 
-**当前状态**：🔍 Commands解析问题调查中，已添加调试日志，等待Unity测试反馈
+**当前状态**：✅ Proto生成完成，Roll/Dash字段已全面启用；🔍 Commands解析问题调查中，已添加调试日志，等待Unity测试反馈
 
 **已完成工作**：
 1. ✅ ActionEditorData.cs - 字段变更和向后兼容
