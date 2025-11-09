@@ -170,7 +170,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 AutoNextActionId = action.AutoNextActionId,
                 KeepPlayingAnim = action.KeepPlayingAnim,
                 AutoTerminate = action.AutoTerminate,
-                Command = action.Command,
+                Commands = action.Commands != null ? new List<string>(action.Commands) : new List<string>(),
                 Priority = action.Priority
             };
             

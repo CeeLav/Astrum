@@ -5,6 +5,7 @@ using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Stats;
 using Astrum.CommonBase;
+using Astrum.Generated;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -517,6 +518,10 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 检查命令是否有效
         /// </summary>
+        /// <summary>
+        /// 同步输入命令（配置驱动版本）
+        /// 从ActionCommandMappingTable读取映射配置
+        /// </summary>
         private void SyncInputCommands(Entity entity, ActionComponent actionComponent)
         {
             if (actionComponent == null)
@@ -559,12 +564,88 @@ namespace Astrum.LogicCore.Capabilities
                 }
             }
 
-            // 同步最新输入，移动保留 1 帧，攻击类保留 3 帧
-            AddOrRefreshCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0);
-            AddOrRefreshCommand(commands, "attack", currentInput.Attack ? 3 : 0);
-            AddOrRefreshCommand(commands, "normalattack", currentInput.Attack ? 3 : 0);
-            AddOrRefreshCommand(commands, "skill1", currentInput.Skill1 ? 3 : 0);
-            AddOrRefreshCommand(commands, "skill2", currentInput.Skill2 ? 3 : 0);
+            // 根据配置表同步命令
+            var configManager = TableConfig.Instance;
+            if (configManager?.IsInitialized == true && configManager.Tables?.TbActionCommandMappingTable != null)
+            {
+                foreach (var mapping in configManager.Tables.TbActionCommandMappingTable.DataList)
+                {
+                    if (mapping != null && ShouldAddCommand(currentInput, mapping))
+                    {
+                        AddOrRefreshCommand(commands, mapping.CommandName, mapping.ValidFrames);
+                    }
+                }
+            }
+            else
+            {
+                // 配置表未加载，使用硬编码作为后备
+                ASLogger.Instance.Warning("ActionCapability: ActionCommandMappingTable未加载，使用硬编码后备", "Action.Capability");
+                AddOrRefreshCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0);
+                AddOrRefreshCommand(commands, "attack", currentInput.Attack ? 3 : 0);
+                AddOrRefreshCommand(commands, "skill1", currentInput.Skill1 ? 3 : 0);
+                AddOrRefreshCommand(commands, "skill2", currentInput.Skill2 ? 3 : 0);
+            }
+        }
+        
+        /// <summary>
+        /// 判断是否应该添加命令（根据配置表规则）
+        /// </summary>
+        private bool ShouldAddCommand(LSInput input, cfg.Input.ActionCommandMappingTable mapping)
+        {
+            var fields = mapping.LsInputField.Split('|');
+            
+            foreach (var field in fields)
+            {
+                string fieldName = field.Trim();
+                
+                switch (mapping.TriggerCondition)
+                {
+                    case "True":
+                        if (GetBoolFieldValue(input, fieldName))
+                            return true;
+                        break;
+                        
+                    case "NonZero":
+                        if (IsFieldNonZero(input, fieldName))
+                            return true;
+                        break;
+                        
+                    case "Always":
+                        return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// 获取布尔字段值
+        /// </summary>
+        private bool GetBoolFieldValue(LSInput input, string fieldName)
+        {
+            switch (fieldName)
+            {
+                case "Attack": return input.Attack;
+                case "Skill1": return input.Skill1;
+                case "Skill2": return input.Skill2;
+                // TODO: Roll和Dash字段等待Proto代码生成后启用
+                // case "Roll": return input.Roll;
+                // case "Dash": return input.Dash;
+                default: return false;
+            }
+        }
+        
+        /// <summary>
+        /// 判断字段是否非零
+        /// </summary>
+        private bool IsFieldNonZero(LSInput input, string fieldName)
+        {
+            switch (fieldName)
+            {
+                case "MoveX": return input.MoveX != 0;
+                case "MoveY": return input.MoveY != 0;
+                default: return false;
+            }
         }
 
         private static void AddOrRefreshCommand(List<ActionCommand> commands, string name, int validFrames)

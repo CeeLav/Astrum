@@ -149,7 +149,18 @@ namespace Astrum.LogicCore.Managers
             // TempBeCancelledTags 是运行时数据，初始化为空列表（由技能系统动态添加）
             actionInfo.TempBeCancelledTags = new List<TempBeCancelledTag>();
             
-            actionInfo.Commands = ParseCommandString(actionTable.Command);
+            // 从Commands列表创建ActionCommand对象
+            actionInfo.Commands = new List<ActionCommand>();
+            if (actionTable.Commands != null && actionTable.Commands.Any())
+            {
+                foreach (var cmdName in actionTable.Commands)
+                {
+                    if (!string.IsNullOrEmpty(cmdName))
+                    {
+                        actionInfo.Commands.Add(new ActionCommand(cmdName, 0));
+                    }
+                }
+            }
             
             // 默认值处理
             if (actionInfo.AutoNextActionId <= 0)

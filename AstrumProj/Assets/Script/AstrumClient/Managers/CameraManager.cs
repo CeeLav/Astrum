@@ -229,18 +229,18 @@ namespace Astrum.Client.Managers
         private void HandleInput()
         {
             // 右键拖拽旋转相机
-            if (Input.GetMouseButtonDown(1))
+            if (UnityEngine.Input.GetMouseButtonDown(1))
             {
                 _isRightMouseDown = true;
-                _lastMousePosition = Input.mousePosition;
+                _lastMousePosition = UnityEngine.Input.mousePosition;
             }
-            else if (Input.GetMouseButtonUp(1))
+            else if (UnityEngine.Input.GetMouseButtonUp(1))
             {
                 _isRightMouseDown = false;
             }
             
             // 滚轮缩放距离
-            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            float scroll = UnityEngine.Input.GetAxis("Mouse ScrollWheel");
             if (Mathf.Abs(scroll) > 0.01f)
             {
                 _currentDistance -= scroll * _scrollSensitivity;
@@ -250,7 +250,7 @@ namespace Astrum.Client.Managers
             // 右键拖拽旋转
             if (_isRightMouseDown)
             {
-                Vector3 mouseDelta = Input.mousePosition - _lastMousePosition;
+                Vector3 mouseDelta = UnityEngine.Input.mousePosition - _lastMousePosition;
                 
                 // 水平旋转（绕Y轴）
                 _currentYaw += mouseDelta.x * _mouseSensitivity * Time.deltaTime;
@@ -259,7 +259,7 @@ namespace Astrum.Client.Managers
                 _currentPitch -= mouseDelta.y * _mouseSensitivity * Time.deltaTime;
                 _currentPitch = Mathf.Clamp(_currentPitch, 10f, 80f); // 限制在10-80度之间
                 
-                _lastMousePosition = Input.mousePosition;
+                _lastMousePosition = UnityEngine.Input.mousePosition;
             }
         }
         

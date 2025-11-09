@@ -4,43 +4,56 @@ using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Client.Core;
+using Astrum.Client.Input;
 
 namespace Astrum.Client.Managers
 {
     /// <summary>
-    /// 输入管理�?- 负责处理玩家输入
+    /// 输入管理器 - 负责调度输入采集和LSInput组装
+    /// 重构为配置驱动，使用IRawInputProvider和LSInputAssembler
     /// </summary>
     public class InputManager : Singleton<InputManager>
     {
+        private IRawInputProvider _inputProvider;
+        
+        // ====== 旧代码保留（未使用，便于回退） ======
         [Header("输入设置")]
         private float inputThreshold = 0.1f;
         private int maxInputHistory = 10;
         
-        // 输入状�?
+        // 输入状态（未使用）
         private InputState currentInput;
         private InputState previousInput;
         private List<InputState> inputHistory = new List<InputState>();
         
-        // 公共属性
+        // 公共属性（未使用）
         public InputState CurrentInput => currentInput;
         public InputState PreviousInput => previousInput;
         public List<InputState> InputHistory => inputHistory;
         
-        // 事件
+        // 事件（未使用）
         public event Action<InputState> OnInputChanged;
         public event Action<KeyCode> OnKeyPressed;
         public event Action<KeyCode> OnKeyReleased;
         public event Action<Vector2> OnMouseMoved;
+        // ====== 旧代码结束 ======
         
         /// <summary>
         /// 初始化输入管理器
         /// </summary>
         public void Initialize()
         {
-            // 初始化输入状态
+            // 创建配置驱动的输入提供者
+            _inputProvider = new ConfigurableInputProvider();
+            
+            // 初始化LSInput组装器
+            LSInputAssembler.Initialize();
+            
+            ASLogger.Instance.Info("InputManager: 输入管理器初始化完成（配置驱动模式）", "Input.Manager");
+            
+            // 旧代码保留
             currentInput = new InputState();
             previousInput = new InputState();
-            
         }
         
         /// <summary>
@@ -53,24 +66,26 @@ namespace Astrum.Client.Managers
             {
                 return;
             }
-            var input = CollectLSInput(currentGameMode.PlayerId);
-            currentGameMode.MainRoom?.LSController.SetPlayerInput(currentGameMode.PlayerId, input);
+            
+            // 新逻辑：使用LSInputAssembler组装输入
+            var input = LSInputAssembler.AssembleFromRawInput(
+                _inputProvider,
+                currentGameMode.PlayerId,
+                CameraManager.Instance?.MainCamera
+            );
+            
+            currentGameMode.MainRoom.LSController.SetPlayerInput(currentGameMode.PlayerId, input);
         }
-
 
         
         /// <summary>
-        /// 关闭输入管理�?
+        /// 关闭输入管理器
         /// </summary>
         public void Shutdown()
         {
             ASLogger.Instance.Info("InputManager: 关闭输入管理器", "Input.Manager");
             
-            // InputSystem相关代码已注释
-            // if (inputActions != null)
-            // {
-            //     inputActions.Disable();
-            // }
+            _inputProvider = null;
             
             // 清理输入历史
             inputHistory.Clear();
@@ -82,20 +97,20 @@ namespace Astrum.Client.Managers
             OnMouseMoved = null;
         }
         
+        // ====== 旧代码保留（便于回退） ======
+        /*
         /// <summary>
-        /// 收集并转化为帧同步输入（LSInput）
+        /// 收集并转化为帧同步输入（LSInput）- 旧实现
         /// </summary>
         public LSInput CollectLSInput(long playerId)
         {
             var input = new LSInput();
             input.PlayerId = playerId;
-            //input.Frame = frame;
-            //input.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             
             // 获取相机方向相关的移动输入
             Vector2 cameraRelativeMove = GetCameraRelativeMoveInput();
             
-            // 转 Q31.32 定点
+            // 转 Q31.32 定点数
             long ToQ32(float v) => (long)(v * (double)(1L << 32));
             input.MoveX = ToQ32(cameraRelativeMove.x);
             input.MoveY = ToQ32(cameraRelativeMove.y);
@@ -106,14 +121,14 @@ namespace Astrum.Client.Managers
             input.Skill1 = UnityEngine.Input.GetKey(KeyCode.Q);
             // 技能2输入
             input.Skill2 = UnityEngine.Input.GetKey(KeyCode.E);
+            
             ASLogger.Instance.Debug($"LSInput: MainPlayerID:{playerId} MoveX={cameraRelativeMove.x:F2}, MoveY={cameraRelativeMove.y:F2}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}", "Input.LSInput");
             return input;
         }
         
         /// <summary>
-        /// 获取考虑相机方向的移动输入
+        /// 获取考虑相机方向的移动输入 - 旧实现
         /// </summary>
-        /// <returns>相机相对坐标的移动向量</returns>
         private Vector2 GetCameraRelativeMoveInput()
         {
             // 获取原始WASD输入
@@ -142,9 +157,8 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
-        /// 获取相机前方向量（忽略Y轴）
+        /// 获取相机前方向量（忽略Y轴）- 旧实现
         /// </summary>
-        /// <returns>相机前方向量</returns>
         private Vector3 GetCameraForward()
         {
             if (CameraManager.Instance?.MainCamera != null)
@@ -160,9 +174,8 @@ namespace Astrum.Client.Managers
         }
         
         /// <summary>
-        /// 获取相机右方向量（忽略Y轴）
+        /// 获取相机右方向量（忽略Y轴）- 旧实现
         /// </summary>
-        /// <returns>相机右方向量</returns>
         private Vector3 GetCameraRight()
         {
             if (CameraManager.Instance?.MainCamera != null)
@@ -176,10 +189,12 @@ namespace Astrum.Client.Managers
             // 如果没有相机，返回默认右方向量
             return Vector3.right;
         }
+        */
+        // ====== 旧代码结束 ======
     }
     
     /// <summary>
-    /// 输入状�?
+    /// 输入状态（未使用，保留便于回退）
     /// </summary>
     [Serializable]
     public class InputState
@@ -195,20 +210,20 @@ namespace Astrum.Client.Managers
         {
             InputState clone = new InputState();
             
-            // 复制按键状�?
+            // 复制按键状态
             foreach (var kvp in KeyStates)
             {
                 clone.KeyStates[kvp.Key] = kvp.Value;
             }
             
-            // 复制鼠标状�?
+            // 复制鼠标状态
             clone.MousePosition = MousePosition;
             foreach (var kvp in MouseButtons)
             {
                 clone.MouseButtons[kvp.Key] = kvp.Value;
             }
             
-            // 复制其他状�?
+            // 复制其他状态
             clone.MoveInput = MoveInput;
             clone.IsActionPressed = IsActionPressed;
             clone.Timestamp = Timestamp;

@@ -228,7 +228,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
             editorData.AutoNextActionId = actionData.AutoNextActionId;
             editorData.KeepPlayingAnim = actionData.KeepPlayingAnim;
             editorData.AutoTerminate = actionData.AutoTerminate;
-            editorData.Command = actionData.Command ?? "";
+            editorData.Commands = actionData.Commands != null ? new List<string>(actionData.Commands) : new List<string>();
             editorData.Priority = actionData.Priority;
             editorData.CancelTagsJson = actionData.CancelTags ?? "";
             editorData.CancelTags = ActionDataReader.ParseCancelTagsFromJson(actionData.CancelTags ?? "");

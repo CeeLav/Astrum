@@ -42,6 +42,8 @@ message LSInput
     bool Skill2 = 7;           // 技能2输入
     int64 Timestamp = 8;       // 时间戳
     int BornInfo = 9;          // 出生信息
+    bool Roll = 10;            // 翻滚输入
+    bool Dash = 11;            // 冲刺输入
 }
 
 message OneFrameInputs // IMessage
