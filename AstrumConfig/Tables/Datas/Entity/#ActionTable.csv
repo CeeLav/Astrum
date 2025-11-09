@@ -18,7 +18,7 @@
     ""BlendInFrames"": 4,
     ""Priority"": 0
   }
-]","[{""tags"":[""skill"",""jump"",""dash""],""rangeFrames"":[0,19],""blendOutFrames"":4,""priority"":0}]"
+]","[{""tags"":[""skill"",""dash""],""rangeFrames"":[0,19],""blendOutFrames"":4,""priority"":0}]"
 ,3001,attack_A_01,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim,1001,False,False,attack,30,"[
   {
     ""Tag"": ""skill"",
@@ -34,7 +34,7 @@
     ""BlendInFrames"": 0,
     ""Priority"": 0
   }
-]","[{""tags"":[""move"",""skill""],""rangeFrames"":[23,36],""blendOutFrames"":3,""priority"":0}]"
+]","[{""tags"":[""move"",""skill""],""rangeFrames"":[18,36],""blendOutFrames"":3,""priority"":0}]"
 ,5000,attack_A_01_Combo_1,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_Combo_1.anim,1001,False,False,attack,29,"[
   {
     ""Tag"": ""attack_A_Combo_1"",
@@ -43,7 +43,7 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""move"",""skill""],""rangeFrames"":[28,42],""blendOutFrames"":3,""priority"":0}]"
-,5001,dash_01,move,20,Assets/ArtRes/Unit/Role/Knight/Animation/Run_F.anim,1001,True,True,"move,dash",90,"[
+,5001,dash_01,move,20,Assets/ArtRes/Unit/Role/Knight/Animation/Run_F.anim,1001,True,True,"move,dash",80,"[
   {
     ""Tag"": ""dash"",
     ""StartFromFrames"": 0,

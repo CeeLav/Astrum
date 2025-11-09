@@ -248,7 +248,14 @@ namespace Astrum.LogicCore.Capabilities
             }
             MergeExternalPreorders(actionComponent, entity);
 
-            if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0) return;
+            if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0)
+            {
+                if (actionComponent.CurrentFrame > actionComponent.CurrentAction.Duration)
+                {
+                    actionComponent.CurrentFrame -= actionComponent.CurrentAction.Duration; // 避免一直累积帧数
+                }
+                return;
+            }
             
             // 按优先级排序
             actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
