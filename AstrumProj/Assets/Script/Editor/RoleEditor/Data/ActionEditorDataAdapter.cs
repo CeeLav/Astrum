@@ -44,7 +44,15 @@ namespace Astrum.Editor.RoleEditor.Data
             skillAction.AutoNextActionId = action.AutoNextActionId;
             skillAction.KeepPlayingAnim = action.KeepPlayingAnim;
             skillAction.AutoTerminate = action.AutoTerminate;
-            skillAction.Command = action.Command;
+            // 复制命令列表（保持向后兼容）
+            skillAction.Commands = action.Commands != null ? new List<string>(action.Commands) : new List<string>();
+            if ((skillAction.Commands == null || skillAction.Commands.Count == 0) && !string.IsNullOrEmpty(action.Command))
+            {
+                skillAction.Commands = new List<string> { action.Command };
+            }
+            skillAction.Command = skillAction.Commands != null && skillAction.Commands.Count > 0
+                ? skillAction.Commands[0]
+                : action.Command;
             skillAction.CancelTags = action.CancelTags;
             skillAction.CancelTagsJson = action.CancelTagsJson;
             skillAction.TimelineEvents = action.TimelineEvents;
@@ -111,7 +119,18 @@ namespace Astrum.Editor.RoleEditor.Data
             action.AutoNextActionId = skillAction.AutoNextActionId;
             action.KeepPlayingAnim = skillAction.KeepPlayingAnim;
             action.AutoTerminate = skillAction.AutoTerminate;
-            action.Command = skillAction.Command;
+            action.Commands = skillAction.Commands != null ? new List<string>(skillAction.Commands) : new List<string>();
+            
+            // 调试日志：追踪Commands转换
+            if (skillAction.Commands != null && skillAction.Commands.Count > 0)
+            {
+                UnityEngine.Debug.Log($"[ActionEditorDataAdapter] ActionId {skillAction.ActionId}: Converted Commands from SkillAction: [{string.Join(", ", skillAction.Commands)}]");
+            }
+            else
+            {
+                UnityEngine.Debug.Log($"[ActionEditorDataAdapter] ActionId {skillAction.ActionId}: No Commands in SkillAction (Commands is {(skillAction.Commands == null ? "null" : "empty")})");
+            }
+            
             action.CancelTags = skillAction.CancelTags;
             action.CancelTagsJson = skillAction.CancelTagsJson;
             action.TimelineEvents = skillAction.TimelineEvents;

@@ -117,7 +117,18 @@ namespace Astrum.Editor.RoleEditor.Persistence
             editorData.AutoNextActionId = tableData.AutoNextActionId;
             editorData.KeepPlayingAnim = tableData.KeepPlayingAnim;
             editorData.AutoTerminate = tableData.AutoTerminate;
-            editorData.Commands = tableData.Commands ?? new List<string>();
+            editorData.Commands = tableData.Commands != null ? new List<string>(tableData.Commands) : new List<string>();
+            
+            // 调试日志：追踪Commands读取
+            if (tableData.Commands != null && tableData.Commands.Count > 0)
+            {
+                Debug.Log($"{LOG_PREFIX} ActionId {tableData.ActionId}: Loaded Commands from CSV: [{string.Join(", ", tableData.Commands)}]");
+            }
+            else
+            {
+                Debug.Log($"{LOG_PREFIX} ActionId {tableData.ActionId}: No Commands in CSV (tableData.Commands is {(tableData.Commands == null ? "null" : "empty")})");
+            }
+            
             editorData.Priority = tableData.Priority;
             editorData.CancelTagsJson = tableData.CancelTags ?? "";
             editorData.CancelTags = ActionDataReader.ParseCancelTagsFromJson(tableData.CancelTags ?? "");

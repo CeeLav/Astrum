@@ -134,6 +134,7 @@ namespace Astrum.Editor.RoleEditor.Data
             data.KeepPlayingAnim = false;
             data.AutoTerminate = false;
             data.Command = "";
+            data.Commands = new List<string>();
             data.CancelTags = new List<EditorCancelTag>();
             data.CancelTagsJson = "";
             data.TimelineEvents = new List<TimelineEvent>();
@@ -171,6 +172,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.KeepPlayingAnim = this.KeepPlayingAnim;
             clone.AutoTerminate = this.AutoTerminate;
             clone.Command = this.Command;
+            clone.Commands = new List<string>(this.Commands ?? new List<string>());
             clone.CancelTags = new List<EditorCancelTag>(this.CancelTags);
             clone.CancelTagsJson = this.CancelTagsJson;
             
