@@ -628,9 +628,8 @@ namespace Astrum.LogicCore.Capabilities
                 case "Attack": return input.Attack;
                 case "Skill1": return input.Skill1;
                 case "Skill2": return input.Skill2;
-                // TODO: Roll和Dash字段等待Proto代码生成后启用
-                // case "Roll": return input.Roll;
-                // case "Dash": return input.Dash;
+                case "Roll": return input.Roll;
+                case "Dash": return input.Dash;
                 default: return false;
             }
         }

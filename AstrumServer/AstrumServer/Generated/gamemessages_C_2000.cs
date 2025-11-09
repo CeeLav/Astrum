@@ -228,6 +228,18 @@ namespace Astrum.Generated
         [MemoryPackOrder(8)]
         public int BornInfo { get; set; }
 
+        /// <summary>
+        /// 翻滚输入
+        /// </summary>
+        [MemoryPackOrder(9)]
+        public bool Roll { get; set; }
+
+        /// <summary>
+        /// 冲刺输入
+        /// </summary>
+        [MemoryPackOrder(10)]
+        public bool Dash { get; set; }
+
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -244,6 +256,8 @@ namespace Astrum.Generated
             this.Skill2 = default;
             this.Timestamp = default;
             this.BornInfo = default;
+            this.Roll = default;
+            this.Dash = default;
 
             ObjectPool.Instance.Recycle(this);
         }

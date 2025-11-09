@@ -193,14 +193,13 @@ namespace Astrum.Client.Input
                     input.Skill2 = value;
                     break;
                     
-                // TODO: Roll和Dash字段等待Proto代码重新生成后启用
-                // case "Roll":
-                //     input.Roll = value;
-                //     break;
+                case "Roll":
+                    input.Roll = value;
+                    break;
                     
-                // case "Dash":
-                //     input.Dash = value;
-                //     break;
+                case "Dash":
+                    input.Dash = value;
+                    break;
                     
                 default:
                     ASLogger.Instance.Warning($"LSInputAssembler: 未知的LSInput字段 '{fieldName}'", "Input.Assembler");
