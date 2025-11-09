@@ -3,6 +3,7 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Stats;
 using Astrum.CommonBase;
 using System;
 using System.Collections.Generic;
@@ -754,29 +755,61 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            if (currentAction.BaseMoveSpeed.HasValue && currentAction.BaseMoveSpeed.Value > FP.Zero)
+            // 同步角色速度到 MovementComponent（从 DerivedStatsComponent）
+            SyncCharacterSpeedToMovement(entity, movementComponent);
+
+            // 如果是移动动作，计算动画播放倍率
+            if (currentAction is MoveActionInfo moveAction && moveAction.BaseMoveSpeed.HasValue && moveAction.BaseMoveSpeed.Value > FP.Zero)
             {
-                var baseSpeed = currentAction.BaseMoveSpeed.Value;
-                movementComponent.SetBaseSpeed(baseSpeed);
+                var animationReferenceSpeed = moveAction.BaseMoveSpeed.Value;  // 动画设计速度（来自 MoveActionTable）
+                var actualSpeed = movementComponent.Speed;  // 角色实际速度（来自 EntityStatsTable + Buff）
 
-                if (movementComponent.Speed <= FP.Zero)
+                // 计算动画播放倍率 = 实际速度 / 动画设计速度
+                if (actualSpeed > FP.Zero)
                 {
-                    movementComponent.SetSpeed(baseSpeed);
+                    var ratioFp = actualSpeed / animationReferenceSpeed;
+                    var ratio = FP.ToFloat(ratioFp);
+                    
+                    // 边界检查
+                    if (ratio <= 0f || float.IsNaN(ratio) || float.IsInfinity(ratio))
+                    {
+                        ratio = 1f;
+                    }
+                    
+                    currentAction.AnimationSpeedMultiplier = ratio;
                 }
-
-                var ratioFp = movementComponent.GetSpeedMultiplier();
-                var ratio = FP.ToFloat(ratioFp);
-                if (ratio <= 0f || float.IsNaN(ratio) || float.IsInfinity(ratio))
+                else
                 {
-                    ratio = 1f;
+                    currentAction.AnimationSpeedMultiplier = 1f;
                 }
-
-                currentAction.AnimationSpeedMultiplier = ratio;
             }
             else
             {
-                movementComponent.SetBaseSpeed(movementComponent.Speed > FP.Zero ? movementComponent.Speed : FP.One);
+                // 非移动动作，保持默认倍率
                 currentAction.AnimationSpeedMultiplier = 1f;
+            }
+        }
+
+        /// <summary>
+        /// 同步角色速度到 MovementComponent
+        /// 从 DerivedStatsComponent.SPD 读取最终速度（包含 Buff 修饰）
+        /// </summary>
+        private void SyncCharacterSpeedToMovement(Entity entity, MovementComponent movementComponent)
+        {
+            var derivedStats = GetComponent<DerivedStatsComponent>(entity);
+            if (derivedStats == null)
+            {
+                return;
+            }
+
+            // 从派生属性获取最终速度（已包含基础速度 + Buff 修饰）
+            var finalSpeed = derivedStats.Get(Stats.StatType.SPD);
+            
+            // 更新 MovementComponent 的速度和基准速度
+            if (finalSpeed > FP.Zero)
+            {
+                movementComponent.SetSpeed(finalSpeed);
+                movementComponent.SetBaseSpeed(finalSpeed);
             }
         }
     }

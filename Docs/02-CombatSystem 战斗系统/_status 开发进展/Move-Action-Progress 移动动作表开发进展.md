@@ -1,19 +1,41 @@
 # MoveActionTable 开发进展
 
-> 📊 **当前版本**: v0.3.0  
+> 📊 **当前版本**: v0.4.0  
 > 📅 **最后更新**: 2025-11-09  
 > 👤 **负责人**: Lavender
 
 ## TL;DR（四象限）
-- 状态/进度：🚧 开发中 - 配置层、编辑器、运行时架构已完成，动画同步待实现
-- 已达成：MoveActionTable 配置表、编辑器读写、MoveActionInfo 类、运行时加载
-- 风险/阻塞：动画速度同步待实现（AnimationViewComponent 扩展）
-- 下一步：实现动画速度倍率同步、测试验证完整流程
+- 状态/进度：✅ 核心功能完成 - 速度架构重构完成，动画同步逻辑已实现
+- 已达成：正确的速度决定逻辑（EntityStatsTable → MovementComponent），动画倍率自动计算
+- 风险/阻塞：AnimationViewComponent 应用倍率待实现（表现层）
+- 下一步：实现 AnimationViewComponent 速度倍率应用、完整流程测试
 
 ## 版本历史
 
+### v0.4.0 - 速度架构重构完成 (2025-11-09)
+**状态**: ✅ 核心完成
+
+**完成内容**:
+- [x] 修正速度决定逻辑：移动速度由 `EntityStatsTable.baseSpeed` 决定
+- [x] `MoveActionTable.moveSpeed` 作为动画参考速度（不影响实际移动）
+- [x] 实现 `SyncCharacterSpeedToMovement()`：从 `DerivedStatsComponent.SPD` 同步到 `MovementComponent`
+- [x] 修改 `UpdateMovementAndAnimationSpeed()`：正确计算动画倍率
+- [x] 动画倍率公式：`实际速度 / 动画设计速度`
+- [x] 支持 Buff 修饰速度后的动画同步
+
+**架构改进**:
+- ✅ 角色速度来源：`EntityStatsTable.baseSpeed` → `BaseStatsComponent.SPD` → `DerivedStatsComponent.SPD` → `MovementComponent.Speed`
+- ✅ 动画参考速度：`MoveActionTable.moveSpeed` → `MoveActionInfo.BaseMoveSpeed`
+- ✅ 动画倍率计算：每帧自动同步，支持 Buff 动态修改速度
+
+**待完成**:
+- AnimationViewComponent 应用 `AnimationSpeedMultiplier` 到动画播放
+- 完整流程测试验证
+
+**预计工时**: 剩余 1 天（表现层实现与测试）
+
 ### v0.3.0 - 运行时架构完成 (2025-11-09)
-**状态**: 🚧 开发中
+**状态**: ✅ 已完成
 
 **完成内容**:
 - [x] 创建 `MoveActionInfo` 类（继承自 `ActionInfo`）
@@ -22,12 +44,6 @@
 - [x] 实现 `ActionConfig.PopulateMoveActionFields` 方法
 - [x] 实现 `ActionConfig.LoadMoveRootMotionData` 方法
 - [x] 根据 `ActionType` 自动创建对应的 ActionInfo 类型
-
-**待完成**:
-- AnimationViewComponent 动画速度倍率同步
-- 完整流程测试验证
-
-**预计工时**: 剩余 1-2 天（动画同步与测试）
 
 ### v0.2.0 - 配置层与编辑器完成 (2025-11-09)
 **状态**: ✅ 已完成
@@ -87,25 +103,28 @@
 
 ## 任务清单
 
-### ✅ 已完成（v0.3.0）
+### ✅ 已完成（v0.4.0）
 
 - [x] 配置表：新增 `MoveActionTable.csv` 数据并接入 Luban 生成
 - [x] 编辑器架构：实现组合模式，支持多类型动作扩展数据
 - [x] 数据读取：实现 `MoveActionExtensionReader` 读取 MoveActionTable
 - [x] 数据写入：实现 `MoveActionExtensionWriter` 写入 MoveActionTable
-- [x] 速度计算：自动根据 RootMotionData 计算移动速度
+- [x] 速度计算：自动根据 RootMotionData 计算动画参考速度
 - [x] 编辑器集成：在 `ActionDataDispatcher` 中集成导出流程
 - [x] 触发帧修复：修复技能触发帧信息读取和显示问题
 - [x] 运行时架构：创建 `MoveActionInfo` 类（独立于 NormalActionInfo）
 - [x] 运行时加载：在 `ActionConfig` 中实现 `ConstructMoveActionInfo`
 - [x] 数据填充：实现 `PopulateMoveActionFields` 与 `LoadMoveRootMotionData`
 - [x] 类型判断：根据 `ActionType` 自动创建对应的 ActionInfo 类型
+- [x] 速度架构：修正为 `EntityStatsTable.baseSpeed` 决定角色移动速度
+- [x] 速度同步：实现 `SyncCharacterSpeedToMovement()` 从属性系统同步速度
+- [x] 动画倍率：修改 `UpdateMovementAndAnimationSpeed()` 正确计算倍率
+- [x] Buff 支持：动画倍率自动响应速度 Buff 修饰
 
-### 🔄 进行中（v0.4.0）
+### 🔄 进行中（v0.5.0）
 
-- [ ] 动画层：为 `AnimationViewComponent` 新增播放速率调节接口
-- [ ] 能力层：扩展 `ActionCapability` 在动作切换时同步速度倍率
-- [ ] 测试：编写表数据加载与速度倍率单元/集成测试
+- [ ] 动画层：为 `AnimationViewComponent` 应用 `AnimationSpeedMultiplier`
+- [ ] 测试：编写完整流程测试（配置→属性→移动→动画）
 
 ---
 
@@ -125,12 +144,13 @@
 
 ---
 
-*文档版本：v0.3.0*  
+*文档版本：v0.4.0*  
 *创建时间：2025-11-09*  
 *最后更新：2025-11-09*  
-*状态：开发中*  
+*状态：核心完成*  
 *Owner*: Lavender  
 *变更摘要*: 
+- v0.4.0: 修正速度架构，移动速度由 EntityStatsTable 决定，动画倍率正确计算
 - v0.3.0: 完成运行时架构，创建 MoveActionInfo 类，实现 ActionConfig 加载逻辑
 - v0.2.0: 完成编辑器层实现，包括组合模式架构重构、自动速度计算、触发帧修复
 - v0.1.0: 新增 MoveActionTable 开发进展文档，记录设计准备阶段任务
