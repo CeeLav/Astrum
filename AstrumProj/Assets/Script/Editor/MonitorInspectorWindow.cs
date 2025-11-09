@@ -224,6 +224,27 @@ public class MonitorInspectorWindow : EditorWindow
         {
             EditorGUILayout.LabelField($"{access}{member.Name}: {v}");
         }
+        else if (type.FullName == "TrueSync.FP")
+        {
+            // 处理 FP 定点数类型，转换为可读的浮点数
+            try
+            {
+                var serializedValue = type.GetField("_serializedValue").GetValue(v);
+                if (serializedValue is long rawValue)
+                {
+                    double floatValue = (double)rawValue / (1L << 32); // ONE = 1L << 32
+                    EditorGUILayout.LabelField($"{access}{member.Name}: {floatValue:F6} (FP)");
+                }
+                else
+                {
+                    EditorGUILayout.LabelField($"{access}{member.Name}: {v} (FP)");
+                }
+            }
+            catch
+            {
+                EditorGUILayout.LabelField($"{access}{member.Name}: {v} (FP)");
+            }
+        }
         else if (typeof(IList).IsAssignableFrom(type))
         {
             IList list = v as IList;

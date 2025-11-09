@@ -845,22 +845,18 @@ namespace Astrum.LogicCore.Capabilities
                 currentAction.AnimationSpeedMultiplier = 1f;
                 return;
             }
-
-            // 同步角色速度到 MovementComponent（从 DerivedStatsComponent）
-            SyncCharacterSpeedToMovement(entity, movementComponent);
-
+            
             // 如果是移动动作，计算动画播放倍率
             if (currentAction is MoveActionInfo moveAction && moveAction.BaseMoveSpeed.HasValue && moveAction.BaseMoveSpeed.Value > FP.Zero)
             {
                 var animationReferenceSpeed = moveAction.BaseMoveSpeed.Value;  // 动画设计速度（来自 MoveActionTable）
                 var actualSpeed = movementComponent.Speed;  // 角色实际速度（来自 EntityStatsTable + Buff）
-
+                
                 // 计算动画播放倍率 = 实际速度 / 动画设计速度
                 if (actualSpeed > FP.Zero)
                 {
                     var ratioFp = actualSpeed / animationReferenceSpeed;
                     var ratio = FP.ToFloat(ratioFp);
-                    
                     // 边界检查
                     if (ratio <= 0f || float.IsNaN(ratio) || float.IsInfinity(ratio))
                     {
@@ -881,27 +877,6 @@ namespace Astrum.LogicCore.Capabilities
             }
         }
 
-        /// <summary>
-        /// 同步角色速度到 MovementComponent
-        /// 从 DerivedStatsComponent.SPD 读取最终速度（包含 Buff 修饰）
-        /// </summary>
-        private void SyncCharacterSpeedToMovement(Entity entity, MovementComponent movementComponent)
-        {
-            var derivedStats = GetComponent<DerivedStatsComponent>(entity);
-            if (derivedStats == null)
-            {
-                return;
-            }
 
-            // 从派生属性获取最终速度（已包含基础速度 + Buff 修饰）
-            var finalSpeed = derivedStats.Get(Stats.StatType.SPD);
-            
-            // 更新 MovementComponent 的速度和基准速度
-            if (finalSpeed > FP.Zero)
-            {
-                movementComponent.SetSpeed(finalSpeed);
-                movementComponent.SetBaseSpeed(finalSpeed);
-            }
-        }
     }
 }

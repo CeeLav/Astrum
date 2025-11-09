@@ -102,8 +102,18 @@ namespace Astrum.LogicCore.Capabilities
                     transComponent.Rotation = TSQuaternion.LookRotation(inputDirection, TSVector.up);
                 }
             }
-            
+            var derivedStats = GetComponent<DerivedStatsComponent>(entity);
+            if (derivedStats == null)
+            {
+                return;
+            }
 
+            // 从派生属性获取最终速度（已包含基础速度 + Buff 修饰）
+            var finalSpeed = derivedStats.Get(Stats.StatType.SPD);
+            
+            // 根据Dash状态更新MovementComponent的速度
+            UpdateSpeedWithDashMultiplier(movementComponent, input, finalSpeed);
+            
             // 处理移动（如果用户输入位移未被禁用）
             if (inputMagnitude > threshold && movementComponent.CanMove)
             {
@@ -116,6 +126,29 @@ namespace Astrum.LogicCore.Capabilities
                 transComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
                 
                 entity.World?.HitSystem?.UpdateEntityPosition(entity);
+            }
+        }
+        
+        // ====== 辅助方法 ======
+        
+        /// <summary>
+        /// 根据Dash状态更新MovementComponent的速度
+        /// Dash状态下速度为基础速度的2.5倍
+        /// </summary>
+        private void UpdateSpeedWithDashMultiplier(MovementComponent movementComponent, Astrum.Generated.LSInput input, FP speed)
+        {
+            if (movementComponent == null || input == null)
+                return;
+            
+            if (input.Dash)
+            {
+                // 冲刺状态：速度为基础速度的2.5倍
+                movementComponent.SetSpeed(speed * (FP)2.5f);
+            }
+            else
+            {
+                // 正常状态：恢复为基础速度
+                movementComponent.SetSpeed(speed);
             }
         }
 
