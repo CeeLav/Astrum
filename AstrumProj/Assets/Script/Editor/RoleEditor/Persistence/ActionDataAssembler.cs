@@ -41,6 +41,11 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     if (editorData.IsSkill && skillExtensions.TryGetValue(editorData.ActionId, out var skillExt))
                     {
                         editorData.SkillExtension = skillExt;
+                        Debug.Log($"{LOG_PREFIX} Attached SkillExtension to ActionId {editorData.ActionId}: TriggerFrames length={skillExt.TriggerFrames?.Length ?? 0}, TriggerEffects count={skillExt.TriggerEffects?.Count ?? 0}");
+                    }
+                    else if (editorData.IsSkill)
+                    {
+                        Debug.LogWarning($"{LOG_PREFIX} ActionId {editorData.ActionId} is skill type but no SkillExtension found in SkillActionTable");
                     }
                     
                     if (editorData.IsMove && moveExtensions.TryGetValue(editorData.ActionId, out var moveExt))

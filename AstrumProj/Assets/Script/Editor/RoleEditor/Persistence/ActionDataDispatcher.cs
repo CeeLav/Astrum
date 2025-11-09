@@ -26,11 +26,17 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 return false;
             }
             
+            Debug.Log($"{LOG_PREFIX} SaveAll called with {actions.Count} actions");
+            
             try
             {
                 // 在写入前强制同步时间轴事件到触发帧（仅 skill 类型）
-                foreach (var action in actions.Where(a => a.IsSkill && a.SkillExtension != null))
+                var skillActionsToSync = actions.Where(a => a.IsSkill && a.SkillExtension != null).ToList();
+                Debug.Log($"{LOG_PREFIX} Found {skillActionsToSync.Count} skill actions to sync");
+                
+                foreach (var action in skillActionsToSync)
                 {
+                    Debug.Log($"{LOG_PREFIX} Syncing action {action.ActionId} (Type: {action.ActionType}, TimelineEvents: {action.TimelineEvents?.Count ?? 0})");
                     SyncTimelineToTriggerFrames(action);
                 }
                 

@@ -59,6 +59,12 @@ namespace Astrum.Editor.RoleEditor.Data
                 skillAction.TriggerFrames = action.SkillExtension.TriggerFrames;
                 skillAction.TriggerEffects = action.SkillExtension.TriggerEffects;
                 skillAction.RootMotionDataArray = action.SkillExtension.RootMotionData;
+                
+                UnityEngine.Debug.Log($"[ActionEditorDataAdapter] Converted ActionId {action.ActionId}: TriggerFrames length={skillAction.TriggerFrames?.Length ?? 0}, TriggerEffects count={skillAction.TriggerEffects?.Count ?? 0}");
+            }
+            else if (action.IsSkill)
+            {
+                UnityEngine.Debug.LogWarning($"[ActionEditorDataAdapter] ActionId {action.ActionId} is skill type but has no SkillExtension!");
             }
             
             // 复制移动扩展数据

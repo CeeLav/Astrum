@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Astrum.Editor.RoleEditor.Data;
@@ -52,12 +53,22 @@ namespace Astrum.Editor.RoleEditor.Persistence
         {
             if (tableData == null) return null;
             
+            var triggerFrames = tableData.TriggerFrames ?? "";
+            var triggerEffects = TriggerFrameData.ParseFromJSON(triggerFrames);
+            
+            Debug.Log($"{LOG_PREFIX} Converting ActionId {tableData.ActionId}: TriggerFrames length={triggerFrames.Length}, TriggerEffects count={triggerEffects?.Count ?? 0}");
+            
+            if (!string.IsNullOrEmpty(triggerFrames) && (triggerEffects == null || triggerEffects.Count == 0))
+            {
+                Debug.LogWarning($"{LOG_PREFIX} ActionId {tableData.ActionId} has TriggerFrames data but failed to parse: {triggerFrames.Substring(0, Math.Min(100, triggerFrames.Length))}...");
+            }
+            
             return new SkillActionExtension
             {
                 ActualCost = tableData.ActualCost,
                 ActualCooldown = tableData.ActualCooldown,
-                TriggerFrames = tableData.TriggerFrames ?? "",
-                TriggerEffects = TriggerFrameData.ParseFromJSON(tableData.TriggerFrames ?? ""),
+                TriggerFrames = triggerFrames,
+                TriggerEffects = triggerEffects ?? new List<TriggerFrameData>(),
                 RootMotionData = tableData.RootMotionData ?? new List<int>()
             };
         }

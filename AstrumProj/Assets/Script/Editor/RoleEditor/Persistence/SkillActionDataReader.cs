@@ -32,6 +32,28 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 // 转换为 SkillActionEditorData（向后兼容）
                 var skillActions = ActionEditorDataAdapter.ToSkillActionEditorDataList(actions);
                 
+                // 为每个技能动作构建时间轴事件
+                foreach (var skillAction in skillActions)
+                {
+                    if (skillAction.ActionType?.ToLower() == "skill")
+                    {
+                        // 解析触发帧字符串为触发效果列表
+                        skillAction.ParseTriggerFrames();
+                        
+                        // 从触发效果列表构建时间轴事件，并与基础轨道事件合并
+                        var triggerTimelineEvents = skillAction.BuildTimelineFromTriggerEffects() ?? new List<Timeline.TimelineEvent>();
+                        if (skillAction.TimelineEvents == null)
+                        {
+                            skillAction.TimelineEvents = new List<Timeline.TimelineEvent>();
+                        }
+                        
+                        skillAction.TimelineEvents.AddRange(triggerTimelineEvents);
+                        skillAction.TimelineEvents.Sort((a, b) => a.StartFrame.CompareTo(b.StartFrame));
+                        
+                        Debug.Log($"{LOG_PREFIX} Built {triggerTimelineEvents.Count} timeline events from trigger frames for ActionId {skillAction.ActionId}");
+                    }
+                }
+                
                 return skillActions;
             }
             catch (System.Exception ex)
