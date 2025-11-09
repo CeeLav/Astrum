@@ -40,10 +40,14 @@ namespace Astrum.LogicCore.Managers
                 return null;
             }
             
-            // 检查是否是技能动作（根据 ActionType 判断）
+            // 根据 ActionType 判断动作类型
             if (actionTable.ActionType.Equals("Skill", System.StringComparison.OrdinalIgnoreCase))
             {
                 return ConstructSkillActionInfo(actionId, entityId, actionTable);
+            }
+            else if (actionTable.ActionType.Equals("Move", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return ConstructMoveActionInfo(actionId, entityId, actionTable);
             }
             else
             {
@@ -60,9 +64,6 @@ namespace Astrum.LogicCore.Managers
             
             // 填充基类字段（通用逻辑）
             PopulateBaseActionFields(actionInfo, actionTable);
-
-            // MoveActionTable扩展字段
-            PopulateMoveActionFields(actionInfo);
             
             return actionInfo;
         }
@@ -90,13 +91,39 @@ namespace Astrum.LogicCore.Managers
             
             // 填充派生类特有字段
             PopulateSkillActionFields(skillActionInfo, skillActionTable);
-
-            // MoveActionTable扩展字段
-            PopulateMoveActionFields(skillActionInfo);
             
             ASLogger.Instance.Debug($"ActionConfigManager: Constructed SkillActionInfo for actionId={actionId}");
             
             return skillActionInfo;
+        }
+        
+        /// <summary>
+        /// 构造移动动作信息
+        /// </summary>
+        private MoveActionInfo? ConstructMoveActionInfo(int actionId, long entityId, cfg.Entity.ActionTable actionTable)
+        {
+            // 从 MoveActionTable 获取移动专属数据
+            var configManager = TableConfig.Instance;
+            var moveActionTable = configManager.Tables.TbMoveActionTable.Get(actionId);
+            
+            if (moveActionTable == null)
+            {
+                ASLogger.Instance.Error($"ActionConfigManager.ConstructMoveActionInfo: MoveActionTable not found for actionId={actionId}");
+                return null;
+            }
+            
+            // 创建 MoveActionInfo 实例
+            var moveActionInfo = new MoveActionInfo();
+            
+            // 复用基类字段填充逻辑
+            PopulateBaseActionFields(moveActionInfo, actionTable);
+            
+            // 填充移动动作特有字段
+            PopulateMoveActionFields(moveActionInfo, moveActionTable);
+            
+            ASLogger.Instance.Debug($"ActionConfigManager: Constructed MoveActionInfo for actionId={actionId}");
+            
+            return moveActionInfo;
         }
         
         /// <summary>
@@ -135,33 +162,66 @@ namespace Astrum.LogicCore.Managers
         }
 
         /// <summary>
-        /// 填充 MoveActionTable 扩展字段（移动速度、动画倍率基准）
+        /// 填充 MoveActionInfo 扩展字段（移动速度、根节点位移数据）
         /// </summary>
-        private void PopulateMoveActionFields(ActionInfo actionInfo)
+        private void PopulateMoveActionFields(MoveActionInfo moveActionInfo, cfg.Entity.MoveActionTable moveActionTable)
         {
-            actionInfo.BaseMoveSpeed = null;
-            actionInfo.AnimationSpeedMultiplier = 1f;
-
-            var configManager = TableConfig.Instance;
-            if (!configManager.IsInitialized)
+            // 设置基准移动速度
+            if (moveActionTable.MoveSpeed > 0)
             {
-                return;
+                var baseSpeed = FP.FromFloat(moveActionTable.MoveSpeed / 1000f);
+                moveActionInfo.BaseMoveSpeed = baseSpeed;
             }
-
-            var moveTables = configManager.Tables?.TbMoveActionTable;
-            if (moveTables == null)
+            else
             {
-                return;
+                moveActionInfo.BaseMoveSpeed = null;
             }
-
-            var moveConfig = moveTables.Get(actionInfo.Id);
-            if (moveConfig == null || moveConfig.MoveSpeed <= 0)
+            
+            // 加载根节点位移数据
+            moveActionInfo.RootMotionData = LoadMoveRootMotionData(moveActionTable, moveActionInfo.Id);
+            
+            // 默认动画倍率
+            moveActionInfo.AnimationSpeedMultiplier = 1f;
+        }
+        
+        /// <summary>
+        /// 从 MoveActionTable 加载根节点位移数据
+        /// </summary>
+        /// <param name="moveActionTable">移动动作表数据</param>
+        /// <param name="actionId">动作ID（用于日志）</param>
+        /// <returns>根节点位移数据，如果不存在或加载失败则返回空的 AnimationRootMotionData</returns>
+        private AnimationRootMotionData LoadMoveRootMotionData(cfg.Entity.MoveActionTable moveActionTable, int actionId)
+        {
+            // 检查 RootMotionData 是否为空
+            if (moveActionTable.RootMotionData == null || moveActionTable.RootMotionData.Length == 0)
             {
-                return;
+                return new AnimationRootMotionData();
             }
-
-            var baseSpeed = FP.FromFloat(moveConfig.MoveSpeed / 1000f);
-            actionInfo.BaseMoveSpeed = baseSpeed;
+            
+            // 转换为 List<int>（RootMotionDataConverter 需要 List<int>）
+            var rootMotionDataList = new System.Collections.Generic.List<int>(moveActionTable.RootMotionData);
+            
+            // 转换为运行时数据（整型转定点数）
+            try
+            {
+                var rootMotionData = RootMotionDataConverter.ConvertFromIntArray(rootMotionDataList);
+                
+                if (rootMotionData != null && rootMotionData.HasMotion)
+                {
+                    ASLogger.Instance.Debug($"[ActionConfig] Loaded root motion data for move action {actionId}: {rootMotionData.TotalFrames} frames");
+                    return rootMotionData;
+                }
+                else
+                {
+                    // 数据转换成功但没有有效位移
+                    return new AnimationRootMotionData();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Warning($"[ActionConfig] Failed to convert root motion data for move action {actionId}: {ex.Message}");
+                return new AnimationRootMotionData();
+            }
         }
         
         /// <summary>

@@ -103,12 +103,73 @@ namespace Astrum.Editor.RoleEditor.Persistence
         {
             var extension = action.MoveExtension;
             
+            // 自动计算移动速度（基于 RootMotionData）
+            int calculatedSpeed = CalculateMoveSpeed(action.ActionId, extension.RootMotionData);
+            
             return new MoveActionTableData
             {
                 ActionId = action.ActionId,
-                MoveSpeed = extension.MoveSpeed,
+                MoveSpeed = calculatedSpeed,
                 RootMotionData = extension.RootMotionData ?? new List<int>()
             };
+        }
+        
+        /// <summary>
+        /// 根据 RootMotionData 计算移动速度
+        /// </summary>
+        private static int CalculateMoveSpeed(int actionId, List<int> rootMotionData)
+        {
+            if (rootMotionData == null || rootMotionData.Count <= 1)
+            {
+                return 0;
+            }
+
+            int frameCount = rootMotionData[0];
+
+            if (frameCount <= 0)
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Move action {actionId} has invalid root motion frame count: {frameCount}");
+                return 0;
+            }
+
+            int expectedLength = 1 + frameCount * 7;
+            if (rootMotionData.Count < expectedLength)
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Move action {actionId} root motion data length mismatch. Expected {expectedLength}, got {rootMotionData.Count}");
+                return 0;
+            }
+
+            double totalDistance = 0d;
+
+            for (int frame = 0; frame < frameCount; frame++)
+            {
+                int baseIndex = 1 + frame * 7;
+                double dx = rootMotionData[baseIndex] / 1000.0;
+                double dz = rootMotionData[baseIndex + 2] / 1000.0;
+
+                double stepDistance = System.Math.Sqrt(dx * dx + dz * dz);
+                totalDistance += stepDistance;
+            }
+
+            // Root motion采样为20FPS（50ms一次）
+            double totalTimeSeconds = frameCount / 20.0;
+            if (totalTimeSeconds <= 0.0)
+            {
+                return 0;
+            }
+
+            double speed = totalDistance / totalTimeSeconds;
+            if (double.IsNaN(speed) || double.IsInfinity(speed) || speed <= 0.0)
+            {
+                return 0;
+            }
+
+            int scaledSpeed = UnityEngine.Mathf.FloorToInt((float)(speed * 1000.0));
+            int finalSpeed = UnityEngine.Mathf.Max(0, scaledSpeed);
+            
+            Debug.Log($"{LOG_PREFIX} Calculated speed for ActionId {actionId}: {finalSpeed} (distance={totalDistance:F3}m, time={totalTimeSeconds:F3}s, speed={speed:F3}m/s)");
+            
+            return finalSpeed;
         }
     }
 }

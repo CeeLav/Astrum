@@ -11,6 +11,7 @@ namespace Astrum.LogicCore.ActionSystem
     [MemoryPackable]
     [MemoryPackUnion(0, typeof(NormalActionInfo))]     // 普通动作
     [MemoryPackUnion(1, typeof(Astrum.LogicCore.SkillSystem.SkillActionInfo))]  // 技能动作
+    [MemoryPackUnion(2, typeof(MoveActionInfo))]       // 移动动作
     public abstract partial class ActionInfo
     {
         /// <summary>动作唯一标识符</summary>
