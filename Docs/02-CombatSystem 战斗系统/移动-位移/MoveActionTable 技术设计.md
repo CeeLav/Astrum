@@ -4,7 +4,9 @@
 
 `MoveActionTable` 用于对 `ActionTable` 中标记为 `move` 类型的动作补充移动速度信息，使逻辑移动能力与动画展示能够一一对应。表数据位于 `AstrumConfig/Tables/Datas/Entity/`，与 `ActionTable` 共享 `actionId` 作为主键。运行时由 `TableConfig` 加载，`ActionConfig` 在构建动作信息时读取该表，为 `MovementComponent` 与动画系统提供基础速度参考。
 
-- **上游**：动作编辑器（导出动作数据时写入 MoveActionTable）
+**技能动作编辑器统一入口**：后续所有动作统一通过技能动作编辑器（`SkillActionEditor`）维护。该编辑器放开对所有 `ActionType` 的编辑能力，并在导出时根据动作类型调用对应的写入逻辑；`move` 类型动作在此流程中生成 `MoveActionTable` 数据。
+
+- **上游**：技能动作编辑器（统一编辑入口，导出动作数据时写入 MoveActionTable）
 - **下游**：`MovementComponent`（逻辑移动速度）、`AnimationViewComponent`（动画播放速度）、`ActionCapability`（动作状态机）
 
 ## 架构设计
@@ -12,8 +14,13 @@
 ### 数据流
 
 ```text
-ActionEditorData (ActionType=move)
+SkillActionEditor (所有动作)
         │ 导出
+        ├─ ActionTable.csv
+        ├─ SkillActionTable.csv
+        ▼
+   (ActionType=move)
+        │
         ▼
 MoveActionTable.csv (Entity)
         │ Luban 生成
@@ -32,6 +39,7 @@ ActionConfig.PopulateMoveActionFields
 - `MoveActionTable` 不覆盖 `ActionTable`，仅补充移动相关字段。
 - `actionId` 必须与 `ActionTable` 中的对应动作一致；缺失行视为无速度配置。
 - 移动速度以整数存储（缩放 1000），运行时转换为 `TrueSync.FP`。
+- 技能动作编辑器负责所有动作导出，按照 `ActionType` 分派扩展逻辑。
 
 ## MoveActionTable 字段定义
 
@@ -71,22 +79,29 @@ float playbackSpeed = actualSpeed / baseSpeed;
 
 ## 编辑器支持
 
-### 导出流程
+### SkillActionEditor 扩展
 
-- 当 `ActionEditorData.ActionType == "move"` 时，动作编辑器在导出阶段调用 `MoveActionExporter`：
+- 技能动作编辑器成为所有动作的统一编辑工具：
+  - 保留现有 `ActionEditorData`/`SkillActionEditorData` 数据结构，界面开放 `ActionType` 选择不限于 `skill`。
+  - 导出流程统一由 `SkillActionDataWriter`（或升级版本）处理，根据 `ActionType` 决定目标表：
+    - `move` → 写入 `ActionTable` 基础字段，并调用 `MoveActionExporter` 写入 `MoveActionTable`。
+    - `skill` → 同时写入 `SkillActionTable`（含 Root Motion 数据等）。
+    - 其他类型 → 仅写入基础 `ActionTable`。
+
+### MoveActionTable 写入流程
+
+- 当 `ActionType == "move"`：
   1. 通过 `AnimationRootMotionExtractor` 获取 `RootMotionDataArray` 或直接采样动画 delta。
   2. 计算总位移（取水平方向 `sqrt(x^2 + z^2)` 累加），总时长 = `Duration / 20` 秒。
   3. 平均速度 `speed = totalDistance / totalTime`。
   4. 写入 `moveSpeed = Mathf.FloorToInt(speed * 1000)`；若 `Duration` 为 0，则记录 0 并提示检查动画设置。
-- 编辑器界面提供只读展示，展示检测到的平均速度与源码路径，避免手动填写。
+- 编辑器界面提供只读展示，显示检测到的平均速度、占位动画路径、导出状态，方便校验。
 
-### CSV 输出
+### 迁移策略
 
-- `MoveActionTable` 保存在 `AstrumConfig/Tables/Datas/Entity/#MoveActionTable.csv`。
-- Luban 类型定义：
-  - `actionId`: `int`
-  - `moveSpeed`: `int`
-- 打表后生成 `cfg.Entity.MoveActionTable`/`TbMoveActionTable` 供运行时使用。
+- 第一阶段：技能动作编辑器允许打开所有动作，但保留旧入口作为兼容，提示开发者迁移。
+- 第二阶段：逐步将非技能动作导入技能动作编辑器并验证导出流程。
+- 最终阶段：关闭旧动作编辑器入口，仅保留技能动作编辑器作为统一界面。
 
 ## 数据验证与测试
 
@@ -101,13 +116,14 @@ float playbackSpeed = actualSpeed / baseSpeed;
 
 - **整数存储**：延续 `SkillActionTable.RootMotionData` 的缩放策略，避免浮点序列化误差。
 - **平均速度算法**：选择总位移 / 总时间，兼顾多段曲线的统一表现；未来若需曲线速率，可在编辑器侧扩展。
+- **统一编辑入口**：技能动作编辑器作为统一界面，降低工具维护成本，集中导出逻辑；短期需要兼容旧工作流。
 - **播放速度调整**：统一由 `AnimationViewComponent` 控制，保持逻辑-视觉分离，便于后续扩展不同动作的速率曲线。
 
 ---
 
-*文档版本：v1.0*  
+*文档版本：v1.1*  
 *创建时间：2025-11-09*  
 *最后更新：2025-11-09*  
 *状态：策划案*  
 *Owner*: Lavender  
-*变更摘要*: 首次撰写 MoveActionTable 技术设计并定义编辑器与运行时流程。
+*变更摘要*: 更新技能动作编辑器为统一入口并调整 MoveActionTable 写入流程。
