@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
+using TrueSync;
 
 namespace Astrum.LogicCore.Managers
 {
@@ -59,6 +60,9 @@ namespace Astrum.LogicCore.Managers
             
             // 填充基类字段（通用逻辑）
             PopulateBaseActionFields(actionInfo, actionTable);
+
+            // MoveActionTable扩展字段
+            PopulateMoveActionFields(actionInfo);
             
             return actionInfo;
         }
@@ -86,6 +90,9 @@ namespace Astrum.LogicCore.Managers
             
             // 填充派生类特有字段
             PopulateSkillActionFields(skillActionInfo, skillActionTable);
+
+            // MoveActionTable扩展字段
+            PopulateMoveActionFields(skillActionInfo);
             
             ASLogger.Instance.Debug($"ActionConfigManager: Constructed SkillActionInfo for actionId={actionId}");
             
@@ -122,6 +129,39 @@ namespace Astrum.LogicCore.Managers
             {
                 actionInfo.AutoNextActionId = 1001; // 默认是静止
             }
+
+            // 默认动画倍率
+            actionInfo.AnimationSpeedMultiplier = 1f;
+        }
+
+        /// <summary>
+        /// 填充 MoveActionTable 扩展字段（移动速度、动画倍率基准）
+        /// </summary>
+        private void PopulateMoveActionFields(ActionInfo actionInfo)
+        {
+            actionInfo.BaseMoveSpeed = null;
+            actionInfo.AnimationSpeedMultiplier = 1f;
+
+            var configManager = TableConfig.Instance;
+            if (!configManager.IsInitialized)
+            {
+                return;
+            }
+
+            var moveTables = configManager.Tables?.TbMoveActionTable;
+            if (moveTables == null)
+            {
+                return;
+            }
+
+            var moveConfig = moveTables.Get(actionInfo.Id);
+            if (moveConfig == null || moveConfig.MoveSpeed <= 0)
+            {
+                return;
+            }
+
+            var baseSpeed = FP.FromFloat(moveConfig.MoveSpeed / 1000f);
+            actionInfo.BaseMoveSpeed = baseSpeed;
         }
         
         /// <summary>

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using cfg;
 using Astrum.LogicCore.Events;
+using TrueSync;
 
 namespace Astrum.LogicCore.Capabilities
 {
@@ -76,6 +77,12 @@ namespace Astrum.LogicCore.Capabilities
             
             // 同步输入命令缓存
             var actionComponent = GetComponent<ActionComponent>(entity);
+
+            if (actionComponent?.CurrentAction != null)
+            {
+                UpdateMovementAndAnimationSpeed(entity, actionComponent);
+            }
+
             SyncInputCommands(entity, actionComponent);
             
             // 2. 检查所有动作的取消条件
@@ -284,6 +291,8 @@ namespace Astrum.LogicCore.Capabilities
             ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {entity.UniqueId} " +
                 $"from ActionId={previousActionId}(Frame={previousFrame}) to ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame}) " +
                 $"[Priority={preorderInfo.Priority}, TransitionFrames={preorderInfo.TransitionFrames}]");
+
+            UpdateMovementAndAnimationSpeed(entity, actionComponent);
         }
         
         /// <summary>
@@ -728,6 +737,47 @@ namespace Astrum.LogicCore.Capabilities
             };
 
             EnqueueExternalAction(entity, evt.SourceTag, preorder);
+        }
+
+        private void UpdateMovementAndAnimationSpeed(Entity entity, ActionComponent actionComponent)
+        {
+            if (actionComponent?.CurrentAction == null)
+            {
+                return;
+            }
+
+            var currentAction = actionComponent.CurrentAction;
+            var movementComponent = GetComponent<MovementComponent>(entity);
+            if (movementComponent == null)
+            {
+                currentAction.AnimationSpeedMultiplier = 1f;
+                return;
+            }
+
+            if (currentAction.BaseMoveSpeed.HasValue && currentAction.BaseMoveSpeed.Value > FP.Zero)
+            {
+                var baseSpeed = currentAction.BaseMoveSpeed.Value;
+                movementComponent.SetBaseSpeed(baseSpeed);
+
+                if (movementComponent.Speed <= FP.Zero)
+                {
+                    movementComponent.SetSpeed(baseSpeed);
+                }
+
+                var ratioFp = movementComponent.GetSpeedMultiplier();
+                var ratio = FP.ToFloat(ratioFp);
+                if (ratio <= 0f || float.IsNaN(ratio) || float.IsInfinity(ratio))
+                {
+                    ratio = 1f;
+                }
+
+                currentAction.AnimationSpeedMultiplier = ratio;
+            }
+            else
+            {
+                movementComponent.SetBaseSpeed(movementComponent.Speed > FP.Zero ? movementComponent.Speed : FP.One);
+                currentAction.AnimationSpeedMultiplier = 1f;
+            }
         }
     }
 }

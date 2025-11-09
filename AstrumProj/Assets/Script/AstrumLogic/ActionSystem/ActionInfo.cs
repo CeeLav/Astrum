@@ -1,5 +1,6 @@
 using MemoryPack;
 using System.Collections.Generic;
+using TrueSync;
 
 namespace Astrum.LogicCore.ActionSystem
 {
@@ -50,6 +51,16 @@ namespace Astrum.LogicCore.ActionSystem
         public int Duration { get; set; } = 0;
         
         /// <summary>
+        /// 动作配置的基准移动速度（若无配置则为空），单位：逻辑米/秒
+        /// </summary>
+        public FP? BaseMoveSpeed { get; set; }
+        
+        /// <summary>
+        /// 当前动作对应的动画播放速度倍率（默认1，受逻辑速度影响）
+        /// </summary>
+        public float AnimationSpeedMultiplier { get; set; } = 1f;
+        
+        /// <summary>
         /// 默认构造函数
         /// </summary>
         public ActionInfo()
@@ -75,6 +86,8 @@ namespace Astrum.LogicCore.ActionSystem
             AutoTerminate = autoTerminate;
             Priority = priority;
             Duration = duration;
+            BaseMoveSpeed = null;
+            AnimationSpeedMultiplier = 1f;
         }
     }
 }

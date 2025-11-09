@@ -308,6 +308,7 @@ namespace Astrum.View.Components
                     StopCurrentAnimation();
                     ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Stopped animation due to null action on entity {OwnerEntity.UniqueId}");
                 }
+                ResetAnimationSpeed();
                 return;
             }
             
@@ -319,6 +320,7 @@ namespace Astrum.View.Components
                 _lastActionId = currentAction.Id;
                 _lastActionFrame = currentFrame;
                 SyncAnimationTime(currentAction, currentFrame);
+                ApplyAnimationSpeed(currentAction);
                 
                 ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentAction.Id} on entity {OwnerEntity.UniqueId}");
                 return;
@@ -328,6 +330,7 @@ namespace Astrum.View.Components
                 if (currentAction.KeepPlayingAnim)
                 {
                     _lastActionFrame = currentFrame;
+                    ApplyAnimationSpeed(currentAction);
                     return;
                 }
                 
@@ -338,10 +341,13 @@ namespace Astrum.View.Components
                     _lastActionFrame = currentFrame;
                     SyncAnimationTime(currentAction, currentFrame);
                     ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Restarted action {currentAction.Id} on entity {OwnerEntity.UniqueId} (frame reset)");
+                    ApplyAnimationSpeed(currentAction);
                     return;
                 }
                 _lastActionFrame = currentFrame;
             }
+
+            ApplyAnimationSpeed(currentAction);
             /*
             // 3. 检查动作帧数是否发生显著变化
             int frameDifference = Mathf.Abs(currentFrame - _lastActionFrame);
@@ -434,7 +440,35 @@ namespace Astrum.View.Components
         /// <param name="speed">播放速度</param>
         public void SetAnimationSpeed(float speed)
         {
-            // TODO: 实现设置动画速度逻辑
+            if (float.IsNaN(speed) || float.IsInfinity(speed) || speed <= 0f)
+            {
+                speed = 1f;
+            }
+
+            _animationSpeed = speed;
+            if (_currentAnimationState != null)
+            {
+                _currentAnimationState.Speed = speed;
+            }
+        }
+
+        /// <summary>
+        /// 重置动画播放速度为1
+        /// </summary>
+        public void ResetAnimationSpeed()
+        {
+            SetAnimationSpeed(1f);
+        }
+
+        private void ApplyAnimationSpeed(ActionInfo actionInfo)
+        {
+            if (actionInfo == null)
+            {
+                ResetAnimationSpeed();
+                return;
+            }
+
+            SetAnimationSpeed(actionInfo.AnimationSpeedMultiplier);
         }
         
         /// <summary>

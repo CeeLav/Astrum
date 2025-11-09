@@ -1,0 +1,6 @@
+##var,actionId,moveSpeed
+##type,int,int
+##group,,
+##desc,动作ID,基础移动速度(×1000)
+,1002,3500
+

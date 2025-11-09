@@ -19,6 +19,7 @@ public partial class Tables
     public Entity.TbEntityGrowthTable TbEntityGrowthTable {get; }
     public Entity.TbEntityModelTable TbEntityModelTable {get; }
     public Entity.TbEntityStatsTable TbEntityStatsTable {get; }
+    public Entity.TbMoveActionTable TbMoveActionTable {get; }
     public Item.TbEquipmentStatsTable TbEquipmentStatsTable {get; }
     public Item.TbItemBaseTable TbItemBaseTable {get; }
     public Item.TbLootTable TbLootTable {get; }
@@ -37,6 +38,7 @@ public partial class Tables
         TbEntityGrowthTable = new Entity.TbEntityGrowthTable(loader("entity_tbentitygrowthtable"));
         TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
         TbEntityStatsTable = new Entity.TbEntityStatsTable(loader("entity_tbentitystatstable"));
+        TbMoveActionTable = new Entity.TbMoveActionTable(loader("entity_tbmoveactiontable"));
         TbEquipmentStatsTable = new Item.TbEquipmentStatsTable(loader("item_tbequipmentstatstable"));
         TbItemBaseTable = new Item.TbItemBaseTable(loader("item_tbitembasetable"));
         TbLootTable = new Item.TbLootTable(loader("item_tbloottable"));
@@ -57,6 +59,7 @@ public partial class Tables
         TbEntityGrowthTable.ResolveRef(this);
         TbEntityModelTable.ResolveRef(this);
         TbEntityStatsTable.ResolveRef(this);
+        TbMoveActionTable.ResolveRef(this);
         TbEquipmentStatsTable.ResolveRef(this);
         TbItemBaseTable.ResolveRef(this);
         TbLootTable.ResolveRef(this);

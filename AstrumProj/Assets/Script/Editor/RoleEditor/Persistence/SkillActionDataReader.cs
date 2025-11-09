@@ -20,7 +20,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
         private const string LOG_PREFIX = "[SkillActionDataReader]";
         
         /// <summary>
-        /// 读取所有技能动作数据
+        /// 读取所有技能动作数据（包括 skill、move 等编辑器管理的动作类型）
         /// </summary>
         public static List<SkillActionEditorData> ReadSkillActionData()
         {
@@ -40,17 +40,25 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     return editorDataList;
                 }
                 
-                // 3. 合并两表数据
+                // 3. 读取 MoveActionTable（移动动作专属数据）
+                var moveActionTableDict = ReadMoveActionTableAsDictionary();
+                
+                // 4. 合并数据：从 SkillActionTable 获取所有需要编辑的动作 ID
                 foreach (var skillActionData in skillActionTableList)
                 {
-                    var editorData = ConvertToEditorData(skillActionData, actionDataDict);
+                    var editorData = ConvertToEditorData(skillActionData, actionDataDict, moveActionTableDict);
                     if (editorData != null)
                     {
                         editorDataList.Add(editorData);
                     }
                 }
                 
-                Debug.Log($"{LOG_PREFIX} Successfully loaded {editorDataList.Count} skill actions");
+                // 统计各类型动作数量
+                var typeCounts = editorDataList
+                    .GroupBy(a => a.ActionType?.ToLower() ?? "unknown")
+                    .Select(g => $"{g.Key}({g.Count()})")
+                    .ToList();
+                Debug.Log($"{LOG_PREFIX} Successfully loaded {editorDataList.Count} actions [{string.Join(", ", typeCounts)}]");
             }
             catch (System.Exception ex)
             {
@@ -111,11 +119,42 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
+        /// 读取 MoveActionTable 并转换为字典（以 ActionId 为键）
+        /// </summary>
+        private static Dictionary<int, MoveActionTableData> ReadMoveActionTableAsDictionary()
+        {
+            var dict = new Dictionary<int, MoveActionTableData>();
+            
+            try
+            {
+                var config = MoveActionTableData.GetTableConfig();
+                var moveActionList = LubanCSVReader.ReadTable<MoveActionTableData>(config);
+                
+                foreach (var moveAction in moveActionList)
+                {
+                    if (!dict.ContainsKey(moveAction.ActionId))
+                    {
+                        dict[moveAction.ActionId] = moveAction;
+                    }
+                }
+                
+                Debug.Log($"{LOG_PREFIX} Read {dict.Count} move action records from MoveActionTable");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Failed to read MoveActionTable (may not exist yet): {ex.Message}");
+            }
+            
+            return dict;
+        }
+        
+        /// <summary>
         /// 转换表数据为编辑器数据
         /// </summary>
         private static SkillActionEditorData ConvertToEditorData(
             SkillActionTableData skillActionData,
-            Dictionary<int, ActionTableData> actionDataDict)
+            Dictionary<int, ActionTableData> actionDataDict,
+            Dictionary<int, MoveActionTableData> moveActionDataDict)
         {
             if (skillActionData == null) return null;
             
@@ -134,6 +173,19 @@ namespace Astrum.Editor.RoleEditor.Persistence
             
             // 从 SkillActionTable 填充技能专属数据
             FillSkillActionData(editorData, skillActionData);
+            
+            // 如果是 move 类型，从 MoveActionTable 填充移动专属数据
+            if (string.Equals(editorData.ActionType, "move", StringComparison.OrdinalIgnoreCase))
+            {
+                if (moveActionDataDict.TryGetValue(skillActionData.ActionId, out var moveActionData))
+                {
+                    FillMoveActionData(editorData, moveActionData);
+                }
+                else
+                {
+                    Debug.LogWarning($"{LOG_PREFIX} Move action {skillActionData.ActionId} not found in MoveActionTable");
+                }
+            }
             
             // 解析触发帧字符串为触发效果列表
             editorData.ParseTriggerFrames();
@@ -191,6 +243,16 @@ namespace Astrum.Editor.RoleEditor.Persistence
             editorData.ActualCost = skillActionData.ActualCost;
             editorData.ActualCooldown = skillActionData.ActualCooldown;
             editorData.TriggerFrames = skillActionData.TriggerFrames ?? "";
+        }
+        
+        /// <summary>
+        /// 从 MoveActionTable 数据填充移动动作专属字段
+        /// </summary>
+        private static void FillMoveActionData(SkillActionEditorData editorData, MoveActionTableData moveActionData)
+        {
+            // MoveActionTable 中的数据主要用于运行时，编辑器端暂不需要额外字段
+            // 如果未来需要在编辑器中显示移动速度等信息，可以在此添加
+            Debug.Log($"{LOG_PREFIX} Loaded move action {moveActionData.ActionId} with speed {moveActionData.MoveSpeed}");
         }
         
         /// <summary>

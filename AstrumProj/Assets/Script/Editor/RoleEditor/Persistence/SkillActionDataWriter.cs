@@ -35,26 +35,54 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     skillAction.SyncFromTimelineEvents(skillAction.TimelineEvents);
                 }
                 
+                // 按动作类型分类
+                var actionsByType = skillActions.GroupBy(a => a.ActionType?.ToLower() ?? "unknown").ToDictionary(g => g.Key, g => g.ToList());
+                
                 // 1. 转换为 ActionTable 数据并写入
                 var actionTableData = ConvertToActionTableDataList(skillActions);
                 bool actionSuccess = WriteActionTableCSV(actionTableData);
+                if (!actionSuccess)
+                {
+                    Debug.LogError($"{LOG_PREFIX} Failed to write ActionTable");
+                }
                 
                 // 2. 转换为 SkillActionTable 数据并写入
                 var skillActionTableData = ConvertToSkillActionTableDataList(skillActions);
                 bool skillActionSuccess = WriteSkillActionTableCSV(skillActionTableData);
+                if (!skillActionSuccess)
+                {
+                    Debug.LogError($"{LOG_PREFIX} Failed to write SkillActionTable");
+                }
+
+                // 3. 转换为 MoveActionTable 数据并写入（仅处理 move 类型）
+                bool moveActionSuccess = true;
+                if (actionsByType.ContainsKey("move"))
+                {
+                    var moveActions = actionsByType["move"];
+                    var moveActionTableData = ConvertToMoveActionTableDataList(moveActions);
+                    moveActionSuccess = WriteMoveActionTableCSV(moveActionTableData);
+                    if (!moveActionSuccess)
+                    {
+                        Debug.LogError($"{LOG_PREFIX} Failed to write MoveActionTable for {moveActions.Count} move actions");
+                    }
+                    else
+                    {
+                        Debug.Log($"{LOG_PREFIX} Successfully wrote {moveActions.Count} move actions to MoveActionTable");
+                    }
+                }
                 
-                bool success = actionSuccess && skillActionSuccess;
+                bool success = actionSuccess && skillActionSuccess && moveActionSuccess;
                 
                 if (success)
                 {
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote {skillActions.Count} skill actions to CSV");
+                    Debug.Log($"{LOG_PREFIX} Successfully wrote {skillActions.Count} skill actions to CSV (Types: {string.Join(", ", actionsByType.Keys)})");
                     
                     // 自动打表
                     Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
                 }
                 else
                 {
-                    Debug.LogError($"{LOG_PREFIX} Failed to write skill action data (Action: {actionSuccess}, SkillAction: {skillActionSuccess})");
+                    Debug.LogError($"{LOG_PREFIX} Failed to write skill action data (Action: {actionSuccess}, SkillAction: {skillActionSuccess}, MoveAction: {moveActionSuccess})");
                 }
                 
                 return success;
@@ -160,9 +188,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 写入 ActionTable CSV（只更新技能动作，保留其他动作）
+        /// 写入 ActionTable CSV（更新编辑器管理的动作，保留其他动作）
         /// </summary>
-        private static bool WriteActionTableCSV(List<ActionTableData> skillActionTableData)
+        private static bool WriteActionTableCSV(List<ActionTableData> editorActionTableData)
         {
             var config = ActionTableData.GetTableConfig();
             
@@ -171,33 +199,44 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 // 1. 读取现有的所有动作
                 var existingActions = ActionTableData.ReadAllActions();
                 
-                // 2. 过滤出非技能动作
-                var nonSkillActions = existingActions
-                    .Where(a => !string.Equals(a.ActionType, "skill", StringComparison.OrdinalIgnoreCase))
+                // 2. 获取编辑器管理的动作类型（skill, move 等）
+                var editorManagedTypes = editorActionTableData
+                    .Select(a => a.ActionType?.ToLower())
+                    .Where(t => !string.IsNullOrEmpty(t))
+                    .Distinct()
+                    .ToHashSet();
+                
+                // 3. 过滤出非编辑器管理的动作（保留）
+                var nonEditorActions = existingActions
+                    .Where(a => !editorManagedTypes.Contains(a.ActionType?.ToLower()))
                     .ToList();
                 
-                // 3. 获取技能动作的 ActionId 集合（用于去重）
-                var skillActionIds = new HashSet<int>(skillActionTableData.Select(a => a.ActionId));
+                // 4. 获取编辑器动作的 ActionId 集合（用于去重）
+                var editorActionIds = new HashSet<int>(editorActionTableData.Select(a => a.ActionId));
                 
-                // 4. 移除现有技能动作中已存在的 ActionId（避免重复）
-                nonSkillActions = nonSkillActions
-                    .Where(a => !skillActionIds.Contains(a.ActionId))
+                // 5. 移除可能重复的 ActionId（避免冲突）
+                nonEditorActions = nonEditorActions
+                    .Where(a => !editorActionIds.Contains(a.ActionId))
                     .ToList();
                 
-                // 5. 合并：非技能动作 + 新的技能动作
+                // 6. 合并：非编辑器动作 + 编辑器动作
                 var mergedActions = new List<ActionTableData>();
-                mergedActions.AddRange(nonSkillActions);
-                mergedActions.AddRange(skillActionTableData);
+                mergedActions.AddRange(nonEditorActions);
+                mergedActions.AddRange(editorActionTableData);
                 
-                // 6. 按 ActionId 排序
+                // 7. 按 ActionId 排序
                 mergedActions = mergedActions.OrderBy(a => a.ActionId).ToList();
                 
-                // 7. 写入合并后的完整列表
+                // 8. 写入合并后的完整列表
                 bool success = LubanCSVWriter.WriteTable(config, mergedActions, enableBackup: true);
                 
                 if (success)
                 {
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote ActionTable: {nonSkillActions.Count} non-skill actions + {skillActionTableData.Count} skill actions = {mergedActions.Count} total");
+                    var typesSummary = editorActionTableData
+                        .GroupBy(a => a.ActionType?.ToLower() ?? "unknown")
+                        .Select(g => $"{g.Key}({g.Count()})")
+                        .ToList();
+                    Debug.Log($"{LOG_PREFIX} Successfully wrote ActionTable: {nonEditorActions.Count} non-editor actions + {editorActionTableData.Count} editor actions [{string.Join(", ", typesSummary)}] = {mergedActions.Count} total");
                 }
                 else
                 {
@@ -240,6 +279,142 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 Debug.LogError($"{LOG_PREFIX} Failed to write SkillActionTable CSV: {ex.Message}");
                 return false;
             }
+        }
+        
+        /// <summary>
+        /// 转换编辑器数据为 MoveActionTable 数据列表
+        /// 仅处理 ActionType == "move" 的动作
+        /// </summary>
+        private static List<MoveActionTableData> ConvertToMoveActionTableDataList(List<SkillActionEditorData> editorDataList)
+        {
+            var tableDataList = new List<MoveActionTableData>();
+
+            foreach (var editorData in editorDataList)
+            {
+                var tableData = ConvertToMoveActionTableData(editorData);
+                if (tableData != null)
+                {
+                    tableDataList.Add(tableData);
+                }
+            }
+
+            return tableDataList;
+        }
+
+        private static MoveActionTableData ConvertToMoveActionTableData(SkillActionEditorData editorData)
+        {
+            if (editorData == null)
+            {
+                return null;
+            }
+
+            if (!string.Equals(editorData.ActionType, "move", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            int moveSpeed = CalculateMoveSpeed(editorData);
+
+            return new MoveActionTableData
+            {
+                ActionId = editorData.ActionId,
+                MoveSpeed = moveSpeed
+            };
+        }
+
+        private static bool WriteMoveActionTableCSV(List<MoveActionTableData> moveActionData)
+        {
+            var config = MoveActionTableData.GetTableConfig();
+
+            try
+            {
+                var existing = MoveActionTableData.ReadAll();
+                var cache = new Dictionary<int, MoveActionTableData>();
+
+                foreach (var entry in existing)
+                {
+                    if (!cache.ContainsKey(entry.ActionId))
+                    {
+                        cache[entry.ActionId] = entry;
+                    }
+                }
+
+                foreach (var entry in moveActionData)
+                {
+                    cache[entry.ActionId] = entry;
+                }
+
+                var merged = cache.Values.OrderBy(data => data.ActionId).ToList();
+                bool success = LubanCSVWriter.WriteTable(config, merged, enableBackup: true);
+
+                if (success)
+                {
+                    Debug.Log($"{LOG_PREFIX} Successfully wrote MoveActionTable with {merged.Count} records");
+                }
+                else
+                {
+                    Debug.LogError($"{LOG_PREFIX} Failed to write MoveActionTable");
+                }
+
+                return success;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"{LOG_PREFIX} Failed to write MoveActionTable CSV: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static int CalculateMoveSpeed(SkillActionEditorData editorData)
+        {
+            if (editorData == null || editorData.RootMotionDataArray == null || editorData.RootMotionDataArray.Count <= 1)
+            {
+                return 0;
+            }
+
+            var data = editorData.RootMotionDataArray;
+            int frameCount = data[0];
+
+            if (frameCount <= 0)
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Move action {editorData.ActionId} has invalid root motion frame count: {frameCount}");
+                return 0;
+            }
+
+            int expectedLength = 1 + frameCount * 7;
+            if (data.Count < expectedLength)
+            {
+                Debug.LogWarning($"{LOG_PREFIX} Move action {editorData.ActionId} root motion data length mismatch. Expected {expectedLength}, got {data.Count}");
+                return 0;
+            }
+
+            double totalDistance = 0d;
+
+            for (int frame = 0; frame < frameCount; frame++)
+            {
+                int baseIndex = 1 + frame * 7;
+                double dx = data[baseIndex] / 1000.0;
+                double dz = data[baseIndex + 2] / 1000.0;
+
+                double stepDistance = Math.Sqrt(dx * dx + dz * dz);
+                totalDistance += stepDistance;
+            }
+
+            // Root motion采样为20FPS（50ms一次）
+            double totalTimeSeconds = frameCount / 20.0;
+            if (totalTimeSeconds <= 0.0)
+            {
+                return 0;
+            }
+
+            double speed = totalDistance / totalTimeSeconds;
+            if (double.IsNaN(speed) || double.IsInfinity(speed) || speed <= 0.0)
+            {
+                return 0;
+            }
+
+            int scaledSpeed = Mathf.FloorToInt((float)(speed * 1000.0));
+            return Mathf.Max(0, scaledSpeed);
         }
         
         /// <summary>
