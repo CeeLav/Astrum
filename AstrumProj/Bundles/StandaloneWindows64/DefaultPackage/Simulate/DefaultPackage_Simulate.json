@@ -9,7 +9,7 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/11/8 21:04:08",
+    "PackageNote": "2025/11/9 18:29:27",
     "AssetList": [
         {
             "Address": "",
@@ -501,6 +501,14 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Low_Roll_F.anim",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 5,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim",
             "AssetGUID": "",
             "AssetTags": [],
@@ -790,6 +798,14 @@
         {
             "Address": "",
             "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_C_Combo_6_InPlace.anim",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 5,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Knight/Animation/Run_F.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 5,
@@ -1172,7 +1188,7 @@
             "UnityCRC": 0,
             "FileHash": "95fa6045a9eb8f94224b208b6b95911e",
             "FileCRC": 0,
-            "FileSize": 64983899,
+            "FileSize": 66397012,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
