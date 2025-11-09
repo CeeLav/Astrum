@@ -22,10 +22,11 @@ namespace Astrum.Editor.RoleEditor.Persistence
         {
             try
             {
-                // 1. 拆分数据为Entity、Model和Role
+                // 1. 拆分数据为Entity、Model、Role和Stats
                 var entityDataList = ConvertToEntityData(roles);
                 var modelDataList = ConvertToModelData(roles);
                 var roleTableDataList = ConvertToRoleTableData(roles);
+                var statsDataList = ConvertToStatsData(roles);
                 
                 // 2. 使用通用写入器写入EntityBaseTable
                 bool entitySuccess = LubanCSVWriter.WriteTable(
@@ -48,7 +49,14 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     enableBackup: true
                 );
                 
-                if (entitySuccess && modelSuccess && roleSuccess)
+                // 5. 写入 EntityStatsTable
+                bool statsSuccess = LubanCSVWriter.WriteTable(
+                    EntityStatsTableData.GetTableConfig(),
+                    statsDataList,
+                    enableBackup: true
+                );
+                
+                if (entitySuccess && modelSuccess && roleSuccess && statsSuccess)
                 {
                     Debug.Log($"{LOG_PREFIX} Successfully saved {roles.Count} roles");
                     
@@ -144,6 +152,34 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 DefaultSkillIds = new List<int>(r.DefaultSkillIds ?? new List<int>())
             }).ToList();
         }
+        
+        /// <summary>
+        /// 转换为 EntityStatsTableData 列表
+        /// </summary>
+        private static List<EntityStatsTableData> ConvertToStatsData(List<RoleEditorData> roles)
+        {
+            return roles.OrderBy(r => r.EntityId).Select(r => new EntityStatsTableData
+            {
+                EntityId = r.EntityId,
+                BaseAttack = r.BaseAttack,
+                BaseDefense = r.BaseDefense,
+                BaseHealth = r.BaseHealth,
+                BaseSpeed = (int)(r.BaseSpeed * 1000),  // 转换为 speed * 1000
+                
+                BaseCritRate = (int)(r.BaseCritRate * 10),  // 转换为 rate * 10
+                BaseCritDamage = (int)(r.BaseCritDamage * 10),
+                BaseAccuracy = (int)(r.BaseAccuracy * 10),
+                BaseEvasion = (int)(r.BaseEvasion * 10),
+                BaseBlockRate = (int)(r.BaseBlockRate * 10),
+                BaseBlockValue = r.BaseBlockValue,
+                PhysicalRes = (int)(r.PhysicalRes * 10),
+                MagicalRes = (int)(r.MagicalRes * 10),
+                BaseMaxMana = r.BaseMaxMana,
+                ManaRegen = (int)(r.ManaRegen * 1000),  // 转换为 regen * 1000
+                HealthRegen = (int)(r.HealthRegen * 1000)
+            }).ToList();
+        }
     }
 }
+
 

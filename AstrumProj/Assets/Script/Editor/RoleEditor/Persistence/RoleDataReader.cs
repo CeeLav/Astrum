@@ -36,8 +36,12 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 // 3. 读取 EntityModelTable
                 var modelDataDict = EntityModelDataReader.ReadAsDictionary();
                 
-                // 4. 合并数据
-                result = MergeData(entityDataDict, roleDataDict, modelDataDict);
+                // 4. 读取 EntityStatsTable
+                var statsDataList = LubanCSVReader.ReadTable<EntityStatsTableData>(EntityStatsTableData.GetTableConfig());
+                var statsDataDict = statsDataList.ToDictionary(s => s.EntityId);
+                
+                // 5. 合并数据
+                result = MergeData(entityDataDict, roleDataDict, modelDataDict, statsDataDict);
                 
                 Debug.Log($"{LOG_PREFIX} Successfully loaded {result.Count} roles");
             }
@@ -50,12 +54,13 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 合并EntityBaseTable和RoleBaseTable数据
+        /// 合并EntityBaseTable、RoleBaseTable和EntityStatsTable数据
         /// </summary>
         private static List<RoleEditorData> MergeData(
             Dictionary<int, EntityTableData> entityDataDict,
             Dictionary<int, RoleTableData> roleDataDict,
-            Dictionary<int, EntityModelTableData> modelDataDict)
+            Dictionary<int, EntityModelTableData> modelDataDict,
+            Dictionary<int, EntityStatsTableData> statsDataDict)
         {
             var result = new List<RoleEditorData>();
             
@@ -116,6 +121,46 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 {
                     roleData.RoleId = id;
                     roleData.DefaultSkillIds = new List<int>();
+                }
+                
+                // 从 EntityStatsTable 填充属性数据
+                if (statsDataDict.TryGetValue(id, out var statsData))
+                {
+                    roleData.BaseAttack = statsData.BaseAttack;
+                    roleData.BaseDefense = statsData.BaseDefense;
+                    roleData.BaseHealth = statsData.BaseHealth;
+                    roleData.BaseSpeed = statsData.BaseSpeed / 1000f;  // 转换为 m/s
+                    
+                    roleData.BaseCritRate = statsData.BaseCritRate / 10f;  // 转换为 %
+                    roleData.BaseCritDamage = statsData.BaseCritDamage / 10f;
+                    roleData.BaseAccuracy = statsData.BaseAccuracy / 10f;
+                    roleData.BaseEvasion = statsData.BaseEvasion / 10f;
+                    roleData.BaseBlockRate = statsData.BaseBlockRate / 10f;
+                    roleData.BaseBlockValue = statsData.BaseBlockValue;
+                    roleData.PhysicalRes = statsData.PhysicalRes / 10f;
+                    roleData.MagicalRes = statsData.MagicalRes / 10f;
+                    roleData.BaseMaxMana = statsData.BaseMaxMana;
+                    roleData.ManaRegen = statsData.ManaRegen / 1000f;
+                    roleData.HealthRegen = statsData.HealthRegen / 1000f;
+                }
+                else
+                {
+                    // 使用默认值
+                    roleData.BaseAttack = 50;
+                    roleData.BaseDefense = 50;
+                    roleData.BaseHealth = 1000;
+                    roleData.BaseSpeed = 5f;
+                    roleData.BaseCritRate = 5f;
+                    roleData.BaseCritDamage = 200f;
+                    roleData.BaseAccuracy = 95f;
+                    roleData.BaseEvasion = 5f;
+                    roleData.BaseBlockRate = 15f;
+                    roleData.BaseBlockValue = 60;
+                    roleData.PhysicalRes = 10f;
+                    roleData.MagicalRes = 0f;
+                    roleData.BaseMaxMana = 100;
+                    roleData.ManaRegen = 5f;
+                    roleData.HealthRegen = 2f;
                 }
                 
                 roleData.IsNew = false;

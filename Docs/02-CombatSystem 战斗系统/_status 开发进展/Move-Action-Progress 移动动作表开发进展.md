@@ -1,14 +1,42 @@
 # MoveActionTable 开发进展
 
-> 📊 **当前版本**: v0.4.0  
+> 📊 **当前版本**: v0.5.0  
 > 📅 **最后更新**: 2025-11-09  
 > 👤 **负责人**: Lavender
 
 ## TL;DR（四象限）
-- 状态/进度：✅ 核心功能完成 - 速度架构重构完成，动画同步逻辑已实现
-- 已达成：正确的速度决定逻辑（EntityStatsTable → MovementComponent），动画倍率自动计算
+- 状态/进度：✅ 核心功能完成 - 角色编辑器集成 EntityStatsTable 完成
+- 已达成：角色编辑器可完整读写 15 个基础属性，数值转换自动化
 - 风险/阻塞：AnimationViewComponent 应用倍率待实现（表现层）
 - 下一步：实现 AnimationViewComponent 速度倍率应用、完整流程测试
+
+## 版本历史
+
+### v0.5.0 - 角色编辑器集成 EntityStatsTable (2025-11-09)
+**状态**: ✅ 已完成
+
+**完成内容**:
+- [x] 创建 `EntityStatsTableData` 映射类（16 个字段）
+- [x] 扩展 `RoleEditorData` 添加 11 个新属性字段
+- [x] 修改 `RoleDataReader` 读取 `EntityStatsTable`
+- [x] 修改 `RoleDataWriter` 写入 `EntityStatsTable`
+- [x] 实现数值转换逻辑（编辑器 float ↔ 表格 int）
+- [x] 添加 Odin Inspector UI 特性（分组、Range、InfoBox）
+
+**架构改进**:
+- ✅ 角色编辑器现在可以完整管理 `EntityStatsTable` 的所有属性
+- ✅ 数值转换自动化：速度 ×1000、百分比 ×10、回复 ×1000
+- ✅ UI 分组优化：基础属性、进阶属性（暴击/命中/格挡/抗性/资源）
+- ✅ 向后兼容：缺失数据自动使用默认值
+
+**新增字段**:
+- 暴击系统：`BaseCritRate`、`BaseCritDamage`
+- 命中闪避：`BaseAccuracy`、`BaseEvasion`
+- 格挡系统：`BaseBlockRate`、`BaseBlockValue`
+- 抗性系统：`PhysicalRes`、`MagicalRes`
+- 资源系统：`BaseMaxMana`、`ManaRegen`、`HealthRegen`
+
+**预计工时**: 已完成
 
 ## 版本历史
 
@@ -121,10 +149,19 @@
 - [x] 动画倍率：修改 `UpdateMovementAndAnimationSpeed()` 正确计算倍率
 - [x] Buff 支持：动画倍率自动响应速度 Buff 修饰
 
-### 🔄 进行中（v0.5.0）
+### 🔄 进行中（v0.6.0）
 
 - [ ] 动画层：为 `AnimationViewComponent` 应用 `AnimationSpeedMultiplier`
 - [ ] 测试：编写完整流程测试（配置→属性→移动→动画）
+
+### ✅ 已完成（v0.5.0）
+
+- [x] 创建 `EntityStatsTableData` 映射类（16 个字段）
+- [x] 扩展 `RoleEditorData` 添加 11 个新属性字段
+- [x] 修改 `RoleDataReader` 读取 `EntityStatsTable`
+- [x] 修改 `RoleDataWriter` 写入 `EntityStatsTable`
+- [x] 实现数值转换逻辑（编辑器 float ↔ 表格 int）
+- [x] 添加 Odin Inspector UI 特性（分组、Range、InfoBox）
 
 ---
 
@@ -144,12 +181,13 @@
 
 ---
 
-*文档版本：v0.4.0*  
+*文档版本：v0.5.0*  
 *创建时间：2025-11-09*  
 *最后更新：2025-11-09*  
 *状态：核心完成*  
 *Owner*: Lavender  
 *变更摘要*: 
+- v0.5.0: 角色编辑器集成 EntityStatsTable，完整支持 15 个基础属性的读写
 - v0.4.0: 修正速度架构，移动速度由 EntityStatsTable 决定，动画倍率正确计算
 - v0.3.0: 完成运行时架构，创建 MoveActionInfo 类，实现 ActionConfig 加载逻辑
 - v0.2.0: 完成编辑器层实现，包括组合模式架构重构、自动速度计算、触发帧修复

@@ -125,19 +125,75 @@ namespace Astrum.Editor.RoleEditor.Data
         
         [TitleGroup("角色配置/基础属性")]
         [LabelText("基础攻击力"), Range(0, 500)]
-        public float BaseAttack = 50f;
+        public int BaseAttack = 50;
         
         [TitleGroup("角色配置/基础属性")]
         [LabelText("基础防御力"), Range(0, 500)]
-        public float BaseDefense = 50f;
+        public int BaseDefense = 50;
         
         [TitleGroup("角色配置/基础属性")]
         [LabelText("基础生命值"), Range(0, 5000)]
-        public float BaseHealth = 1000f;
+        public int BaseHealth = 1000;
         
         [TitleGroup("角色配置/基础属性")]
-        [LabelText("基础速度"), Range(0, 20)]
+        [LabelText("基础速度 (m/s)"), Range(0, 20)]
+        [InfoBox("实际存储为 speed * 1000", InfoMessageType.Info)]
         public float BaseSpeed = 5f;
+        
+        // ===== 进阶属性 =====
+        
+        [TitleGroup("角色配置/进阶属性/暴击系统")]
+        [LabelText("基础暴击率 (%)"), Range(0, 100)]
+        [InfoBox("实际存储为 rate * 10", InfoMessageType.None)]
+        public float BaseCritRate = 5f;
+        
+        [TitleGroup("角色配置/进阶属性/暴击系统")]
+        [LabelText("基础暴击伤害 (%)"), Range(100, 500)]
+        [InfoBox("实际存储为 damage * 10", InfoMessageType.None)]
+        public float BaseCritDamage = 200f;
+        
+        [TitleGroup("角色配置/进阶属性/命中闪避")]
+        [LabelText("基础命中率 (%)"), Range(0, 100)]
+        [InfoBox("实际存储为 accuracy * 10", InfoMessageType.None)]
+        public float BaseAccuracy = 95f;
+        
+        [TitleGroup("角色配置/进阶属性/命中闪避")]
+        [LabelText("基础闪避率 (%)"), Range(0, 100)]
+        [InfoBox("实际存储为 evasion * 10", InfoMessageType.None)]
+        public float BaseEvasion = 5f;
+        
+        [TitleGroup("角色配置/进阶属性/格挡系统")]
+        [LabelText("基础格挡率 (%)"), Range(0, 100)]
+        [InfoBox("实际存储为 rate * 10", InfoMessageType.None)]
+        public float BaseBlockRate = 15f;
+        
+        [TitleGroup("角色配置/进阶属性/格挡系统")]
+        [LabelText("基础格挡值"), Range(0, 200)]
+        public int BaseBlockValue = 60;
+        
+        [TitleGroup("角色配置/进阶属性/抗性系统")]
+        [LabelText("物理抗性 (%)"), Range(0, 100)]
+        [InfoBox("实际存储为 res * 10", InfoMessageType.None)]
+        public float PhysicalRes = 10f;
+        
+        [TitleGroup("角色配置/进阶属性/抗性系统")]
+        [LabelText("魔法抗性 (%)"), Range(0, 100)]
+        [InfoBox("实际存储为 res * 10", InfoMessageType.None)]
+        public float MagicalRes = 0f;
+        
+        [TitleGroup("角色配置/进阶属性/资源系统")]
+        [LabelText("基础法力上限"), Range(0, 500)]
+        public int BaseMaxMana = 100;
+        
+        [TitleGroup("角色配置/进阶属性/资源系统")]
+        [LabelText("法力回复 (/s)"), Range(0, 50)]
+        [InfoBox("实际存储为 regen * 1000", InfoMessageType.None)]
+        public float ManaRegen = 5f;
+        
+        [TitleGroup("角色配置/进阶属性/资源系统")]
+        [LabelText("生命回复 (/s)"), Range(0, 50)]
+        [InfoBox("实际存储为 regen * 1000", InfoMessageType.None)]
+        public float HealthRegen = 2f;
         
         [TitleGroup("角色配置/成长属性")]
         [LabelText("攻击力成长"), Range(0, 50)]
