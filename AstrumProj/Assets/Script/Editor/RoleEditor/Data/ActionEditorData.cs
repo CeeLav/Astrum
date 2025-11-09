@@ -75,9 +75,15 @@ namespace Astrum.Editor.RoleEditor.Data
         public bool AutoTerminate = false;
         
         [TitleGroup("动作配置")]
-        [LabelText("命令")]
+        [LabelText("触发命令列表")]
+        [InfoBox("动作需要满足的命令列表（多个命令需同时满足）", InfoMessageType.Info)]
         [ValueDropdown("GetCommandOptions")]
-        public string Command = "";
+        [ListDrawerSettings(ShowIndexLabels = true)]
+        public List<string> Commands = new List<string>();
+        
+        [HideInInspector]
+        [System.Obsolete("Use Commands instead")]
+        public string Command = "";  // 保留用于向后兼容
         
         // === 取消标签配置 ===
         
@@ -128,6 +134,26 @@ namespace Astrum.Editor.RoleEditor.Data
         /// 是否为移动类型动作
         /// </summary>
         public bool IsMove => string.Equals(ActionType, "move", StringComparison.OrdinalIgnoreCase);
+        
+        /// <summary>
+        /// Unity生命周期 - 自动迁移旧数据
+        /// </summary>
+        private void OnEnable()
+        {
+            // 自动迁移旧的Command字段到Commands列表
+            if ((Commands == null || Commands.Count == 0) && !string.IsNullOrEmpty(Command))
+            {
+                Commands = new List<string> { Command };
+                Command = ""; // 清空旧字段
+                Debug.Log($"[ActionEditorData] Migrated Command '{Command}' to Commands list for Action {ActionId}");
+            }
+            
+            // 确保Commands不为null
+            if (Commands == null)
+            {
+                Commands = new List<string>();
+            }
+        }
         
         /// <summary>
         /// 确保扩展数据存在（根据 ActionType 自动创建）
@@ -193,6 +219,7 @@ namespace Astrum.Editor.RoleEditor.Data
             clone.KeepPlayingAnim = this.KeepPlayingAnim;
             clone.AutoTerminate = this.AutoTerminate;
             clone.Command = this.Command;
+            clone.Commands = new List<string>(this.Commands ?? new List<string>());
             clone.CancelTags = new List<EditorCancelTag>(this.CancelTags);
             clone.CancelTagsJson = this.CancelTagsJson;
             
@@ -297,7 +324,43 @@ namespace Astrum.Editor.RoleEditor.Data
         
         private IEnumerable<string> GetCommandOptions()
         {
-            return new[] { "", "Move", "NormalAttack", "HeavyAttack", "Skill1", "Skill2", "Jump", "Interact" };
+            var commands = new List<string> { "" }; // 空选项
+            
+            try
+            {
+                // 从配置表加载命令选项
+                var configPath = "AstrumConfig/Tables/Datas/Input/#ActionCommandMappingTable.csv";
+                if (System.IO.File.Exists(configPath))
+                {
+                    var lines = System.IO.File.ReadAllLines(configPath);
+                    // 跳过前4行表头
+                    for (int i = 4; i < lines.Length; i++)
+                    {
+                        var line = lines[i].Trim();
+                        if (string.IsNullOrEmpty(line)) continue;
+                        
+                        // 解析CSV行：第一列为空，第二列是命令名
+                        var parts = line.Split(',');
+                        if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1]))
+                        {
+                            commands.Add(parts[1]);
+                        }
+                    }
+                }
+                else
+                {
+                    // 配置表不存在，使用默认值
+                    commands.AddRange(new[] { "move", "attack", "skill1", "skill2", "roll", "dash" });
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[ActionEditorData] Failed to load command options from config: {ex.Message}");
+                // 回退到默认值
+                commands.AddRange(new[] { "move", "attack", "skill1", "skill2", "roll", "dash" });
+            }
+            
+            return commands;
         }
         
         private bool ValidateDuration(int duration)

@@ -430,6 +430,7 @@ namespace Astrum.LogicCore.Capabilities
         
         /// <summary>
         /// 检查是否有有效命令
+        /// 使用AND逻辑：所有命令都必须满足
         /// </summary>
         private bool HasValidCommand(Entity entity, ActionInfo actionInfo)
         {
@@ -455,6 +456,7 @@ namespace Astrum.LogicCore.Capabilities
                 return false;
             }
 
+            // AND逻辑：检查actionInfo的每个命令是否都在inputCommands中
             foreach (var command in actionInfo.Commands)
             {
                 if (command == null || string.IsNullOrEmpty(command.CommandName))
@@ -462,6 +464,7 @@ namespace Astrum.LogicCore.Capabilities
                     continue;
                 }
 
+                bool found = false;
                 foreach (var input in inputCommands)
                 {
                     if (input == null)
@@ -472,12 +475,20 @@ namespace Astrum.LogicCore.Capabilities
                     if (string.Equals(input.CommandName, command.CommandName, StringComparison.OrdinalIgnoreCase) &&
                         input.ValidFrames >= command.ValidFrames)
                     {
-                        return true;
+                        found = true;
+                        break;
                     }
+                }
+
+                // 如果有任何一个命令没找到，返回false
+                if (!found)
+                {
+                    return false;
                 }
             }
 
-            return false;
+            // 所有命令都找到了，返回true
+            return true;
         }
         
         /// <summary>

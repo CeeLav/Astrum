@@ -24,7 +24,7 @@ public sealed partial class ActionTable : Luban.BeanBase
         AutoNextActionId = _buf.ReadInt();
         KeepPlayingAnim = _buf.ReadBool();
         AutoTerminate = _buf.ReadBool();
-        Command = _buf.ReadString();
+        {int __n0 = _buf.ReadSize(); Commands = new string[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { string __e0;__e0 = _buf.ReadString(); Commands[__index0] = __e0;}}
         Priority = _buf.ReadInt();
         CancelTags = _buf.ReadString();
         BeCancelledTags = _buf.ReadString();
@@ -68,9 +68,9 @@ public sealed partial class ActionTable : Luban.BeanBase
     /// </summary>
     public readonly bool AutoTerminate;
     /// <summary>
-    /// 命令
+    /// 触发命令列表
     /// </summary>
-    public readonly string Command;
+    public readonly string[] Commands;
     /// <summary>
     /// 优先级
     /// </summary>
@@ -102,7 +102,7 @@ public sealed partial class ActionTable : Luban.BeanBase
         + "autoNextActionId:" + AutoNextActionId + ","
         + "keepPlayingAnim:" + KeepPlayingAnim + ","
         + "AutoTerminate:" + AutoTerminate + ","
-        + "Command:" + Command + ","
+        + "Commands:" + Luban.StringUtil.CollectionToString(Commands) + ","
         + "Priority:" + Priority + ","
         + "CancelTags:" + CancelTags + ","
         + "BeCancelledTags:" + BeCancelledTags + ","

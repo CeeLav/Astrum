@@ -262,7 +262,8 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
     }
 
     /// <summary>
-    /// List<string> 类型转换器：序列化为竖线分隔的字符串
+    /// List<string> 类型转换器：序列化为逗号分隔的字符串
+    /// 用于 ActionTable 的 Commands 字段 (array#sep=,)
     /// </summary>
     public class StringListTypeConverter : CsvHelper.TypeConversion.ITypeConverter
     {
@@ -275,6 +276,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
             if (string.IsNullOrWhiteSpace(text))
                 return new List<string>();
             
+            // 支持逗号和竖线分隔符
             var separators = text.Contains("|") ? new[] { '|' } : new[] { ',' };
             return text.Split(separators, StringSplitOptions.RemoveEmptyEntries)
                        .Select(s => s.Trim())
@@ -291,7 +293,8 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                 if (list.Count == 0)
                     return "";
                 
-                return string.Join("|", list);
+                // 使用逗号分隔（与 Luban array#sep=, 格式一致）
+                return string.Join(",", list);
             }
             
             return "";

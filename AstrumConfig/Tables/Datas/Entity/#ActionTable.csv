@@ -1,7 +1,7 @@
-##var,actionId,actionName,actionType,duration,AnimationName,autoNextActionId,keepPlayingAnim,AutoTerminate,Command,Priority,CancelTags,BeCancelledTags
-##type,int,string,string,int,string,int,bool,bool,string,int,string,string
+##var,actionId,actionName,actionType,duration,AnimationName,autoNextActionId,keepPlayingAnim,AutoTerminate,Commands,Priority,CancelTags,BeCancelledTags
+##type,int,string,string,int,string,int,bool,bool,"(array#sep=,),string",int,string,string
 ##group,,,,,,,,,,,,
-##desc,动作ID,动作名称,动作类型,帧数,动画路径,自动下一动作ID,保持播放动画,自动终止,命令,优先级,取消标签,被取消标签
+##desc,动作ID,动作名称,动作类型,帧数,动画路径,自动下一动作ID,保持播放动画,自动终止,触发命令列表,优先级,取消标签,被取消标签
 ,1000,BeHit_01,custom,11,Assets/ArtRes/Unit/Role/Knight/Animation/Hit_F_2.anim,1001,False,False,,4,"[
   {
     ""Tag"": ""hit"",
@@ -11,7 +11,7 @@
   }
 ]",
 ,1001,idle_01,idle,40,Assets/ArtRes/Unit/Role/Knight/Animation/Stand_Idle_A_1.anim,1001,True,False,,100,,"[{""tags"":[""move"",""skill"",""jump"",""interact"",""hit""],""rangeFrames"":[0,39],""blendOutFrames"":3,""priority"":0}]"
-,1002,walk_01,move,20,Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim,1001,True,True,Move,99,"[
+,1002,walk_01,move,20,Assets/ArtRes/Unit/Role/Knight/Animation/Walk_F.anim,1001,True,True,move,99,"[
   {
     ""Tag"": ""move"",
     ""StartFromFrames"": 0,
@@ -19,7 +19,7 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""skill"",""jump""],""rangeFrames"":[0,19],""blendOutFrames"":4,""priority"":0}]"
-,3001,attack_A_01,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim,1001,False,False,NormalAttack,30,"[
+,3001,attack_A_01,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim,1001,False,False,attack,30,"[
   {
     ""Tag"": ""skill"",
     ""StartFromFrames"": 0,
@@ -27,7 +27,7 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""move"",""skill"",""attack_A_Combo_1""],""rangeFrames"":[16,42],""blendOutFrames"":3,""priority"":0}]"
-,3002,����,skill,47,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2.anim,1001,False,False,NormalAttack,5,"[
+,3002,����,skill,47,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_2.anim,1001,False,False,attack,5,"[
   {
     ""Tag"": ""skill"",
     ""StartFromFrames"": 0,
@@ -35,7 +35,7 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""move"",""skill""],""rangeFrames"":[24,46],""blendOutFrames"":3,""priority"":0}]"
-,5000,attack_A_01_Combo_1,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_Combo_1.anim,1001,False,False,NormalAttack,29,"[
+,5000,attack_A_01_Combo_1,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_Combo_1.anim,1001,False,False,attack,29,"[
   {
     ""Tag"": ""attack_A_Combo_1"",
     ""StartFromFrames"": 16,
