@@ -1,0 +1,9 @@
+##var,commandName,lsInputField,triggerCondition,validFrames,priority,description
+##type,string,string,string,int,int,string
+##group,,,,,,
+##desc,命令名称,LSInput字段名(|分隔表示OR关系),触发条件(NonZero/True/Always),有效帧数,优先级,说明
+,move,MoveX|MoveY,NonZero,1,0,移动命令(MoveX或MoveY非零)
+,attack,Attack,True,3,10,普通攻击
+,normalattack,Attack,True,3,10,普通攻击(别名)
+,skill1,Skill1,True,3,20,技能1
+,skill2,Skill2,True,3,20,技能2

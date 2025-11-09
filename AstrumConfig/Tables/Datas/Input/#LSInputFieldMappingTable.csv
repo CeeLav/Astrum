@@ -1,0 +1,9 @@
+##var,lsInputField,mappingType,sourceActions,requireNonZero,description
+##type,string,string,string,bool,string
+##group,,,,,
+##desc,LSInput字段名,映射类型(DirectButton/CompositeAxis/CustomLogic),源动作ID列表(逗号分隔),是否要求非零值,说明
+,Attack,DirectButton,Attack,false,直接映射Attack按钮
+,Skill1,DirectButton,Skill1,false,直接映射Skill1按钮
+,Skill2,DirectButton,Skill2,false,直接映射Skill2按钮
+,MoveX,CompositeAxis,"MoveLeft,MoveRight",false,左右移动合成X轴
+,MoveY,CompositeAxis,"MoveBackward,MoveForward",false,前后移动合成Y轴

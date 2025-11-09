@@ -1,0 +1,15 @@
+##var,actionId,displayName,primaryKey,alternativeKey,mouseButton,inputType,category
+##type,string,string,string,string,int,string,string
+##group,,,,,,,
+##desc,动作ID,显示名称,主按键(KeyCode名称),备用按键,鼠标按键(-1=不使用 0=左键 1=右键 2=中键),输入类型(Button/Axis),分类(Movement/Combat/UI)
+,Attack,攻击,Space,None,0,Button,Combat
+,Skill1,技能1,Q,None,-1,Button,Combat
+,Skill2,技能2,E,None,-1,Button,Combat
+,MoveForward,向前移动,W,UpArrow,-1,Axis,Movement
+,MoveBackward,向后移动,S,DownArrow,-1,Axis,Movement
+,MoveLeft,向左移动,A,LeftArrow,-1,Axis,Movement
+,MoveRight,向右移动,D,RightArrow,-1,Axis,Movement
+,Jump,跳跃,Space,None,-1,Button,Movement
+,Dash,冲刺,LeftShift,None,-1,Button,Movement
+,Interact,交互,F,None,-1,Button,UI
+,OpenMenu,打开菜单,Escape,None,-1,Button,UI

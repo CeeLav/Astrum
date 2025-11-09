@@ -1,0 +1,9 @@
+##var,contextId,displayName,enabledActions,disabledActions,priority,blockLowerContexts
+##type,string,string,string,string,int,bool
+##group,,,,,,
+##desc,上下文ID,显示名称,启用的动作列表(逗号分隔 空=全部),禁用的动作列表(|分隔),优先级(高优先级覆盖低优先级),是否阻断低优先级上下文
+,Combat,战斗模式,"Attack,Skill1,Skill2,MoveForward,MoveBackward,MoveLeft,MoveRight,Dash",,0,false
+,UI,UI界面,"Interact,OpenMenu",Attack|Skill1|Skill2|Dash,100,true
+,Dialogue,对话模式,Interact,,50,true
+,Cutscene,过场动画,,,200,true
+,Menu,菜单界面,OpenMenu,,150,true

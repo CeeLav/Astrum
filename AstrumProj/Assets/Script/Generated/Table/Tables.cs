@@ -20,6 +20,10 @@ public partial class Tables
     public Entity.TbEntityModelTable TbEntityModelTable {get; }
     public Entity.TbEntityStatsTable TbEntityStatsTable {get; }
     public Entity.TbMoveActionTable TbMoveActionTable {get; }
+    public Input.TbActionCommandMappingTable TbActionCommandMappingTable {get; }
+    public Input.TbInputBindingTable TbInputBindingTable {get; }
+    public Input.TbInputContextTable TbInputContextTable {get; }
+    public Input.TbLSInputFieldMappingTable TbLSInputFieldMappingTable {get; }
     public Item.TbEquipmentStatsTable TbEquipmentStatsTable {get; }
     public Item.TbItemBaseTable TbItemBaseTable {get; }
     public Item.TbLootTable TbLootTable {get; }
@@ -39,6 +43,10 @@ public partial class Tables
         TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
         TbEntityStatsTable = new Entity.TbEntityStatsTable(loader("entity_tbentitystatstable"));
         TbMoveActionTable = new Entity.TbMoveActionTable(loader("entity_tbmoveactiontable"));
+        TbActionCommandMappingTable = new Input.TbActionCommandMappingTable(loader("input_tbactioncommandmappingtable"));
+        TbInputBindingTable = new Input.TbInputBindingTable(loader("input_tbinputbindingtable"));
+        TbInputContextTable = new Input.TbInputContextTable(loader("input_tbinputcontexttable"));
+        TbLSInputFieldMappingTable = new Input.TbLSInputFieldMappingTable(loader("input_tblsinputfieldmappingtable"));
         TbEquipmentStatsTable = new Item.TbEquipmentStatsTable(loader("item_tbequipmentstatstable"));
         TbItemBaseTable = new Item.TbItemBaseTable(loader("item_tbitembasetable"));
         TbLootTable = new Item.TbLootTable(loader("item_tbloottable"));
@@ -60,6 +68,10 @@ public partial class Tables
         TbEntityModelTable.ResolveRef(this);
         TbEntityStatsTable.ResolveRef(this);
         TbMoveActionTable.ResolveRef(this);
+        TbActionCommandMappingTable.ResolveRef(this);
+        TbInputBindingTable.ResolveRef(this);
+        TbInputContextTable.ResolveRef(this);
+        TbLSInputFieldMappingTable.ResolveRef(this);
         TbEquipmentStatsTable.ResolveRef(this);
         TbItemBaseTable.ResolveRef(this);
         TbLootTable.ResolveRef(this);
