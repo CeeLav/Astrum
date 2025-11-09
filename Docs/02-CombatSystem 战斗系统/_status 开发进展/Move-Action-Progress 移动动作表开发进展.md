@@ -1,43 +1,60 @@
 # MoveActionTable 开发进展
 
-> 📊 **当前版本**: v0.1.0  
+> 📊 **当前版本**: v0.2.0  
 > 📅 **最后更新**: 2025-11-09  
 > 👤 **负责人**: Lavender
 
 ## TL;DR（四象限）
-- 状态/进度：📝 策划案完成，开发准备中
-- 已达成：MoveActionTable 技术设计完成，核心约束明确
-- 风险/阻塞：技能动作编辑器扩展与运行时整合尚未落地
-- 下一步：补充配置表字段、实现 PopulateMoveActionFields、同步动画速度逻辑
+- 状态/进度：🚧 开发中 - 配置层与编辑器已完成，运行时整合进行中
+- 已达成：MoveActionTable 配置表、编辑器读写、RootMotionData 支持
+- 风险/阻塞：运行时 ActionConfig 加载与动画速度同步待实现
+- 下一步：实现 PopulateMoveActionFields、同步动画速度逻辑、测试验证
 
 ## 版本历史
 
+### v0.2.0 - 配置层与编辑器完成 (2025-11-09)
+**状态**: 🚧 开发中
+
+**完成内容**:
+- [x] MoveActionTable CSV 表结构（actionId, moveSpeed, rootMotionData）
+- [x] MoveActionTableData 映射类与 Luban 配置
+- [x] 编辑器读取逻辑（SkillActionDataReader 支持所有动作类型）
+- [x] 编辑器写入逻辑（按类型分发到不同表）
+- [x] RootMotionData 字段支持（与 SkillActionTable 一致）
+- [x] 移动速度自动计算（基于 RootMotion 数据）
+
+**待完成**:
+- 运行时 ActionConfig.PopulateMoveActionFields 实现
+- MovementComponent 基准速度应用
+- AnimationViewComponent 动画速度倍率同步
+
+**预计工时**: 剩余 3-4 天（运行时整合与测试）
+
 ### v0.1.0 - 设计准备完成 (2025-11-09)
-**状态**: 📝 策划案完成
+**状态**: ✅ 已完成
 
 **完成内容**:
 - [x] 明确 MoveActionTable 设计目标与上下游
 - [x] 梳理运行时整合与编辑器扩展需求
 - [x] 形成阶段划分与任务清单
 
-**待完成**:
-- 运行时 PopulateMoveActionFields 实现
-- MovementComponent/AnimationViewComponent 速率同步
-- 技能动作编辑器导出 MoveActionTable 数据
-
-**预计工时**: 8-10 天（含联调与测试）
-
 ---
 
 ## 当前阶段
 
-**阶段名称**: Phase 0 - 设计准备  
-**完成度**: 10%
+**阶段名称**: Phase 1 - 配置层与编辑器实现  
+**完成度**: 70%
+
+**已完成**:
+- ✅ MoveActionTable CSV 表结构定义
+- ✅ 编辑器读取所有动作类型（ActionTable 驱动）
+- ✅ 编辑器按类型分发写入（ActionTable/SkillActionTable/MoveActionTable）
+- ✅ RootMotionData 字段支持
 
 **下一步计划**:
-1. 扩展配置：在 `MoveActionTable.csv` 与 `ActionConfig` 中增加移动速度字段加载流程
-2. 运行时能力：实现 `ActionCapability`/`MovementComponent` 速度落地与播放倍率计算
-3. 编辑器导出：在 `SkillActionEditor` 中补充 MoveActionTable 写入逻辑
+1. 运行时加载：实现 `ActionConfig.PopulateMoveActionFields`
+2. 速度应用：`MovementComponent` 接入基准速度
+3. 动画同步：`AnimationViewComponent` 实现速度倍率调节
 
 ---
 

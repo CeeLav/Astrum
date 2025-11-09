@@ -17,53 +17,66 @@ namespace Astrum.Editor.RoleEditor.Persistence
         private const string LOG_PREFIX = "[SkillActionDataWriter]";
         
         /// <summary>
-        /// 写入所有技能动作数据
+        /// 写入所有动作数据（协调各类型动作的导出）
         /// </summary>
-        public static bool WriteSkillActionData(List<SkillActionEditorData> skillActions)
+        public static bool WriteSkillActionData(List<SkillActionEditorData> actions)
         {
-            if (skillActions == null || skillActions.Count == 0)
+            if (actions == null || actions.Count == 0)
             {
-                Debug.LogWarning($"{LOG_PREFIX} No skill action data to write");
+                Debug.LogWarning($"{LOG_PREFIX} No action data to write");
                 return false;
             }
             
             try
             {
                 // 在写入前强制同步时间轴事件到触发帧
-                foreach (var skillAction in skillActions)
+                foreach (var action in actions)
                 {
-                    skillAction.SyncFromTimelineEvents(skillAction.TimelineEvents);
+                    action.SyncFromTimelineEvents(action.TimelineEvents);
                 }
                 
                 // 按动作类型分类
-                var actionsByType = skillActions.GroupBy(a => a.ActionType?.ToLower() ?? "unknown").ToDictionary(g => g.Key, g => g.ToList());
+                var actionsByType = actions.GroupBy(a => a.ActionType?.ToLower() ?? "unknown")
+                    .ToDictionary(g => g.Key, g => g.ToList());
                 
-                // 1. 转换为 ActionTable 数据并写入
-                var actionTableData = ConvertToActionTableDataList(skillActions);
+                bool allSuccess = true;
+                
+                // 1. 写入 ActionTable（所有动作的基础数据）
+                var actionTableData = ConvertToActionTableDataList(actions);
                 bool actionSuccess = WriteActionTableCSV(actionTableData);
                 if (!actionSuccess)
                 {
                     Debug.LogError($"{LOG_PREFIX} Failed to write ActionTable");
+                    allSuccess = false;
                 }
                 
-                // 2. 转换为 SkillActionTable 数据并写入
-                var skillActionTableData = ConvertToSkillActionTableDataList(skillActions);
-                bool skillActionSuccess = WriteSkillActionTableCSV(skillActionTableData);
-                if (!skillActionSuccess)
+                // 2. 写入 SkillActionTable（仅 skill 类型）
+                if (actionsByType.ContainsKey("skill"))
                 {
-                    Debug.LogError($"{LOG_PREFIX} Failed to write SkillActionTable");
+                    var skillActions = actionsByType["skill"];
+                    var skillActionTableData = ConvertToSkillActionTableDataList(skillActions);
+                    bool skillSuccess = WriteSkillActionTableCSV(skillActionTableData);
+                    if (!skillSuccess)
+                    {
+                        Debug.LogError($"{LOG_PREFIX} Failed to write SkillActionTable for {skillActions.Count} skill actions");
+                        allSuccess = false;
+                    }
+                    else
+                    {
+                        Debug.Log($"{LOG_PREFIX} Successfully wrote {skillActions.Count} skill actions to SkillActionTable");
+                    }
                 }
 
-                // 3. 转换为 MoveActionTable 数据并写入（仅处理 move 类型）
-                bool moveActionSuccess = true;
+                // 3. 写入 MoveActionTable（仅 move 类型）
                 if (actionsByType.ContainsKey("move"))
                 {
                     var moveActions = actionsByType["move"];
                     var moveActionTableData = ConvertToMoveActionTableDataList(moveActions);
-                    moveActionSuccess = WriteMoveActionTableCSV(moveActionTableData);
-                    if (!moveActionSuccess)
+                    bool moveSuccess = WriteMoveActionTableCSV(moveActionTableData);
+                    if (!moveSuccess)
                     {
                         Debug.LogError($"{LOG_PREFIX} Failed to write MoveActionTable for {moveActions.Count} move actions");
+                        allSuccess = false;
                     }
                     else
                     {
@@ -71,25 +84,24 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     }
                 }
                 
-                bool success = actionSuccess && skillActionSuccess && moveActionSuccess;
-                
-                if (success)
+                if (allSuccess)
                 {
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote {skillActions.Count} skill actions to CSV (Types: {string.Join(", ", actionsByType.Keys)})");
+                    var typesSummary = actionsByType.Select(kv => $"{kv.Key}({kv.Value.Count})");
+                    Debug.Log($"{LOG_PREFIX} Successfully wrote {actions.Count} actions to CSV (Types: {string.Join(", ", typesSummary)})");
                     
                     // 自动打表
                     Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
                 }
                 else
                 {
-                    Debug.LogError($"{LOG_PREFIX} Failed to write skill action data (Action: {actionSuccess}, SkillAction: {skillActionSuccess}, MoveAction: {moveActionSuccess})");
+                    Debug.LogError($"{LOG_PREFIX} Some tables failed to write");
                 }
                 
-                return success;
+                return allSuccess;
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"{LOG_PREFIX} Failed to write skill action data: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError($"{LOG_PREFIX} Failed to write action data: {ex.Message}\n{ex.StackTrace}");
                 return false;
             }
         }
@@ -199,35 +211,23 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 // 1. 读取现有的所有动作
                 var existingActions = ActionTableData.ReadAllActions();
                 
-                // 2. 获取编辑器管理的动作类型（skill, move 等）
-                var editorManagedTypes = editorActionTableData
-                    .Select(a => a.ActionType?.ToLower())
-                    .Where(t => !string.IsNullOrEmpty(t))
-                    .Distinct()
-                    .ToHashSet();
-                
-                // 3. 过滤出非编辑器管理的动作（保留）
-                var nonEditorActions = existingActions
-                    .Where(a => !editorManagedTypes.Contains(a.ActionType?.ToLower()))
-                    .ToList();
-                
-                // 4. 获取编辑器动作的 ActionId 集合（用于去重）
+                // 2. 获取编辑器动作的 ActionId 集合（用于去重）
                 var editorActionIds = new HashSet<int>(editorActionTableData.Select(a => a.ActionId));
                 
-                // 5. 移除可能重复的 ActionId（避免冲突）
-                nonEditorActions = nonEditorActions
+                // 3. 过滤出非编辑器管理的动作（保留那些不在编辑器中的 ActionId）
+                var nonEditorActions = existingActions
                     .Where(a => !editorActionIds.Contains(a.ActionId))
                     .ToList();
                 
-                // 6. 合并：非编辑器动作 + 编辑器动作
+                // 4. 合并：非编辑器动作 + 编辑器动作
                 var mergedActions = new List<ActionTableData>();
                 mergedActions.AddRange(nonEditorActions);
                 mergedActions.AddRange(editorActionTableData);
                 
-                // 7. 按 ActionId 排序
+                // 5. 按 ActionId 排序
                 mergedActions = mergedActions.OrderBy(a => a.ActionId).ToList();
                 
-                // 8. 写入合并后的完整列表
+                // 6. 写入合并后的完整列表
                 bool success = LubanCSVWriter.WriteTable(config, mergedActions, enableBackup: true);
                 
                 if (success)
@@ -236,7 +236,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                         .GroupBy(a => a.ActionType?.ToLower() ?? "unknown")
                         .Select(g => $"{g.Key}({g.Count()})")
                         .ToList();
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote ActionTable: {nonEditorActions.Count} non-editor actions + {editorActionTableData.Count} editor actions [{string.Join(", ", typesSummary)}] = {mergedActions.Count} total");
+                    Debug.Log($"{LOG_PREFIX} Successfully wrote ActionTable: {nonEditorActions.Count} external actions + {editorActionTableData.Count} editor actions [{string.Join(", ", typesSummary)}] = {mergedActions.Count} total");
                 }
                 else
                 {
@@ -253,19 +253,39 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 写入 SkillActionTable CSV
+        /// 写入 SkillActionTable CSV（仅更新 skill 类型动作，保留其他类型）
         /// </summary>
-        private static bool WriteSkillActionTableCSV(List<SkillActionTableData> tableData)
+        private static bool WriteSkillActionTableCSV(List<SkillActionTableData> skillTableData)
         {
             var config = SkillActionTableData.GetTableConfig();
             
             try
             {
-                bool success = LubanCSVWriter.WriteTable(config, tableData, enableBackup: true);
+                // 1. 读取现有数据
+                var existing = LubanCSVReader.ReadTable<SkillActionTableData>(config);
+                var cache = new Dictionary<int, SkillActionTableData>();
+                
+                foreach (var entry in existing)
+                {
+                    if (!cache.ContainsKey(entry.ActionId))
+                    {
+                        cache[entry.ActionId] = entry;
+                    }
+                }
+                
+                // 2. 更新 skill 类型动作
+                foreach (var entry in skillTableData)
+                {
+                    cache[entry.ActionId] = entry;
+                }
+                
+                // 3. 排序并写入
+                var merged = cache.Values.OrderBy(data => data.ActionId).ToList();
+                bool success = LubanCSVWriter.WriteTable(config, merged, enableBackup: true);
                 
                 if (success)
                 {
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote SkillActionTable to {config.FilePath}");
+                    Debug.Log($"{LOG_PREFIX} Successfully wrote SkillActionTable with {merged.Count} records");
                 }
                 else
                 {
@@ -318,7 +338,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
             return new MoveActionTableData
             {
                 ActionId = editorData.ActionId,
-                MoveSpeed = moveSpeed
+                MoveSpeed = moveSpeed,
+                RootMotionData = editorData.RootMotionDataArray ?? new List<int>()
             };
         }
 

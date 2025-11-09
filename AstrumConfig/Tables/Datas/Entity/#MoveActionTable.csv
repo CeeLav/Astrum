@@ -1,6 +1,6 @@
-##var,actionId,moveSpeed
-##type,int,int
-##group,,
-##desc,动作ID,基础移动速度(×1000)
+##var,actionId,moveSpeed,rootMotionData
+##type,int,int,"(array#sep=|),int"
+##group,,,
+##desc,动作ID,基础移动速度(×1000),根节点位移数据
 ,1002,3500
 

@@ -15,6 +15,9 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(1, "moveSpeed")]
         public int MoveSpeed { get; set; }
 
+        [TableField(2, "rootMotionData")]
+        public List<int> RootMotionData { get; set; } = new List<int>();
+
         public static LubanTableConfig GetTableConfig()
         {
             return new LubanTableConfig
@@ -26,19 +29,19 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 {
                     VarNames = new List<string>
                     {
-                        "actionId", "moveSpeed"
+                        "actionId", "moveSpeed", "rootMotionData"
                     },
                     Types = new List<string>
                     {
-                        "int", "int"
+                        "int", "int", "(array#sep=|),int"
                     },
                     Groups = new List<string>
                     {
-                        "", ""
+                        "", "", ""
                     },
                     Descriptions = new List<string>
                     {
-                        "动作ID", "基础移动速度(×1000)"
+                        "动作ID", "基础移动速度(×1000)", "根节点位移数据"
                     }
                 }
             };
