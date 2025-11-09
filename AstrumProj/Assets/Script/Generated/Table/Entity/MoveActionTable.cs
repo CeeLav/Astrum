@@ -18,6 +18,7 @@ public sealed partial class MoveActionTable : Luban.BeanBase
     {
         ActionId = _buf.ReadInt();
         MoveSpeed = _buf.ReadInt();
+        {int __n0 = _buf.ReadSize(); RootMotionData = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); RootMotionData[__index0] = __e0;}}
     }
 
     public static MoveActionTable DeserializeMoveActionTable(ByteBuf _buf)
@@ -33,6 +34,10 @@ public sealed partial class MoveActionTable : Luban.BeanBase
     /// 基础移动速度(&#215;1000)
     /// </summary>
     public readonly int MoveSpeed;
+    /// <summary>
+    /// 根节点位移数据
+    /// </summary>
+    public readonly int[] RootMotionData;
    
     public const int __ID__ = 1734790812;
     public override int GetTypeId() => __ID__;
@@ -46,6 +51,7 @@ public sealed partial class MoveActionTable : Luban.BeanBase
         return "{ "
         + "actionId:" + ActionId + ","
         + "moveSpeed:" + MoveSpeed + ","
+        + "rootMotionData:" + Luban.StringUtil.CollectionToString(RootMotionData) + ","
         + "}";
     }
 }

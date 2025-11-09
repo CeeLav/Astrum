@@ -19,7 +19,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
         private const string LOG_PREFIX = "[ActionDataWriter]";
         
         /// <summary>
-        /// 写入所有动作数据
+        /// 写入所有动作数据（使用新的 Dispatcher 架构）
         /// </summary>
         public static bool WriteActionData(List<ActionEditorData> actions)
         {
@@ -31,19 +31,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
             
             try
             {
-                // 转换为表数据
-                var tableDataList = ConvertToTableDataList(actions);
-                
-                // 写入 CSV
-                bool success = WriteActionTableCSV(tableDataList);
-                
-                if (success)
-                {
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote {actions.Count} actions to CSV");
-                    
-                    // 自动打表
-                    Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
-                }
+                // 使用新的 ActionDataDispatcher 保存所有数据
+                bool success = ActionDataDispatcher.SaveAll(actions);
                 
                 return success;
             }

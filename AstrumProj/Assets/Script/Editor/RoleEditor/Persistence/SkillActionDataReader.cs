@@ -20,58 +20,25 @@ namespace Astrum.Editor.RoleEditor.Persistence
         private const string LOG_PREFIX = "[SkillActionDataReader]";
         
         /// <summary>
-        /// 读取所有技能动作数据（包括 skill、move 等编辑器管理的动作类型）
+        /// 读取所有技能动作数据（使用新的 Assembler 架构）
         /// </summary>
         public static List<SkillActionEditorData> ReadSkillActionData()
         {
-            var editorDataList = new List<SkillActionEditorData>();
-            
             try
             {
-                // 1. 读取 ActionTable（基础动作数据）
-                var actionDataDict = ReadActionTableAsDictionary();
+                // 使用新的 ActionDataAssembler 读取所有动作
+                var actions = ActionDataAssembler.AssembleAll();
                 
-                // 2. 读取 SkillActionTable（技能专属数据）
-                var skillActionTableDict = ReadSkillActionTableAsDictionary();
+                // 转换为 SkillActionEditorData（向后兼容）
+                var skillActions = ActionEditorDataAdapter.ToSkillActionEditorDataList(actions);
                 
-                // 3. 读取 MoveActionTable（移动动作专属数据）
-                var moveActionTableDict = ReadMoveActionTableAsDictionary();
-                
-                // 4. 加载 ActionTable 中的所有动作（编辑器管理所有类型）
-                var editorManagedActions = actionDataDict.Values.ToList();
-                
-                if (editorManagedActions.Count == 0)
-                {
-                    Debug.LogWarning($"{LOG_PREFIX} No actions found in ActionTable");
-                    return editorDataList;
-                }
-                
-                // 6. 为每个编辑器管理的动作创建编辑器数据
-                foreach (var actionData in editorManagedActions)
-                {
-                    // 查找对应的 SkillActionTable 数据（如果存在）
-                    skillActionTableDict.TryGetValue(actionData.ActionId, out var skillActionData);
-                    
-                    var editorData = ConvertToEditorData(actionData, skillActionData, moveActionTableDict);
-                    if (editorData != null)
-                    {
-                        editorDataList.Add(editorData);
-                    }
-                }
-                
-                // 统计各类型动作数量
-                var typeCounts = editorDataList
-                    .GroupBy(a => a.ActionType?.ToLower() ?? "unknown")
-                    .Select(g => $"{g.Key}({g.Count()})")
-                    .ToList();
-                Debug.Log($"{LOG_PREFIX} Successfully loaded {editorDataList.Count} actions [{string.Join(", ", typeCounts)}]");
+                return skillActions;
             }
             catch (System.Exception ex)
             {
                 Debug.LogError($"{LOG_PREFIX} Failed to read skill action data: {ex.Message}\n{ex.StackTrace}");
+                return new List<SkillActionEditorData>();
             }
-            
-            return editorDataList;
         }
         
         /// <summary>

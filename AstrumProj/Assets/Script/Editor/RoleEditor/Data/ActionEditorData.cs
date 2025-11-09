@@ -95,6 +95,20 @@ namespace Astrum.Editor.RoleEditor.Data
         [HideInInspector]
         public List<TimelineEvent> TimelineEvents = new List<TimelineEvent>();
         
+        // === 扩展数据（组合模式） ===
+        
+        /// <summary>
+        /// 技能扩展数据（仅当 ActionType == "skill" 时非空）
+        /// </summary>
+        [HideInInspector]
+        public SkillActionExtension SkillExtension;
+        
+        /// <summary>
+        /// 移动扩展数据（仅当 ActionType == "move" 时非空）
+        /// </summary>
+        [HideInInspector]
+        public MoveActionExtension MoveExtension;
+        
         // === 编辑器状态 ===
         
         [HideInInspector]
@@ -102,6 +116,34 @@ namespace Astrum.Editor.RoleEditor.Data
         
         [HideInInspector]
         public bool IsNew = false;
+        
+        // === 辅助属性 ===
+        
+        /// <summary>
+        /// 是否为技能类型动作
+        /// </summary>
+        public bool IsSkill => string.Equals(ActionType, "skill", StringComparison.OrdinalIgnoreCase);
+        
+        /// <summary>
+        /// 是否为移动类型动作
+        /// </summary>
+        public bool IsMove => string.Equals(ActionType, "move", StringComparison.OrdinalIgnoreCase);
+        
+        /// <summary>
+        /// 确保扩展数据存在（根据 ActionType 自动创建）
+        /// </summary>
+        public void EnsureExtensions()
+        {
+            if (IsSkill && SkillExtension == null)
+            {
+                SkillExtension = SkillActionExtension.CreateDefault();
+            }
+            
+            if (IsMove && MoveExtension == null)
+            {
+                MoveExtension = MoveActionExtension.CreateDefault();
+            }
+        }
         
         // === 核心方法 ===
         
@@ -160,6 +202,10 @@ namespace Astrum.Editor.RoleEditor.Data
             {
                 clone.TimelineEvents.Add(evt.Clone());
             }
+            
+            // 克隆扩展数据
+            clone.SkillExtension = this.SkillExtension?.Clone();
+            clone.MoveExtension = this.MoveExtension?.Clone();
             
             clone.IsNew = true;
             clone.IsDirty = true;

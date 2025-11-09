@@ -29,75 +29,13 @@ namespace Astrum.Editor.RoleEditor.Persistence
             
             try
             {
-                // 在写入前强制同步时间轴事件到触发帧
-                foreach (var action in actions)
-                {
-                    action.SyncFromTimelineEvents(action.TimelineEvents);
-                }
+                // 转换为 ActionEditorData（新架构）
+                var actionDataList = ActionEditorDataAdapter.ToActionEditorDataList(actions);
                 
-                // 按动作类型分类
-                var actionsByType = actions.GroupBy(a => a.ActionType?.ToLower() ?? "unknown")
-                    .ToDictionary(g => g.Key, g => g.ToList());
+                // 使用新的 ActionDataDispatcher 保存所有数据
+                bool success = ActionDataDispatcher.SaveAll(actionDataList);
                 
-                bool allSuccess = true;
-                
-                // 1. 写入 ActionTable（所有动作的基础数据）
-                var actionTableData = ConvertToActionTableDataList(actions);
-                bool actionSuccess = WriteActionTableCSV(actionTableData);
-                if (!actionSuccess)
-                {
-                    Debug.LogError($"{LOG_PREFIX} Failed to write ActionTable");
-                    allSuccess = false;
-                }
-                
-                // 2. 写入 SkillActionTable（仅 skill 类型）
-                if (actionsByType.ContainsKey("skill"))
-                {
-                    var skillActions = actionsByType["skill"];
-                    var skillActionTableData = ConvertToSkillActionTableDataList(skillActions);
-                    bool skillSuccess = WriteSkillActionTableCSV(skillActionTableData);
-                    if (!skillSuccess)
-                    {
-                        Debug.LogError($"{LOG_PREFIX} Failed to write SkillActionTable for {skillActions.Count} skill actions");
-                        allSuccess = false;
-                    }
-                    else
-                    {
-                        Debug.Log($"{LOG_PREFIX} Successfully wrote {skillActions.Count} skill actions to SkillActionTable");
-                    }
-                }
-
-                // 3. 写入 MoveActionTable（仅 move 类型）
-                if (actionsByType.ContainsKey("move"))
-                {
-                    var moveActions = actionsByType["move"];
-                    var moveActionTableData = ConvertToMoveActionTableDataList(moveActions);
-                    bool moveSuccess = WriteMoveActionTableCSV(moveActionTableData);
-                    if (!moveSuccess)
-                    {
-                        Debug.LogError($"{LOG_PREFIX} Failed to write MoveActionTable for {moveActions.Count} move actions");
-                        allSuccess = false;
-                    }
-                    else
-                    {
-                        Debug.Log($"{LOG_PREFIX} Successfully wrote {moveActions.Count} move actions to MoveActionTable");
-                    }
-                }
-                
-                if (allSuccess)
-                {
-                    var typesSummary = actionsByType.Select(kv => $"{kv.Key}({kv.Value.Count})");
-                    Debug.Log($"{LOG_PREFIX} Successfully wrote {actions.Count} actions to CSV (Types: {string.Join(", ", typesSummary)})");
-                    
-                    // 自动打表
-                    Core.LubanTableGenerator.GenerateClientTables(showDialog: false);
-                }
-                else
-                {
-                    Debug.LogError($"{LOG_PREFIX} Some tables failed to write");
-                }
-                
-                return allSuccess;
+                return success;
             }
             catch (System.Exception ex)
             {
@@ -349,9 +287,11 @@ namespace Astrum.Editor.RoleEditor.Persistence
 
             try
             {
+                // 读取现有数据
                 var existing = MoveActionTableData.ReadAll();
                 var cache = new Dictionary<int, MoveActionTableData>();
 
+                // 缓存现有数据
                 foreach (var entry in existing)
                 {
                     if (!cache.ContainsKey(entry.ActionId))
@@ -360,11 +300,23 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     }
                 }
 
+                // 更新新数据（完全替换，包括 RootMotionData）
                 foreach (var entry in moveActionData)
                 {
+                    // 调试日志
+                    if (entry.RootMotionData != null && entry.RootMotionData.Count > 0)
+                    {
+                        Debug.Log($"{LOG_PREFIX} Writing MoveAction {entry.ActionId} with {entry.RootMotionData.Count} root motion data points");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"{LOG_PREFIX} MoveAction {entry.ActionId} has no root motion data");
+                    }
+                    
                     cache[entry.ActionId] = entry;
                 }
 
+                // 排序并写入
                 var merged = cache.Values.OrderBy(data => data.ActionId).ToList();
                 bool success = LubanCSVWriter.WriteTable(config, merged, enableBackup: true);
 
@@ -381,7 +333,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"{LOG_PREFIX} Failed to write MoveActionTable CSV: {ex.Message}");
+                Debug.LogError($"{LOG_PREFIX} Failed to write MoveActionTable CSV: {ex.Message}\n{ex.StackTrace}");
                 return false;
             }
         }

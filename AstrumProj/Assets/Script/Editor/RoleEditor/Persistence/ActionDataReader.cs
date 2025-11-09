@@ -20,41 +20,22 @@ namespace Astrum.Editor.RoleEditor.Persistence
         private const string LOG_PREFIX = "[ActionDataReader]";
         
         /// <summary>
-        /// 读取所有动作数据
+        /// 读取所有动作数据（使用新的 Assembler 架构）
         /// </summary>
         public static List<ActionEditorData> ReadActionData()
         {
-            var editorDataList = new List<ActionEditorData>();
-            
             try
             {
-                // 读取 ActionTable CSV
-                var tableDataList = ReadActionTableCSV();
+                // 使用新的 ActionDataAssembler 读取所有动作
+                var actions = ActionDataAssembler.AssembleAll();
                 
-                if (tableDataList == null || tableDataList.Count == 0)
-                {
-                    Debug.LogWarning($"{LOG_PREFIX} No action data found in ActionTable");
-                    return editorDataList;
-                }
-                
-                // 转换为编辑器数据
-                foreach (var tableData in tableDataList)
-                {
-                    var editorData = ConvertToEditorData(tableData);
-                    if (editorData != null)
-                    {
-                        editorDataList.Add(editorData);
-                    }
-                }
-                
-                Debug.Log($"{LOG_PREFIX} Successfully loaded {editorDataList.Count} actions");
+                return actions;
             }
             catch (System.Exception ex)
             {
                 Debug.LogError($"{LOG_PREFIX} Failed to read action data: {ex.Message}\n{ex.StackTrace}");
+                return new List<ActionEditorData>();
             }
-            
-            return editorDataList;
         }
         
         /// <summary>
