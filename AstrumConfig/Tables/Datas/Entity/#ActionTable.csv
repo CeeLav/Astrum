@@ -34,7 +34,7 @@
     ""BlendInFrames"": 0,
     ""Priority"": 0
   }
-]","[{""tags"":[""move"",""skill""],""rangeFrames"":[20,36],""blendOutFrames"":3,""priority"":0}]"
+]",
 ,5000,attack_A_01_Combo_1,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_Combo_1.anim,1001,False,False,attack,29,"[
   {
     ""Tag"": ""attack_A_Combo_1"",
