@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Astrum.LogicCore.Inventory;
 using MemoryPack;
 
 namespace Astrum.Client.Data
@@ -14,6 +15,12 @@ namespace Astrum.Client.Data
         
         /// <summary>当前经验值</summary>
         public int Exp { get; set; } = 0;
+        
+        /// <summary>升级所需经验</summary>
+        public int ExpToNextLevel { get; set; } = 1000;
+        
+        /// <summary>最大等级</summary>
+        public int MaxLevel { get; set; } = 100;
         
         /// <summary>角色ID</summary>
         public int RoleId { get; set; } = 1001;
@@ -39,7 +46,13 @@ namespace Astrum.Client.Data
         /// <summary>其他资源（可扩展）</summary>
         public Dictionary<string, int> Resources { get; set; } = new();
         
-        // 注意：ExpToNextLevel 不需要保存，由配置表计算得出
+        /// <summary>货币余额</summary>
+        public Dictionary<CurrencyType, long> Currencies { get; set; } = new();
+        
+        /// <summary>背包物品列表</summary>
+        public List<ItemStack> Inventory { get; set; } = new();
+        
+        // 注意：战斗中临时数据（生命、护盾等）不需要保存
     }
 }
 

@@ -244,6 +244,17 @@ namespace Astrum.Client.Managers.GameModes
             // 设置相机跟随主玩家（如果 EntityView 已创建）
             SetCameraFollowMainPlayer();
             
+            // 应用存档数据到实体
+            var playerEntity = MainRoom?.MainWorld?.GetEntity(PlayerId);
+            if (playerEntity != null)
+            {
+                PlayerDataManager.Instance?.ApplyProgressToEntity(playerEntity);
+            }
+            else
+            {
+                ASLogger.Instance.Warning("SinglePlayerGameMode: Player实体未找到，无法应用存档数据");
+            }
+            
             ASLogger.Instance.Info($"SinglePlayerGameMode: Player创建完成，ID: {PlayerId}");
         }
         
@@ -487,7 +498,16 @@ namespace Astrum.Client.Managers.GameModes
                 var playerDataManager = PlayerDataManager.Instance;
                 if (playerDataManager != null)
                 {
-                    playerDataManager.SaveProgressData();
+                    var entity = MainRoom?.MainWorld?.GetEntity(PlayerId);
+                    if (entity == null)
+                    {
+                        ASLogger.Instance.Warning("SinglePlayerGameMode: 未找到玩家实体，存档将使用已有缓存数据");
+                        playerDataManager.SaveProgressData();
+                    }
+                    else
+                    {
+                        playerDataManager.SaveProgressData(entity);
+                    }
                     ASLogger.Instance.Info("SinglePlayerGameMode: 玩家数据已保存");
                 }
                 else
