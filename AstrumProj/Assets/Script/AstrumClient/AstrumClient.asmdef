@@ -8,7 +8,8 @@
         "AstrumLogic",
         "Generated",
         "YooAsset",
-        "Luban.Runtime"
+        "Luban.Runtime",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

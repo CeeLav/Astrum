@@ -7,6 +7,8 @@ using System;
 using Astrum.Client.Managers;
 using Astrum.Client.UI.Core;
 using Astrum.CommonBase;
+using Astrum.Client.Data;
+using TMPro;
 
 namespace Astrum.Client.UI.Generated
 {
@@ -17,6 +19,8 @@ namespace Astrum.Client.UI.Generated
     public partial class BagView
     {
         private string currentTab = "All"; // 当前选中的标签页
+        private TMP_Text levelValueText;
+        private Text legacyLevelValueText;
         
         #region Virtual Methods
 
@@ -46,6 +50,13 @@ namespace Astrum.Client.UI.Generated
                 shieldTabButton.onClick.AddListener(() => OnTabClicked("Shield"));
             if (bookTabButton != null)
                 bookTabButton.onClick.AddListener(() => OnTabClicked("Book"));
+            
+            // 尝试获取等级文本引用
+            if (levelSlider != null)
+            {
+                levelValueText = levelSlider.GetComponentInChildren<TMP_Text>(true);
+                legacyLevelValueText = levelSlider.GetComponentInChildren<Text>(true);
+            }
             
             // 初始化角色属性显示
             RefreshCharacterStats();
@@ -96,7 +107,52 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         private void RefreshCharacterStats()
         {
-            // 使用假数据
+            var progress = PlayerDataManager.Instance?.ProgressData;
+            if (progress != null)
+            {
+                if (levelSlider != null)
+                {
+                    levelSlider.minValue = 0f;
+                    levelSlider.maxValue = 1f;
+                    float xpRatio = 0f;
+                    if (progress.ExpToNextLevel > 0)
+                    {
+                        xpRatio = Mathf.Clamp01((float)progress.Exp / progress.ExpToNextLevel);
+                    }
+                    levelSlider.value = xpRatio;
+                }
+
+                string levelText = $"Lv. {progress.Level}";
+                if (levelValueText != null)
+                {
+                    levelValueText.text = levelText;
+                }
+                else if (legacyLevelValueText != null)
+                {
+                    legacyLevelValueText.text = levelText;
+                }
+            }
+            else
+            {
+                // 无数据时回退默认显示
+                if (levelSlider != null)
+                {
+                    levelSlider.minValue = 0f;
+                    levelSlider.maxValue = 1f;
+                    levelSlider.value = 0f;
+                }
+
+                if (levelValueText != null)
+                {
+                    levelValueText.text = "Lv. 1";
+                }
+                else if (legacyLevelValueText != null)
+                {
+                    legacyLevelValueText.text = "Lv. 1";
+                }
+            }
+
+            // TODO: 后续将心率、速度等属性替换为真实数值
             if (sliderHeartSlider != null)
                 sliderHeartSlider.value = 0.8f;
             if (sliderSpeedSlider != null)

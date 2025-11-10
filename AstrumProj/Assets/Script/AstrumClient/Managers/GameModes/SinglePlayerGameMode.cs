@@ -546,6 +546,32 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         #endregion
+
+        #region  GMFunction
+
+        public void GM_UpgradeLevel(int exp, int UID)
+        {
+            var Entity = MainRoom?.MainWorld?.GetEntity(UID);
+            if (Entity != null)
+            {
+                var LevelComp = Entity.GetComponent<LevelComponent>();
+                if (LevelComp != null)
+                {
+                    LevelComp.GainExp(exp,Entity);
+                    ASLogger.Instance.Info($"SinglePlayerGameMode: GM升级实体 {UID} 到等级 {LevelComp.CurrentLevel} 还差 {LevelComp.ExpToNextLevel - LevelComp.CurrentExp} 经验");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"SinglePlayerGameMode: 实体 {UID} 不存在 LevelComponent，无法升级");
+                }
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"SinglePlayerGameMode: <UNK> {UID} <UNK>");
+            }
+        }
+
+        #endregion
     }
 }
 
