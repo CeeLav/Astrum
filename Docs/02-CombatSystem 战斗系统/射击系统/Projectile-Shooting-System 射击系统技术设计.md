@@ -111,7 +111,6 @@
 Projectile实体结构
 Entity (Projectile)
 ├── PositionComponent（位置）
-├── VelocityComponent（速度）
 ├── ProjectileComponent（弹道数据）
 │   ├── SkillEffectId（触发的效果ID）
 │   ├── CasterId（施法者ID）
@@ -146,10 +145,10 @@ Entity (Projectile)
 │   ├── ProjectileCapability（弹道能力）
 │   └── TrajectorySystem（轨迹系统）
 │
-├── ProjectileFactory（弹道工厂）
-│   ├── 创建Projectile实体
-│   ├── 配置轨迹参数
-│   └── 注册到World
+├── EntityFactory（统一实体工厂）
+│   ├── 根据Archetype创建Projectile实体
+│   ├── 注入ProjectileSpawnContext
+│   └── 统一注册到World/EntityManager
 │
 └── 触发与碰撞（复用现有系统）
     ├── SkillExecutorCapability（触发帧处理）
@@ -163,7 +162,7 @@ Entity (Projectile)
 1. 玩家输入 → ActionCapability 切换到PrecastAction
 2. PrecastAction完成 → 自动切换到CastAction
 3. CastAction触发帧 → SkillExecutorCapability处理
-4. SkillExecutorCapability → ProjectileFactory.Create()
+4. SkillExecutorCapability → EntityFactory.CreateByArchetype()
 5. Projectile Entity → ProjectileCapability.Tick()
 6. 每帧更新位置 → 碰撞检测（HitManager或内置检测）
 7. 碰撞命中 → 触发SkillEffect → 销毁Projectile
@@ -202,6 +201,12 @@ public partial class ProjectileComponent : BaseComponent
     /// <summary>轨迹参数（JSON）</summary>
     public string TrajectoryData { get; set; } = string.Empty;
     
+    /// <summary>发射方向（运行时写入）</summary>
+    public TSVector LaunchDirection { get; set; } = TSVector.forward;
+    
+    /// <summary>当前速度（帧更新使用）</summary>
+    public TSVector CurrentVelocity { get; set; } = TSVector.zero;
+    
     /// <summary>碰撞检测模式</summary>
     public ProjectileCollisionMode CollisionMode { get; set; } = ProjectileCollisionMode.Continuous;
     
@@ -237,423 +242,118 @@ public enum ProjectileCollisionMode
     Discrete = 1,    // 离散检测（固定间隔）
     OnlyTarget = 2   // 仅检测目标层
 }
-```
 
-### 4.2 ProjectileCapability（弹道能力）
-
-**职责**：更新弹道运动、碰撞检测、效果触发
-
-```csharp
 /// <summary>
-/// 弹道能力 - 管理弹道实体的运动和碰撞
+/// 直线轨迹参数
 /// </summary>
-public class ProjectileCapability : Capability<ProjectileCapability>
+[MemoryPackable]
+public partial class LinearTrajectoryData
 {
-    public override int Priority => 250; // 高优先级
-    
-    public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
-    private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
-    { 
-        CapabilityTag.Physics, 
-        CapabilityTag.Combat 
-    };
-    
-    public override void OnAttached(Entity entity)
-    {
-        base.OnAttached(entity);
-        
-        // 初始化轨迹系统
-        var projectileComponent = GetComponent<ProjectileComponent>(entity);
-        if (projectileComponent != null)
-        {
-            InitializeTrajectory(entity, projectileComponent);
-        }
-    }
-    
-    public override bool ShouldActivate(Entity entity)
-    {
-        return base.ShouldActivate(entity) &&
-               HasComponent<ProjectileComponent>(entity) &&
-               HasComponent<PositionComponent>(entity);
-    }
-    
-    public override void Tick(Entity entity)
-    {
-        var projectileComponent = GetComponent<ProjectileComponent>(entity);
-        if (projectileComponent == null) return;
-        
-        // 1. 更新生命周期
-        projectileComponent.ElapsedFrames++;
-        if (projectileComponent.ElapsedFrames >= projectileComponent.LifeTime)
-        {
-            DestroyProjectile(entity, "Lifetime expired");
-            return;
-        }
-        
-        // 2. 更新运动轨迹
-        UpdateTrajectory(entity, projectileComponent);
-        
-        // 3. 碰撞检测
-        CheckCollision(entity, projectileComponent);
-    }
-    
-    /// <summary>
-    /// 初始化轨迹系统
-    /// </summary>
-    private void InitializeTrajectory(Entity entity, ProjectileComponent component)
-    {
-        // 根据轨迹类型初始化参数
-        // 例如：解析TrajectoryData，设置初始速度等
-    }
-    
-    /// <summary>
-    /// 更新运动轨迹
-    /// </summary>
-    private void UpdateTrajectory(Entity entity, ProjectileComponent component)
-    {
-        var positionComponent = GetComponent<PositionComponent>(entity);
-        if (positionComponent == null) return;
-        
-        switch (component.TrajectoryType)
-        {
-            case TrajectoryType.Linear:
-                UpdateLinearTrajectory(entity, component, positionComponent);
-                break;
-                
-            case TrajectoryType.Parabola:
-                UpdateParabolicTrajectory(entity, component, positionComponent);
-                break;
-                
-            case TrajectoryType.Homing:
-                UpdateHomingTrajectory(entity, component, positionComponent);
-                break;
-                
-            // ... 其他轨迹类型
-        }
-    }
-    
-    /// <summary>
-    /// 直线轨迹更新
-    /// </summary>
-    private void UpdateLinearTrajectory(Entity entity, ProjectileComponent component, PositionComponent position)
-    {
-        var velocityComponent = GetComponent<VelocityComponent>(entity);
-        if (velocityComponent == null) return;
-        
-        // 更新位置
-        position.Position += velocityComponent.Velocity;
-    }
-    
-    /// <summary>
-    /// 抛物线轨迹更新
-    /// </summary>
-    private void UpdateParabolicTrajectory(Entity entity, ProjectileComponent component, PositionComponent position)
-    {
-        var velocityComponent = GetComponent<VelocityComponent>(entity);
-        if (velocityComponent == null) return;
-        
-        // 解析轨迹参数
-        var trajectoryParams = ParseTrajectoryData<ParabolicTrajectoryData>(component.TrajectoryData);
-        
-        // 应用重力
-        velocityComponent.Velocity += trajectoryParams.Gravity;
-        
-        // 更新位置
-        position.Position += velocityComponent.Velocity;
-    }
-    
-    /// <summary>
-    /// 追踪轨迹更新
-    /// </summary>
-    private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component, PositionComponent position)
-    {
-        var velocityComponent = GetComponent<VelocityComponent>(entity);
-        if (velocityComponent == null) return;
-        
-        // 解析轨迹参数
-        var trajectoryParams = ParseTrajectoryData<HomingTrajectoryData>(component.TrajectoryData);
-        
-        // 查找目标
-        var targetEntity = entity.World.GetEntityById(trajectoryParams.TargetEntityId);
-        if (targetEntity != null && !targetEntity.IsDestroyed)
-        {
-            var targetPosition = targetEntity.GetComponent<PositionComponent>();
-            if (targetPosition != null)
-            {
-                // 计算朝向目标的方向
-                var direction = (targetPosition.Position - position.Position).normalized;
-                
-                // 插值转向（避免瞬间转向）
-                var currentDirection = velocityComponent.Velocity.normalized;
-                var newDirection = TSVector.Lerp(currentDirection, direction, trajectoryParams.TurnRate);
-                
-                // 更新速度
-                velocityComponent.Velocity = newDirection * velocityComponent.Velocity.magnitude;
-            }
-        }
-        
-        // 更新位置
-        position.Position += velocityComponent.Velocity;
-    }
-    
-    /// <summary>
-    /// 碰撞检测
-    /// </summary>
-    private void CheckCollision(Entity entity, ProjectileComponent component)
-    {
-        // 根据碰撞模式执行检测
-        switch (component.CollisionMode)
-        {
-            case ProjectileCollisionMode.Continuous:
-                CheckContinuousCollision(entity, component);
-                break;
-                
-            case ProjectileCollisionMode.Discrete:
-                if (component.ElapsedFrames % 3 == 0) // 每3帧检测一次
-                    CheckContinuousCollision(entity, component);
-                break;
-                
-            case ProjectileCollisionMode.OnlyTarget:
-                CheckTargetCollision(entity, component);
-                break;
-        }
-    }
-    
-    /// <summary>
-    /// 连续碰撞检测
-    /// </summary>
-    private void CheckContinuousCollision(Entity entity, ProjectileComponent component)
-    {
-        var collisionComponent = GetComponent<CollisionComponent>(entity);
-        if (collisionComponent == null) return;
-        
-        // 使用HitManager进行碰撞检测
-        var hitManager = entity.World.HitManager;
-        if (hitManager == null) return;
-        
-        var hits = hitManager.QueryHits(
-            entity,
-            collisionComponent.CollisionShape,
-            filter: CreateCollisionFilter(entity, component),
-            skillInstanceId: 0 // Projectile不需要去重
-        );
-        
-        // 处理命中
-        foreach (var hitEntity in hits)
-        {
-            OnHit(entity, component, hitEntity);
-        }
-    }
-    
-    /// <summary>
-    /// 创建碰撞过滤器
-    /// </summary>
-    private CollisionFilter CreateCollisionFilter(Entity entity, ProjectileComponent component)
-    {
-        // 过滤掉施法者和已命中的实体
-        return new CollisionFilter
-        {
-            ExcludeEntityIds = new List<long> { component.CasterId }
-                .Concat(component.HitEntities)
-                .ToList()
-        };
-    }
-    
-    /// <summary>
-    /// 命中处理
-    /// </summary>
-    private void OnHit(Entity projectile, ProjectileComponent component, Entity target)
-    {
-        // 记录已命中
-        component.HitEntities.Add(target.UniqueId);
-        
-        // 触发技能效果
-        TriggerSkillEffect(projectile, component, target);
-        
-        // 穿透判断
-        component.PiercedCount++;
-        if (component.PiercedCount > component.PierceCount)
-        {
-            // 达到穿透上限，销毁弹道
-            DestroyProjectile(projectile, "Pierce limit reached");
-        }
-    }
-    
-    /// <summary>
-    /// 触发技能效果
-    /// </summary>
-    private void TriggerSkillEffect(Entity projectile, ProjectileComponent component, Entity target)
-    {
-        var caster = projectile.World.GetEntityById(component.CasterId);
-        if (caster == null) return;
-        
-        // 调用SkillEffectManager触发效果
-        var effectData = new SkillEffectData
-        {
-            CasterEntity = caster,
-            TargetEntity = target,
-            EffectId = component.SkillEffectId
-        };
-        
-        SkillEffectManager.Instance.QueueSkillEffect(effectData);
-    }
-    
-    /// <summary>
-    /// 销毁弹道
-    /// </summary>
-    private void DestroyProjectile(Entity entity, string reason)
-    {
-        ASLogger.Instance.Debug($"Projectile destroyed: {reason}");
-        entity.Destroy();
-    }
-    
-    /// <summary>
-    /// 解析轨迹数据
-    /// </summary>
-    private T ParseTrajectoryData<T>(string json) where T : new()
-    {
-        if (string.IsNullOrEmpty(json))
-            return new T();
-            
-        try
-        {
-            return System.Text.Json.JsonSerializer.Deserialize<T>(json);
-        }
-        catch
-        {
-            ASLogger.Instance.Error($"Failed to parse trajectory data: {json}");
-            return new T();
-        }
-    }
+    public FP BaseSpeed { get; set; } = FP.FromFloat(0.7f);
+    public TSVector Direction { get; set; } = TSVector.forward;
 }
 
 /// <summary>
 /// 抛物线轨迹参数
 /// </summary>
-public class ParabolicTrajectoryData
+[MemoryPackable]
+public partial class ParabolicTrajectoryData
 {
+    public FP LaunchSpeed { get; set; } = FP.FromFloat(0.9f);
+    public TSVector Direction { get; set; } = TSVector.forward;
     public TSVector Gravity { get; set; } = new TSVector(0, -0.05, 0);
 }
 
 /// <summary>
 /// 追踪轨迹参数
 /// </summary>
-public class HomingTrajectoryData
+[MemoryPackable]
+public partial class HomingTrajectoryData
 {
     public long TargetEntityId { get; set; } = 0;
+    public FP BaseSpeed { get; set; } = FP.FromFloat(0.6f);
     public FP TurnRate { get; set; } = FP.FromFloat(0.1f); // 转向速率
 }
 ```
 
-### 4.3 ProjectileFactory（弹道工厂）
+### 4.3 与实体工厂的集成
 
-**职责**：创建和配置Projectile实体
+**职责**：复用现有实体工厂（`EntityFactory.CreateByArchetype`）创建Projectile实体，保持统一的实体生命周期管理
 
 ```csharp
 /// <summary>
-/// 弹道工厂 - 创建Projectile实体
+/// 弹道生成上下文参数
 /// </summary>
-public static class ProjectileFactory
+public sealed class ProjectileSpawnContext
 {
-    /// <summary>
-    /// 创建弹道实体
-    /// </summary>
-    /// <param name="world">所属World</param>
-    /// <param name="caster">施法者</param>
-    /// <param name="config">弹道配置</param>
-    /// <returns>创建的Projectile实体</returns>
-    public static Entity CreateProjectile(World world, Entity caster, ProjectileConfig config)
-    {
-        // 1. 创建Entity
-        var projectile = new Entity
-        {
-            Name = $"Projectile_{config.SkillEffectId}",
-            World = world
-        };
-        
-        // 2. 添加位置组件
-        var casterPosition = caster.GetComponent<PositionComponent>();
-        var positionComponent = new PositionComponent
-        {
-            Position = casterPosition?.Position ?? TSVector.zero
-        };
-        projectile.AddComponent(positionComponent);
-        
-        // 3. 添加速度组件
-        var velocityComponent = new VelocityComponent
-        {
-            Velocity = CalculateInitialVelocity(caster, config)
-        };
-        projectile.AddComponent(velocityComponent);
-        
-        // 4. 添加弹道组件
-        var projectileComponent = new ProjectileComponent
-        {
-            SkillEffectId = config.SkillEffectId,
-            CasterId = caster.UniqueId,
-            LifeTime = config.LifeTime,
-            TrajectoryType = config.TrajectoryType,
-            TrajectoryData = config.TrajectoryData,
-            CollisionMode = config.CollisionMode,
-            PierceCount = config.PierceCount
-        };
-        projectile.AddComponent(projectileComponent);
-        
-        // 5. 添加碰撞组件
-        var collisionComponent = new CollisionComponent
-        {
-            CollisionShape = config.CollisionShape,
-            IsTrigger = true // Projectile使用触发器模式
-        };
-        projectile.AddComponent(collisionComponent);
-        
-        // 6. 挂载Projectile Capability
-        projectile.AttachSubArchetype("ProjectileArchetype", out _);
-        
-        // 7. 注册到World
-        world.AddEntity(projectile);
-        
-        return projectile;
-    }
-    
-    /// <summary>
-    /// 计算初始速度
-    /// </summary>
-    private static TSVector CalculateInitialVelocity(Entity caster, ProjectileConfig config)
-    {
-        // 获取施法者朝向
-        var direction = GetCasterDirection(caster);
-        
-        // 应用速度
-        return direction * config.Speed;
-    }
-    
-    /// <summary>
-    /// 获取施法者朝向
-    /// </summary>
-    private static TSVector GetCasterDirection(Entity caster)
-    {
-        // TODO: 从RotationComponent或FacingComponent获取朝向
-        // 暂时返回默认朝向
-        return TSVector.forward;
-    }
+    public int ProjectileId { get; init; }
+    public int SkillEffectId { get; init; }
+    public long CasterId { get; init; }
+    public TSVector SpawnPosition { get; init; }
+    public TSVector SpawnDirection { get; init; }
+    public string? OverrideTrajectoryData { get; init; } // 可选地覆写表数据
 }
 
 /// <summary>
-/// 弹道配置
+/// SkillExecutorCapability 内生成弹道的流程
 /// </summary>
-public class ProjectileConfig
+private Entity? CreateProjectileEntityViaFactory(Entity caster, ProjectileDefinition config, int skillEffectId, TSVector muzzlePos, TSVector shootDir)
 {
-    public int SkillEffectId { get; set; }
-    public int LifeTime { get; set; } = 300;
-    public FP Speed { get; set; } = FP.FromFloat(0.5f);
-    public TrajectoryType TrajectoryType { get; set; } = TrajectoryType.Linear;
-    public string TrajectoryData { get; set; } = string.Empty;
-    public CollisionShape CollisionShape { get; set; }
-    public ProjectileCollisionMode CollisionMode { get; set; } = ProjectileCollisionMode.Continuous;
-    public int PierceCount { get; set; } = 0;
+    var world = caster.World;
+    if (world?.EntityFactory == null)
+        return null;
+
+    var spawnContext = new ProjectileSpawnContext
+    {
+        ProjectileId = config.ProjectileId,
+        SkillEffectId = skillEffectId,
+        CasterId = caster.UniqueId,
+        SpawnPosition = muzzlePos,
+        SpawnDirection = shootDir,
+        OverrideTrajectoryData = config.TrajectoryData
+    };
+
+    // 通过 Archetype 统一生成，不再传 EntityConfigId
+    var projectile = world.EntityFactory.CreateByArchetype(
+        archetypeName: config.ProjectileArchetype,
+        creationParams: new EntityCreationParams
+        {
+            SpawnPosition = muzzlePos,
+            ExtraData = spawnContext
+        });
+
+    return projectile;
 }
 ```
+
+**设计要点**：
+- Projectile Archetype 中预挂 `ProjectileComponent`、`PositionComponent`、`CollisionComponent` 等必需组件
+- `EntityCreationParams.ExtraData` 传入 `ProjectileSpawnContext`，由 `ProjectileCapability` 或自定义初始器在 `OnAttached` 时读取
+- 实体工厂内部无需 `EntityConfigId`：Projectile 通过专用表驱动，基础单位通过 `EntityConfigComponent`
+- 统一由 `EntityManager` 负责回收/池化，避免重复实现对象池
+
+### 4.4 EntityConfigComponent（基础单位专用）
+
+**背景**：原本 `Entity` 持有 `EntityConfigId` 与 `EntityConfig` 引用，导致所有实体（含Projectile）都需要配置表 ID。为了让弹道实体完全独立于角色配置，新增 `EntityConfigComponent` 并仅挂载在 `BaseUnit` 类实体上。
+
+```csharp
+/// <summary>
+/// 仅用于具备实体配置（cfg.Entity）的基础单位
+/// </summary>
+[MemoryPackable]
+public partial class EntityConfigComponent : BaseComponent
+{
+    public int EntityConfigId { get; set; }
+
+    [MemoryPackIgnore]
+    public EntityBaseTable? EntityConfig =>
+        EntityConfigId == 0 ? null : TableConfig.Instance.Tables.TbEntityBaseTable.Get(EntityConfigId);
+}
+```
+
+- `Entity` 基类去除 `EntityConfigId`/`EntityConfig` 字段，转而通过是否存在 `EntityConfigComponent` 判断是否为角色类实体
+- 弹道、召唤物等没有配置表依赖的实体无需再携带多余字段
+- `EntityFactory.CreateByArchetype` 支持“不带 EntityConfigId” 创建逻辑；当需要配置表时，在 `EntityCreationParams` 中显式传入并由 `EntityConfigComponent` 初始化
 
 ---
 
@@ -840,13 +540,13 @@ private void HandleDirectTrigger(Entity caster, TriggerFrameInfo trigger)
 /// </summary>
 private bool IsProjectileEffect(SkillEffectConfig effectConfig)
 {
-    // 检查EffectParams中是否包含"ProjectileType"字段
-    if (string.IsNullOrEmpty(effectConfig.EffectParams)) return false;
-    
+    if (string.IsNullOrEmpty(effectConfig.EffectParams))
+        return false;
+
     try
     {
         var paramsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(effectConfig.EffectParams);
-        return paramsDict.ContainsKey("ProjectileType");
+        return paramsDict.ContainsKey("ProjectileId");
     }
     catch
     {
@@ -859,61 +559,199 @@ private bool IsProjectileEffect(SkillEffectConfig effectConfig)
 /// </summary>
 private void SpawnProjectile(Entity caster, SkillEffectConfig effectConfig, TriggerFrameInfo trigger)
 {
-    // 解析弹道配置
-    var projectileConfig = ParseProjectileConfig(effectConfig);
-    if (projectileConfig == null)
+    var definition = ResolveProjectileDefinition(effectConfig);
+    if (definition == null)
     {
-        ASLogger.Instance.Error($"Failed to parse projectile config for effect {effectConfig.SkillEffectId}");
+        ASLogger.Instance.Error($"Projectile definition not found for effect {effectConfig.SkillEffectId}");
         return;
     }
-    
-    // 创建弹道实体
-    var projectile = ProjectileFactory.CreateProjectile(caster.World, caster, projectileConfig);
-    
-    ASLogger.Instance.Debug($"Spawned projectile for effect {effectConfig.SkillEffectId}");
+
+    // 计算弹道生成位置/方向（示例：从施法者位置向前）
+    var muzzleTransform = CalculateProjectileSpawnTransform(caster, trigger);
+
+    var projectile = CreateProjectileEntityViaFactory(
+        caster,
+        definition,
+        effectConfig.SkillEffectId,
+        muzzleTransform.Position,
+        muzzleTransform.Direction);
+
+    if (projectile == null)
+    {
+        ASLogger.Instance.Error($"Failed to spawn projectile entity for definition {definition.ProjectileId}");
+        return;
+    }
+
+    InitializeProjectileRuntime(projectile, caster, effectConfig.SkillEffectId, definition, muzzleTransform);
 }
 
 /// <summary>
-/// 解析弹道配置
+/// 根据效果配置解析弹道定义
 /// </summary>
-private ProjectileConfig ParseProjectileConfig(SkillEffectConfig effectConfig)
+private ProjectileDefinition? ResolveProjectileDefinition(SkillEffectConfig effectConfig)
 {
     try
     {
         var paramsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(effectConfig.EffectParams);
-        
-        return new ProjectileConfig
+        if (paramsDict == null || !paramsDict.TryGetValue("ProjectileId", out var projectileIdObj))
+            return null;
+
+        var projectileId = Convert.ToInt32(projectileIdObj);
+        var definition = ProjectileConfigManager.Instance.GetDefinition(projectileId);
+        if (definition == null)
+            return null;
+
+        if (paramsDict.TryGetValue("TrajectoryOverride", out var overrideObj) && overrideObj is System.Text.Json.Nodes.JsonObject jsonOverride)
         {
-            SkillEffectId = effectConfig.SkillEffectId,
-            LifeTime = paramsDict.TryGetValue("LifeTime", out var lifeTime) ? Convert.ToInt32(lifeTime) : 300,
-            Speed = paramsDict.TryGetValue("Speed", out var speed) ? FP.FromFloat(Convert.ToSingle(speed)) : FP.FromFloat(0.5f),
-            TrajectoryType = paramsDict.TryGetValue("TrajectoryType", out var trajType) ? Enum.Parse<TrajectoryType>(trajType.ToString()) : TrajectoryType.Linear,
-            TrajectoryData = paramsDict.TryGetValue("TrajectoryData", out var trajData) ? trajData.ToString() : string.Empty,
-            CollisionShape = ParseCollisionShape(paramsDict),
-            CollisionMode = paramsDict.TryGetValue("CollisionMode", out var collMode) ? Enum.Parse<ProjectileCollisionMode>(collMode.ToString()) : ProjectileCollisionMode.Continuous,
-            PierceCount = paramsDict.TryGetValue("PierceCount", out var pierce) ? Convert.ToInt32(pierce) : 0
-        };
+            var mergedData = MergeTrajectoryOverride(definition.TrajectoryType, definition.TrajectoryData, jsonOverride);
+            definition = definition with { TrajectoryData = mergedData };
+        }
+
+        return definition;
     }
     catch (Exception ex)
     {
-        ASLogger.Instance.Error($"Failed to parse projectile config: {ex.Message}");
+        ASLogger.Instance.Error($"Failed to resolve projectile definition: {ex.Message}");
         return null;
     }
 }
 
 /// <summary>
-/// 解析碰撞形状
+/// 计算弹道生成的空间信息
 /// </summary>
-private CollisionShape ParseCollisionShape(Dictionary<string, object> paramsDict)
+private (TSVector Position, TSVector Direction) CalculateProjectileSpawnTransform(Entity caster, TriggerFrameInfo trigger)
 {
-    if (!paramsDict.TryGetValue("CollisionShape", out var shapeData))
+    var positionComponent = caster.GetComponent<PositionComponent>();
+    var direction = GetCasterDirection(caster);
+    var spawnPos = positionComponent?.Position ?? TSVector.zero;
+
+    // TODO: 支持TriggerFrame中配置的偏移/骨骼挂点
+    return (spawnPos, direction);
+}
+
+/// <summary>
+/// 初始化弹道运行时数据（速度等）
+/// </summary>
+private void InitializeProjectileRuntime(Entity projectile, Entity caster, int effectId, ProjectileDefinition definition, (TSVector Position, TSVector Direction) spawn)
+{
+    var projectileComponent = projectile.GetComponent<ProjectileComponent>();
+    if (projectileComponent != null)
     {
-        // 默认球形碰撞，半径0.5
-        return CollisionShape.CreateSphere(FP.FromFloat(0.5f));
+        projectileComponent.SkillEffectId = effectId;
+        projectileComponent.CasterId = caster.UniqueId;
+        projectileComponent.LifeTime = definition.LifeTime;
+        projectileComponent.TrajectoryType = definition.TrajectoryType;
+        projectileComponent.TrajectoryData = OverrideTrajectoryData(definition, spawn.Direction);
+        projectileComponent.CollisionMode = definition.CollisionMode;
+        projectileComponent.PierceCount = definition.PierceCount;
+        projectileComponent.LaunchDirection = spawn.Direction.normalized;
+        projectileComponent.CurrentVelocity = ComputeInitialVelocity(projectileComponent);
     }
-    
-    // TODO: 根据shapeData解析具体的碰撞形状
-    return CollisionShape.CreateSphere(FP.FromFloat(0.5f));
+
+    var positionComponent = projectile.GetComponent<PositionComponent>();
+    if (positionComponent != null)
+    {
+        positionComponent.Position = spawn.Position;
+    }
+
+    var collisionComponent = projectile.GetComponent<CollisionComponent>();
+    if (collisionComponent != null)
+    {
+        collisionComponent.CollisionShape = definition.CollisionShape;
+        collisionComponent.IsTrigger = true;
+    }
+}
+
+private string OverrideTrajectoryData(ProjectileDefinition definition, TSVector shootDir)
+{
+    var normalizedDir = shootDir.normalized;
+
+    if (!string.IsNullOrEmpty(definition.TrajectoryData))
+    {
+        return ApplyDirectionToTrajectory(definition.TrajectoryType, definition.TrajectoryData, normalizedDir);
+    }
+
+    switch (definition.TrajectoryType)
+    {
+        case TrajectoryType.Linear:
+        {
+            var data = ParseTrajectoryData<LinearTrajectoryData>(definition.TrajectoryData);
+            data.Direction = normalizedDir;
+            return System.Text.Json.JsonSerializer.Serialize(data);
+        }
+        case TrajectoryType.Parabola:
+        {
+            var data = ParseTrajectoryData<ParabolicTrajectoryData>(definition.TrajectoryData);
+            data.Direction = normalizedDir;
+            return System.Text.Json.JsonSerializer.Serialize(data);
+        }
+        case TrajectoryType.Homing:
+        {
+            var data = ParseTrajectoryData<HomingTrajectoryData>(definition.TrajectoryData);
+            return System.Text.Json.JsonSerializer.Serialize(data); // 追踪方向由能力实时计算
+        }
+        default:
+            return definition.TrajectoryData;
+    }
+}
+
+private string ApplyDirectionToTrajectory(TrajectoryType trajectoryType, string baseData, TSVector direction)
+{
+    switch (trajectoryType)
+    {
+        case TrajectoryType.Linear:
+        {
+            var data = ParseTrajectoryData<LinearTrajectoryData>(baseData);
+            data.Direction = direction;
+            return System.Text.Json.JsonSerializer.Serialize(data);
+        }
+        case TrajectoryType.Parabola:
+        {
+            var data = ParseTrajectoryData<ParabolicTrajectoryData>(baseData);
+            data.Direction = direction;
+            return System.Text.Json.JsonSerializer.Serialize(data);
+        }
+        default:
+            return baseData;
+    }
+}
+
+private string MergeTrajectoryOverride(TrajectoryType type, string baseData, System.Text.Json.Nodes.JsonObject overrideObj)
+{
+    var baseNode = string.IsNullOrEmpty(baseData)
+        ? new System.Text.Json.Nodes.JsonObject()
+        : System.Text.Json.JsonNode.Parse(baseData)?.AsObject() ?? new System.Text.Json.Nodes.JsonObject();
+
+    foreach (var kv in overrideObj)
+    {
+        baseNode[kv.Key] = kv.Value?.Clone();
+    }
+
+    return baseNode.ToJsonString();
+}
+
+private TSVector ComputeInitialVelocity(ProjectileComponent projectileComponent)
+{
+    switch (projectileComponent.TrajectoryType)
+    {
+        case TrajectoryType.Linear:
+        {
+            var linear = ParseTrajectoryData<LinearTrajectoryData>(projectileComponent.TrajectoryData);
+            return linear.Direction.normalized * linear.BaseSpeed;
+        }
+        case TrajectoryType.Parabola:
+        {
+            var parabolic = ParseTrajectoryData<ParabolicTrajectoryData>(projectileComponent.TrajectoryData);
+            return parabolic.Direction.normalized * parabolic.LaunchSpeed;
+        }
+        case TrajectoryType.Homing:
+        {
+            var homing = ParseTrajectoryData<HomingTrajectoryData>(projectileComponent.TrajectoryData);
+            return homing.BaseSpeed * projectileComponent.LaunchDirection.normalized;
+        }
+        default:
+            return TSVector.zero;
+    }
 }
 ```
 
@@ -932,47 +770,39 @@ private CollisionShape ParseCollisionShape(Dictionary<string, object> paramsDict
     "EffectValue": 150.0,
     "TargetType": 1,  // 敌人
     "EffectParams": "{
-        \"ProjectileType\": \"FireBall\",
-        \"LifeTime\": 300,
-        \"Speed\": 0.8,
-        \"TrajectoryType\": \"Linear\",
-        \"CollisionShape\": \"Sphere:0.5\",
-        \"CollisionMode\": \"Continuous\",
-        \"PierceCount\": 0
+        \"ProjectileId\": 7001,
+        \"TrajectoryOverride\": {
+            \"Linear\": {
+                \"BaseSpeed\": 0.9
+            }
+        }
     }",
     "VisualEffectId": 5101,
     "SoundEffectId": 6101
 }
 ```
 
-### 7.2 ProjectileTable（可选）
+### 7.2 ProjectileTable
 
-如果弹道配置复杂，可以单独创建ProjectileTable：
+Projectile 专用配置表驱动实体工厂：
 
 ```json
 {
     "ProjectileId": 7001,
     "ProjectileName": "FireBall",
+    "ProjectileArchetype": "Projectile.FireBall",
     "LifeTime": 300,
-    "Speed": 0.8,
     "TrajectoryType": "Linear",
-    "TrajectoryData": "",
+    "TrajectoryData": "{\"BaseSpeed\":0.8}",
     "CollisionShape": "Sphere:0.5",
     "CollisionMode": "Continuous",
     "PierceCount": 0,
-    "VisualPrefabPath": "Projectiles/FireBall",
     "TrailEffectId": 5102,
     "HitEffectId": 5103
 }
 ```
 
-然后SkillEffectTable的EffectParams简化为：
-
-```json
-{
-    "EffectParams": "{\"ProjectileId\": 7001}"
-}
-```
+`SkillEffectTable` 的 `EffectParams` 只需提供 `ProjectileId`，其余数据由 `ProjectileConfigManager` 加载；如需覆写基础速度等参数，使用 `TrajectoryOverride` 字段增量覆盖。
 
 ---
 
@@ -985,10 +815,7 @@ private CollisionShape ParseCollisionShape(Dictionary<string, object> paramsDict
 ```csharp
 private void UpdateLinearTrajectory(Entity entity, ProjectileComponent component, PositionComponent position)
 {
-    var velocityComponent = GetComponent<VelocityComponent>(entity);
-    if (velocityComponent == null) return;
-    
-    position.Position += velocityComponent.Velocity;
+    position.Position += component.CurrentVelocity;
 }
 ```
 
@@ -996,7 +823,7 @@ private void UpdateLinearTrajectory(Entity entity, ProjectileComponent component
 ```json
 {
     "TrajectoryType": "Linear",
-    "Speed": 0.8
+    "TrajectoryData": "{\"BaseSpeed\":0.8}"
 }
 ```
 
@@ -1007,16 +834,13 @@ private void UpdateLinearTrajectory(Entity entity, ProjectileComponent component
 ```csharp
 private void UpdateParabolicTrajectory(Entity entity, ProjectileComponent component, PositionComponent position)
 {
-    var velocityComponent = GetComponent<VelocityComponent>(entity);
-    if (velocityComponent == null) return;
-    
     var trajectoryParams = ParseTrajectoryData<ParabolicTrajectoryData>(component.TrajectoryData);
     
     // 应用重力
-    velocityComponent.Velocity += trajectoryParams.Gravity;
+    component.CurrentVelocity += trajectoryParams.Gravity;
     
     // 更新位置
-    position.Position += velocityComponent.Velocity;
+    position.Position += component.CurrentVelocity;
 }
 ```
 
@@ -1024,8 +848,7 @@ private void UpdateParabolicTrajectory(Entity entity, ProjectileComponent compon
 ```json
 {
     "TrajectoryType": "Parabola",
-    "Speed": 0.5,
-    "TrajectoryData": "{\"Gravity\": [0, -0.05, 0]}"
+    "TrajectoryData": "{\"LaunchSpeed\":0.5,\"Gravity\":[0,-0.05,0]}"
 }
 ```
 
@@ -1036,9 +859,6 @@ private void UpdateParabolicTrajectory(Entity entity, ProjectileComponent compon
 ```csharp
 private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component, PositionComponent position)
 {
-    var velocityComponent = GetComponent<VelocityComponent>(entity);
-    if (velocityComponent == null) return;
-    
     var trajectoryParams = ParseTrajectoryData<HomingTrajectoryData>(component.TrajectoryData);
     
     // 查找目标
@@ -1052,15 +872,17 @@ private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component
             var direction = (targetPosition.Position - position.Position).normalized;
             
             // 插值转向
-            var currentDirection = velocityComponent.Velocity.normalized;
+            var currentDirection = component.CurrentVelocity.magnitude > FP.Zero
+                ? component.CurrentVelocity.normalized
+                : component.LaunchDirection;
             var newDirection = TSVector.Lerp(currentDirection, direction, trajectoryParams.TurnRate);
             
             // 更新速度
-            velocityComponent.Velocity = newDirection * velocityComponent.Velocity.magnitude;
+            component.CurrentVelocity = newDirection.normalized * trajectoryParams.BaseSpeed;
         }
     }
     
-    position.Position += velocityComponent.Velocity;
+    position.Position += component.CurrentVelocity;
 }
 ```
 
@@ -1068,8 +890,7 @@ private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component
 ```json
 {
     "TrajectoryType": "Homing",
-    "Speed": 0.6,
-    "TrajectoryData": "{\"TargetEntityId\": 12345, \"TurnRate\": 0.1}"
+    "TrajectoryData": "{\"TargetEntityId\":12345,\"BaseSpeed\":0.6,\"TurnRate\":0.1}"
 }
 ```
 
@@ -1185,7 +1006,7 @@ private void TriggerSkillEffect(Entity projectile, ProjectileComponent component
 **配置**：
 - PrecastAction（前摇20帧）→ CastAction（30帧，尾声5帧可自我取消）→ RecoveryAction（后摇15帧）
 - CastAction自我取消机制：第25-30帧设置BeCancelledTag，自己的CancelTag匹配，持续输入时循环
-- Projectile：直线轨迹，速度0.8，生命周期300帧，球形碰撞半径0.5
+- Projectile：直线轨迹（TrajectoryData.BaseSpeed=0.8），生命周期300帧，球形碰撞半径0.5
 - SkillEffect：伤害效果，150%攻击力
 
 ### 10.2 弓箭手蓄力箭（蓄力）
@@ -1221,7 +1042,7 @@ private void TriggerSkillEffect(Entity projectile, ProjectileComponent component
 
 **配置**：
 - CastAction（生成闪电球）
-- Projectile：直线轨迹，PierceCount=3，速度1.0
+- Projectile：直线轨迹（TrajectoryData.BaseSpeed=1.0，PierceCount=3）
 - SkillEffect：链式伤害处理器（自定义Handler），每次穿透伤害×0.8
 
 ---
@@ -1242,30 +1063,40 @@ public class ProjectilePool
     
     private Queue<Entity> _pool = new Queue<Entity>();
     
-    public Entity Get(World world)
+    public Entity? Spawn(World world, Entity caster, ProjectileDefinition definition, ProjectileSpawnContext context)
     {
+        Entity projectile;
         if (_pool.Count > 0)
         {
-            var projectile = _pool.Dequeue();
-            projectile.IsDestroyed = false;
+            projectile = _pool.Dequeue();
             projectile.World = world;
-            return projectile;
         }
-        
-        return new Entity { World = world };
+        else
+        {
+            projectile = world.EntityFactory.CreateByArchetype(
+                definition.ProjectileArchetype,
+                new EntityCreationParams
+                {
+                    SpawnPosition = context.SpawnPosition,
+                    ExtraData = context
+                });
+        }
+
+        InitializeProjectileRuntime(projectile, caster, context.SkillEffectId, definition, (context.SpawnPosition, context.SpawnDirection));
+        return projectile;
     }
     
-    public void Return(Entity projectile)
+    public void Recycle(Entity projectile)
     {
-        // 清理组件状态
         var component = projectile.GetComponent<ProjectileComponent>();
         if (component != null)
         {
             component.ElapsedFrames = 0;
             component.PiercedCount = 0;
             component.HitEntities.Clear();
+            component.CurrentVelocity = TSVector.zero;
         }
-        
+
         _pool.Enqueue(projectile);
     }
 }
@@ -1286,21 +1117,23 @@ public class ProjectilePool
 public class ProjectileManager
 {
     private const int MaxProjectileCount = 100;
-    private List<Entity> _activeProjectiles = new List<Entity>();
-    
-    public Entity SpawnProjectile(World world, Entity caster, ProjectileConfig config)
+    private readonly List<Entity> _activeProjectiles = new();
+
+    public Entity? SpawnProjectile(World world, Entity caster, ProjectileDefinition definition, ProjectileSpawnContext context)
     {
-        // 达到上限时，销毁最老的Projectile
-        if (_activeProjectiles.Count >= MaxProjectileCount)
+        if (_activeProjectiles.Count >= MaxProjectileCount && _activeProjectiles.Count > 0)
         {
             var oldest = _activeProjectiles[0];
             oldest.Destroy();
             _activeProjectiles.RemoveAt(0);
         }
-        
-        var projectile = ProjectileFactory.CreateProjectile(world, caster, config);
-        _activeProjectiles.Add(projectile);
-        
+
+        var projectile = ProjectilePool.Instance.Spawn(world, caster, definition, context);
+        if (projectile != null)
+        {
+            _activeProjectiles.Add(projectile);
+        }
+
         return projectile;
     }
 }
@@ -1316,7 +1149,7 @@ public class ProjectileManager
 |------|--------|------|
 | **Action系统** | 射击动作基于ActionInfo | 复用动作切换、取消机制 |
 | **技能系统** | SkillAction触发Projectile生成 | 复用技能配置、触发帧系统 |
-| **SkillExecutorCapability** | 处理Direct触发帧，调用ProjectileFactory | 扩展HandleDirectTrigger方法 |
+| **SkillExecutorCapability** | 处理Direct触发帧，调用EntityFactory.CreateByArchetype | 扩展HandleDirectTrigger方法 |
 | **HitManager** | Projectile碰撞检测 | 复用即时查询API |
 | **SkillEffectManager** | 碰撞后触发效果 | 完全复用效果系统 |
 | **Entity系统** | Projectile作为Entity | 复用组件和能力架构 |
@@ -1328,7 +1161,8 @@ public class ProjectileManager
 | Component | ProjectileComponent | 弹道配置和状态 |
 | Component | ChargingComponent | 蓄力状态 |
 | Capability | ProjectileCapability | 弹道运动和碰撞逻辑 |
-| Factory | ProjectileFactory | Projectile实体创建 |
+| Config | ProjectileDefinition Table | 驱动Projectile实体创建 |
+| Component | EntityConfigComponent | 仅BaseUnit拥有，负责绑定EntityConfig |
 
 ### 12.3 配置表扩展
 
@@ -1346,7 +1180,7 @@ public class ProjectileManager
 **目标**：实现基本的直线弹道
 
 - [ ] ProjectileComponent和ProjectileCapability实现
-- [ ] ProjectileFactory实现
+- [ ] EntityFactory.CreateByArchetype 支持ProjectileSpawnContext
 - [ ] 直线轨迹实现
 - [ ] 碰撞检测和效果触发
 - [ ] 扩展SkillExecutorCapability支持Projectile生成
