@@ -68,19 +68,21 @@
 
 ### 2.2 连射机制
 
-**实现方式**：释放动作配置为循环动作，通过输入持续性判断是否继续执行
+**实现方式**：释放动作在尾声设置可取消标签，通过自身的CancelTag取消自己实现循环
 
 ```
 连射流程
-前摇动作 → 释放动作 → [持续输入] → 释放动作 → [停止输入] → 后摇动作
-           ↑_______________|
-           循环（AutoNextActionId指向自己）
+前摇动作 → 释放动作(尾声BeCancelledTag) → [持续输入+CancelTag匹配] → 释放动作 → [停止输入] → 后摇动作
+           ↑________________________________________________|
+           自我取消循环（CancelTag匹配自己的BeCancelledTag）
 ```
 
 **关键配置**：
-- `CastAction.AutoNextActionId` = 自身ID（循环）
+- `CastAction.BeCancelledTags` = 在动作尾声（如最后5-10帧）设置 `["Skill1Action"]`
+- `CastAction.CancelTags` = `["Skill1Action"]`（可以取消自己）
 - `CastAction.Commands` = 要求输入命令存在（如 "skill1"）
-- 停止输入时，命令失效，自动切换到后摇动作
+- 持续输入时，在尾声阶段触发自我取消，重新执行动作
+- 停止输入时，命令失效，无法触发取消，动作自然结束后进入后摇或Idle
 
 ### 2.3 蓄力机制
 
@@ -670,6 +672,7 @@ public class ProjectileConfig
     "TotalFrames": 20,
     "AnimationName": "FireBall_Precast",
     "AutoNextActionId": 5002,  // 完成后自动切换到释放动作
+    "CancelTags": ["Idle", "Move"],
     "BeCancelledTags": ["Roll", "Dash"]
 }
 
@@ -680,9 +683,14 @@ public class ProjectileConfig
     "Catalog": "Shooting",
     "TotalFrames": 30,
     "AnimationName": "FireBall_Cast",
-    "AutoNextActionId": 5002,  // 循环自己（连射）
+    "AutoNextActionId": 5003,  // 完成后进入后摇
     "Commands": ["skill1"],    // 需要skill1输入才能执行
-    "BeCancelledTags": ["Roll", "Dash"]
+    "CancelTags": ["Idle", "Move", "Skill1Action"],  // 可以取消自己
+    "BeCancelledTags": [
+        {"Tag": "Skill1Action", "StartFrame": 25, "EndFrame": 30},  // 尾声可自我取消
+        {"Tag": "Roll", "StartFrame": 0, "EndFrame": 30},
+        {"Tag": "Dash", "StartFrame": 0, "EndFrame": 30}
+    ]
 }
 
 // SkillActionTable - 释放动作配置
@@ -710,10 +718,10 @@ public class ProjectileConfig
 玩家按下Skill1 → PrecastAction(5001)
                     ↓ (完成)
                 CastAction(5002) 生成Projectile
-                    ↓ (持续按住Skill1)
-                CastAction(5002) 生成Projectile（循环）
-                    ↓ (松开Skill1，命令失效)
-                RecoveryAction(5003)
+                    ↓ (到达第25-30帧尾声，持续按住Skill1)
+                CastAction自我取消，重新执行 → 生成Projectile（循环）
+                    ↓ (到达尾声，松开Skill1，命令失效，无法触发取消)
+                CastAction完成 → RecoveryAction(5003)
                     ↓ (完成)
                 Idle
 ```
@@ -1175,7 +1183,8 @@ private void TriggerSkillEffect(Entity projectile, ProjectileComponent component
 - 松开技能键后进入后摇
 
 **配置**：
-- PrecastAction（前摇20帧）→ CastAction（循环，每30帧生成一个火球）→ RecoveryAction（后摇15帧）
+- PrecastAction（前摇20帧）→ CastAction（30帧，尾声5帧可自我取消）→ RecoveryAction（后摇15帧）
+- CastAction自我取消机制：第25-30帧设置BeCancelledTag，自己的CancelTag匹配，持续输入时循环
 - Projectile：直线轨迹，速度0.8，生命周期300帧，球形碰撞半径0.5
 - SkillEffect：伤害效果，150%攻击力
 
@@ -1346,9 +1355,9 @@ public class ProjectileManager
 
 **目标**：支持连续射击
 
-- [ ] 连射动作配置
-- [ ] 输入持续性判断
-- [ ] 动作循环逻辑测试
+- [ ] 连射动作配置（尾声BeCancelledTag + 自身CancelTag）
+- [ ] 输入持续性判断（Commands字段）
+- [ ] 动作自我取消循环逻辑测试
 
 ### 13.3 第三阶段 - 蓄力机制
 
@@ -1421,7 +1430,29 @@ public class ProjectileManager
 - 新增轨迹类型需要修改代码
 - 配置复杂度适中
 
-### 决策3：碰撞检测方式
+### 决策3：连射机制实现方式
+
+**问题**：如何实现连射的动作循环？
+
+**备选**：
+1. AutoNextActionId指向自己：动作完成后自动切换到自己
+2. 自我取消机制：动作尾声设置BeCancelledTag，通过CancelTag取消自己
+
+**选择**：自我取消机制
+
+**理由**：
+- 符合Action系统的Cancel设计理念
+- 更精确的循环时机控制（尾声才能触发）
+- 自然支持输入停止时的中断（命令失效后无法触发取消）
+- 避免AutoNextActionId的语义混淆（自己指向自己不够直观）
+- 与其他动作取消机制保持一致
+
+**影响**：
+- 需要在BeCancelledTag中指定帧范围（尾声帧）
+- 配置稍微复杂一些（需要同时配置CancelTag和BeCancelledTag）
+- 更灵活的循环控制（可以根据帧数精确控制循环时机）
+
+### 决策4：碰撞检测方式
 
 **问题**：使用HitManager还是内置碰撞检测？
 
