@@ -95,8 +95,8 @@ namespace Astrum.Client.UI.Generated
         // weaponSlotButton
         private Button weaponSlotButton;
 
-        // sliderHeartSlider
-        private Slider sliderHeartSlider;
+        // levelSlider
+        private Slider levelSlider;
 
         // iconImage
         private Image[] iconImage;
@@ -109,6 +109,9 @@ namespace Astrum.Client.UI.Generated
 
         // handleImage
         private Image[] handleImage;
+
+        // sliderHeartSlider
+        private Slider sliderHeartSlider;
 
         // sliderSpeedSlider
         private Slider sliderSpeedSlider;
@@ -309,9 +312,10 @@ namespace Astrum.Client.UI.Generated
             bootSlotButton = uiRefs.GetComponent<Button>("Bag/CharacterParent/BootSlot");
             weaponSlotImage = uiRefs.GetComponent<Image>("Bag/CharacterParent/WeaponSlot");
             weaponSlotButton = uiRefs.GetComponent<Button>("Bag/CharacterParent/WeaponSlot");
-            sliderHeartSlider = uiRefs.GetComponent<Slider>("Bag/CharacterStatusParent/SliderHeart");
+            levelSlider = uiRefs.GetComponent<Slider>("Bag/CharacterStatusParent/Level");
             iconImage = new Image[]
             {
+                uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/Level/Icon"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderHeart/Icon"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderSpeed/Icon"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderAtk/Icon"),
@@ -323,6 +327,7 @@ namespace Astrum.Client.UI.Generated
             };
             backgroundImage = new Image[]
             {
+                uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/Level/Background"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderHeart/Background"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderSpeed/Background"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderAtk/Background"),
@@ -330,6 +335,7 @@ namespace Astrum.Client.UI.Generated
             };
             fillImage = new Image[]
             {
+                uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/Level/Fill Area/Fill"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderHeart/Fill Area/Fill"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderSpeed/Fill Area/Fill"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderAtk/Fill Area/Fill"),
@@ -337,12 +343,14 @@ namespace Astrum.Client.UI.Generated
             };
             handleImage = new Image[]
             {
+                uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/Level/Handle Slide Area/Handle"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderHeart/Handle Slide Area/Handle"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderSpeed/Handle Slide Area/Handle"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderAtk/Handle Slide Area/Handle"),
                 uiRefs.GetComponent<Image>("Bag/CharacterStatusParent/SliderDef/Handle Slide Area/Handle"),
                 uiRefs.GetComponent<Image>("Bag/Scroll View/Scrollbar Vertical/Sliding Area/Handle"),
             };
+            sliderHeartSlider = uiRefs.GetComponent<Slider>("Bag/CharacterStatusParent/SliderHeart");
             sliderSpeedSlider = uiRefs.GetComponent<Slider>("Bag/CharacterStatusParent/SliderSpeed");
             sliderAtkSlider = uiRefs.GetComponent<Slider>("Bag/CharacterStatusParent/SliderAtk");
             sliderDefSlider = uiRefs.GetComponent<Slider>("Bag/CharacterStatusParent/SliderDef");
