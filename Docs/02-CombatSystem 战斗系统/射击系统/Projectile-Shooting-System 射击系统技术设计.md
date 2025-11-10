@@ -117,9 +117,6 @@ Entity (Projectile)
 │   ├── LifeTime（生命周期）
 │   ├── TrajectoryType（轨迹类型）
 │   └── TrajectoryData（轨迹参数）
-├── CollisionComponent（碰撞体）
-│   ├── CollisionShape（碰撞形状）
-│   └── IsTrigger（触发器模式）
 └── ProjectileCapability（弹道能力）
     ├── 更新运动轨迹
     ├── 检测碰撞
@@ -156,7 +153,7 @@ Entity (Projectile)
 │
 └── 触发与碰撞（复用现有系统）
     ├── SkillExecutorCapability（触发帧处理）
-    ├── HitManager（碰撞检测）
+    ├── PhysicsWorld / HitManager（碰撞检测）
     └── SkillEffectManager（效果触发）
 ```
 
@@ -213,8 +210,8 @@ public partial class ProjectileComponent : BaseComponent
     /// <summary>当前速度（帧更新使用）</summary>
     public TSVector CurrentVelocity { get; set; } = TSVector.zero;
     
-    /// <summary>碰撞检测模式</summary>
-    public ProjectileCollisionMode CollisionMode { get; set; } = ProjectileCollisionMode.Continuous;
+    /// <summary>上一帧位置（用于射线检测）</summary>
+    public TSVector LastPosition { get; set; } = TSVector.zero;
     
     /// <summary>穿透次数（0=不穿透）</summary>
     public int PierceCount { get; set; } = 0;
@@ -236,16 +233,6 @@ public enum TrajectoryType
     Parabola = 1,    // 抛物线
     Homing = 2,      // 追踪
     Spiral = 3       // 螺旋
-}
-
-/// <summary>
-/// 碰撞检测模式
-/// </summary>
-public enum ProjectileCollisionMode
-{
-    Continuous = 0,  // 连续检测（每帧）
-    Discrete = 1,    // 离散检测（固定间隔）
-    OnlyTarget = 2   // 仅检测目标层
 }
 
 /// <summary>
@@ -310,9 +297,7 @@ public sealed record ProjectileDefinition
     public int LifeTime { get; init; } = 300;
     public TrajectoryType TrajectoryType { get; init; } = TrajectoryType.Linear;
     public string TrajectoryData { get; init; } = string.Empty;
-    public ProjectileCollisionMode CollisionMode { get; init; } = ProjectileCollisionMode.Continuous;
     public int PierceCount { get; init; } = 0;
-    public CollisionShape CollisionShape { get; init; } = CollisionShape.CreateSphere(FP.FromFloat(0.5f));
     public IReadOnlyList<int> DefaultEffectIds { get; init; } = Array.Empty<int>();
 }
 
@@ -326,13 +311,8 @@ public sealed class ProjectileConfigManager
         _definitions.TryGetValue(projectileId, out var def) ? def : null;
 }
 
-```
-
-**设计要点**：
-- Projectile Archetype 中预挂 `ProjectileComponent`、`TransComponent`、`CollisionComponent` 等必需组件
-- `EntityCreationParams.ExtraData` 传入 `ProjectileSpawnContext`，由 `ProjectileSpawnCapability` 或自定义初始器在 `OnAttached` 时读取
-- 实体工厂内部无需 `EntityConfigId`：Projectile 通过专用表驱动，基础单位通过 `EntityConfigComponent`
-- 统一由 `EntityManager` 负责回收/池化，避免重复实现对象池
+// 说明：Projectile 不再存储碰撞形状，所有命中判定改为射线检测（上一帧 → 当前帧）。
+// `PierceCount` 仅用于控制同一条射线路径允许命中的目标数量。
 
 ### 4.4 EntityConfigComponent（基础单位专用）
 
@@ -838,7 +818,6 @@ public class ProjectileSpawnCapability : Capability<ProjectileSpawnCapability>
             projectileComponent.LifeTime = definition.LifeTime;
             projectileComponent.TrajectoryType = definition.TrajectoryType;
             projectileComponent.TrajectoryData = OverrideTrajectoryData(definition, spawn.Direction);
-            projectileComponent.CollisionMode = definition.CollisionMode;
             projectileComponent.PierceCount = definition.PierceCount;
             projectileComponent.LaunchDirection = spawn.Direction.normalized;
             projectileComponent.CurrentVelocity = ComputeInitialVelocity(projectileComponent);
@@ -850,12 +829,7 @@ public class ProjectileSpawnCapability : Capability<ProjectileSpawnCapability>
             trans.Position = spawn.Position;
         }
 
-        var collisionComponent = projectile.GetComponent<CollisionComponent>();
-        if (collisionComponent != null)
-        {
-            collisionComponent.CollisionShape = definition.CollisionShape;
-            collisionComponent.IsTrigger = true;
-        }
+        projectileComponent.LastPosition = spawn.Position;
     }
 }
 
@@ -992,8 +966,6 @@ Projectile 专用配置表驱动实体工厂：
     "LifeTime": 300,
     "TrajectoryType": "Linear",
     "TrajectoryData": "{\"BaseSpeed\":0.8}",
-    "CollisionShape": "Sphere:0.5",
-    "CollisionMode": "Continuous",
     "PierceCount": 0,
     "DefaultEffectIds": [4101],
     "TrailEffectId": 5102,
@@ -1015,7 +987,9 @@ Projectile 专用配置表驱动实体工厂：
 ```csharp
 private void UpdateLinearTrajectory(Entity entity, ProjectileComponent component, TransComponent trans)
 {
+    component.LastPosition = trans.Position;
     trans.Position += component.CurrentVelocity;
+    CheckRaycastCollision(entity, component, trans);
 }
 ```
 
@@ -1040,7 +1014,9 @@ private void UpdateParabolicTrajectory(Entity entity, ProjectileComponent compon
     component.CurrentVelocity += trajectoryParams.Gravity;
     
     // 更新位置
+    component.LastPosition = trans.Position;
     trans.Position += component.CurrentVelocity;
+    CheckRaycastCollision(entity, component, trans);
 }
 ```
 
@@ -1082,7 +1058,9 @@ private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component
         }
     }
     
+    component.LastPosition = trans.Position;
     trans.Position += component.CurrentVelocity;
+    CheckRaycastCollision(entity, component, trans);
 }
 ```
 
@@ -1102,32 +1080,53 @@ private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component
 
 ## 9. 碰撞与效果触发
 
-### 9.1 碰撞检测策略
+### 9.1 射线碰撞策略
 
-**三种检测模式**：
+- 每帧记录弹道的上一帧位置 `prevPos` 与当前更新后的位置 `currPos`
+- 使用物理世界（或自定义空间索引）执行 `Raycast(prevPos → currPos)`
+- 命中顺序：根据射线距离排序，逐个处理命中体
+- 可选：对射线路径进行多段抽样（供高速弹体使用），或在帧内细分
+- 在轨迹更新前写入 `component.LastPosition = trans.Position`，射线检测完成后再更新为新位置
 
-1. **Continuous（连续检测）**：每帧检测，适用于高速弹道
-2. **Discrete（离散检测）**：固定间隔检测，适用于慢速弹道，节省性能
-3. **OnlyTarget（仅目标层）**：只检测特定层级的目标，适用于追踪弹道
+```csharp
+private void CheckRaycastCollision(Entity projectile, ProjectileComponent component, TransComponent trans)
+{
+    var prevPos = component.LastPosition;
+    var currPos = trans.Position;
+    var direction = currPos - prevPos;
+    var distance = direction.magnitude;
+    if (distance <= FP.Epsilon)
+        return;
 
-### 9.2 穿透机制
+    var rayHits = PhysicsWorld.Raycast(prevPos, direction.normalized, distance);
+    foreach (var hit in rayHits)
+    {
+        if (!ShouldCollide(component, hit.EntityId))
+            continue;
 
-**实现**：
-- `PierceCount`：允许穿透的目标数量
-- `PiercedCount`：已穿透的目标数量
-- `HitEntities`：已命中的实体列表（防止重复命中同一目标）
+        OnRayHit(projectile, component, hit);
+        if (component.PiercedCount > component.PierceCount)
+            break;
+    }
 
-**流程**：
+    component.LastPosition = currPos;
+}
 ```
-碰撞检测 → 命中目标
+
+### 9.2 穿透与命中记录
+
+- `PierceCount`：允许穿透的目标数量（0 表示不穿透）
+- `PiercedCount`：当前已穿透目标数
+- `HitEntities`：已命中的实体ID集合，用于防止同一路径内重复命中
+
+```
+Raycast 命中 → 过滤（阵营、重复命中）
     ↓
-记录到HitEntities → 触发SkillEffect
-    ↓
-PiercedCount++
+触发效果 → PiercedCount++
     ↓
 PiercedCount > PierceCount? 
-    └── Yes → 销毁Projectile
-    └── No → 继续飞行
+    └── 是：销毁弹道
+    └── 否：继续处理下一段射线（若有）
 ```
 
 ### 9.3 效果触发
@@ -1262,6 +1261,8 @@ public class ProjectilePool
             component.PiercedCount = 0;
             component.HitEntities.Clear();
             component.CurrentVelocity = TSVector.zero;
+            component.LastPosition = TSVector.zero;
+            component.SkillEffectIds.Clear();
         }
 
         _pool.Enqueue(projectile);
