@@ -395,6 +395,302 @@ public sealed class SocketRefs : MonoBehaviour
 - ViewBridge/Factory 在实例化角色模型后，将 `GameObject` 记录在实体视图映射中，供 `ProjectileSpawnCapability` 根据 `socketName` 查询。
 - 如果触发帧未指定 `SocketName`，则回退使用 `TransComponent` 的位置与当前朝向。
 
+### 4.6 ProjectileViewComponent（表现层）
+
+**职责**：负责弹道的视觉表现与生命周期同步，不参与逻辑判定。
+
+**核心设计**：
+- 表现层弹道起始位置从模型的 Socket 点（如法杖顶端）出发
+- 逻辑层弹道起始位置从 Entity 的 TransComponent 位置出发
+- 表现层通过插值逐渐追赶逻辑层位置，实现平滑过渡
+- 参考 `TransViewComponent` 的视觉跟随机制
+
+```csharp
+using UnityEngine;
+using Astrum.View.Core;
+using Astrum.View.Components;
+using Astrum.CommonBase;
+using TrueSync;
+
+namespace Astrum.View.Components
+{
+    /// <summary>
+    /// 弹道表现组件 - 管理弹道视觉效果（拖尾、粒子、特效等）
+    /// </summary>
+    public sealed class ProjectileViewComponent : ViewComponent
+    {
+        // 视觉组件引用（从Prefab上获取）
+        private TrailRenderer _trailRenderer;
+        private ParticleSystem _loopEffect;
+        private ParticleSystem _hitEffect;
+        
+        // 视觉位置同步数据
+        private struct VisualSyncData
+        {
+            /// <summary>
+            /// 表现层当前位置（可能与逻辑层不同）
+            /// </summary>
+            public Vector3 visualPosition;
+            
+            /// <summary>
+            /// 上一逻辑帧的逻辑位置
+            /// </summary>
+            public Vector3 lastLogicPosition;
+            
+            /// <summary>
+            /// 表现层初始发射位置（从Socket获取）
+            /// </summary>
+            public Vector3 initialVisualSpawnPos;
+            
+            /// <summary>
+            /// 逻辑层初始发射位置（从TransComponent获取）
+            /// </summary>
+            public Vector3 initialLogicSpawnPos;
+            
+            /// <summary>
+            /// 是否已完成初始化（首次同步）
+            /// </summary>
+            public bool isInitialized;
+            
+            /// <summary>
+            /// 自上次逻辑更新以来的累积时间
+            /// </summary>
+            public float timeSinceLastLogicUpdate;
+        }
+        
+        private VisualSyncData _visualSync;
+        
+        // 视觉跟随配置
+        [Header("视觉跟随设置")]
+        private float _catchUpSpeed = 10f; // 表现层追赶逻辑层的速度系数
+        private float _maxCatchUpDistance = 2f; // 最大允许偏移距离，超过则强制同步
+        
+        protected override void OnInitialize()
+        {
+            // 从GameObject上获取视觉组件
+            if (_gameObject != null)
+            {
+                _trailRenderer = _gameObject.GetComponent<TrailRenderer>();
+                
+                // 获取所有粒子系统，根据命名约定区分
+                var particles = _gameObject.GetComponentsInChildren<ParticleSystem>();
+                foreach (var ps in particles)
+                {
+                    if (ps.name.Contains("Loop") || ps.name.Contains("Trail"))
+                        _loopEffect = ps;
+                    else if (ps.name.Contains("Hit") || ps.name.Contains("Impact"))
+                        _hitEffect = ps;
+                }
+            }
+            
+            // 初始化视觉同步数据
+            _visualSync = new VisualSyncData
+            {
+                isInitialized = false,
+                timeSinceLastLogicUpdate = 0f
+            };
+            
+            // 初始化视觉效果
+            ResetVisual();
+            
+            // 启动循环特效
+            if (_loopEffect != null && !_loopEffect.isPlaying)
+                _loopEffect.Play();
+            
+            ASLogger.Instance.Debug($"ProjectileViewComponent.OnInitialize: 初始化弹道视图组件，EntityId={OwnerEntity?.UniqueId}");
+        }
+        
+        protected override void OnUpdate(float deltaTime)
+        {
+            if (!_isEnabled || OwnerEntity == null) return;
+            
+            // 获取逻辑层位置
+            var transComponent = OwnerEntity.GetComponent<TransComponent>();
+            if (transComponent == null) return;
+            
+            var logicPos = transComponent.Position;
+            Vector3 currentLogicPosition = new Vector3((float)logicPos.x, (float)logicPos.y, (float)logicPos.z);
+            
+            // 首次初始化：记录初始位置偏移
+            if (!_visualSync.isInitialized)
+            {
+                InitializeVisualPosition(currentLogicPosition);
+                return;
+            }
+            
+            // 更新表现层位置（插值追赶逻辑层）
+            UpdateVisualPosition(currentLogicPosition, deltaTime);
+            
+            // 应用表现层位置到GameObject
+            if (_ownerEntityView != null)
+            {
+                _ownerEntityView.SetWorldPosition(_visualSync.visualPosition);
+            }
+            
+            // 记录本次逻辑位置
+            _visualSync.lastLogicPosition = currentLogicPosition;
+        }
+        
+        protected override void OnDestroy()
+        {
+            // 停止并清理所有视觉效果
+            StopAllEffects();
+            
+            ASLogger.Instance.Debug($"ProjectileViewComponent.OnDestroy: 销毁弹道视图组件，EntityId={OwnerEntity?.UniqueId}");
+        }
+        
+        protected override void OnSyncData(object data)
+        {
+            // 如果需要从逻辑层同步特殊数据（如轨迹类型变化）可在此处理
+        }
+        
+        /// <summary>
+        /// 初始化表现层位置（首次调用）
+        /// </summary>
+        /// <param name="currentLogicPosition">当前逻辑层位置</param>
+        private void InitializeVisualPosition(Vector3 currentLogicPosition)
+        {
+            // 表现层初始位置就是当前GameObject位置（由ViewBridge根据Socket设置）
+            _visualSync.initialVisualSpawnPos = _ownerEntityView?.GetWorldPosition() ?? currentLogicPosition;
+            _visualSync.initialLogicSpawnPos = currentLogicPosition;
+            _visualSync.visualPosition = _visualSync.initialVisualSpawnPos;
+            _visualSync.lastLogicPosition = currentLogicPosition;
+            _visualSync.isInitialized = true;
+            
+            ASLogger.Instance.Debug(
+                $"ProjectileViewComponent.InitializeVisualPosition: " +
+                $"VisualSpawn={_visualSync.initialVisualSpawnPos}, " +
+                $"LogicSpawn={_visualSync.initialLogicSpawnPos}, " +
+                $"Offset={_visualSync.initialVisualSpawnPos - _visualSync.initialLogicSpawnPos}");
+        }
+        
+        /// <summary>
+        /// 更新表现层位置（插值追赶逻辑层）
+        /// </summary>
+        /// <param name="currentLogicPosition">当前逻辑层位置</param>
+        /// <param name="deltaTime">帧时间</param>
+        private void UpdateVisualPosition(Vector3 currentLogicPosition, float deltaTime)
+        {
+            // 计算逻辑层的位移
+            Vector3 logicDelta = currentLogicPosition - _visualSync.lastLogicPosition;
+            
+            // 表现层跟随逻辑层移动（保持初始偏移，但逐渐缩小）
+            Vector3 targetVisualPosition = currentLogicPosition + 
+                (_visualSync.initialVisualSpawnPos - _visualSync.initialLogicSpawnPos);
+            
+            // 插值追赶目标位置
+            float currentDistance = Vector3.Distance(_visualSync.visualPosition, targetVisualPosition);
+            
+            // 如果距离过大，强制同步（防止异常情况）
+            if (currentDistance > _maxCatchUpDistance)
+            {
+                _visualSync.visualPosition = targetVisualPosition;
+                ASLogger.Instance.Warning(
+                    $"ProjectileViewComponent: 强制同步位置，距离={currentDistance:F3}");
+            }
+            else
+            {
+                // 平滑插值追赶
+                _visualSync.visualPosition = Vector3.Lerp(
+                    _visualSync.visualPosition,
+                    targetVisualPosition,
+                    Mathf.Clamp01(_catchUpSpeed * deltaTime)
+                );
+            }
+        }
+        
+        /// <summary>
+        /// 设置表现层初始位置（由ViewBridge在生成时调用）
+        /// </summary>
+        /// <param name="visualSpawnPosition">表现层发射位置（从Socket获取）</param>
+        public void SetInitialVisualSpawnPosition(Vector3 visualSpawnPosition)
+        {
+            if (_ownerEntityView != null)
+            {
+                _ownerEntityView.SetWorldPosition(visualSpawnPosition);
+            }
+            
+            ASLogger.Instance.Debug($"ProjectileViewComponent.SetInitialVisualSpawnPosition: {visualSpawnPosition}");
+        }
+        
+        /// <summary>
+        /// 触发命中效果
+        /// </summary>
+        /// <param name="hitPosition">命中位置（逻辑层定点数）</param>
+        public void PlayHitEffect(TSVector hitPosition)
+        {
+            // 停止循环特效
+            if (_loopEffect != null)
+                _loopEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            
+            // 播放命中特效（使用当前表现层位置，更准确）
+            if (_hitEffect != null)
+            {
+                Vector3 worldPos = _visualSync.isInitialized 
+                    ? _visualSync.visualPosition 
+                    : new Vector3((float)hitPosition.x, (float)hitPosition.y, (float)hitPosition.z);
+                    
+                _hitEffect.transform.position = worldPos;
+                _hitEffect.Play();
+            }
+            
+            ASLogger.Instance.Debug($"ProjectileViewComponent.PlayHitEffect: 播放命中特效，位置={hitPosition}");
+        }
+        
+        /// <summary>
+        /// 重置视觉效果（用于对象池回收）
+        /// </summary>
+        public void ResetVisual()
+        {
+            if (_trailRenderer != null)
+                _trailRenderer.Clear();
+            
+            if (_loopEffect != null)
+                _loopEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            
+            if (_hitEffect != null)
+                _hitEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            
+            // 重置同步数据
+            _visualSync = new VisualSyncData
+            {
+                isInitialized = false,
+                timeSinceLastLogicUpdate = 0f
+            };
+        }
+        
+        /// <summary>
+        /// 停止所有特效
+        /// </summary>
+        private void StopAllEffects()
+        {
+            if (_loopEffect != null)
+                _loopEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            
+            if (_hitEffect != null)
+                _hitEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+    }
+}
+```
+
+**使用方式**：
+- `ViewBridge` 在生成弹道实体时：
+  1. 为对应的 `EntityView` 添加 `ProjectileViewComponent`
+  2. 根据 `SocketRefs` 计算表现层发射位置
+  3. 调用 `SetInitialVisualSpawnPosition` 设置表现层起始位置
+- `ProjectileCapability` 在检测到命中时，通过 `EntityView` 获取 `ProjectileViewComponent` 并调用 `PlayHitEffect`
+- 对象池回收时调用 `ResetVisual`，清除拖尾和粒子残留
+
+**位置同步策略**：
+1. **初始阶段**：表现层从 Socket 位置出发，逻辑层从 Entity 位置出发，存在初始偏移
+2. **飞行阶段**：表现层通过插值逐渐追赶逻辑层位置，保持平滑过渡
+3. **异常处理**：如果偏移超过阈值（`_maxCatchUpDistance`），强制同步到逻辑位置
+
+**Prefab要求**：
+- 弹道Prefab根节点或子节点上挂载 `TrailRenderer`（可选）
+- 粒子系统命名约定：包含"Loop"或"Trail"的为循环特效，包含"Hit"或"Impact"的为命中特效
+
 ---
 
 ## 5. 射击动作流程设计
@@ -823,6 +1119,7 @@ public class ProjectileSpawnCapability : Capability<ProjectileSpawnCapability>
             projectileComponent.CurrentVelocity = ComputeInitialVelocity(projectileComponent);
         }
 
+        // 设置逻辑层位置
         var trans = projectile.GetComponent<TransComponent>();
         if (trans != null)
         {
@@ -830,6 +1127,70 @@ public class ProjectileSpawnCapability : Capability<ProjectileSpawnCapability>
         }
 
         projectileComponent.LastPosition = spawn.Position;
+        
+        // 设置表现层初始位置（从Socket获取）
+        InitializeProjectileView(projectile, caster, spawn);
+    }
+    
+    /// <summary>
+    /// 初始化弹道表现层（设置Socket发射位置）
+    /// </summary>
+    private void InitializeProjectileView(Entity projectile, Entity caster, (TSVector Position, TSVector Direction) logicSpawn)
+    {
+        // 获取ViewBridge
+        var viewBridge = ViewBridge.Instance;
+        if (viewBridge == null) return;
+        
+        // 获取弹道的EntityView
+        var projectileView = viewBridge.GetEntityView(projectile.UniqueId);
+        if (projectileView == null) return;
+        
+        // 获取ProjectileViewComponent
+        var viewComponent = projectileView.GetViewComponent<ProjectileViewComponent>();
+        if (viewComponent == null) return;
+        
+        // 计算表现层发射位置（从施法者的Socket获取）
+        Vector3 visualSpawnPosition = CalculateVisualSpawnPosition(caster, logicSpawn);
+        
+        // 设置表现层初始位置
+        viewComponent.SetInitialVisualSpawnPosition(visualSpawnPosition);
+        
+        ASLogger.Instance.Debug(
+            $"InitializeProjectileView: ProjectileId={projectile.UniqueId}, " +
+            $"LogicSpawn={logicSpawn.Position}, VisualSpawn={visualSpawnPosition}");
+    }
+    
+    /// <summary>
+    /// 计算表现层发射位置（从施法者的Socket或模型位置）
+    /// </summary>
+    private Vector3 CalculateVisualSpawnPosition(Entity caster, (TSVector Position, TSVector Direction) logicSpawn)
+    {
+        // 尝试从ViewBridge获取施法者的视图对象
+        var viewBridge = ViewBridge.Instance;
+        var casterView = viewBridge?.GetEntityView(caster.UniqueId);
+        
+        if (casterView != null)
+        {
+            // 尝试从SocketRefs获取发射点位置
+            var socketRefs = casterView.GameObject?.GetComponent<SocketRefs>();
+            if (socketRefs != null)
+            {
+                // 假设使用 "MuzzlePoint" 或 "WeaponTip" 作为默认发射点
+                var socketTransform = socketRefs.GetSocketTransform("MuzzlePoint") 
+                                   ?? socketRefs.GetSocketTransform("WeaponTip");
+                
+                if (socketTransform != null)
+                {
+                    return socketTransform.position;
+                }
+            }
+            
+            // 如果没有Socket，使用EntityView的世界位置
+            return casterView.GetWorldPosition();
+        }
+        
+        // 回退：使用逻辑层位置
+        return new Vector3((float)logicSpawn.Position.x, (float)logicSpawn.Position.y, (float)logicSpawn.Position.z);
     }
 }
 
@@ -1129,7 +1490,61 @@ PiercedCount > PierceCount?
     └── 否：继续处理下一段射线（若有）
 ```
 
-### 9.3 效果触发
+### 9.3 射线命中处理
+
+**OnRayHit方法实现**：
+
+```csharp
+private void OnRayHit(Entity projectile, ProjectileComponent component, RaycastHit hit)
+{
+    var hitEntity = hit.EntityId;
+    
+    // 防止重复命中同一实体
+    if (component.HitEntities.Contains(hitEntity))
+        return;
+    
+    // 记录命中
+    component.HitEntities.Add(hitEntity);
+    component.PiercedCount++;
+    
+    // 获取命中实体
+    var targetEntity = projectile.World.GetEntityById(hitEntity);
+    if (targetEntity != null)
+    {
+        // 触发技能效果
+        TriggerSkillEffect(projectile, component, targetEntity);
+    }
+    
+    // 触发视觉表现
+    TriggerHitVisual(projectile, hit.Position);
+    
+    // 检查是否应该销毁弹道（非穿透 or 超过穿透上限）
+    if (component.PierceCount == 0 || component.PiercedCount > component.PierceCount)
+    {
+        DestroyProjectile(projectile);
+    }
+}
+
+private void TriggerHitVisual(Entity projectile, TSVector hitPosition)
+{
+    // 通过ViewBridge获取EntityView
+    var viewBridge = ViewBridge.Instance; // 假设为单例
+    var entityView = viewBridge.GetEntityView(projectile.UniqueId);
+    
+    if (entityView != null)
+    {
+        // 获取ProjectileViewComponent
+        var viewComponent = entityView.GetViewComponent<ProjectileViewComponent>();
+        if (viewComponent != null)
+        {
+            // 调用视觉表现方法
+            viewComponent.PlayHitEffect(hitPosition);
+        }
+    }
+}
+```
+
+### 9.4 效果触发
 
 **通过SkillEffectManager触发**：
 
@@ -1157,12 +1572,122 @@ private void TriggerSkillEffect(Entity projectile, ProjectileComponent component
 - 完全复用现有的SkillEffect系统
 - 支持所有效果类型（伤害、治疗、击退、buff等）
 - 统一的效果计算和结果应用
+- 逻辑层通过ViewBridge调用视图层，保持架构清晰
 
 ---
 
-## 10. 典型应用场景
+## 10. 逻辑层与表现层位置同步
 
-### 10.1 法师火球术（连射）
+### 10.1 核心问题
+
+**问题描述**：
+- **逻辑层**：弹道从 Entity 的 `TransComponent` 位置（角色中心点）出发
+- **表现层**：弹道应该从模型的 Socket 点（如法杖顶端、弓箭发射点）出发
+- **初始偏移**：两者存在初始位置差异，需要在飞行过程中逐渐消除
+
+### 10.2 同步策略
+
+#### 阶段一：初始化（首帧）
+
+```
+逻辑层生成弹道 → ViewBridge创建EntityView → 设置表现层初始位置
+    ↓
+逻辑层位置: Entity.TransComponent.Position (角色中心)
+表现层位置: SocketRefs.GetSocketTransform("MuzzlePoint").position (法杖顶端)
+    ↓
+记录初始偏移: visualOffset = visualSpawn - logicSpawn
+```
+
+**实现**：
+1. `ProjectileSpawnCapability.InitializeProjectileRuntime` 设置逻辑层位置
+2. `ProjectileSpawnCapability.InitializeProjectileView` 调用 `ViewBridge` 获取 Socket 位置
+3. `ProjectileViewComponent.SetInitialVisualSpawnPosition` 设置表现层起始位置
+
+#### 阶段二：飞行过程（持续）
+
+```
+每帧 Update:
+    逻辑层位置更新 (由 ProjectileCapability.Tick 驱动)
+        ↓
+    表现层追赶逻辑层 (由 ProjectileViewComponent.OnUpdate 驱动)
+        ↓
+    插值计算: visualPos = Lerp(currentVisualPos, logicPos + initialOffset, catchUpSpeed * deltaTime)
+        ↓
+    应用到 GameObject: EntityView.SetWorldPosition(visualPos)
+```
+
+**关键参数**：
+- `_catchUpSpeed = 10f`: 追赶速度系数，值越大追赶越快
+- `_maxCatchUpDistance = 2f`: 最大允许偏移，超过则强制同步
+
+#### 阶段三：命中时刻
+
+```
+逻辑层检测到碰撞 (ProjectileCapability.CheckRaycastCollision)
+    ↓
+触发视觉效果 (TriggerHitVisual)
+    ↓
+使用表现层当前位置播放命中特效 (ProjectileViewComponent.PlayHitEffect)
+```
+
+**优势**：命中特效位置使用表现层位置，与玩家看到的弹道轨迹一致
+
+### 10.3 代码流程图
+
+```
+[逻辑层] ProjectileSpawnCapability.OnProjectileSpawnRequested
+    ↓
+[逻辑层] CreateProjectileEntityViaFactory (创建Entity)
+    ↓
+[逻辑层] InitializeProjectileRuntime
+    ├─ 设置 TransComponent.Position = logicSpawnPos
+    └─ 调用 InitializeProjectileView
+        ↓
+    [桥接层] InitializeProjectileView
+        ├─ 通过 ViewBridge.GetEntityView 获取 EntityView
+        ├─ 通过 CalculateVisualSpawnPosition 从 SocketRefs 获取表现层位置
+        └─ 调用 ProjectileViewComponent.SetInitialVisualSpawnPosition
+            ↓
+        [表现层] ProjectileViewComponent.SetInitialVisualSpawnPosition
+            └─ EntityView.SetWorldPosition(visualSpawnPos)
+
+[每帧更新]
+[逻辑层] ProjectileCapability.Tick
+    └─ 更新 TransComponent.Position (逻辑轨迹)
+        ↓
+[表现层] ProjectileViewComponent.OnUpdate
+    ├─ 读取 TransComponent.Position (当前逻辑位置)
+    ├─ 计算目标表现位置: targetPos = logicPos + initialOffset
+    ├─ 插值追赶: visualPos = Lerp(currentVisualPos, targetPos, speed * dt)
+    └─ EntityView.SetWorldPosition(visualPos)
+```
+
+### 10.4 配置建议
+
+**快速追赶（适合高速弹道）**：
+```csharp
+_catchUpSpeed = 20f;  // 快速消除偏移
+_maxCatchUpDistance = 1f;  // 较小的容错距离
+```
+
+**平滑过渡（适合慢速弹道）**：
+```csharp
+_catchUpSpeed = 5f;  // 缓慢追赶，保持更长时间的视觉偏移
+_maxCatchUpDistance = 3f;  // 较大的容错距离
+```
+
+### 10.5 注意事项
+
+1. **Socket命名约定**：建议统一使用 `"MuzzlePoint"` 或 `"WeaponTip"` 作为弹道发射点
+2. **回退机制**：如果 Socket 不存在，自动回退到 EntityView 的世界位置
+3. **对象池回收**：`ProjectileViewComponent.ResetVisual` 会重置同步数据，确保下次使用时重新初始化
+4. **网络同步**：逻辑层位置由帧同步保证一致性，表现层位置仅本地计算，不参与网络同步
+
+---
+
+## 11. 典型应用场景
+
+### 11.1 法师火球术（连射）
 
 **需求**：
 - 按住技能键连续射出火球
@@ -1175,7 +1700,7 @@ private void TriggerSkillEffect(Entity projectile, ProjectileComponent component
 - Projectile：直线轨迹（TrajectoryData.BaseSpeed=0.8），生命周期300帧，球形碰撞半径0.5
 - SkillEffect：伤害效果，150%攻击力
 
-### 10.2 弓箭手蓄力箭（蓄力）
+### 11.2 弓箭手蓄力箭（蓄力）
 
 **需求**：
 - 按住技能键蓄力
@@ -1188,7 +1713,7 @@ private void TriggerSkillEffect(Entity projectile, ProjectileComponent component
 - Projectile：抛物线轨迹，重力[0,-0.05,0]，生命周期200帧
 - SkillEffect：根据蓄力等级，伤害100%/150%/200%
 
-### 10.3 追踪导弹（追踪）
+### 11.3 追踪导弹（追踪）
 
 **需求**：
 - 射出导弹，自动追踪最近的敌人
@@ -1200,7 +1725,7 @@ private void TriggerSkillEffect(Entity projectile, ProjectileComponent component
 - 生成时查询最近敌人，将其ID存入TrajectoryData
 - SkillEffect：爆炸伤害，AOE范围3.0
 
-### 10.4 链式闪电（穿透）
+### 11.4 链式闪电（穿透）
 
 **需求**：
 - 射出闪电球，可以穿透3个敌人
@@ -1281,4 +1806,5 @@ public class ProjectilePool
 
 **方案**：限制同时存在的Projectile数量
 
+```
 ```
