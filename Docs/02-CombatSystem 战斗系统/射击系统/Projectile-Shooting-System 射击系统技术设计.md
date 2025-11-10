@@ -357,6 +357,64 @@ public partial class EntityConfigComponent : BaseComponent
 - 弹道、召唤物等没有配置表依赖的实体无需再携带多余字段
 - `EntityFactory.CreateByArchetype` 支持“不带 EntityConfigId” 创建逻辑；当需要配置表时，在 `EntityCreationParams` 中显式传入并由 `EntityConfigComponent` 初始化
 
+### 4.5 SocketRefs MonoBehaviour
+
+**用途**：挂载在角色模型的根节点上，缓存模型上的关键绑点（手部、法杖顶端、背部等），供抛射物生成时快速获取世界空间位置与朝向，避免逐帧查找或硬编码。
+
+```csharp
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// Socket 引用管理：挂在角色模型上，提供命名绑点访问能力
+/// </summary>
+public sealed class SocketRefs : MonoBehaviour
+{
+    [System.Serializable]
+    public struct SocketBinding
+    {
+        public string Name;
+        public Transform Transform;
+    }
+
+    [SerializeField]
+    private List<SocketBinding> _bindings = new List<SocketBinding>();
+
+    private readonly Dictionary<string, Transform> _lookup = new Dictionary<string, Transform>();
+
+    private void Awake()
+    {
+        foreach (var binding in _bindings)
+        {
+            if (!string.IsNullOrEmpty(binding.Name) && binding.Transform != null)
+            {
+                _lookup[binding.Name] = binding.Transform;
+            }
+        }
+    }
+
+    public bool TryGetWorldPosition(string socketName, out Vector3 position, out Vector3 forward)
+    {
+        position = default;
+        forward = default;
+        if (string.IsNullOrEmpty(socketName)) return false;
+
+        if (_lookup.TryGetValue(socketName, out var transform) && transform != null)
+        {
+            position = transform.position;
+            forward = transform.forward;
+            return true;
+        }
+        return false;
+    }
+}
+```
+
+**最佳实践**：
+- 由美术/动画同学在Prefab上维护 `_bindings` 列表，与真实骨骼名称解耦（可使用别名）。
+- ViewBridge/Factory 在实例化角色模型后，将 `GameObject` 记录在实体视图映射中，供 `ProjectileSpawnCapability` 根据 `socketName` 查询。
+- 如果触发帧未指定 `SocketName`，则回退使用 `TransComponent` 的位置与当前朝向。
+
 ---
 
 ## 5. 射击动作流程设计
@@ -399,7 +457,7 @@ public partial class EntityConfigComponent : BaseComponent
 {
     "ActionId": 5002,
     "SkillId": 3001,
-    "TriggerFrames": "Frame10:Direct:4101"  // 第10帧生成弹道
+    "TriggerFrames": "Frame10:Direct:4101(Socket:StaffTip)"  // 第10帧在法杖顶端Socket生成弹道
 }
 
 // ActionTable - 后摇动作
@@ -581,9 +639,20 @@ private (TSVector Position, TSVector Direction) CalculateProjectileSpawnTransfor
 {
     var trans = caster.GetComponent<TransComponent>();
     var direction = GetCasterDirection(caster);
-    var spawnPos = trans?.Position ?? TSVector.zero;
+    TSVector spawnPos = trans?.Position ?? TSVector.zero;
 
-    // TODO: 支持TriggerFrame中配置的偏移/骨骼挂点
+    if (!string.IsNullOrEmpty(trigger.SocketName))
+    {
+        // 从 View 端的 SocketRefs 读取绑定点
+        var viewObject = ViewBridge.GetViewObject(caster.UniqueId);
+        var socketRefs = viewObject?.GetComponent<SocketRefs>();
+        if (socketRefs != null && socketRefs.TryGetWorldPosition(trigger.SocketName, out var socketPos, out var socketForward))
+        {
+            spawnPos = TSVector.FromVector3(socketPos);
+            direction = TSVector.FromVector3(socketForward).normalized;
+        }
+    }
+
     return (spawnPos, direction);
 }
 ```
@@ -1211,214 +1280,4 @@ public class ProjectilePool
 
 **方案**：限制同时存在的Projectile数量
 
-```csharp
-public class ProjectileManager
-{
-    private const int MaxProjectileCount = 100;
-    private readonly List<Entity> _activeProjectiles = new();
-
-    public Entity? SpawnProjectile(World world, Entity caster, ProjectileDefinition definition, ProjectileSpawnContext context)
-    {
-        if (_activeProjectiles.Count >= MaxProjectileCount && _activeProjectiles.Count > 0)
-        {
-            var oldest = _activeProjectiles[0];
-            oldest.Destroy();
-            _activeProjectiles.RemoveAt(0);
-        }
-
-        var projectile = ProjectilePool.Instance.Spawn(world, caster, definition, context);
-        if (projectile != null)
-        {
-            _activeProjectiles.Add(projectile);
-        }
-
-        return projectile;
-    }
-}
 ```
-
----
-
-## 12. 与现有系统集成
-
-### 12.1 依赖系统
-
-| 系统 | 集成点 | 说明 |
-|------|--------|------|
-| **Action系统** | 射击动作基于ActionInfo | 复用动作切换、取消机制 |
-| **技能系统** | SkillAction触发Projectile生成 | 复用技能配置、触发帧系统 |
-| **SkillExecutorCapability** | 处理Direct触发帧，发布 `ProjectileSpawnRequestEvent` | 扩展HandleDirectTrigger方法 |
-| **ProjectileSpawnCapability** | 监听事件并调用实体工厂生成弹道 | 独立抛射物生成能力 |
-| **HitManager** | Projectile碰撞检测 | 复用即时查询API |
-| **SkillEffectManager** | 碰撞后触发效果 | 完全复用效果系统 |
-| **Entity系统** | Projectile作为Entity | 复用组件和能力架构 |
-
-### 12.2 新增组件/能力
-
-| 类型 | 名称 | 说明 |
-|------|------|------|
-| Component | ProjectileComponent | 弹道配置和状态 |
-| Component | ChargingComponent | 蓄力状态 |
-| Capability | ProjectileCapability | 弹道运动和碰撞逻辑 |
-| Capability | ProjectileSpawnCapability | 监听事件并生成弹道实体 |
-| Config | ProjectileDefinition Table | 驱动Projectile实体创建 |
-| Component | EntityConfigComponent | 仅BaseUnit拥有，负责绑定EntityConfig |
-
-### 12.3 配置表扩展
-
-| 表格 | 扩展内容 | 说明 |
-|------|---------|------|
-| **SkillEffectTable** | EffectParams增加Projectile配置 | 可选：单独创建ProjectileTable |
-| **ActionTable** | 支持Charging类型动作 | 用于蓄力动作 |
-
----
-
-## 13. 开发路线图
-
-### 13.1 第一阶段 - 基础弹道系统
-
-**目标**：实现基本的直线弹道
-
-- [ ] ProjectileComponent和ProjectileCapability实现
-- [ ] EntityFactory.CreateByArchetype 支持ProjectileSpawnContext
-- [ ] 直线轨迹实现
-- [ ] 碰撞检测和效果触发
-- [ ] 扩展SkillExecutorCapability支持Projectile生成
-
-### 13.2 第二阶段 - 连射机制
-
-**目标**：支持连续射击
-
-- [ ] 连射动作配置（尾声BeCancelledTag + 自身CancelTag）
-- [ ] 输入持续性判断（Commands字段）
-- [ ] 动作自我取消循环逻辑测试
-
-### 13.3 第三阶段 - 蓄力机制
-
-**目标**：支持蓄力射击
-
-- [ ] ChargingComponent实现
-- [ ] Condition触发逻辑扩展
-- [ ] 蓄力时长计算
-- [ ] 多强度效果配置
-
-### 13.4 第四阶段 - 高级轨迹
-
-**目标**：支持更多运动轨迹
-
-- [ ] 抛物线轨迹实现
-- [ ] 追踪轨迹实现
-- [ ] 螺旋/特殊轨迹设计（可选）
-- [ ] 轨迹参数配置和解析
-
-### 13.5 第五阶段 - 优化与扩展
-
-**目标**：性能优化和功能扩展
-
-- [ ] Projectile对象池
-- [ ] 碰撞检测优化
-- [ ] 穿透机制完善
-- [ ] 编辑器工具支持
-
----
-
-## 14. 关键决策与取舍
-
-### 决策1：Projectile作为Entity
-
-**问题**：Projectile应该作为Entity还是轻量级数据结构？
-
-**备选**：
-1. 作为Entity：复用组件和能力系统，支持复杂行为
-2. 轻量级结构：仅存储数据，由专门的Manager管理
-
-**选择**：作为Entity
-
-**理由**：
-- 复用现有架构，开发成本低
-- 支持复杂行为（如追踪、多段碰撞）
-- 易于扩展（可添加更多组件和能力）
-- 统一的序列化和网络同步
-
-**影响**：
-- 内存开销略高，需要对象池优化
-- 每个Projectile占用一个Entity ID
-
-### 决策2：轨迹系统设计
-
-**问题**：轨迹系统应该基于代码还是配置？
-
-**备选**：
-1. 代码驱动：每种轨迹写固定代码
-2. 配置驱动：通过配置文件定义轨迹参数
-3. 脚本化：支持Lua/C#脚本自定义轨迹
-
-**选择**：混合方式（代码+配置）
-
-**理由**：
-- 常用轨迹用代码实现（性能好，易调试）
-- 参数通过配置调整（灵活性高）
-- 未来可考虑脚本化扩展
-
-**影响**：
-- 新增轨迹类型需要修改代码
-- 配置复杂度适中
-
-### 决策3：连射机制实现方式
-
-**问题**：如何实现连射的动作循环？
-
-**备选**：
-1. AutoNextActionId指向自己：动作完成后自动切换到自己
-2. 自我取消机制：动作尾声设置BeCancelledTag，通过CancelTag取消自己
-
-**选择**：自我取消机制
-
-**理由**：
-- 符合Action系统的Cancel设计理念
-- 更精确的循环时机控制（尾声才能触发）
-- 自然支持输入停止时的中断（命令失效后无法触发取消）
-- 避免AutoNextActionId的语义混淆（自己指向自己不够直观）
-- 与其他动作取消机制保持一致
-
-**影响**：
-- 需要在BeCancelledTag中指定帧范围（尾声帧）
-- 配置稍微复杂一些（需要同时配置CancelTag和BeCancelledTag）
-- 更灵活的循环控制（可以根据帧数精确控制循环时机）
-
-### 决策4：碰撞检测方式
-
-**问题**：使用HitManager还是内置碰撞检测？
-
-**备选**：
-1. 使用HitManager：复用现有物理系统
-2. 内置检测：Projectile自己管理碰撞
-
-**选择**：使用HitManager
-
-**理由**：
-- 复用成熟的碰撞系统
-- 统一的碰撞过滤和去重逻辑
-- 减少代码重复
-
-**影响**：
-- 依赖HitManager的实现
-- 碰撞检测性能受HitManager限制
-
----
-
-**相关文档**:
-- [Action-System 动作系统](../技能系统/Action-System 动作系统.md)
-- [Skill-System 技能系统](../技能系统/Skill-System 技能系统.md)
-- [Skill-Effect-Runtime 技能效果运行时](../技能效果/Skill-Effect-Runtime 技能效果运行时.md)
-- [物理系统开发进展](../../Physics/物理系统开发进展.md)
-
----
-
-*文档版本：v1.0*  
-*创建时间：2025-11-10*  
-*最后更新：2025-11-10*  
-*状态：设计完成*  
-*Owner*: 开发团队  
-*变更摘要*: 基于现有Action系统设计射击系统的多阶段动作、弹道实体和碰撞触发机制
-
