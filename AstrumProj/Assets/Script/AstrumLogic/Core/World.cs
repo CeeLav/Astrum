@@ -164,26 +164,33 @@ namespace Astrum.LogicCore.Core
             return entity;
         }
 
+        public void QueueDestroyEntity(long entityId)
+        {
+            if (!_pendingDestroyEntities.Contains(entityId))
+            {
+                _pendingDestroyEntities.Add(entityId);
+            }
+        }
+
         /// <summary>
         /// 销毁实体
         /// </summary>
         /// <param name="entityId">实体ID</param>
         public void DestroyEntity(long entityId)
         {
-            if (Entities.TryGetValue(entityId, out var entity))
-            {
-                // 发布实体销毁事件
-                PublishEntityDestroyedEvent(entity);
-                
-                // 清理 CapabilitySystem 中的注册
-                CapabilitySystem?.UnregisterEntity(entityId);
-                
-                // 清理该实体的个体事件队列
-                entity.ClearEventQueue();
-                
-                entity.Destroy();
-                Entities.Remove(entityId);
-            }
+            DestroyEntityImmediate(entityId);
+        }
+
+        private void DestroyEntityImmediate(long entityId)
+        {
+            if (!Entities.TryGetValue(entityId, out var entity))
+                return;
+
+            PublishEntityDestroyedEvent(entity);
+            CapabilitySystem?.UnregisterEntity(entityId);
+            entity.ClearEventQueue();
+            entity.Destroy();
+            Entities.Remove(entityId);
         }
 
         /// <summary>
@@ -208,6 +215,8 @@ namespace Astrum.LogicCore.Core
             
             // 2. 处理本帧产生的所有事件（个体+全体）
             CapabilitySystem?.ProcessEntityEvents();
+
+            ProcessQueuedEntityDestroys();
             
             // 3. 帧计数和后处理
             CurFrame++;
@@ -248,6 +257,21 @@ namespace Astrum.LogicCore.Core
                 Name = subArchetypeName,
                 Attach = attach
             });
+        }
+
+        private readonly List<long> _pendingDestroyEntities = new List<long>();
+
+        private void ProcessQueuedEntityDestroys()
+        {
+            if (_pendingDestroyEntities.Count == 0)
+                return;
+
+            foreach (var entityId in _pendingDestroyEntities)
+            {
+                DestroyEntityImmediate(entityId);
+            }
+
+            _pendingDestroyEntities.Clear();
         }
 
         public void ApplyQueuedSubArchetypeChangesAtFrameEnd()

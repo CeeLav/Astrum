@@ -263,6 +263,7 @@ namespace Astrum.LogicCore.Capabilities
             projectileComponent.CurrentVelocity = TSVector.zero;
             projectileComponent.LastPosition = spawnPosition;
             projectileComponent.SocketName = socketName ?? string.Empty;
+            projectileComponent.IsMarkedForDestroy = false;
 
             var trans = projectile.GetComponent<TransComponent>();
             if (trans != null)

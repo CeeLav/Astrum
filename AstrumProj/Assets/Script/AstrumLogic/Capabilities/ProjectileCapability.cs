@@ -27,6 +27,11 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
+            if (projectileComponent.IsMarkedForDestroy)
+            {
+                return;
+            }
+
             if (!UpdateLifetime(entity, projectileComponent))
             {
                 return;
@@ -42,7 +47,7 @@ namespace Astrum.LogicCore.Capabilities
             component.ElapsedFrames++;
             if (component.ElapsedFrames >= component.LifeTime && component.LifeTime > 0)
             {
-                DestroyProjectile(entity);
+                MarkProjectileForDestroy(entity, component);
                 return false;
             }
             return true;
@@ -176,7 +181,7 @@ namespace Astrum.LogicCore.Capabilities
 
             if (component.PierceCount <= 0 || component.PiercedCount >= component.PierceCount)
             {
-                DestroyProjectile(projectile);
+                MarkProjectileForDestroy(projectile, component);
                 return false;
             }
 
@@ -206,13 +211,12 @@ namespace Astrum.LogicCore.Capabilities
             }
         }
 
-        private void DestroyProjectile(Entity entity)
+        private void MarkProjectileForDestroy(Entity entity, ProjectileComponent component)
         {
-            var world = entity.World;
-            if (world != null)
-            {
-                EntityFactory.Instance.DestroyEntity(entity, world);
-            }
+            if (component.IsMarkedForDestroy)
+                return;
+
+            component.IsMarkedForDestroy = true;
         }
 
         private T? ParseTrajectoryData<T>(string json) where T : class, new()

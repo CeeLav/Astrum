@@ -76,5 +76,10 @@ namespace Astrum.LogicCore.Components
         /// 出射使用的 Socket 名称（用于表现层绑定）
         /// </summary>
         public string SocketName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 是否已标记为待销毁，由 DeadCapability 统一处理
+        /// </summary>
+        public bool IsMarkedForDestroy { get; set; } = false;
     }
 }

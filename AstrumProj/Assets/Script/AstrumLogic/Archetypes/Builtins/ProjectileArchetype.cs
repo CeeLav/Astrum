@@ -15,7 +15,8 @@ namespace Astrum.LogicCore.Archetypes
 
         private static readonly Type[] _capabilities =
         {
-            typeof(ProjectileCapability)
+            typeof(ProjectileCapability),
+            typeof(DeadCapability)
         };
 
         public override Type[] Components => _components;

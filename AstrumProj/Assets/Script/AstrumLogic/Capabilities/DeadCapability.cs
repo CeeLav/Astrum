@@ -57,7 +57,14 @@ namespace Astrum.LogicCore.Capabilities
             if (!base.ShouldActivate(entity))
                 return false;
             
-            // 检查血量和状态判定死亡
+            // 抛射物：使用标记位判定
+            var projectileComp = GetComponent<ProjectileComponent>(entity);
+            if (projectileComp != null)
+            {
+                return projectileComp.IsMarkedForDestroy;
+            }
+
+            // 检查血量和状态判定死亡（角色/怪物等）
             var dynamicStats = GetComponent<DynamicStatsComponent>(entity);
             var stateComp = GetComponent<StateComponent>(entity);
             
@@ -76,6 +83,13 @@ namespace Astrum.LogicCore.Capabilities
             if (base.ShouldDeactivate(entity))
                 return true;
             
+            var projectileComp = GetComponent<ProjectileComponent>(entity);
+            if (projectileComp != null)
+            {
+                // 抛射物在被标记移除前不取消激活
+                return !projectileComp.IsMarkedForDestroy;
+            }
+
             // 检查是否复活（血量恢复）
             var dynamicStats = GetComponent<DynamicStatsComponent>(entity);
             if (dynamicStats == null)
@@ -91,6 +105,17 @@ namespace Astrum.LogicCore.Capabilities
         {
             base.OnActivate(entity);
             
+            var projectileComp = GetComponent<ProjectileComponent>(entity);
+            if (projectileComp != null)
+            {
+                if (!projectileComp.IsMarkedForDestroy)
+                    return;
+
+                ASLogger.Instance.Info($"[DeadCapability] Projectile {entity.UniqueId} marked dead, queue destroy");
+                entity.World?.QueueDestroyEntity(entity.UniqueId);
+                return;
+            }
+
             ASLogger.Instance.Info($"[DeadCapability] Entity {entity.UniqueId} died (HP <= 0), disabling non-whitelisted capabilities");
             
             // 设置死亡状态
