@@ -16,6 +16,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             Register(new KnockbackEffectEditorPanel());
             Register(new StatusEffectEditorPanel());
             Register(new TeleportEffectEditorPanel());
+            Register(new ProjectileEffectEditorPanel());
         }
 
         private static void Register(ISkillEffectEditorPanel panel)

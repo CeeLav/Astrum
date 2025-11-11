@@ -2,26 +2,26 @@
 ##type,int,string,"(array#sep=|,int)","(array#sep=|,string)"
 ##group,,,,
 ##desc,技能效果ID,效果类型键,整数参数数组,字符串参数数组
-,4001,Damage,1|1|1500|1|1500,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab|Assets/Audio/SFX/Skill/Skill_Hit_01.wav
+,4001,Damage,1|1|1500|1|1500,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab,Assets/Audio/SFX/Skill/Skill_Hit_01.wav"
 ,4002,Knockback,1|1000|100|0|1|5002|6002,
-,4003,Damage,1|1|800|1|800,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_02.prefab|Assets/Audio/SFX/Skill/Skill_Hit_02.wav
-,4004,Damage,1|1|1200|1|1200,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_03.prefab|Assets/Audio/SFX/Skill/Skill_Hit_03.wav
-,4005,Damage,1|1|600|1|600,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_04.prefab|Assets/Audio/SFX/Skill/Skill_Hit_04.wav
-,4006,Damage,1|1|700|1|700,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_05.prefab|Assets/Audio/SFX/Skill/Skill_Hit_05.wav
-,4007,Damage,1|1|800|1|800,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_06.prefab|Assets/Audio/SFX/Skill/Skill_Hit_06.wav
-,4008,Damage,1|1|500|1|500,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_07.prefab|Assets/Audio/SFX/Skill/Skill_Hit_07.wav
-,4009,Damage,1|1|800|1|800,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_08.prefab|Assets/Audio/SFX/Skill/Skill_Hit_08.wav
-,4010,Damage,1|1|900|1|900,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_09.prefab|Assets/Audio/SFX/Skill/Skill_Hit_09.wav
-,4011,Damage,1|1|1000|1|1000,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_10.prefab|Assets/Audio/SFX/Skill/Skill_Hit_10.wav
+,4003,Damage,1|1|800|1|800,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_02.prefab,Assets/Audio/SFX/Skill/Skill_Hit_02.wav"
+,4004,Damage,1|1|1200|1|1200,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_03.prefab,Assets/Audio/SFX/Skill/Skill_Hit_03.wav"
+,4005,Damage,1|1|600|1|600,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_04.prefab,Assets/Audio/SFX/Skill/Skill_Hit_04.wav"
+,4006,Damage,1|1|700|1|700,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_05.prefab,Assets/Audio/SFX/Skill/Skill_Hit_05.wav"
+,4007,Damage,1|1|800|1|800,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_06.prefab,Assets/Audio/SFX/Skill/Skill_Hit_06.wav"
+,4008,Damage,1|1|500|1|500,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_07.prefab,Assets/Audio/SFX/Skill/Skill_Hit_07.wav"
+,4009,Damage,1|1|800|1|800,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_08.prefab,Assets/Audio/SFX/Skill/Skill_Hit_08.wav"
+,4010,Damage,1|1|900|1|900,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_09.prefab,Assets/Audio/SFX/Skill/Skill_Hit_09.wav"
+,4011,Damage,1|1|1000|1|1000,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_10.prefab,Assets/Audio/SFX/Skill/Skill_Hit_10.wav"
 ,4012,Status,1|6002|3000|0|0|5012|6012,
-,4013,Damage,1|2|1800|1|1800,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_11.prefab|Assets/Audio/SFX/Skill/Skill_Hit_11.wav
-,4014,Damage,1|1|3000|1|3000,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_12.prefab|Assets/Audio/SFX/Skill/Skill_Hit_12.wav
-,4015,Damage,1|1|1200|1|1200,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_13.prefab|Assets/Audio/SFX/Skill/Skill_Hit_13.wav
+,4013,Damage,1|2|1800|1|1800,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_11.prefab,Assets/Audio/SFX/Skill/Skill_Hit_11.wav"
+,4014,Damage,1|1|3000|1|3000,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_12.prefab,Assets/Audio/SFX/Skill/Skill_Hit_12.wav"
+,4015,Damage,1|1|1200|1|1200,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_13.prefab,Assets/Audio/SFX/Skill/Skill_Hit_13.wav"
 ,4016,Knockback,1|5000|0|2|0|5016|6016,
 ,4017,Teleport,1|6000|4|5017|6017,
-,4018,Damage,1|1|600|1|600,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_14.prefab|Assets/Audio/SFX/Skill/Skill_Hit_14.wav
-,4019,Damage,1|1|650|1|650,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_15.prefab|Assets/Audio/SFX/Skill/Skill_Hit_15.wav
-,4020,Damage,1|1|700|1|700,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_16.prefab|Assets/Audio/SFX/Skill/Skill_Hit_16.wav
-,4021,Damage,1|1|750|1|750,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_17.prefab|Assets/Audio/SFX/Skill/Skill_Hit_17.wav
-,4022,Damage,1|1|100|1|100,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab|Assets/Audio/SFX/Skill/Skill_Hit_18.wav
+,4018,Damage,1|1|600|1|600,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_14.prefab,Assets/Audio/SFX/Skill/Skill_Hit_14.wav"
+,4019,Damage,1|1|650|1|650,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_15.prefab,Assets/Audio/SFX/Skill/Skill_Hit_15.wav"
+,4020,Damage,1|1|700|1|700,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_16.prefab,Assets/Audio/SFX/Skill/Skill_Hit_16.wav"
+,4021,Damage,1|1|750|1|750,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_17.prefab,Assets/Audio/SFX/Skill/Skill_Hit_17.wav"
+,4022,Damage,1|1|100|1|100,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab,Assets/Audio/SFX/Skill/Skill_Hit_18.wav"
 ,7001,Projectile,7001|4001|4002,
