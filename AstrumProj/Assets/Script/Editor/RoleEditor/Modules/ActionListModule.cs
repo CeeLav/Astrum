@@ -20,6 +20,10 @@ namespace Astrum.Editor.RoleEditor.Modules
         private Vector2 _scrollPosition;
         private ActionEditorData _selectedAction;
         
+        // === 选中状态管理 ===
+        private bool _isSelectingAction = false;
+        private bool _originalDirtyState = false;
+        
         // === 实体选择 ===
         private int _selectedEntityId = 0;
         
@@ -57,8 +61,18 @@ namespace Astrum.Editor.RoleEditor.Modules
         /// </summary>
         public void SelectAction(ActionEditorData action)
         {
+            // 记录原始状态
+            if (action != null)
+            {
+                _originalDirtyState = action.IsDirty;
+                _isSelectingAction = true;
+            }
+            
             _selectedAction = action;
             OnActionSelected?.Invoke(action);
+            
+            // 重置选中状态标志
+            _isSelectingAction = false;
         }
         
         /// <summary>
@@ -67,6 +81,25 @@ namespace Astrum.Editor.RoleEditor.Modules
         public ActionEditorData GetSelectedAction()
         {
             return _selectedAction;
+        }
+        
+        /// <summary>
+        /// 获取选中动作的原始脏状态
+        /// </summary>
+        public bool GetOriginalDirtyState()
+        {
+            return _originalDirtyState;
+        }
+        
+        /// <summary>
+        /// 恢复选中动作的原始脏状态
+        /// </summary>
+        public void RestoreOriginalDirtyState()
+        {
+            if (_selectedAction != null)
+            {
+                _selectedAction.IsDirty = _originalDirtyState;
+            }
         }
         
         // === 私有绘制方法 ===

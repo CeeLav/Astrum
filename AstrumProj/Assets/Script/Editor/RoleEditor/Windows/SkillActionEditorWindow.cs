@@ -69,6 +69,7 @@ namespace Astrum.Editor.RoleEditor.Windows
             var action = _allSkillActions.FirstOrDefault(a => a.ActionId == actionId);
             if (action != null)
             {
+                // 选中动作，但不清除其脏状态
                 _listModule.SelectAction(action);
                 Debug.Log($"[SkillActionEditor] 已选中动作 {actionId}");
             }
@@ -337,6 +338,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                 // 然后再选择动作（此时模型已加载，动画可以正常播放）
                 if (_allSkillActions.Count > 0)
                 {
+                    // 选中第一个动作，但不清除其脏状态
                     _listModule.SelectAction(_allSkillActions[0]);
                 }
                 else
@@ -432,6 +434,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                     _previewModule.SetTimelineEvents(timelineEvents);
                     _previewModule.SetVFXEvents(timelineEvents);
                 }
+                
+                // 恢复原始脏状态（防止选中时自动置脏）
+                _listModule.RestoreOriginalDirtyState();
             }
         }
         
@@ -441,6 +446,9 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             if (action == null || _previewModule == null)
                 return;
+            
+            // 保存当前脏状态
+            bool wasDirty = action.IsDirty;
             
             if (string.IsNullOrEmpty(action.AnimationPath))
             {
@@ -496,6 +504,9 @@ namespace Astrum.Editor.RoleEditor.Windows
                 // 时间轴显示完整动画帧数，可编辑范围为Duration
                 _timelineModule.SetFrameRange(animationTotalFrames, action.Duration);
             }
+            
+            // 恢复原始脏状态（防止加载动画时自动置脏）
+            action.IsDirty = wasDirty;
         }
         
         private void PlayAnimation()
@@ -655,6 +666,8 @@ namespace Astrum.Editor.RoleEditor.Windows
             
             var newSkillAction = SkillActionEditorData.CreateDefault(newId);
             _allSkillActions.Add(newSkillAction);
+            
+            // 选中新创建的动作，但不清除其脏状态（新创建的动作应该是脏的）
             _listModule.SelectAction(newSkillAction);
         }
         
@@ -671,6 +684,8 @@ namespace Astrum.Editor.RoleEditor.Windows
             duplicated.ActionName = skillAction.ActionName + "_Copy";
             
             _allSkillActions.Add(duplicated);
+            
+            // 选中复制的动作，但不清除其脏状态（复制的动作应该是脏的）
             _listModule.SelectAction(duplicated);
         }
         
@@ -691,6 +706,7 @@ namespace Astrum.Editor.RoleEditor.Windows
                 
                 if (_allSkillActions.Count > 0)
                 {
+                    // 选中第一个动作，但不清除其脏状态
                     _listModule.SelectAction(_allSkillActions[0]);
                 }
                 else
@@ -705,6 +721,9 @@ namespace Astrum.Editor.RoleEditor.Windows
             var skillAction = action as SkillActionEditorData;
             if (skillAction != null && skillAction == _selectedSkillAction)
             {
+                // 保存当前脏状态
+                bool wasDirty = skillAction.IsDirty;
+                
                 if (skillAction.Duration > skillAction.AnimationDuration)
                 {
                     skillAction.Duration = skillAction.AnimationDuration;
@@ -733,6 +752,12 @@ namespace Astrum.Editor.RoleEditor.Windows
                     _previewModule.SetTimelineEvents(timelineEvents);
                     _previewModule.SetVFXEvents(timelineEvents);
                 }
+                
+                // 只有在真正修改时才置脏
+                if (!wasDirty)
+                {
+                    skillAction.MarkDirty();
+                }
             }
         }
         
@@ -740,7 +765,8 @@ namespace Astrum.Editor.RoleEditor.Windows
         {
             if (_selectedSkillAction != null)
             {
-                _selectedSkillAction.MarkDirty();
+                // 保存当前脏状态
+                bool wasDirty = _selectedSkillAction.IsDirty;
                 
                 int currentFrame = _timelineModule.GetCurrentFrame();
                 
@@ -768,6 +794,12 @@ namespace Astrum.Editor.RoleEditor.Windows
                         _previewModule.UpdateVFXParameters(evt.EventId);
                         Repaint();
                     }
+                }
+                
+                // 只有在真正修改时才置脏
+                if (!wasDirty)
+                {
+                    _selectedSkillAction.MarkDirty();
                 }
             }
         }
@@ -1135,9 +1167,13 @@ namespace Astrum.Editor.RoleEditor.Windows
                                 
                                 if (confirm)
                                 {
+                                    // 保存当前脏状态
+                                    bool wasDirty = _selectedSkillAction.IsDirty;
+                                    
                                     _timelineModule.RemoveSelectedEvent();
                                     
-                                    if (_selectedSkillAction != null)
+                                    // 只有在原本不是脏状态时才置脏
+                                    if (!wasDirty && _selectedSkillAction != null)
                                     {
                                         _selectedSkillAction.MarkDirty();
                                     }
