@@ -336,7 +336,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         {
             SkillEffectEditorUtility.EnsureListSize(stringParams, index + 1);
 
-            var offset = ParseOffset(stringParams[index]);
+            var offset = ProjectileEffectOffsetUtility.Parse(stringParams[index]);
 
             EditorGUILayout.BeginVertical("box");
             {
@@ -360,87 +360,13 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
 
                 if (fieldChanged)
                 {
-                    if (offset.IsDefault())
-                    {
-                        stringParams[index] = string.Empty;
-                    }
-                    else
-                    {
-                        stringParams[index] = JsonUtility.ToJson(offset);
-                    }
+                    stringParams[index] = ProjectileEffectOffsetUtility.ToJson(offset);
                     changed = true;
                 }
 
                 EditorGUI.indentLevel--;
             }
             EditorGUILayout.EndVertical();
-        }
-
-        private ProjectileEffectOffset ParseOffset(string json)
-        {
-            if (string.IsNullOrEmpty(json))
-            {
-                return ProjectileEffectOffset.Default();
-            }
-
-            try
-            {
-                var offset = JsonUtility.FromJson<ProjectileEffectOffset>(json);
-                if (offset == null)
-                {
-                    return ProjectileEffectOffset.Default();
-                }
-
-                offset.Scale = EnsureValidScale(offset.Scale);
-                return offset;
-            }
-            catch
-            {
-                return ProjectileEffectOffset.Default();
-            }
-        }
-
-        private Vector3 EnsureValidScale(Vector3 scale)
-        {
-            if (Mathf.Approximately(scale.x, 0f) &&
-                Mathf.Approximately(scale.y, 0f) &&
-                Mathf.Approximately(scale.z, 0f))
-            {
-                return Vector3.one;
-            }
-            return scale;
-        }
-
-        [Serializable]
-        private class ProjectileEffectOffset
-        {
-            public Vector3 Position = Vector3.zero;
-            public Vector3 Rotation = Vector3.zero;
-            public Vector3 Scale = Vector3.one;
-
-            public static ProjectileEffectOffset Default()
-            {
-                return new ProjectileEffectOffset
-                {
-                    Position = Vector3.zero,
-                    Rotation = Vector3.zero,
-                    Scale = Vector3.one
-                };
-            }
-
-            public bool IsDefault()
-            {
-                return Approximately(Position, Vector3.zero) &&
-                       Approximately(Rotation, Vector3.zero) &&
-                       Approximately(Scale, Vector3.one);
-            }
-
-            private static bool Approximately(Vector3 a, Vector3 b)
-            {
-                return Mathf.Approximately(a.x, b.x) &&
-                       Mathf.Approximately(a.y, b.y) &&
-                       Mathf.Approximately(a.z, b.z);
-            }
         }
 
         private void LoadProjectileData(int projectileId)
@@ -453,7 +379,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             try
             {
                 // 使用新的 ProjectileDataWriter 读取数据
-                _currentProjectileData = ProjectileDataWriter.GetProjectile(projectileId);
+                _currentProjectileData = ProjectileDataReader.GetProjectile(projectileId);
                 _projectileDataLoaded = _currentProjectileData != null;
                 
                 if (_currentProjectileData == null)

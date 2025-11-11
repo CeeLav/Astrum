@@ -55,6 +55,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         
         // === 特效预览 ===
         private VFXPreviewManager _vfxPreviewManager;
+        private ProjectilePreviewManager _projectilePreviewManager;
         private HitDummyPreviewController _hitDummyPreviewController;
         private SkillHitDummyTemplate _currentHitDummyTemplate;
         private List<TimelineEvent> _timelineEvents = new List<TimelineEvent>();
@@ -117,6 +118,12 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.SetParent(_previewInstance);
                 _vfxPreviewManager.SetPreviewRenderUtility(_previewRenderUtility);
             }
+
+            if (_projectilePreviewManager == null)
+            {
+                _projectilePreviewManager = new ProjectilePreviewManager();
+            }
+            _projectilePreviewManager.SetContext(_previewInstance, _previewRenderUtility);
 
             EnsureHitDummyController();
             if (_hitDummyPreviewController != null)
@@ -252,6 +259,11 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.ClearAll();
             }
 
+            if (_projectilePreviewManager != null)
+            {
+                _projectilePreviewManager.ClearAll();
+            }
+
             if (_hitDummyEnabled)
             {
                 _hitDummyPreviewController?.ResetTargets();
@@ -306,6 +318,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.UpdateVFXPositions();
             }
 
+            _projectilePreviewManager?.UpdateFrame(_currentFrame, _isPlaying);
+
             if (_hitDummyEnabled)
             {
                 EvaluateHitDummyInteractions(_currentFrame);
@@ -337,6 +351,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         {
             _timelineEvents = events ?? new List<TimelineEvent>();
             _lastEvaluatedHitDummyFrame = -1;
+            _projectilePreviewManager?.SetTimelineEvents(_timelineEvents);
             if (_hitDummyEnabled)
             {
                 EvaluateHitDummyInteractions(_currentFrame);
@@ -812,6 +827,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 float deltaTime = 0.016f;
                 _vfxPreviewManager.UpdateParticleSystems(deltaTime);
             }
+
+            _projectilePreviewManager?.UpdateFrame(_currentFrame, _isPlaying);
             
             // 渲染
             _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
@@ -1010,6 +1027,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 _vfxPreviewManager.UpdateVFXPositions();
             }
 
+            _projectilePreviewManager?.UpdateFrame(_currentFrame, _isPlaying);
+
             EvaluateHitDummyInteractions(_currentFrame);
             _hitDummyPreviewController?.UpdateFrame(FRAME_TIME);
             
@@ -1155,6 +1174,11 @@ namespace Astrum.Editor.RoleEditor.Modules
                     _vfxPreviewManager.ClearAll();
                 }
 
+                if (_projectilePreviewManager != null)
+                {
+                    _projectilePreviewManager.ClearAll();
+                }
+
                 if (_hitDummyEnabled)
                 {
                     _hitDummyPreviewController?.ResetTargets();
@@ -1166,6 +1190,8 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 EvaluateHitDummyInteractions(_currentFrame);
             }
+
+            _projectilePreviewManager?.UpdateFrame(_currentFrame, _isPlaying);
 
             NotifyPreviewFrameChanged(_currentFrame);
         }
@@ -1251,6 +1277,12 @@ namespace Astrum.Editor.RoleEditor.Modules
             {
                 UnityEngine.Object.DestroyImmediate(_gridMaterial);
                 _gridMaterial = null;
+            }
+
+            if (_projectilePreviewManager != null)
+            {
+                _projectilePreviewManager.Cleanup();
+                _projectilePreviewManager = null;
             }
 
             if (_hitDummyPreviewController != null)

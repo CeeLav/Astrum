@@ -20,7 +20,8 @@ MonoBehaviour:
     FollowAnchorPosition: 0
     FollowAnchorRotation: 0
     LockY: 1
-    RootOffset: {x: 0, y: 1, z: 2}
+    TargetSelector: 0
+    RootOffset: {x: 0, y: 1, z: 5.13}
     RootRotation: {x: 0, y: 0, z: 0}
     RootScale: {x: 1, y: 1, z: 1}
     Placements:
