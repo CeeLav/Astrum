@@ -24,6 +24,19 @@
 
 ---
 
+### [射击系统开发进展](Projectile-System-Progress%20射击系统开发进展.md)
+射击/抛射物系统（多阶段动作 → 弹道实体 → 射线碰撞）的开发记录
+
+**当前版本**: 📝 **v0.1.0** (设计完成，开发待启动)
+
+**核心要点**:
+- 事件驱动的弹道生成流程（SkillExecutor → ProjectileSpawnCapability）
+- 射线判定 + 穿透体系取代传统碰撞体
+- SocketRefs + ViewBridge 解决表现层发射位置同步
+- 轨迹系统（直线 / 抛物线 / 追踪）与表现层追赶策略
+
+---
+
 ### [技能位移开发进展](Skill-Displacement-Progress%20技能位移开发进展.md)
 技能位移系统（Root Motion + 视觉跟随）的详细开发记录
 
