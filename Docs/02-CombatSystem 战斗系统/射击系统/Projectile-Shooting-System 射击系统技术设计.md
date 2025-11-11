@@ -1329,9 +1329,9 @@ Projectile 专用配置表驱动实体工厂：
     "TrajectoryData": "{\"BaseSpeed\":0.8}",
     "PierceCount": 0,
     "DefaultEffectIds": [4101],
-    "SpawnEffectPath": "Assets/ArtRes/VFX/Projectiles/Fireball_Muzzle.prefab",
-    "LoopEffectPath": "Assets/ArtRes/VFX/Projectiles/Fireball_Flight.prefab",
-    "HitEffectPath": "Assets/ArtRes/VFX/Projectiles/Fireball_Impact.prefab"
+    "SpawnEffectPath": "Assets/ArtRes/Effect/Projectile/Flashy/Red/Heavy/Flashy_Red_Heavy_MuzzleFlare.prefab",
+    "LoopEffectPath": "Assets/ArtRes/Effect/Projectile/Flashy/Red/Heavy/Flashy_Red_Heavy_Projectile.prefab",
+    "HitEffectPath": "Assets/ArtRes/Effect/Projectile/Flashy/Red/Heavy/Flashy_Red_Heavy_Impact.prefab"
 }
 ```
 
