@@ -2,6 +2,7 @@ using MemoryPack;
 using Astrum.LogicCore.Physics;
 using System;
 using System.Collections.Generic;
+using TrueSync;
 
 namespace Astrum.LogicCore.SkillSystem
 {
@@ -51,6 +52,9 @@ namespace Astrum.LogicCore.SkillSystem
 
         /// <summary>模型 Socket 名称（用于抛射物、特效的定位）</summary>
         public string SocketName { get; set; } = string.Empty;
+
+        /// <summary>逻辑挂点偏移（本地坐标系，单位：米，对应 TrueSync 定点）</summary>
+        public TSVector SocketOffset { get; set; } = TSVector.zero;
         
         // === VFX 字段 ===
         
@@ -97,6 +101,7 @@ namespace Astrum.LogicCore.SkillSystem
             VFXFollowCharacter = vfxFollowCharacter;
             VFXLoop = vfxLoop;
             SocketName = string.Empty;
+            SocketOffset = TSVector.zero;
         }
         
         public TriggerFrameInfo() { }

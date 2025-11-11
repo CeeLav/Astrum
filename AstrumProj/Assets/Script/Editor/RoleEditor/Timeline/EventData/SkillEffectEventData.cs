@@ -26,6 +26,9 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
 
         /// <summary>挂载点 Socket 名称（用于抛射物、特效的定位）</summary>
         public string SocketName = "";
+
+        /// <summary>逻辑挂点偏移（相对于实体原点，本地坐标系，单位：米）</summary>
+        public Vector3 SocketOffset = Vector3.zero;
         
         // === 效果详情（从配置表读取，缓存用于显示） ===
         
@@ -68,6 +71,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 TriggerType = "Direct",
                 CollisionInfo = "",
                 SocketName = "",
+                SocketOffset = Vector3.zero,
                 EffectName = "",
                 EffectTypeKey = string.Empty,
                 PrimaryValue = 0f,
@@ -89,7 +93,8 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 EffectIds = effectIds ?? new List<int>(),
                 TriggerType = triggerType,
                 CollisionInfo = collisionInfo,
-                SocketName = string.Empty
+                SocketName = string.Empty,
+                SocketOffset = Vector3.zero
             };
             
             data.RefreshFromTable();
@@ -117,6 +122,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 TriggerType = this.TriggerType,
                 CollisionInfo = this.CollisionInfo,
                 SocketName = this.SocketName,
+                SocketOffset = this.SocketOffset,
                 EffectName = this.EffectName,
                 EffectTypeKey = this.EffectTypeKey,
                 PrimaryValue = this.PrimaryValue,
@@ -296,6 +302,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             if (!string.IsNullOrEmpty(SocketName))
             {
                 text += $"\n挂点: {SocketName}";
+            }
+
+            if (SocketOffset != Vector3.zero)
+            {
+                text += $"\n逻辑偏移: {SocketOffset.x:0.###}, {SocketOffset.y:0.###}, {SocketOffset.z:0.###}";
             }
             
             return text;

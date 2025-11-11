@@ -26,11 +26,25 @@ namespace Astrum.View.Components
         private List<SocketBinding> _bindings = new List<SocketBinding>();
 
         private readonly Dictionary<string, Transform> _lookup = new Dictionary<string, Transform>();
+        private bool _lookupBuilt = false;
 
         private void Awake()
         {
-            // 构建查找表
+            RebuildLookup();
+        }
+
+        /// <summary>
+        /// 构建或重建查找表（编辑器模式下需要手动调用）
+        /// </summary>
+        private void RebuildLookup()
+        {
             _lookup.Clear();
+            if (_bindings == null)
+            {
+                _lookupBuilt = true;
+                return;
+            }
+
             foreach (var binding in _bindings)
             {
                 if (!string.IsNullOrWhiteSpace(binding.Name) && binding.Transform != null)
@@ -42,6 +56,18 @@ namespace Astrum.View.Components
                     }
                     _lookup[binding.Name] = binding.Transform;
                 }
+            }
+            _lookupBuilt = true;
+        }
+
+        /// <summary>
+        /// 确保查找表已构建（编辑器模式下使用）
+        /// </summary>
+        private void EnsureLookupBuilt()
+        {
+            if (!_lookupBuilt)
+            {
+                RebuildLookup();
             }
         }
 
@@ -59,6 +85,8 @@ namespace Astrum.View.Components
 
             if (string.IsNullOrWhiteSpace(socketName))
                 return false;
+
+            EnsureLookupBuilt();
 
             if (_lookup.TryGetValue(socketName, out var socketTransform) && socketTransform != null)
             {
@@ -78,6 +106,8 @@ namespace Astrum.View.Components
             if (string.IsNullOrWhiteSpace(socketName))
                 return null;
 
+            EnsureLookupBuilt();
+
             return _lookup.TryGetValue(socketName, out var t) ? t : null;
         }
 
@@ -86,6 +116,7 @@ namespace Astrum.View.Components
         /// </summary>
         public IEnumerable<string> GetAllSocketNames()
         {
+            EnsureLookupBuilt();
             return _lookup.Keys;
         }
 

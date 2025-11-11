@@ -175,6 +175,7 @@ namespace Astrum.Editor.RoleEditor.Windows
             _previewModule = new AnimationPreviewModule();
             _previewModule.Initialize();
             _previewModule.SetHitDummyEnabled(true);
+            Timeline.Renderers.SkillEffectTrackRenderer.SetPreviewModuleProvider(() => _previewModule);
             
             // 将预览模块引用传递给配置模块（用于提取Hips位移）
             _configModule.SetPreviewModule(_previewModule);
@@ -198,6 +199,8 @@ namespace Astrum.Editor.RoleEditor.Windows
         
         private void CleanupModules()
         {
+            Timeline.Renderers.SkillEffectTrackRenderer.SetPreviewModuleProvider(null);
+
             if (_playbackCoordinator != null)
             {
                 _playbackCoordinator.OnPreviewFrameChanged -= HandlePreviewFrameChanged;

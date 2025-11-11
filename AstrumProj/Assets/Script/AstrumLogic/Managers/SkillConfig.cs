@@ -1,9 +1,11 @@
-using Astrum.LogicCore.SkillSystem;
-using Astrum.LogicCore.Physics;
-using Astrum.CommonBase;
+using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using System.Linq;
+using Astrum.CommonBase;
+using Astrum.LogicCore.Physics;
+using Astrum.LogicCore.SkillSystem;
+using Newtonsoft.Json;
+using TrueSync;
 
 namespace Astrum.LogicCore.Managers
 {
@@ -267,6 +269,65 @@ namespace Astrum.LogicCore.Managers
                 if (jsonData == null)
                     return results;
                 
+                TSVector ParseSocketOffset(object raw)
+                {
+                    if (raw == null)
+                        return TSVector.zero;
+
+                    try
+                    {
+                        static float TokenToFloat(Newtonsoft.Json.Linq.JToken token)
+                        {
+                            if (token == null || token.Type == Newtonsoft.Json.Linq.JTokenType.Null)
+                                return 0f;
+                            return token.ToObject<float>();
+                        }
+
+                        if (raw is Newtonsoft.Json.Linq.JArray arr && arr.Count >= 3)
+                        {
+                            float x = TokenToFloat(arr[0]);
+                            float y = TokenToFloat(arr[1]);
+                            float z = TokenToFloat(arr[2]);
+                            return new TSVector(FP.FromFloat(x), FP.FromFloat(y), FP.FromFloat(z));
+                        }
+
+                        if (raw is Newtonsoft.Json.Linq.JObject obj)
+                        {
+                            float x = TokenToFloat(obj["x"] ?? obj["X"]);
+                            float y = TokenToFloat(obj["y"] ?? obj["Y"]);
+                            float z = TokenToFloat(obj["z"] ?? obj["Z"]);
+                            return new TSVector(FP.FromFloat(x), FP.FromFloat(y), FP.FromFloat(z));
+                        }
+
+                        if (raw is System.Collections.IList list && list.Count >= 3)
+                        {
+                            float x = Convert.ToSingle(list[0]);
+                            float y = Convert.ToSingle(list[1]);
+                            float z = Convert.ToSingle(list[2]);
+                            return new TSVector(FP.FromFloat(x), FP.FromFloat(y), FP.FromFloat(z));
+                        }
+
+                        if (raw is string str && !string.IsNullOrWhiteSpace(str))
+                        {
+                            var parts = str.Split(',', ';', ' ');
+                            var filtered = parts.Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
+                            if (filtered.Length >= 3 &&
+                                float.TryParse(filtered[0], out float sx) &&
+                                float.TryParse(filtered[1], out float sy) &&
+                                float.TryParse(filtered[2], out float sz))
+                            {
+                                return new TSVector(FP.FromFloat(sx), FP.FromFloat(sy), FP.FromFloat(sz));
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore parsing errors
+                    }
+
+                    return TSVector.zero;
+                }
+
                 foreach (var item in jsonData)
                 {
                     // 辅助方法：查找键（不区分大小写）
@@ -308,6 +369,7 @@ namespace Astrum.LogicCore.Managers
                         // SkillEffect 类型
                         string triggerType = GetValue(TriggerFrameJsonKeys.TriggerType)?.ToString() ?? "";
                         string socketName = GetValue(TriggerFrameJsonKeys.SocketName)?.ToString() ?? string.Empty;
+                        TSVector socketOffset = ParseSocketOffset(GetValue(TriggerFrameJsonKeys.SocketOffset));
                         
                         // 解析效果ID列表（支持单个或多个）
                         List<int> effectIds = new List<int>();
@@ -396,7 +458,8 @@ namespace Astrum.LogicCore.Managers
                                 EffectIds = mappedEffectIds,
                                 CollisionShape = collisionShape,
                                 Condition = condition,
-                                SocketName = socketName
+                                SocketName = socketName,
+                                SocketOffset = socketOffset
                             });
                         }
                         else if (startFrame.HasValue && endFrame.HasValue)
@@ -414,7 +477,8 @@ namespace Astrum.LogicCore.Managers
                                     EffectIds = mappedEffectIds,
                                     CollisionShape = collisionShape,
                                     Condition = condition,
-                                    SocketName = socketName
+                                    SocketName = socketName,
+                                    SocketOffset = socketOffset
                                 });
                             }
                         }
@@ -424,6 +488,7 @@ namespace Astrum.LogicCore.Managers
                         // VFX 类型
                         string resourcePath = GetValue(TriggerFrameJsonKeys.ResourcePath)?.ToString() ?? string.Empty;
                         string socketName = GetValue(TriggerFrameJsonKeys.SocketName)?.ToString() ?? string.Empty;
+                        TSVector socketOffset = ParseSocketOffset(GetValue(TriggerFrameJsonKeys.SocketOffset));
                         if (string.IsNullOrEmpty(resourcePath))
                         {
                             ASLogger.Instance.Warning("VFX trigger missing resourcePath");
@@ -524,7 +589,8 @@ namespace Astrum.LogicCore.Managers
                                 VFXPlaybackSpeed = playbackSpeed,
                                 VFXFollowCharacter = followCharacter,
                                 VFXLoop = loop,
-                                SocketName = socketName
+                                SocketName = socketName,
+                                SocketOffset = socketOffset
                             });
                         }
                         else if (startFrame.HasValue && endFrame.HasValue)
@@ -545,7 +611,8 @@ namespace Astrum.LogicCore.Managers
                                     VFXPlaybackSpeed = playbackSpeed,
                                     VFXFollowCharacter = followCharacter,
                                     VFXLoop = loop,
-                                    SocketName = socketName
+                                    SocketName = socketName,
+                                    SocketOffset = socketOffset
                                 });
                             }
                         }

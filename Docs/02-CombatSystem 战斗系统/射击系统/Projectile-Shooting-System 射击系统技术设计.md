@@ -394,6 +394,7 @@ public sealed class SocketRefs : MonoBehaviour
 - 由美术/动画同学在Prefab上维护 `_bindings` 列表，与真实骨骼名称解耦（可使用别名）。
 - ViewBridge/Factory 在实例化角色模型后，将 `GameObject` 记录在实体视图映射中，供 `ProjectileSpawnCapability` 根据 `socketName` 查询。
 - 如果触发帧未指定 `SocketName`，则回退使用 `TransComponent` 的位置与当前朝向。
+- 触发帧可以额外配置 `socketOffset`（本地坐标），逻辑层会基于实体的 `Right/Up/Forward` 方向转换成世界坐标，与 `SocketName` 联合使用可实现挂点的精细化微调。
 
 ### 4.6 ProjectileViewComponent（表现层）
 

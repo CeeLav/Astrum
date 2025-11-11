@@ -155,6 +155,9 @@ SkillEffectTable
   - `ProjectileId`（可选）：当 `intParams` 未填写时，可在 JSON 中提供。
   - `TrajectoryOverride`：在生成时对 `ProjectileDefinition.TrajectoryData` 做增量覆写。
   - `AdditionalEffectIds`：追加命中效果，等价于在 `intParams` 中继续填写。
+- 触发帧 JSON（在技能动作编辑器中配置）支持：
+  - `socketName`：使用 `SocketRefs` 上的挂点名。
+  - `socketOffset`：逻辑坐标系下的本地偏移量（数组或 `{x,y,z}` 对象），在逻辑层会根据角色朝向转换到世界坐标，可通过编辑器“从预览模型采样”按钮自动测量。
 - 视觉资源（开火、飞行、命中）不在 `SkillEffectTable` 中配置，而是放在 `ProjectileTable` 的 `SpawnEffectPath`、`LoopEffectPath`、`HitEffectPath` 字段，由逻辑层透传给 `ProjectileViewComponent` 自动加载和播放。
 
 ### 自定义效果（示例）

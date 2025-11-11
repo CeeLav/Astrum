@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEditor;
 using Astrum.Editor.RoleEditor.Timeline.EventData;
+using Astrum.Editor.RoleEditor.Modules;
 using Astrum.Editor.RoleEditor.Windows;
 using Astrum.Editor.RoleEditor.Services;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
@@ -22,6 +25,14 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
         
         // === 编辑器状态 ===
         private static System.Collections.Generic.Dictionary<string, bool> _effectFoldouts = new System.Collections.Generic.Dictionary<string, bool>();
+
+        // === 外部依赖（由窗口注入） ===
+        private static Func<AnimationPreviewModule> _previewModuleProvider;
+
+        public static void SetPreviewModuleProvider(Func<AnimationPreviewModule> provider)
+        {
+            _previewModuleProvider = provider;
+        }
         
         /// <summary>
         /// 渲染技能效果事件
@@ -358,8 +369,31 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                     effectData.SocketName = string.IsNullOrWhiteSpace(newSocket) ? string.Empty : newSocket.Trim();
                     modified = true;
                 }
-                
-                EditorGUILayout.HelpBox("留空则使用实体逻辑默认位置；填写挂点名称以从模型 SocketRefs 获取坐标。", MessageType.None);
+
+                EditorGUI.BeginChangeCheck();
+                Vector3 newOffset = EditorGUILayout.Vector3Field("逻辑偏移", effectData.SocketOffset);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    effectData.SocketOffset = newOffset;
+                    modified = true;
+                }
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button("从预览模型采样", GUILayout.Width(150)))
+                    {
+                        if (TrySampleSocketOffset(effectData))
+                        {
+                            modified = true;
+                        }
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.HelpBox(
+                    "留空则使用实体逻辑默认位置；填写挂点名称以从模型 SocketRefs 获取坐标。\n逻辑偏移用于在逻辑层微调挂点位置，可通过上方按钮从当前预览模型采样。",
+                    MessageType.None);
             }
             EditorGUILayout.EndVertical();
             
@@ -474,6 +508,90 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             EditorGUI.DrawRect(new Rect(rect.x, rect.y, thickness, rect.height), color);
             // 右
             EditorGUI.DrawRect(new Rect(rect.xMax - thickness, rect.y, thickness, rect.height), color);
+        }
+
+        private static bool TrySampleSocketOffset(SkillEffectEventData effectData)
+        {
+            if (string.IsNullOrWhiteSpace(effectData.SocketName))
+            {
+                EditorUtility.DisplayDialog("提示", "请先填写 Socket 名称。", "确定");
+                return false;
+            }
+
+            var previewModule = _previewModuleProvider?.Invoke();
+            if (previewModule == null)
+            {
+                EditorUtility.DisplayDialog("提示", "未找到动画预览模块，请确认预览区域已经加载模型。", "确定");
+                return false;
+            }
+
+            var previewModel = previewModule.GetPreviewModel();
+            if (previewModel == null)
+            {
+                EditorUtility.DisplayDialog("提示", "预览模型尚未加载，请先在预览区域选择实体。", "确定");
+                return false;
+            }
+
+            Transform socketTransform = null;
+
+            var socketRefsComponent = previewModel
+                .GetComponentsInChildren<Component>(true)
+                .FirstOrDefault(c => c != null && c.GetType().Name == "SocketRefs");
+
+            if (socketRefsComponent != null)
+            {
+                IEnumerable<string> socketNames = null;
+                var getAllNamesMethod = socketRefsComponent.GetType().GetMethod("GetAllSocketNames");
+                if (getAllNamesMethod != null)
+                {
+                    try
+                    {
+                        var enumerable = getAllNamesMethod.Invoke(socketRefsComponent, null) as System.Collections.IEnumerable;
+                        if (enumerable != null)
+                        {
+                            socketNames = enumerable.Cast<object>().Select(o => o?.ToString() ?? "<null>").ToArray();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[SkillEffectTrackRenderer] 调用 SocketRefs.GetAllSocketNames 失败: {ex.Message}");
+                    }
+                }
+
+                var socketsText = socketNames != null ? string.Join(", ", socketNames) : "(未知或访问失败)";
+                Debug.Log($"[SkillEffectTrackRenderer] SocketRefs 已挂载于预览模型 '{previewModel.name}'，可用挂点: {socketsText}");
+
+                var getSocketMethod = socketRefsComponent.GetType().GetMethod("GetSocketTransform", new[] { typeof(string) });
+                if (getSocketMethod != null)
+                {
+                    var result = getSocketMethod.Invoke(socketRefsComponent, new object[] { effectData.SocketName });
+                    socketTransform = result as Transform;
+                }
+            }
+            else
+            {
+                Debug.Log($"[SkillEffectTrackRenderer] 预览模型 '{previewModel.name}' 未挂载 SocketRefs，改用 Transform 名称匹配查找挂点。");
+            }
+
+            if (socketTransform == null)
+            {
+                socketTransform = previewModel
+                    .GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(t => string.Equals(t.name, effectData.SocketName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (socketTransform == null)
+            {
+                EditorUtility.DisplayDialog("提示", $"未在预览模型上找到挂点 '{effectData.SocketName}'。", "确定");
+                return false;
+            }
+
+            var worldPos = socketTransform.position;
+            Debug.Log($"[SkillEffectTrackRenderer] 挂点 '{effectData.SocketName}' 采样成功，世界坐标: {worldPos}");
+
+            Vector3 localOffset = previewModel.transform.InverseTransformPoint(socketTransform.position);
+            effectData.SocketOffset = localOffset;
+            return true;
         }
         
         /// <summary>

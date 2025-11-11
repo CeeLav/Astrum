@@ -265,7 +265,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 TriggerType = eventData.TriggerType,
                 EffectIds = eventData.EffectIds != null ? new List<int>(eventData.EffectIds) : new List<int>(),
                 CollisionInfo = eventData.CollisionInfo,
-                SocketName = eventData.SocketName
+                SocketName = eventData.SocketName,
+                SocketOffset = eventData.SocketOffset
             };
         }
         

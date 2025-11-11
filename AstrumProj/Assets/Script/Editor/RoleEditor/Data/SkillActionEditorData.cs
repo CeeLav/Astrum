@@ -212,6 +212,7 @@ namespace Astrum.Editor.RoleEditor.Data
                     EffectIds = effect.EffectIds != null ? new List<int>(effect.EffectIds) : new List<int>(),
                     CollisionInfo = effect.CollisionInfo,
                     SocketName = effect.SocketName,
+                    SocketOffset = effect.SocketOffset,
                     ResourcePath = effect.ResourcePath,
                     PositionOffset = effect.PositionOffset,
                     Rotation = effect.Rotation,
@@ -313,7 +314,8 @@ namespace Astrum.Editor.RoleEditor.Data
                 TriggerType = eventData.TriggerType,
                 EffectIds = eventData.EffectIds != null ? new List<int>(eventData.EffectIds) : new List<int>(),
                 CollisionInfo = eventData.CollisionInfo,
-                SocketName = eventData.SocketName
+                SocketName = eventData.SocketName,
+                SocketOffset = eventData.SocketOffset
             };
         }
         
@@ -410,7 +412,8 @@ namespace Astrum.Editor.RoleEditor.Data
                 EffectIds = triggerData.EffectIds != null ? new List<int>(triggerData.EffectIds) : new List<int>(),
                 TriggerType = triggerData.TriggerType,
                 CollisionInfo = triggerData.CollisionInfo,
-                SocketName = triggerData.SocketName
+                SocketName = triggerData.SocketName,
+                SocketOffset = triggerData.SocketOffset
             };
             
             // 刷新效果详情（从配置表读取）
@@ -528,6 +531,9 @@ namespace Astrum.Editor.RoleEditor.Data
 
         /// <summary>挂载点 Socket 名称（用于抛射物、表现定位）</summary>
         public string SocketName = "";
+
+        /// <summary>逻辑挂点偏移（相对于实体原点，本地坐标系）</summary>
+        public Vector3 SocketOffset = Vector3.zero;
         
         // === VFX 字段 ===
         
@@ -778,6 +784,7 @@ namespace Astrum.Editor.RoleEditor.Data
                         TriggerType = triggerType,
                         CollisionInfo = collisionInfo,
                         SocketName = string.Empty,
+                        SocketOffset = Vector3.zero,
                         EffectIds = new List<int> { effectId }
                     };
                     

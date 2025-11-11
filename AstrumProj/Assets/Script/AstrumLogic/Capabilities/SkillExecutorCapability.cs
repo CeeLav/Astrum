@@ -332,7 +332,20 @@ namespace Astrum.LogicCore.Capabilities
                 {
                     forward = TSVector.forward;
                 }
-                return (trans.Position, forward);
+                
+                var position = trans.Position;
+                if (trigger != null)
+                {
+                    var offset = trigger.SocketOffset;
+                    if (offset != TSVector.zero)
+                    {
+                        var right = trans.Right;
+                        var up = trans.Up;
+                        var worldOffset = right * offset.x + up * offset.y + forward * offset.z;
+                        position += worldOffset;
+                    }
+                }
+                return (position, forward);
             }
 
             return (TSVector.zero, TSVector.forward);

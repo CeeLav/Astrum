@@ -37,6 +37,9 @@ namespace Astrum.CommonBase
         /// <summary>Socket 名称（用于定位发射点）</summary>
         public const string SocketName = "socketName";
 
+        /// <summary>Socket 逻辑偏移（作用于逻辑坐标系）</summary>
+        public const string SocketOffset = "socketOffset";
+
         /// <summary>抛射物 ID（技能参数覆盖）</summary>
         public const string ProjectileId = "projectileId";
 
