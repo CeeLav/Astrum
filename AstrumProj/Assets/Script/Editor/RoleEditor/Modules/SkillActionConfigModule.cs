@@ -151,6 +151,8 @@ namespace Astrum.Editor.RoleEditor.Modules
                 "RootMotionDataArray"
             };
             
+            bool hasChanges = false;
+            
             foreach (var property in _propertyTree.EnumerateTree(false))
             {
                 // 绘制带 TitleGroup 的属性
@@ -164,14 +166,19 @@ namespace Astrum.Editor.RoleEditor.Modules
                     }
                     
                     // 其他字段正常绘制（包括ExtractMode，它在Odin中显示以便选择模式）
+                    EditorGUI.BeginChangeCheck();
                     property.Draw();
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        hasChanges = true;
+                    }
                 }
             }
             
             _propertyTree.EndDraw();
             
-            // 应用修改
-            if (_propertyTree.ApplyChanges())
+            // 应用修改并标记脏状态
+            if (hasChanges || _propertyTree.ApplyChanges())
             {
                 _currentSkillAction.MarkDirty();
                 EditorUtility.SetDirty(_currentSkillAction);
