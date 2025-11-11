@@ -1,6 +1,6 @@
 ##var,ID,actionId,actionType,intParams,floatParams,stringParams,notes
-##type,int,int,int,"array,int","array,float","array,string",string
+##type,int,int,TriggerActionType,"(array#sep=|),int","(array#sep=|),float","(array#sep=|),string",string
 ##group,,,,,,,
 ##desc,触发器ID,动作序号,动作类型,整型参数列表,浮点参数列表,字符串参数列表,备注
-,100,1,TriggerActionType.SpawnEntity,(array#sep=|#count=2)|1001|3,(array#sep=|#count=3)|10|0|5,(array#sep=|),生成3个EntityId=1001
-,101,2,TriggerActionType.PlayEffect,(array#sep=|#count=1)|3001,(array#sep=|#count=1)|3,(array#sep=|),播放特效3001持续3秒
+,100,1,SpawnEntity,1001|3,10|0|5,,生成3个EntityId=1001
+,101,2,PlayEffect,3001,3,,播放特效3001持续3秒

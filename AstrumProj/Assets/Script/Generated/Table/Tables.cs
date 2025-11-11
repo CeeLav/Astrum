@@ -31,6 +31,9 @@ public partial class Tables
     public Projectile.TbProjectileTable TbProjectileTable {get; }
     public Role.TbRoleBaseTable TbRoleBaseTable {get; }
     public Role.TbRoleGrowthTable TbRoleGrowthTable {get; }
+    public Scene.TbSceneTable TbSceneTable {get; }
+    public Scene.TbSceneTriggerActionTable TbSceneTriggerActionTable {get; }
+    public Scene.TbSceneTriggerConditionTable TbSceneTriggerConditionTable {get; }
     public Skill.TbSkillActionTable TbSkillActionTable {get; }
     public Skill.TbSkillEffectTable TbSkillEffectTable {get; }
     public Skill.TbSkillTable TbSkillTable {get; }
@@ -55,6 +58,9 @@ public partial class Tables
         TbProjectileTable = new Projectile.TbProjectileTable(loader("projectile_tbprojectiletable"));
         TbRoleBaseTable = new Role.TbRoleBaseTable(loader("role_tbrolebasetable"));
         TbRoleGrowthTable = new Role.TbRoleGrowthTable(loader("role_tbrolegrowthtable"));
+        TbSceneTable = new Scene.TbSceneTable(loader("scene_tbscenetable"));
+        TbSceneTriggerActionTable = new Scene.TbSceneTriggerActionTable(loader("scene_tbscenetriggeractiontable"));
+        TbSceneTriggerConditionTable = new Scene.TbSceneTriggerConditionTable(loader("scene_tbscenetriggerconditiontable"));
         TbSkillActionTable = new Skill.TbSkillActionTable(loader("skill_tbskillactiontable"));
         TbSkillEffectTable = new Skill.TbSkillEffectTable(loader("skill_tbskilleffecttable"));
         TbSkillTable = new Skill.TbSkillTable(loader("skill_tbskilltable"));
@@ -81,6 +87,9 @@ public partial class Tables
         TbProjectileTable.ResolveRef(this);
         TbRoleBaseTable.ResolveRef(this);
         TbRoleGrowthTable.ResolveRef(this);
+        TbSceneTable.ResolveRef(this);
+        TbSceneTriggerActionTable.ResolveRef(this);
+        TbSceneTriggerConditionTable.ResolveRef(this);
         TbSkillActionTable.ResolveRef(this);
         TbSkillEffectTable.ResolveRef(this);
         TbSkillTable.ResolveRef(this);

@@ -1,5 +1,6 @@
 ##var,sceneId,sceneName,description,triggerIdList,notes
-##type,int,string,string,"array,int",string
+##type,int,string,string,"(array#sep=|),int",string
 ##group,,,,,
 ##desc,场景ID,场景名称,场景描述,触发器ID列表,备注
-,1,TutorialScene,教学关卡,(array#sep=|#count=2)|100|101,入门场景，包含两个触发器
+,1,Hub,主场景,100|101,
+,2,DungeonsGame,野外,,
