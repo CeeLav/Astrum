@@ -19,6 +19,9 @@ namespace Astrum.View.Components
             
             // 绘制攻击碰撞盒
             DebugComponent.DrawAttackBoxGizmos();
+
+            // 绘制子弹轨迹
+            DebugComponent.DrawProjectileTrajectoryGizmos();
         }
         
         private void OnDrawGizmosSelected()

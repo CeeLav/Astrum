@@ -57,6 +57,11 @@ namespace Astrum.LogicCore.Components
         public TSVector LastPosition { get; set; } = TSVector.zero;
 
         /// <summary>
+        /// 初始发射位置，用于绘制完整轨迹
+        /// </summary>
+        public TSVector InitialPosition { get; set; } = TSVector.zero;
+
+        /// <summary>
         /// 允许穿透的实体数量（0 表示不穿透）
         /// </summary>
         public int PierceCount { get; set; } = 0;

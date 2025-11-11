@@ -272,6 +272,7 @@ namespace Astrum.LogicCore.Capabilities
             projectileComponent.LaunchDirection = direction.normalized;
             projectileComponent.CurrentVelocity = TSVector.zero;
             projectileComponent.LastPosition = spawnPosition;
+            projectileComponent.InitialPosition = spawnPosition;
             projectileComponent.SocketName = socketName ?? string.Empty;
             projectileComponent.SocketOffset = socketOffset;
             projectileComponent.IsMarkedForDestroy = false;

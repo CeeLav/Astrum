@@ -9,18 +9,21 @@ namespace Astrum.View.Components
 {
     /// <summary>
     /// 碰撞盒调试可视化组件
-    /// 在Scene视图中通过Gizmos显示实体碰撞盒和技能攻击盒
+    /// 在Scene视图中通过Gizmos显示实体碰撞盒、技能攻击盒和子弹轨迹
     /// </summary>
     public class CollisionDebugViewComponent : ViewComponent
     {
         // 可视化开关
         public bool ShowEntityCollision = true;      // 显示实体碰撞盒
         public bool ShowAttackBox = true;            // 显示攻击碰撞盒
+        public bool ShowProjectileTrajectory = true; // 显示子弹轨迹
         public bool ShowLabels = true;               // 显示文本标签
         
         // 颜色配置
         public Color EntityCollisionColor = new Color(0f, 1f, 0f, 0.3f);  // 绿色半透明
         public Color AttackBoxColor = new Color(1f, 0f, 0f, 0.5f);        // 红色半透明
+        public Color ProjectileTrajectoryColor = new Color(1f, 1f, 0f, 0.8f); // 黄色
+        public Color ProjectileRaycastColor = new Color(0f, 1f, 1f, 0.8f);    // 青色
         public Color LabelColor = Color.white;
         
         private MonoBehaviour _monoBehaviour;
@@ -132,6 +135,119 @@ namespace Astrum.View.Components
                 Gizmos.color = AttackBoxColor; // 恢复颜色
             }
         }
+
+        /// <summary>
+        /// 绘制子弹轨迹
+        /// </summary>
+        public void DrawProjectileTrajectoryGizmos()
+        {
+            if (!ShowProjectileTrajectory) return;
+            
+            if (OwnerEntity == null)
+            {
+#if UNITY_EDITOR
+                UnityEditor.Handles.Label(Vector3.zero, "OwnerEntity is null", new GUIStyle { normal = new GUIStyleState { textColor = Color.red } });
+#endif
+                return;
+            }
+
+            var projectileComp = OwnerEntity.GetComponent<ProjectileComponent>();
+            var transComp = OwnerEntity.GetComponent<TransComponent>();
+
+            if (projectileComp == null)
+            {
+#if UNITY_EDITOR
+                var trans = OwnerEntity.GetComponent<TransComponent>();
+                if (trans != null)
+                {
+                    Vector3 pos = new Vector3((float)trans.Position.x, (float)trans.Position.y, (float)trans.Position.z);
+                    UnityEditor.Handles.Label(pos, $"Entity {OwnerEntity.UniqueId}: No ProjectileComponent", 
+                        new GUIStyle { normal = new GUIStyleState { textColor = Color.red }, fontSize = 14 });
+                }
+#endif
+                return;
+            }
+            
+            if (transComp == null)
+            {
+#if UNITY_EDITOR
+                UnityEditor.Handles.Label(Vector3.zero, $"Entity {OwnerEntity.UniqueId}: No TransComponent", 
+                    new GUIStyle { normal = new GUIStyleState { textColor = Color.red }, fontSize = 14 });
+#endif
+                return;
+            }
+
+            Vector3 currentPos = TSVectorToVector3(transComp.Position);
+            Vector3 lastPos = TSVectorToVector3(projectileComp.LastPosition);
+            Vector3 initialPos = TSVectorToVector3(projectileComp.InitialPosition);
+            Vector3 velocity = TSVectorToVector3(projectileComp.CurrentVelocity);
+            Vector3 launchDir = TSVectorToVector3(projectileComp.LaunchDirection);
+
+            // 绘制完整轨迹：从初始位置到当前位置
+            float totalDistance = Vector3.Distance(initialPos, currentPos);
+            if (totalDistance > 0.0001f)
+            {
+                Gizmos.color = new Color(1f, 0.5f, 0f, 0.6f); // 橙色半透明
+                Gizmos.DrawLine(initialPos, currentPos);
+                
+                // 绘制初始发射位置标记
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(initialPos, 0.12f);
+            }
+
+            // 绘制当前位置标记（最显眼的，确保能看到）
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(currentPos, 0.15f);
+            Gizmos.DrawSphere(currentPos, 0.05f);
+
+            // 绘制当前帧检测射线（上一帧到当前帧）
+            float frameDistance = Vector3.Distance(currentPos, lastPos);
+            if (frameDistance > 0.0001f)
+            {
+                Gizmos.color = ProjectileRaycastColor; // 青色
+                Gizmos.DrawLine(lastPos, currentPos);
+                
+                // 在射线中点绘制一个小球
+                Vector3 midPoint = (lastPos + currentPos) * 0.5f;
+                Gizmos.DrawWireSphere(midPoint, 0.08f);
+                
+                // 绘制上一帧位置标记
+                Gizmos.color = new Color(0f, 1f, 1f, 0.5f);
+                Gizmos.DrawWireSphere(lastPos, 0.1f);
+            }
+
+            // 绘制当前速度方向
+            if (velocity.sqrMagnitude > 0.0001f)
+            {
+                Gizmos.color = ProjectileTrajectoryColor;
+                Vector3 velocityEnd = currentPos + velocity.normalized * 0.8f;
+                Gizmos.DrawLine(currentPos, velocityEnd);
+                
+                // 绘制箭头
+                DrawArrow(currentPos, velocityEnd, 0.15f);
+            }
+            else if (launchDir.sqrMagnitude > 0.0001f)
+            {
+                // 如果没有速度，显示发射方向
+                Gizmos.color = new Color(1f, 0.5f, 0f, 0.8f); // 橙色
+                Vector3 dirEnd = currentPos + launchDir.normalized * 0.8f;
+                Gizmos.DrawLine(currentPos, dirEnd);
+                DrawArrow(currentPos, dirEnd, 0.15f);
+            }
+
+            // 绘制标签
+            if (ShowLabels)
+            {
+                string info = $"Projectile {projectileComp.ProjectileId}\n" +
+                             $"Frame: {projectileComp.ElapsedFrames}/{projectileComp.LifeTime}\n" +
+                             $"Pos: {currentPos:F2}\n" +
+                             $"Speed: {velocity.magnitude:F2}\n" +
+                             $"Total Dist: {totalDistance:F2}\n" +
+                             $"Frame Dist: {frameDistance:F3}\n" +
+                             $"Pierce: {projectileComp.PiercedCount}/{projectileComp.PierceCount}";
+                DrawLabel(currentPos + Vector3.up * 0.3f, info);
+            }
+        }
         
         /// <summary>
         /// 绘制碰撞形状
@@ -226,6 +342,26 @@ namespace Astrum.View.Components
         private Quaternion TSQuaternionToQuaternion(TrueSync.TSQuaternion q)
         {
             return new Quaternion((float)q.x, (float)q.y, (float)q.z, (float)q.w);
+        }
+
+        /// <summary>
+        /// 绘制箭头（用于表示方向）
+        /// </summary>
+        private void DrawArrow(Vector3 start, Vector3 end, float arrowHeadLength = 0.1f)
+        {
+            Vector3 direction = (end - start).normalized;
+            Vector3 right = Vector3.Cross(Vector3.up, direction).normalized;
+            if (right.sqrMagnitude < 0.01f) // 如果方向接近垂直，使用另一个轴
+            {
+                right = Vector3.Cross(Vector3.right, direction).normalized;
+            }
+
+            float arrowAngle = 20f;
+            Vector3 arrowTip1 = end - Quaternion.AngleAxis(arrowAngle, right) * direction * arrowHeadLength;
+            Vector3 arrowTip2 = end - Quaternion.AngleAxis(-arrowAngle, right) * direction * arrowHeadLength;
+
+            Gizmos.DrawLine(end, arrowTip1);
+            Gizmos.DrawLine(end, arrowTip2);
         }
     }
 }
