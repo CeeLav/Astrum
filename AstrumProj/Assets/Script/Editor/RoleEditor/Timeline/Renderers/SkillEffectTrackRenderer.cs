@@ -345,6 +345,25 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             EditorGUILayout.EndVertical();
             
             EditorGUILayout.Space(5);
+
+            // === 挂载点配置 ===
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("挂点 (Socket)", EditorStyles.boldLabel);
+                
+                EditorGUI.BeginChangeCheck();
+                string newSocket = EditorGUILayout.TextField("Socket 名称", effectData.SocketName ?? string.Empty);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    effectData.SocketName = string.IsNullOrWhiteSpace(newSocket) ? string.Empty : newSocket.Trim();
+                    modified = true;
+                }
+                
+                EditorGUILayout.HelpBox("留空则使用实体逻辑默认位置；填写挂点名称以从模型 SocketRefs 获取坐标。", MessageType.None);
+            }
+            EditorGUILayout.EndVertical();
+            
+            EditorGUILayout.Space(5);
             
             // === 碰撞盒配置（仅Collision类型） ===
             if (effectData.TriggerType == "Collision")

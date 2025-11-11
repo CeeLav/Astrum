@@ -23,6 +23,9 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
         
         /// <summary>碰撞盒信息（仅Collision类型使用）</summary>
         public string CollisionInfo = ""; // 格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point
+
+        /// <summary>挂载点 Socket 名称（用于抛射物、特效的定位）</summary>
+        public string SocketName = "";
         
         // === 效果详情（从配置表读取，缓存用于显示） ===
         
@@ -64,6 +67,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 EffectIds = new List<int>(),
                 TriggerType = "Direct",
                 CollisionInfo = "",
+                SocketName = "",
                 EffectName = "",
                 EffectTypeKey = string.Empty,
                 PrimaryValue = 0f,
@@ -84,7 +88,8 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             {
                 EffectIds = effectIds ?? new List<int>(),
                 TriggerType = triggerType,
-                CollisionInfo = collisionInfo
+                CollisionInfo = collisionInfo,
+                SocketName = string.Empty
             };
             
             data.RefreshFromTable();
@@ -111,6 +116,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
                 EffectIds = new List<int>(this.EffectIds),
                 TriggerType = this.TriggerType,
                 CollisionInfo = this.CollisionInfo,
+                SocketName = this.SocketName,
                 EffectName = this.EffectName,
                 EffectTypeKey = this.EffectTypeKey,
                 PrimaryValue = this.PrimaryValue,
@@ -285,6 +291,11 @@ namespace Astrum.Editor.RoleEditor.Timeline.EventData
             if (!string.IsNullOrEmpty(CollisionInfo))
             {
                 text += $"碰撞盒: {CollisionShapeType} ({CollisionShapeSize})";
+            }
+
+            if (!string.IsNullOrEmpty(SocketName))
+            {
+                text += $"\n挂点: {SocketName}";
             }
             
             return text;

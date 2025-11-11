@@ -211,6 +211,7 @@ namespace Astrum.Editor.RoleEditor.Data
                     TriggerType = effect.TriggerType,
                     EffectIds = effect.EffectIds != null ? new List<int>(effect.EffectIds) : new List<int>(),
                     CollisionInfo = effect.CollisionInfo,
+                    SocketName = effect.SocketName,
                     ResourcePath = effect.ResourcePath,
                     PositionOffset = effect.PositionOffset,
                     Rotation = effect.Rotation,
@@ -311,7 +312,8 @@ namespace Astrum.Editor.RoleEditor.Data
                 Type = TriggerFrameJsonKeys.TypeSkillEffect,
                 TriggerType = eventData.TriggerType,
                 EffectIds = eventData.EffectIds != null ? new List<int>(eventData.EffectIds) : new List<int>(),
-                CollisionInfo = eventData.CollisionInfo
+                CollisionInfo = eventData.CollisionInfo,
+                SocketName = eventData.SocketName
             };
         }
         
@@ -407,7 +409,8 @@ namespace Astrum.Editor.RoleEditor.Data
             {
                 EffectIds = triggerData.EffectIds != null ? new List<int>(triggerData.EffectIds) : new List<int>(),
                 TriggerType = triggerData.TriggerType,
-                CollisionInfo = triggerData.CollisionInfo
+                CollisionInfo = triggerData.CollisionInfo,
+                SocketName = triggerData.SocketName
             };
             
             // 刷新效果详情（从配置表读取）
@@ -522,6 +525,9 @@ namespace Astrum.Editor.RoleEditor.Data
         
         /// <summary>碰撞盒信息（仅Collision类型使用）</summary>
         public string CollisionInfo = "";
+
+        /// <summary>挂载点 Socket 名称（用于抛射物、表现定位）</summary>
+        public string SocketName = "";
         
         // === VFX 字段 ===
         
@@ -610,6 +616,14 @@ namespace Astrum.Editor.RoleEditor.Data
                 {
                     result = new List<TriggerFrameData>();
                 }
+                else
+                {
+                    foreach (var trigger in result)
+                    {
+                        if (trigger == null) continue;
+                        trigger.SocketName ??= string.Empty;
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -629,6 +643,12 @@ namespace Astrum.Editor.RoleEditor.Data
             
             try
             {
+                foreach (var trigger in triggerFrames)
+                {
+                    if (trigger == null) continue;
+                    trigger.SocketName ??= string.Empty;
+                }
+
                 // 使用Newtonsoft.Json直接序列化数组，使用自定义设置
                 var settings = GetJsonSettings();
                 return JsonConvert.SerializeObject(triggerFrames, settings);
@@ -757,6 +777,7 @@ namespace Astrum.Editor.RoleEditor.Data
                         Type = "SkillEffect",
                         TriggerType = triggerType,
                         CollisionInfo = collisionInfo,
+                        SocketName = string.Empty,
                         EffectIds = new List<int> { effectId }
                     };
                     

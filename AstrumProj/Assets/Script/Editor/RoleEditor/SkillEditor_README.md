@@ -158,10 +158,11 @@ SkillActionData
 
 ### 3. 触发帧配置
 
-**格式**: `"Frame5:Collision:4001,Frame10:Direct:4002"`
+**格式**: `"Frame5:Collision:4001,Frame10:Direct:4002"`（编辑器内部使用 JSON 存储）
 - **Frame**: 帧号（非负整数）
 - **TriggerType**: `Collision` / `Direct` / `Condition`
-- **EffectId**: 对应 SkillEffectTable 的ID
+- **EffectId**: 对应 SkillEffectTable 的ID，可并列多个
+- **SocketName**: （可选）挂点名称。若填写，运行时会通过 `SocketRefs` 从模型获取该挂点的世界坐标；留空则使用逻辑默认出射位置。
 
 ---
 
