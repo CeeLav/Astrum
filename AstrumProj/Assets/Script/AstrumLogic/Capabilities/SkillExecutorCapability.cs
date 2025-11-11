@@ -7,7 +7,9 @@ using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using Astrum.CommonBase.Events;
+using Astrum.LogicCore.Events;
 using cfg.Skill;
+using TrueSync;
 using static Astrum.CommonBase.TriggerFrameJsonKeys;
 
 namespace Astrum.LogicCore.Capabilities

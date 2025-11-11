@@ -11,27 +11,42 @@ namespace Astrum.LogicCore.SkillSystem
     /// </summary>
     public sealed class ProjectileSpawnContext
     {
-        public int ProjectileId { get; init; }
-        public List<int> SkillEffectIds { get; init; } = new List<int>();
-        public long CasterId { get; init; }
-        public TSVector SpawnPosition { get; init; }
-        public TSVector SpawnDirection { get; init; }
-        public string? OverrideTrajectoryData { get; init; }
+        public int ProjectileId { get; set; }
+        public List<int> SkillEffectIds { get; set; } = new List<int>();
+        public long CasterId { get; set; }
+        public TSVector SpawnPosition { get; set; }
+        public TSVector SpawnDirection { get; set; }
+        public string OverrideTrajectoryData { get; set; }
     }
 
     /// <summary>
     /// Projectile 静态配置
     /// </summary>
-    public sealed record ProjectileDefinition
+    public sealed class ProjectileDefinition
     {
-        public int ProjectileId { get; init; }
-        public string ProjectileName { get; init; } = string.Empty;
-        public string ProjectileArchetype { get; init; } = string.Empty;
-        public int LifeTime { get; init; } = 300;
-        public TrajectoryType TrajectoryType { get; init; } = TrajectoryType.Linear;
-        public string TrajectoryData { get; init; } = string.Empty;
-        public int PierceCount { get; init; } = 0;
-        public IReadOnlyList<int> DefaultEffectIds { get; init; } = Array.Empty<int>();
+        public int ProjectileId { get; set; }
+        public string ProjectileName { get; set; } = string.Empty;
+        public string ProjectileArchetype { get; set; } = string.Empty;
+        public int LifeTime { get; set; } = 300;
+        public TrajectoryType TrajectoryType { get; set; } = TrajectoryType.Linear;
+        public string TrajectoryData { get; set; } = string.Empty;
+        public int PierceCount { get; set; } = 0;
+        public List<int> DefaultEffectIds { get; set; } = new List<int>();
+
+        public ProjectileDefinition Clone()
+        {
+            return new ProjectileDefinition
+            {
+                ProjectileId = ProjectileId,
+                ProjectileName = ProjectileName,
+                ProjectileArchetype = ProjectileArchetype,
+                LifeTime = LifeTime,
+                TrajectoryType = TrajectoryType,
+                TrajectoryData = TrajectoryData,
+                PierceCount = PierceCount,
+                DefaultEffectIds = DefaultEffectIds != null ? new List<int>(DefaultEffectIds) : new List<int>()
+            };
+        }
     }
 
     /// <summary>
@@ -49,7 +64,7 @@ namespace Astrum.LogicCore.SkillSystem
 
         public ProjectileDefinition? GetDefinition(int projectileId)
         {
-            return _definitions.TryGetValue(projectileId, out var def) ? def : null;
+            return _definitions.TryGetValue(projectileId, out var def) ? def.Clone() : null;
         }
 
         public void RegisterOrReplace(ProjectileDefinition definition)
@@ -60,7 +75,7 @@ namespace Astrum.LogicCore.SkillSystem
                 throw new ArgumentException("ProjectileId must be greater than zero", nameof(definition));
             }
 
-            _definitions[definition.ProjectileId] = definition;
+            _definitions[definition.ProjectileId] = definition.Clone();
         }
 
         public void Clear()
@@ -98,7 +113,7 @@ namespace Astrum.LogicCore.SkillSystem
                     TrajectoryType = trajectoryType,
                     TrajectoryData = row.TrajectoryData ?? string.Empty,
                     PierceCount = row.PierceCount,
-                    DefaultEffectIds = row.DefaultEffectIds ?? Array.Empty<int>()
+                    DefaultEffectIds = row.DefaultEffectIds != null ? new List<int>(row.DefaultEffectIds) : new List<int>()
                 };
 
                 _definitions[definition.ProjectileId] = definition;

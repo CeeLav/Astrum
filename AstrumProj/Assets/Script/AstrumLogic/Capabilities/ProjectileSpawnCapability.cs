@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
@@ -9,6 +7,9 @@ using Astrum.LogicCore.Events;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.SkillSystem;
 using cfg.Skill;
+using Astrum.LogicCore.Factories;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using TrueSync;
 
 namespace Astrum.LogicCore.Capabilities
@@ -46,7 +47,7 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            var caster = world.GetEntityById(evt.CasterEntityId);
+            var caster = world.GetEntity(evt.CasterEntityId);
             if (caster == null)
             {
                 ASLogger.Instance.Warning($"ProjectileSpawnCapability: caster {evt.CasterEntityId} not found");
@@ -89,7 +90,7 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            InitializeProjectile(projectile, caster, definition, effectIds, evt.SpawnPosition, spawnDirection);
+            InitializeProjectile(projectile, caster, definition, effectIds, evt.SpawnPosition, spawnDirection, evt.SocketName);
         }
 
         private ProjectileDefinition? ResolveProjectileDefinition(SkillEffectTable effectConfig, string overrideJson)
@@ -102,12 +103,13 @@ namespace Astrum.LogicCore.Capabilities
 
             try
             {
-                using var doc = JsonDocument.Parse(raw);
-                if (!doc.RootElement.TryGetProperty(TriggerFrameJsonKeys.ProjectileId, out var idElement) || !idElement.TryGetInt32(out var projectileId) || projectileId <= 0)
+                var root = JObject.Parse(raw);
+                if (!root.TryGetValue(TriggerFrameJsonKeys.ProjectileId, out var idToken) || idToken.Type != JTokenType.Integer)
                 {
                     return null;
                 }
 
+                var projectileId = idToken.Value<int>();
                 var definition = ProjectileConfigManager.Instance.GetDefinition(projectileId);
                 if (definition == null)
                 {
@@ -115,10 +117,10 @@ namespace Astrum.LogicCore.Capabilities
                     return null;
                 }
 
-                if (doc.RootElement.TryGetProperty(TriggerFrameJsonKeys.TrajectoryOverride, out var overrideElement) && overrideElement.ValueKind == JsonValueKind.Object)
+                if (root.TryGetValue(TriggerFrameJsonKeys.TrajectoryOverride, out var overrideToken) && overrideToken is JObject overrideObject)
                 {
-                    var merged = MergeTrajectoryOverride(definition.TrajectoryData, overrideElement);
-                    definition = definition with { TrajectoryData = merged };
+                    var merged = MergeTrajectoryOverride(definition.TrajectoryData, overrideObject);
+                    definition.TrajectoryData = merged;
                 }
 
                 return definition;
@@ -159,14 +161,15 @@ namespace Astrum.LogicCore.Capabilities
             {
                 try
                 {
-                    using var doc = JsonDocument.Parse(overrideJson);
-                    if (doc.RootElement.TryGetProperty(TriggerFrameJsonKeys.AdditionalEffectIds, out var arrayElement) && arrayElement.ValueKind == JsonValueKind.Array)
+                    var root = JObject.Parse(overrideJson);
+                    if (root.TryGetValue(TriggerFrameJsonKeys.AdditionalEffectIds, out var arrayToken) && arrayToken is JArray array)
                     {
-                        foreach (var item in arrayElement.EnumerateArray())
+                        foreach (var item in array)
                         {
-                            if (item.TryGetInt32(out var extraId) && extraId > 0 && !results.Contains(extraId))
+                            var extraId = item.Type == JTokenType.Integer ? item.Value<int>() : (int?)null;
+                            if (extraId.HasValue && extraId.Value > 0 && !results.Contains(extraId.Value))
                             {
-                                results.Add(extraId);
+                                results.Add(extraId.Value);
                             }
                         }
                     }
@@ -182,11 +185,6 @@ namespace Astrum.LogicCore.Capabilities
 
         private Entity? CreateProjectileEntity(World world, ProjectileDefinition definition, ProjectileSpawnRequestEvent evt, IReadOnlyList<int> effectIds, TSVector normalizedDirection)
         {
-            if (world.EntityFactory == null)
-            {
-                return null;
-            }
-
             var context = new ProjectileSpawnContext
             {
                 ProjectileId = definition.ProjectileId,
@@ -197,7 +195,7 @@ namespace Astrum.LogicCore.Capabilities
                 OverrideTrajectoryData = null
             };
 
-            return world.EntityFactory.CreateByArchetype(
+            return EntityFactory.Instance.CreateByArchetype(
                 definition.ProjectileArchetype,
                 new EntityCreationParams
                 {
@@ -207,7 +205,7 @@ namespace Astrum.LogicCore.Capabilities
                 world);
         }
 
-        private void InitializeProjectile(Entity projectile, Entity caster, ProjectileDefinition definition, IReadOnlyList<int> effectIds, TSVector spawnPosition, TSVector direction)
+        private void InitializeProjectile(Entity projectile, Entity caster, ProjectileDefinition definition, IReadOnlyList<int> effectIds, TSVector spawnPosition, TSVector direction, string socketName)
         {
             var projectileComponent = projectile.GetComponent<ProjectileComponent>();
             if (projectileComponent == null)
@@ -233,6 +231,7 @@ namespace Astrum.LogicCore.Capabilities
             projectileComponent.LaunchDirection = direction.normalized;
             projectileComponent.CurrentVelocity = TSVector.zero;
             projectileComponent.LastPosition = spawnPosition;
+            projectileComponent.SocketName = socketName ?? string.Empty;
 
             var trans = projectile.GetComponent<TransComponent>();
             if (trans != null)
@@ -241,29 +240,24 @@ namespace Astrum.LogicCore.Capabilities
             }
         }
 
-        private string MergeTrajectoryOverride(string baseJson, JsonElement overrideElement)
+        private string MergeTrajectoryOverride(string baseJson, JObject overrideObject)
         {
-            JsonNode node;
+            JObject baseObject;
             try
             {
-                node = string.IsNullOrWhiteSpace(baseJson) ? new JsonObject() : (JsonNode.Parse(baseJson) ?? new JsonObject());
+                baseObject = string.IsNullOrWhiteSpace(baseJson) ? new JObject() : JObject.Parse(baseJson);
             }
             catch
             {
-                node = new JsonObject();
+                baseObject = new JObject();
             }
 
-            if (node is not JsonObject obj)
+            baseObject.Merge(overrideObject, new JsonMergeSettings
             {
-                obj = new JsonObject();
-            }
+                MergeArrayHandling = MergeArrayHandling.Replace
+            });
 
-            foreach (var property in overrideElement.EnumerateObject())
-            {
-                obj[property.Name] = JsonNode.Parse(property.Value.GetRawText());
-            }
-
-            return obj.ToJsonString();
+            return baseObject.ToString(Formatting.None);
         }
     }
 }

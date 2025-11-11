@@ -51,6 +51,16 @@ namespace Astrum.View.Core
         public Camera Camera => _camera;
         public Environment Environment => _environment;
         
+        /// <summary>
+        /// 获取指定实体的 EntityView
+        /// </summary>
+        /// <param name="entityId">实体 UniqueId</param>
+        /// <returns>EntityView 实例，如果不存在则返回 null</returns>
+        public EntityView GetEntityView(long entityId)
+        {
+            return _entityViews.TryGetValue(entityId, out var view) ? view : null;
+        }
+        
         // 事件
         public event Action OnStageActivated;
         public event Action OnStageDeactivated;

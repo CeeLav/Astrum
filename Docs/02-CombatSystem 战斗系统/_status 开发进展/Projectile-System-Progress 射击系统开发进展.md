@@ -2,8 +2,8 @@
 
 **项目**: 射击系统 / 抛射物系统（Action → Projectile → Raycast）  
 **创建日期**: 2025-11-10  
-**最后更新**: 2025-11-10  
-**版本**: v0.1.0 （设计完成，开发待启动）
+**最后更新**: 2025-11-11  
+**版本**: v0.8.0 （核心功能实现完成，待测试）
 
 ---
 
@@ -23,29 +23,34 @@
 ## 开发状态总览
 
 ### 当前版本
-- **版本号**: v0.1.0（设计完成，编码尚未开始）
-- **编译状态**: ❌ 未实现
-- **测试状态**: ❌ 未开始
-- **功能完成度**: 15%（技术方案与流程设计完成）
+- **版本号**: v0.8.0（核心功能实现完成，待测试）
+- **编译状态**: ✅ 无编译错误
+- **测试状态**: ⏳ 待测试
+- **功能完成度**: 80%（逻辑层与表现层核心功能已实现）
 
 ### 阶段划分
 - ✅ **Phase 0**: 技术方案与依赖梳理
   - 射击系统技术文档 (`Projectile-Shooting-System 技术设计.md`) 完成
   - 多阶段动作、弹道实体、射线碰撞、表现层同步方案确认
   - 依赖系统（Action / Skill / View / Physics）梳理完毕
-- ⏳ **Phase 1**: 核心运行时（逻辑层）实现
-  - ProjectileComponent / ProjectileCapability / Raycast 命中流程
-  - ProjectileSpawnCapability 事件驱动体系
-- ⏳ **Phase 2**: 表现层集成
-  - ProjectileViewComponent（表现层追赶逻辑）
-  - SocketRefs / ViewBridge 集成
-- ⏳ **Phase 3**: 触发帧与配置联调
-  - TriggerFrameInfo 扩展验证
-  - SkillEffectTable / ProjectileTable 实际配置
+- ✅ **Phase 1**: 核心运行时（逻辑层）实现
+  - ✅ ProjectileComponent / ProjectileCapability 完成（射线碰撞、轨迹更新、穿透逻辑）
+  - ✅ ProjectileSpawnCapability 事件驱动体系完成
+  - ✅ BepuPhysicsWorld.Raycast 与 HitSystem.QueryRaycast 已实现
+  - ✅ ProjectileTable 配置表与 Luban 生成完成
+- ✅ **Phase 2**: 表现层集成
+  - ✅ ProjectileViewComponent 实现（逻辑-表现层位置同步、插值追赶）
+  - ✅ SocketRefs MonoBehaviour 实现（模型绑点管理）
+  - ✅ Stage.GetEntityView 扩展完成
+  - ✅ ProjectileViewArchetype 定义完成
+- ✅ **Phase 3**: 触发帧与配置联调
+  - ✅ TriggerFrameInfo.SocketName 字段扩展
+  - ✅ SkillEffectTable / SkillActionTable / SkillTable 示例配置完成
+  - ✅ ProjectileSpawnCapability Socket 位置获取集成完成
 - ⏳ **Phase 4**: 测试与优化
-  - 端到端功能测试
-  - 性能与对象池回收验证
-  - 可视化 / 调试工具补充
+  - ⏳ 端到端功能测试（待进行）
+  - ⏳ 性能与对象池回收验证（待实现）
+  - ⏳ 可视化 / 调试工具补充（待实现）
 
 ---
 
@@ -60,14 +65,16 @@
 | 物理系统 | ✅ 完成 | PhysicsWorld/HitManager 支持 Raycast、实体查询 |
 | 视图系统基础 | ✅ 完成 | EntityView、ViewComponent 架构稳定，可挂载新视图组件 |
 
-### ⏳ 待准备的依赖
+### ✅ 已完成的扩展
 
 | 事项 | 状态 | 说明 |
 |------|------|------|
-| SocketRefs 组件 | ⏳ 待实现 | 模型绑点缓存，需要在 View 端新增脚本（MonoBehaviour） |
-| ViewBridge 扩展 | ⏳ 待实现 | 需支持根据实体/Socket 获取世界坐标，向 ViewComponent 注入初始位置 |
-| ProjectileTable 配置 | ⏳ 待设计 | 需要定义 ProjectileDefinition 表结构、字段说明、生成流程 |
-| Raycast Hit 数据结构 | ⏳ 待实现 | 需要标准化射线命中的返回结构（包含 EntityId、命中点等） |
+| SocketRefs 组件 | ✅ 完成 | MonoBehaviour 实现，支持绑点查找与世界坐标获取 |
+| Stage.GetEntityView | ✅ 完成 | 扩展 Stage 支持根据 EntityId 查询 EntityView |
+| ProjectileTable 配置 | ✅ 完成 | CSV 配置表与 Luban 生成完成，已加载到 ProjectileConfigManager |
+| RaycastHitInfo | ✅ 完成 | 标准化射线命中结构（Entity、Distance、Point、Normal） |
+| BepuPhysicsWorld.Raycast | ✅ 完成 | 射线查询实现，支持过滤器与排序 |
+| HitSystem.QueryRaycast | ✅ 完成 | 统一射线查询接口，集成阵营过滤 |
 
 ---
 
@@ -153,6 +160,25 @@
 ---
 
 ## 更新日志
+
+### v0.8.0 – 2025-11-11
+- ✅ **逻辑层核心实现完成**
+  - `ProjectileComponent` 实现（SkillEffectIds、PierceCount、LastPosition、CurrentVelocity 等）
+  - `ProjectileCapability` 实现（射线碰撞检测、轨迹更新、穿透逻辑、生命周期管理）
+  - `ProjectileSpawnCapability` 实现（事件监听、实体创建、Socket 位置获取）
+  - `BepuPhysicsWorld.Raycast` 与 `HitSystem.QueryRaycast` 实现
+  - `RaycastHitInfo` 结构体定义
+- ✅ **表现层集成完成**
+  - `SocketRefs` MonoBehaviour 实现（模型绑点管理、世界坐标查询）
+  - `ProjectileViewComponent` 实现（逻辑-表现层位置同步、插值追赶、特效管理）
+  - `ProjectileViewArchetype` 定义
+  - `Stage.GetEntityView` 扩展
+- ✅ **配置表完成**
+  - `ProjectileTable.csv` 创建（含 Fireball、ChargedFireball 示例）
+  - Luban 生成 `cfg.Projectile.ProjectileTable` 与 `TbProjectileTable`
+  - `ProjectileConfigManager.LoadFromTable` 实现
+  - `SkillEffectTable` / `SkillActionTable` / `SkillTable` 增加射击技能示例（ID 7001、8000、2100）
+- ✅ **编译通过**，无 Linter 错误
 
 ### v0.1.0 – 2025-11-10
 - ✅ 完成《射击系统技术设计》文档，覆盖运行时/表现层/配置全流程

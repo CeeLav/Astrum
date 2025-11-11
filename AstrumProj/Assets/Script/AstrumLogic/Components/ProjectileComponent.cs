@@ -71,5 +71,10 @@ namespace Astrum.LogicCore.Components
         /// </summary>
         [MemoryPackAllowSerialize]
         public HashSet<long> HitEntities { get; set; } = new HashSet<long>();
+
+        /// <summary>
+        /// 出射使用的 Socket 名称（用于表现层绑定）
+        /// </summary>
+        public string SocketName { get; set; } = string.Empty;
     }
 }

@@ -1,10 +1,11 @@
 using System;
-using System.Text.Json;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.SkillSystem;
+using Newtonsoft.Json;
 using TrueSync;
 
 namespace Astrum.LogicCore.Capabilities
@@ -100,7 +101,7 @@ namespace Astrum.LogicCore.Capabilities
             var world = entity.World;
             if (world != null && data.TargetEntityId > 0)
             {
-                var target = world.GetEntityById(data.TargetEntityId);
+                var target = world.GetEntity(data.TargetEntityId);
                 if (target != null)
                 {
                     var targetTrans = target.GetComponent<TransComponent>();
@@ -208,9 +209,9 @@ namespace Astrum.LogicCore.Capabilities
         private void DestroyProjectile(Entity entity)
         {
             var world = entity.World;
-            if (world?.EntityFactory != null)
+            if (world != null)
             {
-                world.EntityFactory.DestroyEntity(entity, world);
+                EntityFactory.Instance.DestroyEntity(entity, world);
             }
         }
 
@@ -223,7 +224,7 @@ namespace Astrum.LogicCore.Capabilities
 
             try
             {
-                return JsonSerializer.Deserialize<T>(json) ?? new T();
+                return JsonConvert.DeserializeObject<T>(json) ?? new T();
             }
             catch (Exception ex)
             {
