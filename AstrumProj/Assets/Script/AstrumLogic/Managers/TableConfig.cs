@@ -5,6 +5,8 @@ using Astrum.CommonBase;
 using cfg;
 using Luban;
 using cfg.Entity;
+using Astrum.LogicCore.ActionSystem;
+using Astrum.LogicCore.SkillSystem;
 
 namespace Astrum.LogicCore.Managers
 {
@@ -47,6 +49,7 @@ namespace Astrum.LogicCore.Managers
                 // 创建 Tables 实例
                 _tables = new Tables(LoadBytes);
                 
+                ProjectileConfigManager.Instance.LoadFromTable(_tables.TbProjectileTable);
                 _isInitialized = true;
                 ASLogger.Instance.Info("ConfigManager initialized successfully");
             }
@@ -207,6 +210,7 @@ namespace Astrum.LogicCore.Managers
                 _tables = null;
                 _isInitialized = false;
                 _configPath = null;
+                ProjectileConfigManager.Instance.Clear();
                 
                 ASLogger.Instance.Info("ConfigManager shutdown completed");
             }

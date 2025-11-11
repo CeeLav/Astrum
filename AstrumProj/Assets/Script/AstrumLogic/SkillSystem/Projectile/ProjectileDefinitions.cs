@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Astrum.CommonBase;
+using cfg.Projectile;
 using TrueSync;
 
 namespace Astrum.LogicCore.SkillSystem
@@ -33,7 +35,7 @@ namespace Astrum.LogicCore.SkillSystem
     }
 
     /// <summary>
-    /// Projectile 配置管理器（临时内存注册，后续可接入表格）
+    /// Projectile 配置管理器
     /// </summary>
     public sealed class ProjectileConfigManager
     {
@@ -64,6 +66,45 @@ namespace Astrum.LogicCore.SkillSystem
         public void Clear()
         {
             _definitions.Clear();
+        }
+
+        public void LoadFromTable(TbProjectileTable table)
+        {
+            _definitions.Clear();
+
+            if (table == null)
+            {
+                ASLogger.Instance.Warning("ProjectileConfigManager.LoadFromTable: table is null");
+                return;
+            }
+
+            foreach (var row in table.DataList)
+            {
+                if (row == null)
+                    continue;
+
+                if (!Enum.TryParse(row.TrajectoryType, true, out TrajectoryType trajectoryType))
+                {
+                    ASLogger.Instance.Warning($"ProjectileConfigManager: Unknown trajectory type '{row.TrajectoryType}' for projectile {row.ProjectileId}, fallback Linear");
+                    trajectoryType = TrajectoryType.Linear;
+                }
+
+                var definition = new ProjectileDefinition
+                {
+                    ProjectileId = row.ProjectileId,
+                    ProjectileName = row.ProjectileName ?? string.Empty,
+                    ProjectileArchetype = row.ProjectileArchetype ?? string.Empty,
+                    LifeTime = row.LifeTime,
+                    TrajectoryType = trajectoryType,
+                    TrajectoryData = row.TrajectoryData ?? string.Empty,
+                    PierceCount = row.PierceCount,
+                    DefaultEffectIds = row.DefaultEffectIds ?? Array.Empty<int>()
+                };
+
+                _definitions[definition.ProjectileId] = definition;
+            }
+
+            ASLogger.Instance.Info($"ProjectileConfigManager: Loaded {_definitions.Count} projectile definitions");
         }
     }
 }

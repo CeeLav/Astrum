@@ -24,3 +24,4 @@
 ,4020,Damage,1|1|700|1|700,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_16.prefab|Assets/Audio/SFX/Skill/Skill_Hit_16.wav
 ,4021,Damage,1|1|750|1|750,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_17.prefab|Assets/Audio/SFX/Skill/Skill_Hit_17.wav
 ,4022,Damage,1|1|100|1|100,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab|Assets/Audio/SFX/Skill/Skill_Hit_18.wav
+,7001,Projectile,0,"{""ProjectileId"":7001}"

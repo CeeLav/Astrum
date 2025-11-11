@@ -28,6 +28,7 @@ public partial class Tables
     public Item.TbItemBaseTable TbItemBaseTable {get; }
     public Item.TbLootTable TbLootTable {get; }
     public Item.TbMaterialResourceTable TbMaterialResourceTable {get; }
+    public Projectile.TbProjectileTable TbProjectileTable {get; }
     public Role.TbRoleBaseTable TbRoleBaseTable {get; }
     public Role.TbRoleGrowthTable TbRoleGrowthTable {get; }
     public Skill.TbSkillActionTable TbSkillActionTable {get; }
@@ -51,6 +52,7 @@ public partial class Tables
         TbItemBaseTable = new Item.TbItemBaseTable(loader("item_tbitembasetable"));
         TbLootTable = new Item.TbLootTable(loader("item_tbloottable"));
         TbMaterialResourceTable = new Item.TbMaterialResourceTable(loader("item_tbmaterialresourcetable"));
+        TbProjectileTable = new Projectile.TbProjectileTable(loader("projectile_tbprojectiletable"));
         TbRoleBaseTable = new Role.TbRoleBaseTable(loader("role_tbrolebasetable"));
         TbRoleGrowthTable = new Role.TbRoleGrowthTable(loader("role_tbrolegrowthtable"));
         TbSkillActionTable = new Skill.TbSkillActionTable(loader("skill_tbskillactiontable"));
@@ -76,6 +78,7 @@ public partial class Tables
         TbItemBaseTable.ResolveRef(this);
         TbLootTable.ResolveRef(this);
         TbMaterialResourceTable.ResolveRef(this);
+        TbProjectileTable.ResolveRef(this);
         TbRoleBaseTable.ResolveRef(this);
         TbRoleGrowthTable.ResolveRef(this);
         TbSkillActionTable.ResolveRef(this);
