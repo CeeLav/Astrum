@@ -314,7 +314,11 @@ namespace Astrum.LogicCore.Core
                     pending.CreationParams,
                     this);
 
-                pending.PostCreateAction?.Invoke(entity);
+                if (entity != null)
+                {
+                    PublishEntityCreatedEvent(entity);
+                    pending.PostCreateAction?.Invoke(entity);
+                }
             }
 
             _pendingCreateEntities.Clear();
