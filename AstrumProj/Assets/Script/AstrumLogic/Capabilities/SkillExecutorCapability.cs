@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Astrum.LogicCore.Components;
@@ -142,15 +143,12 @@ namespace Astrum.LogicCore.Capabilities
                     break;
                     
                 case TriggerFrameJsonKeys.TriggerTypeDirect:
+                case TriggerFrameJsonKeys.TriggerTypeProjectile:
                     HandleDirectTrigger(caster, trigger);
                     break;
-                    
+
                 case TriggerFrameJsonKeys.TriggerTypeCondition:
                     HandleConditionTrigger(caster, skillAction, trigger);
-                    break;
-
-                case TriggerFrameJsonKeys.TriggerTypeProjectile:
-                    HandleProjectileTrigger(caster, trigger);
                     break;
                     
                 default:
@@ -268,7 +266,7 @@ namespace Astrum.LogicCore.Capabilities
                 {
                     foreach (var effectId in trigger.EffectIds)
                     {
-                        TriggerSkillEffect(caster, target, effectId);
+                        TriggerSkillEffect(caster, target, effectId, trigger);
                     }
                 }
             }
@@ -283,7 +281,7 @@ namespace Astrum.LogicCore.Capabilities
             {
                 foreach (var effectId in trigger.EffectIds)
                 {
-                    TriggerSkillEffect(caster, caster, effectId);
+                    TriggerSkillEffect(caster, caster, effectId, trigger);
                 }
             }
         }
@@ -319,46 +317,8 @@ namespace Astrum.LogicCore.Capabilities
             {
                 foreach (var effectId in trigger.EffectIds)
                 {
-                    TriggerSkillEffect(caster, caster, effectId);
+                    TriggerSkillEffect(caster, caster, effectId, trigger);
                 }
-            }
-        }
-
-        /// <summary>
-        /// 处理 Projectile 触发帧（发布弹道生成事件）
-        /// </summary>
-        private void HandleProjectileTrigger(Entity caster, TriggerFrameInfo trigger)
-        {
-            if (trigger?.EffectIds == null || trigger.EffectIds.Length == 0)
-            {
-                ASLogger.Instance.Warning("Projectile trigger missing effectIds");
-                return;
-            }
-
-            var (spawnPosition, spawnDirection) = CalculateProjectileSpawnTransform(caster, trigger);
-
-            foreach (var effectId in trigger.EffectIds)
-            {
-                var effectConfig = SkillConfig.Instance.GetSkillEffect(effectId);
-                if (effectConfig == null)
-                {
-                    ASLogger.Instance.Warning($"Projectile trigger: effect {effectId} not found");
-                    continue;
-                }
-
-                var request = new ProjectileSpawnRequestEvent
-                {
-                    CasterEntityId = caster.UniqueId,
-                    SkillEffectId = effectConfig.SkillEffectId,
-                    EffectParamsJson = ExtractEffectParams(effectConfig),
-                    TriggerInfo = trigger,
-                    SpawnPosition = spawnPosition,
-                    SpawnDirection = spawnDirection,
-                    SocketName = trigger.SocketName ?? string.Empty,
-                    TriggerWhenInactive = true
-                };
-
-                caster.QueueEvent(request);
             }
         }
 
@@ -392,9 +352,30 @@ namespace Astrum.LogicCore.Capabilities
         /// 触发技能效果（统一入口）
         /// 直接调用 SkillEffectSystem 处理效果
         /// </summary>
-        private void TriggerSkillEffect(Entity caster, Entity target, int effectId)
+        private void TriggerSkillEffect(Entity caster, Entity target, int effectId, TriggerFrameInfo trigger)
         {
             // 构造效果数据
+            var effectConfig = SkillConfig.Instance.GetSkillEffect(effectId);
+            if (effectConfig == null)
+            {
+                ASLogger.Instance.Warning($"[SkillExecutorCapability] Effect config not found: {effectId}");
+                return;
+            }
+
+            var effectType = effectConfig.EffectType ?? string.Empty;
+
+            if (string.Equals(effectType, "Projectile", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleProjectileEffect(caster, effectConfig, trigger);
+                return;
+            }
+
+            if (target == null)
+            {
+                ASLogger.Instance.Warning($"[SkillExecutorCapability] Target is null for effect {effectId}");
+                return;
+            }
+
             var effectData = new SkillSystem.SkillEffectData
             {
                 CasterId = caster.UniqueId,
@@ -407,12 +388,31 @@ namespace Astrum.LogicCore.Capabilities
             if (skillEffectSystem != null)
             {
                 skillEffectSystem.QueueSkillEffect(effectData);
-                ASLogger.Instance.Info($"[SkillExecutorCapability] Queued SkillEffect to SkillEffectSystem: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
+                ASLogger.Instance.Info($"[SkillExecutorCapability] Queued SkillEffect: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
             }
             else
             {
                 ASLogger.Instance.Error($"[SkillExecutorCapability] SkillEffectSystem not found in World");
             }
+        }
+
+        private void HandleProjectileEffect(Entity caster, SkillEffectTable effectConfig, TriggerFrameInfo trigger)
+        {
+            var (spawnPosition, spawnDirection) = CalculateProjectileSpawnTransform(caster, trigger);
+
+            var request = new ProjectileSpawnRequestEvent
+            {
+                CasterEntityId = caster.UniqueId,
+                SkillEffectId = effectConfig.SkillEffectId,
+                EffectParamsJson = ExtractEffectParams(effectConfig),
+                TriggerInfo = trigger,
+                SpawnPosition = spawnPosition,
+                SpawnDirection = spawnDirection,
+                SocketName = trigger.SocketName ?? string.Empty,
+                TriggerWhenInactive = true
+            };
+
+            caster.QueueEvent(request);
         }
     }
 }
