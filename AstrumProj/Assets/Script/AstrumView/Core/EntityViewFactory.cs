@@ -73,9 +73,7 @@ namespace Astrum.View.Core
         
         private Type[] GetRequiredViewComponentTypes(Entity entity)
         {
-            if (entity?.EntityConfig == null) return Array.Empty<Type>();
-            
-            var archetypeName = entity.EntityConfig.ArchetypeName;
+            var archetypeName = entity.ArchetypeName;
             if (string.IsNullOrEmpty(archetypeName)) return Array.Empty<Type>();
             
             ViewArchetypeManager.Instance.TryGetComponents(archetypeName, out var viewComponentTypes);
