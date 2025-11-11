@@ -16,6 +16,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         private static readonly int[] ScalingStatValues = { 0, 1, 2, 3, 4 };
 
         public string EffectType => "Damage";
+        public bool SupportsInlineEditing => true;
 
         public bool DrawContent(SkillEffectTableData data)
         {

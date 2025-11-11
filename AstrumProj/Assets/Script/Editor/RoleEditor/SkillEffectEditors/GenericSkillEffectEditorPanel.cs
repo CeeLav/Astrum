@@ -8,6 +8,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
     internal class GenericSkillEffectEditorPanel : ISkillEffectEditorPanel
     {
         public string EffectType => "Generic";
+        public bool SupportsInlineEditing => false;
 
         public bool DrawContent(SkillEffectTableData data)
         {

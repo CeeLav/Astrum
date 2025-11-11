@@ -9,6 +9,7 @@ using Astrum.Editor.RoleEditor.Modules;
 using Astrum.Editor.RoleEditor.Windows;
 using Astrum.Editor.RoleEditor.Services;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
+using Astrum.Editor.RoleEditor.SkillEffectEditors;
 
 namespace Astrum.Editor.RoleEditor.Timeline.Renderers
 {
@@ -299,23 +300,49 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                             }
                             EditorGUILayout.EndHorizontal();
                             
-                            // 显示效果详情（只读）
+                            // 显示效果详情（使用定制编辑器）
                             if (effectId > 0)
                             {
                                 EditorGUILayout.Space(5);
                                 
-                                GUI.enabled = false;
-                                EditorGUILayout.LabelField("效果详情", EditorStyles.boldLabel);
-                                EditorGUILayout.BeginVertical("box");
+                                // 获取效果配置
+                                var config = Services.SkillEffectDataReader.GetSkillEffect(effectId);
+                                if (config != null)
                                 {
-                                    EditorGUILayout.TextField("类型", Services.SkillEffectDataReader.GetEffectTypeDisplayName(effectTypeKey));
-                                    EditorGUILayout.TextField("主值", FormatPrimaryValue(effectTypeKey, primaryValue));
-                                    EditorGUILayout.TextField("目标", GetTargetSelectorName(targetSelector));
-                                    EditorGUILayout.TextField("Int 参数", intParams != null && intParams.Count > 0 ? string.Join("|", intParams) : "--");
-                                    EditorGUILayout.TextField("String 参数", stringParams != null && stringParams.Count > 0 ? string.Join(" | ", stringParams) : "--");
+                                    EditorGUILayout.LabelField("效果配置", EditorStyles.boldLabel);
+                                    EditorGUILayout.BeginVertical("box");
+                                    {
+                                        // 获取对应的编辑器面板
+                                        var editorPanel = SkillEffectEditorRegistry.GetPanel(config.EffectType);
+                                        if (editorPanel != null && editorPanel.SupportsInlineEditing)
+                                        {
+                                            // 使用定制编辑器
+                                            EditorGUI.BeginChangeCheck();
+                                            bool panelChanged = editorPanel.DrawContent(config);
+                                            if (EditorGUI.EndChangeCheck() || panelChanged)
+                                            {
+                                                // 保存修改
+                                                SkillEffectEditorRegistry.SaveEffect(config);
+                                                SkillEffectDataReader.ClearCache();
+                                                effectData.RefreshFromTable();
+                                                effectData.ParseCollisionInfo();
+                                                modified = true;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // 回退到通用编辑器
+                                            EditorGUILayout.HelpBox($"效果类型 '{config.EffectType}' 暂无定制编辑器", MessageType.Info);
+                                            
+                                            // 显示原始参数（只读）
+                                            GUI.enabled = false;
+                                            EditorGUILayout.TextField("Int 参数", intParams != null && intParams.Count > 0 ? string.Join("|", intParams) : "--");
+                                            EditorGUILayout.TextField("String 参数", stringParams != null && stringParams.Count > 0 ? string.Join(" | ", stringParams) : "--");
+                                            GUI.enabled = true;
+                                        }
+                                    }
+                                    EditorGUILayout.EndVertical();
                                 }
-                                EditorGUILayout.EndVertical();
-                                GUI.enabled = true;
                             }
                         }
                     }

@@ -12,6 +12,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         private static readonly int[] DirectionValues = { 0, 1, 2, 3 };
 
         public string EffectType => "Teleport";
+        public bool SupportsInlineEditing => true;
 
         public bool DrawContent(SkillEffectTableData data)
         {

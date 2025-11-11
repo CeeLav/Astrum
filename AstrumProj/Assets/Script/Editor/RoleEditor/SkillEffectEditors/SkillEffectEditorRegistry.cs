@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Astrum.Editor.RoleEditor.Persistence.Mappings;
+using Astrum.Editor.RoleEditor.Services;
 
 namespace Astrum.Editor.RoleEditor.SkillEffectEditors
 {
@@ -34,6 +36,17 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             var list = new List<string>(Panels.Keys);
             list.Sort(System.StringComparer.OrdinalIgnoreCase);
             return list;
+        }
+        
+        /// <summary>
+        /// 保存技能效果数据
+        /// </summary>
+        public static void SaveEffect(SkillEffectTableData data)
+        {
+            if (data == null) return;
+            
+            // 调用数据写入服务
+            SkillEffectDataWriter.SaveEffect(data);
         }
     }
 }

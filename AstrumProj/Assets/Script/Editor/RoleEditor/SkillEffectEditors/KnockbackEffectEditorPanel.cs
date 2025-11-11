@@ -15,6 +15,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         private static readonly int[] CurveValues = { 0, 1, 2, 3 };
 
         public string EffectType => "Knockback";
+        public bool SupportsInlineEditing => true;
 
         public bool DrawContent(SkillEffectTableData data)
         {

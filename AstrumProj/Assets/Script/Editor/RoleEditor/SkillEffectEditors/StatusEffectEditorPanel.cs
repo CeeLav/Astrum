@@ -12,6 +12,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         private static readonly int[] ApplicationModeValues = { 0, 1 };
 
         public string EffectType => "Status";
+        public bool SupportsInlineEditing => true;
 
         public bool DrawContent(SkillEffectTableData data)
         {
