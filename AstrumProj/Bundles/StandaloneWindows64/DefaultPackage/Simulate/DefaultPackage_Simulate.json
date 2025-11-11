@@ -9,7 +9,7 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/11/9 18:29:27",
+    "PackageNote": "2025/11/11 10:23:51",
     "AssetList": [
         {
             "Address": "",
@@ -1085,7 +1085,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Scenes/DungeonsGame.unity",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Mage/Animation/Attack_02_01.anim",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 8,
@@ -1093,7 +1093,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
+            "AssetPath": "Assets/Scenes/DungeonsGame.unity",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 9,
@@ -1101,10 +1101,18 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 10,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/Scenes/Game.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 8,
+            "BundleID": 9,
             "DependBundleIDs": []
         },
         {
@@ -1112,7 +1120,7 @@
             "AssetPath": "Assets/Scenes/Hub.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 8,
+            "BundleID": 9,
             "DependBundleIDs": []
         },
         {
@@ -1120,7 +1128,7 @@
             "AssetPath": "Assets/Scenes/Start.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 8,
+            "BundleID": 9,
             "DependBundleIDs": []
         },
         {
@@ -1128,7 +1136,7 @@
             "AssetPath": "Assets/Scenes/UIScene.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 8,
+            "BundleID": 9,
             "DependBundleIDs": []
         }
     ],
@@ -1158,7 +1166,7 @@
             "UnityCRC": 0,
             "FileHash": "a3786629de432abb780c832f60d5888f",
             "FileCRC": 0,
-            "FileSize": 3282947,
+            "FileSize": 3300066,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -1209,6 +1217,16 @@
             "FileHash": "38bf110fe7834be793983b49eccd7663",
             "FileCRC": 0,
             "FileSize": 15073152,
+            "Encrypted": false,
+            "Tags": [],
+            "DependBundleIDs": []
+        },
+        {
+            "BundleName": "assets_artres_unit_role_mage_animation.bundle",
+            "UnityCRC": 0,
+            "FileHash": "7bea93513b49414fc02863b4c13c8bd5",
+            "FileCRC": 0,
+            "FileSize": 3270347,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
