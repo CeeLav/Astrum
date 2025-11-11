@@ -274,6 +274,9 @@ namespace Astrum.LogicCore.Capabilities
             projectileComponent.LastPosition = spawnPosition;
             projectileComponent.SocketName = socketName ?? string.Empty;
             projectileComponent.IsMarkedForDestroy = false;
+            projectileComponent.SpawnEffectPath = definition.SpawnEffectPath ?? string.Empty;
+            projectileComponent.LoopEffectPath = definition.LoopEffectPath ?? string.Empty;
+            projectileComponent.HitEffectPath = definition.HitEffectPath ?? string.Empty;
 
             var trans = projectile.GetComponent<TransComponent>();
             if (trans != null)

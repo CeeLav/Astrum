@@ -1329,12 +1329,13 @@ Projectile 专用配置表驱动实体工厂：
     "TrajectoryData": "{\"BaseSpeed\":0.8}",
     "PierceCount": 0,
     "DefaultEffectIds": [4101],
-    "TrailEffectId": 5102,
-    "HitEffectId": 5103
+    "SpawnEffectPath": "Assets/ArtRes/VFX/Projectiles/Fireball_Muzzle.prefab",
+    "LoopEffectPath": "Assets/ArtRes/VFX/Projectiles/Fireball_Flight.prefab",
+    "HitEffectPath": "Assets/ArtRes/VFX/Projectiles/Fireball_Impact.prefab"
 }
 ```
 
-`SkillEffectTable` 的 `EffectParams` 只需提供 `ProjectileId`，其余数据由 `ProjectileConfigManager` 加载；如需覆写基础速度等参数，使用 `TrajectoryOverride` 字段增量覆盖。
+`SkillEffectTable` 的 `EffectParams` 只需提供 `ProjectileId`，其余数据由 `ProjectileConfigManager` 加载；如需覆写基础速度等参数，使用 `TrajectoryOverride` 字段增量覆盖。`SpawnEffectPath`、`LoopEffectPath`、`HitEffectPath` 分别用于表现层的开火/飞行/命中特效绑定，逻辑层透传到 `ProjectileComponent`，由 `ProjectileViewComponent` 统一加载和播放。
 若需附加额外技能效果，可通过 `AdditionalEffectIds` 指定，由运行时合并到 `ProjectileComponent.SkillEffectIds`。
 
 ---

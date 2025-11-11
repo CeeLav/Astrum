@@ -24,6 +24,9 @@ public sealed partial class ProjectileTable : Luban.BeanBase
         TrajectoryData = _buf.ReadString();
         PierceCount = _buf.ReadInt();
         {int __n0 = _buf.ReadSize(); DefaultEffectIds = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); DefaultEffectIds[__index0] = __e0;}}
+        SpawnEffectPath = _buf.ReadString();
+        LoopEffectPath = _buf.ReadString();
+        HitEffectPath = _buf.ReadString();
     }
 
     public static ProjectileTable DeserializeProjectileTable(ByteBuf _buf)
@@ -63,6 +66,18 @@ public sealed partial class ProjectileTable : Luban.BeanBase
     /// 默认效果ID
     /// </summary>
     public readonly int[] DefaultEffectIds;
+    /// <summary>
+    /// 开火特效资源路径
+    /// </summary>
+    public readonly string SpawnEffectPath;
+    /// <summary>
+    /// 飞行特效资源路径
+    /// </summary>
+    public readonly string LoopEffectPath;
+    /// <summary>
+    /// 命中特效资源路径
+    /// </summary>
+    public readonly string HitEffectPath;
    
     public const int __ID__ = 1082348896;
     public override int GetTypeId() => __ID__;
@@ -82,6 +97,9 @@ public sealed partial class ProjectileTable : Luban.BeanBase
         + "trajectoryData:" + TrajectoryData + ","
         + "pierceCount:" + PierceCount + ","
         + "defaultEffectIds:" + Luban.StringUtil.CollectionToString(DefaultEffectIds) + ","
+        + "spawnEffectPath:" + SpawnEffectPath + ","
+        + "loopEffectPath:" + LoopEffectPath + ","
+        + "hitEffectPath:" + HitEffectPath + ","
         + "}";
     }
 }

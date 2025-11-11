@@ -32,6 +32,9 @@ namespace Astrum.LogicCore.SkillSystem
         public string TrajectoryData { get; set; } = string.Empty;
         public int PierceCount { get; set; } = 0;
         public List<int> DefaultEffectIds { get; set; } = new List<int>();
+        public string SpawnEffectPath { get; set; } = string.Empty;
+        public string LoopEffectPath { get; set; } = string.Empty;
+        public string HitEffectPath { get; set; } = string.Empty;
 
         public ProjectileDefinition Clone()
         {
@@ -44,7 +47,10 @@ namespace Astrum.LogicCore.SkillSystem
                 TrajectoryType = TrajectoryType,
                 TrajectoryData = TrajectoryData,
                 PierceCount = PierceCount,
-                DefaultEffectIds = DefaultEffectIds != null ? new List<int>(DefaultEffectIds) : new List<int>()
+                DefaultEffectIds = DefaultEffectIds != null ? new List<int>(DefaultEffectIds) : new List<int>(),
+                SpawnEffectPath = SpawnEffectPath,
+                LoopEffectPath = LoopEffectPath,
+                HitEffectPath = HitEffectPath
             };
         }
     }
@@ -113,7 +119,10 @@ namespace Astrum.LogicCore.SkillSystem
                     TrajectoryType = trajectoryType,
                     TrajectoryData = row.TrajectoryData ?? string.Empty,
                     PierceCount = row.PierceCount,
-                    DefaultEffectIds = row.DefaultEffectIds != null ? new List<int>(row.DefaultEffectIds) : new List<int>()
+                DefaultEffectIds = row.DefaultEffectIds != null ? new List<int>(row.DefaultEffectIds) : new List<int>(),
+                SpawnEffectPath = row.SpawnEffectPath ?? string.Empty,
+                LoopEffectPath = row.LoopEffectPath ?? string.Empty,
+                HitEffectPath = row.HitEffectPath ?? string.Empty
                 };
 
                 _definitions[definition.ProjectileId] = definition;

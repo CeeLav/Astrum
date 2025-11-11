@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.View.Managers;
 using TrueSync;
 
 namespace Astrum.View.Components
@@ -16,6 +18,19 @@ namespace Astrum.View.Components
         private TrailRenderer _trailRenderer;
         private ParticleSystem _loopEffect;
         private ParticleSystem _hitEffect;
+        private GameObject _loopEffectInstance;
+
+        // 配置化特效
+        private string _spawnEffectPath = string.Empty;
+        private string _loopEffectPath = string.Empty;
+        private string _hitEffectPath = string.Empty;
+
+        private GameObject _spawnEffectPrefab;
+        private GameObject _loopEffectPrefab;
+        private GameObject _hitEffectPrefab;
+        private bool _spawnEffectPlayed;
+        private readonly List<GameObject> _runtimeEffectInstances = new List<GameObject>();
+        private bool _loopEffectFromConfig;
 
         // 视觉同步数据
         private struct VisualSyncData
@@ -39,29 +54,12 @@ namespace Astrum.View.Components
 
         protected override void OnInitialize()
         {
-            // 查找或创建拖尾组件
-            _trailRenderer = _ownerEntityView?.GameObject?.GetComponentInChildren<TrailRenderer>();
-            if (_trailRenderer == null && _ownerEntityView?.GameObject != null)
-            {
-                var trailObj = new GameObject("Trail");
-                trailObj.transform.SetParent(_ownerEntityView.GameObject.transform, false);
-                _trailRenderer = trailObj.AddComponent<TrailRenderer>();
-                ConfigureDefaultTrail(_trailRenderer);
-            }
+            CacheEffectConfiguration();
 
-            // 查找循环特效（可选）
-            var effectTransforms = _ownerEntityView?.GameObject?.GetComponentsInChildren<Transform>();
-            if (effectTransforms != null)
+            if (!TrySetupLoopEffectFromConfig())
             {
-                foreach (var t in effectTransforms)
-                {
-                    if (t.name.Contains("LoopEffect") || t.name.Contains("Particle"))
-                    {
-                        _loopEffect = t.GetComponent<ParticleSystem>();
-                        if (_loopEffect != null)
-                            break;
-                    }
-                }
+                TryFindExistingLoopEffect();
+                EnsureTrailRendererExists();
             }
 
             // 初始化同步数据
@@ -108,6 +106,18 @@ namespace Astrum.View.Components
         protected override void OnDestroy()
         {
             StopAllEffects();
+            CleanupRuntimeInstances(true);
+
+            if (_loopEffectInstance != null && _loopEffectFromConfig)
+            {
+                UnityEngine.Object.Destroy(_loopEffectInstance);
+                _loopEffectInstance = null;
+            }
+
+            if (_trailRenderer != null)
+            {
+                _trailRenderer.Clear();
+            }
         }
 
         protected override void OnSyncData(object data)
@@ -137,6 +147,12 @@ namespace Astrum.View.Components
             if (_ownerEntityView != null)
             {
                 _ownerEntityView.SetWorldPosition(_visualSync.visualPosition);
+            }
+
+            if (!_spawnEffectPlayed)
+            {
+                var forward = _ownerEntityView?.Transform != null ? _ownerEntityView.Transform.forward : Vector3.forward;
+                TryPlaySpawnEffect(_visualSync.visualPosition, forward);
             }
 
             // 启动循环特效
@@ -185,23 +201,29 @@ namespace Astrum.View.Components
         /// <param name="hitPosition">命中位置（逻辑层坐标）</param>
         public void PlayHitEffect(TSVector hitPosition)
         {
-            if (_hitEffect != null)
+            var worldPos = ToVector3(hitPosition);
+            bool played = false;
+
+            if (!string.IsNullOrWhiteSpace(_hitEffectPath))
             {
-                var worldPos = new Vector3((float)hitPosition.x, (float)hitPosition.y, (float)hitPosition.z);
+                var prefab = LoadEffectPrefab(ref _hitEffectPrefab, _hitEffectPath);
+                if (prefab != null)
+                {
+                    var instance = InstantiateEffect(prefab, worldPos, _ownerEntityView?.Transform?.forward ?? Vector3.forward);
+                    played = instance != null;
+                }
+            }
+
+            if (!played && _hitEffect != null)
+            {
                 _hitEffect.transform.position = worldPos;
                 _hitEffect.Play();
+                played = true;
             }
 
-            // 停止拖尾
-            if (_trailRenderer != null)
+            if (played)
             {
-                _trailRenderer.emitting = false;
-            }
-
-            // 停止循环特效
-            if (_loopEffect != null && _loopEffect.isPlaying)
-            {
-                _loopEffect.Stop();
+                StopAllEffects();
             }
         }
 
@@ -210,11 +232,7 @@ namespace Astrum.View.Components
         /// </summary>
         public void ResetVisual()
         {
-            _visualSync = new VisualSyncData
-            {
-                isInitialized = false,
-                timeSinceLastLogicUpdate = 0f
-            };
+            StopAllEffects();
 
             if (_trailRenderer != null)
             {
@@ -224,15 +242,25 @@ namespace Astrum.View.Components
 
             if (_loopEffect != null)
             {
-                _loopEffect.Stop();
+                _loopEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                 _loopEffect.Clear();
             }
 
             if (_hitEffect != null)
             {
-                _hitEffect.Stop();
+                _hitEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                 _hitEffect.Clear();
             }
+
+            CleanupRuntimeInstances(true);
+            _spawnEffectPlayed = false;
+
+            _visualSync.isInitialized = false;
+            _visualSync.initialVisualSpawnPos = Vector3.zero;
+            _visualSync.initialLogicSpawnPos = Vector3.zero;
+            _visualSync.visualPosition = Vector3.zero;
+            _visualSync.lastLogicPosition = Vector3.zero;
+            _visualSync.timeSinceLastLogicUpdate = 0f;
         }
 
         /// <summary>
@@ -240,20 +268,223 @@ namespace Astrum.View.Components
         /// </summary>
         private void StopAllEffects()
         {
+            StopLoopEffect();
+            CleanupRuntimeInstances(); // 清理已失效的实例，但保留正在播放的命中/开火特效
+        }
+
+        private void StopLoopEffect()
+        {
+            if (_loopEffect != null)
+            {
+                _loopEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
+
             if (_trailRenderer != null)
             {
                 _trailRenderer.emitting = false;
             }
+        }
 
-            if (_loopEffect != null && _loopEffect.isPlaying)
+        private void CleanupRuntimeInstances(bool destroyAll = false)
+        {
+            for (int i = _runtimeEffectInstances.Count - 1; i >= 0; i--)
             {
-                _loopEffect.Stop();
+                var instance = _runtimeEffectInstances[i];
+                if (instance == null)
+                {
+                    _runtimeEffectInstances.RemoveAt(i);
+                    continue;
+                }
+
+                if (destroyAll)
+                {
+                    UnityEngine.Object.Destroy(instance);
+                    _runtimeEffectInstances.RemoveAt(i);
+                }
+            }
+        }
+
+        private void CacheEffectConfiguration()
+        {
+            var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();
+            if (projectileComponent == null)
+            {
+                _spawnEffectPath = string.Empty;
+                _loopEffectPath = string.Empty;
+                _hitEffectPath = string.Empty;
+                return;
             }
 
-            if (_hitEffect != null && _hitEffect.isPlaying)
+            _spawnEffectPath = projectileComponent.SpawnEffectPath ?? string.Empty;
+            _loopEffectPath = projectileComponent.LoopEffectPath ?? string.Empty;
+            _hitEffectPath = projectileComponent.HitEffectPath ?? string.Empty;
+        }
+
+        private bool TrySetupLoopEffectFromConfig()
+        {
+            if (string.IsNullOrWhiteSpace(_loopEffectPath) || _ownerEntityView?.GameObject == null)
             {
-                _hitEffect.Stop();
+                return false;
             }
+
+            var prefab = LoadEffectPrefab(ref _loopEffectPrefab, _loopEffectPath);
+            if (prefab == null)
+            {
+                return false;
+            }
+
+            if (_loopEffectInstance != null)
+            {
+                UnityEngine.Object.Destroy(_loopEffectInstance);
+                _loopEffectInstance = null;
+            }
+
+            _loopEffectInstance = UnityEngine.Object.Instantiate(prefab, _ownerEntityView.GameObject.transform);
+            _loopEffectInstance.name = "ProjectileLoopEffect";
+            _loopEffectInstance.transform.localPosition = Vector3.zero;
+            _loopEffectInstance.transform.localRotation = Quaternion.identity;
+            _loopEffectInstance.transform.localScale = Vector3.one;
+
+            _loopEffect = _loopEffectInstance.GetComponentInChildren<ParticleSystem>();
+            _trailRenderer = _loopEffectInstance.GetComponentInChildren<TrailRenderer>() ?? _trailRenderer;
+            _loopEffectFromConfig = true;
+
+            if (_loopEffect != null && !_loopEffect.isPlaying)
+            {
+                _loopEffect.Play();
+            }
+
+            return true;
+        }
+
+        private void TryFindExistingLoopEffect()
+        {
+            var root = _ownerEntityView?.GameObject;
+            if (root == null)
+            {
+                return;
+            }
+
+            if (_trailRenderer == null)
+            {
+                _trailRenderer = root.GetComponentInChildren<TrailRenderer>();
+            }
+
+            if (_loopEffect == null)
+            {
+                var particleSystems = root.GetComponentsInChildren<ParticleSystem>();
+                if (particleSystems != null && particleSystems.Length > 0)
+                {
+                    _loopEffect = particleSystems[0];
+                }
+            }
+        }
+
+        private void EnsureTrailRendererExists()
+        {
+            if (_trailRenderer == null && _ownerEntityView?.GameObject != null)
+            {
+                var trailObj = new GameObject("ProjectileTrail");
+                trailObj.transform.SetParent(_ownerEntityView.GameObject.transform, false);
+                _trailRenderer = trailObj.AddComponent<TrailRenderer>();
+                ConfigureDefaultTrail(_trailRenderer);
+            }
+        }
+
+        private void TryPlaySpawnEffect(Vector3 position, Vector3 forward)
+        {
+            if (_spawnEffectPlayed || string.IsNullOrWhiteSpace(_spawnEffectPath))
+            {
+                return;
+            }
+
+            var prefab = LoadEffectPrefab(ref _spawnEffectPrefab, _spawnEffectPath);
+            if (prefab == null)
+            {
+                return;
+            }
+
+            var instance = InstantiateEffect(prefab, position, forward);
+            if (instance != null)
+            {
+                _spawnEffectPlayed = true;
+            }
+        }
+
+        private GameObject InstantiateEffect(GameObject prefab, Vector3 position, Vector3 forward)
+        {
+            if (prefab == null)
+            {
+                return null;
+            }
+
+            var instance = UnityEngine.Object.Instantiate(prefab);
+            instance.transform.position = position;
+            instance.transform.forward = forward;
+            _runtimeEffectInstances.Add(instance);
+            ScheduleAutoDestroy(instance);
+            return instance;
+        }
+
+        private GameObject LoadEffectPrefab(ref GameObject cache, string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return null;
+            }
+
+            if (cache != null)
+            {
+                return cache;
+            }
+
+            var prefab = ResourceManager.Instance.LoadResource<GameObject>(path);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"ProjectileViewComponent: Failed to load effect prefab at path '{path}'.");
+                return null;
+            }
+
+            cache = prefab;
+            return cache;
+        }
+
+        private void ScheduleAutoDestroy(GameObject instance)
+        {
+            if (instance == null)
+            {
+                return;
+            }
+
+            float lifetime = 3f;
+            var particle = instance.GetComponentInChildren<ParticleSystem>();
+            if (particle != null)
+            {
+                var main = particle.main;
+                float startLifetimeMax = 0f;
+                switch (main.startLifetime.mode)
+                {
+                    case ParticleSystemCurveMode.Constant:
+                        startLifetimeMax = main.startLifetime.constant;
+                        break;
+                    case ParticleSystemCurveMode.TwoConstants:
+                        startLifetimeMax = main.startLifetime.constantMax;
+                        break;
+                    case ParticleSystemCurveMode.TwoCurves:
+                    case ParticleSystemCurveMode.Curve:
+                        startLifetimeMax = Mathf.Max(main.startLifetime.Evaluate(0f), main.startLifetime.Evaluate(1f));
+                        break;
+                }
+
+                lifetime = Mathf.Max(lifetime, main.duration + startLifetimeMax);
+            }
+
+            UnityEngine.Object.Destroy(instance, lifetime);
+        }
+
+        private static Vector3 ToVector3(TSVector value)
+        {
+            return new Vector3((float)value.x, (float)value.y, (float)value.z);
         }
 
         /// <summary>

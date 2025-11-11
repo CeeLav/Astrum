@@ -81,5 +81,20 @@ namespace Astrum.LogicCore.Components
         /// 是否已标记为待销毁，由 DeadCapability 统一处理
         /// </summary>
         public bool IsMarkedForDestroy { get; set; } = false;
+
+        /// <summary>
+        /// 资源路径：开火特效（出生时播放）
+        /// </summary>
+        public string SpawnEffectPath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 资源路径：飞行特效（循环播放）
+        /// </summary>
+        public string LoopEffectPath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 资源路径：命中特效
+        /// </summary>
+        public string HitEffectPath { get; set; } = string.Empty;
     }
 }

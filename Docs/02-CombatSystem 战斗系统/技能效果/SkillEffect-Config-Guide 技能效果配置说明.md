@@ -155,6 +155,7 @@ SkillEffectTable
   - `ProjectileId`（可选）：当 `intParams` 未填写时，可在 JSON 中提供。
   - `TrajectoryOverride`：在生成时对 `ProjectileDefinition.TrajectoryData` 做增量覆写。
   - `AdditionalEffectIds`：追加命中效果，等价于在 `intParams` 中继续填写。
+- 视觉资源（开火、飞行、命中）不在 `SkillEffectTable` 中配置，而是放在 `ProjectileTable` 的 `SpawnEffectPath`、`LoopEffectPath`、`HitEffectPath` 字段，由逻辑层透传给 `ProjectileViewComponent` 自动加载和播放。
 
 ### 自定义效果（示例）
 
