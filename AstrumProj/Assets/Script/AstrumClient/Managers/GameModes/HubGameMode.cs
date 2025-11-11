@@ -23,7 +23,8 @@ namespace Astrum.Client.Managers.GameModes
         public override bool IsRunning { get; set; }
         
         // Hub 特定场景名称
-        private const string HubSceneName = "Hub";
+        private const int HubSceneId = 1;
+        private const int DungeonsGameSceneId = 2;
         
         /// <summary>
         /// 初始化 Hub 游戏模式
@@ -50,13 +51,13 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 启动 Hub 游戏（加载场景）
         /// </summary>
-        public override void StartGame(string sceneName)
+        public override void StartGame(int sceneId)
         {
-            ASLogger.Instance.Info($"HubGameMode: 启动游戏 - 场景: {sceneName ?? HubSceneName}");
+            var targetSceneId = sceneId > 0 ? sceneId : HubSceneId;
+            ASLogger.Instance.Info($"HubGameMode: 启动游戏 - 场景ID: {targetSceneId}");
             
             // 加载 HubScene 场景
-            var targetScene = sceneName ?? HubSceneName;
-            SceneManager.Instance.LoadSceneAsync(targetScene, OnSceneLoaded);
+            SceneManager.Instance.LoadSceneAsync(targetSceneId, OnSceneLoaded);
         }
         
         /// <summary>
@@ -157,7 +158,7 @@ namespace Astrum.Client.Managers.GameModes
                 GameDirector.Instance.SwitchGameMode(GameModeType.SinglePlayer);
                 
                 // StartGame 会在后续调用
-                GameDirector.Instance.StartGame("DungeonsGame");
+                GameDirector.Instance.StartGame(DungeonsGameSceneId);
                 
                 ASLogger.Instance.Info("HubGameMode: 探索启动成功");
             }

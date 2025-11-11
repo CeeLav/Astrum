@@ -17,7 +17,6 @@ public sealed partial class SceneTriggerConditionTable : Luban.BeanBase
     public SceneTriggerConditionTable(ByteBuf _buf) 
     {
         ID = _buf.ReadInt();
-        ConditionId = _buf.ReadInt();
         ConditionType = (TriggerConditionType)_buf.ReadInt();
         {int __n0 = _buf.ReadSize(); IntParams = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); IntParams[__index0] = __e0;}}
         {int __n0 = _buf.ReadSize(); FloatParams = new float[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { float __e0;__e0 = _buf.ReadFloat(); FloatParams[__index0] = __e0;}}
@@ -31,13 +30,9 @@ public sealed partial class SceneTriggerConditionTable : Luban.BeanBase
     }
 
     /// <summary>
-    /// 触发器ID
-    /// </summary>
-    public readonly int ID;
-    /// <summary>
     /// 条件序号
     /// </summary>
-    public readonly int ConditionId;
+    public readonly int ID;
     /// <summary>
     /// 条件类型
     /// </summary>
@@ -70,7 +65,6 @@ public sealed partial class SceneTriggerConditionTable : Luban.BeanBase
     {
         return "{ "
         + "ID:" + ID + ","
-        + "conditionId:" + ConditionId + ","
         + "conditionType:" + ConditionType + ","
         + "intParams:" + Luban.StringUtil.CollectionToString(IntParams) + ","
         + "floatParams:" + Luban.StringUtil.CollectionToString(FloatParams) + ","

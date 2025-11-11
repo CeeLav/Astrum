@@ -1,6 +1,6 @@
-##var,ID,conditionId,conditionType,intParams,floatParams,stringParams,notes
-##type,int,int,TriggerConditionType,"(array#sep=|),int","(array#sep=|),float","(array#sep=|),string",string
-##group,,,,,,,
-##desc,触发器ID,条件序号,条件类型,整型参数列表,浮点参数列表,字符串参数列表,备注
-,100,1,SceneStart,,,,场景开始触发
-,101,2,Delay,,5,,延迟5秒触发
+##var,ID,conditionType,intParams,floatParams,stringParams,notes
+##type,int,TriggerConditionType,"(array#sep=|),int","(array#sep=|),float","(array#sep=|),string",string
+##group,,,,,,
+##desc,条件序号,条件类型,整型参数列表,浮点参数列表,字符串参数列表,备注
+,1,SceneStart,,,,场景开始触发
+,2,Delay,,5,,延迟5秒触发

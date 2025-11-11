@@ -19,6 +19,8 @@ namespace Astrum.Client.Managers.GameModes
     [MonitorTarget]
     public class LoginGameMode : BaseGameMode
     {
+        private const int HubSceneId = 1;
+        
         #region 状态枚举
 
         /// <summary>
@@ -101,7 +103,7 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 启动游戏（登录模式不使用）
         /// </summary>
-        public override void StartGame(string sceneName)
+        public override void StartGame(int sceneId)
         {
             ASLogger.Instance.Warning("LoginGameMode: 登录模式不支持直接启动游戏");
         }
@@ -429,7 +431,7 @@ namespace Astrum.Client.Managers.GameModes
                 GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
 
                 // 4. 启动 Hub 游戏（加载 Hub 场景）
-                GameDirector.Instance.StartGame("Hub");
+                GameDirector.Instance.StartGame(HubSceneId);
 
                 ASLogger.Instance.Info("LoginGameMode: 切换到 Hub 模式成功");
             }

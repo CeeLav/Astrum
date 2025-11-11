@@ -140,15 +140,15 @@ namespace Astrum.Client.Core
         /// <summary>
         /// 启动游戏
         /// </summary>
-        public void StartGame(string sceneName)
+        public void StartGame(int sceneId)
         {
-            ASLogger.Instance.Info($"GameDirector: 启动游戏 - 场景: {sceneName}");
+            ASLogger.Instance.Info($"GameDirector: 启动游戏 - 场景ID: {sceneId}");
             
             ChangeGameState(GameState.GameLoading);
             
             if (_currentGameMode != null)
             {
-                _currentGameMode.StartGame(sceneName);
+                _currentGameMode.StartGame(sceneId);
                 ChangeGameState(GameState.GamePlaying);
             }
             else

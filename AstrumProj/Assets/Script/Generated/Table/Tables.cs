@@ -34,6 +34,7 @@ public partial class Tables
     public Scene.TbSceneTable TbSceneTable {get; }
     public Scene.TbSceneTriggerActionTable TbSceneTriggerActionTable {get; }
     public Scene.TbSceneTriggerConditionTable TbSceneTriggerConditionTable {get; }
+    public Scene.TbSceneTriggerTable TbSceneTriggerTable {get; }
     public Skill.TbSkillActionTable TbSkillActionTable {get; }
     public Skill.TbSkillEffectTable TbSkillEffectTable {get; }
     public Skill.TbSkillTable TbSkillTable {get; }
@@ -61,6 +62,7 @@ public partial class Tables
         TbSceneTable = new Scene.TbSceneTable(loader("scene_tbscenetable"));
         TbSceneTriggerActionTable = new Scene.TbSceneTriggerActionTable(loader("scene_tbscenetriggeractiontable"));
         TbSceneTriggerConditionTable = new Scene.TbSceneTriggerConditionTable(loader("scene_tbscenetriggerconditiontable"));
+        TbSceneTriggerTable = new Scene.TbSceneTriggerTable(loader("scene_tbscenetriggertable"));
         TbSkillActionTable = new Skill.TbSkillActionTable(loader("skill_tbskillactiontable"));
         TbSkillEffectTable = new Skill.TbSkillEffectTable(loader("skill_tbskilleffecttable"));
         TbSkillTable = new Skill.TbSkillTable(loader("skill_tbskilltable"));
@@ -90,6 +92,7 @@ public partial class Tables
         TbSceneTable.ResolveRef(this);
         TbSceneTriggerActionTable.ResolveRef(this);
         TbSceneTriggerConditionTable.ResolveRef(this);
+        TbSceneTriggerTable.ResolveRef(this);
         TbSkillActionTable.ResolveRef(this);
         TbSkillEffectTable.ResolveRef(this);
         TbSkillTable.ResolveRef(this);

@@ -20,8 +20,8 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 启动游戏
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        void StartGame(string sceneName);
+        /// <param name="sceneId">场景配置ID</param>
+        void StartGame(int sceneId);
         
         /// <summary>
         /// 更新游戏逻辑

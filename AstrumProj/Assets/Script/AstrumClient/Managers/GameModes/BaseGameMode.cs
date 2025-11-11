@@ -98,7 +98,7 @@ namespace Astrum.Client.Managers.GameModes
         
         // 抽象方法，子类必须实现
         public abstract void Initialize();
-        public abstract void StartGame(string sceneName);
+        public abstract void StartGame(int sceneId);
         public abstract void Update(float deltaTime);
         public abstract void Shutdown();
         public abstract Room MainRoom { get; set; }

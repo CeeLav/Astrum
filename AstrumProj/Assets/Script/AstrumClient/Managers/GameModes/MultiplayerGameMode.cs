@@ -18,6 +18,8 @@ namespace Astrum.Client.Managers.GameModes
     [MonitorTarget]
     public class MultiplayerGameMode : BaseGameMode
     {
+        private const int DungeonsGameSceneId = 2;
+        
         // 核心属性
         public override Room MainRoom { get; set; }
         public override Stage MainStage { get; set; }
@@ -57,8 +59,8 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 启动联机游戏（联机模式不主动启动，等待服务器通知）
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        public override void StartGame(string sceneName)
+        /// <param name="sceneId">场景配置ID</param>
+        public override void StartGame(int sceneId)
         {
             ASLogger.Instance.Info("MultiplayerGameMode: 联机模式等待服务器游戏开始通知");
             
@@ -398,7 +400,7 @@ namespace Astrum.Client.Managers.GameModes
                 SetRoomAndStage(room, stage);
                 
                 // 切换到游戏场景
-                SwitchToGameScene("DungeonsGame", stage);
+                SwitchToGameScene(DungeonsGameSceneId, stage);
                 
                 ASLogger.Instance.Info($"游戏开始 - 房间: {notification.roomId}, 玩家数: {notification.playerIds.Count}");
             }
@@ -520,9 +522,9 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 切换到游戏场景
         /// </summary>
-        private void SwitchToGameScene(string sceneName, Stage stage)
+        private void SwitchToGameScene(int sceneId, Stage stage)
         {
-            ASLogger.Instance.Info($"MultiplayerGameMode: 切换到游戏场景 {sceneName}");
+            ASLogger.Instance.Info($"MultiplayerGameMode: 切换到游戏场景 SceneId={sceneId}");
             
             var sceneManager = SceneManager.Instance;
             if (sceneManager == null)
@@ -534,7 +536,7 @@ namespace Astrum.Client.Managers.GameModes
             StageManager.Instance.SetCurrentStage(stage);
             ChangeState(GameModeState.Loading);
             // 异步加载游戏场景
-            sceneManager.LoadSceneAsync(sceneName, () => { OnGameSceneLoaded(stage); });
+            sceneManager.LoadSceneAsync(sceneId, () => { OnGameSceneLoaded(stage); });
         }
         
         /// <summary>

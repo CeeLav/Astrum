@@ -1,0 +1,6 @@
+##var,ID,conditionList,actionList
+##type,int,"(array#sep=|),int","(array#sep=|),int"
+##group,,,
+##desc,触发器ID,条件序号（多条件与）,动作序号
+,100,1,1
+,101,2,2

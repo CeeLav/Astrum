@@ -5,6 +5,7 @@ using System.Collections;
 using Astrum.Client.Behaviour;
 using Astrum.Client.Core;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Managers;
 using Astrum.View.Managers;
 
 namespace Astrum.Client.Managers
@@ -75,18 +76,23 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 加载场景
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
+        /// <param name="sceneId">场景配置ID</param>
         /// <param name="mode">加载模式</param>
-        public void LoadScene(string sceneName, LoadSceneMode mode)
+        public void LoadScene(int sceneId, LoadSceneMode mode)
         {
             if (isLoading)
             {
-                Debug.LogWarning($"SceneManager: 正在加载场景中，无法加载 {sceneName}");
+                Debug.LogWarning($"SceneManager: 正在加载场景中，无法加载 SceneId={sceneId}");
+                return;
+            }
+            
+            if (!TryResolveSceneName(sceneId, out var sceneName))
+            {
                 return;
             }
             
             if (enableLogging)
-                Debug.Log($"SceneManager: 开始加载场景 {sceneName}，模式 {mode}");
+                Debug.Log($"SceneManager: 开始加载场景 SceneId={sceneId}, SceneName={sceneName}，模式 {mode}");
             
             try
             {
@@ -105,11 +111,11 @@ namespace Astrum.Client.Managers
                         if (resourceManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Single))
                         {
                             if (enableLogging)
-                                Debug.Log($"SceneManager: 成功加载场景 {sceneName}");
+                                Debug.Log($"SceneManager: 成功加载场景 SceneId={sceneId}, SceneName={sceneName}");
                         }
                         else
                         {
-                            Debug.LogError($"SceneManager: 加载场景 {sceneName} 失败");
+                            Debug.LogError($"SceneManager: 加载场景 SceneId={sceneId}, SceneName={sceneName} 失败");
                             return;
                         }
                         break;
@@ -118,17 +124,17 @@ namespace Astrum.Client.Managers
                         if (resourceManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive))
                         {
                             if (enableLogging)
-                                Debug.Log($"SceneManager: 成功加载场景 {sceneName}");
+                                Debug.Log($"SceneManager: 成功加载场景 SceneId={sceneId}, SceneName={sceneName}");
                         }
                         else
                         {
-                            Debug.LogError($"SceneManager: 加载场景 {sceneName} 失败");
+                            Debug.LogError($"SceneManager: 加载场景 SceneId={sceneId}, SceneName={sceneName} 失败");
                             return;
                         }
                         break;
                         
                     case LoadSceneMode.ASYNC:
-                        LoadSceneAsync(sceneName);
+                        LoadSceneAsync(sceneId);
                         return;
                         
                     default:
@@ -142,11 +148,11 @@ namespace Astrum.Client.Managers
                 loadingProgress = 1f;
                 
                 if (enableLogging)
-                    Debug.Log($"SceneManager: 场景 {sceneName} 加载完成");
+                    Debug.Log($"SceneManager: 场景 SceneId={sceneId}, SceneName={sceneName} 加载完成");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"SceneManager: 加载场景 {sceneName} 失败 - {ex.Message}");
+                Debug.LogError($"SceneManager: 加载场景 SceneId={sceneId}, SceneName={sceneName} 失败 - {ex.Message}");
                 isLoading = false;
                 loadingProgress = 0f;
             }
@@ -155,22 +161,27 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 异步加载场景
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
+        /// <param name="sceneId">场景配置ID</param>
         /// <param name="callback">加载完成回调</param>
-        public void LoadSceneAsync(string sceneName, Action callback = null)
+        public void LoadSceneAsync(int sceneId, Action callback = null)
         {
             if (isLoading)
             {
-                Debug.LogWarning($"SceneManager: 正在加载场景中，无法加载 {sceneName}");
+                Debug.LogWarning($"SceneManager: 正在加载场景中，无法加载 SceneId={sceneId}");
+                return;
+            }
+            
+            if (!TryResolveSceneName(sceneId, out var sceneName))
+            {
                 return;
             }
             
             if (enableLogging)
-                Debug.Log($"SceneManager: 开始异步加载场景 {sceneName}");
+                Debug.Log($"SceneManager: 开始异步加载场景 SceneId={sceneId}, SceneName={sceneName}");
             
             if (coroutineRunner != null)
             {
-                coroutineRunner.StartCoroutine(LoadSceneAsyncCoroutine(sceneName, callback));
+                coroutineRunner.StartCoroutine(LoadSceneAsyncCoroutine(sceneId, sceneName, callback));
             }
             else
             {
@@ -181,7 +192,7 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 异步加载场景协程
         /// </summary>
-        private IEnumerator LoadSceneAsyncCoroutine(string sceneName, Action callback)
+        private IEnumerator LoadSceneAsyncCoroutine(int sceneId, string sceneName, Action callback)
         {
             isLoading = true;
             loadingProgress = 0f;
@@ -201,7 +212,7 @@ namespace Astrum.Client.Managers
                 if (success)
                 {
                     if (enableLogging)
-                        Debug.Log($"SceneManager: 成功异步加载场景 {sceneName}");
+                        Debug.Log($"SceneManager: 成功异步加载场景 SceneId={sceneId}, SceneName={sceneName}");
                     
                     // 更新当前场景
                     currentScene = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName);
@@ -213,7 +224,7 @@ namespace Astrum.Client.Managers
                 }
                 else
                 {
-                    Debug.LogError($"SceneManager: 异步加载场景 {sceneName} 失败");
+                    Debug.LogError($"SceneManager: 异步加载场景 SceneId={sceneId}, SceneName={sceneName} 失败");
                     isLoading = false;
                     loadingProgress = 0f;
                 }
@@ -223,11 +234,16 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 卸载场景
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        public void UnloadScene(string sceneName)
+        /// <param name="sceneId">场景配置ID</param>
+        public void UnloadScene(int sceneId)
         {
+            if (!TryResolveSceneName(sceneId, out var sceneName))
+            {
+                return;
+            }
+            
             if (enableLogging)
-                Debug.Log($"SceneManager: 卸载场景 {sceneName}");
+                Debug.Log($"SceneManager: 卸载场景 SceneId={sceneId}, SceneName={sceneName}");
             
             // 获取ResourceManager实例
             var resourceManager = ResourceManager.Instance;
@@ -241,11 +257,11 @@ namespace Astrum.Client.Managers
             if (resourceManager.UnloadScene(sceneName))
             {
                 if (enableLogging)
-                    Debug.Log($"SceneManager: 场景 {sceneName} 卸载完成");
+                    Debug.Log($"SceneManager: 场景 SceneId={sceneId}, SceneName={sceneName} 卸载完成");
             }
             else
             {
-                Debug.LogWarning($"SceneManager: 场景 {sceneName} 未加载，无法卸载");
+                Debug.LogWarning($"SceneManager: 场景 SceneId={sceneId}, SceneName={sceneName} 未加载，无法卸载");
             }
         }
         
@@ -261,10 +277,15 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 检查场景是否已加载
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
+        /// <param name="sceneId">场景配置ID</param>
         /// <returns>是否已加载</returns>
-        public bool IsSceneLoaded(string sceneName)
+        public bool IsSceneLoaded(int sceneId)
         {
+            if (!TryResolveSceneName(sceneId, out var sceneName))
+            {
+                return false;
+            }
+            
             return UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName).isLoaded;
         }
         
@@ -280,9 +301,14 @@ namespace Astrum.Client.Managers
         /// <summary>
         /// 激活场景
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        public void ActivateScene(string sceneName)
+        /// <param name="sceneId">场景配置ID</param>
+        public void ActivateScene(int sceneId)
         {
+            if (!TryResolveSceneName(sceneId, out var sceneName))
+            {
+                return;
+            }
+            
             Scene scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneName);
             if (scene.isLoaded)
             {
@@ -290,11 +316,11 @@ namespace Astrum.Client.Managers
                 currentScene = scene;
                 
                 if (enableLogging)
-                    Debug.Log($"SceneManager: 激活场景 {sceneName}");
+                    Debug.Log($"SceneManager: 激活场景 SceneId={sceneId}, SceneName={sceneName}");
             }
             else
             {
-                Debug.LogWarning($"SceneManager: 场景 {sceneName} 未加载，无法激活");
+                Debug.LogWarning($"SceneManager: 场景 SceneId={sceneId}, SceneName={sceneName} 未加载，无法激活");
             }
         }
         
@@ -308,6 +334,42 @@ namespace Astrum.Client.Managers
             
             isLoading = false;
             loadingProgress = 0f;
+        }
+
+        private bool TryResolveSceneName(int sceneId, out string sceneName)
+        {
+            sceneName = string.Empty;
+            
+            var tableConfig = TableConfig.Instance;
+            if (tableConfig == null || !tableConfig.IsInitialized)
+            {
+                Debug.LogError($"SceneManager: TableConfig 未初始化，无法解析场景 SceneId={sceneId}");
+                return false;
+            }
+            
+            try
+            {
+                var sceneRow = tableConfig.Tables.TbSceneTable.GetOrDefault(sceneId);
+                if (sceneRow == null)
+                {
+                    Debug.LogError($"SceneManager: 在 TbSceneTable 中找不到 SceneId={sceneId}");
+                    return false;
+                }
+                
+                sceneName = sceneRow.SceneName;
+                if (string.IsNullOrEmpty(sceneName))
+                {
+                    Debug.LogError($"SceneManager: SceneId={sceneId} 的 SceneName 为空");
+                    return false;
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"SceneManager: 解析 SceneId={sceneId} 时发生异常 - {ex.Message}");
+                return false;
+            }
         }
     }
     

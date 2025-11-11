@@ -21,6 +21,8 @@ namespace Astrum.Client.Managers.GameModes
     [MonitorTarget]
     public class SinglePlayerGameMode : BaseGameMode
     {
+        private const int HubSceneId = 1;
+        
         // 核心属性
         public override Room MainRoom { get; set; }
         public override Stage MainStage { get; set; }
@@ -47,10 +49,10 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 启动单机游戏
         /// </summary>
-        /// <param name="sceneName">游戏场景名称</param>
-        public override void StartGame(string sceneName)
+        /// <param name="sceneId">游戏场景ID</param>
+        public override void StartGame(int sceneId)
         {
-            ASLogger.Instance.Info($"SinglePlayerGameMode: 启动单机游戏 - 场景: {sceneName}");
+            ASLogger.Instance.Info($"SinglePlayerGameMode: 启动单机游戏 - 场景ID: {sceneId}");
             
             try
             {
@@ -63,7 +65,7 @@ namespace Astrum.Client.Managers.GameModes
                 CreateStage();
                 
                 // 3. 切换到游戏场景
-                SwitchToGameScene(sceneName);
+                SwitchToGameScene(sceneId);
                 
                 // 4. 创建玩家（在场景加载完成后）
                 // CreatePlayer() 会在 OnGameSceneLoaded() 中调用
@@ -173,10 +175,10 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 切换到游戏场景
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        private void SwitchToGameScene(string sceneName)
+        /// <param name="sceneId">场景配置ID</param>
+        private void SwitchToGameScene(int sceneId)
         {
-            ASLogger.Instance.Info($"SinglePlayerGameMode: 切换到游戏场景 {sceneName}");
+            ASLogger.Instance.Info($"SinglePlayerGameMode: 切换到游戏场景 SceneId={sceneId}");
             
             var sceneManager = SceneManager.Instance;
             if (sceneManager == null)
@@ -188,7 +190,7 @@ namespace Astrum.Client.Managers.GameModes
             StageManager.Instance.SetCurrentStage(MainStage);
             
             // 异步加载游戏场景
-            sceneManager.LoadSceneAsync(sceneName, () => { OnGameSceneLoaded(); });
+            sceneManager.LoadSceneAsync(sceneId, () => { OnGameSceneLoaded(); });
         }
         
         /// <summary>
@@ -477,7 +479,7 @@ namespace Astrum.Client.Managers.GameModes
                 GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
                 
                 // 3. 启动 Hub 场景
-                GameDirector.Instance.StartGame("Hub");
+                GameDirector.Instance.StartGame(HubSceneId);
                 
                 ASLogger.Instance.Info("SinglePlayerGameMode: 撤离成功，已切换到 Hub 模式");
             }
