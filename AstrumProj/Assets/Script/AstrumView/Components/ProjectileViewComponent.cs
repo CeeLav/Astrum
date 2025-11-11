@@ -92,10 +92,13 @@ namespace Astrum.View.Components
             // 持续更新：插值追赶逻辑位置
             UpdateVisualPosition(currentLogicPosition, deltaTime);
 
-            // 同步 GameObject 位置
+            // 同步 GameObject 位置和旋转
             if (_ownerEntityView != null)
             {
                 _ownerEntityView.SetWorldPosition(_visualSync.visualPosition);
+                
+                // 更新特效朝向（每帧）
+                UpdateEffectsRotation();
             }
 
             // 记录本帧逻辑位置
@@ -151,7 +154,7 @@ namespace Astrum.View.Components
 
             if (!_spawnEffectPlayed)
             {
-                var forward = _ownerEntityView?.Transform != null ? _ownerEntityView.Transform.forward : Vector3.forward;
+                var forward = GetProjectileLaunchDirection();
                 TryPlaySpawnEffect(_visualSync.visualPosition, forward);
             }
 
@@ -209,7 +212,8 @@ namespace Astrum.View.Components
                 var prefab = LoadEffectPrefab(ref _hitEffectPrefab, _hitEffectPath);
                 if (prefab != null)
                 {
-                    var instance = InstantiateEffect(prefab, worldPos, _ownerEntityView?.Transform?.forward ?? Vector3.forward);
+                    var forward = GetProjectileLaunchDirection();
+                    var instance = InstantiateEffect(prefab, worldPos, forward);
                     played = instance != null;
                 }
             }
@@ -402,6 +406,57 @@ namespace Astrum.View.Components
                 trailObj.transform.SetParent(_ownerEntityView.GameObject.transform, false);
                 _trailRenderer = trailObj.AddComponent<TrailRenderer>();
                 ConfigureDefaultTrail(_trailRenderer);
+            }
+        }
+
+        /// <summary>
+        /// 获取子弹的飞行方向（从逻辑层）
+        /// </summary>
+        private Vector3 GetProjectileLaunchDirection()
+        {
+            var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();
+            if (projectileComponent != null)
+            {
+                // 优先使用当前速度方向（更准确反映实时飞行方向）
+                if (projectileComponent.CurrentVelocity.sqrMagnitude > FP.Epsilon)
+                {
+                    var velocity = projectileComponent.CurrentVelocity;
+                    return new Vector3((float)velocity.x, (float)velocity.y, (float)velocity.z).normalized;
+                }
+
+                // 回退到初始发射方向
+                var launchDir = projectileComponent.LaunchDirection;
+                return new Vector3((float)launchDir.x, (float)launchDir.y, (float)launchDir.z).normalized;
+            }
+
+            // 最终回退：使用 TransComponent 的朝向
+            var transComponent = OwnerEntity?.GetComponent<TransComponent>();
+            if (transComponent != null)
+            {
+                var forward = transComponent.Forward;
+                return new Vector3((float)forward.x, (float)forward.y, (float)forward.z).normalized;
+            }
+
+            return Vector3.forward;
+        }
+
+        /// <summary>
+        /// 更新特效朝向（每帧调用）
+        /// </summary>
+        private void UpdateEffectsRotation()
+        {
+            var direction = GetProjectileLaunchDirection();
+
+            // 更新循环特效朝向
+            if (_loopEffect != null && _loopEffect.gameObject != null)
+            {
+                _loopEffect.transform.forward = direction;
+            }
+
+            // 更新 EntityView GameObject 的朝向（如果有拖尾等绑定在上面的特效）
+            if (_ownerEntityView?.GameObject != null)
+            {
+                _ownerEntityView.GameObject.transform.forward = direction;
             }
         }
 
