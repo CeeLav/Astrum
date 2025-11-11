@@ -152,22 +152,9 @@ namespace Astrum.LogicCore.Capabilities
             if (component.CasterId > 0)
                 filter.ExcludedEntityIds.Add(component.CasterId);
 
-            filter.CustomFilter = target =>
-            {
-                bool alreadyHit = component.HitEntities.Contains(target.UniqueId);
-                if (alreadyHit)
-                {
-                    ASLogger.Instance.Info($"[ProjectileCapability] Filtering out entity {target.UniqueId} - already hit (HitEntities: {string.Join(",", component.HitEntities)}, PiercedCount: {component.PiercedCount}/{component.PierceCount}, IsMarkedForDestroy: {component.IsMarkedForDestroy})");
-                }
-                return !alreadyHit;
-            };
+            filter.CustomFilter = target => !component.HitEntities.Contains(target.UniqueId);
 
             var hits = world.HitSystem.QueryRaycast(projectile, component.LastPosition, delta, distance, filter);
-
-            if (hits.Count > 0 || component.HitEntities.Count > 0)
-            {
-                ASLogger.Instance.Info($"[ProjectileCapability] Projectile {projectile.UniqueId} raycast: distance={(float)distance:F3}, hits={hits.Count}, HitEntities={component.HitEntities.Count}, PiercedCount={component.PiercedCount}/{component.PierceCount}, IsMarkedForDestroy={component.IsMarkedForDestroy}");
-            }
 
             foreach (var hit in hits)
             {
@@ -185,6 +172,7 @@ namespace Astrum.LogicCore.Capabilities
             if (target == null)
                 return true;
 
+            // 尝试添加到 HitEntities，如果已存在则跳过（防止同一帧重复命中）
             if (!component.HitEntities.Add(target.UniqueId))
                 return true;
 

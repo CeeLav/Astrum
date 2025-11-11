@@ -257,7 +257,11 @@ namespace Astrum.LogicCore.Capabilities
                 //skillInstanceId: skillAction.Id
             );
 
-            ASLogger.Instance.Info($"[SkillExecutorCapability] Collision trigger hit {hits.Count} targets, EffectIds: [{string.Join(",", trigger.EffectIds ?? new int[0])}]");
+            // 移除冗余日志，只在没有命中时记录
+            if (hits.Count == 0)
+            {
+                ASLogger.Instance.Info($"[SkillExecutorCapability] Collision trigger hit 0 targets");
+            }
 
             // 4. 对每个命中目标触发所有效果
             foreach (var target in hits)

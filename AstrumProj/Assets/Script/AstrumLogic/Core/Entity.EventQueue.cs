@@ -41,9 +41,6 @@ namespace Astrum.LogicCore.Core
                 EventData = eventData, // 装箱为 IEvent
                 Frame = World?.CurFrame ?? 0
             });
-            
-            Astrum.CommonBase.ASLogger.Instance.Info($"[Entity.QueueEvent] Entity {UniqueId} queued event {typeof(T).Name}, " +
-                $"queue size: {_eventQueue.Count}, triggerWhenInactive: {eventData.TriggerWhenInactive}");
         }
         
         /// <summary>

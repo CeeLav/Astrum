@@ -174,12 +174,6 @@ namespace Astrum.LogicCore.Physics
             // 应用过滤
             var filteredHits = ApplyFilter(caster, candidates, filter);
 
-            // 警告：如果所有候选者都被过滤掉
-            if (filteredHits.Count == 0 && candidates.Count > 0)
-            {
-                ASLogger.Instance.Warning($"[HitSystem.QueryHits] All candidates were filtered out! Caster={caster.UniqueId}, ExcludedIds={string.Join(",", filter?.ExcludedEntityIds ?? new HashSet<long>())}");
-            }
-
             // 应用去重
             if (skillInstanceId > 0)
             {
