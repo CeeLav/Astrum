@@ -132,6 +132,30 @@ SkillEffectTable
 **StringParams**
 - 默认留空；若需特殊阶段可使用 `Phase:AfterHit`（极少数情况）
 
+### Projectile（抛射物触发）
+
+> 该类型不会直接进入 `SkillEffectSystem`，而是由 `SkillExecutorCapability` 派发 `ProjectileSpawnRequestEvent`，最终交由 `ProjectileSpawnCapability` 创建弹道实体。
+
+**IntParams**
+1. `ProjectileId`（对应 `ProjectileTable` 中的弹道配置）
+2. `ExtraEffectId`（可选，从第二个元素开始的所有值会一并加入弹道的 `SkillEffectIds` 列表，用于命中时额外触发伤害/状态等效果，可填多个）
+
+**StringParams**
+- 可选 JSON，用于覆写弹道的部分配置，例如：
+  ```json
+  {
+    "ProjectileId": 7001,
+    "TrajectoryOverride": {
+      "BaseSpeed": 900,
+      "Gravity": [0, -0.03, 0]
+    },
+    "AdditionalEffectIds": [4003]
+  }
+  ```
+  - `ProjectileId`（可选）：当 `intParams` 未填写时，可在 JSON 中提供。
+  - `TrajectoryOverride`：在生成时对 `ProjectileDefinition.TrajectoryData` 做增量覆写。
+  - `AdditionalEffectIds`：追加命中效果，等价于在 `intParams` 中继续填写。
+
 ### 自定义效果（示例）
 
 > 新增类型需创建解析器并记录参数顺序。建议：

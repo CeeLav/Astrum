@@ -95,21 +95,35 @@ namespace Astrum.LogicCore.Capabilities
 
         private ProjectileDefinition? ResolveProjectileDefinition(SkillEffectTable effectConfig, string overrideJson)
         {
-            string raw = !string.IsNullOrWhiteSpace(overrideJson) ? overrideJson : (effectConfig.StringParams != null && effectConfig.StringParams.Length > 0 ? effectConfig.StringParams[0] : string.Empty);
-            if (string.IsNullOrWhiteSpace(raw))
+            int projectileId = 0;
+            if (effectConfig.IntParams != null && effectConfig.IntParams.Length > 0)
             {
-                return null;
+                projectileId = effectConfig.IntParams[0];
             }
+
+            string raw = !string.IsNullOrWhiteSpace(overrideJson)
+                ? overrideJson
+                : (effectConfig.StringParams != null && effectConfig.StringParams.Length > 0
+                    ? effectConfig.StringParams[0]
+                    : string.Empty);
 
             try
             {
-                var root = JObject.Parse(raw);
-                if (!root.TryGetValue(TriggerFrameJsonKeys.ProjectileId, out var idToken) || idToken.Type != JTokenType.Integer)
+                if (projectileId <= 0 && !string.IsNullOrWhiteSpace(raw))
                 {
+                    var rootForId = JObject.Parse(raw);
+                    if (rootForId.TryGetValue(TriggerFrameJsonKeys.ProjectileId, out var idToken) && idToken.Type == JTokenType.Integer)
+                    {
+                        projectileId = idToken.Value<int>();
+                    }
+                }
+
+                if (projectileId <= 0)
+                {
+                    ASLogger.Instance.Warning("ProjectileSpawnCapability: projectileId missing in effect IntParams/StringParams");
                     return null;
                 }
 
-                var projectileId = idToken.Value<int>();
                 var definition = ProjectileConfigManager.Instance.GetDefinition(projectileId);
                 if (definition == null)
                 {
@@ -117,10 +131,14 @@ namespace Astrum.LogicCore.Capabilities
                     return null;
                 }
 
-                if (root.TryGetValue(TriggerFrameJsonKeys.TrajectoryOverride, out var overrideToken) && overrideToken is JObject overrideObject)
+                if (!string.IsNullOrWhiteSpace(raw))
                 {
-                    var merged = MergeTrajectoryOverride(definition.TrajectoryData, overrideObject);
-                    definition.TrajectoryData = merged;
+                    var root = JObject.Parse(raw);
+                    if (root.TryGetValue(TriggerFrameJsonKeys.TrajectoryOverride, out var overrideToken) && overrideToken is JObject overrideObject)
+                    {
+                        var merged = MergeTrajectoryOverride(definition.TrajectoryData, overrideObject);
+                        definition.TrajectoryData = merged;
+                    }
                 }
 
                 return definition;
@@ -141,9 +159,22 @@ namespace Astrum.LogicCore.Capabilities
                 results.AddRange(definition.DefaultEffectIds);
             }
 
-            if (!results.Contains(effectConfig.SkillEffectId))
+            if (!string.Equals(effectConfig.EffectType, "Projectile", StringComparison.OrdinalIgnoreCase)
+                && !results.Contains(effectConfig.SkillEffectId))
             {
                 results.Add(effectConfig.SkillEffectId);
+            }
+
+            if (effectConfig.IntParams != null && effectConfig.IntParams.Length > 1)
+            {
+                for (int i = 1; i < effectConfig.IntParams.Length; i++)
+                {
+                    var extraId = effectConfig.IntParams[i];
+                    if (extraId > 0 && !results.Contains(extraId))
+                    {
+                        results.Add(extraId);
+                    }
+                }
             }
 
             if (trigger?.EffectIds != null)
