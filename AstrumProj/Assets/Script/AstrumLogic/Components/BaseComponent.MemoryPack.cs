@@ -24,6 +24,7 @@ namespace Astrum.LogicCore.Components
     [MemoryPackUnion(16, typeof(KnockbackComponent))]
     [MemoryPackUnion(17, typeof(CurrencyComponent))]
     [MemoryPackUnion(18, typeof(InventoryComponent))]
+[MemoryPackUnion(19, typeof(ProjectileComponent))]
     [MemoryPackable]
     public abstract partial class BaseComponent
     {
