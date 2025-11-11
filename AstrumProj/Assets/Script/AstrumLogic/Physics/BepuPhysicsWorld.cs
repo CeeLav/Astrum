@@ -159,6 +159,28 @@ namespace Astrum.LogicCore.Physics
         }
 
         /// <summary>
+        /// 获取实体在物理世界中的实际位置（用于调试）
+        /// </summary>
+        public TSVector? GetPhysicsPosition(AstrumEntity entity)
+        {
+            if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var bepuEntity))
+                return null;
+            
+            return bepuEntity.Position.ToTSVector();
+        }
+
+        /// <summary>
+        /// 获取实体在物理世界中的实际旋转（用于调试）
+        /// </summary>
+        public TSQuaternion? GetPhysicsRotation(AstrumEntity entity)
+        {
+            if (entity == null || !_entityBodies.TryGetValue(entity.UniqueId, out var bepuEntity))
+                return null;
+            
+            return bepuEntity.Orientation.ToTSQuaternion();
+        }
+
+        /// <summary>
         /// 射线检测（返回沿射线方向命中的所有实体）
         /// </summary>
         /// <param name="origin">射线起点</param>

@@ -76,8 +76,44 @@ namespace Astrum.View.Components
             
             if (collisionComp == null || positionComp == null || collisionComp.Shapes == null) return;
             
-            Gizmos.color = EntityCollisionColor;
+            // 尝试从物理世界获取实际位置
+            var world = OwnerEntity.World;
+            var physicsPos = world?.HitSystem?.PhysicsWorld?.GetPhysicsPosition(OwnerEntity);
+            var physicsRot = world?.HitSystem?.PhysicsWorld?.GetPhysicsRotation(OwnerEntity);
             
+            // 如果物理世界位置与逻辑位置不一致，显示警告
+            if (physicsPos.HasValue)
+            {
+                var posDiff = (physicsPos.Value - positionComp.Position).magnitude;
+                if (posDiff > TrueSync.FP.FromFloat(0.01f))
+                {
+                    // 绘制物理世界的碰撞体（红色，表示不同步）
+                    Gizmos.color = Color.red;
+                    foreach (var shape in collisionComp.Shapes)
+                    {
+                        DrawCollisionShape(shape, physicsPos.Value, physicsRot ?? positionComp.Rotation);
+                    }
+                    
+                    // 绘制逻辑层的碰撞体（黄色半透明，表示预期位置）
+                    Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
+                    foreach (var shape in collisionComp.Shapes)
+                    {
+                        DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
+                    }
+                    
+#if UNITY_EDITOR
+                    // 显示警告标签
+                    Vector3 logicPos = new Vector3((float)positionComp.Position.x, (float)positionComp.Position.y, (float)positionComp.Position.z);
+                    UnityEditor.Handles.Label(logicPos + Vector3.up * 0.5f, 
+                        $"⚠ Physics Desync: {(float)posDiff:F3}m", 
+                        new GUIStyle { normal = new GUIStyleState { textColor = Color.red }, fontSize = 14, fontStyle = FontStyle.Bold });
+#endif
+                    return;
+                }
+            }
+            
+            // 正常绘制（使用逻辑层位置）
+            Gizmos.color = EntityCollisionColor;
             foreach (var shape in collisionComp.Shapes)
             {
                 DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
