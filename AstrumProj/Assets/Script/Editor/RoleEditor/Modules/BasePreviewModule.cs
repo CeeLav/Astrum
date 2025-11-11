@@ -26,10 +26,10 @@ namespace Astrum.Editor.RoleEditor.Modules
         protected float _zoomLevel = 2f;  // 默认距离更近
         protected Vector3 _modelCenter = Vector3.zero;
         protected float _orbitRadius = 3f;
-        
-        protected const float MIN_ZOOM = 1f;
-        protected const float MAX_ZOOM = 10f;
-        protected const float ZOOM_SPEED = 0.1f;
+        private const float ZOOM_SPEED = 0.1f;
+        private const float MIN_ZOOM = 0.5f;
+        private const float MAX_ZOOM = 5f;
+        private const float DEFAULT_ZOOM = 2f;
         
         protected virtual string LogPrefix => "[BasePreviewModule]";
         
@@ -255,7 +255,7 @@ namespace Astrum.Editor.RoleEditor.Modules
         public void ResetCamera()
         {
             _dragRotation = new Vector2(0f, 30f);  // 30度俯视角
-            _zoomLevel = 2f;  // 距离更近
+            _zoomLevel = DEFAULT_ZOOM;
         }
         
         // === 渲染 ===
@@ -352,22 +352,18 @@ namespace Astrum.Editor.RoleEditor.Modules
         {
             Event evt = Event.current;
             
-            if (!rect.Contains(evt.mousePosition))
-                return;
-            
-            // 左键拖拽旋转
-            if (evt.type == EventType.MouseDrag && evt.button == 0)
+            // 右键拖拽旋转（避免与面板拖拽冲突）
+            if (evt.type == EventType.MouseDrag && evt.button == 1)
             {
                 _dragRotation.x += evt.delta.x * 0.5f;
-                _dragRotation.y -= evt.delta.y * 0.5f;
-                _dragRotation.y = Mathf.Clamp(_dragRotation.y, 10f, 170f);
+                _dragRotation.y -= evt.delta.y * 0.5f; // 30度俯视角，Y轴向上为负
                 evt.Use();
             }
             
             // 滚轮缩放
             if (evt.type == EventType.ScrollWheel)
             {
-                _zoomLevel += evt.delta.y * ZOOM_SPEED;
+                _zoomLevel -= evt.delta.y * ZOOM_SPEED;
                 _zoomLevel = Mathf.Clamp(_zoomLevel, MIN_ZOOM, MAX_ZOOM);
                 evt.Use();
             }
