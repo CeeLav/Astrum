@@ -65,10 +65,16 @@ namespace Astrum.LogicCore.Physics
             }
 
             var position = entity.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
-            var bepuPos = position.ToBepuVector();
+            var rotation = entity.GetComponent<TransComponent>()?.Rotation ?? TSQuaternion.identity;
 
             // TODO: 目前只注册第一个碰撞盒，后续可支持多个
             var shape = collisionComponent.Shapes[0];
+            
+            // 【关键修复】应用碰撞体的局部偏移
+            var worldTransform = shape.ToWorldTransform(position, rotation);
+            var bepuPos = worldTransform.WorldCenter.ToBepuVector();
+            var bepuRot = worldTransform.WorldRotation.ToBepuQuaternion();
+            
             BepuEntity bepuEntity = null;
 
             switch (shape.ShapeType)
@@ -76,6 +82,7 @@ namespace Astrum.LogicCore.Physics
                 case HitBoxShape.Box:
                     var halfSize = shape.HalfSize.ToBepuVector();
                     var box = new Box(bepuPos, halfSize.X * (Fix64)2, halfSize.Y * (Fix64)2, halfSize.Z * (Fix64)2);
+                    box.Orientation = bepuRot;
                     box.Tag = entity; // 存储我们的实体引用
                     bepuEntity = box;
                     _space.Add(box);
@@ -90,6 +97,7 @@ namespace Astrum.LogicCore.Physics
 
                 case HitBoxShape.Capsule:
                     var capsule = new Capsule(bepuPos, shape.Height.ToFix64(), shape.Radius.ToFix64());
+                    capsule.Orientation = bepuRot;
                     capsule.Tag = entity;
                     bepuEntity = capsule;
                     _space.Add(capsule);
@@ -123,13 +131,18 @@ namespace Astrum.LogicCore.Physics
                 return;
 
             var transComp = entity.GetComponent<TransComponent>();
-            if (transComp == null)
+            var collisionComp = entity.GetComponent<CollisionComponent>();
+            if (transComp == null || collisionComp == null || collisionComp.Shapes == null || collisionComp.Shapes.Count == 0)
                 return;
 
             var position = transComp.Position;
             var rotation = transComp.Rotation;
-            var bepuPos = position.ToBepuVector();
-            var bepuRot = rotation.ToBepuQuaternion();
+            
+            // 【关键修复】应用碰撞体的局部偏移
+            var shape = collisionComp.Shapes[0];
+            var worldTransform = shape.ToWorldTransform(position, rotation);
+            var bepuPos = worldTransform.WorldCenter.ToBepuVector();
+            var bepuRot = worldTransform.WorldRotation.ToBepuQuaternion();
             
             // 【关键修复】手动更新位置时，必须同时更新碰撞信息的世界变换
             // 否则AABB和查询会使用旧的位置，导致在原点附近才能命中

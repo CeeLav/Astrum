@@ -76,37 +76,42 @@ namespace Astrum.View.Components
             
             if (collisionComp == null || positionComp == null || collisionComp.Shapes == null) return;
             
-            // 尝试从物理世界获取实际位置
+            // 尝试从物理世界获取实际位置（碰撞体中心）
             var world = OwnerEntity.World;
             var physicsPos = world?.HitSystem?.PhysicsWorld?.GetPhysicsPosition(OwnerEntity);
             var physicsRot = world?.HitSystem?.PhysicsWorld?.GetPhysicsRotation(OwnerEntity);
             
             // 如果物理世界位置与逻辑位置不一致，显示警告
-            if (physicsPos.HasValue)
+            if (physicsPos.HasValue && collisionComp.Shapes.Count > 0)
             {
-                var posDiff = (physicsPos.Value - positionComp.Position).magnitude;
+                // 计算逻辑层的碰撞体中心位置（应用偏移）
+                var shape = collisionComp.Shapes[0];
+                var logicTransform = shape.ToWorldTransform(positionComp.Position, positionComp.Rotation);
+                var logicCollisionCenter = logicTransform.WorldCenter;
+                
+                // 对比物理世界的碰撞体中心 vs 逻辑层的碰撞体中心
+                var posDiff = (physicsPos.Value - logicCollisionCenter).magnitude;
                 if (posDiff > TrueSync.FP.FromFloat(0.01f))
                 {
                     // 绘制物理世界的碰撞体（红色，表示不同步）
                     Gizmos.color = Color.red;
-                    foreach (var shape in collisionComp.Shapes)
-                    {
-                        DrawCollisionShape(shape, physicsPos.Value, physicsRot ?? positionComp.Rotation);
-                    }
+                    Vector3 physicsCenter = TSVectorToVector3(physicsPos.Value);
+                    Gizmos.DrawWireSphere(physicsCenter, 0.15f);
+                    Gizmos.DrawSphere(physicsCenter, 0.05f);
                     
                     // 绘制逻辑层的碰撞体（黄色半透明，表示预期位置）
                     Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
-                    foreach (var shape in collisionComp.Shapes)
+                    foreach (var s in collisionComp.Shapes)
                     {
-                        DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
+                        DrawCollisionShape(s, positionComp.Position, positionComp.Rotation);
                     }
                     
 #if UNITY_EDITOR
                     // 显示警告标签
-                    Vector3 logicPos = new Vector3((float)positionComp.Position.x, (float)positionComp.Position.y, (float)positionComp.Position.z);
+                    Vector3 logicPos = TSVectorToVector3(logicCollisionCenter);
                     UnityEditor.Handles.Label(logicPos + Vector3.up * 0.5f, 
-                        $"⚠ Physics Desync: {(float)posDiff:F3}m", 
-                        new GUIStyle { normal = new GUIStyleState { textColor = Color.red }, fontSize = 14, fontStyle = FontStyle.Bold });
+                        $"⚠ Physics Desync: {(float)posDiff:F3}m\nPhysics: {physicsCenter:F2}\nLogic: {logicPos:F2}", 
+                        new GUIStyle { normal = new GUIStyleState { textColor = Color.red }, fontSize = 12, fontStyle = FontStyle.Bold });
 #endif
                     return;
                 }
