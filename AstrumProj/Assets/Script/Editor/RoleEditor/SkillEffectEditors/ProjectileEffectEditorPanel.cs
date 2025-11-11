@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
 using Astrum.Editor.RoleEditor.Services;
+using Astrum.Editor.RoleEditor.Persistence;
+using Astrum.Editor.RoleEditor.Windows;
+using cfg.Projectile;
 using UnityEditor;
 using UnityEngine;
 
@@ -16,50 +19,50 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         public string EffectType => "Projectile";
         public bool SupportsInlineEditing => true;
 
+        // 缓存当前编辑的弹道配置
+        private ProjectileTableData _currentProjectileData;
+        private bool _projectileDataLoaded = false;
+
         public bool DrawContent(SkillEffectTableData data)
         {
             bool changed = false;
 
             // 确保参数列表最小长度
+            // IntParams: [0] = ProjectileId, [1] = TargetType, [2] = ExtraEffectId1, [3] = ExtraEffectId2, ...
             SkillEffectEditorUtility.EnsureListSize(data.IntParams, 1);
+            
+            // StringParams: [0] = ExtraEffectParams (JSON格式)
             SkillEffectEditorUtility.EnsureListSize(data.StringParams, 1);
 
-            EditorGUILayout.LabelField("抛射物效果参数", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("弹道效果配置", EditorStyles.boldLabel);
             EditorGUILayout.Space(3);
 
-            // ProjectileId 选择
+            // ProjectileId 配置
             EditorGUILayout.BeginVertical("box");
             {
-                EditorGUILayout.LabelField("弹道配置", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("弹道ID", EditorStyles.boldLabel);
+                changed |= SkillEffectEditorUtility.DrawIntField("ProjectileId", data.IntParams, 0);
                 
-                // 主 ProjectileId
-                changed |= SkillEffectEditorUtility.DrawIntField("弹道ID (ProjectileId)", data.IntParams, 0);
-                
-                // 显示当前选择的弹道信息
-                int projectileId = data.IntParams[0];
-                if (projectileId > 0)
+                if (data.IntParams[0] <= 0)
                 {
-                    var projectileInfo = GetProjectileInfo(projectileId);
-                    if (!string.IsNullOrEmpty(projectileInfo))
-                    {
-                        EditorGUILayout.HelpBox(projectileInfo, MessageType.Info);
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox($"未找到弹道ID {projectileId} 的配置信息", MessageType.Warning);
-                    }
+                    EditorGUILayout.HelpBox("请设置有效的弹道ID", MessageType.Warning);
                 }
                 else
                 {
-                    EditorGUILayout.HelpBox("请选择或输入有效的弹道ID", MessageType.Info);
+                    // 加载对应的弹道数据
+                    LoadProjectileData(data.IntParams[0]);
+                    
+                    if (_currentProjectileData != null)
+                    {
+                        EditorGUILayout.HelpBox(GetProjectileInfo(_currentProjectileData), MessageType.Info);
+                    }
                 }
                 
-                // 快速选择按钮
+                // 添加一个弹道选择按钮
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
                 if (GUILayout.Button("📋 选择弹道", GUILayout.Width(120)))
                 {
-                    // 这里可以弹出一个弹道选择窗口
                     ShowProjectileSelector(data);
                 }
                 EditorGUILayout.EndHorizontal();
@@ -68,128 +71,288 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             
             EditorGUILayout.Space(5);
 
+            // 如果已加载弹道数据，显示特效配置
+            if (_currentProjectileData != null)
+            {
+                EditorGUILayout.LabelField("弹道特效配置", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("这些特效配置将保存到 ProjectileTable", MessageType.Info);
+                
+                // 开火特效配置
+                DrawProjectileEffectSection("开火特效 (Spawn)", _currentProjectileData, nameof(_currentProjectileData.SpawnEffectPath), ref changed);
+                
+                EditorGUILayout.Space(3);
+                
+                // 飞行特效配置
+                DrawProjectileEffectSection("飞行特效 (Loop)", _currentProjectileData, nameof(_currentProjectileData.LoopEffectPath), ref changed);
+                
+                EditorGUILayout.Space(3);
+                
+                // 命中特效配置
+                DrawProjectileEffectSection("命中特效 (Hit)", _currentProjectileData, nameof(_currentProjectileData.HitEffectPath), ref changed);
+                
+                // 保存修改到 ProjectileTable
+                if (changed && _projectileDataLoaded)
+                {
+                    SaveProjectileData(_currentProjectileData);
+                }
+            }
+
+            EditorGUILayout.Space(5);
+
             // ExtraEffectIds 列表
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.LabelField("额外效果ID (ExtraEffectIds)", EditorStyles.boldLabel);
-                EditorGUILayout.HelpBox("这些效果会在弹道命中时额外触发", MessageType.None);
                 
-                // 显示当前已有的额外效果（从索引1开始）
-                var extraEffectIds = data.IntParams.Skip(1).ToList();
+                // 显示已配置的效果ID
+                var effectIds = new List<int>();
+                for (int i = 2; i < data.IntParams.Count; i++)
+                {
+                    effectIds.Add(data.IntParams[i]);
+                }
                 
-                EditorGUILayout.LabelField($"当前额外效果数量: {extraEffectIds.Count}");
+                if (effectIds.Count > 0)
+                {
+                    EditorGUILayout.LabelField("当前配置的效果ID:");
+                    EditorGUILayout.BeginVertical("box");
+                    {
+                        for (int i = 0; i < effectIds.Count; i++)
+                        {
+                            EditorGUILayout.BeginHorizontal();
+                            EditorGUILayout.LabelField($"效果 {i + 1}: {effectIds[i]}", GUILayout.Width(120));
+                            if (GUILayout.Button("查看", GUILayout.Width(50)))
+                            {
+                                SkillEffectEditorWindow.ShowWindow(effectIds[i], () => {
+                                    // 刷新数据
+                                    SkillEffectDataReader.ClearCache();
+                                });
+                            }
+                            if (GUILayout.Button("删除", GUILayout.Width(50)))
+                            {
+                                // 从IntParams中移除（索引2开始是效果ID）
+                                if (i + 2 < data.IntParams.Count)
+                                {
+                                    data.IntParams.RemoveAt(i + 2);
+                                    changed = true;
+                                }
+                            }
+                            EditorGUILayout.EndHorizontal();
+                        }
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("未配置额外效果", MessageType.Info);
+                }
+                
+                EditorGUILayout.Space(5);
                 
                 // 添加新效果ID
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("添加效果ID:", GUILayout.Width(80));
-                _newEffectId = EditorGUILayout.IntField(_newEffectId, GUILayout.Width(60));
-                if (GUILayout.Button("+", GUILayout.Width(25)))
+                _newEffectId = EditorGUILayout.IntField(_newEffectId, GUILayout.Width(100));
+                if (GUILayout.Button("添加", GUILayout.Width(50)))
                 {
                     if (_newEffectId > 0)
                     {
                         data.IntParams.Add(_newEffectId);
-                        _newEffectId = 0;
                         changed = true;
+                        _newEffectId = 0;
                     }
                 }
                 EditorGUILayout.EndHorizontal();
-                
-                EditorGUILayout.Space(3);
-                
-                // 显示已添加的效果列表
-                if (extraEffectIds.Count > 0)
-                {
-                    EditorGUILayout.LabelField("已添加的效果:", EditorStyles.miniBoldLabel);
-                    for (int i = 1; i < data.IntParams.Count; i++)
-                    {
-                        EditorGUILayout.BeginHorizontal();
-                        EditorGUILayout.LabelField($"  效果 {i}: {data.IntParams[i]}", EditorStyles.miniLabel);
-                        if (GUILayout.Button("✖", GUILayout.Width(20), GUILayout.Height(15)))
-                        {
-                            data.IntParams.RemoveAt(i);
-                            changed = true;
-                            break;
-                        }
-                        EditorGUILayout.EndHorizontal();
-                    }
-                }
             }
             EditorGUILayout.EndVertical();
-            
+
             EditorGUILayout.Space(5);
 
-            // JSON 覆写配置
+            // JSON参数编辑（用于复杂配置）
             EditorGUILayout.BeginVertical("box");
             {
-                EditorGUILayout.LabelField("轨迹覆写配置 (JSON)", EditorStyles.boldLabel);
-                EditorGUILayout.HelpBox("可选：覆写弹道的轨迹参数，如速度、重力等", MessageType.None);
+                EditorGUILayout.LabelField("额外参数 (JSON格式)", EditorStyles.boldLabel);
                 
-                // 当前 JSON 值
-                string currentJson = data.StringParams.Count > 0 ? data.StringParams[0] : "";
-                
-                EditorGUI.BeginChangeCheck();
-                _jsonFoldout = EditorGUILayout.Foldout(_jsonFoldout, "JSON 编辑器", true);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    changed = true;
-                }
-                
+                _jsonFoldout = EditorGUILayout.Foldout(_jsonFoldout, "编辑JSON参数");
                 if (_jsonFoldout)
                 {
-                    EditorGUI.BeginChangeCheck();
-                    _jsonText = EditorGUILayout.TextArea(
-                        string.IsNullOrEmpty(_jsonText) ? currentJson : _jsonText, 
-                        GUILayout.Height(80), 
-                        GUILayout.ExpandWidth(true)
-                    );
-                    
-                    EditorGUILayout.Space(3);
-                    
-                    // JSON 格式化按钮
-                    EditorGUILayout.BeginHorizontal();
-                    GUILayout.FlexibleSpace();
-                    if (GUILayout.Button("格式化 JSON", GUILayout.Width(100)))
+                    if (_jsonText == null)
                     {
-                        try
-                        {
-                            var jsonObject = JsonUtility.FromJson<object>(_jsonText);
-                            _jsonText = JsonUtility.ToJson(jsonObject, true);
-                        }
-                        catch
-                        {
-                            EditorUtility.DisplayDialog("错误", "JSON 格式无效，无法格式化", "确定");
-                        }
+                        _jsonText = data.StringParams[0] ?? "{}";
                     }
                     
-                    if (GUILayout.Button("应用", GUILayout.Width(60)))
+                    EditorGUI.BeginChangeCheck();
+                    _jsonText = EditorGUILayout.TextArea(_jsonText, GUILayout.MinHeight(60));
+                    if (EditorGUI.EndChangeCheck())
                     {
                         data.StringParams[0] = _jsonText;
                         changed = true;
-                        _jsonText = null; // 清空缓存
                     }
-                    EditorGUILayout.EndHorizontal();
                     
-                    if (EditorGUI.EndChangeCheck() && string.IsNullOrEmpty(_jsonText))
+                    if (GUILayout.Button("格式化JSON", GUILayout.Width(100)))
                     {
-                        changed = true;
+                        try
+                        {
+                            var jsonObj = JsonUtility.FromJson<object>(_jsonText);
+                            _jsonText = JsonUtility.ToJson(jsonObj, true);
+                            data.StringParams[0] = _jsonText;
+                            changed = true;
+                        }
+                        catch
+                        {
+                            EditorUtility.DisplayDialog("错误", "JSON格式无效", "确定");
+                        }
                     }
                 }
-                
-                // 显示当前 JSON 预览
-                if (!string.IsNullOrEmpty(currentJson) && currentJson != "{}" && !_jsonFoldout)
+                else if (!string.IsNullOrEmpty(data.StringParams[0]))
                 {
-                    EditorGUILayout.LabelField("当前配置:", EditorStyles.miniBoldLabel);
-                    EditorGUILayout.LabelField(currentJson, EditorStyles.miniLabel);
+                    EditorGUILayout.HelpBox($"当前JSON: {data.StringParams[0]}", MessageType.Info);
                 }
-                
-                // 示例配置
-                EditorGUILayout.Space(3);
-                EditorGUILayout.LabelField("示例:", EditorStyles.miniBoldLabel);
-                EditorGUILayout.LabelField("{ \"BaseSpeed\": 0.8, \"Gravity\": [0, -0.05, 0] }", EditorStyles.miniLabel);
             }
             EditorGUILayout.EndVertical();
 
             return changed;
+        }
+
+        private void DrawProjectileEffectSection(string label, ProjectileTableData projectileData, string propertyName, ref bool changed)
+        {
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
+                
+                // 获取当前路径
+                var currentPath = (string)typeof(ProjectileTableData).GetProperty(propertyName)?.GetValue(projectileData);
+                
+                EditorGUI.BeginChangeCheck();
+                var newPath = EditorGUILayout.TextField("特效路径", currentPath ?? string.Empty);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, newPath);
+                    changed = true;
+                }
+                
+                // 预览和资源检查
+                var currentPrefab = string.IsNullOrEmpty(newPath) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(newPath);
+                if (currentPrefab != null)
+                {
+                    EditorGUILayout.ObjectField("预览", currentPrefab, typeof(GameObject), false);
+                }
+                
+                // 路径选择按钮
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("选择特效", GUILayout.Width(80)))
+                {
+                    var selectedPath = EditorUtility.OpenFilePanelWithFilters(
+                        $"选择 {label} 特效", 
+                        "Assets/ArtRes/Effect", 
+                        new[] { "Prefab files", "prefab", "All files", "*" }
+                    );
+                    
+                    if (!string.IsNullOrEmpty(selectedPath))
+                    {
+                        if (selectedPath.StartsWith(Application.dataPath))
+                        {
+                            var relativePath = "Assets" + selectedPath.Substring(Application.dataPath.Length);
+                            typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, relativePath);
+                            changed = true;
+                        }
+                        else
+                        {
+                            EditorUtility.DisplayDialog("错误", "只能选择Assets目录下的资源", "确定");
+                        }
+                    }
+                }
+                
+                if (!string.IsNullOrEmpty(currentPath) && GUILayout.Button("刷新资源", GUILayout.Width(80)))
+                {
+                    AssetDatabase.Refresh();
+                    EditorUtility.DisplayDialog("提示", "资源已刷新", "确定");
+                }
+                EditorGUILayout.EndHorizontal();
+                
+                // 显示当前路径和状态
+                if (!string.IsNullOrEmpty(currentPath))
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("当前路径:", GUILayout.Width(60));
+                    EditorGUILayout.SelectableLabel(currentPath, EditorStyles.textField, GUILayout.Height(16));
+                    EditorGUILayout.EndHorizontal();
+                    
+                    // 显示资源状态
+                    if (currentPrefab != null)
+                    {
+                        EditorGUILayout.LabelField("状态: ✓ 已加载", EditorStyles.miniLabel);
+                    }
+                    else
+                    {
+                        EditorGUILayout.LabelField("状态: ✗ 未找到", EditorStyles.miniLabel);
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("未设置特效路径", MessageType.Info);
+                }
+            }
+            EditorGUILayout.EndVertical();
+        }
+
+        private void LoadProjectileData(int projectileId)
+        {
+            if (_projectileDataLoaded && _currentProjectileData != null && _currentProjectileData.ProjectileId == projectileId)
+            {
+                return; // 已经加载了相同的数据
+            }
+            
+            try
+            {
+                // 使用新的 ProjectileDataWriter 读取数据
+                _currentProjectileData = ProjectileDataWriter.GetProjectile(projectileId);
+                _projectileDataLoaded = _currentProjectileData != null;
+                
+                if (_currentProjectileData == null)
+                {
+                    Debug.LogWarning($"[ProjectileEffectEditorPanel] 未找到弹道ID {projectileId} 的数据");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ProjectileEffectEditorPanel] 加载弹道数据失败: {ex.Message}");
+                _currentProjectileData = null;
+                _projectileDataLoaded = false;
+            }
+        }
+
+        private void SaveProjectileData(ProjectileTableData projectileData)
+        {
+            try
+            {
+                // 使用新的 ProjectileDataWriter 保存数据
+                bool success = ProjectileDataWriter.SaveProjectile(projectileData);
+                if (success)
+                {
+                    Debug.Log($"[ProjectileEffectEditorPanel] 成功保存弹道 {projectileData.ProjectileId} 的数据");
+                }
+                else
+                {
+                    Debug.LogError($"[ProjectileEffectEditorPanel] 保存弹道 {projectileData.ProjectileId} 数据失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ProjectileEffectEditorPanel] 保存弹道数据失败: {ex.Message}");
+            }
+        }
+
+        private string GetProjectileInfo(ProjectileTableData projectileData)
+        {
+            if (projectileData == null) return string.Empty;
+            
+            return $"弹道ID: {projectileData.ProjectileId}\n" +
+                   $"名称: {projectileData.ProjectileName}\n" +
+                   $"类型: {projectileData.TrajectoryType}\n" +
+                   $"生命周期: {projectileData.LifeTime}帧\n" +
+                   $"开火特效: {(string.IsNullOrEmpty(projectileData.SpawnEffectPath) ? "无" : "已设置")}\n" +
+                   $"飞行特效: {(string.IsNullOrEmpty(projectileData.LoopEffectPath) ? "无" : "已设置")}\n" +
+                   $"命中特效: {(string.IsNullOrEmpty(projectileData.HitEffectPath) ? "无" : "已设置")}";
         }
 
         private void ShowProjectileSelector(SkillEffectTableData data)
@@ -197,20 +360,6 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             // 这里可以实现一个弹道选择窗口
             // 暂时使用简单的输入框
             EditorUtility.DisplayDialog("提示", "弹道选择器功能待实现\n请手动输入弹道ID", "确定");
-        }
-
-        private string GetProjectileInfo(int projectileId)
-        {
-            try
-            {
-                // 这里可以从 ProjectileTable 读取配置信息
-                // 暂时返回简单的信息
-                return $"弹道ID: {projectileId}\n类型: 待加载\n生命周期: 待加载";
-            }
-            catch
-            {
-                return string.Empty;
-            }
         }
 
         // 临时字段

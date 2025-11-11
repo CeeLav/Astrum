@@ -352,6 +352,10 @@ namespace Astrum.Editor.RoleEditor.Modules
         {
             Event evt = Event.current;
             
+            // 检查鼠标是否在预览区域内
+            if (!rect.Contains(evt.mousePosition))
+                return;
+            
             // 右键拖拽旋转（避免与面板拖拽冲突）
             if (evt.type == EventType.MouseDrag && evt.button == 1)
             {

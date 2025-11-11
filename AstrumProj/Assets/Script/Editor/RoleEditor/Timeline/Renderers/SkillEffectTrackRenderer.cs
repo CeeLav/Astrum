@@ -310,8 +310,8 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                                 if (config != null)
                                 {
                                     EditorGUILayout.LabelField("效果配置", EditorStyles.boldLabel);
-                                    EditorGUILayout.BeginVertical("box");
-                                    {
+                                EditorGUILayout.BeginVertical("box");
+                                {
                                         // 获取对应的编辑器面板
                                         var editorPanel = SkillEffectEditorRegistry.GetPanel(config.EffectType);
                                         if (editorPanel != null && editorPanel.SupportsInlineEditing)
@@ -336,8 +336,8 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                                             
                                             // 显示原始参数（只读）
                                             GUI.enabled = false;
-                                            EditorGUILayout.TextField("Int 参数", intParams != null && intParams.Count > 0 ? string.Join("|", intParams) : "--");
-                                            EditorGUILayout.TextField("String 参数", stringParams != null && stringParams.Count > 0 ? string.Join(" | ", stringParams) : "--");
+                                    EditorGUILayout.TextField("Int 参数", intParams != null && intParams.Count > 0 ? string.Join("|", intParams) : "--");
+                                    EditorGUILayout.TextField("String 参数", stringParams != null && stringParams.Count > 0 ? string.Join(" | ", stringParams) : "--");
                                             GUI.enabled = true;
                                         }
                                     }
