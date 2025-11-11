@@ -83,14 +83,13 @@ namespace Astrum.LogicCore.Capabilities
                     : TSVector.forward;
             }
 
-            var projectile = CreateProjectileEntity(world, definition, evt, effectIds, spawnDirection);
-            if (projectile == null)
+            if (world == null)
             {
-                ASLogger.Instance.Warning("ProjectileSpawnCapability: failed to create projectile entity");
+                ASLogger.Instance.Warning("ProjectileSpawnCapability: World is null, skip spawn");
                 return;
             }
 
-            InitializeProjectile(projectile, caster, definition, effectIds, evt.SpawnPosition, spawnDirection, evt.SocketName);
+            QueueProjectileEntity(world, definition, evt, effectIds, spawnDirection, caster);
         }
 
         private ProjectileDefinition? ResolveProjectileDefinition(SkillEffectTable effectConfig, string overrideJson)
@@ -214,7 +213,7 @@ namespace Astrum.LogicCore.Capabilities
             return results;
         }
 
-        private Entity? CreateProjectileEntity(World world, ProjectileDefinition definition, ProjectileSpawnRequestEvent evt, IReadOnlyList<int> effectIds, TSVector normalizedDirection)
+        private void QueueProjectileEntity(World world, ProjectileDefinition definition, ProjectileSpawnRequestEvent evt, IReadOnlyList<int> effectIds, TSVector normalizedDirection, Entity caster)
         {
             var context = new ProjectileSpawnContext
             {
@@ -226,14 +225,25 @@ namespace Astrum.LogicCore.Capabilities
                 OverrideTrajectoryData = null
             };
 
-            return EntityFactory.Instance.CreateByArchetype(
+            var creationParams = new EntityCreationParams
+            {
+                SpawnPosition = evt.SpawnPosition,
+                ExtraData = context
+            };
+
+            world.QueueCreateEntity(
                 definition.ProjectileArchetype,
-                new EntityCreationParams
+                creationParams,
+                projectile =>
                 {
-                    SpawnPosition = evt.SpawnPosition,
-                    ExtraData = context
-                },
-                world);
+                    if (projectile == null)
+                    {
+                        ASLogger.Instance.Warning("ProjectileSpawnCapability: queued projectile creation returned null");
+                        return;
+                    }
+
+                    InitializeProjectile(projectile, caster, definition, effectIds, evt.SpawnPosition, normalizedDirection, evt.SocketName);
+                });
         }
 
         private void InitializeProjectile(Entity projectile, Entity caster, ProjectileDefinition definition, IReadOnlyList<int> effectIds, TSVector spawnPosition, TSVector direction, string socketName)

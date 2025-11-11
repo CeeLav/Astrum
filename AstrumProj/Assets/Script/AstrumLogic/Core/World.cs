@@ -172,6 +172,23 @@ namespace Astrum.LogicCore.Core
             }
         }
 
+        public void QueueCreateEntity(string archetypeName, EntityCreationParams creationParams, Action<Entity>? postCreate = null)
+        {
+            if (string.IsNullOrWhiteSpace(archetypeName))
+            {
+                throw new ArgumentException("archetypeName cannot be null or empty", nameof(archetypeName));
+            }
+
+            var pending = new PendingEntityCreation
+            {
+                ArchetypeName = archetypeName,
+                CreationParams = CloneCreationParams(creationParams),
+                PostCreateAction = postCreate
+            };
+
+            _pendingCreateEntities.Add(pending);
+        }
+
         /// <summary>
         /// 销毁实体
         /// </summary>
@@ -189,8 +206,7 @@ namespace Astrum.LogicCore.Core
             PublishEntityDestroyedEvent(entity);
             CapabilitySystem?.UnregisterEntity(entityId);
             entity.ClearEventQueue();
-            entity.Destroy();
-            Entities.Remove(entityId);
+            EntityFactory.Instance.DestroyEntity(entity, this);
         }
 
         /// <summary>
@@ -216,6 +232,7 @@ namespace Astrum.LogicCore.Core
             // 2. 处理本帧产生的所有事件（个体+全体）
             CapabilitySystem?.ProcessEntityEvents();
 
+            ProcessQueuedEntityCreates();
             ProcessQueuedEntityDestroys();
             
             // 3. 帧计数和后处理
@@ -260,6 +277,48 @@ namespace Astrum.LogicCore.Core
         }
 
         private readonly List<long> _pendingDestroyEntities = new List<long>();
+        private readonly List<PendingEntityCreation> _pendingCreateEntities = new List<PendingEntityCreation>();
+
+        private sealed class PendingEntityCreation
+        {
+            public string ArchetypeName = string.Empty;
+            public EntityCreationParams CreationParams = new EntityCreationParams();
+            public Action<Entity>? PostCreateAction;
+        }
+
+        private static EntityCreationParams CloneCreationParams(EntityCreationParams? source)
+        {
+            if (source == null)
+            {
+                return new EntityCreationParams();
+            }
+
+            return new EntityCreationParams
+            {
+                EntityConfigId = source.EntityConfigId,
+                SpawnPosition = source.SpawnPosition,
+                SpawnRotation = source.SpawnRotation,
+                ExtraData = source.ExtraData
+            };
+        }
+
+        private void ProcessQueuedEntityCreates()
+        {
+            if (_pendingCreateEntities.Count == 0)
+                return;
+
+            foreach (var pending in _pendingCreateEntities)
+            {
+                var entity = EntityFactory.Instance.CreateByArchetype(
+                    pending.ArchetypeName,
+                    pending.CreationParams,
+                    this);
+
+                pending.PostCreateAction?.Invoke(entity);
+            }
+
+            _pendingCreateEntities.Clear();
+        }
 
         private void ProcessQueuedEntityDestroys()
         {
