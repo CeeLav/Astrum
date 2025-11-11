@@ -51,3 +51,11 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""skill"",""jump""],""rangeFrames"":[0,19],""blendOutFrames"":4,""priority"":0}]"
+,5002,attack_mage_01,skill,32,Assets/ArtRes/Unit/Role/Mage/Animation/Attack_02_01.anim,1001,False,False,attack,10,"[
+  {
+    ""Tag"": ""skill"",
+    ""StartFromFrames"": 0,
+    ""BlendInFrames"": 0,
+    ""Priority"": 0
+  }
+]","[{""tags"":[""move"",""skill""],""rangeFrames"":[21,31],""blendOutFrames"":3,""priority"":0}]"
