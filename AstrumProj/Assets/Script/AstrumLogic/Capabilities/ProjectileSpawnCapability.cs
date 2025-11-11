@@ -242,11 +242,11 @@ namespace Astrum.LogicCore.Capabilities
                         return;
                     }
 
-                    InitializeProjectile(projectile, caster, definition, effectIds, evt.SpawnPosition, normalizedDirection, evt.SocketName);
+                    InitializeProjectile(projectile, caster, definition, effectIds, evt.SpawnPosition, normalizedDirection, evt.SocketName, evt.SocketOffset);
                 });
         }
 
-        private void InitializeProjectile(Entity projectile, Entity caster, ProjectileDefinition definition, IReadOnlyList<int> effectIds, TSVector spawnPosition, TSVector direction, string socketName)
+        private void InitializeProjectile(Entity projectile, Entity caster, ProjectileDefinition definition, IReadOnlyList<int> effectIds, TSVector spawnPosition, TSVector direction, string socketName, UnityEngine.Vector3 socketOffset)
         {
             var projectileComponent = projectile.GetComponent<ProjectileComponent>();
             if (projectileComponent == null)
@@ -273,10 +273,9 @@ namespace Astrum.LogicCore.Capabilities
             projectileComponent.CurrentVelocity = TSVector.zero;
             projectileComponent.LastPosition = spawnPosition;
             projectileComponent.SocketName = socketName ?? string.Empty;
+            projectileComponent.SocketOffset = socketOffset;
             projectileComponent.IsMarkedForDestroy = false;
-            projectileComponent.SpawnEffectPath = definition.SpawnEffectPath ?? string.Empty;
-            projectileComponent.LoopEffectPath = definition.LoopEffectPath ?? string.Empty;
-            projectileComponent.HitEffectPath = definition.HitEffectPath ?? string.Empty;
+            projectileComponent.ProjectileId = definition.ProjectileId; // 供表现层查询配置
 
             var trans = projectile.GetComponent<TransComponent>();
             if (trans != null)

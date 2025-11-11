@@ -54,7 +54,7 @@ namespace Astrum.View.Components
 
         protected override void OnInitialize()
         {
-            CacheEffectConfiguration();
+            LoadEffectConfigurationFromTable();
 
             if (!TrySetupLoopEffectFromConfig())
             {
@@ -304,10 +304,13 @@ namespace Astrum.View.Components
             }
         }
 
-        private void CacheEffectConfiguration()
+        /// <summary>
+        /// 从配置表加载特效资源路径
+        /// </summary>
+        private void LoadEffectConfigurationFromTable()
         {
             var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();
-            if (projectileComponent == null)
+            if (projectileComponent == null || projectileComponent.ProjectileId <= 0)
             {
                 _spawnEffectPath = string.Empty;
                 _loopEffectPath = string.Empty;
@@ -315,9 +318,20 @@ namespace Astrum.View.Components
                 return;
             }
 
-            _spawnEffectPath = projectileComponent.SpawnEffectPath ?? string.Empty;
-            _loopEffectPath = projectileComponent.LoopEffectPath ?? string.Empty;
-            _hitEffectPath = projectileComponent.HitEffectPath ?? string.Empty;
+            // 通过 ProjectileId 查询配置表
+            var definition = Astrum.LogicCore.SkillSystem.ProjectileConfigManager.Instance.GetDefinition(projectileComponent.ProjectileId);
+            if (definition == null)
+            {
+                ASLogger.Instance.Warning($"ProjectileViewComponent: ProjectileDefinition not found for ID {projectileComponent.ProjectileId}");
+                _spawnEffectPath = string.Empty;
+                _loopEffectPath = string.Empty;
+                _hitEffectPath = string.Empty;
+                return;
+            }
+
+            _spawnEffectPath = definition.SpawnEffectPath ?? string.Empty;
+            _loopEffectPath = definition.LoopEffectPath ?? string.Empty;
+            _hitEffectPath = definition.HitEffectPath ?? string.Empty;
         }
 
         private bool TrySetupLoopEffectFromConfig()

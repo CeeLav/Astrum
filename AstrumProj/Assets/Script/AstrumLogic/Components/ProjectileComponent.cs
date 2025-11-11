@@ -78,23 +78,18 @@ namespace Astrum.LogicCore.Components
         public string SocketName { get; set; } = string.Empty;
 
         /// <summary>
+        /// 逻辑挂点偏移量（相对于 SocketName 挂点的局部坐标系）
+        /// </summary>
+        public UnityEngine.Vector3 SocketOffset { get; set; } = UnityEngine.Vector3.zero;
+
+        /// <summary>
         /// 是否已标记为待销毁，由 DeadCapability 统一处理
         /// </summary>
         public bool IsMarkedForDestroy { get; set; } = false;
 
         /// <summary>
-        /// 资源路径：开火特效（出生时播放）
+        /// Projectile 配置 ID，供表现层查询特效资源路径
         /// </summary>
-        public string SpawnEffectPath { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 资源路径：飞行特效（循环播放）
-        /// </summary>
-        public string LoopEffectPath { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 资源路径：命中特效
-        /// </summary>
-        public string HitEffectPath { get; set; } = string.Empty;
+        public int ProjectileId { get; set; } = 0;
     }
 }

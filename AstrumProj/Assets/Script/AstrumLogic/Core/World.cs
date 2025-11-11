@@ -316,8 +316,8 @@ namespace Astrum.LogicCore.Core
 
                 if (entity != null)
                 {
-                    PublishEntityCreatedEvent(entity);
                     pending.PostCreateAction?.Invoke(entity);
+                    PublishEntityCreatedEvent(entity);
                 }
             }
 
