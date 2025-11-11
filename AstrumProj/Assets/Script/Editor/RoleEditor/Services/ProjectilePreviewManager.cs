@@ -15,9 +15,17 @@ namespace Astrum.Editor.RoleEditor.Services
         private const float FRAME_TIME = 0.05f; // 20fps
         private const float DEFAULT_BASE_SPEED = 6f; // 米/秒（预设值，当配置缺失时使用）
 
+        private static ProjectilePreviewManager _activeInstance;
+        public static ProjectilePreviewManager ActiveInstance => _activeInstance;
+
         private readonly Dictionary<string, ProjectileEventState> _states = new Dictionary<string, ProjectileEventState>();
         private readonly List<ProjectileEventInfo> _events = new List<ProjectileEventInfo>();
         private readonly Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+        private readonly List<ManualProjectileState> _manualStates = new List<ManualProjectileState>();
+        private bool _editorUpdateHooked = false;
+        private double _lastEditorUpdateTime = 0f;
+
+        public bool HasManualProjectiles => _manualStates.Count > 0;
 
         private GameObject _caster;
         private PreviewRenderUtility _previewRenderUtility;
@@ -28,11 +36,23 @@ namespace Astrum.Editor.RoleEditor.Services
 
         public void SetContext(GameObject caster, PreviewRenderUtility previewRenderUtility)
         {
+            _activeInstance = this;
+
+            if (_caster != caster || _previewRenderUtility != previewRenderUtility)
+            {
+                ClearManualProjectiles();
+            }
+
             _caster = caster;
             _previewRenderUtility = previewRenderUtility;
             _socketRefsComponent = null;
             _getSocketTransformMethod = null;
             _socketComponentSearched = false;
+
+            if (_caster == null || _previewRenderUtility == null)
+            {
+                ClearManualProjectiles();
+            }
         }
 
         public void SetTimelineEvents(IReadOnlyList<TimelineEvent> timelineEvents)
@@ -106,12 +126,84 @@ namespace Astrum.Editor.RoleEditor.Services
                 DestroyStateObjects(state);
             }
             _states.Clear();
+
+            ClearManualProjectiles();
+
+            if (_activeInstance == this)
+            {
+                _activeInstance = null;
+            }
+
+            DetachEditorUpdateHook();
         }
 
         public void ClearAll()
         {
             Cleanup();
             _events.Clear();
+        }
+
+        public void FireManualProjectile(SkillEffectTableData effectData)
+        {
+            if (effectData == null)
+            {
+                Debug.LogWarning("[ProjectilePreview] 手动预览失败：效果数据为空");
+                return;
+            }
+
+            var effectClone = effectData.Clone();
+            if (effectClone.SkillEffectId <= 0)
+            {
+                Debug.LogWarning("[ProjectilePreview] 手动预览失败：SkillEffectId 无效");
+                return;
+            }
+
+            var eventData = SkillEffectEventData.CreateDefault();
+            eventData.EffectIds = new List<int> { effectClone.SkillEffectId };
+            eventData.TriggerType = "Manual";
+            eventData.SocketName = string.Empty;
+            eventData.SocketOffset = Vector3.zero;
+
+            var fakeEvent = new TimelineEvent
+            {
+                TrackType = "SkillEffect",
+                StartFrame = 0,
+                EndFrame = 120
+            };
+            fakeEvent.SetEventData(eventData);
+
+            var info = BuildEventInfo(fakeEvent, eventData, effectClone.SkillEffectId, effectClone);
+            if (info == null)
+            {
+                Debug.LogWarning("[ProjectilePreview] 手动预览失败：无法构建 Projectile 信息");
+                return;
+            }
+
+            fakeEvent.EndFrame = info.Projectile.LifeTime > 0 ? info.Projectile.LifeTime : fakeEvent.EndFrame;
+
+            var state = new ProjectileEventState(info);
+            var manualState = new ManualProjectileState
+            {
+                State = state,
+                StartTime = EditorApplication.timeSinceStartup
+            };
+
+            _manualStates.Add(manualState);
+            EnsureEditorUpdateHook();
+
+            TriggerSpawn(state, 0f);
+            state.StartElapsed = 0f;
+            UpdateProjectileMotion(state, 0f, true);
+        }
+
+        public void ClearManualProjectiles()
+        {
+            foreach (var manual in _manualStates)
+            {
+                DestroyStateObjects(manual.State);
+            }
+            _manualStates.Clear();
+            DetachEditorUpdateHook();
         }
 
         private ProjectileEventInfo BuildEventInfo(TimelineEvent evt, SkillEffectEventData eventData, int effectId, SkillEffectTableData effectConfig)
@@ -136,6 +228,8 @@ namespace Astrum.Editor.RoleEditor.Services
                 return null;
             }
 
+            Debug.Log($"[ProjectilePreview] Event {evt.EventId} -> projectileId={projectileId}, spawn='{projectileData.SpawnEffectPath}', loop='{projectileData.LoopEffectPath}', hit='{projectileData.HitEffectPath}'");
+
             var stringParams = effectConfig.StringParams ?? new List<string>();
 
             string spawnOffsetJson = stringParams.Count > 1 ? stringParams[1] : string.Empty;
@@ -152,6 +246,8 @@ namespace Astrum.Editor.RoleEditor.Services
                 LoopOffset = ProjectileEffectOffsetUtility.Parse(loopOffsetJson),
                 HitOffset = ProjectileEffectOffsetUtility.Parse(hitOffsetJson)
             };
+
+            Debug.Log($"[ProjectilePreview] Offsets -> spawn={DescribeOffset(info.SpawnOffset)}, loop={DescribeOffset(info.LoopOffset)}, hit={DescribeOffset(info.HitOffset)}");
 
             return info;
         }
@@ -208,6 +304,7 @@ namespace Astrum.Editor.RoleEditor.Services
             if (!string.IsNullOrEmpty(info.Projectile.SpawnEffectPath) && !state.SpawnTriggered)
             {
                 var spawnPose = ApplyOffset(basePosition, baseRotation, info.SpawnOffset);
+                Debug.Log($"[ProjectilePreview] Spawn effect '{info.Projectile.SpawnEffectPath}' at {spawnPose.Position} / {spawnPose.Rotation.eulerAngles}");
                 state.SpawnFx = InstantiateEffect(info.Projectile.SpawnEffectPath, spawnPose.Position, spawnPose.Rotation, spawnPose.Scale, parentToCaster: true);
             }
 
@@ -215,6 +312,7 @@ namespace Astrum.Editor.RoleEditor.Services
             if (!string.IsNullOrEmpty(info.Projectile.LoopEffectPath) && state.ProjectileFx == null)
             {
                 var loopPose = ApplyOffset(basePosition, baseRotation, info.LoopOffset);
+                Debug.Log($"[ProjectilePreview] Loop effect '{info.Projectile.LoopEffectPath}' start {loopPose.Position} dir={(loopPose.Rotation * Vector3.forward)} speed={state.Speed:F2}");
                 state.ProjectileFx = InstantiateEffect(info.Projectile.LoopEffectPath, loopPose.Position, loopPose.Rotation, loopPose.Scale, parentToCaster: false);
                 state.StartPosition = loopPose.Position;
                 state.BaseRotation = loopPose.Rotation;
@@ -272,6 +370,7 @@ namespace Astrum.Editor.RoleEditor.Services
 
             if (!string.IsNullOrEmpty(info.Projectile.HitEffectPath))
             {
+                Debug.Log($"[ProjectilePreview] Hit effect '{info.Projectile.HitEffectPath}' at {hitPose.Position} / {hitPose.Rotation.eulerAngles}");
                 state.HitFx = InstantiateEffect(info.Projectile.HitEffectPath, hitPose.Position, hitPose.Rotation, hitPose.Scale, parentToCaster: false);
             }
 
@@ -386,31 +485,28 @@ namespace Astrum.Editor.RoleEditor.Services
 
         private float ResolveActiveDuration(ProjectileEventInfo info)
         {
-            float lifetimeSeconds = info.Projectile.LifeTime > 0 ? info.Projectile.LifeTime * FRAME_TIME : 0f;
-            if (lifetimeSeconds <= 0f)
+            if (info.Projectile.LifeTime > 0)
             {
-                lifetimeSeconds = (info.TimelineEvent.GetDuration()) * FRAME_TIME;
+                return info.Projectile.LifeTime * FRAME_TIME;
             }
 
-            if (lifetimeSeconds <= 0f)
+            int durationFrames = info.TimelineEvent.GetDuration();
+            if (durationFrames > 0)
             {
-                lifetimeSeconds = 0.5f;
+                return durationFrames * FRAME_TIME;
             }
 
-            return lifetimeSeconds;
+            return 0.5f;
         }
 
         private int ResolveEndFrame(ProjectileEventInfo info)
         {
-            int endFrameByEvent = info.TimelineEvent.EndFrame;
-            int endFrameByLifetime = info.TimelineEvent.StartFrame + (info.Projectile.LifeTime > 0 ? info.Projectile.LifeTime : 0);
-
-            if (info.Projectile.LifeTime <= 0)
+            if (info.Projectile.LifeTime > 0)
             {
-                return endFrameByEvent;
+                return info.TimelineEvent.StartFrame + info.Projectile.LifeTime;
             }
 
-            return Math.Max(info.TimelineEvent.StartFrame, Math.Min(endFrameByEvent, endFrameByLifetime));
+            return Math.Max(info.TimelineEvent.StartFrame, info.TimelineEvent.EndFrame);
         }
 
         private Transform ResolveSocketTransform(string socketName)
@@ -482,20 +578,31 @@ namespace Astrum.Editor.RoleEditor.Services
                 return null;
             }
 
-            var instance = UnityEngine.Object.Instantiate(prefab);
+            GameObject instance;
+            if (parentToCaster && _caster != null)
+            {
+                instance = UnityEngine.Object.Instantiate(prefab, position, rotation, _caster.transform);
+            }
+            else
+            {
+                instance = UnityEngine.Object.Instantiate(prefab);
+                instance.transform.position = position;
+                instance.transform.rotation = rotation;
+            }
+
             instance.hideFlags = HideFlags.HideAndDontSave;
-            instance.transform.position = position;
-            instance.transform.rotation = rotation;
-            instance.transform.localScale = scale;
 
             if (parentToCaster && _caster != null)
             {
-                instance.transform.SetParent(_caster.transform, true);
+                instance.transform.localScale = scale;
             }
-
-            if (_previewRenderUtility != null)
+            else
             {
-                _previewRenderUtility.AddSingleGO(instance);
+                instance.transform.localScale = scale;
+                if (_previewRenderUtility != null)
+                {
+                    _previewRenderUtility.AddSingleGO(instance);
+                }
             }
 
             ActivateParticles(instance);
@@ -517,6 +624,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 return null;
             }
 
+            Debug.Log($"[ProjectilePreview] Loaded prefab '{path}'");
             _prefabCache[path] = prefab;
             return prefab;
         }
@@ -529,6 +637,96 @@ namespace Astrum.Editor.RoleEditor.Services
                 if (ps == null) continue;
                 ps.Simulate(0f, true, true, true);
                 ps.Play(true);
+            }
+        }
+
+        private void EnsureEditorUpdateHook()
+        {
+            if (_editorUpdateHooked)
+                return;
+
+            EditorApplication.update += OnEditorUpdate;
+            _editorUpdateHooked = true;
+            _lastEditorUpdateTime = EditorApplication.timeSinceStartup;
+        }
+
+        private void DetachEditorUpdateHook()
+        {
+            if (!_editorUpdateHooked)
+                return;
+
+            EditorApplication.update -= OnEditorUpdate;
+            _editorUpdateHooked = false;
+            _lastEditorUpdateTime = 0f;
+        }
+
+        private void OnEditorUpdate()
+        {
+            if (_manualStates.Count == 0)
+            {
+                DetachEditorUpdateHook();
+                return;
+            }
+
+            double now = EditorApplication.timeSinceStartup;
+            float deltaTime = _lastEditorUpdateTime > 0 ? (float)(now - _lastEditorUpdateTime) : 0f;
+            _lastEditorUpdateTime = now;
+
+            for (int i = _manualStates.Count - 1; i >= 0; --i)
+            {
+                var manual = _manualStates[i];
+                if (!manual.SpawnInitialized)
+                {
+                    manual.SpawnInitialized = true;
+                    if (!manual.State.SpawnTriggered)
+                    {
+                        TriggerSpawn(manual.State, 0f);
+                    }
+                }
+
+                float elapsed = (float)(now - manual.StartTime);
+                UpdateProjectileMotion(manual.State, elapsed, true);
+
+                int frame = manual.State.Info.TimelineEvent.StartFrame + Mathf.FloorToInt(elapsed / FRAME_TIME);
+                TryComplete(manual.State, frame);
+
+                UpdateManualParticles(manual.State, deltaTime);
+
+                if (manual.State.HitTriggered && manual.State.ProjectileFx == null)
+                {
+                    if (manual.CompleteTime < 0)
+                    {
+                        manual.CompleteTime = now;
+                    }
+                    else if (now - manual.CompleteTime > 1.0f)
+                    {
+                        DestroyStateObjects(manual.State);
+                        _manualStates.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
+        private void UpdateManualParticles(ProjectileEventState state, float deltaTime)
+        {
+            if (deltaTime <= 0f)
+                return;
+
+            SimulateParticles(state.SpawnFx, deltaTime);
+            SimulateParticles(state.ProjectileFx, deltaTime);
+            SimulateParticles(state.HitFx, deltaTime);
+        }
+
+        private void SimulateParticles(GameObject root, float deltaTime)
+        {
+            if (root == null || !root.activeSelf)
+                return;
+
+            var particleSystems = root.GetComponentsInChildren<ParticleSystem>(true);
+            foreach (var ps in particleSystems)
+            {
+                if (ps == null) continue;
+                ps.Simulate(deltaTime, true, false, true);
             }
         }
 
@@ -589,6 +787,14 @@ namespace Astrum.Editor.RoleEditor.Services
             public float LaunchSpeed = DEFAULT_BASE_SPEED;
         }
 
+        private class ManualProjectileState
+        {
+            public ProjectileEventState State;
+            public double StartTime;
+            public double CompleteTime = -1;
+            public bool SpawnInitialized = false;
+        }
+
         private readonly struct OffsetPose
         {
             public readonly Vector3 Position;
@@ -601,6 +807,16 @@ namespace Astrum.Editor.RoleEditor.Services
                 Rotation = rotation;
                 Scale = scale;
             }
+        }
+
+        private static string DescribeOffset(ProjectileEffectOffset offset)
+        {
+            if (offset == null)
+            {
+                return "<null>";
+            }
+
+            return $"pos={offset.Position}, rot={offset.Rotation}, scale={offset.Scale}";
         }
     }
 }

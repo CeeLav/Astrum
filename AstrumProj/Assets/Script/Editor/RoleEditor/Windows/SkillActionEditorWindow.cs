@@ -114,10 +114,21 @@ namespace Astrum.Editor.RoleEditor.Windows
         /// </summary>
         private void OnEditorUpdate()
         {
-            // 如果动画正在播放，持续Repaint以更新预览，并同步时间轴
+            bool needRepaint = false;
+
             if (_previewModule != null && _previewModule.IsPlaying())
             {
-                // 持续Repaint以更新动画预览（这是必要的，否则动画不会显示更新）
+                needRepaint = true;
+            }
+
+            var projectileManager = ProjectilePreviewManager.ActiveInstance;
+            if (projectileManager != null && projectileManager.HasManualProjectiles)
+            {
+                needRepaint = true;
+            }
+
+            if (needRepaint)
+            {
                 Repaint();
             }
         }

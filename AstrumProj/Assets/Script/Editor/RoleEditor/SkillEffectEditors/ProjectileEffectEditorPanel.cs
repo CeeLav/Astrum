@@ -79,6 +79,17 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             }
             EditorGUILayout.EndVertical();
             
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("预览发射", GUILayout.Height(24)))
+            {
+                ProjectileManualPreviewService.Fire(data);
+            }
+            if (GUILayout.Button("停止预览", GUILayout.Width(90), GUILayout.Height(24)))
+            {
+                ProjectileManualPreviewService.Stop();
+            }
+            EditorGUILayout.EndHorizontal();
+            
             EditorGUILayout.Space(5);
 
             // 如果已加载弹道数据，显示特效配置
@@ -255,20 +266,29 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 
                 // 获取当前路径
                 var currentPath = (string)typeof(ProjectileTableData).GetProperty(propertyName)?.GetValue(projectileData);
+                var currentPrefab = string.IsNullOrEmpty(currentPath) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
                 
+                // 允许通过 ObjectField 拖拽资源
                 EditorGUI.BeginChangeCheck();
-                var newPath = EditorGUILayout.TextField("特效路径", currentPath ?? string.Empty);
+                var newPrefab = (GameObject)EditorGUILayout.ObjectField("特效资源", currentPrefab, typeof(GameObject), false);
                 if (EditorGUI.EndChangeCheck())
                 {
+                    string newPath = newPrefab != null ? AssetDatabase.GetAssetPath(newPrefab) : string.Empty;
                     typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, newPath);
+                    currentPath = newPath;
+                    currentPrefab = newPrefab;
                     changed = true;
                 }
                 
-                // 预览和资源检查
-                var currentPrefab = string.IsNullOrEmpty(newPath) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(newPath);
-                if (currentPrefab != null)
+                // 允许手动输入路径
+                EditorGUI.BeginChangeCheck();
+                var editedPath = EditorGUILayout.TextField("资源路径", currentPath ?? string.Empty);
+                if (EditorGUI.EndChangeCheck())
                 {
-                    EditorGUILayout.ObjectField("预览", currentPrefab, typeof(GameObject), false);
+                    typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, editedPath);
+                    currentPath = editedPath;
+                    currentPrefab = string.IsNullOrEmpty(currentPath) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
+                    changed = true;
                 }
                 
                 // 路径选择按钮
@@ -287,6 +307,8 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                         {
                             var relativePath = "Assets" + selectedPath.Substring(Application.dataPath.Length);
                             typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, relativePath);
+                            currentPath = relativePath;
+                            currentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
                             changed = true;
                         }
                         else
@@ -299,6 +321,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 if (!string.IsNullOrEmpty(currentPath) && GUILayout.Button("刷新资源", GUILayout.Width(80)))
                 {
                     AssetDatabase.Refresh();
+                    currentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
                     EditorUtility.DisplayDialog("提示", "资源已刷新", "确定");
                 }
                 EditorGUILayout.EndHorizontal();
@@ -311,7 +334,6 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                     EditorGUILayout.SelectableLabel(currentPath, EditorStyles.textField, GUILayout.Height(16));
                     EditorGUILayout.EndHorizontal();
                     
-                    // 显示资源状态
                     if (currentPrefab != null)
                     {
                         EditorGUILayout.LabelField("状态: ✓ 已加载", EditorStyles.miniLabel);
@@ -325,7 +347,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 {
                     EditorGUILayout.HelpBox("未设置特效路径", MessageType.Info);
                 }
-
+                
                 EditorGUILayout.Space(3);
                 DrawEffectOffsetSection(stringParams, offsetIndex, ref changed);
             }
