@@ -10,6 +10,7 @@ using TrueSync;
 using Astrum.LogicCore.Components;
 using Astrum.CommonBase;
 using FixMath.NET;
+using Ray = BEPUutilities.Ray;
 // 使用别名避免命名冲突：BEPU 也有 Entity 类
 using AstrumEntity = Astrum.LogicCore.Core.Entity;
 using BepuEntity = BEPUphysics.Entities.Entity;
@@ -155,6 +156,76 @@ namespace Astrum.LogicCore.Physics
                 _space.Remove(bepuEntity);
             }
             _entityBodies.Clear();
+        }
+
+        /// <summary>
+        /// 射线检测（返回沿射线方向命中的所有实体）
+        /// </summary>
+        /// <param name="origin">射线起点</param>
+        /// <param name="direction">射线方向（无需归一化）</param>
+        /// <param name="maxDistance">最大检测距离（<=0 表示使用 direction 的长度）</param>
+        /// <param name="entryFilter">可选过滤器，返回 true 表示保留该实体</param>
+        public List<RaycastHitInfo> Raycast(TSVector origin, TSVector direction, FP maxDistance, Func<AstrumEntity, bool> entryFilter = null)
+        {
+            var hits = new List<RaycastHitInfo>();
+
+            if (_space == null)
+            {
+                Initialize();
+            }
+
+            var dirLength = direction.magnitude;
+            if (dirLength <= FP.Epsilon)
+            {
+                return hits;
+            }
+
+            var normalizedDir = direction / dirLength;
+            var length = maxDistance > FP.Zero ? maxDistance : dirLength;
+            if (length <= FP.Epsilon)
+            {
+                return hits;
+            }
+
+            var ray = new Ray(origin.ToBepuVector(), normalizedDir.ToBepuVector());
+            var maxLenFix = length.ToFix64();
+
+            var results = PhysicsResources.GetRayCastResultList();
+
+            bool didHit = _space.RayCast(
+                ray,
+                maxLenFix,
+                entry =>
+                {
+                    if (entry is EntityCollidable collidable && collidable.Entity?.Tag is AstrumEntity entity)
+                    {
+                        return entryFilter?.Invoke(entity) ?? true;
+                    }
+                    return false;
+                },
+                results);
+
+            if (didHit)
+            {
+                foreach (var result in results)
+                {
+                    if (result.HitObject is EntityCollidable collidable && collidable.Entity?.Tag is AstrumEntity entity)
+                    {
+                        hits.Add(new RaycastHitInfo
+                        {
+                            Entity = entity,
+                            Distance = result.HitData.T.ToFP(),
+                            Point = result.HitData.Location.ToTSVector(),
+                            Normal = result.HitData.Normal.ToTSVector()
+                        });
+                    }
+                }
+
+                hits.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+            }
+
+            PhysicsResources.GiveBack(results);
+            return hits;
         }
 
         /// <summary>

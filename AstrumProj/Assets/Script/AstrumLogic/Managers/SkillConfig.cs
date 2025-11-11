@@ -307,6 +307,7 @@ namespace Astrum.LogicCore.Managers
                     {
                         // SkillEffect 类型
                         string triggerType = GetValue(TriggerFrameJsonKeys.TriggerType)?.ToString() ?? "";
+                        string socketName = GetValue(TriggerFrameJsonKeys.SocketName)?.ToString() ?? string.Empty;
                         
                         // 解析效果ID列表（支持单个或多个）
                         List<int> effectIds = new List<int>();
@@ -394,7 +395,8 @@ namespace Astrum.LogicCore.Managers
                                 TriggerType = triggerType,
                                 EffectIds = mappedEffectIds,
                                 CollisionShape = collisionShape,
-                                Condition = condition
+                                Condition = condition,
+                                SocketName = socketName
                             });
                         }
                         else if (startFrame.HasValue && endFrame.HasValue)
@@ -411,7 +413,8 @@ namespace Astrum.LogicCore.Managers
                                     TriggerType = triggerType,
                                     EffectIds = mappedEffectIds,
                                     CollisionShape = collisionShape,
-                                    Condition = condition
+                                    Condition = condition,
+                                    SocketName = socketName
                                 });
                             }
                         }
@@ -419,7 +422,8 @@ namespace Astrum.LogicCore.Managers
                     else if (type == TriggerFrameJsonKeys.TypeVFX)
                     {
                         // VFX 类型
-                        string resourcePath = GetValue(TriggerFrameJsonKeys.ResourcePath)?.ToString() ?? "";
+                        string resourcePath = GetValue(TriggerFrameJsonKeys.ResourcePath)?.ToString() ?? string.Empty;
+                        string socketName = GetValue(TriggerFrameJsonKeys.SocketName)?.ToString() ?? string.Empty;
                         if (string.IsNullOrEmpty(resourcePath))
                         {
                             ASLogger.Instance.Warning("VFX trigger missing resourcePath");
@@ -519,7 +523,8 @@ namespace Astrum.LogicCore.Managers
                                 VFXScale = scale,
                                 VFXPlaybackSpeed = playbackSpeed,
                                 VFXFollowCharacter = followCharacter,
-                                VFXLoop = loop
+                                VFXLoop = loop,
+                                SocketName = socketName
                             });
                         }
                         else if (startFrame.HasValue && endFrame.HasValue)
@@ -539,7 +544,8 @@ namespace Astrum.LogicCore.Managers
                                     VFXScale = scale,
                                     VFXPlaybackSpeed = playbackSpeed,
                                     VFXFollowCharacter = followCharacter,
-                                    VFXLoop = loop
+                                    VFXLoop = loop,
+                                    SocketName = socketName
                                 });
                             }
                         }

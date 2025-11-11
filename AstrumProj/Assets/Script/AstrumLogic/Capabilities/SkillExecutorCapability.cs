@@ -7,6 +7,7 @@ using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using Astrum.CommonBase.Events;
+using cfg.Skill;
 using static Astrum.CommonBase.TriggerFrameJsonKeys;
 
 namespace Astrum.LogicCore.Capabilities
@@ -144,6 +145,10 @@ namespace Astrum.LogicCore.Capabilities
                     
                 case TriggerFrameJsonKeys.TriggerTypeCondition:
                     HandleConditionTrigger(caster, skillAction, trigger);
+                    break;
+
+                case TriggerFrameJsonKeys.TriggerTypeProjectile:
+                    HandleProjectileTrigger(caster, trigger);
                     break;
                     
                 default:
@@ -315,6 +320,70 @@ namespace Astrum.LogicCore.Capabilities
                     TriggerSkillEffect(caster, caster, effectId);
                 }
             }
+        }
+
+        /// <summary>
+        /// 处理 Projectile 触发帧（发布弹道生成事件）
+        /// </summary>
+        private void HandleProjectileTrigger(Entity caster, TriggerFrameInfo trigger)
+        {
+            if (trigger?.EffectIds == null || trigger.EffectIds.Length == 0)
+            {
+                ASLogger.Instance.Warning("Projectile trigger missing effectIds");
+                return;
+            }
+
+            var (spawnPosition, spawnDirection) = CalculateProjectileSpawnTransform(caster, trigger);
+
+            foreach (var effectId in trigger.EffectIds)
+            {
+                var effectConfig = SkillConfig.Instance.GetSkillEffect(effectId);
+                if (effectConfig == null)
+                {
+                    ASLogger.Instance.Warning($"Projectile trigger: effect {effectId} not found");
+                    continue;
+                }
+
+                var request = new ProjectileSpawnRequestEvent
+                {
+                    CasterEntityId = caster.UniqueId,
+                    SkillEffectId = effectConfig.SkillEffectId,
+                    EffectParamsJson = ExtractEffectParams(effectConfig),
+                    TriggerInfo = trigger,
+                    SpawnPosition = spawnPosition,
+                    SpawnDirection = spawnDirection,
+                    SocketName = trigger.SocketName ?? string.Empty,
+                    TriggerWhenInactive = true
+                };
+
+                caster.QueueEvent(request);
+            }
+        }
+
+        private (TSVector Position, TSVector Direction) CalculateProjectileSpawnTransform(Entity caster, TriggerFrameInfo trigger)
+        {
+            var trans = GetComponent<TransComponent>(caster);
+            if (trans != null)
+            {
+                var forward = trans.Forward;
+                if (forward == TSVector.zero)
+                {
+                    forward = TSVector.forward;
+                }
+                return (trans.Position, forward);
+            }
+
+            return (TSVector.zero, TSVector.forward);
+        }
+
+        private string ExtractEffectParams(SkillEffectTable effectConfig)
+        {
+            if (effectConfig.StringParams != null && effectConfig.StringParams.Length > 0)
+            {
+                return effectConfig.StringParams[0] ?? string.Empty;
+            }
+
+            return string.Empty;
         }
         
         /// <summary>

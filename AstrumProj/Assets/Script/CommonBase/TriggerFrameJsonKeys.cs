@@ -33,6 +33,18 @@ namespace Astrum.CommonBase
         
         /// <summary>碰撞信息（字符串格式）</summary>
         public const string CollisionInfo = "collisionInfo";
+
+        /// <summary>Socket 名称（用于定位发射点）</summary>
+        public const string SocketName = "socketName";
+
+        /// <summary>抛射物 ID（技能参数覆盖）</summary>
+        public const string ProjectileId = "projectileId";
+
+        /// <summary>额外效果 ID 列表</summary>
+        public const string AdditionalEffectIds = "additionalEffectIds";
+
+        /// <summary>轨迹覆盖数据</summary>
+        public const string TrajectoryOverride = "trajectoryOverride";
         
         // === VFX 类型字段 ===
         
@@ -76,6 +88,9 @@ namespace Astrum.CommonBase
         
         /// <summary>SkillEffect 触发类型：Condition</summary>
         public const string TriggerTypeCondition = "Condition";
+
+        /// <summary>SkillEffect 触发类型：Projectile</summary>
+        public const string TriggerTypeProjectile = "Projectile";
     }
 }
 

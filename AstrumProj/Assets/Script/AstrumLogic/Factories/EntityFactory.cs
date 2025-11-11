@@ -5,6 +5,7 @@ using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Archetypes;
+using Astrum.LogicCore.Components;
 
 namespace Astrum.LogicCore.Factories
 {
@@ -33,19 +34,32 @@ namespace Astrum.LogicCore.Factories
         /// <returns>创建的实体</returns>
         public Entity CreateByArchetype(string archetypeName, int entityConfigId, World world)
         {
-            return CreateByArchetype<Entity>(archetypeName, entityConfigId, world);
+            return CreateByArchetype(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
         }
-        
-        public T CreateByArchetype<T>(string archetypeName, int entityConfigId, World world)  where T : Entity, new()
+
+        public Entity CreateByArchetype(string archetypeName, EntityCreationParams creationParams, World world)
+        {
+            return CreateByArchetype<Entity>(archetypeName, creationParams, world);
+        }
+
+        public T CreateByArchetype<T>(string archetypeName, int entityConfigId, World world) where T : Entity, new()
+        {
+            return CreateByArchetype<T>(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
+        }
+
+        public T CreateByArchetype<T>(string archetypeName, EntityCreationParams creationParams, World world) where T : Entity, new()
         {
             if (!ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
             {
                 throw new Exception($"Archetype '{archetypeName}' not found");
             }
 
+            creationParams ??= new EntityCreationParams();
+            var entityConfigId = creationParams.EntityConfigId ?? 0;
+
             var entity = new T
             {
-                Name = GetEntityNameFromConfig(entityConfigId),
+                Name = entityConfigId > 0 ? GetEntityNameFromConfig(entityConfigId) : archetypeName,
                 ArchetypeName = archetypeName,
                 EntityConfigId = entityConfigId,
                 CreationTime = DateTime.Now,
@@ -144,6 +158,8 @@ namespace Astrum.LogicCore.Factories
                 }
             }
             world.Entities[entity.UniqueId] = entity;
+
+            ApplyCreationParams(entity, creationParams);
             
             return entity;
         }
@@ -159,7 +175,7 @@ namespace Astrum.LogicCore.Factories
             var tb = TableConfig.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
             var archetypeName = tb != null ? tb.ArchetypeName : string.Empty;
             return !string.IsNullOrEmpty(archetypeName)
-                ? CreateByArchetype(archetypeName, entityConfigId, world)
+                ? CreateByArchetype(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world)
                 : null;
         }
 
@@ -175,7 +191,7 @@ namespace Astrum.LogicCore.Factories
             var tb = TableConfig.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
             var archetypeName = tb != null ? tb.ArchetypeName : string.Empty;
             return !string.IsNullOrEmpty(archetypeName)
-                ? CreateByArchetype<T>(archetypeName, entityConfigId, world)
+                ? CreateByArchetype<T>(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world)
                 : null;
         }
 
@@ -360,6 +376,35 @@ namespace Astrum.LogicCore.Factories
             
             ASLogger.Instance.Error($"GetArchetypeType: Archetype '{archetypeName}' not found in registry");
             return null;
+        }
+
+        /// <summary>
+        /// 根据创建参数应用初始位置/旋转等
+        /// </summary>
+        private void ApplyCreationParams(Entity entity, EntityCreationParams creationParams)
+        {
+            if (creationParams == null)
+            {
+                return;
+            }
+
+            if (creationParams.SpawnPosition.HasValue)
+            {
+                var trans = entity.GetComponent<TransComponent>();
+                if (trans != null)
+                {
+                    trans.Position = creationParams.SpawnPosition.Value;
+                }
+            }
+
+            if (creationParams.SpawnRotation.HasValue)
+            {
+                var trans = entity.GetComponent<TransComponent>();
+                if (trans != null)
+                {
+                    trans.Rotation = creationParams.SpawnRotation.Value;
+                }
+            }
         }
     }
 }

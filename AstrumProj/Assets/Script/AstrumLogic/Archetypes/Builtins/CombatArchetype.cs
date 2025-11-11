@@ -27,6 +27,7 @@ namespace Astrum.LogicCore.Archetypes
         {
             typeof(SkillCapability),
             typeof(SkillExecutorCapability),     // Priority 250 - 技能执行
+            typeof(ProjectileSpawnCapability),   // Priority 260 - 抛射物生成
             typeof(DamageCapability),            // Priority 200 - 伤害处理
             typeof(HitReactionCapability),       // Priority 200 - 受击反应
             typeof(KnockbackCapability),         // Priority 150 - 击退

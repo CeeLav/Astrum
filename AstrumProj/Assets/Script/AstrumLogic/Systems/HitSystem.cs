@@ -190,6 +190,45 @@ namespace Astrum.LogicCore.Physics
         }
 
         /// <summary>
+        /// 射线命中查询（用于抛射物）
+        /// </summary>
+        public List<RaycastHitInfo> QueryRaycast(AstrumEntity caster, TSVector origin, TSVector direction, FP maxDistance, CollisionFilter filter = null)
+        {
+            Initialize();
+
+            Func<AstrumEntity, bool> entryFilter = entity =>
+            {
+                if (entity == null)
+                    return false;
+
+                if (caster != null && entity.UniqueId == caster.UniqueId)
+                    return false;
+
+                if (filter != null)
+                {
+                    if (filter.ExcludedEntityIds.Contains(entity.UniqueId))
+                        return false;
+
+                    if (caster != null)
+                    {
+                        if (filter.ExcludeAllies && IsSameTeam(caster, entity))
+                            return false;
+
+                        if (filter.OnlyEnemies && !IsEnemy(caster, entity))
+                            return false;
+                    }
+
+                    if (filter.CustomFilter != null && !filter.CustomFilter(entity))
+                        return false;
+                }
+
+                return true;
+            };
+
+            return _physicsWorld.Raycast(origin, direction, maxDistance, entryFilter);
+        }
+
+        /// <summary>
         /// 应用过滤规则
         /// </summary>
         private List<AstrumEntity> ApplyFilter(AstrumEntity caster, List<AstrumEntity> candidates, CollisionFilter filter)

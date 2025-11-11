@@ -48,6 +48,9 @@ namespace Astrum.LogicCore.SkillSystem
         /// <summary>触发条件（仅用于 SkillEffect.Condition 类型）</summary>
         [MemoryPackAllowSerialize]
         public TriggerCondition? Condition { get; set; }
+
+        /// <summary>模型 Socket 名称（用于抛射物、特效的定位）</summary>
+        public string SocketName { get; set; } = string.Empty;
         
         // === VFX 字段 ===
         
@@ -93,6 +96,7 @@ namespace Astrum.LogicCore.SkillSystem
             VFXPlaybackSpeed = vfxPlaybackSpeed;
             VFXFollowCharacter = vfxFollowCharacter;
             VFXLoop = vfxLoop;
+            SocketName = string.Empty;
         }
         
         public TriggerFrameInfo() { }
