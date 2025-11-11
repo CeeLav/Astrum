@@ -16,6 +16,11 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         private static readonly string[] TargetOptions = { "自身", "敌人", "友军", "区域" };
         private static readonly int[] TargetValues = { 0, 1, 2, 3 };
 
+        private const int ExtraParamJsonIndex = 0;
+        private const int SpawnOffsetIndex = 1;
+        private const int LoopOffsetIndex = 2;
+        private const int HitOffsetIndex = 3;
+
         public string EffectType => "Projectile";
         public bool SupportsInlineEditing => true;
 
@@ -32,7 +37,12 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             SkillEffectEditorUtility.EnsureListSize(data.IntParams, 1);
             
             // StringParams: [0] = ExtraEffectParams (JSON格式)
-            SkillEffectEditorUtility.EnsureListSize(data.StringParams, 1);
+            // [1] = SpawnOffsetJson, [2] = LoopOffsetJson, [3] = HitOffsetJson
+            if (data.StringParams == null)
+            {
+                data.StringParams = new List<string>();
+            }
+            SkillEffectEditorUtility.EnsureListSize(data.StringParams, HitOffsetIndex + 1);
 
             EditorGUILayout.LabelField("弹道效果配置", EditorStyles.boldLabel);
             EditorGUILayout.Space(3);
@@ -58,7 +68,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                     }
                 }
                 
-                // 添加一个弹道选择按钮
+                // 选择弹道按钮
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
                 if (GUILayout.Button("📋 选择弹道", GUILayout.Width(120)))
@@ -78,17 +88,35 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 EditorGUILayout.HelpBox("这些特效配置将保存到 ProjectileTable", MessageType.Info);
                 
                 // 开火特效配置
-                DrawProjectileEffectSection("开火特效 (Spawn)", _currentProjectileData, nameof(_currentProjectileData.SpawnEffectPath), ref changed);
+                DrawProjectileEffectSection(
+                    "开火特效 (Spawn)",
+                    _currentProjectileData,
+                    nameof(_currentProjectileData.SpawnEffectPath),
+                    data.StringParams,
+                    SpawnOffsetIndex,
+                    ref changed);
                 
                 EditorGUILayout.Space(3);
                 
                 // 飞行特效配置
-                DrawProjectileEffectSection("飞行特效 (Loop)", _currentProjectileData, nameof(_currentProjectileData.LoopEffectPath), ref changed);
+                DrawProjectileEffectSection(
+                    "飞行特效 (Loop)",
+                    _currentProjectileData,
+                    nameof(_currentProjectileData.LoopEffectPath),
+                    data.StringParams,
+                    LoopOffsetIndex,
+                    ref changed);
                 
                 EditorGUILayout.Space(3);
                 
                 // 命中特效配置
-                DrawProjectileEffectSection("命中特效 (Hit)", _currentProjectileData, nameof(_currentProjectileData.HitEffectPath), ref changed);
+                DrawProjectileEffectSection(
+                    "命中特效 (Hit)",
+                    _currentProjectileData,
+                    nameof(_currentProjectileData.HitEffectPath),
+                    data.StringParams,
+                    HitOffsetIndex,
+                    ref changed);
                 
                 // 保存修改到 ProjectileTable
                 if (changed && _projectileDataLoaded)
@@ -213,7 +241,13 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             return changed;
         }
 
-        private void DrawProjectileEffectSection(string label, ProjectileTableData projectileData, string propertyName, ref bool changed)
+        private void DrawProjectileEffectSection(
+            string label,
+            ProjectileTableData projectileData,
+            string propertyName,
+            List<string> stringParams,
+            int offsetIndex,
+            ref bool changed)
         {
             EditorGUILayout.BeginVertical("box");
             {
@@ -291,8 +325,122 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 {
                     EditorGUILayout.HelpBox("未设置特效路径", MessageType.Info);
                 }
+
+                EditorGUILayout.Space(3);
+                DrawEffectOffsetSection(stringParams, offsetIndex, ref changed);
             }
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawEffectOffsetSection(List<string> stringParams, int index, ref bool changed)
+        {
+            SkillEffectEditorUtility.EnsureListSize(stringParams, index + 1);
+
+            var offset = ParseOffset(stringParams[index]);
+
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("偏移与缩放", EditorStyles.miniBoldLabel);
+                EditorGUI.indentLevel++;
+
+                EditorGUI.BeginChangeCheck();
+                offset.Position = EditorGUILayout.Vector3Field("位置偏移", offset.Position);
+                offset.Rotation = EditorGUILayout.Vector3Field("旋转偏移", offset.Rotation);
+                offset.Scale = EditorGUILayout.Vector3Field("缩放", offset.Scale);
+                bool fieldChanged = EditorGUI.EndChangeCheck();
+
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("重置", GUILayout.Width(70)))
+                {
+                    offset = ProjectileEffectOffset.Default();
+                    fieldChanged = true;
+                }
+                EditorGUILayout.EndHorizontal();
+
+                if (fieldChanged)
+                {
+                    if (offset.IsDefault())
+                    {
+                        stringParams[index] = string.Empty;
+                    }
+                    else
+                    {
+                        stringParams[index] = JsonUtility.ToJson(offset);
+                    }
+                    changed = true;
+                }
+
+                EditorGUI.indentLevel--;
+            }
+            EditorGUILayout.EndVertical();
+        }
+
+        private ProjectileEffectOffset ParseOffset(string json)
+        {
+            if (string.IsNullOrEmpty(json))
+            {
+                return ProjectileEffectOffset.Default();
+            }
+
+            try
+            {
+                var offset = JsonUtility.FromJson<ProjectileEffectOffset>(json);
+                if (offset == null)
+                {
+                    return ProjectileEffectOffset.Default();
+                }
+
+                offset.Scale = EnsureValidScale(offset.Scale);
+                return offset;
+            }
+            catch
+            {
+                return ProjectileEffectOffset.Default();
+            }
+        }
+
+        private Vector3 EnsureValidScale(Vector3 scale)
+        {
+            if (Mathf.Approximately(scale.x, 0f) &&
+                Mathf.Approximately(scale.y, 0f) &&
+                Mathf.Approximately(scale.z, 0f))
+            {
+                return Vector3.one;
+            }
+            return scale;
+        }
+
+        [Serializable]
+        private class ProjectileEffectOffset
+        {
+            public Vector3 Position = Vector3.zero;
+            public Vector3 Rotation = Vector3.zero;
+            public Vector3 Scale = Vector3.one;
+
+            public static ProjectileEffectOffset Default()
+            {
+                return new ProjectileEffectOffset
+                {
+                    Position = Vector3.zero,
+                    Rotation = Vector3.zero,
+                    Scale = Vector3.one
+                };
+            }
+
+            public bool IsDefault()
+            {
+                return Approximately(Position, Vector3.zero) &&
+                       Approximately(Rotation, Vector3.zero) &&
+                       Approximately(Scale, Vector3.one);
+            }
+
+            private static bool Approximately(Vector3 a, Vector3 b)
+            {
+                return Mathf.Approximately(a.x, b.x) &&
+                       Mathf.Approximately(a.y, b.y) &&
+                       Mathf.Approximately(a.z, b.z);
+            }
         }
 
         private void LoadProjectileData(int projectileId)
