@@ -35,6 +35,10 @@ namespace Astrum.LogicCore.SkillSystem
         public string SpawnEffectPath { get; set; } = string.Empty;
         public string LoopEffectPath { get; set; } = string.Empty;
         public string HitEffectPath { get; set; } = string.Empty;
+        public FP BaseSpeed { get; set; } = FP.Zero;
+        public ProjectileEffectOffsetData SpawnEffectOffset { get; set; } = ProjectileEffectOffsetData.Identity();
+        public ProjectileEffectOffsetData LoopEffectOffset { get; set; } = ProjectileEffectOffsetData.Identity();
+        public ProjectileEffectOffsetData HitEffectOffset { get; set; } = ProjectileEffectOffsetData.Identity();
 
         public ProjectileDefinition Clone()
         {
@@ -50,7 +54,38 @@ namespace Astrum.LogicCore.SkillSystem
                 DefaultEffectIds = DefaultEffectIds != null ? new List<int>(DefaultEffectIds) : new List<int>(),
                 SpawnEffectPath = SpawnEffectPath,
                 LoopEffectPath = LoopEffectPath,
-                HitEffectPath = HitEffectPath
+                HitEffectPath = HitEffectPath,
+                BaseSpeed = BaseSpeed,
+                SpawnEffectOffset = SpawnEffectOffset.Clone(),
+                LoopEffectOffset = LoopEffectOffset.Clone(),
+                HitEffectOffset = HitEffectOffset.Clone()
+            };
+        }
+    }
+
+    public sealed class ProjectileEffectOffsetData
+    {
+        public TSVector Position { get; set; } = TSVector.zero;
+        public TSVector Rotation { get; set; } = TSVector.zero;
+        public TSVector Scale { get; set; } = TSVector.one;
+
+        public ProjectileEffectOffsetData Clone()
+        {
+            return new ProjectileEffectOffsetData
+            {
+                Position = Position,
+                Rotation = Rotation,
+                Scale = Scale
+            };
+        }
+
+        public static ProjectileEffectOffsetData Identity()
+        {
+            return new ProjectileEffectOffsetData
+            {
+                Position = TSVector.zero,
+                Rotation = TSVector.zero,
+                Scale = TSVector.one
             };
         }
     }
@@ -119,16 +154,57 @@ namespace Astrum.LogicCore.SkillSystem
                     TrajectoryType = trajectoryType,
                     TrajectoryData = row.TrajectoryData ?? string.Empty,
                     PierceCount = row.PierceCount,
-                DefaultEffectIds = row.DefaultEffectIds != null ? new List<int>(row.DefaultEffectIds) : new List<int>(),
-                SpawnEffectPath = row.SpawnEffectPath ?? string.Empty,
-                LoopEffectPath = row.LoopEffectPath ?? string.Empty,
-                HitEffectPath = row.HitEffectPath ?? string.Empty
+                    DefaultEffectIds = row.DefaultEffectIds != null ? new List<int>(row.DefaultEffectIds) : new List<int>(),
+                    SpawnEffectPath = row.SpawnEffectPath ?? string.Empty,
+                    LoopEffectPath = row.LoopEffectPath ?? string.Empty,
+                    HitEffectPath = row.HitEffectPath ?? string.Empty,
+                    BaseSpeed = ConvertSpeed(row.BaseSpeed),
+                    SpawnEffectOffset = ConvertOffset(row.SpawnEffectPositionOffset, row.SpawnEffectRotationOffset, row.SpawnEffectScaleOffset),
+                    LoopEffectOffset = ConvertOffset(row.LoopEffectPositionOffset, row.LoopEffectRotationOffset, row.LoopEffectScaleOffset),
+                    HitEffectOffset = ConvertOffset(row.HitEffectPositionOffset, row.HitEffectRotationOffset, row.HitEffectScaleOffset)
                 };
 
                 _definitions[definition.ProjectileId] = definition;
             }
 
             ASLogger.Instance.Info($"ProjectileConfigManager: Loaded {_definitions.Count} projectile definitions");
+        }
+
+        private static readonly FP PositionUnit = FP.FromFloat(0.01f);
+        private static readonly FP RotationUnit = FP.FromFloat(1.0f);
+        private static readonly FP ScaleUnit = FP.FromFloat(0.01f);
+
+        private static FP ConvertSpeed(int rawSpeed)
+        {
+            if (rawSpeed <= 0)
+            {
+                return FP.Zero;
+            }
+
+            return FP.FromFloat(rawSpeed * 0.01f);
+        }
+
+        private static ProjectileEffectOffsetData ConvertOffset(int[] position, int[] rotation, int[] scale)
+        {
+            return new ProjectileEffectOffsetData
+            {
+                Position = ConvertVector(position, PositionUnit, TSVector.zero),
+                Rotation = ConvertVector(rotation, RotationUnit, TSVector.zero),
+                Scale = ConvertVector(scale, ScaleUnit, TSVector.one)
+            };
+        }
+
+        private static TSVector ConvertVector(int[] values, FP unit, TSVector defaultValue)
+        {
+            if (values == null || values.Length < 3)
+            {
+                return defaultValue;
+            }
+
+            return new TSVector(
+                (values.Length > 0 ? values[0] : 0) * unit,
+                (values.Length > 1 ? values[1] : 0) * unit,
+                (values.Length > 2 ? values[2] : 0) * unit);
         }
     }
 }

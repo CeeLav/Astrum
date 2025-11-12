@@ -75,7 +75,11 @@ namespace Astrum.LogicCore.Capabilities
         private void UpdateLinearTrajectory(ProjectileComponent component, TransComponent trans)
         {
             var data = ParseTrajectoryData<LinearTrajectoryData>(component.TrajectoryData) ?? new LinearTrajectoryData();
-            var speed = data.BaseSpeed > FP.Zero ? data.BaseSpeed : FP.FromFloat(0.5f);
+            var baseSpeed = component.BaseSpeed > FP.Zero ? component.BaseSpeed : data.BaseSpeed;
+            if (baseSpeed <= FP.Zero)
+            {
+                baseSpeed = FP.FromFloat(0.5f);
+            }
             var dir = component.CurrentVelocity == TSVector.zero ? component.LaunchDirection : component.CurrentVelocity.normalized;
 
             if (dir == TSVector.zero)
@@ -83,7 +87,7 @@ namespace Astrum.LogicCore.Capabilities
                 dir = data.Direction.normalized;
             }
 
-            var velocity = dir * speed;
+            var velocity = dir * baseSpeed;
             component.CurrentVelocity = velocity;
             trans.Position += velocity;
         }
@@ -91,9 +95,14 @@ namespace Astrum.LogicCore.Capabilities
         private void UpdateParabolaTrajectory(ProjectileComponent component, TransComponent trans)
         {
             var data = ParseTrajectoryData<ParabolicTrajectoryData>(component.TrajectoryData) ?? new ParabolicTrajectoryData();
+            var launchSpeed = component.BaseSpeed > FP.Zero ? component.BaseSpeed : data.LaunchSpeed;
+            if (launchSpeed <= FP.Zero)
+            {
+                launchSpeed = FP.FromFloat(0.6f);
+            }
             if (component.CurrentVelocity == TSVector.zero)
             {
-                component.CurrentVelocity = (component.LaunchDirection == TSVector.zero ? data.Direction.normalized : component.LaunchDirection) * data.LaunchSpeed;
+                component.CurrentVelocity = (component.LaunchDirection == TSVector.zero ? data.Direction.normalized : component.LaunchDirection) * launchSpeed;
             }
 
             component.CurrentVelocity += data.Gravity;
@@ -103,6 +112,11 @@ namespace Astrum.LogicCore.Capabilities
         private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component, TransComponent trans)
         {
             var data = ParseTrajectoryData<HomingTrajectoryData>(component.TrajectoryData) ?? new HomingTrajectoryData();
+            var baseSpeed = component.BaseSpeed > FP.Zero ? component.BaseSpeed : data.BaseSpeed;
+            if (baseSpeed <= FP.Zero)
+            {
+                baseSpeed = FP.FromFloat(0.6f);
+            }
             var world = entity.World;
             if (world != null && data.TargetEntityId > 0)
             {
@@ -115,14 +129,14 @@ namespace Astrum.LogicCore.Capabilities
                         var desiredDir = (targetTrans.Position - trans.Position).normalized;
                         var currentDir = component.CurrentVelocity == TSVector.zero ? component.LaunchDirection : component.CurrentVelocity.normalized;
                         var blended = TSVector.Lerp(currentDir, desiredDir, data.TurnRate);
-                        component.CurrentVelocity = blended.normalized * data.BaseSpeed;
+                        component.CurrentVelocity = blended.normalized * baseSpeed;
                     }
                 }
             }
 
             if (component.CurrentVelocity == TSVector.zero)
             {
-                component.CurrentVelocity = (component.LaunchDirection == TSVector.zero ? TSVector.forward : component.LaunchDirection) * data.BaseSpeed;
+                component.CurrentVelocity = (component.LaunchDirection == TSVector.zero ? TSVector.forward : component.LaunchDirection) * baseSpeed;
             }
 
             trans.Position += component.CurrentVelocity;

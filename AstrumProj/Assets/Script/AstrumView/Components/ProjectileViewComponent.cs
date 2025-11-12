@@ -3,6 +3,7 @@ using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.SkillSystem;
 using Astrum.View.Managers;
 using TrueSync;
 
@@ -28,9 +29,27 @@ namespace Astrum.View.Components
         private GameObject _spawnEffectPrefab;
         private GameObject _loopEffectPrefab;
         private GameObject _hitEffectPrefab;
+        private ProjectileDefinition _projectileDefinition;
+        private ProjectileEffectOffsetView _spawnOffset = ProjectileEffectOffsetView.Identity;
+        private ProjectileEffectOffsetView _loopOffset = ProjectileEffectOffsetView.Identity;
+        private ProjectileEffectOffsetView _hitOffset = ProjectileEffectOffsetView.Identity;
         private bool _spawnEffectPlayed;
         private readonly List<GameObject> _runtimeEffectInstances = new List<GameObject>();
         private bool _loopEffectFromConfig;
+
+        private struct ProjectileEffectOffsetView
+        {
+            public Vector3 Position;
+            public Quaternion Rotation;
+            public Vector3 Scale;
+
+            public static ProjectileEffectOffsetView Identity => new ProjectileEffectOffsetView
+            {
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity,
+                Scale = Vector3.one
+            };
+        }
 
         // 视觉同步数据
         private struct VisualSyncData
@@ -213,14 +232,19 @@ namespace Astrum.View.Components
                 if (prefab != null)
                 {
                     var forward = GetProjectileLaunchDirection();
-                    var instance = InstantiateEffect(prefab, worldPos, forward);
+                    var instance = InstantiateEffect(prefab, worldPos, forward, _hitOffset);
                     played = instance != null;
                 }
             }
 
             if (!played && _hitEffect != null)
             {
-                _hitEffect.transform.position = worldPos;
+                var forward = GetProjectileLaunchDirection();
+                var orientation = Quaternion.LookRotation(forward == Vector3.zero ? Vector3.forward : forward, Vector3.up);
+                var offsetPosition = worldPos + orientation * _hitOffset.Position;
+                _hitEffect.transform.position = offsetPosition;
+                _hitEffect.transform.rotation = orientation * _hitOffset.Rotation;
+                _hitEffect.transform.localScale = Vector3.Scale(Vector3.one, _hitOffset.Scale);
                 _hitEffect.Play();
                 played = true;
             }
@@ -323,19 +347,27 @@ namespace Astrum.View.Components
             }
 
             // 通过 ProjectileId 查询配置表
-            var definition = Astrum.LogicCore.SkillSystem.ProjectileConfigManager.Instance.GetDefinition(projectileComponent.ProjectileId);
+            var definition = ProjectileConfigManager.Instance.GetDefinition(projectileComponent.ProjectileId);
             if (definition == null)
             {
                 ASLogger.Instance.Warning($"ProjectileViewComponent: ProjectileDefinition not found for ID {projectileComponent.ProjectileId}");
                 _spawnEffectPath = string.Empty;
                 _loopEffectPath = string.Empty;
                 _hitEffectPath = string.Empty;
+                _projectileDefinition = null;
+                _spawnOffset = ProjectileEffectOffsetView.Identity;
+                _loopOffset = ProjectileEffectOffsetView.Identity;
+                _hitOffset = ProjectileEffectOffsetView.Identity;
                 return;
             }
 
+            _projectileDefinition = definition;
             _spawnEffectPath = definition.SpawnEffectPath ?? string.Empty;
             _loopEffectPath = definition.LoopEffectPath ?? string.Empty;
             _hitEffectPath = definition.HitEffectPath ?? string.Empty;
+            _spawnOffset = ConvertOffset(definition.SpawnEffectOffset);
+            _loopOffset = ConvertOffset(definition.LoopEffectOffset);
+            _hitOffset = ConvertOffset(definition.HitEffectOffset);
         }
 
         private bool TrySetupLoopEffectFromConfig()
@@ -359,9 +391,7 @@ namespace Astrum.View.Components
 
             _loopEffectInstance = UnityEngine.Object.Instantiate(prefab, _ownerEntityView.GameObject.transform);
             _loopEffectInstance.name = "ProjectileLoopEffect";
-            _loopEffectInstance.transform.localPosition = Vector3.zero;
-            _loopEffectInstance.transform.localRotation = Quaternion.identity;
-            _loopEffectInstance.transform.localScale = Vector3.one;
+            ApplyLocalOffset(_loopEffectInstance.transform, _loopOffset);
 
             _loopEffect = _loopEffectInstance.GetComponentInChildren<ParticleSystem>();
             _trailRenderer = _loopEffectInstance.GetComponentInChildren<TrailRenderer>() ?? _trailRenderer;
@@ -456,7 +486,7 @@ namespace Astrum.View.Components
             // 更新 EntityView GameObject 的朝向（如果有拖尾等绑定在上面的特效）
             if (_ownerEntityView?.GameObject != null)
             {
-                _ownerEntityView.GameObject.transform.forward = direction;
+                _ownerEntityView.GameObject.transform.rotation = Quaternion.LookRotation(direction == Vector3.zero ? Vector3.forward : direction, Vector3.up);
             }
         }
 
@@ -473,23 +503,30 @@ namespace Astrum.View.Components
                 return;
             }
 
-            var instance = InstantiateEffect(prefab, position, forward);
+            var instance = InstantiateEffect(prefab, position, forward, _spawnOffset);
             if (instance != null)
             {
                 _spawnEffectPlayed = true;
             }
         }
 
-        private GameObject InstantiateEffect(GameObject prefab, Vector3 position, Vector3 forward)
+        private GameObject InstantiateEffect(GameObject prefab, Vector3 position, Vector3 forward, ProjectileEffectOffsetView offset)
         {
             if (prefab == null)
             {
                 return null;
             }
 
+            var normalizedForward = forward.sqrMagnitude > Mathf.Epsilon ? forward.normalized : Vector3.forward;
+            var baseRotation = Quaternion.LookRotation(normalizedForward, Vector3.up);
+            var worldPosition = position + baseRotation * offset.Position;
+            var worldRotation = baseRotation * offset.Rotation;
+
             var instance = UnityEngine.Object.Instantiate(prefab);
-            instance.transform.position = position;
-            instance.transform.forward = forward;
+            instance.transform.position = worldPosition;
+            instance.transform.rotation = worldRotation;
+            instance.transform.localScale = Vector3.Scale(instance.transform.localScale, offset.Scale);
+
             _runtimeEffectInstances.Add(instance);
             ScheduleAutoDestroy(instance);
             return instance;
@@ -554,6 +591,41 @@ namespace Astrum.View.Components
         private static Vector3 ToVector3(TSVector value)
         {
             return new Vector3((float)value.x, (float)value.y, (float)value.z);
+        }
+
+        private static ProjectileEffectOffsetView ConvertOffset(ProjectileEffectOffsetData data)
+        {
+            if (data == null)
+            {
+                return ProjectileEffectOffsetView.Identity;
+            }
+
+            var position = ToVector3(data.Position);
+            var rotationEuler = ToVector3(data.Rotation);
+            var scale = ToVector3(data.Scale);
+
+            if (Mathf.Approximately(scale.x, 0f)) scale.x = 1f;
+            if (Mathf.Approximately(scale.y, 0f)) scale.y = 1f;
+            if (Mathf.Approximately(scale.z, 0f)) scale.z = 1f;
+
+            return new ProjectileEffectOffsetView
+            {
+                Position = position,
+                Rotation = Quaternion.Euler(rotationEuler),
+                Scale = scale
+            };
+        }
+
+        private static void ApplyLocalOffset(Transform target, ProjectileEffectOffsetView offset)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            target.localPosition = offset.Position;
+            target.localRotation = offset.Rotation;
+            target.localScale = Vector3.Scale(target.localScale, offset.Scale);
         }
 
         /// <summary>

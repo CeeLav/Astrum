@@ -67,6 +67,11 @@ namespace Astrum.LogicCore.Components
         public int PierceCount { get; set; } = 0;
 
         /// <summary>
+        /// 基础速度（逻辑层使用，来源于配置表，单位：米/帧）
+        /// </summary>
+        public FP BaseSpeed { get; set; } = FP.Zero;
+
+        /// <summary>
         /// 当前已穿透的实体数量
         /// </summary>
         public int PiercedCount { get; set; } = 0;

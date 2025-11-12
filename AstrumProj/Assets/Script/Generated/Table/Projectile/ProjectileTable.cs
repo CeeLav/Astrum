@@ -93,39 +93,39 @@ public sealed partial class ProjectileTable : Luban.BeanBase
     /// </summary>
     public readonly int BaseSpeed;
     /// <summary>
-    /// 开火特效位置偏移(整型数组)
+    /// 开火特效位置偏移
     /// </summary>
     public readonly int[] SpawnEffectPositionOffset;
     /// <summary>
-    /// 开火特效旋转偏移(整型数组)
+    /// 开火特效旋转偏移
     /// </summary>
     public readonly int[] SpawnEffectRotationOffset;
     /// <summary>
-    /// 开火特效缩放(整型数组)
+    /// 开火特效缩放
     /// </summary>
     public readonly int[] SpawnEffectScaleOffset;
     /// <summary>
-    /// 飞行特效位置偏移(整型数组)
+    /// 飞行特效位置偏移
     /// </summary>
     public readonly int[] LoopEffectPositionOffset;
     /// <summary>
-    /// 飞行特效旋转偏移(整型数组)
+    /// 飞行特效旋转偏移
     /// </summary>
     public readonly int[] LoopEffectRotationOffset;
     /// <summary>
-    /// 飞行特效缩放(整型数组)
+    /// 飞行特效缩放
     /// </summary>
     public readonly int[] LoopEffectScaleOffset;
     /// <summary>
-    /// 命中特效位置偏移(整型数组)
+    /// 命中特效位置偏移
     /// </summary>
     public readonly int[] HitEffectPositionOffset;
     /// <summary>
-    /// 命中特效旋转偏移(整型数组)
+    /// 命中特效旋转偏移
     /// </summary>
     public readonly int[] HitEffectRotationOffset;
     /// <summary>
-    /// 命中特效缩放(整型数组)
+    /// 命中特效缩放
     /// </summary>
     public readonly int[] HitEffectScaleOffset;
    

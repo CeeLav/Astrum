@@ -275,6 +275,7 @@ namespace Astrum.LogicCore.Capabilities
             projectileComponent.InitialPosition = spawnPosition;
             projectileComponent.SocketName = socketName ?? string.Empty;
             projectileComponent.SocketOffset = socketOffset;
+            projectileComponent.BaseSpeed = definition.BaseSpeed;
             projectileComponent.IsMarkedForDestroy = false;
             projectileComponent.ProjectileId = definition.ProjectileId; // 供表现层查询配置
 
