@@ -421,8 +421,7 @@ namespace Astrum.Editor.RoleEditor.Services
             Quaternion casterRotation = _caster != null ? _caster.transform.rotation : Quaternion.identity;
 
             Transform anchor = ResolveSocketTransform(info.EventData.SocketName);
-
-            rotation = anchor != null ? anchor.rotation : casterRotation;
+            rotation = casterRotation;
 
             Vector3 socketOffset = info.EventData.SocketOffset;
 
@@ -438,6 +437,15 @@ namespace Astrum.Editor.RoleEditor.Services
                 {
                     Debug.LogWarning($"[ProjectilePreview] 未在模型上找到挂点 \"{info.EventData.SocketName}\"，改用实体根坐标 + 偏移。");
                 }
+            }
+
+            if (anchor == null)
+            {
+                // no extra rotation adjustment
+            }
+            else
+            {
+                // rotation already aligned to caster
             }
         }
 
