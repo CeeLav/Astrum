@@ -81,7 +81,6 @@ namespace Astrum.LogicCore.Physics
             {
                 case HitBoxShape.Box:
                     var halfSize = shape.HalfSize.ToBepuVector();
-                    ASLogger.Instance.Info($"[BepuPhysicsWorld] Registering Box entity {entity.UniqueId} at {bepuPos} with halfSize {halfSize}");
                     var box = new Box(bepuPos, halfSize.X * (Fix64)2, halfSize.Y * (Fix64)2, halfSize.Z * (Fix64)2);
                     box.Orientation = bepuRot;
                     box.Tag = entity; // 存储我们的实体引用
@@ -91,7 +90,6 @@ namespace Astrum.LogicCore.Physics
 
                 case HitBoxShape.Sphere:
                     var sphere = new Sphere(bepuPos, shape.Radius.ToFix64());
-                    ASLogger.Instance.Info($"[BepuPhysicsWorld] Registering Sphere entity {entity.UniqueId} at {bepuPos} with radius {shape.Radius}");
                     sphere.Tag = entity;
                     bepuEntity = sphere;
                     _space.Add(sphere);
@@ -99,7 +97,6 @@ namespace Astrum.LogicCore.Physics
 
                 case HitBoxShape.Capsule:
                     var capsule = new Capsule(bepuPos, shape.Height.ToFix64(), shape.Radius.ToFix64());
-                    ASLogger.Instance.Info($"[BepuPhysicsWorld] Registering Capsule entity {entity.UniqueId} at {bepuPos} with radius {shape.Radius} height {shape.Height}");
                     capsule.Orientation = bepuRot;
                     capsule.Tag = entity;
                     bepuEntity = capsule;
@@ -108,7 +105,6 @@ namespace Astrum.LogicCore.Physics
 
                 case HitBoxShape.Cylinder:
                     var cylinder = new Cylinder(bepuPos, shape.Height.ToFix64(), shape.Radius.ToFix64());
-                    ASLogger.Instance.Info($"[BepuPhysicsWorld] Registering Cylinder entity {entity.UniqueId} at {bepuPos} with radius {shape.Radius} height {shape.Height}");
                     cylinder.Orientation = bepuRot;
                     cylinder.Tag = entity;
                     bepuEntity = cylinder;
@@ -167,9 +163,6 @@ namespace Astrum.LogicCore.Physics
             // 更新AABB包围盒（BroadPhase使用AABB进行快速筛选）
             bepuEntity.CollisionInformation.UpdateBoundingBox(0); // dt=0，因为我们不关心速度扩展
 
-            var bbox = bepuEntity.CollisionInformation.BoundingBox;
-            ASLogger.Instance.Info($"[BepuPhysicsWorld] UpdateEntityPosition entity={entity.UniqueId} pos={bepuPos} bboxMin={bbox.Min} bboxMax={bbox.Max}");
-            
             // 注意：IsActive是只读属性，不能手动设置
             // BroadPhase会在查询时自动使用更新后的AABB（通过UpdateBoundingBox）
         }

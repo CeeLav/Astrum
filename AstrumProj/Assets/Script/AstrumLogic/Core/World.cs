@@ -236,8 +236,8 @@ namespace Astrum.LogicCore.Core
             ProcessQueuedEntityDestroys();
             
             // 3. 帧计数和后处理
-            //var physicsDeltaTime = Updater != null ? Updater.FixedDeltaTime : (1f / 60f);
-            HitSystem?.StepPhysics(0);
+            var physicsDeltaTime = Updater != null ? Updater.FixedDeltaTime : (1f / 60f);
+            HitSystem?.StepPhysics(physicsDeltaTime);
 
             CurFrame++;
             ApplyQueuedSubArchetypeChangesAtFrameEnd();

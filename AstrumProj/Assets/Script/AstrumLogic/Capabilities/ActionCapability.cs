@@ -193,7 +193,7 @@ namespace Astrum.LogicCore.Capabilities
                         {
                             ActionId = nextActionId,
                             Priority = nextAction.Priority,
-                            TransitionFrames = 0,
+                            TransitionFrames = 3,
                             FromFrame = 0,
                             FreezingFrames = 0
                         });
