@@ -11,7 +11,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         public string EffectType => "Projectile";
         public bool SupportsInlineEditing => true;
 
-        public bool DrawContent(SkillEffectTableData data)
+        public bool DrawContent(SkillEffectTableData data, object additionalContext)
         {
             bool changed = false;
 

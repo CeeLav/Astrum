@@ -318,7 +318,7 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
                                         {
                                             // 使用定制编辑器
                                             EditorGUI.BeginChangeCheck();
-                                            bool panelChanged = editorPanel.DrawContent(config);
+                                            bool panelChanged = editorPanel.DrawContent(config, effectData);
                                             if (EditorGUI.EndChangeCheck() || panelChanged)
                                             {
                                                 // 保存修改

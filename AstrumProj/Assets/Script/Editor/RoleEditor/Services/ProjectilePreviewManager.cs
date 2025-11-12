@@ -52,7 +52,10 @@ namespace Astrum.Editor.RoleEditor.Services
             if (_caster == null || _previewRenderUtility == null)
             {
                 ClearManualProjectiles();
+                return;
             }
+
+            ConfigurePreviewCamera();
         }
 
         public void SetTimelineEvents(IReadOnlyList<TimelineEvent> timelineEvents)
@@ -143,7 +146,7 @@ namespace Astrum.Editor.RoleEditor.Services
             _events.Clear();
         }
 
-        public void FireManualProjectile(SkillEffectTableData effectData)
+        public void FireManualProjectile(SkillEffectTableData effectData, string socketName, Vector3 socketOffset)
         {
             if (effectData == null)
             {
@@ -161,8 +164,10 @@ namespace Astrum.Editor.RoleEditor.Services
             var eventData = SkillEffectEventData.CreateDefault();
             eventData.EffectIds = new List<int> { effectClone.SkillEffectId };
             eventData.TriggerType = "Manual";
-            eventData.SocketName = string.Empty;
-            eventData.SocketOffset = Vector3.zero;
+            eventData.SocketName = string.IsNullOrEmpty(socketName) ? string.Empty : socketName;
+            eventData.SocketOffset = socketOffset;
+
+            Debug.Log($"[ProjectilePreview] 手动预览 - SocketName: '{eventData.SocketName}', SocketOffset: {eventData.SocketOffset}");
 
             var fakeEvent = new TimelineEvent
             {
@@ -423,6 +428,11 @@ namespace Astrum.Editor.RoleEditor.Services
             {
                 position = _caster.transform.position;
                 rotation = _caster.transform.rotation;
+
+                if (!string.IsNullOrEmpty(info.EventData.SocketName))
+                {
+                    Debug.LogWarning($"[ProjectilePreview] 未在模型上找到挂点 \"{info.EventData.SocketName}\"，改用角色根节点。");
+                }
             }
             else
             {
@@ -430,9 +440,20 @@ namespace Astrum.Editor.RoleEditor.Services
                 rotation = Quaternion.identity;
             }
 
-            if (_caster != null && info.EventData.SocketOffset != Vector3.zero)
+            if (info.EventData.SocketOffset != Vector3.zero)
             {
-                position += _caster.transform.TransformVector(info.EventData.SocketOffset);
+                if (anchor != null)
+                {
+                    position += rotation * info.EventData.SocketOffset;
+                }
+                else if (_caster != null)
+                {
+                    position += _caster.transform.TransformVector(info.EventData.SocketOffset);
+                }
+                else
+                {
+                    position += info.EventData.SocketOffset;
+                }
             }
         }
 
@@ -648,6 +669,8 @@ namespace Astrum.Editor.RoleEditor.Services
             EditorApplication.update += OnEditorUpdate;
             _editorUpdateHooked = true;
             _lastEditorUpdateTime = EditorApplication.timeSinceStartup;
+
+            ConfigurePreviewCamera();
         }
 
         private void DetachEditorUpdateHook()
@@ -702,8 +725,14 @@ namespace Astrum.Editor.RoleEditor.Services
                     {
                         DestroyStateObjects(manual.State);
                         _manualStates.RemoveAt(i);
+                        continue;
                     }
                 }
+            }
+
+            if (_manualStates.Count == 0)
+            {
+                DetachEditorUpdateHook();
             }
         }
 
@@ -817,6 +846,24 @@ namespace Astrum.Editor.RoleEditor.Services
             }
 
             return $"pos={offset.Position}, rot={offset.Rotation}, scale={offset.Scale}";
+        }
+
+        private void ConfigurePreviewCamera()
+        {
+            if (_previewRenderUtility == null || _previewRenderUtility.camera == null)
+            {
+                return;
+            }
+
+            var cam = _previewRenderUtility.camera;
+            cam.transform.position = new Vector3(0f, 1.5f, -4f);
+            cam.transform.LookAt(Vector3.zero);
+            cam.nearClipPlane = 0.05f;
+            cam.farClipPlane = 100f;
+            cam.fieldOfView = 45f;
+            cam.renderingPath = RenderingPath.Forward;
+            cam.allowHDR = false;
+            cam.allowMSAA = true;
         }
     }
 }

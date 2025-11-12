@@ -4,6 +4,7 @@ using System.Linq;
 using Astrum.Editor.RoleEditor.Persistence.Mappings;
 using Astrum.Editor.RoleEditor.Services;
 using Astrum.Editor.RoleEditor.Persistence;
+using Astrum.Editor.RoleEditor.Timeline.EventData;
 using Astrum.Editor.RoleEditor.Windows;
 using cfg.Projectile;
 using UnityEditor;
@@ -24,11 +25,19 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         public string EffectType => "Projectile";
         public bool SupportsInlineEditing => true;
 
+        private const string SocketNamePrefKeyPrefix = "RoleEditor.Projectile.SocketName.";
+        private const string SocketOffsetPrefKeyPrefix = "RoleEditor.Projectile.SocketOffset.";
+
         // 缓存当前编辑的弹道配置
         private ProjectileTableData _currentProjectileData;
         private bool _projectileDataLoaded = false;
+        
+        // 挂点配置（独立于 SkillEffectTable，存储在 EditorPrefs 中）
+        private string _socketName = string.Empty;
+        private Vector3 _socketOffset = Vector3.zero;
+        private int _socketConfigEffectId = -1;
 
-        public bool DrawContent(SkillEffectTableData data)
+        public bool DrawContent(SkillEffectTableData data, object additionalContext = null)
         {
             bool changed = false;
 
@@ -43,6 +52,9 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 data.StringParams = new List<string>();
             }
             SkillEffectEditorUtility.EnsureListSize(data.StringParams, HitOffsetIndex + 1);
+
+            int effectId = data.SkillEffectId;
+            EnsureSocketConfig(effectId);
 
             EditorGUILayout.LabelField("弹道效果配置", EditorStyles.boldLabel);
             EditorGUILayout.Space(3);
@@ -79,10 +91,48 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             }
             EditorGUILayout.EndVertical();
             
+            // 挂点配置
+            EditorGUILayout.BeginVertical("box");
+            {
+                EditorGUILayout.LabelField("挂点配置", EditorStyles.boldLabel);
+
+                EditorGUI.BeginChangeCheck();
+                string newSocketName = EditorGUILayout.TextField("Socket 名称", _socketName);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _socketName = string.IsNullOrWhiteSpace(newSocketName) ? string.Empty : newSocketName.Trim();
+                    SaveSocketConfig(effectId);
+                }
+
+                EditorGUI.BeginChangeCheck();
+                Vector3 newSocketOffset = EditorGUILayout.Vector3Field("Socket 偏移", _socketOffset);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _socketOffset = newSocketOffset;
+                    SaveSocketConfig(effectId);
+                }
+
+                if (!string.IsNullOrEmpty(_socketName))
+                {
+                    EditorGUILayout.HelpBox($"将从挂点 '{_socketName}' 发射", MessageType.Info);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("未设置挂点，将使用角色根节点", MessageType.Info);
+                }
+
+                if (effectId <= 0)
+                {
+                    EditorGUILayout.HelpBox("请先保存 SkillEffect 以获得有效的 ID，挂点配置会存储在本地 EditorPrefs。", MessageType.Warning);
+                }
+            }
+            EditorGUILayout.EndVertical();
+            
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("预览发射", GUILayout.Height(24)))
             {
-                ProjectileManualPreviewService.Fire(data);
+                var effectData = (SkillEffectEventData)additionalContext;
+                ProjectileManualPreviewService.Fire(data, effectData.SocketName, effectData.SocketOffset);
             }
             if (GUILayout.Button("停止预览", GUILayout.Width(90), GUILayout.Height(24)))
             {
@@ -457,6 +507,52 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             // 暂时使用简单的输入框
             EditorUtility.DisplayDialog("提示", "弹道选择器功能待实现\n请手动输入弹道ID", "确定");
         }
+
+        private void EnsureSocketConfig(int effectId)
+        {
+            if (effectId == _socketConfigEffectId)
+            {
+                return;
+            }
+
+            LoadSocketConfig(effectId);
+        }
+
+        private void LoadSocketConfig(int effectId)
+        {
+            if (effectId <= 0)
+            {
+                _socketName = string.Empty;
+                _socketOffset = Vector3.zero;
+                _socketConfigEffectId = effectId;
+                return;
+            }
+
+            _socketName = EditorPrefs.GetString(GetSocketNameKey(effectId), string.Empty);
+            _socketOffset = new Vector3(
+                EditorPrefs.GetFloat(GetSocketOffsetKey(effectId, "x"), 0f),
+                EditorPrefs.GetFloat(GetSocketOffsetKey(effectId, "y"), 0f),
+                EditorPrefs.GetFloat(GetSocketOffsetKey(effectId, "z"), 0f)
+            );
+            _socketConfigEffectId = effectId;
+        }
+
+        private void SaveSocketConfig(int effectId)
+        {
+            if (effectId <= 0)
+            {
+                return;
+            }
+
+            EditorPrefs.SetString(GetSocketNameKey(effectId), _socketName ?? string.Empty);
+            EditorPrefs.SetFloat(GetSocketOffsetKey(effectId, "x"), _socketOffset.x);
+            EditorPrefs.SetFloat(GetSocketOffsetKey(effectId, "y"), _socketOffset.y);
+            EditorPrefs.SetFloat(GetSocketOffsetKey(effectId, "z"), _socketOffset.z);
+            _socketConfigEffectId = effectId;
+        }
+
+        private static string GetSocketNameKey(int effectId) => $"{SocketNamePrefKeyPrefix}{effectId}";
+        private static string GetSocketOffsetKey(int effectId, string axis) => $"{SocketOffsetPrefKeyPrefix}{effectId}.{axis}";
 
         // 临时字段
         private int _newEffectId = 0;

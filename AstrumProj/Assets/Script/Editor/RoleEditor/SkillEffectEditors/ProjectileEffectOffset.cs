@@ -88,3 +88,4 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         }
     }
 }
+

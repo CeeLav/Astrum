@@ -10,7 +10,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         public string EffectType => "Generic";
         public bool SupportsInlineEditing => false;
 
-        public bool DrawContent(SkillEffectTableData data)
+        public bool DrawContent(SkillEffectTableData data, object context)
         {
             bool changed = false;
 

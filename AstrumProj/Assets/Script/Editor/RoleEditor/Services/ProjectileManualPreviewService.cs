@@ -8,7 +8,7 @@ namespace Astrum.Editor.RoleEditor.Services
     /// </summary>
     internal static class ProjectileManualPreviewService
     {
-        public static void Fire(SkillEffectTableData data)
+        public static void Fire(SkillEffectTableData data, string socketName, Vector3 socketOffset)
         {
             var manager = ProjectilePreviewManager.ActiveInstance;
             if (manager == null)
@@ -17,7 +17,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 return;
             }
 
-            manager.FireManualProjectile(data);
+            manager.FireManualProjectile(data, socketName, socketOffset);
         }
 
         public static void Stop()
