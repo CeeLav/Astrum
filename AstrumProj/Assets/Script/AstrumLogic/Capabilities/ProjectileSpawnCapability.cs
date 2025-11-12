@@ -106,47 +106,51 @@ namespace Astrum.LogicCore.Capabilities
                     ? effectConfig.StringParams[0]
                     : string.Empty);
 
-            try
+            JObject root = null;
+            if (!string.IsNullOrWhiteSpace(raw))
             {
-                if (projectileId <= 0 && !string.IsNullOrWhiteSpace(raw))
+                try
                 {
-                    var rootForId = JObject.Parse(raw);
-                    if (rootForId.TryGetValue(TriggerFrameJsonKeys.ProjectileId, out var idToken) && idToken.Type == JTokenType.Integer)
-                    {
-                        projectileId = idToken.Value<int>();
-                    }
+                    root = JObject.Parse(raw);
                 }
-
-                if (projectileId <= 0)
+                catch (JsonReaderException ex)
                 {
-                    ASLogger.Instance.Warning("ProjectileSpawnCapability: projectileId missing in effect IntParams/StringParams");
-                    return null;
+                    ASLogger.Instance.Warning($"ProjectileSpawnCapability: ignore invalid override json - {ex.Message}", "Projectile.Spawn");
                 }
-
-                var definition = ProjectileConfigManager.Instance.GetDefinition(projectileId);
-                if (definition == null)
+                catch (Exception ex)
                 {
-                    ASLogger.Instance.Warning($"ProjectileSpawnCapability: projectile definition {projectileId} not registered");
-                    return null;
+                    ASLogger.Instance.Warning($"ProjectileSpawnCapability: unexpected error when parsing override json - {ex.Message}", "Projectile.Spawn");
                 }
-
-                if (!string.IsNullOrWhiteSpace(raw))
-                {
-                    var root = JObject.Parse(raw);
-                    if (root.TryGetValue(TriggerFrameJsonKeys.TrajectoryOverride, out var overrideToken) && overrideToken is JObject overrideObject)
-                    {
-                        var merged = MergeTrajectoryOverride(definition.TrajectoryData, overrideObject);
-                        definition.TrajectoryData = merged;
-                    }
-                }
-
-                return definition;
             }
-            catch (Exception ex)
+
+            if (projectileId <= 0 && root != null)
             {
-                ASLogger.Instance.Error($"ProjectileSpawnCapability: failed to parse projectile definition json - {ex.Message}");
+                if (root.TryGetValue(TriggerFrameJsonKeys.ProjectileId, out var idToken) && idToken.Type == JTokenType.Integer)
+                {
+                    projectileId = idToken.Value<int>();
+                }
+            }
+
+            if (projectileId <= 0)
+            {
+                ASLogger.Instance.Warning("ProjectileSpawnCapability: projectileId missing in effect IntParams/StringParams");
                 return null;
             }
+
+            var definition = ProjectileConfigManager.Instance.GetDefinition(projectileId);
+            if (definition == null)
+            {
+                ASLogger.Instance.Warning($"ProjectileSpawnCapability: projectile definition {projectileId} not registered");
+                return null;
+            }
+
+            if (root != null && root.TryGetValue(TriggerFrameJsonKeys.TrajectoryOverride, out var overrideToken) && overrideToken is JObject overrideObject)
+            {
+                var merged = MergeTrajectoryOverride(definition.TrajectoryData, overrideObject);
+                definition.TrajectoryData = merged;
+            }
+
+            return definition;
         }
 
         private IReadOnlyList<int> ResolveProjectileEffectIds(SkillEffectTable effectConfig, ProjectileDefinition definition, TriggerFrameInfo trigger, string overrideJson)
