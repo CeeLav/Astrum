@@ -237,9 +237,17 @@ namespace Astrum.Editor.RoleEditor.Services
 
             var stringParams = effectConfig.StringParams ?? new List<string>();
 
-            string spawnOffsetJson = stringParams.Count > 1 ? stringParams[1] : string.Empty;
-            string loopOffsetJson = stringParams.Count > 2 ? stringParams[2] : string.Empty;
-            string hitOffsetJson = stringParams.Count > 3 ? stringParams[3] : string.Empty;
+            string spawnOffsetJson = !string.IsNullOrEmpty(projectileData.SpawnEffectOffsetJson)
+                ? projectileData.SpawnEffectOffsetJson
+                : (stringParams.Count > 1 ? stringParams[1] : string.Empty);
+
+            string loopOffsetJson = !string.IsNullOrEmpty(projectileData.LoopEffectOffsetJson)
+                ? projectileData.LoopEffectOffsetJson
+                : (stringParams.Count > 2 ? stringParams[2] : string.Empty);
+
+            string hitOffsetJson = !string.IsNullOrEmpty(projectileData.HitEffectOffsetJson)
+                ? projectileData.HitEffectOffsetJson
+                : (stringParams.Count > 3 ? stringParams[3] : string.Empty);
 
             var info = new ProjectileEventInfo
             {

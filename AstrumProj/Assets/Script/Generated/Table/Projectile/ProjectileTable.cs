@@ -27,6 +27,9 @@ public sealed partial class ProjectileTable : Luban.BeanBase
         SpawnEffectPath = _buf.ReadString();
         LoopEffectPath = _buf.ReadString();
         HitEffectPath = _buf.ReadString();
+        SpawnEffectOffset = _buf.ReadString();
+        LoopEffectOffset = _buf.ReadString();
+        HitEffectOffset = _buf.ReadString();
     }
 
     public static ProjectileTable DeserializeProjectileTable(ByteBuf _buf)
@@ -78,6 +81,18 @@ public sealed partial class ProjectileTable : Luban.BeanBase
     /// 命中特效资源路径
     /// </summary>
     public readonly string HitEffectPath;
+    /// <summary>
+    /// 开火特效偏移JSON
+    /// </summary>
+    public readonly string SpawnEffectOffset;
+    /// <summary>
+    /// 飞行特效偏移JSON
+    /// </summary>
+    public readonly string LoopEffectOffset;
+    /// <summary>
+    /// 命中特效偏移JSON
+    /// </summary>
+    public readonly string HitEffectOffset;
    
     public const int __ID__ = 1082348896;
     public override int GetTypeId() => __ID__;
@@ -100,6 +115,9 @@ public sealed partial class ProjectileTable : Luban.BeanBase
         + "spawnEffectPath:" + SpawnEffectPath + ","
         + "loopEffectPath:" + LoopEffectPath + ","
         + "hitEffectPath:" + HitEffectPath + ","
+        + "spawnEffectOffset:" + SpawnEffectOffset + ","
+        + "loopEffectOffset:" + LoopEffectOffset + ","
+        + "hitEffectOffset:" + HitEffectOffset + ","
         + "}";
     }
 }

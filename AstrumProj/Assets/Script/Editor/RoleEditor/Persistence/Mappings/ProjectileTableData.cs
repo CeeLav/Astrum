@@ -41,6 +41,15 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         [TableField(10, "hitEffectPath")]
         public string HitEffectPath { get; set; }
 
+        [TableField(11, "spawnEffectOffset")]
+        public string SpawnEffectOffsetJson { get; set; }
+
+        [TableField(12, "loopEffectOffset")]
+        public string LoopEffectOffsetJson { get; set; }
+
+        [TableField(13, "hitEffectOffset")]
+        public string HitEffectOffsetJson { get; set; }
+
         /// <summary>
         /// 获取表配置
         /// </summary>
@@ -57,23 +66,27 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                     {
                         "projectileId", "projectileName", "projectileArchetype", "lifeTime", 
                         "trajectoryType", "trajectoryData", "pierceCount", "defaultEffectIds",
-                        "spawnEffectPath", "loopEffectPath", "hitEffectPath"
+                        "spawnEffectPath", "loopEffectPath", "hitEffectPath",
+                        "spawnEffectOffset", "loopEffectOffset", "hitEffectOffset"
                     },
                     Types = new List<string>
                     {
                         "int", "string", "string", "int", 
                         "string", "string", "int", "(array#sep=|),int",
+                        "string", "string", "string",
                         "string", "string", "string"
                     },
                     Groups = new List<string>
                     {
-                        "", "", "", "", "", "", "", "", "", "", ""
+                        "", "", "", "", "", "", "", "", "", "", "",
+                        "", "", ""
                     },
                     Descriptions = new List<string>
                     {
                         "弹道ID", "弹道名称", "实体原型", "生命周期(帧)", 
                         "轨迹类型", "轨迹配置JSON", "允许穿透数量", "默认效果ID",
-                        "开火特效资源路径", "飞行特效资源路径", "命中特效资源路径"
+                        "开火特效资源路径", "飞行特效资源路径", "命中特效资源路径",
+                        "开火特效偏移JSON", "飞行特效偏移JSON", "命中特效偏移JSON"
                     }
                 }
             };
@@ -93,7 +106,10 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
                 DefaultEffectIds = new List<int>(DefaultEffectIds),
                 SpawnEffectPath = SpawnEffectPath,
                 LoopEffectPath = LoopEffectPath,
-                HitEffectPath = HitEffectPath
+                HitEffectPath = HitEffectPath,
+                SpawnEffectOffsetJson = SpawnEffectOffsetJson,
+                LoopEffectOffsetJson = LoopEffectOffsetJson,
+                HitEffectOffsetJson = HitEffectOffsetJson
             };
         }
     }

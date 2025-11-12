@@ -1,6 +1,6 @@
-##var,projectileId,projectileName,projectileArchetype,lifeTime,trajectoryType,trajectoryData,pierceCount,defaultEffectIds,spawnEffectPath,loopEffectPath,hitEffectPath
-##type,int,string,string,int,string,string,int,"(array#sep=|),int",string,string,string
-##group,,,,,,,,,,,
-##desc,弹道ID,弹道名称,实体原型,生命周期(帧),轨迹类型,轨迹配置JSON,允许穿透数量,默认效果ID,开火特效资源路径,飞行特效资源路径,命中特效资源路径
-,7001,Fireball,Projectile,300,Linear,"{""BaseSpeed"":0.8}",0,4001|4002,Assets/ArtRes/Effect/Projectile/Flashy/Red/Heavy/Flashy_Red_Heavy_MuzzleFlare.prefab,Assets/ArtRes/Effect/Projectile/Flashy/Red/Small/Flashy_Red_Small_Projectile.prefab,Assets/ArtRes/Effect/Projectile/Flashy/Red/Heavy/Flashy_Red_Heavy_Impact.prefab
-,7002,ChargedFireball,Projectile,360,Parabola,"{""LaunchSpeed"":0.7,""Gravity"":[0,-0.05,0]}",0,4003|4004,Assets/ArtRes/VFX/Projectiles/ChargedFireball_Muzzle.prefab,Assets/ArtRes/VFX/Projectiles/ChargedFireball_Flight.prefab,Assets/ArtRes/VFX/Projectiles/ChargedFireball_Impact.prefab
+##var,projectileId,projectileName,projectileArchetype,lifeTime,trajectoryType,trajectoryData,pierceCount,defaultEffectIds,spawnEffectPath,loopEffectPath,hitEffectPath,spawnEffectOffset,loopEffectOffset,hitEffectOffset
+##type,int,string,string,int,string,string,int,"(array#sep=|),int",string,string,string,string,string,string
+##group,,,,,,,,,,,,,,
+##desc,弹道ID,弹道名称,实体原型,生命周期(帧),轨迹类型,轨迹配置JSON,允许穿透数量,默认效果ID,开火特效资源路径,飞行特效资源路径,命中特效资源路径,开火特效偏移JSON,飞行特效偏移JSON,命中特效偏移JSON
+,7001,Fireball,Projectile,300,Linear,"{""BaseSpeed"":0.8}",0,4001|4002,Assets/ArtRes/Effect/Projectile/Flashy/Red/Heavy/Flashy_Red_Heavy_MuzzleFlare.prefab,Assets/ArtRes/Effect/Projectile/Flashy/Red/Small/Flashy_Red_Small_Projectile.prefab,Assets/ArtRes/Effect/Projectile/Flashy/Red/Heavy/Flashy_Red_Heavy_Impact.prefab,"{""Position"":{""x"":0.0,""y"":0.0,""z"":0.0},""Rotation"":{""x"":0.0,""y"":-90.0,""z"":0.0},""Scale"":{""x"":0.30000001192092898,""y"":0.30000001192092898,""z"":0.30000001192092898}}","""y"":0.0","""z"":0.0}"
+,7002,ChargedFireball,Projectile,360,Parabola,"{""LaunchSpeed"":0.7,""Gravity"":[0,-0.05,0]}",0,4003|4004,Assets/ArtRes/VFX/Projectiles/ChargedFireball_Muzzle.prefab,Assets/ArtRes/VFX/Projectiles/ChargedFireball_Flight.prefab,Assets/ArtRes/VFX/Projectiles/ChargedFireball_Impact.prefab,,,

@@ -18,9 +18,9 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         private static readonly int[] TargetValues = { 0, 1, 2, 3 };
 
         private const int ExtraParamJsonIndex = 0;
-        private const int SpawnOffsetIndex = 1;
-        private const int LoopOffsetIndex = 2;
-        private const int HitOffsetIndex = 3;
+        private const int LegacySpawnOffsetIndex = 1;
+        private const int LegacyLoopOffsetIndex = 2;
+        private const int LegacyHitOffsetIndex = 3;
 
         public string EffectType => "Projectile";
         public bool SupportsInlineEditing => true;
@@ -31,7 +31,8 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
         
         public bool DrawContent(SkillEffectTableData data, object additionalContext = null)
         {
-            bool changed = false;
+            bool skillChanged = false;
+            bool projectileChanged = false;
 
             // 确保参数列表最小长度
             // IntParams: [0] = ProjectileId, [1] = TargetType, [2] = ExtraEffectId1, [3] = ExtraEffectId2, ...
@@ -43,7 +44,8 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             {
                 data.StringParams = new List<string>();
             }
-            SkillEffectEditorUtility.EnsureListSize(data.StringParams, HitOffsetIndex + 1);
+
+            SkillEffectEditorUtility.EnsureListSize(data.StringParams, LegacyHitOffsetIndex + 1);
 
             EditorGUILayout.LabelField("弹道效果配置", EditorStyles.boldLabel);
             EditorGUILayout.Space(3);
@@ -52,7 +54,11 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.LabelField("弹道ID", EditorStyles.boldLabel);
-                changed |= SkillEffectEditorUtility.DrawIntField("ProjectileId", data.IntParams, 0);
+                bool projectileIdChanged = SkillEffectEditorUtility.DrawIntField("ProjectileId", data.IntParams, 0);
+                if (projectileIdChanged)
+                {
+                    skillChanged = true;
+                }
                 
                 if (data.IntParams[0] <= 0)
                 {
@@ -112,9 +118,11 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                     "开火特效 (Spawn)",
                     _currentProjectileData,
                     nameof(_currentProjectileData.SpawnEffectPath),
+                    nameof(_currentProjectileData.SpawnEffectOffsetJson),
                     data.StringParams,
-                    SpawnOffsetIndex,
-                    ref changed);
+                    LegacySpawnOffsetIndex,
+                    ref skillChanged,
+                    ref projectileChanged);
                 
                 EditorGUILayout.Space(3);
                 
@@ -123,9 +131,11 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                     "飞行特效 (Loop)",
                     _currentProjectileData,
                     nameof(_currentProjectileData.LoopEffectPath),
+                    nameof(_currentProjectileData.LoopEffectOffsetJson),
                     data.StringParams,
-                    LoopOffsetIndex,
-                    ref changed);
+                    LegacyLoopOffsetIndex,
+                    ref skillChanged,
+                    ref projectileChanged);
                 
                 EditorGUILayout.Space(3);
                 
@@ -134,15 +144,12 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                     "命中特效 (Hit)",
                     _currentProjectileData,
                     nameof(_currentProjectileData.HitEffectPath),
+                    nameof(_currentProjectileData.HitEffectOffsetJson),
                     data.StringParams,
-                    HitOffsetIndex,
-                    ref changed);
+                    LegacyHitOffsetIndex,
+                    ref skillChanged,
+                    ref projectileChanged);
                 
-                // 保存修改到 ProjectileTable
-                if (changed && _projectileDataLoaded)
-                {
-                    SaveProjectileData(_currentProjectileData);
-                }
             }
 
             EditorGUILayout.Space(5);
@@ -181,7 +188,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                                 if (i + 2 < data.IntParams.Count)
                                 {
                                     data.IntParams.RemoveAt(i + 2);
-                                    changed = true;
+                                    skillChanged = true;
                                 }
                             }
                             EditorGUILayout.EndHorizontal();
@@ -205,7 +212,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                     if (_newEffectId > 0)
                     {
                         data.IntParams.Add(_newEffectId);
-                        changed = true;
+                        skillChanged = true;
                         _newEffectId = 0;
                     }
                 }
@@ -233,7 +240,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                     if (EditorGUI.EndChangeCheck())
                     {
                         data.StringParams[0] = _jsonText;
-                        changed = true;
+                        skillChanged = true;
                     }
                     
                     if (GUILayout.Button("格式化JSON", GUILayout.Width(100)))
@@ -243,7 +250,7 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                             var jsonObj = JsonUtility.FromJson<object>(_jsonText);
                             _jsonText = JsonUtility.ToJson(jsonObj, true);
                             data.StringParams[0] = _jsonText;
-                            changed = true;
+                            skillChanged = true;
                         }
                         catch
                         {
@@ -258,23 +265,32 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             }
             EditorGUILayout.EndVertical();
 
-            return changed;
+            if (projectileChanged && _projectileDataLoaded && _currentProjectileData != null)
+            {
+                SaveProjectileData(_currentProjectileData);
+            }
+
+            return skillChanged;
         }
 
         private void DrawProjectileEffectSection(
             string label,
             ProjectileTableData projectileData,
-            string propertyName,
-            List<string> stringParams,
-            int offsetIndex,
-            ref bool changed)
+            string pathPropertyName,
+            string offsetPropertyName,
+            List<string> legacyStringParams,
+            int legacyOffsetIndex,
+            ref bool skillChanged,
+            ref bool projectileChanged)
         {
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
                 
                 // 获取当前路径
-                var currentPath = (string)typeof(ProjectileTableData).GetProperty(propertyName)?.GetValue(projectileData);
+                var pathProperty = typeof(ProjectileTableData).GetProperty(pathPropertyName);
+                var offsetProperty = typeof(ProjectileTableData).GetProperty(offsetPropertyName);
+                var currentPath = (string)pathProperty?.GetValue(projectileData);
                 var currentPrefab = string.IsNullOrEmpty(currentPath) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
                 
                 // 允许通过 ObjectField 拖拽资源
@@ -283,10 +299,10 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 if (EditorGUI.EndChangeCheck())
                 {
                     string newPath = newPrefab != null ? AssetDatabase.GetAssetPath(newPrefab) : string.Empty;
-                    typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, newPath);
+                    pathProperty?.SetValue(projectileData, newPath);
                     currentPath = newPath;
                     currentPrefab = newPrefab;
-                    changed = true;
+                    projectileChanged = true;
                 }
                 
                 // 允许手动输入路径
@@ -294,10 +310,10 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 var editedPath = EditorGUILayout.TextField("资源路径", currentPath ?? string.Empty);
                 if (EditorGUI.EndChangeCheck())
                 {
-                    typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, editedPath);
+                    pathProperty?.SetValue(projectileData, editedPath);
                     currentPath = editedPath;
                     currentPrefab = string.IsNullOrEmpty(currentPath) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
-                    changed = true;
+                    projectileChanged = true;
                 }
                 
                 // 路径选择按钮
@@ -315,10 +331,10 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                         if (selectedPath.StartsWith(Application.dataPath))
                         {
                             var relativePath = "Assets" + selectedPath.Substring(Application.dataPath.Length);
-                            typeof(ProjectileTableData).GetProperty(propertyName)?.SetValue(projectileData, relativePath);
+                            pathProperty?.SetValue(projectileData, relativePath);
                             currentPath = relativePath;
                             currentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(currentPath);
-                            changed = true;
+                            projectileChanged = true;
                         }
                         else
                         {
@@ -358,17 +374,35 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 }
                 
                 EditorGUILayout.Space(3);
-                DrawEffectOffsetSection(stringParams, offsetIndex, ref changed);
+
+                SkillEffectEditorUtility.EnsureListSize(legacyStringParams, legacyOffsetIndex + 1);
+                string legacyJson = legacyStringParams[legacyOffsetIndex];
+                string currentJson = (string)offsetProperty?.GetValue(projectileData) ?? string.Empty;
+
+                if (string.IsNullOrEmpty(currentJson) && !string.IsNullOrEmpty(legacyJson))
+                {
+                    offsetProperty?.SetValue(projectileData, legacyJson);
+                    currentJson = legacyJson;
+                    legacyStringParams[legacyOffsetIndex] = string.Empty;
+                    skillChanged = true;
+                    projectileChanged = true;
+                    Debug.Log($"[ProjectileEffectEditorPanel] 已将旧版 {label} 偏移数据迁移到 ProjectileTable");
+                }
+
+                var offset = ProjectileEffectOffsetUtility.Parse(currentJson);
+                bool offsetChanged = DrawEffectOffsetSection(ref offset);
+                if (offsetChanged)
+                {
+                    var newJson = ProjectileEffectOffsetUtility.ToJson(offset);
+                    offsetProperty?.SetValue(projectileData, newJson);
+                    projectileChanged = true;
+                }
             }
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawEffectOffsetSection(List<string> stringParams, int index, ref bool changed)
+        private bool DrawEffectOffsetSection(ref ProjectileEffectOffset offset)
         {
-            SkillEffectEditorUtility.EnsureListSize(stringParams, index + 1);
-
-            var offset = ProjectileEffectOffsetUtility.Parse(stringParams[index]);
-
             EditorGUILayout.BeginVertical("box");
             {
                 EditorGUILayout.LabelField("偏移与缩放", EditorStyles.miniBoldLabel);
@@ -389,15 +423,17 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
                 }
                 EditorGUILayout.EndHorizontal();
 
-                if (fieldChanged)
+                EditorGUI.indentLevel--;
+
+                if (offset.Scale == Vector3.zero)
                 {
-                    stringParams[index] = ProjectileEffectOffsetUtility.ToJson(offset);
-                    changed = true;
+                    offset.Scale = Vector3.one;
                 }
 
-                EditorGUI.indentLevel--;
+                EditorGUILayout.EndVertical();
+
+                return fieldChanged;
             }
-            EditorGUILayout.EndVertical();
         }
 
         private void LoadProjectileData(int projectileId)
