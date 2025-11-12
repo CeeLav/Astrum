@@ -219,6 +219,19 @@ namespace Astrum.LogicCore.Physics
             var bbox = bepuEntity.CollisionInformation.BoundingBox;
             return (bbox.Min.ToTSVector(), bbox.Max.ToTSVector());
         }
+
+        /// <summary>
+        /// 执行一次物理世界的更新（用于刷新 BroadPhase 数据）
+        /// </summary>
+        public void Step(float timeStep)
+        {
+            if (_space == null)
+            {
+                Initialize();
+            }
+
+            _space.Update(0);
+        }
  
         /// <summary>
         /// 射线检测（返回沿射线方向命中的所有实体）

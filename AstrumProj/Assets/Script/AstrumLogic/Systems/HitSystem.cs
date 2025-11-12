@@ -335,6 +335,16 @@ namespace Astrum.LogicCore.Physics
             HitCache.Clear();
         }
 
+        /// <summary>
+        /// 更新物理世界（刷新 BroadPhase 数据）
+        /// </summary>
+        /// <param name="deltaTime">时间步长（目前仅用于兼容接口）</param>
+        public void StepPhysics(float deltaTime)
+        {
+            Initialize();
+            _physicsWorld.Step(deltaTime);
+        }
+
         // RegisterEntity 方法已移到前面统一定义
 
         /// <summary>
