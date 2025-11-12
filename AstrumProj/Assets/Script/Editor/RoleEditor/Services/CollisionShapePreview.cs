@@ -165,6 +165,12 @@ namespace Astrum.Editor.RoleEditor.Services
                 case HitBoxShape.Sphere:
                     DrawSphereWireframe(center, (float)shape.Radius, color);
                     break;
+
+                case HitBoxShape.Cylinder:
+                    float cylinderRadius = (float)shape.Radius;
+                    float cylinderHeight = (float)shape.Height;
+                    DrawCylinderWireframe(center, rotation, cylinderRadius, cylinderHeight, color);
+                    break;
             }
         }
         
@@ -207,6 +213,35 @@ namespace Astrum.Editor.RoleEditor.Services
             // 绘制中间圆环（XZ 平面）
             DrawCircle(center, rotation, radius, Vector3.up);
             
+            GL.End();
+        }
+
+        /// <summary>
+        /// 绘制圆柱体线框
+        /// </summary>
+        public static void DrawCylinderWireframe(Vector3 center, Quaternion rotation, float radius, float height, Color color)
+        {
+            GL.Begin(GL.LINES);
+            GL.Color(color);
+
+            float halfHeight = height * 0.5f;
+
+            // 顶面和底面圆
+            Vector3 topCenter = center + rotation * new Vector3(0f, halfHeight, 0f);
+            Vector3 bottomCenter = center + rotation * new Vector3(0f, -halfHeight, 0f);
+            DrawCircle(topCenter, rotation, radius, Vector3.up);
+            DrawCircle(bottomCenter, rotation, radius, Vector3.up);
+
+            // 竖直线（四条）
+            for (int i = 0; i < 4; i++)
+            {
+                float angle = i * Mathf.PI * 0.5f;
+                Vector3 offset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+                Vector3 top = center + rotation * (offset + new Vector3(0f, halfHeight, 0f));
+                Vector3 bottom = center + rotation * (offset - new Vector3(0f, halfHeight, 0f));
+                DrawLine(top, bottom);
+            }
+
             GL.End();
         }
         
@@ -403,6 +438,10 @@ namespace Astrum.Editor.RoleEditor.Services
                     case HitBoxShape.Capsule:
                         DrawCapsuleGizmo(worldOffset, worldRotation, (float)shape.Radius, (float)shape.Height);
                         break;
+
+                    case HitBoxShape.Cylinder:
+                        DrawCylinderGizmo(worldOffset, worldRotation, (float)shape.Radius, (float)shape.Height);
+                        break;
                     
                     case HitBoxShape.Box:
                         Vector3 size = new Vector3(
@@ -439,6 +478,44 @@ namespace Astrum.Editor.RoleEditor.Services
             
             // 绘制中间圆环
             Gizmos.DrawWireSphere(center, radius);
+        }
+
+        /// <summary>
+        /// 使用 Gizmos 绘制圆柱体
+        /// </summary>
+        private static void DrawCylinderGizmo(Vector3 center, Quaternion rotation, float radius, float height)
+        {
+            Matrix4x4 oldMatrix = Gizmos.matrix;
+            Gizmos.matrix = Matrix4x4.TRS(center, rotation, Vector3.one);
+
+            float halfHeight = height * 0.5f;
+            const int segments = 24;
+
+            Vector3 prevTop = Vector3.zero;
+            Vector3 prevBottom = Vector3.zero;
+
+            for (int i = 0; i <= segments; i++)
+            {
+                float angle = (float)i / segments * Mathf.PI * 2f;
+                float x = Mathf.Cos(angle) * radius;
+                float z = Mathf.Sin(angle) * radius;
+
+                Vector3 top = new Vector3(x, halfHeight, z);
+                Vector3 bottom = new Vector3(x, -halfHeight, z);
+
+                if (i > 0)
+                {
+                    Gizmos.DrawLine(prevTop, top);
+                    Gizmos.DrawLine(prevBottom, bottom);
+                }
+
+                Gizmos.DrawLine(top, bottom);
+
+                prevTop = top;
+                prevBottom = bottom;
+            }
+
+            Gizmos.matrix = oldMatrix;
         }
     }
 }

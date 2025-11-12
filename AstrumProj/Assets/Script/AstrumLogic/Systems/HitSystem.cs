@@ -158,6 +158,11 @@ namespace Astrum.LogicCore.Physics
                     candidates = new List<AstrumEntity>();
                     break;
 
+                case HitBoxShape.Cylinder:
+                    ASLogger.Instance.Warning("HitManager: Cylinder query not implemented yet");
+                    candidates = new List<AstrumEntity>();
+                    break;
+
                 default:
                     ASLogger.Instance.Warning($"HitManager: Unknown shape type: {shape.ShapeType}");
                     candidates = new List<AstrumEntity>();

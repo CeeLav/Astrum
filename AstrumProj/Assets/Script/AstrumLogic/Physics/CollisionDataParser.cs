@@ -11,6 +11,7 @@ namespace Astrum.LogicCore.Physics
     /// Box 格式：Box:偏移x,y,z:旋转x,y,z,w:半尺寸x,y,z
     /// Sphere 格式：Sphere:偏移x,y,z:旋转x,y,z,w:半径
     /// Capsule 格式：Capsule:偏移x,y,z:旋转x,y,z,w:半径:高度
+    /// Cylinder 格式：Cylinder:偏移x,y,z:旋转x,y,z,w:半径:高度
     /// </summary>
     public static class CollisionDataParser
     {
@@ -136,6 +137,24 @@ namespace Astrum.LogicCore.Physics
                             HalfSize = TSVector.zero,
                             Radius = capsuleRadius,
                             Height = height
+                        };
+
+                    case "cylinder":
+                        if (parts.Length < 5)
+                        {
+                            ASLogger.Instance.Warning($"CollisionDataParser: Cylinder missing radius or height parameter");
+                            return null;
+                        }
+                        var cylinderRadius = ParseFP(parts[3]);
+                        var cylinderHeight = ParseFP(parts[4]);
+                        return new CollisionShape
+                        {
+                            ShapeType = HitBoxShape.Cylinder,
+                            LocalOffset = offset,
+                            LocalRotation = rotation,
+                            HalfSize = TSVector.zero,
+                            Radius = cylinderRadius,
+                            Height = cylinderHeight
                         };
                     
                     default:

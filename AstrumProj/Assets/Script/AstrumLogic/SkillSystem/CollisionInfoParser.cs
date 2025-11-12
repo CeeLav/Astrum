@@ -9,7 +9,7 @@ namespace Astrum.LogicCore.SkillSystem
     /// 碰撞盒信息解析器（简化格式）
     /// 用于从触发帧内联的碰撞盒信息构造 CollisionShape
     /// 格式：
-    ///   - 基础格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Point
+    ///   - 基础格式：Box:5x2x1, Sphere:3.0, Capsule:2x5, Cylinder:2x5, Point
     ///   - 带偏移：Box:5x2x1@0,1,0, Sphere:3.0@0,0.5,0
     /// </summary>
     public static class CollisionInfoParser
@@ -58,6 +58,9 @@ namespace Astrum.LogicCore.SkillSystem
                     
                     case "capsule":
                         return ParseCapsule(parts, localOffset);
+
+                    case "cylinder":
+                        return ParseCylinder(parts, localOffset);
                     
                     case "point":
                         return ParsePoint(localOffset);
@@ -193,6 +196,40 @@ namespace Astrum.LogicCore.SkillSystem
             return new CollisionShape
             {
                 ShapeType = HitBoxShape.Capsule,
+                LocalOffset = localOffset,
+                LocalRotation = TSQuaternion.identity,
+                HalfSize = TSVector.zero,
+                Radius = radius,
+                Height = height,
+                QueryMode = HitQueryMode.Overlap
+            };
+        }
+
+        /// <summary>
+        /// 解析圆柱碰撞盒
+        /// 格式：Cylinder:2x5 (半径x高度)
+        /// </summary>
+        private static CollisionShape? ParseCylinder(string[] parts, TSVector localOffset)
+        {
+            if (parts.Length < 2)
+            {
+                ASLogger.Instance.Warning("[CollisionInfoParser] Cylinder missing parameters");
+                return null;
+            }
+
+            string[] sizeParts = parts[1].Split('x', 'X', '×');
+            if (sizeParts.Length != 2)
+            {
+                ASLogger.Instance.Warning($"[CollisionInfoParser] Cylinder format error: {parts[1]}");
+                return null;
+            }
+
+            FP radius = ParseFP(sizeParts[0]);
+            FP height = ParseFP(sizeParts[1]);
+
+            return new CollisionShape
+            {
+                ShapeType = HitBoxShape.Cylinder,
                 LocalOffset = localOffset,
                 LocalRotation = TSQuaternion.identity,
                 HalfSize = TSVector.zero,

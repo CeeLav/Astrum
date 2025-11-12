@@ -46,10 +46,10 @@ namespace Astrum.LogicCore.Physics
         [MemoryPackAllowSerialize]
         public TSVector HalfSize { get; set; }
         
-        /// <summary>Sphere/Capsule 半径</summary>
+        /// <summary>Sphere/Capsule/Cylinder 半径</summary>
         public FP Radius { get; set; }
         
-        /// <summary>Capsule 高度（端到端）</summary>
+        /// <summary>Capsule/Cylinder 高度（端到端）</summary>
         public FP Height { get; set; }
         
         /// <summary>查询模式（默认为 Overlap）</summary>
@@ -105,6 +105,26 @@ namespace Astrum.LogicCore.Physics
             return new CollisionShape
             {
                 ShapeType = HitBoxShape.Capsule,
+                LocalOffset = localOffset,
+                LocalRotation = isDefaultRotation ? TSQuaternion.identity : localRotation,
+                HalfSize = TSVector.zero,
+                Radius = radius,
+                Height = height,
+                QueryMode = HitQueryMode.Overlap
+            };
+        }
+
+        /// <summary>
+        /// 创建 Cylinder 类型碰撞形状
+        /// </summary>
+        public static CollisionShape CreateCylinder(FP radius, FP height, TSVector localOffset = default, TSQuaternion localRotation = default)
+        {
+            bool isDefaultRotation = localRotation.x == FP.Zero && localRotation.y == FP.Zero &&
+                                     localRotation.z == FP.Zero && localRotation.w == FP.Zero;
+
+            return new CollisionShape
+            {
+                ShapeType = HitBoxShape.Cylinder,
                 LocalOffset = localOffset,
                 LocalRotation = isDefaultRotation ? TSQuaternion.identity : localRotation,
                 HalfSize = TSVector.zero,

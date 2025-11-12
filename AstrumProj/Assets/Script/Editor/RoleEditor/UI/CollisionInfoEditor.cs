@@ -17,7 +17,8 @@ namespace Astrum.Editor.RoleEditor.UI
             Box = 1,
             Sphere = 2,
             Capsule = 3,
-            Point = 4
+            Cylinder = 4,
+            Point = 5
         }
         
         /// <summary>
@@ -73,6 +74,11 @@ namespace Astrum.Editor.RoleEditor.UI
                 case CollisionShapeType.Capsule:
                     baseCollisionInfo = DrawCapsuleEditor(parameters, out bool capsuleModified);
                     modified |= capsuleModified;
+                    break;
+
+                case CollisionShapeType.Cylinder:
+                    baseCollisionInfo = DrawCylinderEditor(parameters, out bool cylinderModified);
+                    modified |= cylinderModified;
                     break;
                     
                 case CollisionShapeType.Point:
@@ -228,6 +234,42 @@ namespace Astrum.Editor.RoleEditor.UI
             // 格式化为字符串
             return $"Capsule:{FormatFloat(radius)}x{FormatFloat(height)}";
         }
+
+        /// <summary>
+        /// 绘制Cylinder碰撞盒编辑器
+        /// </summary>
+        private static string DrawCylinderEditor((float, float, float) parameters, out bool modified)
+        {
+            modified = false;
+
+            EditorGUILayout.LabelField("圆柱体参数", EditorStyles.boldLabel);
+
+            EditorGUI.indentLevel++;
+
+            EditorGUI.BeginChangeCheck();
+            float radius = EditorGUILayout.FloatField("半径", parameters.Item1 > 0 ? parameters.Item1 : 0.5f);
+            float height = EditorGUILayout.FloatField("高度", parameters.Item2 > 0 ? parameters.Item2 : 2f);
+
+            radius = Mathf.Max(0.1f, radius);
+            height = Mathf.Max(0.1f, height);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                modified = true;
+            }
+
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space(3);
+            EditorGUILayout.HelpBox(
+                $"圆柱体尺寸：\n" +
+                $"• 半径: {radius:F1}m\n" +
+                $"• 总高度: {height:F1}m",
+                MessageType.None
+            );
+
+            return $"Cylinder:{FormatFloat(radius)}x{FormatFloat(height)}";
+        }
         
         /// <summary>
         /// 绘制偏移量编辑器
@@ -311,6 +353,7 @@ namespace Astrum.Editor.RoleEditor.UI
                     "box" => CollisionShapeType.Box,
                     "sphere" => CollisionShapeType.Sphere,
                     "capsule" => CollisionShapeType.Capsule,
+                    "cylinder" => CollisionShapeType.Cylinder,
                     "point" => CollisionShapeType.Point,
                     _ => CollisionShapeType.None
                 };
@@ -354,6 +397,16 @@ namespace Astrum.Editor.RoleEditor.UI
                     {
                         float radius = ParseFloat(capsuleParts[0]);
                         float height = ParseFloat(capsuleParts[1]);
+                        return (shapeType, (radius, height, 0f), offset);
+                    }
+                }
+                else if (shapeType == CollisionShapeType.Cylinder)
+                {
+                    string[] cylinderParts = parametersStr.Split('x', 'X', '×');
+                    if (cylinderParts.Length == 2)
+                    {
+                        float radius = ParseFloat(cylinderParts[0]);
+                        float height = ParseFloat(cylinderParts[1]);
                         return (shapeType, (radius, height, 0f), offset);
                     }
                 }

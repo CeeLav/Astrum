@@ -37,7 +37,6 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            projectileComponent.LastPosition = transComponent.Position;
             UpdateTrajectory(entity, projectileComponent, transComponent);
             CheckRaycastCollision(entity, projectileComponent, transComponent);
         }
@@ -87,7 +86,9 @@ namespace Astrum.LogicCore.Capabilities
 
             var velocity = dir * baseSpeed;
             component.CurrentVelocity = velocity;
-            trans.Position += velocity * LogicFrameTime;
+            var displacement = velocity * LogicFrameTime;
+            ASLogger.Instance.Info($"[ProjectileCap] Linear speed={baseSpeed.AsFloat():F3} displacement={displacement} dir={dir}");
+            trans.Position += displacement;
         }
 
         private void UpdateParabolaTrajectory(ProjectileComponent component, TransComponent trans)
@@ -101,7 +102,9 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             component.CurrentVelocity += data.Gravity * LogicFrameTime;
-            trans.Position += component.CurrentVelocity * LogicFrameTime;
+            var displacement = component.CurrentVelocity * LogicFrameTime;
+            ASLogger.Instance.Info($"[ProjectileCap] Parabola speed={launchSpeed.AsFloat():F3} gravity={data.Gravity} displacement={displacement}");
+            trans.Position += displacement;
         }
 
         private void UpdateHomingTrajectory(Entity entity, ProjectileComponent component, TransComponent trans)
@@ -130,7 +133,9 @@ namespace Astrum.LogicCore.Capabilities
                 component.CurrentVelocity = (component.LaunchDirection == TSVector.zero ? TSVector.forward : component.LaunchDirection) * baseSpeed;
             }
 
-            trans.Position += component.CurrentVelocity * LogicFrameTime;
+            var displacement = component.CurrentVelocity * LogicFrameTime;
+            ASLogger.Instance.Info($"[ProjectileCap] Homing speed={baseSpeed.AsFloat():F3} displacement={displacement} currentVel={component.CurrentVelocity}");
+            trans.Position += displacement;
         }
 
         private static FP ResolveBaseSpeed(FP componentBaseSpeed, FP dataBaseSpeed, FP fallback)
@@ -154,7 +159,10 @@ namespace Astrum.LogicCore.Capabilities
             if (world?.HitSystem == null)
                 return;
 
-            var delta = trans.Position - component.LastPosition;
+            // 保存当前位置作为下一帧的 LastPosition
+            var currentPosition = trans.Position;
+            
+            var delta = currentPosition - component.LastPosition;
             if (delta.sqrMagnitude <= FP.EN4)
                 return;
 
@@ -174,7 +182,24 @@ namespace Astrum.LogicCore.Capabilities
 
             filter.CustomFilter = target => !component.HitEntities.Contains(target.UniqueId);
 
+            ASLogger.Instance.Info($"[ProjectileCap] Raycast origin={component.LastPosition} delta={delta} dist={((float)distance):F4}");
+            
+            // 添加更详细的日志：检查场景中的所有怪物位置和包围盒
+            foreach (var entity in world.Entities.Values)
+            {
+                if (entity.ArchetypeName == "Monster" || entity.ArchetypeName == "Enemy") // 根据你的怪物原型名称调整
+                {
+                    var transComp = entity.GetComponent<TransComponent>();
+                    var collisionComp = entity.GetComponent<CollisionComponent>();
+                    if (transComp != null && collisionComp != null)
+                    {
+                        ASLogger.Instance.Info($"[ProjectileCap] Monster {entity.UniqueId} at {transComp.Position}, has {collisionComp.Shapes?.Count ?? 0} shapes");
+                    }
+                }
+            }
+            
             var hits = world.HitSystem.QueryRaycast(projectile, component.LastPosition, delta, distance, filter);
+            ASLogger.Instance.Info($"[ProjectileCap] Raycast hits={hits.Count}");
 
             foreach (var hit in hits)
             {
@@ -184,6 +209,9 @@ namespace Astrum.LogicCore.Capabilities
                 if (!OnProjectileHit(projectile, component, hit))
                     break;
             }
+            
+            // 更新 LastPosition 为当前位置，供下一帧使用
+            component.LastPosition = currentPosition;
         }
 
         private bool OnProjectileHit(Entity projectile, ProjectileComponent component, RaycastHitInfo hit)
@@ -196,6 +224,7 @@ namespace Astrum.LogicCore.Capabilities
             if (!component.HitEntities.Add(target.UniqueId))
                 return true;
 
+            ASLogger.Instance.Info($"[ProjectileCap] Hit {target.UniqueId} at {hit.Point} distance={(float)hit.Distance:F4}");
             component.PiercedCount++;
 
             TriggerSkillEffects(projectile, component, target);

@@ -4,6 +4,7 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.SkillSystem;
 using Astrum.LogicCore.Physics;
 using Astrum.CommonBase;
+using TrueSync;
 
 namespace Astrum.View.Components
 {
@@ -80,6 +81,12 @@ namespace Astrum.View.Components
             var world = OwnerEntity.World;
             var physicsPos = world?.HitSystem?.PhysicsWorld?.GetPhysicsPosition(OwnerEntity);
             var physicsRot = world?.HitSystem?.PhysicsWorld?.GetPhysicsRotation(OwnerEntity);
+            var physicsBounds = world?.HitSystem?.PhysicsWorld?.GetPhysicsBoundingBox(OwnerEntity);
+
+            if (physicsBounds.HasValue)
+            {
+                DrawPhysicsBoundingBoxGizmo(physicsBounds.Value.Min, physicsBounds.Value.Max);
+            }
             
             // 如果物理世界位置与逻辑位置不一致，显示警告
             if (physicsPos.HasValue && collisionComp.Shapes.Count > 0)
@@ -121,8 +128,25 @@ namespace Astrum.View.Components
             Gizmos.color = EntityCollisionColor;
             foreach (var shape in collisionComp.Shapes)
             {
-                DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
+                // 使用物理世界的旋转（如果可用），否则使用逻辑层旋转
+                var rotation = physicsRot ?? positionComp.Rotation;
+                DrawCollisionShape(shape, positionComp.Position, rotation);
             }
+        }
+
+        private void DrawPhysicsBoundingBoxGizmo(TSVector min, TSVector max)
+        {
+            var originalColor = Gizmos.color;
+            Vector3 minVec = TSVectorToVector3(min);
+            Vector3 maxVec = TSVectorToVector3(max);
+            Vector3 center = (minVec + maxVec) * 0.5f;
+            Vector3 size = maxVec - minVec;
+
+            Gizmos.color = new Color(0f, 0.6f, 1f, 1f);
+            Gizmos.DrawWireCube(center, size);
+            Gizmos.color = new Color(0f, 0.6f, 1f, 0.1f);
+            Gizmos.DrawCube(center, size);
+            Gizmos.color = originalColor;
         }
         
         /// <summary>
@@ -313,6 +337,10 @@ namespace Astrum.View.Components
                 case HitBoxShape.Capsule:
                     DrawCapsule(worldCenter, worldRotation, (float)shape.Radius, (float)shape.Height);
                     break;
+
+                case HitBoxShape.Cylinder:
+                    DrawCylinder(worldCenter, worldRotation, (float)shape.Radius, (float)shape.Height);
+                    break;
             }
         }
         
@@ -351,6 +379,44 @@ namespace Astrum.View.Components
                 Gizmos.DrawLine(bottom + offset, top + offset);
             }
             
+            Gizmos.matrix = oldMatrix;
+        }
+
+        /// <summary>
+        /// 绘制圆柱体
+        /// </summary>
+        private void DrawCylinder(Vector3 center, Quaternion rotation, float radius, float height)
+        {
+            Matrix4x4 oldMatrix = Gizmos.matrix;
+            Gizmos.matrix = Matrix4x4.TRS(center, rotation, Vector3.one);
+
+            float halfHeight = height * 0.5f;
+            const int segments = 24;
+
+            Vector3 prevTop = Vector3.zero;
+            Vector3 prevBottom = Vector3.zero;
+
+            for (int i = 0; i <= segments; i++)
+            {
+                float angle = (float)i / segments * Mathf.PI * 2f;
+                float x = Mathf.Cos(angle) * radius;
+                float z = Mathf.Sin(angle) * radius;
+
+                Vector3 top = new Vector3(x, halfHeight, z);
+                Vector3 bottom = new Vector3(x, -halfHeight, z);
+
+                if (i > 0)
+                {
+                    Gizmos.DrawLine(prevTop, top);
+                    Gizmos.DrawLine(prevBottom, bottom);
+                }
+
+                    Gizmos.DrawLine(top, bottom);
+
+                prevTop = top;
+                prevBottom = bottom;
+            }
+
             Gizmos.matrix = oldMatrix;
         }
         

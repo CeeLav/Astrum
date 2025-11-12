@@ -12,7 +12,10 @@ namespace Astrum.LogicCore.Physics
         Sphere = 2,
         
         /// <summary>胶囊型</summary>
-        Capsule = 3
+        Capsule = 3,
+        
+        /// <summary>圆柱型</summary>
+        Cylinder = 4
     }
 }
 
