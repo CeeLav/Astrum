@@ -417,42 +417,26 @@ namespace Astrum.Editor.RoleEditor.Services
 
         private void GetBasePose(ProjectileEventInfo info, out Vector3 position, out Quaternion rotation)
         {
+            Vector3 casterPosition = _caster != null ? _caster.transform.position : Vector3.zero;
+            Quaternion casterRotation = _caster != null ? _caster.transform.rotation : Quaternion.identity;
+
             Transform anchor = ResolveSocketTransform(info.EventData.SocketName);
 
-            if (anchor != null)
+            rotation = anchor != null ? anchor.rotation : casterRotation;
+
+            Vector3 socketOffset = info.EventData.SocketOffset;
+
+            if (anchor != null && socketOffset == Vector3.zero)
             {
                 position = anchor.position;
-                rotation = anchor.rotation;
-            }
-            else if (_caster != null)
-            {
-                position = _caster.transform.position;
-                rotation = _caster.transform.rotation;
-
-                if (!string.IsNullOrEmpty(info.EventData.SocketName))
-                {
-                    Debug.LogWarning($"[ProjectilePreview] 未在模型上找到挂点 \"{info.EventData.SocketName}\"，改用角色根节点。");
-                }
             }
             else
             {
-                position = Vector3.zero;
-                rotation = Quaternion.identity;
-            }
+                position = casterPosition + casterRotation * socketOffset;
 
-            if (info.EventData.SocketOffset != Vector3.zero)
-            {
-                if (anchor != null)
+                if (anchor == null && !string.IsNullOrEmpty(info.EventData.SocketName))
                 {
-                    position += rotation * info.EventData.SocketOffset;
-                }
-                else if (_caster != null)
-                {
-                    position += _caster.transform.TransformVector(info.EventData.SocketOffset);
-                }
-                else
-                {
-                    position += info.EventData.SocketOffset;
+                    Debug.LogWarning($"[ProjectilePreview] 未在模型上找到挂点 \"{info.EventData.SocketName}\"，改用实体根坐标 + 偏移。");
                 }
             }
         }

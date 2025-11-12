@@ -616,7 +616,17 @@ namespace Astrum.Editor.RoleEditor.Timeline.Renderers
             var worldPos = socketTransform.position;
             Debug.Log($"[SkillEffectTrackRenderer] 挂点 '{effectData.SocketName}' 采样成功，世界坐标: {worldPos}");
 
-            Vector3 localOffset = previewModel.transform.InverseTransformPoint(socketTransform.position);
+            Vector3 rootPosition = previewModel.transform.position;
+            Quaternion rootRotation = previewModel.transform.rotation;
+
+            Vector3 worldOffset = worldPos - rootPosition;
+            Vector3 localOffset = Quaternion.Inverse(rootRotation) * worldOffset;
+
+            Vector3 lossyScale = previewModel.transform.lossyScale;
+            if (!Mathf.Approximately(lossyScale.x, 0f)) localOffset.x /= lossyScale.x;
+            if (!Mathf.Approximately(lossyScale.y, 0f)) localOffset.y /= lossyScale.y;
+            if (!Mathf.Approximately(lossyScale.z, 0f)) localOffset.z /= lossyScale.z;
+
             effectData.SocketOffset = localOffset;
             return true;
         }
