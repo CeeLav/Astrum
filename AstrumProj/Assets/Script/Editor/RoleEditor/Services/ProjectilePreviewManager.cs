@@ -235,29 +235,24 @@ namespace Astrum.Editor.RoleEditor.Services
 
             Debug.Log($"[ProjectilePreview] Event {evt.EventId} -> projectileId={projectileId}, spawn='{projectileData.SpawnEffectPath}', loop='{projectileData.LoopEffectPath}', hit='{projectileData.HitEffectPath}'");
 
-            var stringParams = effectConfig.StringParams ?? new List<string>();
-
-            string spawnOffsetJson = !string.IsNullOrEmpty(projectileData.SpawnEffectOffsetJson)
-                ? projectileData.SpawnEffectOffsetJson
-                : (stringParams.Count > 1 ? stringParams[1] : string.Empty);
-
-            string loopOffsetJson = !string.IsNullOrEmpty(projectileData.LoopEffectOffsetJson)
-                ? projectileData.LoopEffectOffsetJson
-                : (stringParams.Count > 2 ? stringParams[2] : string.Empty);
-
-            string hitOffsetJson = !string.IsNullOrEmpty(projectileData.HitEffectOffsetJson)
-                ? projectileData.HitEffectOffsetJson
-                : (stringParams.Count > 3 ? stringParams[3] : string.Empty);
-
             var info = new ProjectileEventInfo
             {
                 TimelineEvent = evt,
                 EventData = eventData,
                 EffectId = effectId,
                 Projectile = projectileData,
-                SpawnOffset = ProjectileEffectOffsetUtility.Parse(spawnOffsetJson),
-                LoopOffset = ProjectileEffectOffsetUtility.Parse(loopOffsetJson),
-                HitOffset = ProjectileEffectOffsetUtility.Parse(hitOffsetJson)
+                SpawnOffset = BuildOffset(
+                    projectileData.SpawnEffectPositionOffset,
+                    projectileData.SpawnEffectRotationOffset,
+                    projectileData.SpawnEffectScaleOffset),
+                LoopOffset = BuildOffset(
+                    projectileData.LoopEffectPositionOffset,
+                    projectileData.LoopEffectRotationOffset,
+                    projectileData.LoopEffectScaleOffset),
+                HitOffset = BuildOffset(
+                    projectileData.HitEffectPositionOffset,
+                    projectileData.HitEffectRotationOffset,
+                    projectileData.HitEffectScaleOffset)
             };
 
             Debug.Log($"[ProjectilePreview] Offsets -> spawn={DescribeOffset(info.SpawnOffset)}, loop={DescribeOffset(info.LoopOffset)}, hit={DescribeOffset(info.HitOffset)}");
@@ -330,7 +325,7 @@ namespace Astrum.Editor.RoleEditor.Services
                 state.StartPosition = loopPose.Position;
                 state.BaseRotation = loopPose.Rotation;
                 state.Direction = loopPose.Rotation * Vector3.forward;
-                state.Speed = ResolveBaseSpeed(info.Projectile.TrajectoryData);
+                state.Speed = ResolveBaseSpeed(info.Projectile);
                 state.ActiveDuration = ResolveActiveDuration(info);
                 state.EndFrame = ResolveEndFrame(info);
             }
@@ -471,7 +466,30 @@ namespace Astrum.Editor.RoleEditor.Services
             return new OffsetPose(position, rotation, scale);
         }
 
-        private float ResolveBaseSpeed(string trajectoryData)
+        private ProjectileEffectOffset BuildOffset(List<int> position, List<int> rotation, List<int> scale)
+        {
+            var result = new ProjectileEffectOffset
+            {
+                Position = ProjectileEffectOffsetConversion.ToVector3(position, ProjectileEffectOffsetConversion.PositionUnit, Vector3.zero),
+                Rotation = ProjectileEffectOffsetConversion.ToVector3(rotation, ProjectileEffectOffsetConversion.RotationUnit, Vector3.zero),
+                Scale = ProjectileEffectOffsetUtility.EnsureValidScale(
+                    ProjectileEffectOffsetConversion.ToVector3(scale, ProjectileEffectOffsetConversion.ScaleUnit, Vector3.one))
+            };
+
+            return result;
+        }
+
+        private float ResolveBaseSpeed(ProjectileTableData projectile)
+        {
+            if (projectile != null && projectile.BaseSpeed > 0)
+            {
+                return projectile.BaseSpeed * ProjectileEffectOffsetConversion.SpeedUnit;
+            }
+
+            return ResolveLegacyBaseSpeed(projectile?.TrajectoryData);
+        }
+
+        private float ResolveLegacyBaseSpeed(string trajectoryData)
         {
             if (string.IsNullOrEmpty(trajectoryData))
             {
@@ -498,7 +516,7 @@ namespace Astrum.Editor.RoleEditor.Services
             }
             catch
             {
-                // ignore
+                // ignore legacy parse failure
             }
 
             return DEFAULT_BASE_SPEED;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Astrum.Editor.RoleEditor.SkillEffectEditors
@@ -85,6 +86,60 @@ namespace Astrum.Editor.RoleEditor.SkillEffectEditors
             }
 
             return scale;
+        }
+    }
+
+    internal static class ProjectileEffectOffsetConversion
+    {
+        public const float PositionUnit = 0.01f;
+        public const float RotationUnit = 1f;
+        public const float ScaleUnit = 0.01f;
+        public const float SpeedUnit = 0.01f;
+
+        public static Vector3 ToVector3(List<int> values, float unit, Vector3 defaultValue)
+        {
+            if (values == null || values.Count < 3)
+            {
+                return defaultValue;
+            }
+
+            return new Vector3(values[0] * unit, values[1] * unit, values[2] * unit);
+        }
+
+        public static Vector3Int ToVector3Int(List<int> values, Vector3Int defaultValue)
+        {
+            if (values == null || values.Count < 3)
+            {
+                return defaultValue;
+            }
+
+            return new Vector3Int(values[0], values[1], values[2]);
+        }
+
+        public static void FromVector3(Vector3 source, float unit, List<int> target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            target.Clear();
+            target.Add(Mathf.RoundToInt(source.x / unit));
+            target.Add(Mathf.RoundToInt(source.y / unit));
+            target.Add(Mathf.RoundToInt(source.z / unit));
+        }
+
+        public static void FromVector3Int(Vector3Int source, List<int> target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            target.Clear();
+            target.Add(source.x);
+            target.Add(source.y);
+            target.Add(source.z);
         }
     }
 }

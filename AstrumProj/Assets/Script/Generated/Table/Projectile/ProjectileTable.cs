@@ -27,9 +27,16 @@ public sealed partial class ProjectileTable : Luban.BeanBase
         SpawnEffectPath = _buf.ReadString();
         LoopEffectPath = _buf.ReadString();
         HitEffectPath = _buf.ReadString();
-        SpawnEffectOffset = _buf.ReadString();
-        LoopEffectOffset = _buf.ReadString();
-        HitEffectOffset = _buf.ReadString();
+        BaseSpeed = _buf.ReadInt();
+        {int __n0 = _buf.ReadSize(); SpawnEffectPositionOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); SpawnEffectPositionOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); SpawnEffectRotationOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); SpawnEffectRotationOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); SpawnEffectScaleOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); SpawnEffectScaleOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); LoopEffectPositionOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); LoopEffectPositionOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); LoopEffectRotationOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); LoopEffectRotationOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); LoopEffectScaleOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); LoopEffectScaleOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); HitEffectPositionOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); HitEffectPositionOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); HitEffectRotationOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); HitEffectRotationOffset[__index0] = __e0;}}
+        {int __n0 = _buf.ReadSize(); HitEffectScaleOffset = new int[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { int __e0;__e0 = _buf.ReadInt(); HitEffectScaleOffset[__index0] = __e0;}}
     }
 
     public static ProjectileTable DeserializeProjectileTable(ByteBuf _buf)
@@ -82,17 +89,45 @@ public sealed partial class ProjectileTable : Luban.BeanBase
     /// </summary>
     public readonly string HitEffectPath;
     /// <summary>
-    /// 开火特效偏移JSON
+    /// 基础速度(整型)
     /// </summary>
-    public readonly string SpawnEffectOffset;
+    public readonly int BaseSpeed;
     /// <summary>
-    /// 飞行特效偏移JSON
+    /// 开火特效位置偏移(整型数组)
     /// </summary>
-    public readonly string LoopEffectOffset;
+    public readonly int[] SpawnEffectPositionOffset;
     /// <summary>
-    /// 命中特效偏移JSON
+    /// 开火特效旋转偏移(整型数组)
     /// </summary>
-    public readonly string HitEffectOffset;
+    public readonly int[] SpawnEffectRotationOffset;
+    /// <summary>
+    /// 开火特效缩放(整型数组)
+    /// </summary>
+    public readonly int[] SpawnEffectScaleOffset;
+    /// <summary>
+    /// 飞行特效位置偏移(整型数组)
+    /// </summary>
+    public readonly int[] LoopEffectPositionOffset;
+    /// <summary>
+    /// 飞行特效旋转偏移(整型数组)
+    /// </summary>
+    public readonly int[] LoopEffectRotationOffset;
+    /// <summary>
+    /// 飞行特效缩放(整型数组)
+    /// </summary>
+    public readonly int[] LoopEffectScaleOffset;
+    /// <summary>
+    /// 命中特效位置偏移(整型数组)
+    /// </summary>
+    public readonly int[] HitEffectPositionOffset;
+    /// <summary>
+    /// 命中特效旋转偏移(整型数组)
+    /// </summary>
+    public readonly int[] HitEffectRotationOffset;
+    /// <summary>
+    /// 命中特效缩放(整型数组)
+    /// </summary>
+    public readonly int[] HitEffectScaleOffset;
    
     public const int __ID__ = 1082348896;
     public override int GetTypeId() => __ID__;
@@ -115,9 +150,16 @@ public sealed partial class ProjectileTable : Luban.BeanBase
         + "spawnEffectPath:" + SpawnEffectPath + ","
         + "loopEffectPath:" + LoopEffectPath + ","
         + "hitEffectPath:" + HitEffectPath + ","
-        + "spawnEffectOffset:" + SpawnEffectOffset + ","
-        + "loopEffectOffset:" + LoopEffectOffset + ","
-        + "hitEffectOffset:" + HitEffectOffset + ","
+        + "baseSpeed:" + BaseSpeed + ","
+        + "spawnEffectPositionOffset:" + Luban.StringUtil.CollectionToString(SpawnEffectPositionOffset) + ","
+        + "spawnEffectRotationOffset:" + Luban.StringUtil.CollectionToString(SpawnEffectRotationOffset) + ","
+        + "spawnEffectScaleOffset:" + Luban.StringUtil.CollectionToString(SpawnEffectScaleOffset) + ","
+        + "loopEffectPositionOffset:" + Luban.StringUtil.CollectionToString(LoopEffectPositionOffset) + ","
+        + "loopEffectRotationOffset:" + Luban.StringUtil.CollectionToString(LoopEffectRotationOffset) + ","
+        + "loopEffectScaleOffset:" + Luban.StringUtil.CollectionToString(LoopEffectScaleOffset) + ","
+        + "hitEffectPositionOffset:" + Luban.StringUtil.CollectionToString(HitEffectPositionOffset) + ","
+        + "hitEffectRotationOffset:" + Luban.StringUtil.CollectionToString(HitEffectRotationOffset) + ","
+        + "hitEffectScaleOffset:" + Luban.StringUtil.CollectionToString(HitEffectScaleOffset) + ","
         + "}";
     }
 }
