@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Astrum.Generated;
@@ -8,6 +10,10 @@ using Astrum.CommonBase;
 using Astrum.Network;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Archetypes;
+using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.Systems;
+using Astrum.LogicCore.Factories;
 using AstrumServer.Network;
 
 namespace AstrumServer.Managers
@@ -27,6 +33,10 @@ namespace AstrumServer.Managers
         
         // 房间帧同步状态
         private readonly ConcurrentDictionary<string, RoomFrameSyncState> _roomFrameStates = new();
+
+        private static bool _logicEnvironmentInitialized = false;
+        private static readonly object _logicEnvironmentLock = new();
+        private static string? _logicConfigPathCache = null;
         
         // 运行状态（弃用定时器，改为在Update中推进）
         private bool _isRunning = false;
@@ -135,7 +145,9 @@ namespace AstrumServer.Managers
                     PlayerIds = new List<string>(roomInfo.PlayerNames)
                 };
 
-                // 初始化逻辑房间
+                // 初始化逻辑环境与房间
+                EnsureLogicEnvironmentInitialized();
+
                 frameState.LogicRoom = CreateLogicRoom(roomId, roomInfo, frameState.StartTime);
                 frameState.LogicRoom?.LSController?.Start();
  
@@ -758,6 +770,80 @@ namespace AstrumServer.Managers
             logicRoom.SetServerCreationTime(startTime);
 
             return logicRoom;
+        }
+
+        private void EnsureLogicEnvironmentInitialized()
+        {
+            if (_logicEnvironmentInitialized)
+            {
+                return;
+            }
+
+            lock (_logicEnvironmentLock)
+            {
+                if (_logicEnvironmentInitialized)
+                {
+                    return;
+                }
+
+                try
+                {
+                    var baseDir = AppContext.BaseDirectory;
+                    var candidates = new List<string>();
+
+                    var envConfigPath = Environment.GetEnvironmentVariable("ASTRUM_CONFIG_PATH");
+                    if (!string.IsNullOrWhiteSpace(envConfigPath))
+                    {
+                        candidates.Add(envConfigPath);
+                    }
+
+                    candidates.Add(Path.Combine(baseDir, "Config"));
+                    candidates.Add(Path.Combine(baseDir, "..", "Config"));
+                    candidates.Add(Path.Combine(baseDir, "..", "..", "Config"));
+                    candidates.Add(Path.Combine(baseDir, "..", "..", "..", "Config"));
+                    candidates.Add(Path.Combine(baseDir, "..", "..", "..", "..", "AstrumConfig", "Tables", "output", "Server"));
+                    candidates.Add(Path.Combine(baseDir, "..", "..", "..", "..", "AstrumConfig", "Tables", "output", "Client"));
+                    candidates.Add(Path.Combine(baseDir, "..", "..", "AstrumConfig", "Tables", "output", "Client"));
+
+                    var normalized = candidates
+                        .Select(path =>
+                        {
+                            try { return Path.GetFullPath(path); } catch { return path; }
+                        })
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    var configPath = normalized.FirstOrDefault(Directory.Exists);
+
+                    if (string.IsNullOrEmpty(configPath))
+                    {
+                        throw new DirectoryNotFoundException($"未能找到可用的配置目录，尝试路径: {string.Join(", ", normalized)}");
+                    }
+
+                    _logicConfigPathCache = configPath;
+
+                    if (!TableConfig.Instance.IsInitialized || !string.Equals(TableConfig.Instance.GetConfigPath(), configPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        TableConfig.Instance.Initialize(configPath);
+                    }
+
+                    // 预热关键单例
+                    ArchetypeRegistry.Instance.Initialize();
+                    _ = ActionConfig.Instance;
+                    _ = SkillConfig.Instance;
+                    _ = ComponentFactory.Instance;
+
+                    ASLogger.Instance.Info($"逻辑环境初始化完成，配置路径: {configPath}", "Logic.Init");
+
+                    _logicEnvironmentInitialized = true;
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"初始化逻辑环境失败: {ex.Message}", "Logic.Init");
+                    ASLogger.Instance.LogException(ex, LogLevel.Error);
+                    throw;
+                }
+            }
         }
     }
     

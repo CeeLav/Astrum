@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>AstrumLogic.Server</AssemblyName>
+    <RootNamespace>Astrum.LogicCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MemoryPack" Version="1.21.4" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\AstrumProj\Assets\Script\AstrumLogic\**\*.cs" Exclude="**\*.asmdef" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="CommonBase">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\CommonBase.dll</HintPath>
+    </Reference>
+    <ProjectReference Include="..\Generated.Shared\Generated.Shared.csproj" />
+    <Reference Include="Luban.Runtime">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Luban.Runtime.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

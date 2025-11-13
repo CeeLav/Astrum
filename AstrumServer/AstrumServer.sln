@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AstrumServer", "AstrumServe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Generated.Shared", "Generated.Shared\Generated.Shared.csproj", "{86074EAC-195F-4B79-AB17-A77616FD5549}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AstrumLogic.Server", "AstrumLogic.Server\AstrumLogic.Server.csproj", "{3E3676FE-E711-4C5F-BA82-F3892765B7CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,18 @@ Global
 		{86074EAC-195F-4B79-AB17-A77616FD5549}.Release|x64.Build.0 = Release|Any CPU
 		{86074EAC-195F-4B79-AB17-A77616FD5549}.Release|x86.ActiveCfg = Release|Any CPU
 		{86074EAC-195F-4B79-AB17-A77616FD5549}.Release|x86.Build.0 = Release|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Debug|x64.Build.0 = Debug|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Debug|x86.Build.0 = Debug|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Release|x64.ActiveCfg = Release|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Release|x64.Build.0 = Release|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Release|x86.ActiveCfg = Release|Any CPU
+		{3E3676FE-E711-4C5F-BA82-F3892765B7CF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
