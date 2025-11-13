@@ -180,26 +180,24 @@ class OneFrameInputs {
 3. **难以支持其他实体类型**
    - 当前逻辑只处理玩家创建，其他实体创建需要类似机制
 
-## 三、重构方案：玩家注册系统
+## 三、重构方案：世界快照一步到位
 
-#### 核心思想（优化版）
-- **服务器在开始游戏时自动为房间内所有玩家分配PlayerId**
-- **服务器维护玩家注册状态**
-- **客户端通过 FrameSyncStartNotification 获取PlayerId**（无需发送注册请求）
-- **服务器通过帧输入下发创建玩家指令**（支持断线重连和回放）
+#### 核心思想
+- **服务器在开始游戏时创建所有玩家实体**
+- **服务器保存第0帧的世界快照**
+- **客户端通过 FrameSyncStartNotification 接收世界快照并恢复状态**（一步到位）
+- **PlayerId 就是 Entity.UniqueId，服务器创建后直接分配**
 
-**优化说明：**
-- 由于玩家先登录、进房间，然后才开始游戏，服务器在开始游戏时已经知道房间内的所有玩家
-- 因此可以在 `StartRoomFrameSync` 时自动为所有玩家分配 PlayerId，无需客户端发送注册请求
-- 客户端通过 `FrameSyncStartNotification` 中的 `playerIdMapping` 字段获取自己的 PlayerId
-- **重要**：`playerIdMapping` 包含房间内所有玩家的映射关系（UserId -> PlayerId），方便后续业务系统使用，例如：
-  - 显示玩家列表时，可以通过 UserId 查找对应的 PlayerId
-  - 处理玩家交互时，可以通过 PlayerId 查找对应的 UserId
-  - 统计和分析时，可以关联 UserId 和 PlayerId
+**方案说明：**
+- 服务器在 `StartRoomFrameSync` 时创建所有玩家实体，保存第0帧快照
+- 客户端收到 `FrameSyncStartNotification` 时，直接反序列化世界快照，恢复所有实体状态
+- 无需通过帧输入创建实体，一步到位，状态完全一致
+- 支持中途加入：服务器创建实体后发送快照，客户端直接恢复
+- 兼容回放：快照机制与断线重连/回放一致
 
 #### 详细流程设计
 
-##### 3.1 客户端流程（优化版：自动注册）
+##### 3.1 客户端流程（世界快照方案）
 
 **阶段1：游戏开始**
 ```
@@ -208,44 +206,41 @@ class OneFrameInputs {
      ↓
    创建 Room 和 Stage
      ↓
-   等待帧同步开始（不需要发送注册请求）
+   等待帧同步开始
 ```
 
-**阶段2：帧同步开始并获取 PlayerId，创建玩家实体**
+**阶段2：帧同步开始并接收世界快照**
 ```
 2. 收到 FrameSyncStartNotification
    FrameSyncHandler.OnFrameSyncStartNotification()
      ↓
-   从通知中获取 PlayerId 和所有玩家的映射
-   - 通知中包含 playerIdMapping（Dictionary<string, long>，UserId -> PlayerId（UniqueId））
-   - 包含房间内所有玩家的映射关系，方便后续业务系统使用
-   - 客户端从映射中获取自己的 PlayerId：playerIdMapping[UserId]
+   从通知中获取世界快照数据
+   - notification.worldSnapshot (bytes)
+   - notification.playerIdMapping (Dictionary<string, long>)
      ↓
-   MultiplayerGameMode.OnFrameSyncStart()
-   - 保存 PlayerId（从 playerIdMapping 中获取）
-   - 保存所有玩家的映射关系（供业务系统使用）
-   - 设置 MainRoom.MainPlayerId = PlayerId
+   反序列化 World
+   - 使用 MemoryPackHelper.Deserialize() 反序列化 worldSnapshot
+   - 替换 MainRoom.MainWorld
+   - 重建 World 的引用关系（Room、Systems等）
      ↓
-   根据 playerIdMapping 创建所有玩家实体
-   foreach (kvp in playerIdMapping)
-   {
-     var userId = kvp.Key;
-     var playerId = kvp.Value; // PlayerId 就是服务器端实体的 UniqueId
-     
-     // 创建实体，使用指定的 UniqueId（PlayerId）
-     // 注意：需要修改 Entity 类支持在创建时指定 UniqueId
-     var entity = MainWorld.CreateEntity(1003, playerId); // 使用指定的 UniqueId
-     // 或者：先创建实体，然后设置 UniqueId（需要 Entity 类支持）
-   }
+   从 playerIdMapping 获取 PlayerId
+   - 查找自己的 UserId 对应的 PlayerId
+   - 设置 PlayerId 和 MainRoom.MainPlayerId
      ↓
    启动 LSController
    - 设置 CreationTime = notification.startTime
+   - 将快照数据加载到 FrameBuffer（用于回滚）
    - LSController.Start()
+     ↓
+   Stage.OnEntityCreated()（自动监听 EntityCreatedEventData）
+   - 遍历 World.Entities，为每个实体创建 EntityView
+   - EntityViewFactory.CreateEntityView()
+   - 创建 EntityView
 ```
 
-**阶段3：接收帧同步数据并更新实体状态**
+**阶段3：后续帧处理**
 ```
-3. 收到 FrameSyncData
+3. 收到 FrameSyncData（后续帧）
    FrameSyncHandler.OnFrameSyncData()
      ↓
    DealNetFrameInputs()
@@ -256,21 +251,15 @@ class OneFrameInputs {
    - 推进 PredictionFrame
    - 调用 Room.FrameTick()
      ↓
-   Room.FrameTick()（方案B：去掉 BornInfo）
-   - 遍历所有输入
-   - 如果输入中有 PlayerId，但 World 中没有对应实体（理论上不应该发生，实体已在阶段2创建）
-   - 调用 Room.AddPlayer(playerId) 创建实体（兜底逻辑）
-   - 更新实体的输入组件
-   - MainWorld.CreateEntity() 会自动发布 EntityCreatedEventData 事件
-     ↓
-   Stage.OnEntityCreated()（自动监听 EntityCreatedEventData）
-   - EntityViewFactory.CreateEntityView()
-   - 创建 EntityView
+   Room.FrameTick()
+   - 正常处理帧输入
+   - 更新实体输入组件
+   - 实体已存在，只需更新状态
 ```
 
-##### 3.2 服务器流程（优化版：自动注册）
+##### 3.2 服务器流程（世界快照方案）
 
-**阶段1：开始游戏时自动创建实体并分配 PlayerId**
+**阶段1：开始游戏时创建所有玩家实体并保存快照**
 ```
 1. StartRoomFrameSync(roomId)
    FrameSyncManager.StartRoomFrameSync()
@@ -281,131 +270,90 @@ class OneFrameInputs {
      ↓
    创建逻辑房间
    - frameState.LogicRoom = CreateLogicRoom(roomId, roomInfo)
+   - 启动 LSController
      ↓
-   先创建所有玩家实体，获得 UniqueId
-   foreach (userId in playerNames)
+   创建所有玩家实体
+   foreach (userId in playerNames.OrderBy(x => x))
    {
-     // 先创建实体，获得 UniqueId
-     var entity = frameState.LogicRoom.MainWorld.CreateEntity(1003); // EntityConfigId=1003
-     var playerId = entity.UniqueId; // PlayerId 就是 Entity 的 UniqueId
+     var playerEntity = frameState.LogicRoom.MainWorld.CreateEntity(1003);
+     var playerId = playerEntity.UniqueId; // PlayerId 就是 Entity.UniqueId
      
-     // 将 UniqueId 作为 PlayerId 分配给 UserId
-     RegisterPlayer(userId, roomId, playerId);
-     - 注册到 RoomFrameSyncState.RegisteredPlayers
-     - 记录 UserId -> PlayerId（UniqueId）映射
-     - 标记 EntityCreated = true（实体已创建）
+     // 记录 PlayerId 映射
+     frameState.UserIdToPlayerId[userId] = playerId;
+     frameState.LogicRoom.Players.Add(playerId);
+     
+     ASLogger.Instance.Info($"服务器：创建玩家实体 - UserId: {userId}, PlayerId: {playerId}");
    }
      ↓
-   创建 RoomFrameSyncState
-   - PlayerIds = playerNames（UserId列表）
-   - RegisteredPlayers = 已注册的玩家列表（包含已创建的实体）
+   保存第0帧快照
+   - frameState.LogicRoom.LSController.AuthorityFrame = 0
+   - frameState.LogicRoom.LSController.FrameBuffer.MoveForward(0)
+   - frameState.LogicRoom.LSController.SaveState()
+   - 获取快照数据：snapshotBuffer = FrameBuffer.Snapshot(0)
+   - 序列化为 bytes：worldSnapshotData
      ↓
    发送 FrameSyncStartNotification
+   - 包含 worldSnapshot（世界快照数据）
+   - 包含 playerIdMapping（UserId -> PlayerId 映射）
    - 包含 playerIds（UserId列表）
-   - 包含 playerIdMapping（Dictionary<string, long>，UserId -> PlayerId（UniqueId）映射）
-   - playerIdMapping 包含房间内所有玩家的映射关系，方便客户端业务系统使用
-   - 所有玩家都收到相同的通知，包含完整的映射关系
+   - 发送给房间内所有玩家
 ```
 
-**阶段2：帧处理 - 同步实体状态到客户端**
+**阶段2：后续帧处理**
 ```
-2. ProcessRoomFrame()
+2. ProcessRoomFrame()（后续帧）
    - AuthorityFrame++
    - CollectFrameInputs() 收集输入
-     ↓
-   确保所有已创建玩家的输入出现在帧数据中
-   foreach (registeredPlayer in RegisteredPlayers)
-   {
-     // 实体已在 StartRoomFrameSync 时创建，确保其输入出现在帧数据中
-     if (!frameInputs.Inputs.ContainsKey(registeredPlayer.PlayerId))
-     {
-       // 如果该 PlayerId 还没有输入，创建一个空输入
-       var emptyInput = new LSInput {
-         PlayerId = registeredPlayer.PlayerId,
-         Frame = AuthorityFrame,
-         // 其他字段保持默认值（空输入）
-       };
-       frameInputs.Inputs[registeredPlayer.PlayerId] = emptyInput;
-     }
-   }
-     ↓
-   Room.FrameTick(frameInputs)
-   - 遍历所有输入
-   - 如果输入中有 PlayerId，但 World 中没有对应实体（客户端情况）
-   - 调用 Room.AddPlayer(playerId) 创建实体
-   - 注意：服务器端实体已在 StartRoomFrameSync 时创建，这里主要是更新输入
-   - 实体状态通过帧同步数据同步到客户端
-```
-
-**阶段3：帧同步数据下发**
-```
-3. SendFrameSyncData()
-   - 序列化 OneFrameInputs（包含创建指令）
-   - 发送给房间内所有客户端
+   - Room.FrameTick() 执行帧逻辑
+   - SendFrameSyncData() 发送帧同步数据
+   - 实体已存在，只需更新状态
 ```
 
 #### 3.3 关键数据结构
 
-##### 服务器端：玩家注册状态
-```csharp
-public class RegisteredPlayer
+##### 协议：FrameSyncStartNotification（新增字段）
+```protobuf
+message FrameSyncStartNotification
 {
-    public string UserId { get; set; }        // 用户ID
-    public long PlayerId { get; set; }        // 分配的玩家ID
-    public string RoomId { get; set; }        // 房间ID
-    public long RegisterTime { get; set; }   // 注册时间
-    public bool EntityCreated { get; set; }  // 实体是否已创建
-    public int CreateFrame { get; set; }     // 创建实体时的帧号（用于回放）
+    string roomId = 1;
+    int32 frameRate = 2;
+    int32 frameInterval = 3;
+    int64 startTime = 4;
+    repeated string playerIds = 5;           // 玩家ID列表（UserId）
+    bytes worldSnapshot = 6;                // 世界快照数据（第0帧）
+    map<string, int64> playerIdMapping = 7; // UserId -> PlayerId 映射
 }
+```
 
+##### 服务器端：玩家状态
+```csharp
 public class RoomFrameSyncState
 {
     // ... 现有字段 ...
     
-    // 新增：注册的玩家列表
-    public Dictionary<string, RegisteredPlayer> RegisteredPlayers { get; set; } = new();
-    
-    // 新增：UserId -> PlayerId 映射
+    // UserId -> PlayerId 映射（实体创建后确定）
     public Dictionary<string, long> UserIdToPlayerId { get; set; } = new();
 }
 ```
 
-##### 帧输入中的创建指令（方案A：使用 BornInfo）
-
+##### 世界快照数据
 ```csharp
-// LSInput.BornInfo 字段的语义：
-// - 0: 正常输入，不创建玩家
-// - > 0: 创建玩家指令，值为 PlayerId
-//   服务器在帧处理时，如果检测到 BornInfo == PlayerId 且该PlayerId的实体不存在，
-//   则创建该PlayerId对应的玩家实体
-```
+// 世界快照就是 World 对象的序列化数据
+// 使用 MemoryPack 序列化，包含：
+// - World 的所有属性（Entities、Systems、状态等）
+// - 所有实体的完整状态（Components、Capabilities等）
+// - 第0帧的完整世界状态
 
-##### 帧输入中的创建指令（方案B：去掉 BornInfo，推荐）
+// 序列化方式：
+byte[] worldSnapshotData = MemoryPackHelper.Serialize(world);
 
-```csharp
-// 去掉 BornInfo 字段，直接通过 PlayerId 是否存在于 World 来判断是否需要创建
-// 
-// 逻辑：
-// - 如果输入中有某个 PlayerId，但 World 中没有对应实体，则创建该玩家实体
-// - 服务器端：只创建已注册的玩家（通过 RegisteredPlayers 验证）
-// - 客户端：创建帧数据中出现的所有 PlayerId 对应的实体
-//
-// 优点：
-// 1. 不需要额外的 BornInfo 字段，简化协议
-// 2. 逻辑更简单：实体存在与否就是判断依据
-// 3. 语义更清晰：PlayerId 的存在即表示需要创建
-// 4. 支持回放：回放时通过帧数据中的 PlayerId 重建所有实体
-//
-// 实现要点：
-// 1. 服务器端：在 ProcessPendingPlayerCreations 中，对于已注册但未创建的玩家，
-//    添加一个"空输入"条目到 frameInputs，确保该 PlayerId 出现在帧数据中
-// 2. Room.FrameTick：如果输入中有 PlayerId，但 World 中没有对应实体，则创建
-// 3. 幂等性：创建前检查实体是否已存在，防止重复创建
+// 反序列化方式：
+World world = MemoryPackHelper.Deserialize(typeof(World), worldSnapshotData, 0, worldSnapshotData.Length) as World;
 ```
 
 #### 3.4 断线重连支持
 
-**客户端重连流程（优化版）：**
+**客户端重连流程：**
 ```
 1. 客户端断线后重连
    - 重新建立连接
@@ -413,20 +361,22 @@ public class RoomFrameSyncState
    - 重新加入房间（如果房间还在）
      ↓
 2. 如果游戏已开始，服务器会重新发送 FrameSyncStartNotification
+   - 通知中包含 worldSnapshot（当前帧的世界快照）
    - 通知中包含 playerIdMapping
-   - 客户端从映射中获取自己的 PlayerId（重连时使用已分配的 PlayerId）
+   - 客户端从映射中获取自己的 PlayerId
      ↓
-3. 请求帧同步状态快照
-   - 发送 GetFrameSyncSnapshotRequest（新消息）
-   - 服务器返回当前帧号和世界状态
+3. 恢复世界状态
+   - 反序列化 worldSnapshot，恢复 World 状态
+   - 替换 MainRoom.MainWorld
+   - 重建所有实体的 EntityView
      ↓
-4. 回放缺失的帧
+4. 回放缺失的帧（可选）
    - 从快照帧开始，逐帧回放
-   - 通过帧输入中的创建指令，重建所有玩家实体
+   - 通过帧输入数据，更新实体状态
    - 同步到当前帧
 ```
 
-**服务器重连处理（优化版）：**
+**服务器重连处理：**
 ```csharp
 // 在 StartRoomFrameSync 中处理重连
 public void StartRoomFrameSync(string roomId)
@@ -434,27 +384,25 @@ public void StartRoomFrameSync(string roomId)
     var roomInfo = _roomManager.GetRoom(roomId);
     var playerNames = roomInfo.PlayerNames;
     
-    // 为所有玩家分配 PlayerId（包括重连的玩家）
-    foreach (var userId in playerNames)
+    // 检查是否已有房间状态（重连情况）
+    if (_roomFrameStates.TryGetValue(roomId, out var existingState))
     {
-        // 检查是否已注册（重连情况）
-        if (!UserIdToPlayerId.TryGetValue(userId, out var existingPlayerId))
-        {
-            // 新玩家，分配新 PlayerId
-            var newPlayerId = AllocatePlayerId(roomId);
-            RegisterPlayer(userId, roomId, newPlayerId);
-        }
-        else
-        {
-            // 重连玩家，使用已分配的 PlayerId
-            var registeredPlayer = RegisteredPlayers[userId];
-            registeredPlayer.IsReconnected = true;
-            registeredPlayer.ReconnectTime = TimeInfo.Instance.ClientNow();
-        }
+        // 重连：使用现有的世界状态和 PlayerId 映射
+        // 保存当前帧的快照
+        var currentFrame = existingState.AuthorityFrame;
+        existingState.LogicRoom.LSController.SaveState();
+        var snapshotBuffer = existingState.LogicRoom.LSController.FrameBuffer.Snapshot(currentFrame);
+        byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+        snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+        
+        // 发送 FrameSyncStartNotification，包含当前帧快照
+        SendFrameSyncStartNotification(roomId, existingState, worldSnapshotData);
     }
-    
-    // 发送 FrameSyncStartNotification，包含 playerIdMapping
-    SendFrameSyncStartNotification(roomId, frameState);
+    else
+    {
+        // 新游戏：创建所有玩家实体并保存快照
+        // ... 正常流程 ...
+    }
 }
 ```
 
@@ -466,12 +414,13 @@ public void StartRoomFrameSync(string roomId)
    - 发送 ReplayRequest（指定起始帧和结束帧）
      ↓
 2. 服务器返回回放数据
-   - 返回指定帧范围内的所有帧输入数据
-   - 包含每帧的 OneFrameInputs（包含创建指令）
+   - 返回起始帧的世界快照（worldSnapshot）
+   - 返回指定帧范围内的所有帧输入数据（OneFrameInputs）
      ↓
 3. 客户端回放
+   - 反序列化起始帧的世界快照，恢复 World 状态
    - 从起始帧开始，逐帧执行
-   - 检测到创建指令（BornInfo > 0）时创建实体
+   - 通过帧输入数据，更新实体状态
    - 执行所有帧逻辑
    - 同步到结束帧
 ```
@@ -482,112 +431,95 @@ public class ReplayData
 {
     public int StartFrame { get; set; }
     public int EndFrame { get; set; }
+    public byte[] WorldSnapshotAtStartFrame { get; set; } // 起始帧的世界快照（bytes）
     public Dictionary<int, OneFrameInputs> FrameInputs { get; set; } // 帧号 -> 输入数据
-    public World SnapshotAtStartFrame { get; set; } // 起始帧的世界快照（可选）
 }
 ```
 
 #### 3.6 优点
-- **职责清晰**：注册和创建分离，逻辑清晰
-- **易于管理**：服务器维护玩家注册状态，便于管理
-- **支持重连**：通过注册机制支持断线重连
-- **支持回放**：创建指令通过帧输入下发，可以完整回放
-- **状态一致**：服务器是唯一权威源，保证状态一致
+- **一步到位**：客户端直接获得完整世界状态，无需通过帧输入创建实体
+- **状态一致**：服务器是唯一创建源，客户端只恢复状态，保证完全一致
+- **支持中途加入**：服务器创建实体后发送快照，客户端直接恢复，无需依赖创建顺序
+- **支持重连**：通过快照机制支持断线重连，恢复完整世界状态
+- **支持回放**：快照机制与回放一致，可以完整回放
+- **简化逻辑**：无需通过帧输入创建实体，逻辑更简单清晰
 
 #### 3.7 需要实现的功能
 
 1. **协议定义**
-   - ~~PlayerRegisterRequest / PlayerRegisterResponse~~（优化后不需要）
-   - **新增**：在 `FrameSyncStartNotification` 中添加 `playerIdMapping` 字段
-     - 类型：`Dictionary<string, long>`（UserId -> PlayerId）
-     - 内容：包含房间内所有玩家的映射关系
-     - 用途：方便客户端业务系统使用，例如显示玩家列表、处理玩家交互等
+   - **修改**：在 `FrameSyncStartNotification` 中添加字段
+     - `worldSnapshot` (bytes)：世界快照数据（第0帧）
+     - `playerIdMapping` (map<string, int64>)：UserId -> PlayerId 映射
+   - 用途：
+     - `worldSnapshot`：客户端直接恢复世界状态
+     - `playerIdMapping`：方便客户端业务系统使用，例如显示玩家列表、处理玩家交互等
 
 2. **服务器端**
-   - **修改**：在 `StartRoomFrameSync` 时自动为房间内所有玩家分配 PlayerId
-   - 维护 RegisteredPlayers 状态
-   - 在帧处理中检查待创建玩家并下发创建指令
-   - 重连检测和处理（重连时返回已分配的 PlayerId）
+   - **修改**：在 `StartRoomFrameSync` 时创建所有玩家实体
+   - **新增**：保存第0帧的世界快照
+   - **修改**：在 `SendFrameSyncStartNotification` 中包含世界快照和 PlayerId 映射
+   - 重连检测和处理（重连时发送当前帧快照）
 
 3. **客户端端**
-   - ~~发送注册请求~~（优化后不需要）
-   - ~~处理注册响应~~（优化后不需要）
-   - **修改**：从 `FrameSyncStartNotification` 中获取 PlayerId
-   - 修改 FrameTick 逻辑，通过 PlayerId 存在性判断创建玩家
+   - **修改**：在 `OnFrameSyncStartNotification` 中反序列化世界快照
+   - **修改**：替换 `MainRoom.MainWorld` 为快照恢复的 World
+   - **修改**：从 `playerIdMapping` 中获取 PlayerId
+   - **修改**：将快照数据加载到 FrameBuffer（用于回滚）
+   - **修改**：为快照中的所有实体创建 EntityView
    - 移除旧的 BornInfo 发送逻辑
 
 4. **清理工作**
    - 移除旧的 BornInfo 发送逻辑（RequestCreatePlayer）
-   - 清理客户端直接创建玩家的代码
-   - **可选**：移除 PlayerRegisterRequest/Response 协议定义（如果确定不再使用）
+   - 清理客户端通过帧输入创建玩家的代码
+   - **可选**：从 `LSInput` 协议中移除 `BornInfo` 字段（如果确定不再使用）
 
-## 四、选定方案：方案三（玩家注册系统）
+## 四、选定方案：世界快照一步到位
 
 ### 4.1 方案概述
 
 **核心设计：**
-- 玩家注册：客户端通过 `PlayerRegisterRequest` 获取 `PlayerId`
-- 创建指令：服务器通过帧输入中的 `BornInfo` 字段下发创建玩家指令
-- 状态同步：客户端通过帧同步数据接收创建指令并创建实体
+- 服务器创建：服务器在 `StartRoomFrameSync` 时创建所有玩家实体
+- 世界快照：服务器保存第0帧的世界快照（World 序列化数据）
+- 状态恢复：客户端通过 `FrameSyncStartNotification` 接收世界快照并恢复状态
+- PlayerId 分配：PlayerId 就是 Entity.UniqueId，服务器创建后直接分配
 
 ### 4.2 关键设计决策
 
 #### 4.2.1 PlayerId 分配时机
-- **时机**：在收到 `PlayerRegisterRequest` 时立即分配
-- **方式**：从1开始递增，每个房间独立分配
+- **时机**：在 `StartRoomFrameSync` 时创建实体后立即分配
+- **方式**：PlayerId 就是 Entity.UniqueId，服务器创建实体后自动获得
 - **存储**：服务器维护 `UserId -> PlayerId` 映射，支持重连
 
 #### 4.2.2 创建时机
-- **时机**：在帧同步开始后的第一帧创建
-- **方式**：服务器在 `ProcessRoomFrame()` 中检查待创建玩家，在帧输入中添加创建指令
-- **延迟**：可以延迟创建（例如等待所有玩家注册完成），但必须在帧同步开始后
+- **时机**：在 `StartRoomFrameSync` 时立即创建所有玩家实体
+- **方式**：服务器按 UserId 顺序创建实体，保存第0帧快照
+- **优势**：一步到位，无需通过帧输入创建
 
-#### 4.2.3 创建指令识别方式
-
-**方案A：使用 BornInfo 字段**
-- **语义**：
-  - `BornInfo == 0`：正常输入，不创建玩家
-  - `BornInfo == PlayerId`：创建玩家指令，值为要创建的 PlayerId
-- **优势**：
-  - 通过帧输入下发，支持回放
-  - 语义清晰，值即为 PlayerId
-  - 不需要额外的消息类型
-
-**方案B：去掉 BornInfo，通过 PlayerId 存在性判断（推荐）**
-- **语义**：
-  - 如果输入中有某个 `PlayerId`，但 `World` 中没有对应实体，则创建该玩家实体
-  - 服务器端：只创建已注册的玩家（通过 `RegisteredPlayers` 验证）
-  - 客户端：创建帧数据中出现的所有 `PlayerId` 对应的实体
-- **优势**：
-  - **不需要额外的字段**，简化协议和数据结构
-  - **逻辑更简单**：实体存在与否就是判断依据
-  - **语义更清晰**：`PlayerId` 的存在即表示需要创建
-  - **支持回放**：回放时通过帧数据中的 `PlayerId` 重建所有实体
-  - **减少字段占用**：`BornInfo` 字段可以完全移除
-- **实现要点**：
-  - 服务器端：在 `ProcessPendingPlayerCreations` 中，对于已注册但未创建的玩家，添加一个"空输入"条目到 `frameInputs`
-  - `Room.FrameTick`：如果输入中有 `PlayerId`，但 `World` 中没有对应实体，则创建
-  - 幂等性：创建前检查实体是否已存在，防止重复创建
+#### 4.2.3 世界快照机制
+- **快照内容**：World 对象的完整序列化数据（使用 MemoryPack）
+- **快照时机**：第0帧（所有玩家实体创建后）
+- **快照大小**：可能较大，需要考虑网络传输和压缩
+- **快照压缩**：可以使用 GZip 压缩（如断线重连文档中提到的）
 
 #### 4.2.4 重连处理
-- **检测**：服务器在收到注册请求时检查 `UserId` 是否已注册
-- **处理**：如果已注册，返回现有 `PlayerId`，标记为已重连
-- **状态恢复**：客户端需要请求帧同步快照并回放缺失的帧
+- **检测**：服务器检查房间是否已有状态（`_roomFrameStates`）
+- **处理**：如果已有状态，保存当前帧快照并发送给客户端
+- **状态恢复**：客户端反序列化快照，恢复完整世界状态
 
 #### 4.2.5 回放支持
-- **数据来源**：帧输入中的创建指令（`BornInfo`）
-- **回放流程**：从起始帧开始，逐帧执行，检测到创建指令时创建实体
-- **完整性**：所有创建指令都记录在帧输入中，可以完整回放
+- **数据来源**：起始帧的世界快照 + 帧输入数据
+- **回放流程**：反序列化起始帧快照 → 逐帧执行 → 更新实体状态
+- **完整性**：快照包含完整世界状态，可以完整回放
 
 ### 4.3 实现细节
 
 #### 4.3.1 服务器端实现要点
 
-**1. 玩家注册管理（优化版：自动注册）**
+**1. 创建所有玩家实体并保存快照**
 ```csharp
 public class FrameSyncManager
 {
-    // 在开始帧同步时自动创建实体并分配 PlayerId
+    // 在开始帧同步时创建所有玩家实体并保存快照
     public void StartRoomFrameSync(string roomId)
     {
         var roomInfo = _roomManager.GetRoom(roomId);
@@ -603,72 +535,50 @@ public class FrameSyncManager
         var frameState = new RoomFrameSyncState
         {
             RoomId = roomId,
-            AuthorityFrame = 0,
+            AuthorityFrame = 0, // 初始为 0
             IsActive = true,
             StartTime = startTime,
             PlayerIds = new List<string>(roomInfo.PlayerNames),
-            RegisteredPlayers = new Dictionary<string, RegisteredPlayer>(),
             UserIdToPlayerId = new Dictionary<string, long>(),
             LogicRoom = logicRoom
         };
         
-        // 先创建所有玩家实体，获得 UniqueId，然后作为 PlayerId 分配给 UserId
-        foreach (var userId in roomInfo.PlayerNames)
+        // 创建所有玩家实体（按 UserId 顺序，确保 UniqueId 一致）
+        foreach (var userId in roomInfo.PlayerNames.OrderBy(x => x))
         {
-            // 检查是否已注册（重连情况）
-            if (!frameState.UserIdToPlayerId.TryGetValue(userId, out var existingPlayerId))
-            {
-                // 新玩家：先创建实体，获得 UniqueId
-                var entity = logicRoom.MainWorld.CreateEntity(1003); // EntityConfigId=1003
-                var playerId = entity.UniqueId; // PlayerId 就是 Entity 的 UniqueId
-                
-                // 将 UniqueId 作为 PlayerId 分配给 UserId
-                var registeredPlayer = new RegisteredPlayer
-                {
-                    UserId = userId,
-                    PlayerId = playerId, // 使用实体的 UniqueId
-                    RoomId = roomId,
-                    RegisterTime = TimeInfo.Instance.ClientNow(),
-                    EntityCreated = true, // 实体已创建
-                    CreateFrame = 0 // 在第0帧创建
-                };
-                
-                frameState.RegisteredPlayers[userId] = registeredPlayer;
-                frameState.UserIdToPlayerId[userId] = playerId;
-                
-                ASLogger.Instance.Info($"服务器：创建玩家实体并分配 PlayerId - UserId: {userId}, PlayerId: {playerId} (UniqueId: {entity.UniqueId})");
-            }
-            else
-            {
-                // 重连玩家，使用已分配的 PlayerId（实体可能已存在）
-                var registeredPlayer = frameState.RegisteredPlayers[userId];
-                registeredPlayer.IsReconnected = true;
-                registeredPlayer.ReconnectTime = TimeInfo.Instance.ClientNow();
-                
-                // 检查实体是否还存在
-                var existingEntity = logicRoom.MainWorld.GetEntity(existingPlayerId);
-                if (existingEntity == null)
-                {
-                    // 实体不存在，重新创建
-                    var entity = logicRoom.MainWorld.CreateEntity(1003);
-                    // 注意：新创建的实体 UniqueId 可能与 existingPlayerId 不同
-                    // 需要确保使用 existingPlayerId，或者更新映射关系
-                    ASLogger.Instance.Warning($"重连玩家实体不存在，重新创建 - UserId: {userId}, PlayerId: {existingPlayerId}");
-                }
-            }
+            var playerEntity = logicRoom.MainWorld.CreateEntity(1003); // EntityConfigId=1003
+            var playerId = playerEntity.UniqueId; // PlayerId 就是 Entity.UniqueId
+            
+            // 记录 PlayerId 映射
+            frameState.UserIdToPlayerId[userId] = playerId;
+            logicRoom.Players.Add(playerId);
+            
+            ASLogger.Instance.Info($"服务器：创建玩家实体 - UserId: {userId}, PlayerId: {playerId}");
         }
         
         // 启动帧同步控制器
         logicRoom.LSController?.Start();
         
+        // 保存第0帧快照
+        logicRoom.LSController.AuthorityFrame = 0;
+        logicRoom.LSController.FrameBuffer.MoveForward(0);
+        logicRoom.LSController.SaveState();
+        
+        // 获取快照数据
+        var snapshotBuffer = logicRoom.LSController.FrameBuffer.Snapshot(0);
+        byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+        snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+        
         _roomFrameStates[roomId] = frameState;
         
-        // 发送帧同步开始通知，包含 playerIdMapping
-        SendFrameSyncStartNotification(roomId, frameState);
+        // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
+        SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
+        
+        ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes");
     }
     
-    // 发送帧同步开始通知（优化版：包含所有玩家的 playerIdMapping）
-    private void SendFrameSyncStartNotification(string roomId, RoomFrameSyncState frameState)
+    // 发送帧同步开始通知（包含世界快照）
+    private void SendFrameSyncStartNotification(string roomId, RoomFrameSyncState frameState, byte[] worldSnapshotData)
     {
         var notification = FrameSyncStartNotification.Create();
         notification.roomId = roomId;
@@ -676,18 +586,12 @@ public class FrameSyncManager
         notification.frameInterval = FRAME_INTERVAL_MS;
         notification.startTime = frameState.StartTime;
         notification.playerIds = new List<string>(frameState.PlayerIds);
+        notification.worldSnapshot = worldSnapshotData; // 世界快照数据
+        notification.playerIdMapping = new Dictionary<string, long>(frameState.UserIdToPlayerId); // PlayerId 映射
         
-        // 包含所有玩家的 playerIdMapping（UserId -> PlayerId）
-        // 所有玩家都收到相同的完整映射关系，方便业务系统使用
-        notification.playerIdMapping = new Dictionary<string, long>();
-        foreach (var kvp in frameState.UserIdToPlayerId)
-        {
-            notification.playerIdMapping[kvp.Key] = kvp.Value;
-        }
+        ASLogger.Instance.Info($"准备发送帧同步开始通知，包含 {notification.playerIdMapping.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData.Length} bytes");
         
-        ASLogger.Instance.Info($"准备发送帧同步开始通知，包含 {notification.playerIdMapping.Count} 个玩家的 PlayerId 映射");
-        
-        // 发送给房间内所有玩家（所有玩家都收到相同的完整映射关系）
+        // 发送给房间内所有玩家
         foreach (var userId in frameState.PlayerIds)
         {
             var sessionId = _userManager.GetSessionIdByUserId(userId);
@@ -698,66 +602,32 @@ public class FrameSyncManager
             }
         }
         
-        ASLogger.Instance.Info($"已发送帧同步开始通知给房间 {roomId} 的所有玩家（共 {frameState.PlayerIds.Count} 个），包含完整的 PlayerId 映射关系");
-    }
-    
-    // 注册玩家（内部方法，用于 StartRoomFrameSync）
-    private void RegisterPlayer(string userId, string roomId, long playerId, RoomFrameSyncState frameState)
-    {
-        var registeredPlayer = new RegisteredPlayer
-        {
-            UserId = userId,
-            PlayerId = playerId,
-            RoomId = roomId,
-            RegisterTime = TimeInfo.Instance.ClientNow(),
-            EntityCreated = false
-        };
-        
-        frameState.RegisteredPlayers[userId] = registeredPlayer;
-        frameState.UserIdToPlayerId[userId] = playerId;
-    }
-    
-    // 确保所有已创建玩家的输入出现在帧数据中（方案B：去掉 BornInfo）
-    private void EnsurePlayerInputsInFrame(RoomFrameSyncState frameState, OneFrameInputs frameInputs)
-    {
-        foreach (var kvp in frameState.RegisteredPlayers)
-        {
-            var player = kvp.Value;
-            // 确保该 PlayerId 出现在帧输入中（即使玩家还没有发送输入）
-            // 实体已在 StartRoomFrameSync 时创建，这里只是确保输入数据存在
-            if (!frameInputs.Inputs.ContainsKey(player.PlayerId))
-            {
-                var emptyInput = LSInput.Create();
-                emptyInput.PlayerId = player.PlayerId;
-                emptyInput.Frame = frameState.AuthorityFrame;
-                // 其他字段保持默认值（空输入）
-                
-                frameInputs.Inputs[player.PlayerId] = emptyInput;
-                
-                ASLogger.Instance.Debug($"服务器：在帧 {frameState.AuthorityFrame} 为玩家添加空输入 - PlayerId: {player.PlayerId}, UserId: {player.UserId}");
-            }
-        }
+        ASLogger.Instance.Info($"已发送帧同步开始通知给房间 {roomId} 的所有玩家（共 {frameState.PlayerIds.Count} 个）");
     }
 }
 ```
 
-**2. 帧处理流程修改**
+**2. 帧处理流程（后续帧正常处理）**
 ```csharp
 private void ProcessRoomFrame(string roomId, RoomFrameSyncState frameState)
 {
-    // ... 现有逻辑 ...
+    // 推进 AuthorityFrame
+    frameState.AuthorityFrame++;
     
     // 收集当前帧的所有输入数据
     var frameInputs = frameState.CollectFrameInputs(frameState.AuthorityFrame);
     
-    // 确保所有已创建玩家的输入出现在帧数据中
-    // 注意：实体已在 StartRoomFrameSync 时创建，这里只是确保输入数据存在
-    EnsurePlayerInputsInFrame(frameState, frameInputs);
-    
     // 推进逻辑世界
     if (frameState.LogicRoom != null)
     {
-        // ... 更新 AuthorityFrame ...
+        // 更新 LSController 的 AuthorityFrame
+        var controller = frameState.LogicRoom.LSController;
+        if (controller != null)
+        {
+            controller.AuthorityFrame = frameState.AuthorityFrame;
+        }
+        
+        // 执行帧逻辑（实体已存在，只需更新状态）
         frameState.LogicRoom.FrameTick(frameInputs);
     }
     
@@ -766,74 +636,63 @@ private void ProcessRoomFrame(string roomId, RoomFrameSyncState frameState)
 }
 ```
 
-#### 4.3.2 客户端实现要点（优化版：自动注册）
+#### 4.3.2 客户端实现要点
 
-**1. 从 FrameSyncStartNotification 获取 PlayerId 和所有玩家映射**
+**1. 从 FrameSyncStartNotification 接收世界快照并恢复状态**
 ```csharp
 public class MultiplayerGameMode
 {
-    // 所有玩家的 UserId -> PlayerId 映射（供业务系统使用）
+    // 所有玩家的 PlayerId 映射（供业务系统使用）
     private Dictionary<string, long> _playerIdMapping = new();
     
     public void OnFrameSyncStartNotification(FrameSyncStartNotification notification)
     {
-        // 保存所有玩家的映射关系（供业务系统使用）
-        if (notification.playerIdMapping != null)
+        // 检查世界快照数据
+        if (notification.worldSnapshot == null || notification.worldSnapshot.Length == 0)
         {
-            _playerIdMapping = new Dictionary<string, long>(notification.playerIdMapping);
-            ASLogger.Instance.Info($"收到所有玩家的 PlayerId 映射，共 {_playerIdMapping.Count} 个玩家");
-            
-            // 打印所有玩家的映射关系（调试用）
-            foreach (var kvp in _playerIdMapping)
-            {
-                ASLogger.Instance.Debug($"  PlayerId映射 - UserId: {kvp.Key}, PlayerId: {kvp.Value}");
-            }
-        }
-        
-        // 从映射中获取当前玩家的 PlayerId
-        var userId = UserManager.Instance.UserId;
-        if (!_playerIdMapping.TryGetValue(userId, out var playerId))
-        {
-            ASLogger.Instance.Error($"无法从 playerIdMapping 获取 PlayerId - UserId: {userId}");
+            ASLogger.Instance.Error("世界快照数据为空，无法恢复世界状态");
             return;
         }
         
-        // 保存 PlayerId
-        PlayerId = playerId;
-        if (MainRoom != null)
+        // 反序列化 World
+        var world = MemoryPackHelper.Deserialize(typeof(World), notification.worldSnapshot, 0, notification.worldSnapshot.Length) as World;
+        if (world == null)
         {
-            MainRoom.MainPlayerId = playerId;
+            ASLogger.Instance.Error("世界快照反序列化失败");
+            return;
         }
         
-        // 根据 playerIdMapping 创建所有玩家实体
-        // 注意：实体需要在收到通知时创建，使用服务器端分配的 UniqueId（PlayerId）
-        if (MainRoom?.MainWorld != null)
+        ASLogger.Instance.Info($"世界快照反序列化成功，实体数量: {world.Entities?.Count ?? 0}");
+        
+        // 替换 MainRoom.MainWorld
+        if (MainRoom != null)
         {
-            foreach (var kvp in _playerIdMapping)
+            // 清理旧的世界
+            MainRoom.MainWorld?.Cleanup();
+            
+            // 设置新世界
+            MainRoom.MainWorld = world;
+            
+            // 重建 World 的引用关系
+            world.RoomId = MainRoom.RoomId;
+            // 注意：World 的 Systems 等引用会在反序列化后自动重建（通过 MemoryPackConstructor）
+        }
+        
+        // 保存 PlayerId 映射
+        if (notification.playerIdMapping != null)
+        {
+            _playerIdMapping = new Dictionary<string, long>(notification.playerIdMapping);
+            
+            // 从映射中获取当前玩家的 PlayerId
+            var userId = UserManager.Instance.UserId;
+            if (_playerIdMapping.TryGetValue(userId, out var playerId))
             {
-                var mappedUserId = kvp.Key;
-                var mappedPlayerId = kvp.Value; // 服务器端实体的 UniqueId
-                
-                // 检查实体是否已存在
-                var existingEntity = MainRoom.MainWorld.GetEntity(mappedPlayerId);
-                if (existingEntity == null)
+                PlayerId = playerId;
+                if (MainRoom != null)
                 {
-                    // 创建实体，使用指定的 UniqueId（PlayerId）
-                    // 注意：需要修改 Entity 类或 EntityFactory 支持指定 UniqueId
-                    var entity = MainRoom.MainWorld.CreateEntity(1003, mappedPlayerId);
-                    if (entity != null && entity.UniqueId == mappedPlayerId)
-                    {
-                        ASLogger.Instance.Info($"客户端：创建玩家实体 - UserId: {mappedUserId}, PlayerId: {mappedPlayerId}");
-                    }
-                    else
-                    {
-                        ASLogger.Instance.Error($"客户端：创建玩家实体失败，UniqueId 不匹配 - UserId: {mappedUserId}, 期望: {mappedPlayerId}, 实际: {entity?.UniqueId ?? -1}");
-                    }
+                    MainRoom.MainPlayerId = playerId;
                 }
-                else
-                {
-                    ASLogger.Instance.Debug($"客户端：玩家实体已存在 - UserId: {mappedUserId}, PlayerId: {mappedPlayerId}");
-                }
+                ASLogger.Instance.Info($"玩家注册成功 - UserId: {userId}, PlayerId: {playerId}");
             }
         }
         
@@ -841,11 +700,33 @@ public class MultiplayerGameMode
         if (MainRoom?.LSController != null && !MainRoom.LSController.IsRunning)
         {
             MainRoom.LSController.CreationTime = notification.startTime;
+            
+            // 将快照数据加载到 FrameBuffer（用于回滚）
+            var snapshotBuffer = MainRoom.LSController.FrameBuffer.Snapshot(0);
+            snapshotBuffer.Seek(0, SeekOrigin.Begin);
+            snapshotBuffer.SetLength(0);
+            snapshotBuffer.Write(notification.worldSnapshot, 0, notification.worldSnapshot.Length);
+            
             MainRoom.LSController.Start();
-            ASLogger.Instance.Info($"LSController 已启动 - PlayerId: {playerId}");
+            ASLogger.Instance.Info($"LSController 已启动，世界快照已加载到 FrameBuffer");
         }
         
-        ASLogger.Instance.Info($"玩家注册成功（自动注册） - UserId: {userId}, PlayerId: {playerId}");
+        // 为快照中的所有实体创建 EntityView
+        if (world.Entities != null)
+        {
+            foreach (var entity in world.Entities.Values)
+            {
+                if (!entity.IsDestroyed)
+                {
+                    // 发布 EntityCreatedEventData 事件，触发 Stage 创建 EntityView
+                    var eventData = new EntityCreatedEventData(entity);
+                    EventSystem.Instance.Publish(eventData);
+                }
+            }
+            ASLogger.Instance.Info($"已为 {world.Entities.Count} 个实体创建 EntityView");
+        }
+        
+        ASLogger.Instance.Info($"帧同步已启动，世界状态已恢复");
     }
     
     /// <summary>
@@ -874,12 +755,11 @@ public class MultiplayerGameMode
 }
 ```
 
-**2. 帧处理逻辑修改（方案B：去掉 BornInfo）**
+**2. 帧处理逻辑（后续帧正常处理）**
 ```csharp
 public void FrameTick(OneFrameInputs oneFrameInputs)
 {
-    // ... 现有逻辑 ...
-    
+    // 正常处理帧输入
     foreach (var pairs in oneFrameInputs.Inputs)
     {
         var input = pairs.Value;
@@ -897,87 +777,48 @@ public void FrameTick(OneFrameInputs oneFrameInputs)
         }
         else
         {
-            // 实体不存在，且输入中有该 PlayerId，创建实体
-            // 服务器端：需要验证该 PlayerId 是否已注册
-            // 客户端：直接创建（帧数据中的 PlayerId 都是服务器下发的，应该是有效的）
-            
-            #if SERVER
-            // 服务器端：验证 PlayerId 是否已注册
-            if (!IsPlayerRegistered(playerId))
-            {
-                ASLogger.Instance.Warning($"服务器：收到未注册玩家的输入，忽略 - PlayerId: {playerId}");
-                continue;
-            }
-            #endif
-            
-            ASLogger.Instance.Info($"检测到新玩家，创建实体 - PlayerId: {playerId}, Frame: {input.Frame}");
-            
-            var createdPlayerId = AddPlayer(playerId);
-            if (createdPlayerId == playerId)
-            {
-                // 创建成功，发布事件
-                var newPlayerEventData = new NewPlayerEventData(playerId, 0);
-                EventSystem.Instance.Publish(newPlayerEventData);
-                
-                #if SERVER
-                // 服务器端：标记为已创建
-                MarkPlayerEntityCreated(playerId);
-                #endif
-                
-                ASLogger.Instance.Info($"玩家实体创建成功 - PlayerId: {playerId}");
-            }
-            else
-            {
-                ASLogger.Instance.Error($"玩家实体创建失败，PlayerId不匹配 - 期望: {playerId}, 实际: {createdPlayerId}");
-            }
+            // 实体不存在（理论上不应该发生，因为快照中已包含所有实体）
+            ASLogger.Instance.Warning($"收到未创建实体的输入，忽略 - PlayerId: {playerId}");
         }
     }
     
     // ... 更新世界 ...
-    // 注意：World.CreateEntity() 会自动发布 EntityCreatedEventData 事件
-    // Stage 会监听该事件并自动创建 EntityView，无需手动调用 SyncNewEntities()
 }
 ```
 
 **3. 移除旧的创建逻辑**
 - 移除 `RequestCreatePlayer()` 中发送 `BornInfo` 的逻辑
-- 移除 `FrameTick()` 中检测 `BornInfo != 0` 的旧逻辑（改为检测实体是否存在）
+- 移除 `FrameTick()` 中检测 `BornInfo != 0` 的旧逻辑
 - **可选**：从 `LSInput` 协议中移除 `BornInfo` 字段（如果确定不再使用）
 
 ### 4.4 待实现的功能清单
 
 #### 4.4.1 协议层
-- [ ] **修改**：在 `FrameSyncStartNotification` 中添加 `playerIdMapping` 字段
-  - 类型：`Dictionary<string, long>`（UserId -> PlayerId）
-  - 内容：包含房间内所有玩家的完整映射关系
+- [ ] **修改**：在 `FrameSyncStartNotification` 中添加字段
+  - `worldSnapshot` (bytes)：世界快照数据（第0帧）
+  - `playerIdMapping` (map<string, int64>)：UserId -> PlayerId 映射
   - 用途：
-    - 客户端获取自己的 PlayerId
-    - 业务系统通过 UserId 查找 PlayerId
-    - 业务系统通过 PlayerId 查找 UserId
-    - 显示玩家列表、处理玩家交互等
-- [ ] ~~定义 `PlayerRegisterRequest` 消息~~（优化后不需要）
-- [ ] ~~定义 `PlayerRegisterResponse` 消息~~（优化后不需要）
+    - `worldSnapshot`：客户端直接恢复世界状态
+    - `playerIdMapping`：方便客户端业务系统使用
 
 #### 4.4.2 服务器端
-- [ ] **修改**：在 `StartRoomFrameSync()` 中自动为房间内所有玩家分配 PlayerId
-- [ ] 实现 `RegisterPlayer()` 分配 PlayerId 并维护注册状态
-- [ ] 修改 `RoomFrameSyncState` 添加 `RegisteredPlayers` 字段
-- [ ] 实现 `ProcessPendingPlayerCreations()` 检查待创建玩家
-- [ ] 修改 `ProcessRoomFrame()` 在帧处理中添加创建指令
-- [ ] 实现重连检测逻辑（重连时返回已分配的 PlayerId）
-- [ ] **修改**：在 `SendFrameSyncStartNotification()` 中包含 `playerIdMapping`
+- [ ] **修改**：在 `StartRoomFrameSync()` 中创建所有玩家实体
+- [ ] **新增**：保存第0帧的世界快照
+- [ ] **修改**：在 `SendFrameSyncStartNotification()` 中包含世界快照和 PlayerId 映射
+- [ ] 实现重连检测逻辑（重连时发送当前帧快照）
 
 #### 4.4.3 客户端端
-- [ ] ~~实现 `RequestPlayerRegister()` 发送注册请求~~（优化后不需要）
-- [ ] ~~实现 `OnPlayerRegisterResponse()` 处理注册响应~~（优化后不需要）
-- [ ] **修改**：在 `OnFrameSyncStartNotification()` 中从通知获取 PlayerId
-- [ ] 修改 `FrameTick()` 检测创建指令（通过 `PlayerId` 是否存在判断）
+- [ ] **修改**：在 `OnFrameSyncStartNotification()` 中反序列化世界快照
+- [ ] **修改**：替换 `MainRoom.MainWorld` 为快照恢复的 World
+- [ ] **修改**：从 `playerIdMapping` 中获取 PlayerId
+- [ ] **修改**：将快照数据加载到 FrameBuffer（用于回滚）
+- [ ] **修改**：为快照中的所有实体创建 EntityView
 - [ ] 移除旧的 `RequestCreatePlayer()` 逻辑
 - [ ] 移除旧的 `BornInfo` 发送逻辑
 - [ ] **可选**：从 `LSInput` 协议中移除 `BornInfo` 字段
 
 #### 4.4.4 清理工作
-- [ ] 移除客户端直接创建玩家的代码
+- [ ] 移除客户端通过帧输入创建玩家的代码
 - [ ] 清理 `BornInfo` 相关的旧逻辑
 - [ ] **可选**：从 `LSInput` 协议中移除 `BornInfo` 字段
 - [ ] 更新相关文档和注释
@@ -985,21 +826,21 @@ public void FrameTick(OneFrameInputs oneFrameInputs)
 ### 4.5 测试要点
 
 1. **正常流程测试**
-   - 客户端注册 → 获取 PlayerId → 收到创建指令 → 创建实体
+   - 服务器创建所有玩家实体 → 保存快照 → 客户端接收快照 → 恢复世界状态
 
 2. **多玩家测试**
-   - 多个玩家同时注册 → 服务器正确分配不同 PlayerId → 所有玩家都能创建
+   - 多个玩家同时开始 → 服务器创建所有实体 → 客户端恢复所有实体状态
 
 3. **重连测试**
-   - 客户端断线 → 重连 → 获取相同 PlayerId → 状态恢复
+   - 客户端断线 → 重连 → 接收当前帧快照 → 恢复世界状态
 
 4. **回放测试**
-   - 请求回放数据 → 逐帧执行 → 检测创建指令 → 正确创建所有实体
+   - 请求回放数据 → 反序列化起始帧快照 → 逐帧执行 → 正确更新实体状态
 
 5. **边界情况**
-   - 房间已满时的注册处理
-   - 帧同步开始前注册的处理
-   - 创建指令丢失的处理
+   - 快照数据为空或损坏的处理
+   - 世界快照反序列化失败的处理
+   - 中途加入玩家的处理（服务器创建实体后发送快照）
 
 ## 六、实现细节补充
 
@@ -1009,249 +850,201 @@ public void FrameTick(OneFrameInputs oneFrameInputs)
 
 **核心设计：**
 - **PlayerId 就是 Entity.UniqueId**
-- 先创建实体，获得 UniqueId，然后将 UniqueId 作为 PlayerId 分配给 UserId
-- 这样 `Entity.UniqueId == PlayerId`，无需额外映射
+- 服务器在 `StartRoomFrameSync` 时创建所有玩家实体
+- 服务器创建实体后，将 UniqueId 作为 PlayerId 分配给 UserId
+- 客户端通过世界快照恢复实体状态，UniqueId 与服务器完全一致
+- 这样 `Entity.UniqueId == PlayerId`，无需额外映射，也无需修改 Entity 类
 
 **实现流程：**
 ```csharp
-// 服务器端：在 StartRoomFrameSync 时创建实体
+// 服务器端：创建所有玩家实体并保存快照
 public void StartRoomFrameSync(string roomId)
 {
     // ... 创建逻辑房间 ...
     
-    foreach (var userId in playerNames)
+    // 创建所有玩家实体（按 UserId 顺序）
+    foreach (var userId in roomInfo.PlayerNames.OrderBy(x => x))
     {
-        // 1. 先创建实体，获得 UniqueId
-        var entity = logicRoom.MainWorld.CreateEntity(1003);
-        var uniqueId = entity.UniqueId; // Entity 自动生成的 UniqueId
+        var playerEntity = logicRoom.MainWorld.CreateEntity(1003);
+        var playerId = playerEntity.UniqueId; // PlayerId 就是 Entity.UniqueId
         
-        // 2. 将 UniqueId 作为 PlayerId 分配给 UserId
-        var registeredPlayer = new RegisteredPlayer
-        {
-            UserId = userId,
-            PlayerId = uniqueId, // PlayerId = UniqueId
-            EntityCreated = true
-        };
-        
-        frameState.RegisteredPlayers[userId] = registeredPlayer;
-        frameState.UserIdToPlayerId[userId] = uniqueId;
+        // 记录 PlayerId 映射
+        frameState.UserIdToPlayerId[userId] = playerId;
+        logicRoom.Players.Add(playerId);
     }
     
-    // 3. 发送 FrameSyncStartNotification，包含 UserId -> PlayerId（UniqueId）映射
-    SendFrameSyncStartNotification(roomId, frameState);
+    // 保存第0帧快照
+    logicRoom.LSController.SaveState();
+    var snapshotBuffer = logicRoom.LSController.FrameBuffer.Snapshot(0);
+    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+    
+    // 发送通知（包含快照和 PlayerId 映射）
+    SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
 }
 
-// 客户端：通过帧输入创建实体
-public void FrameTick(OneFrameInputs oneFrameInputs)
+// 客户端：通过世界快照恢复实体状态
+public void OnFrameSyncStartNotification(FrameSyncStartNotification notification)
 {
-    foreach (var pairs in oneFrameInputs.Inputs)
+    // 反序列化 World
+    var world = MemoryPackHelper.Deserialize(typeof(World), notification.worldSnapshot, 0, notification.worldSnapshot.Length) as World;
+    
+    // 替换 MainRoom.MainWorld
+    MainRoom.MainWorld = world;
+    
+    // 从 playerIdMapping 获取 PlayerId
+    var userId = UserManager.Instance.UserId;
+    if (notification.playerIdMapping.TryGetValue(userId, out var playerId))
     {
-        var playerId = pairs.Key; // 从服务器获取的 PlayerId
-        var entity = MainWorld.GetEntity(playerId);
-        
-        if (entity == null)
-        {
-            // 创建实体，实体的 UniqueId 应该等于 playerId
-            // 注意：客户端创建实体时，UniqueId 是自动生成的
-            // 需要确保客户端和服务器使用相同的 UniqueId
-            // 这需要在帧同步开始时，服务器先创建实体并告知客户端
-            var createdEntity = MainWorld.CreateEntity(1003);
-            // 问题：createdEntity.UniqueId 可能与 playerId 不一致
-        }
+        PlayerId = playerId; // PlayerId 就是 Entity.UniqueId
     }
 }
 ```
 
-**关键问题：**
-- 服务器端：实体在 `StartRoomFrameSync` 时创建，UniqueId 是自动生成的
-- 客户端：实体通过帧输入创建，UniqueId 也是自动生成的
-- **问题**：客户端和服务器端的 UniqueId 生成是独立的，可能不一致
+**关键点：**
+1. **服务器是唯一创建源**：服务器创建所有实体，客户端只恢复状态
+2. **UniqueId 完全一致**：通过世界快照恢复，UniqueId 与服务器完全相同
+3. **无需修改 Entity 类**：不需要支持指定 UniqueId，通过快照恢复即可
+4. **一步到位**：客户端直接获得完整世界状态，无需通过帧输入创建实体
 
-**解决方案：**
-1. **客户端在收到 FrameSyncStartNotification 时创建实体**（推荐）
-   - 服务器在 `StartRoomFrameSync` 时创建所有玩家实体，获得 UniqueId
-   - 服务器在 `FrameSyncStartNotification` 中包含 `playerIdMapping`（UserId -> UniqueId）
-   - 客户端收到通知后，根据 `playerIdMapping` 创建对应实体，使用指定的 UniqueId
-   - 需要修改 `Entity` 类或 `EntityFactory`，支持在创建时指定 UniqueId
-
-2. **修改 Entity 类支持指定 UniqueId**
-   ```csharp
-   // 方案1：修改 Entity 构造函数
-   public Entity(long? specifiedUniqueId = null)
-   {
-       if (specifiedUniqueId.HasValue)
-       {
-           UniqueId = specifiedUniqueId.Value;
-           // 更新 _nextId 以确保后续生成的 ID 不会冲突
-           if (_nextId <= specifiedUniqueId.Value)
-           {
-               _nextId = specifiedUniqueId.Value + 1;
-           }
-       }
-       else
-       {
-           UniqueId = _nextId++;
-       }
-       CreationTime = DateTime.Now;
-   }
-   
-   // 方案2：修改 EntityFactory.CreateEntity 支持指定 UniqueId
-   public Entity CreateEntity(int entityConfigId, World world, long? specifiedUniqueId = null)
-   {
-       var entity = new Entity(specifiedUniqueId);
-       // ... 其他初始化逻辑 ...
-       return entity;
-   }
-   ```
-
-3. **客户端创建实体时使用指定的 UniqueId**
-   ```csharp
-   // 在收到 FrameSyncStartNotification 时
-   foreach (var kvp in notification.playerIdMapping)
-   {
-       var userId = kvp.Key;
-       var playerId = kvp.Value; // 服务器端实体的 UniqueId
-       
-       // 创建实体，使用指定的 UniqueId
-       var entity = MainWorld.CreateEntity(1003, playerId);
-       // 确保 entity.UniqueId == playerId
-   }
-   ```
-
-#### 6.1.3 创建指令的幂等性
+#### 6.1.2 世界快照的幂等性
 
 **问题：**
-- 如果客户端重复收到创建指令，可能会重复创建实体
-- 如果服务器重复下发创建指令，需要确保幂等性
+- 如果客户端重复收到世界快照，可能会重复恢复世界状态
+- 如果服务器重复发送快照，需要确保幂等性
 
 **解决方案：**
 ```csharp
-// 客户端 FrameTick 中的检查（方案B：去掉 BornInfo）
-else // 实体不存在
+// 客户端 OnFrameSyncStartNotification 中的检查
+public void OnFrameSyncStartNotification(FrameSyncStartNotification notification)
 {
-    // 检查实体是否已存在（幂等性检查，虽然理论上不会走到这里）
-    var existingEntity = MainWorld.GetEntity(playerId);
-    if (existingEntity != null)
+    // 检查是否已经恢复过世界状态（幂等性检查）
+    if (MainRoom?.MainWorld != null && MainRoom.MainWorld.Entities.Count > 0)
     {
-        ASLogger.Instance.Warning($"玩家实体已存在，跳过创建 - PlayerId: {playerId}");
-        continue; // 跳过，不重复创建
+        ASLogger.Instance.Warning("世界状态已存在，跳过快照恢复（可能是重复通知）");
+        // 可以选择：
+        // 1. 跳过恢复（如果当前状态有效）
+        // 2. 强制恢复（如果快照更新）
+        // 这里选择强制恢复，确保状态一致
     }
     
-    // 创建实体
-    var createdPlayerId = AddPlayer(playerId);
-    // ...
+    // 反序列化 World
+    var world = MemoryPackHelper.Deserialize(typeof(World), notification.worldSnapshot, 0, notification.worldSnapshot.Length) as World;
+    
+    // 替换 MainRoom.MainWorld（幂等操作）
+    if (MainRoom != null)
+    {
+        MainRoom.MainWorld?.Cleanup();
+        MainRoom.MainWorld = world;
+    }
+    
+    // ... 其他恢复逻辑 ...
 }
 
-// 服务器端 ProcessPendingPlayerCreations 中的检查
-if (!player.EntityCreated)
+// 服务器端：检查是否已创建实体（防止重复创建）
+public void StartRoomFrameSync(string roomId)
 {
-    // 检查实体是否已存在（防止重复创建）
-    var existingEntity = frameState.LogicRoom?.MainWorld?.GetEntity(player.PlayerId);
-    if (existingEntity != null)
+    // 检查是否已有房间状态（重连情况）
+    if (_roomFrameStates.TryGetValue(roomId, out var existingState))
     {
-        ASLogger.Instance.Warning($"服务器：玩家实体已存在，标记为已创建 - PlayerId: {player.PlayerId}");
-        player.EntityCreated = true;
-        continue;
+        // 重连：使用现有的世界状态，发送当前帧快照
+        // ... 重连逻辑 ...
+        return;
     }
     
-    // 添加创建指令
-    // ...
+    // 新游戏：创建所有玩家实体
+    foreach (var userId in roomInfo.PlayerNames.OrderBy(x => x))
+    {
+        // 检查实体是否已存在（防止重复创建）
+        var existingEntity = logicRoom.MainWorld.GetEntityByUserId(userId);
+        if (existingEntity != null)
+        {
+            ASLogger.Instance.Warning($"玩家实体已存在，跳过创建 - UserId: {userId}");
+            continue;
+        }
+        
+        // 创建实体
+        var playerEntity = logicRoom.MainWorld.CreateEntity(1003);
+        // ... 记录映射 ...
+    }
 }
 ```
 
 ### 6.2 错误处理机制
 
-#### 6.2.1 注册失败处理
+#### 6.2.1 世界快照恢复失败处理
 
 **错误情况：**
-1. 房间不存在或已关闭
-2. 房间已满
-3. 用户未登录
-4. 用户已在其他房间注册
+1. 世界快照数据为空或损坏
+2. 世界快照反序列化失败
+3. 世界快照中的实体数量与预期不符
+4. PlayerId 映射缺失或错误
 
 **处理流程：**
 ```csharp
-public PlayerRegisterResponse HandlePlayerRegisterRequest(PlayerRegisterRequest request)
+// 客户端 OnFrameSyncStartNotification 中的错误处理
+public void OnFrameSyncStartNotification(FrameSyncStartNotification notification)
 {
-    // 1. 验证用户登录状态
-    if (!_userManager.IsUserLoggedIn(request.UserId))
+    // 1. 检查世界快照数据
+    if (notification.worldSnapshot == null || notification.worldSnapshot.Length == 0)
     {
-        return new PlayerRegisterResponse
-        {
-            Success = false,
-            Message = "用户未登录",
-            PlayerId = 0
-        };
+        ASLogger.Instance.Error("世界快照数据为空，无法恢复世界状态");
+        // 可以选择：
+        // 1. 请求服务器重新发送快照
+        // 2. 等待下一帧数据
+        // 3. 断开连接并重连
+        RequestWorldSnapshot(notification.roomId);
+        return;
     }
     
-    // 2. 验证房间存在
-    var roomInfo = _roomManager.GetRoom(request.RoomId);
-    if (roomInfo == null)
-    {
-        return new PlayerRegisterResponse
-        {
-            Success = false,
-            Message = "房间不存在",
-            PlayerId = 0
-        };
-    }
-    
-    // 3. 检查房间状态
-    if (roomInfo.Status != RoomStatus.Playing)
-    {
-        return new PlayerRegisterResponse
-        {
-            Success = false,
-            Message = "房间未开始或已结束",
-            PlayerId = 0
-        };
-    }
-    
-    // 4. 检查房间是否已满
-    var frameState = GetRoomFrameState(request.RoomId);
-    if (frameState != null && frameState.RegisteredPlayers.Count >= roomInfo.MaxPlayers)
-    {
-        return new PlayerRegisterResponse
-        {
-            Success = false,
-            Message = "房间已满",
-            PlayerId = 0
-        };
-    }
-    
-    // 5. 检查是否已在其他房间注册
-    if (IsUserRegisteredInOtherRoom(request.UserId, request.RoomId))
-    {
-        return new PlayerRegisterResponse
-        {
-            Success = false,
-            Message = "用户已在其他房间注册",
-            PlayerId = 0
-        };
-    }
-    
-    // 6. 注册玩家
+    // 2. 反序列化 World
+    World world = null;
     try
     {
-        var playerId = RegisterPlayer(request.UserId, request.RoomId);
-        return new PlayerRegisterResponse
-        {
-            Success = true,
-            Message = "注册成功",
-            PlayerId = playerId,
-            RoomId = request.RoomId,
-            Timestamp = TimeInfo.Instance.ClientNow()
-        };
+        world = MemoryPackHelper.Deserialize(typeof(World), notification.worldSnapshot, 0, notification.worldSnapshot.Length) as World;
     }
     catch (Exception ex)
     {
-        ASLogger.Instance.Error($"注册玩家失败: {ex.Message}");
-        return new PlayerRegisterResponse
-        {
-            Success = false,
-            Message = $"注册失败: {ex.Message}",
-            PlayerId = 0
-        };
+        ASLogger.Instance.Error($"世界快照反序列化失败: {ex.Message}");
+        // 请求服务器重新发送快照
+        RequestWorldSnapshot(notification.roomId);
+        return;
+    }
+    
+    if (world == null)
+    {
+        ASLogger.Instance.Error("世界快照反序列化结果为空");
+        RequestWorldSnapshot(notification.roomId);
+        return;
+    }
+    
+    // 3. 验证世界状态
+    if (world.Entities == null || world.Entities.Count == 0)
+    {
+        ASLogger.Instance.Warning("世界快照中没有实体，可能存在问题");
+        // 可以选择继续或请求重新发送
+    }
+    
+    // 4. 验证 PlayerId 映射
+    if (notification.playerIdMapping == null || notification.playerIdMapping.Count == 0)
+    {
+        ASLogger.Instance.Warning("PlayerId 映射为空，无法获取 PlayerId");
+        // 可以选择：
+        // 1. 从世界中的实体推断 PlayerId
+        // 2. 请求服务器重新发送映射
+    }
+    
+    // 5. 恢复世界状态
+    try
+    {
+        // ... 恢复逻辑 ...
+    }
+    catch (Exception ex)
+    {
+        ASLogger.Instance.Error($"恢复世界状态失败: {ex.Message}");
+        // 请求服务器重新发送快照
+        RequestWorldSnapshot(notification.roomId);
+        return;
     }
 }
 ```
