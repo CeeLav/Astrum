@@ -250,7 +250,7 @@ namespace Astrum.LogicCore.Capabilities
                 });
         }
 
-        private void InitializeProjectile(Entity projectile, Entity caster, ProjectileDefinition definition, IReadOnlyList<int> effectIds, TSVector spawnPosition, TSVector direction, string socketName, UnityEngine.Vector3 socketOffset)
+        private void InitializeProjectile(Entity projectile, Entity caster, ProjectileDefinition definition, IReadOnlyList<int> effectIds, TSVector spawnPosition, TSVector direction, string socketName, TSVector socketOffset)
         {
             var projectileComponent = projectile.GetComponent<ProjectileComponent>();
             if (projectileComponent == null)

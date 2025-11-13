@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Astrum.Generated;
 using Astrum.CommonBase;
 using Astrum.Network;
+using Astrum.LogicCore.Core;
+using Astrum.LogicCore.FrameSync;
 using AstrumServer.Network;
 
 namespace AstrumServer.Managers
@@ -132,7 +134,11 @@ namespace AstrumServer.Managers
                     StartTime = TimeInfo.Instance.ClientNow(),
                     PlayerIds = new List<string>(roomInfo.PlayerNames)
                 };
-                
+
+                // 初始化逻辑房间
+                frameState.LogicRoom = CreateLogicRoom(roomId, roomInfo, frameState.StartTime);
+                frameState.LogicRoom?.LSController?.Start();
+ 
                 _roomFrameStates[roomId] = frameState;
                 
                 // 发送帧同步开始通知
@@ -157,7 +163,9 @@ namespace AstrumServer.Managers
                 if (_roomFrameStates.TryRemove(roomId, out var frameState))
                 {
                     frameState.IsActive = false;
-                    
+
+                    frameState.LogicRoom?.Shutdown();
+
                     // 发送帧同步结束通知
                     SendFrameSyncEndNotification(roomId, frameState, reason);
                     
@@ -243,6 +251,22 @@ namespace AstrumServer.Managers
                 
                 // 收集当前帧的所有输入数据（从缓存中获取）
                 var frameInputs = frameState.CollectFrameInputs(frameState.AuthorityFrame);
+
+                // 推进逻辑世界
+                if (frameState.LogicRoom != null)
+                {
+                    frameState.LogicRoom.FrameTick(frameInputs);
+
+                    var controller = frameState.LogicRoom.LSController;
+                    if (controller != null)
+                    {
+                        controller.AuthorityFrame = frameState.AuthorityFrame;
+                        if (controller.PredictionFrame < frameState.AuthorityFrame)
+                        {
+                            controller.PredictionFrame = frameState.AuthorityFrame;
+                        }
+                    }
+                }
                 
                 // 记录实际收集到的玩家数量
                 var actualPlayerCount = frameInputs.Inputs.Count;
@@ -697,6 +721,44 @@ namespace AstrumServer.Managers
             
             return (activeRooms, totalFrames);
         }
+
+        /// <summary>
+        /// 获取逻辑房间实例
+        /// </summary>
+        public Room? GetLogicRoom(string roomId)
+        {
+            return _roomFrameStates.TryGetValue(roomId, out var state) ? state.LogicRoom : null;
+        }
+
+        private Room CreateLogicRoom(string roomId, RoomInfo roomInfo, long startTime)
+        {
+            var logicRoom = new Room();
+
+            if (!int.TryParse(roomId, out var numericRoomId))
+            {
+                numericRoomId = Math.Abs(roomId.GetHashCode());
+                if (numericRoomId == int.MinValue)
+                {
+                    numericRoomId = Math.Abs((roomId + "_logic").GetHashCode());
+                }
+            }
+
+            logicRoom.RoomId = numericRoomId;
+            logicRoom.Name = string.IsNullOrWhiteSpace(roomInfo.Name) ? roomId : roomInfo.Name;
+
+            var world = new World
+            {
+                WorldId = numericRoomId,
+                Name = $"World_{roomId}",
+                RoomId = numericRoomId
+            };
+
+            logicRoom.MainWorld = world;
+            logicRoom.Initialize();
+            logicRoom.SetServerCreationTime(startTime);
+
+            return logicRoom;
+        }
     }
     
     /// <summary>
@@ -709,6 +771,7 @@ namespace AstrumServer.Managers
         public bool IsActive { get; set; } = false;
         public long StartTime { get; set; } = 0;
         public List<string> PlayerIds { get; set; } = new();
+        public Room? LogicRoom { get; set; }
         
         // 帧输入缓冲区 (帧号 -> 输入数据)
         private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();

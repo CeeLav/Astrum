@@ -1,6 +1,5 @@
 using Astrum.LogicCore.SkillSystem;
 using TrueSync;
-using UnityEngine;
 
 namespace Astrum.LogicCore.Events
 {
@@ -16,7 +15,7 @@ namespace Astrum.LogicCore.Events
         public TSVector SpawnPosition;
         public TSVector SpawnDirection;
         public string SocketName;
-        public Vector3 SocketOffset;
+        public TSVector SocketOffset;
 
         /// <summary>
         /// 是否在 Capability 未激活时也触发

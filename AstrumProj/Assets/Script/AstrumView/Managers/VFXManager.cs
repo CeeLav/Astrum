@@ -132,19 +132,24 @@ namespace Astrum.View.Managers
             // 设置位置和旋转
             Vector3 position = target.Transform.position;
             Quaternion rotation = target.Transform.rotation;
-            
-            // 应用位置偏移
-            if (data.PositionOffset != Vector3.zero)
+
+            var positionOffsetTS = data.PositionOffset;
+            var rotationOffsetTS = data.Rotation;
+
+            Vector3 positionOffset = Vector3.zero;
+            if (positionOffsetTS != TrueSync.TSVector.zero)
             {
-                position += rotation * data.PositionOffset;
+                positionOffset = new Vector3((float)positionOffsetTS.x, (float)positionOffsetTS.y, (float)positionOffsetTS.z);
+                position += rotation * positionOffset;
             }
-            
-            // 应用旋转
-            if (data.Rotation != Vector3.zero)
+
+            Vector3 rotationOffset = Vector3.zero;
+            if (rotationOffsetTS != TrueSync.TSVector.zero)
             {
-                rotation *= Quaternion.Euler(data.Rotation);
+                rotationOffset = new Vector3((float)rotationOffsetTS.x, (float)rotationOffsetTS.y, (float)rotationOffsetTS.z);
+                rotation *= Quaternion.Euler(rotationOffset);
             }
-            
+ 
             vfxInstance.transform.position = position;
             vfxInstance.transform.rotation = rotation;
             
@@ -159,8 +164,8 @@ namespace Astrum.View.Managers
             {
                 vfxInstance.transform.SetParent(target.Transform);
                 // 重新设置本地位置和旋转（相对于父对象）
-                vfxInstance.transform.localPosition = data.PositionOffset;
-                vfxInstance.transform.localRotation = Quaternion.Euler(data.Rotation);
+                vfxInstance.transform.localPosition = positionOffset;
+                vfxInstance.transform.localRotation = Quaternion.Euler(rotationOffset);
             }
             
             // 设置粒子系统参数

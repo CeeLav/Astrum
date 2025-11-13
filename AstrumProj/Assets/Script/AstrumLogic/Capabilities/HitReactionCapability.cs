@@ -145,10 +145,10 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             var trans = entity.GetComponent<TransComponent>();
-            var positionOffset = UnityEngine.Vector3.zero;
+            var positionOffset = TSVector.zero;
             if (evt.HitOffset != TSVector.zero)
             {
-                positionOffset = new UnityEngine.Vector3((float)evt.HitOffset.x, (float)evt.HitOffset.y, (float)evt.HitOffset.z);
+                positionOffset = evt.HitOffset;
             }
 
             var triggerData = new VFXTriggerEventData
@@ -156,7 +156,7 @@ namespace Astrum.LogicCore.Capabilities
                 EntityId = entity.UniqueId,
                 ResourcePath = evt.VisualEffectPath,
                 PositionOffset = positionOffset,
-                Rotation = UnityEngine.Vector3.zero,
+                Rotation = TSVector.zero,
                 Scale = 1f,
                 PlaybackSpeed = 1f,
                 FollowCharacter = true,

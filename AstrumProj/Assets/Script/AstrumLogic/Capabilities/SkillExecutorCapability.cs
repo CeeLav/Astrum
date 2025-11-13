@@ -195,23 +195,23 @@ namespace Astrum.LogicCore.Capabilities
                 InstanceId = trigger.GetHashCode() // 使用触发帧的哈希作为实例ID
             };
             
-            // 转换位置偏移（从 float[] 转换为 Unity Vector3）
+            // 转换位置偏移（从 float[] 转换为 TSVector）
             if (trigger.VFXPositionOffset != null && trigger.VFXPositionOffset.Length >= 3)
             {
-                eventData.PositionOffset = new UnityEngine.Vector3(
-                    trigger.VFXPositionOffset[0],
-                    trigger.VFXPositionOffset[1],
-                    trigger.VFXPositionOffset[2]
+                eventData.PositionOffset = new TSVector(
+                    (FP)trigger.VFXPositionOffset[0],
+                    (FP)trigger.VFXPositionOffset[1],
+                    (FP)trigger.VFXPositionOffset[2]
                 );
             }
             
-            // 转换旋转（从 float[] 转换为 Unity Vector3）
+            // 转换旋转（从 float[] 转换为 TSVector）
             if (trigger.VFXRotation != null && trigger.VFXRotation.Length >= 3)
             {
-                eventData.Rotation = new UnityEngine.Vector3(
-                    trigger.VFXRotation[0],
-                    trigger.VFXRotation[1],
-                    trigger.VFXRotation[2]
+                eventData.Rotation = new TSVector(
+                    (FP)trigger.VFXRotation[0],
+                    (FP)trigger.VFXRotation[1],
+                    (FP)trigger.VFXRotation[2]
                 );
             }
             

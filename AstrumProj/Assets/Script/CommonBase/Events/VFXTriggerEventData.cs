@@ -1,5 +1,5 @@
-using UnityEngine;
 using Astrum.CommonBase;
+using TrueSync;
 
 namespace Astrum.CommonBase.Events
 {
@@ -16,10 +16,10 @@ namespace Astrum.CommonBase.Events
         public string ResourcePath { get; set; } = string.Empty;
         
         /// <summary>位置偏移（相对于实体位置）</summary>
-        public Vector3 PositionOffset { get; set; }
+        public TSVector PositionOffset { get; set; }
         
         /// <summary>旋转（欧拉角）</summary>
-        public Vector3 Rotation { get; set; }
+        public TSVector Rotation { get; set; }
         
         /// <summary>缩放</summary>
         public float Scale { get; set; } = 1.0f;

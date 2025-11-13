@@ -22,6 +22,15 @@
     <Reference Include="Network">
       <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Network.dll</HintPath>
     </Reference>
+    <Reference Include="AstrumLogic">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\AstrumLogic.dll</HintPath>
+    </Reference>
+    <Reference Include="Generated">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Generated.dll</HintPath>
+    </Reference>
+    <Reference Include="Luban.Runtime">
+      <HintPath>..\..\AstrumProj\Library\ScriptAssemblies\Luban.Runtime.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 

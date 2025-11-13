@@ -90,7 +90,7 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 逻辑挂点偏移量（相对于 SocketName 挂点的局部坐标系）
         /// </summary>
-        public UnityEngine.Vector3 SocketOffset { get; set; } = UnityEngine.Vector3.zero;
+        public TSVector SocketOffset { get; set; } = TSVector.zero;
 
         /// <summary>
         /// 是否已标记为待销毁，由 DeadCapability 统一处理
