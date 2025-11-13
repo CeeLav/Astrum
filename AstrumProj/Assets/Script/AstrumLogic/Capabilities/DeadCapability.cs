@@ -111,12 +111,12 @@ namespace Astrum.LogicCore.Capabilities
                 if (!projectileComp.IsMarkedForDestroy)
                     return;
 
-                ASLogger.Instance.Info($"[DeadCapability] Projectile {entity.UniqueId} marked dead, queue destroy");
+                //ASLogger.Instance.Info($"[DeadCapability] Projectile {entity.UniqueId} marked dead, queue destroy");
                 entity.World?.QueueDestroyEntity(entity.UniqueId);
                 return;
             }
 
-            ASLogger.Instance.Info($"[DeadCapability] Entity {entity.UniqueId} died (HP <= 0), disabling non-whitelisted capabilities");
+            //ASLogger.Instance.Info($"[DeadCapability] Entity {entity.UniqueId} died (HP <= 0), disabling non-whitelisted capabilities");
             
             // 设置死亡状态
             var stateComp = GetComponent<StateComponent>(entity);

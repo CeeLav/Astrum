@@ -13,3 +13,4 @@
 ,Dash,冲刺,LeftShift,,-1,Button,Movement
 ,Interact,交互,F,,-1,Button,UI
 ,OpenMenu,打开菜单,Escape,,-1,Button,UI
+,MousePosition,鼠标位置,,,-1,Axis,Combat

@@ -240,6 +240,18 @@ namespace Astrum.Generated
         [MemoryPackOrder(10)]
         public bool Dash { get; set; }
 
+        /// <summary>
+        /// 鼠标世界坐标X（Q31.32 定点数）
+        /// </summary>
+        [MemoryPackOrder(11)]
+        public long MouseWorldX { get; set; }
+
+        /// <summary>
+        /// 鼠标世界坐标Z（Q31.32 定点数）
+        /// </summary>
+        [MemoryPackOrder(12)]
+        public long MouseWorldZ { get; set; }
+
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -258,6 +270,8 @@ namespace Astrum.Generated
             this.BornInfo = default;
             this.Roll = default;
             this.Dash = default;
+            this.MouseWorldX = default;
+            this.MouseWorldZ = default;
 
             ObjectPool.Instance.Recycle(this);
         }

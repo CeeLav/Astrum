@@ -44,6 +44,8 @@ message LSInput
     int BornInfo = 9;          // 出生信息
     bool Roll = 10;            // 翻滚输入
     bool Dash = 11;            // 冲刺输入
+    int64 MouseWorldX = 12;    // 鼠标世界坐标X（Q31.32 定点数）
+    int64 MouseWorldZ = 13;    // 鼠标世界坐标Z（Q31.32 定点数）
 }
 
 message OneFrameInputs // IMessage

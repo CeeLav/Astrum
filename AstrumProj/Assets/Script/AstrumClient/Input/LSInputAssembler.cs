@@ -58,11 +58,13 @@ namespace Astrum.Client.Input
         /// <param name="provider">输入提供者</param>
         /// <param name="playerId">玩家ID</param>
         /// <param name="camera">相机（用于方向转换）</param>
+        /// <param name="characterTransform">角色Transform（用于鼠标位置转换）</param>
         /// <returns>组装好的LSInput</returns>
         public static LSInput AssembleFromRawInput(
             IRawInputProvider provider,
             long playerId,
-            Camera camera = null)
+            Camera camera = null,
+            Transform characterTransform = null)
         {
             if (!_initialized) Initialize();
             
@@ -73,6 +75,9 @@ namespace Astrum.Client.Input
             
             // 处理按钮输入
             AssembleButtons(input, provider);
+            
+            // 处理鼠标位置输入
+            AssembleMousePosition(input, provider, camera, characterTransform);
             
             return input;
         }
@@ -124,7 +129,7 @@ namespace Astrum.Client.Input
                 var mapping = kvp.Value;
                 
                 // 只处理DirectButton类型的映射
-                if (mapping.MappingType == "DirectButton")
+                if (string.Equals(mapping.MappingType, "DirectButton", StringComparison.OrdinalIgnoreCase))
                 {
                     // SourceActions是单个动作ID
                     bool value = provider.GetButton(mapping.SourceActions);
@@ -136,6 +141,73 @@ namespace Astrum.Client.Input
                     }
                 }
             }
+        }
+        
+        /// <summary>
+        /// 组装鼠标位置输入
+        /// </summary>
+        private static void AssembleMousePosition(
+            LSInput input,
+            IRawInputProvider provider,
+            Camera camera,
+            Transform characterTransform)
+        {
+            bool hasMouseX = _fieldMappings.TryGetValue("MouseWorldX", out var mappingX) &&
+                             string.Equals(mappingX.MappingType, "MousePosition", StringComparison.OrdinalIgnoreCase);
+            bool hasMouseZ = _fieldMappings.TryGetValue("MouseWorldZ", out var mappingZ) &&
+                             string.Equals(mappingZ.MappingType, "MousePosition", StringComparison.OrdinalIgnoreCase);
+            
+            if (!hasMouseX && !hasMouseZ)
+            {
+                return;
+            }
+            
+            if (provider == null || camera == null || characterTransform == null)
+            {
+                if (hasMouseX)
+                {
+                    input.MouseWorldX = 0;
+                }
+                if (hasMouseZ)
+                {
+                    input.MouseWorldZ = 0;
+                }
+                return;
+            }
+            
+            Vector2 screenPos = provider.GetMousePosition();
+            Ray ray = camera.ScreenPointToRay(screenPos);
+            
+            float planeHeight = characterTransform.position.y;
+            Plane plane = new Plane(Vector3.up, new Vector3(0f, planeHeight, 0f));
+            
+            if (!plane.Raycast(ray, out float distance))
+            {
+                if (hasMouseX)
+                {
+                    input.MouseWorldX = 0;
+                }
+                if (hasMouseZ)
+                {
+                    input.MouseWorldZ = 0;
+                }
+                return;
+            }
+            
+            Vector3 worldPos = ray.GetPoint(distance);
+            
+            if (hasMouseX)
+            {
+                input.MouseWorldX = ToFixedPoint(worldPos.x);
+            }
+            if (hasMouseZ)
+            {
+                input.MouseWorldZ = ToFixedPoint(worldPos.z);
+            }
+            
+            ASLogger.Instance.Debug(
+                $"LSInputAssembler: Mouse - Screen({screenPos.x:F0}, {screenPos.y:F0}) -> World({worldPos.x:F2}, {worldPos.z:F2}) -> Fixed({input.MouseWorldX}, {input.MouseWorldZ})",
+                "Input.Assembler");
         }
         
         /// <summary>

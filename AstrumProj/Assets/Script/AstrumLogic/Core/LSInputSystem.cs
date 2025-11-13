@@ -72,6 +72,8 @@ namespace Astrum.LogicCore.Core
                    a.Attack == b.Attack &&
                    a.Skill1 == b.Skill1 &&
                    a.Skill2 == b.Skill2 &&
+                   a.MouseWorldX == b.MouseWorldX &&
+                   a.MouseWorldZ == b.MouseWorldZ &&
                    //a.Timestamp == b.Timestamp &&
                    a.BornInfo == b.BornInfo;
         }

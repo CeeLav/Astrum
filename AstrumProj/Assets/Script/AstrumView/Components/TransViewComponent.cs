@@ -178,7 +178,7 @@ namespace Astrum.View.Components
         
         protected override void OnDestroy()
         {
-            ASLogger.Instance.Info($"MovementViewComponent: 销毁移动视图组件，ID: {_componentId}");
+            //ASLogger.Instance.Info($"MovementViewComponent: 销毁移动视图组件，ID: {_componentId}");
         }
         
         protected override void OnSyncData(object data)

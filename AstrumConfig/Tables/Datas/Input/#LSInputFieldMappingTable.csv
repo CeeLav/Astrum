@@ -9,3 +9,5 @@
 ,Dash,DirectButton,Dash,false,直接映射Dash按钮
 ,MoveX,CompositeAxis,"MoveLeft,MoveRight",false,左右移动合成X轴
 ,MoveY,CompositeAxis,"MoveBackward,MoveForward",false,前后移动合成Y轴
+,MouseWorldX,MousePosition,MousePosition,false,鼠标世界坐标X
+,MouseWorldZ,MousePosition,MousePosition,false,鼠标世界坐标Z

@@ -5,6 +5,7 @@ using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Client.Core;
 using Astrum.Client.Input;
+using Astrum.View.Core;
 
 namespace Astrum.Client.Managers
 {
@@ -67,11 +68,20 @@ namespace Astrum.Client.Managers
                 return;
             }
             
+            Transform playerTransform = null;
+            var stage = currentGameMode.MainStage;
+            if (stage != null && currentGameMode.PlayerId > 0 && stage.EntityViews != null &&
+                stage.EntityViews.TryGetValue(currentGameMode.PlayerId, out var entityView))
+            {
+                playerTransform = entityView.Transform;
+            }
+            
             // 新逻辑：使用LSInputAssembler组装输入
             var input = LSInputAssembler.AssembleFromRawInput(
                 _inputProvider,
                 currentGameMode.PlayerId,
-                CameraManager.Instance?.MainCamera
+                CameraManager.Instance?.MainCamera,
+                playerTransform
             );
             
             currentGameMode.MainRoom.LSController.SetPlayerInput(currentGameMode.PlayerId, input);

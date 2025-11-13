@@ -291,10 +291,12 @@ namespace Astrum.LogicCore.Capabilities
             var previousActionId = actionComponent.CurrentAction?.Id ?? 0;
             var previousFrame = actionComponent.CurrentFrame;
 
-            ConsumeCommandForAction(actionComponent, actionInfo);
+            var consumedCommand = ConsumeCommandForAction(actionComponent, actionInfo);
             
             actionComponent.CurrentAction = actionInfo;
             actionComponent.CurrentFrame = preorderInfo.FromFrame;
+
+            TryUpdateFacingByCommand(entity, consumedCommand);
             
             // 记录切换成功的日志
             ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {entity.UniqueId} " +
@@ -579,7 +581,7 @@ namespace Astrum.LogicCore.Capabilities
                 {
                     if (mapping != null && ShouldAddCommand(currentInput, mapping))
                     {
-                        AddOrRefreshCommand(commands, mapping.CommandName, mapping.ValidFrames);
+                        AddOrRefreshCommand(commands, mapping.CommandName, mapping.ValidFrames, currentInput.MouseWorldX, currentInput.MouseWorldZ);
                     }
                 }
             }
@@ -587,10 +589,10 @@ namespace Astrum.LogicCore.Capabilities
             {
                 // 配置表未加载，使用硬编码作为后备
                 ASLogger.Instance.Warning("ActionCapability: ActionCommandMappingTable未加载，使用硬编码后备", "Action.Capability");
-                AddOrRefreshCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0);
-                AddOrRefreshCommand(commands, "attack", currentInput.Attack ? 3 : 0);
-                AddOrRefreshCommand(commands, "skill1", currentInput.Skill1 ? 3 : 0);
-                AddOrRefreshCommand(commands, "skill2", currentInput.Skill2 ? 3 : 0);
+                AddOrRefreshCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0, 0, 0);
+                AddOrRefreshCommand(commands, "attack", currentInput.Attack ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                AddOrRefreshCommand(commands, "skill1", currentInput.Skill1 ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                AddOrRefreshCommand(commands, "skill2", currentInput.Skill2 ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
             }
         }
         
@@ -650,11 +652,13 @@ namespace Astrum.LogicCore.Capabilities
             {
                 case "MoveX": return input.MoveX != 0;
                 case "MoveY": return input.MoveY != 0;
+                case "MouseWorldX": return input.MouseWorldX != 0;
+                case "MouseWorldZ": return input.MouseWorldZ != 0;
                 default: return false;
             }
         }
 
-        private static void AddOrRefreshCommand(List<ActionCommand> commands, string name, int validFrames)
+        private static void AddOrRefreshCommand(List<ActionCommand> commands, string name, int validFrames, long targetPositionX, long targetPositionZ)
         {
             if (validFrames <= 0 || commands == null)
             {
@@ -669,29 +673,31 @@ namespace Astrum.LogicCore.Capabilities
                     {
                         cmd.ValidFrames = validFrames;
                     }
+                    cmd.TargetPositionX = targetPositionX;
+                    cmd.TargetPositionZ = targetPositionZ;
                     return;
                 }
             }
 
-            commands.Add(new ActionCommand(name, validFrames));
+            commands.Add(new ActionCommand(name, validFrames, targetPositionX, targetPositionZ));
         }
 
-        private void ConsumeCommandForAction(ActionComponent actionComponent, ActionInfo actionInfo)
+        private ActionCommand ConsumeCommandForAction(ActionComponent actionComponent, ActionInfo actionInfo)
         {
             if (actionComponent == null || actionInfo == null)
             {
-                return;
+                return null;
             }
 
             var commands = actionComponent.InputCommands;
             if (commands == null || commands.Count == 0)
             {
-                return;
+                return null;
             }
 
             if (actionInfo.Commands == null || actionInfo.Commands.Count == 0)
             {
-                return;
+                return null;
             }
 
             foreach (var command in actionInfo.Commands)
@@ -712,10 +718,43 @@ namespace Astrum.LogicCore.Capabilities
                     if (string.Equals(input.CommandName, command.CommandName, StringComparison.OrdinalIgnoreCase))
                     {
                         commands.RemoveAt(i);
-                        return;
+                        return input;
                     }
                 }
             }
+
+            return null;
+        }
+
+        private void TryUpdateFacingByCommand(Entity entity, ActionCommand consumedCommand)
+        {
+            if (entity == null || consumedCommand == null)
+            {
+                return;
+            }
+
+            var trans = GetComponent<TransComponent>(entity);
+            if (trans == null)
+            {
+                return;
+            }
+
+            var currentPos = trans.Position;
+            var targetX = FP.FromRaw(consumedCommand.TargetPositionX);
+            var targetZ = FP.FromRaw(consumedCommand.TargetPositionZ);
+
+            var targetPos = new TSVector(targetX, currentPos.y, targetZ);
+            var direction = targetPos - currentPos;
+            direction.y = FP.Zero;
+
+            if (direction.sqrMagnitude <= FP.EN4)
+            {
+                return;
+            }
+
+            direction = TSVector.Normalize(direction);
+            var rotation = TSQuaternion.LookRotation(direction, TSVector.up);
+            trans.SetRotation(rotation);
         }
 
         /// <summary>

@@ -20,6 +20,7 @@
 | 阶段3 | 扩展功能（可选） | 1天 | ⏭️ 已跳过 |
 | 阶段4 | 测试验证 | 1天 | 🚧 待Unity测试 |
 | 阶段5 | 文档完善 | 0.5天 | ✅ 已完成 |
+| 阶段6 | 鼠标输入扩展设计 | 0.5天 | ✅ 已完成 |
 
 **总计**：5-6天
 
@@ -348,6 +349,33 @@ public void Update()
 - [ ] 添加代码注释
 - [ ] 创建使用示例
 - [ ] 更新README（如需要）
+
+---
+
+## 阶段6：鼠标输入扩展设计 ✅ 已完成
+
+**时间**：2025-11-13
+
+**目标**：在既有三层输入架构下，完成鼠标位置同步与指向性输入的技术设计，支撑射击类技能与朝向逻辑。
+
+### 6.1 核心产出
+- [x] 技术设计文档：《[鼠标位置处理技术设计](../鼠标位置处理技术设计.md)》
+- [x] 定义 `LSInput.MouseWorldX/MouseWorldZ` 字段（Q31.32）
+- [x] 定义 `ActionCommand.TargetPositionX/TargetPositionZ` 字段（Q31.32）
+- [x] 设计配置表更新方案（InputBinding/LSInputFieldMapping/ActionCommandMapping）
+- [x] 规划 `LSInputAssembler` 与 `ActionCapability` 的改造步骤
+
+### 6.2 影响分析
+- **输入系统**：Raw → LSInput → ActionCommand 均新增鼠标世界坐标字段
+- **帧同步**：鼠标位置随帧同步输入上传，确保多人一致性
+- **Action系统**：可直接读取目标坐标计算角色朝向与弹道方向
+- **测试需求**：需在帧同步回放中验证不同客户端的方向一致性
+
+### 6.3 下一步建议
+1. 实现 `LSInputAssembler` 鼠标射线转换逻辑
+2. 扩展 `ActionCapability.SyncInputCommands()` 使命令携带目标坐标
+3. 调整射击/攻击动作，消费 `ActionCommand` 的目标坐标计算朝向
+4. 补充帧同步与多人场景测试用例
 
 ---
 

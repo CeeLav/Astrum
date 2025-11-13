@@ -104,8 +104,6 @@ namespace Astrum.View.Components
         /// </summary>
         public virtual void Destroy()
         {
-            Debug.Log($"ViewComponent: 销毁组件，ID: {_componentId}，类型: {GetType().Name}");
-            
             // 子类特定的销毁逻辑
             OnDestroy();
             
