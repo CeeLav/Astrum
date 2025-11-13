@@ -788,36 +788,40 @@ namespace AstrumServer.Managers
 
                 try
                 {
-                    var baseDir = AppContext.BaseDirectory;
-                    var candidates = new List<string>();
+                    string? configPath = null;
 
+                    // 优先使用环境变量
                     var envConfigPath = Environment.GetEnvironmentVariable("ASTRUM_CONFIG_PATH");
-                    if (!string.IsNullOrWhiteSpace(envConfigPath))
+                    if (!string.IsNullOrWhiteSpace(envConfigPath) && Directory.Exists(envConfigPath))
                     {
-                        candidates.Add(envConfigPath);
+                        configPath = Path.GetFullPath(envConfigPath);
+                    }
+                    else
+                    {
+                        // 从当前程序集所在目录向上查找，直到找到包含 AstrumConfig 的目录
+                        var currentDir = AppContext.BaseDirectory;
+                        var searchDir = new DirectoryInfo(currentDir);
+                        const int maxLevels = 10; // 最多向上查找10级
+                        int levels = 0;
+
+                        while (searchDir != null && levels < maxLevels)
+                        {
+                            var candidatePath = Path.Combine(searchDir.FullName, "AstrumConfig", "Tables", "output", "Client");
+                            if (Directory.Exists(candidatePath))
+                            {
+                                configPath = candidatePath;
+                                break;
+                            }
+                            searchDir = searchDir.Parent;
+                            levels++;
+                        }
                     }
 
-                    candidates.Add(Path.Combine(baseDir, "Config"));
-                    candidates.Add(Path.Combine(baseDir, "..", "Config"));
-                    candidates.Add(Path.Combine(baseDir, "..", "..", "Config"));
-                    candidates.Add(Path.Combine(baseDir, "..", "..", "..", "Config"));
-                    candidates.Add(Path.Combine(baseDir, "..", "..", "..", "..", "AstrumConfig", "Tables", "output", "Server"));
-                    candidates.Add(Path.Combine(baseDir, "..", "..", "..", "..", "AstrumConfig", "Tables", "output", "Client"));
-                    candidates.Add(Path.Combine(baseDir, "..", "..", "AstrumConfig", "Tables", "output", "Client"));
-
-                    var normalized = candidates
-                        .Select(path =>
-                        {
-                            try { return Path.GetFullPath(path); } catch { return path; }
-                        })
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToList();
-
-                    var configPath = normalized.FirstOrDefault(Directory.Exists);
-
-                    if (string.IsNullOrEmpty(configPath))
+                    if (string.IsNullOrEmpty(configPath) || !Directory.Exists(configPath))
                     {
-                        throw new DirectoryNotFoundException($"未能找到可用的配置目录，尝试路径: {string.Join(", ", normalized)}");
+                        throw new DirectoryNotFoundException(
+                            $"未能找到客户端配置目录。请确保 AstrumConfig/Tables/output/Client 目录存在，" +
+                            $"或设置环境变量 ASTRUM_CONFIG_PATH 指向配置目录。当前工作目录: {AppContext.BaseDirectory}");
                     }
 
                     _logicConfigPathCache = configPath;
