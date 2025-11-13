@@ -2,7 +2,6 @@
     "name": "AstrumLogic",
     "rootNamespace": "Astrum.LogicCore",
     "references": [
-        "UnityEngine",
         "CommonBase",
         "Generated",
         "Luban.Runtime"
@@ -15,5 +14,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": true
 }
