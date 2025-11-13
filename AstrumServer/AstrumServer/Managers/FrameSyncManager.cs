@@ -267,9 +267,9 @@ namespace AstrumServer.Managers
                 // 推进逻辑世界
                 if (frameState.LogicRoom != null)
                 {
-                    frameState.LogicRoom.FrameTick(frameInputs);
-
                     var controller = frameState.LogicRoom.LSController;
+                    // 在调用FrameTick之前，先更新LSController的AuthorityFrame
+                    // 因为FrameTick内部会使用AuthorityFrame来保存状态
                     if (controller != null)
                     {
                         controller.AuthorityFrame = frameState.AuthorityFrame;
@@ -278,6 +278,8 @@ namespace AstrumServer.Managers
                             controller.PredictionFrame = frameState.AuthorityFrame;
                         }
                     }
+                    
+                    frameState.LogicRoom.FrameTick(frameInputs);
                 }
                 
                 // 记录实际收集到的玩家数量

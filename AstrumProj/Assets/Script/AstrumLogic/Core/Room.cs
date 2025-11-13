@@ -199,7 +199,14 @@ namespace Astrum.LogicCore.Core
         
         public void FrameTick(OneFrameInputs oneFrameInputs)
         {
-            LSController.SaveState();
+            // 确保FrameBuffer已经准备好当前帧
+            if (LSController != null && LSController.AuthorityFrame >= 0)
+            {
+                // 在保存状态前，确保FrameBuffer的MaxFrame已经更新
+                LSController.FrameBuffer.MoveForward(LSController.AuthorityFrame);
+            }
+            
+            LSController?.SaveState();
             foreach (var pairs in oneFrameInputs.Inputs)
             {
                 var input = pairs.Value;
@@ -236,6 +243,44 @@ namespace Astrum.LogicCore.Core
             
             // 更新所有世界的 SkillEffectSystem
             TickSystems();
+            
+            // 客户端：检查新实体并发布事件（服务器端的事件不会传播到客户端）
+            // 在FrameTick后检查World中的实体，发现新实体时发布EntityCreatedEventData事件
+            // 这样Stage就能收到事件并创建EntityView
+            SyncNewEntities();
+        }
+        
+        /// <summary>
+        /// 已同步的实体ID集合（用于跟踪哪些实体已经发布过创建事件）
+        /// </summary>
+        private HashSet<long> _syncedEntityIds = new HashSet<long>();
+        
+        /// <summary>
+        /// 同步新实体（客户端使用）
+        /// 检查World中的实体，发现新实体时发布EntityCreatedEventData事件
+        /// </summary>
+        private void SyncNewEntities()
+        {
+            if (MainWorld?.Entities == null) return;
+            
+            foreach (var entity in MainWorld.Entities.Values)
+            {
+                if (entity == null || entity.IsDestroyed) continue;
+                
+                // 检查实体是否已经发布过创建事件
+                if (!_syncedEntityIds.Contains(entity.UniqueId))
+                {
+                    // 直接创建并发布实体创建事件，让Stage能够创建EntityView
+                    var eventData = new EntityCreatedEventData(entity, MainWorld.WorldId, MainWorld.RoomId);
+                    EventSystem.Instance.Publish(eventData);
+                    _syncedEntityIds.Add(entity.UniqueId);
+                    
+                    ASLogger.Instance.Info($"Room: 检测到新实体并发布创建事件 - {entity.Name} (ID: {entity.UniqueId})");
+                }
+            }
+            
+            // 清理已销毁的实体ID
+            _syncedEntityIds.RemoveWhere(id => !MainWorld.Entities.ContainsKey(id));
         }
         
         /// <summary>

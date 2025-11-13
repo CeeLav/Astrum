@@ -142,8 +142,15 @@ namespace Astrum.LogicCore.Core
 
         public void Rollback(int frame)
         {
+            var loadedWorld = LoadState(frame);
+            if (loadedWorld == null)
+            {
+                ASLogger.Instance.Warning($"无法回滚到帧 {frame}，快照数据不存在或为空，跳过回滚", "FrameSync.Rollback");
+                return;
+            }
+            
             Room.MainWorld.Cleanup();
-            Room.MainWorld = LoadState(frame);
+            Room.MainWorld = loadedWorld;
             var aInput = FrameBuffer.FrameInputs(frame);
             //ASLogger.Instance.Warning($"aInput {aInput.Inputs[Room.MainPlayerId].MoveX}");
             Room.FrameTick(aInput);
@@ -270,7 +277,20 @@ namespace Astrum.LogicCore.Core
         /// <param name="frame">帧号</param>
         public void SaveState()
         {
-            int frame = Room.MainWorld.CurFrame;
+            // 使用AuthorityFrame而不是MainWorld.CurFrame，因为CurFrame会在World.Update()中递增
+            // 而SaveState()是在FrameTick()开始时调用的，此时CurFrame还没有更新
+            int frame = AuthorityFrame;
+            
+            // 确保FrameBuffer的MaxFrame已经更新到当前帧
+            if (frame > FrameBuffer.MaxFrame)
+            {
+                // 如果帧号超出MaxFrame，先扩展FrameBuffer
+                while (FrameBuffer.MaxFrame < frame)
+                {
+                    FrameBuffer.MoveForward(FrameBuffer.MaxFrame);
+                }
+            }
+            
             var memoryBuffer = FrameBuffer.Snapshot(frame);
             memoryBuffer.Seek(0, SeekOrigin.Begin);
             memoryBuffer.SetLength(0);
@@ -309,28 +329,47 @@ namespace Astrum.LogicCore.Core
             
             ASLogger.Instance.Debug($"加载帧状态 - 帧: {frame}, 数据大小: {memoryBuffer.Length} bytes", "FrameSync.LoadState");
             
-            World world = MemoryPackHelper.Deserialize( typeof(World),memoryBuffer) as World;
-            memoryBuffer.Seek(0, SeekOrigin.Begin);
-            
-            // 记录加载状态后的 World 信息
-            if (world != null)
+            // 检查快照数据是否为空
+            if (memoryBuffer.Length == 0)
             {
-                ASLogger.Instance.Debug($"帧状态加载完成 - 帧: {frame}, World ID: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.LoadState");
+                ASLogger.Instance.Warning($"帧状态快照为空 - 帧: {frame}, 无法加载状态，返回当前World", "FrameSync.LoadState");
+                // 如果快照为空，返回当前World的深拷贝或返回null让调用者处理
+                // 这里返回null，让Rollback方法处理
+                return null;
+            }
+            
+            try
+            {
+                World world = MemoryPackHelper.Deserialize( typeof(World),memoryBuffer) as World;
+                memoryBuffer.Seek(0, SeekOrigin.Begin);
                 
-                if (world.Entities != null)
+                // 记录加载状态后的 World 信息
+                if (world != null)
                 {
-                    foreach (var entity in world.Entities.Values)
+                    ASLogger.Instance.Debug($"帧状态加载完成 - 帧: {frame}, World ID: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.LoadState");
+                    
+                    if (world.Entities != null)
                     {
-                        ASLogger.Instance.Debug($"  - 加载实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.CapabilityStates?.Count ?? 0}", "FrameSync.LoadState");
+                        foreach (var entity in world.Entities.Values)
+                        {
+                            ASLogger.Instance.Debug($"  - 加载实体: {entity.Name} (ID: {entity.UniqueId}), 激活: {entity.IsActive}, 组件: {entity.Components?.Count ?? 0}, 能力: {entity.CapabilityStates?.Count ?? 0}", "FrameSync.LoadState");
+                        }
                     }
                 }
+                else
+                {
+                    ASLogger.Instance.Warning($"帧状态加载失败 - 帧: {frame}, 反序列化结果为 null", "FrameSync.LoadState");
+                }
+                
+                return world;
             }
-            else
+            catch (Exception ex)
             {
-                ASLogger.Instance.Warning($"帧状态加载失败 - 帧: {frame}, 反序列化结果为 null", "FrameSync.LoadState");
+                ASLogger.Instance.Error($"帧状态反序列化失败 - 帧: {frame}, 错误: {ex.Message}", "FrameSync.LoadState");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                memoryBuffer.Seek(0, SeekOrigin.Begin);
+                return null;
             }
-            
-            return world;
         }
 
         /// <summary>
@@ -392,12 +431,18 @@ namespace Astrum.LogicCore.Core
                     ASLogger.Instance.Log(LogLevel.Warning, $"Input Differences: {differences}");
                     
                     inputs.CopyTo(pFrame);
-                    ASLogger.Instance.Log(LogLevel.Warning,$"roll back start {AuthorityFrame}");
-                    Rollback(AuthorityFrame);
-                }
-                else
-                {
-                       
+                    
+                    // 检查是否有快照数据可以回滚
+                    var snapshotBuffer = FrameBuffer.Snapshot(AuthorityFrame);
+                    if (snapshotBuffer.Length > 0)
+                    {
+                        ASLogger.Instance.Log(LogLevel.Warning, $"roll back start {AuthorityFrame}");
+                        Rollback(AuthorityFrame);
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Warning($"无法回滚到帧 {AuthorityFrame}，快照数据不存在（可能是首次同步），跳过回滚", "FrameSync.SetOneFrameInputs");
+                    }
                 }
             }
             var af = _inputSystem.FrameBuffer.FrameInputs(AuthorityFrame);
