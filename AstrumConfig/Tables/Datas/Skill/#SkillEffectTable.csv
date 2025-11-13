@@ -2,8 +2,8 @@
 ##type,int,string,"(array#sep=|,int)","(array#sep=|,string)"
 ##group,,,,
 ##desc,技能效果ID,效果类型键,整数参数数组,字符串参数数组
-,4001,Damage,1|1|1500|1|1500,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab,Assets/Audio/SFX/Skill/Skill_Hit_01.wav"
-,4002,Knockback,1|1000|100|0|1|5002|6002,
+,4001,Damage,1|1|1500|1|1500,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab
+,4002,Knockback,1|1000|100|0|1|5002|0,Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_01.prefab
 ,4003,Damage,1|1|800|1|800,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_02.prefab,Assets/Audio/SFX/Skill/Skill_Hit_02.wav"
 ,4004,Damage,1|1|1200|1|1200,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_03.prefab,Assets/Audio/SFX/Skill/Skill_Hit_03.wav"
 ,4005,Damage,1|1|600|1|600,"Assets/ArtRes/Effect/Stylized Hit & Slash/FX_hit_04.prefab,Assets/Audio/SFX/Skill/Skill_Hit_04.wav"

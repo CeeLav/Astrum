@@ -159,11 +159,15 @@ namespace Astrum.Client.Input
             
             if (!hasMouseX && !hasMouseZ)
             {
+                ASLogger.Instance.Warning("LSInputAssembler: Mouse mappings not enabled in config", "Input.Mouse");
                 return;
             }
             
             if (provider == null || camera == null || characterTransform == null)
             {
+                ASLogger.Instance.Info(
+                    $"LSInputAssembler: Missing dependency provider={(provider == null)} camera={(camera == null)} characterTransform={(characterTransform == null)}",
+                    "Input.Mouse");
                 if (hasMouseX)
                 {
                     input.MouseWorldX = 0;
@@ -178,11 +182,15 @@ namespace Astrum.Client.Input
             Vector2 screenPos = provider.GetMousePosition();
             Ray ray = camera.ScreenPointToRay(screenPos);
             
-            float planeHeight = characterTransform.position.y;
+            const float mousePlaneOffset = 1f;
+            float planeHeight = characterTransform.position.y + mousePlaneOffset;
             Plane plane = new Plane(Vector3.up, new Vector3(0f, planeHeight, 0f));
             
             if (!plane.Raycast(ray, out float distance))
             {
+                ASLogger.Instance.Info(
+                    "LSInputAssembler: Raycast did not hit plane, reset mouse position",
+                    "Input.Mouse");
                 if (hasMouseX)
                 {
                     input.MouseWorldX = 0;
@@ -205,9 +213,7 @@ namespace Astrum.Client.Input
                 input.MouseWorldZ = ToFixedPoint(worldPos.z);
             }
             
-            ASLogger.Instance.Debug(
-                $"LSInputAssembler: Mouse - Screen({screenPos.x:F0}, {screenPos.y:F0}) -> World({worldPos.x:F2}, {worldPos.z:F2}) -> Fixed({input.MouseWorldX}, {input.MouseWorldZ})",
-                "Input.Assembler");
+
         }
         
         /// <summary>
