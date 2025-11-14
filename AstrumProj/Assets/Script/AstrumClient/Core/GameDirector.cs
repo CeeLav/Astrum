@@ -280,6 +280,9 @@ namespace Astrum.Client.Core
         /// </summary>
         private void InitializeLogManager()
         {
+            // 设置日志级别为Debug，确保所有日志都能输出
+            ASLogger.Instance.MinLevel = LogLevel.Debug;
+            
             ASLogger.Instance.Info("GameDirector: 初始化日志管理器");
             
             // 添加Unity日志处理器

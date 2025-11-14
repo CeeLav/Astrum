@@ -220,18 +220,9 @@ namespace Astrum.LogicCore.Core
                         inputComponent.SetInput(input);
                     }
                 }
-                else if (pairs.Value.BornInfo != 0)
+                else 
                 {
-                    ASLogger.Instance.Info($"新玩家创建 BornInfo: {pairs.Value.BornInfo} ");
-                    
-                    var playerId = AddPlayer();
-                    var newPlayerEventData = new NewPlayerEventData
-                    (
-                        playerId,pairs.Value.BornInfo
-                    );
-                    pairs.Value.BornInfo = 0;
-                    pairs.Value.PlayerId = playerId;
-                    EventSystem.Instance.Publish(newPlayerEventData);
+                    ASLogger.Instance.Info($"Room.FrameTick: 未找到实体，EntityId={pairs.Key}");
                 }
             }
             

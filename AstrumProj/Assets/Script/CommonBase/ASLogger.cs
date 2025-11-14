@@ -262,7 +262,7 @@ namespace Astrum.CommonBase
     public class ASLogger : Singleton<ASLogger>, ILogger
     {
         private readonly List<ILogHandler> _handlers = new List<ILogHandler>();
-        private LogLevel _minLevel = LogLevel.Info;
+        private LogLevel _minLevel = LogLevel.Debug; // 默认日志级别改为Debug
         private readonly object _lock = new object();
         
         // 配置管理

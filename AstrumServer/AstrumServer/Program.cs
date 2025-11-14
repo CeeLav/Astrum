@@ -26,6 +26,9 @@ namespace AstrumServer
         {
             try
             {
+                // 设置日志级别为Debug，确保所有日志都能输出
+                ASLogger.Instance.MinLevel = Astrum.CommonBase.LogLevel.Debug;
+                
                 // 启用时间戳显示
                 ASLogger.Instance.ShowTimestamp = true;
                 ASLogger.Instance.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
@@ -37,7 +40,7 @@ namespace AstrumServer
                 var logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server.log");
                 ASLogger.Instance.AddFileHandler(logFilePath, maxFileSize: 10, maxFileCount: 5);
                 
-                Console.WriteLine("ASLogger配置完成，时间戳已启用");
+                Console.WriteLine("ASLogger配置完成，日志级别设置为Debug，时间戳已启用");
             }
             catch (Exception ex)
             {
