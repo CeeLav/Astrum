@@ -236,7 +236,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
             try
             {
                 // 将帧输入数据传递给房间的帧同步控制器
-                if (_gameMode.MainRoom.LSController is IClientFrameSync clientSync)
+                if (_gameMode.MainRoom.LSController is ClientLSController clientSync)
                 {
                     // 更新权威帧
                     if (frame > 0)

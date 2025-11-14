@@ -165,9 +165,6 @@ namespace Astrum.Client.Input
             
             if (provider == null || camera == null || characterTransform == null)
             {
-                ASLogger.Instance.Info(
-                    $"LSInputAssembler: Missing dependency provider={(provider == null)} camera={(camera == null)} characterTransform={(characterTransform == null)}",
-                    "Input.Mouse");
                 if (hasMouseX)
                 {
                     input.MouseWorldX = 0;

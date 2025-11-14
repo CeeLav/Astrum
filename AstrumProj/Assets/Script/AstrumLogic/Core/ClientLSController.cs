@@ -11,7 +11,7 @@ namespace Astrum.LogicCore.Core
     /// <summary>
     /// 客户端帧同步控制器，负责管理客户端预测帧同步逻辑
     /// </summary>
-    public class ClientLSController : ILSControllerBase, IClientFrameSync
+    public class ClientLSController : ILSControllerBase
     {
         /// <summary>
         /// 所属房间

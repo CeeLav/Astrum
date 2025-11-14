@@ -167,7 +167,7 @@ namespace Astrum.Client.Managers.GameModes
                     MainRoom.MainPlayerId = eventData.PlayerID;
                 }
                 
-                if (MainRoom?.LSController is IClientFrameSync clientSync)
+                if (MainRoom?.LSController is ClientLSController clientSync)
                 {
                     clientSync.MaxPredictionFrames = 5;
                 }
@@ -212,7 +212,7 @@ namespace Astrum.Client.Managers.GameModes
         public void RequestCreatePlayer()
         {
             var request = SingleInput.Create();
-            if (MainRoom.LSController is IClientFrameSync clientSync)
+            if (MainRoom.LSController is ClientLSController clientSync)
             {
                 request.FrameID = clientSync.PredictionFrame;
             }

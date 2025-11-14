@@ -199,32 +199,7 @@ namespace Astrum.LogicCore.Core
         
         public void FrameTick(OneFrameInputs oneFrameInputs)
         {
-            // 确保FrameBuffer已经准备好当前帧
-            if (LSController != null)
-            {
-                // 客户端使用 PredictionFrame，服务器使用 AuthorityFrame
-                int frameToUse = -1;
-                if (LSController is IClientFrameSync clientSync)
-                {
-                    frameToUse = clientSync.PredictionFrame;
-                }
-                else if (LSController is IServerFrameSync serverSync)
-                {
-                    frameToUse = serverSync.AuthorityFrame;
-                }
-                else
-                {
-                    // 兼容旧代码：使用 AuthorityFrame
-                    frameToUse = LSController.AuthorityFrame;
-                }
-                
-                if (frameToUse >= 0)
-                {
-                    // 在保存状态前，确保FrameBuffer的MaxFrame已经更新
-                    LSController.FrameBuffer.MoveForward(frameToUse);
-                }
-            }
-            
+            // 保存状态（SaveState 内部会处理 FrameBuffer 的准备和帧号选择）
             LSController?.SaveState();
             foreach (var pairs in oneFrameInputs.Inputs)
             {

@@ -224,8 +224,14 @@ namespace AstrumServer.Managers
                     var currentFrame = existingState.AuthorityFrame;
                     
                     // 确保 FrameBuffer 已经准备好当前帧
-                    if (existingState.LogicRoom?.LSController != null)
+                    if (existingState.LogicRoom?.LSController is ServerLSController existingServerSync)
                     {
+                        existingServerSync.FrameBuffer.MoveForward(currentFrame);
+                        existingServerSync.SaveState();
+                    }
+                    else if (existingState.LogicRoom?.LSController != null)
+                    {
+                        // 兼容旧代码：使用基础接口
                         existingState.LogicRoom.LSController.FrameBuffer.MoveForward(currentFrame);
                         existingState.LogicRoom.LSController.SaveState();
                     }
@@ -283,14 +289,14 @@ namespace AstrumServer.Managers
                 frameState.LogicRoom?.LSController?.Start();
                 
                 // 保存第0帧快照
-                if (frameState.LogicRoom?.LSController != null)
+                if (frameState.LogicRoom?.LSController is ServerLSController serverSync)
                 {
-                    frameState.LogicRoom.LSController.AuthorityFrame = 0;
-                    frameState.LogicRoom.LSController.FrameBuffer.MoveForward(0);
-                    frameState.LogicRoom.LSController.SaveState();
+                    serverSync.AuthorityFrame = 0;
+                    serverSync.FrameBuffer.MoveForward(0);
+                    serverSync.SaveState();
                     
                     // 获取快照数据
-                    var snapshotBuffer = frameState.LogicRoom.LSController.FrameBuffer.Snapshot(0);
+                    var snapshotBuffer = serverSync.FrameBuffer.Snapshot(0);
                     byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
                     snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
                     
@@ -305,6 +311,21 @@ namespace AstrumServer.Managers
                     // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
                     SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
                     
+                    ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
+                }
+                else if (frameState.LogicRoom?.LSController != null)
+                {
+                    // 兼容旧代码：使用基础接口
+                    frameState.LogicRoom.LSController.AuthorityFrame = 0;
+                    frameState.LogicRoom.LSController.FrameBuffer.MoveForward(0);
+                    frameState.LogicRoom.LSController.SaveState();
+                    
+                    var snapshotBuffer = frameState.LogicRoom.LSController.FrameBuffer.Snapshot(0);
+                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+                    
+                    _roomFrameStates[roomId] = frameState;
+                    SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
                     ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
                 }
                 else
@@ -427,10 +448,7 @@ namespace AstrumServer.Managers
                     if (controller != null)
                     {
                         controller.AuthorityFrame = frameState.AuthorityFrame;
-                        if (controller.PredictionFrame < frameState.AuthorityFrame)
-                        {
-                            controller.PredictionFrame = frameState.AuthorityFrame;
-                        }
+                        // 注意：PredictionFrame 是客户端特有的属性，服务器不需要设置
                     }
                     
                     frameState.LogicRoom.FrameTick(frameInputs);

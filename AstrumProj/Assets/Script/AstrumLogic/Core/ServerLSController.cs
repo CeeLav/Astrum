@@ -11,7 +11,7 @@ namespace Astrum.LogicCore.Core
     /// <summary>
     /// 服务器帧同步控制器，负责管理服务器权威帧同步逻辑
     /// </summary>
-    public class ServerLSController : ILSControllerBase, IServerFrameSync
+    public class ServerLSController : ILSControllerBase
     {
         /// <summary>
         /// 所属房间
@@ -239,6 +239,14 @@ namespace Astrum.LogicCore.Core
         {
             int frame = AuthorityFrame;
             
+            // 检查帧号是否有效
+            if (frame < 0)
+            {
+                ASLogger.Instance.Warning($"ServerLSController.SaveState: 帧号无效 (AuthorityFrame: {AuthorityFrame})，跳过保存状态", "FrameSync.SaveState");
+                return;
+            }
+            
+            // 确保 FrameBuffer 已经准备好当前帧
             if (frame > FrameBuffer.MaxFrame)
             {
                 while (FrameBuffer.MaxFrame < frame)

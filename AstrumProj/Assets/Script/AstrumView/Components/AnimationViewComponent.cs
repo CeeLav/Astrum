@@ -740,7 +740,7 @@ namespace Astrum.View.Components
         /// <returns>当前PredictionFrame</returns>
         private int GetCurrentPredictionFrame()
         {
-            if (_ownerEntityView?.Stage?.Room?.LSController is IClientFrameSync clientSync)
+            if (_ownerEntityView?.Stage?.Room?.LSController is ClientLSController clientSync)
             {
                 return clientSync.PredictionFrame;
             }
@@ -757,13 +757,13 @@ namespace Astrum.View.Components
         /// <returns>帧同步时间（毫秒）</returns>
         private long CalculatePredictionFrameTime(int predictionFrame)
         {
-            if (_ownerEntityView?.Stage?.Room?.LSController is IClientFrameSync clientSync)
+            if (_ownerEntityView?.Stage?.Room?.LSController is ClientLSController clientSync)
             {
-                // 使用 IClientFrameSync 的方法获取指定帧同步时间
+                // 使用 ClientLSController 的方法获取指定帧同步时间
                 return clientSync.GetPredictionFrameTime(predictionFrame);
             }
             
-            // 如果无法获取 IClientFrameSync，使用fallback方法
+            // 如果无法获取 ClientLSController，使用fallback方法
             long baseTime = GetFrameSyncBaseTime();
             return baseTime + (predictionFrame * FRAME_UPDATE_INTERVAL_MS);
         }

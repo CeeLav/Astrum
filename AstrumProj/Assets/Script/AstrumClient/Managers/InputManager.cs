@@ -85,7 +85,7 @@ namespace Astrum.Client.Managers
                 playerTransform
             );
             
-            if (currentGameMode.MainRoom.LSController is IClientFrameSync clientSync)
+            if (currentGameMode.MainRoom.LSController is ClientLSController clientSync)
             {
                 clientSync.SetPlayerInput(currentGameMode.PlayerId, input);
             }

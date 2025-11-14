@@ -111,14 +111,14 @@ namespace AstrumServer.Managers
                 LogicRoom?.LSController?.Start();
                 
                 // 保存第0帧快照
-                if (LogicRoom?.LSController != null)
+                if (LogicRoom?.LSController is ServerLSController serverSync)
                 {
-                    LogicRoom.LSController.AuthorityFrame = 0;
-                    LogicRoom.LSController.FrameBuffer.MoveForward(0);
-                    LogicRoom.LSController.SaveState();
+                    serverSync.AuthorityFrame = 0;
+                    serverSync.FrameBuffer.MoveForward(0);
+                    serverSync.SaveState();
                     
                     // 获取快照数据
-                    var snapshotBuffer = LogicRoom.LSController.FrameBuffer.Snapshot(0);
+                    var snapshotBuffer = serverSync.FrameBuffer.Snapshot(0);
                     byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
                     snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
                     
@@ -131,6 +131,20 @@ namespace AstrumServer.Managers
                     // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
                     SendFrameSyncStartNotification(worldSnapshotData);
                     
+                    ASLogger.Instance.Info($"房间 {roomInfo.Id} 开始帧同步，玩家数: {PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
+                }
+                else if (LogicRoom?.LSController != null)
+                {
+                    // 兼容旧代码：使用基础接口
+                    LogicRoom.LSController.AuthorityFrame = 0;
+                    LogicRoom.LSController.FrameBuffer.MoveForward(0);
+                    LogicRoom.LSController.SaveState();
+                    
+                    var snapshotBuffer = LogicRoom.LSController.FrameBuffer.Snapshot(0);
+                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+                    
+                    SendFrameSyncStartNotification(worldSnapshotData);
                     ASLogger.Instance.Info($"房间 {roomInfo.Id} 开始帧同步，玩家数: {PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
                 }
                 else
@@ -178,21 +192,21 @@ namespace AstrumServer.Managers
             if (!IsActive) return;
             
             try
-            {
-                var now = TimeInfo.Instance.ClientNow();
-                
-                // 目标应到达的帧 = floor((now - StartTime) / interval)
-                var elapsed = now - StartTime;
-                if (elapsed < 0) return;
-                var expectedFrame = (int)(elapsed / FRAME_INTERVAL_MS);
-                
-                // 将 AuthorityFrame 补到 expectedFrame，单次最多推进若干帧
-                var steps = 0;
-                while (AuthorityFrame < expectedFrame && steps < MAX_ADVANCE_PER_UPDATE)
-                {
-                    ProcessFrame();
-                    steps++;
-                }
+            {                var now = TimeInfo.Instance.ClientNow();
+                             
+                             // 目标应到达的帧 = floor((now - StartTime) / interval)
+                             var elapsed = now - StartTime;
+                             if (elapsed < 0) return;
+                             var expectedFrame = (int)(elapsed / FRAME_INTERVAL_MS);
+                             
+                             // 将 AuthorityFrame 补到 expectedFrame，单次最多推进若干帧
+                             var steps = 0;
+                             while (AuthorityFrame < expectedFrame && steps < MAX_ADVANCE_PER_UPDATE)
+                             {
+                                 ProcessFrame();
+                                 steps++;
+                             }
+
             }
             catch (Exception ex)
             {
@@ -242,7 +256,7 @@ namespace AstrumServer.Managers
                 LogReceivedInputDetails(userId, lsInput.PlayerId.ToString(), lsInput, AuthorityFrame);
                 
                 // 存储输入数据到 ServerLSController
-                if (LogicRoom?.LSController is IServerFrameSync serverSync)
+                if (LogicRoom?.LSController is ServerLSController serverSync)
                 {
                     // 使用 ServerLSController 的输入缓存
                     serverSync.AddPlayerInput(lsInput.Frame, lsInput.PlayerId, lsInput);
@@ -278,7 +292,7 @@ namespace AstrumServer.Managers
                 }
                 
                 // 推进逻辑世界（通过 ServerLSController.Tick()）
-                if (LogicRoom?.LSController is IServerFrameSync serverSync)
+                if (LogicRoom?.LSController is ServerLSController serverSync)
                 {
                     // 服务器使用 Tick() 方法推进权威帧（内部会推进 AuthorityFrame、收集输入、执行逻辑）
                     serverSync.Tick();
@@ -604,12 +618,12 @@ namespace AstrumServer.Managers
                 var currentFrame = AuthorityFrame;
                 
                 // 确保 FrameBuffer 已经准备好当前帧
-                if (LogicRoom?.LSController != null)
+                if (LogicRoom?.LSController is ServerLSController serverSync)
                 {
-                    LogicRoom.LSController.FrameBuffer.MoveForward(currentFrame);
-                    LogicRoom.LSController.SaveState();
+                    serverSync.FrameBuffer.MoveForward(currentFrame);
+                    serverSync.SaveState();
                     
-                    var snapshotBuffer = LogicRoom.LSController.FrameBuffer.Snapshot(currentFrame);
+                    var snapshotBuffer = serverSync.FrameBuffer.Snapshot(currentFrame);
                     if (snapshotBuffer != null && snapshotBuffer.Length > 0)
                     {
                         byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
