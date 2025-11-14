@@ -70,6 +70,16 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         private const int MAX_CACHE_FRAMES = 10;
 
+        /// <summary>
+        /// 帧同步配置（使用 LSConstValue）
+        /// </summary>
+        private const int MAX_ADVANCE_PER_UPDATE = 5; // 单次Update最多补帧数，防止雪崩
+
+        /// <summary>
+        /// 每帧推进后的回调（用于发送帧数据等）
+        /// </summary>
+        public Action<int, OneFrameInputs> OnFrameProcessed { get; set; }
+
         public ServerLSController()
         {
             LastUpdateTime = TimeInfo.Instance.ServerNow();
@@ -77,34 +87,43 @@ namespace Astrum.LogicCore.Core
 
         /// <summary>
         /// 服务器权威帧更新（统一使用 Tick() 方法）
+        /// 基于时间计算期望帧，并推进到期望帧（最多推进 MAX_ADVANCE_PER_UPDATE 帧）
         /// </summary>
         public void Tick()
         {
             if (!IsRunning || IsPaused || Room == null) return;
             
-            // 检查是否到达下一帧时间
-            long currentTime = TimeInfo.Instance.ServerNow();
-            long targetFrameTime = CreationTime + (AuthorityFrame + 1) * LSConstValue.UpdateInterval;
+            var now = TimeInfo.Instance.ServerNow();
             
-            if (currentTime < targetFrameTime)
+            // 目标应到达的帧 = floor((now - CreationTime) / interval)
+            var elapsed = now - CreationTime;
+            if (elapsed < 0) return;
+            var expectedFrame = (int)(elapsed / LSConstValue.UpdateInterval);
+            
+            // 将 AuthorityFrame 补到 expectedFrame，单次最多推进若干帧
+            var steps = 0;
+            while (AuthorityFrame < expectedFrame && steps < MAX_ADVANCE_PER_UPDATE)
             {
-                return; // 还没到下一帧时间
+                // 推进权威帧
+                AuthorityFrame++;
+                
+                // 收集当前帧的所有输入
+                var frameInputs = CollectFrameInputs(AuthorityFrame);
+                
+                // 确保 FrameBuffer 已准备好
+                FrameBuffer.MoveForward(AuthorityFrame);
+                
+                // 执行逻辑
+                Room.FrameTick(frameInputs);
+                
+                // 调用回调（用于发送帧数据等）
+                OnFrameProcessed?.Invoke(AuthorityFrame, frameInputs);
+                
+                steps++;
             }
             
-            // 推进权威帧
-            AuthorityFrame++;
-            
-            // 收集当前帧的所有输入
-            var frameInputs = CollectFrameInputs(AuthorityFrame);
-            
-            // 确保 FrameBuffer 已准备好
-            FrameBuffer.MoveForward(AuthorityFrame);
-            
-            // 执行逻辑
-            Room.FrameTick(frameInputs);
-            
             // 更新最后更新时间
-            LastUpdateTime = currentTime;
+            LastUpdateTime = now;
         }
 
         /// <summary>

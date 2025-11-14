@@ -18,13 +18,12 @@ namespace AstrumServer.Managers
         private readonly ServerNetworkManager _networkManager;
         private readonly UserManager _userManager;
         
-        // 帧同步配置
-        private const int FRAME_RATE = 20; // 20FPS
-        private const int FRAME_INTERVAL_MS = 1000 / FRAME_RATE; // 50ms
-        private const int MAX_ADVANCE_PER_UPDATE = 5; // 单次Update最多补帧数，防止雪崩
-        
         // 帧同步状态
-        public int AuthorityFrame { get; private set; } = 0;
+        /// <summary>
+        /// 权威帧（从 ServerLSController 获取）
+        /// </summary>
+        public int AuthorityFrame => LogicRoom?.LSController is ServerLSController serverSync ? serverSync.AuthorityFrame : 0;
+        
         public bool IsActive { get; private set; } = false;
         public long StartTime { get; private set; } = 0;
         
@@ -37,16 +36,6 @@ namespace AstrumServer.Managers
         // 玩家ID列表
         public List<string> PlayerIds { get; private set; } = new();
         
-        // 帧输入缓冲区 (帧号 -> 输入数据)
-        private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();
-        
-        // 历史上曾经上报过输入的玩家ID集合（仅记录非零ID）
-        private readonly HashSet<long> _uploadedPlayerIds = new();
-        
-        // 帧数据缓存配置
-        private const int MAX_CACHE_FRAMES = 300; // 缓存15秒的数据(20FPS)
-        private const int CACHE_CLEANUP_INTERVAL = 60; // 每60帧清理一次缓存
-        private int _lastCleanupFrame = 0;
         
         public GameSession(ServerRoom room, ServerNetworkManager networkManager, UserManager userManager)
         {
@@ -77,7 +66,6 @@ namespace AstrumServer.Managers
                 }
                 
                 // 初始化帧同步状态
-                AuthorityFrame = 0;
                 IsActive = true;
                 StartTime = TimeInfo.Instance.ClientNow();
                 PlayerIds = new List<string>(roomInfo.PlayerNames);
@@ -113,6 +101,13 @@ namespace AstrumServer.Managers
                 // 保存第0帧快照
                 if (LogicRoom?.LSController is ServerLSController serverSync)
                 {
+                    // 设置回调，在每帧推进后发送帧数据
+                    serverSync.OnFrameProcessed = (frame, frameInputs) =>
+                    {
+                        SendFrameSyncData(frame, frameInputs);
+                        ASLogger.Instance.Debug($"处理房间 {roomInfo.Id} 帧 {frame}，输入数: {frameInputs.Inputs.Count}", "FrameSync.Processing");
+                    };
+                    
                     serverSync.AuthorityFrame = 0;
                     serverSync.FrameBuffer.MoveForward(0);
                     serverSync.SaveState();
@@ -133,23 +128,9 @@ namespace AstrumServer.Managers
                     
                     ASLogger.Instance.Info($"房间 {roomInfo.Id} 开始帧同步，玩家数: {PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
                 }
-                else if (LogicRoom?.LSController != null)
-                {
-                    // 兼容旧代码：使用基础接口
-                    LogicRoom.LSController.AuthorityFrame = 0;
-                    LogicRoom.LSController.FrameBuffer.MoveForward(0);
-                    LogicRoom.LSController.SaveState();
-                    
-                    var snapshotBuffer = LogicRoom.LSController.FrameBuffer.Snapshot(0);
-                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
-                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
-                    
-                    SendFrameSyncStartNotification(worldSnapshotData);
-                    ASLogger.Instance.Info($"房间 {roomInfo.Id} 开始帧同步，玩家数: {PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
-                }
                 else
                 {
-                    ASLogger.Instance.Error($"房间 {roomInfo.Id} LSController 为空，无法保存快照", "FrameSync.Controller");
+                    ASLogger.Instance.Error($"房间 {roomInfo.Id} LSController 不是 ServerLSController 或为空，无法保存快照", "FrameSync.Controller");
                 }
             }
             catch (Exception ex)
@@ -192,21 +173,24 @@ namespace AstrumServer.Managers
             if (!IsActive) return;
             
             try
-            {                var now = TimeInfo.Instance.ClientNow();
-                             
-                             // 目标应到达的帧 = floor((now - StartTime) / interval)
-                             var elapsed = now - StartTime;
-                             if (elapsed < 0) return;
-                             var expectedFrame = (int)(elapsed / FRAME_INTERVAL_MS);
-                             
-                             // 将 AuthorityFrame 补到 expectedFrame，单次最多推进若干帧
-                             var steps = 0;
-                             while (AuthorityFrame < expectedFrame && steps < MAX_ADVANCE_PER_UPDATE)
-                             {
-                                 ProcessFrame();
-                                 steps++;
-                             }
-
+            {
+                // 检查房间是否还有玩家
+                if (!CheckRoomHasPlayers())
+                {
+                    // 房间没有玩家了，停止帧同步
+                    Stop("房间内没有玩家");
+                    return;
+                }
+                
+                // 通过 ServerLSController.Tick() 推进帧（内部会处理多帧推进和回调）
+                if (LogicRoom?.LSController is ServerLSController serverSync)
+                {
+                    serverSync.Tick();
+                }
+                else
+                {
+                    ASLogger.Instance.Error($"房间 {_room.Info.Id} LSController 不是 ServerLSController，无法更新帧同步", "FrameSync.Update");
+                }
             }
             catch (Exception ex)
             {
@@ -263,8 +247,7 @@ namespace AstrumServer.Managers
                 }
                 else
                 {
-                    // 兼容旧代码
-                    StoreFrameInput(lsInput);
+                    ASLogger.Instance.Error($"房间 {_room.Info.Id} LSController 不是 ServerLSController，无法处理输入", "FrameSync.Input");
                 }
                 
                 ASLogger.Instance.Debug($"收到玩家 {lsInput.PlayerId} 的单帧输入，房间: {_room.Info.Id}，客户端帧: {singleInput.FrameID}，服务器帧: {AuthorityFrame}，最终存储帧: {lsInput.Frame}");
@@ -274,254 +257,6 @@ namespace AstrumServer.Managers
                 ASLogger.Instance.Error($"处理单帧输入时出错: {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
-        }
-        
-        /// <summary>
-        /// 处理房间的当前帧
-        /// </summary>
-        private void ProcessFrame()
-        {
-            try
-            {
-                // 检查房间是否还有玩家
-                if (!CheckRoomHasPlayers())
-                {
-                    // 房间没有玩家了，停止帧同步
-                    Stop("房间内没有玩家");
-                    return;
-                }
-                
-                // 推进逻辑世界（通过 ServerLSController.Tick()）
-                if (LogicRoom?.LSController is ServerLSController serverSync)
-                {
-                    // 服务器使用 Tick() 方法推进权威帧（内部会推进 AuthorityFrame、收集输入、执行逻辑）
-                    serverSync.Tick();
-                    
-                    // 同步 GameSession 的 AuthorityFrame（用于兼容性）
-                    AuthorityFrame = serverSync.AuthorityFrame;
-                    
-                    // 收集当前帧的输入数据用于广播
-                    var frameInputs = serverSync.CollectFrameInputs(serverSync.AuthorityFrame);
-                    
-                    // 发送帧同步数据给房间内所有玩家
-                    SendFrameSyncData(serverSync.AuthorityFrame, frameInputs);
-                    
-                    ASLogger.Instance.Debug($"处理房间 {_room.Info.Id} 帧 {serverSync.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}", "FrameSync.Processing");
-                }
-                else if (LogicRoom != null)
-                {
-                    // 兼容旧代码：如果没有 ServerLSController，使用旧方式
-                    AuthorityFrame++;
-                    
-                    var frameInputs = CollectFrameInputs(AuthorityFrame);
-                    
-                    var controller = LogicRoom.LSController;
-                    if (controller != null)
-                    {
-                        controller.AuthorityFrame = AuthorityFrame;
-                    }
-                    
-                    LogicRoom.FrameTick(frameInputs);
-                    
-                    // 发送帧同步数据给房间内所有玩家
-                    SendFrameSyncData(AuthorityFrame, frameInputs);
-                    
-                    ASLogger.Instance.Debug($"处理房间 {_room.Info.Id} 帧 {AuthorityFrame}，输入数: {frameInputs.Inputs.Count}，缓存总帧数: {GetCacheFrameCount()}", "FrameSync.Processing");
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"处理房间帧时出错: {ex.Message}", "FrameSync.Processing");
-                ASLogger.Instance.LogException(ex, LogLevel.Error);
-            }
-        }
-        
-        /// <summary>
-        /// 存储帧输入数据
-        /// </summary>
-        private void StoreFrameInput(LSInput input)
-        {
-            // 登记曾经上报过的非零玩家ID
-            if (input.PlayerId != 0)
-            {
-                _uploadedPlayerIds.Add(input.PlayerId);
-            }
-            // 如果输入帧号已经过了，使用服务器的当前帧号
-            if (input.Frame < AuthorityFrame + 1)
-            {
-                ASLogger.Instance.Debug($"输入帧号 {input.Frame} 已过期，使用服务器当前帧号 {AuthorityFrame + 1}，玩家: {input.PlayerId}");
-                input.Frame = AuthorityFrame + 1;
-            }
-            
-            // 如果输入帧号比服务器当前帧晚太多，限制在合理范围内
-            if (input.Frame > AuthorityFrame + MAX_CACHE_FRAMES)
-            {
-                ASLogger.Instance.Warning($"输入帧号 {input.Frame} 过于超前，限制为 {AuthorityFrame + MAX_CACHE_FRAMES}，玩家: {input.PlayerId}");
-                input.Frame = AuthorityFrame + MAX_CACHE_FRAMES;
-            }
-            
-            if (!_frameInputs.ContainsKey(input.Frame))
-            {
-                _frameInputs[input.Frame] = new Dictionary<long, LSInput>();
-            }
-            
-            _frameInputs[input.Frame][input.PlayerId] = input;
-            
-            // 记录存储后的帧数据状态
-            var framePlayerCount = _frameInputs[input.Frame].Count;
-            var framePlayerIds = string.Join(", ", _frameInputs[input.Frame].Keys.OrderBy(x => x));
-            ASLogger.Instance.Debug($"存储玩家 {input.PlayerId} 的输入数据，帧号: {input.Frame}，该帧当前玩家数: {framePlayerCount}，玩家ID: [{framePlayerIds}]");
-            
-            // 定期清理过期缓存
-            CleanupExpiredCache();
-        }
-        
-        /// <summary>
-        /// 收集指定帧的所有输入数据
-        /// </summary>
-        private OneFrameInputs CollectFrameInputs(int frame)
-        {
-            var frameInputs = OneFrameInputs.Create();
-            
-            // 优先依据历史上报过的玩家ID进行下发（保证所有曾经上报过的玩家都有条目）
-            if (_uploadedPlayerIds.Count > 0)
-            {
-                var hadInputs = _frameInputs.TryGetValue(frame, out var inputsThisFrame) ? inputsThisFrame : null;
-                foreach (var playerId in _uploadedPlayerIds.OrderBy(x => x))
-                {
-                    if (playerId == 0) continue; // 保险过滤
-                    if (hadInputs != null && hadInputs.TryGetValue(playerId, out var actual))
-                    {
-                        frameInputs.Inputs[playerId] = actual;
-                    }
-                    else
-                    {
-                        // 为本帧未上报的历史玩家使用上一帧的输入
-                        var previousFrameInput = GetPreviousFrameInput(playerId, frame);
-                        frameInputs.Inputs[playerId] = previousFrameInput;
-                        ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，使用上一帧输入");
-                    }
-                }
-            }
-            else
-            {
-                // 如果还没有历史上报ID，则仅收集本帧实际收到的有效输入（排除0）
-                if (_frameInputs.TryGetValue(frame, out var inputs))
-                {
-                    foreach (var kvp in inputs)
-                    {
-                        var playerId = kvp.Key;
-                        var input = kvp.Value;
-                        if (playerId != 0)
-                        {
-                            frameInputs.Inputs[playerId] = input;
-                        }
-                    }
-                }
-            }
-            
-            // 详细记录收集到的玩家ID
-            var collectedPlayerIds = string.Join(", ", frameInputs.Inputs.Keys.OrderBy(x => x));
-            ASLogger.Instance.Debug($"收集帧 {frame} 的输入数据，玩家数: {frameInputs.Inputs.Count}，玩家ID: [{collectedPlayerIds}]");
-            
-            return frameInputs;
-        }
-        
-        /// <summary>
-        /// 创建默认的空输入
-        /// </summary>
-        private LSInput CreateDefaultInput(long playerId, int frame)
-        {
-            var defaultInput = LSInput.Create();
-            defaultInput.PlayerId = playerId;
-            defaultInput.Frame = frame;
-            defaultInput.MoveX = 0;
-            defaultInput.MoveY = 0;
-            defaultInput.Attack = false;
-            defaultInput.Skill1 = false;
-            defaultInput.Skill2 = false;
-            defaultInput.BornInfo = 0;
-            defaultInput.Timestamp = TimeInfo.Instance.ClientNow();
-            return defaultInput;
-        }
-        
-        /// <summary>
-        /// 获取玩家上一帧的输入，如果找不到则返回默认空输入
-        /// </summary>
-        private LSInput GetPreviousFrameInput(long playerId, int currentFrame)
-        {
-            // 从当前帧往前查找，最多查找10帧
-            for (int frameOffset = 1; frameOffset <= 10; frameOffset++)
-            {
-                int previousFrame = currentFrame - frameOffset;
-                if (previousFrame < 0) break;
-                
-                if (_frameInputs.TryGetValue(previousFrame, out var previousInputs) &&
-                    previousInputs.TryGetValue(playerId, out var previousInput))
-                {
-                    // 找到上一帧的输入，复制并更新帧号和时间戳
-                    var input = LSInput.Create();
-                    input.PlayerId = playerId;
-                    input.Frame = currentFrame;
-                    input.MoveX = previousInput.MoveX;
-                    input.MoveY = previousInput.MoveY;
-                    input.Attack = previousInput.Attack;
-                    input.Skill1 = previousInput.Skill1;
-                    input.Skill2 = previousInput.Skill2;
-                    input.BornInfo = previousInput.BornInfo;
-                    input.Timestamp = TimeInfo.Instance.ClientNow();
-                    
-                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {currentFrame} 使用帧 {previousFrame} 的输入");
-                    return input;
-                }
-            }
-            
-            // 如果找不到任何历史输入，返回默认空输入
-            ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {currentFrame} 找不到历史输入，使用默认空输入");
-            return CreateDefaultInput(playerId, currentFrame);
-        }
-        
-        /// <summary>
-        /// 清理过期的帧数据缓存
-        /// </summary>
-        private void CleanupExpiredCache()
-        {
-            // 每60帧清理一次，避免频繁清理
-            if (AuthorityFrame - _lastCleanupFrame < CACHE_CLEANUP_INTERVAL)
-            {
-                return;
-            }
-            
-            _lastCleanupFrame = AuthorityFrame;
-            
-            var framesToRemove = new List<int>();
-            var cutoffFrame = AuthorityFrame - MAX_CACHE_FRAMES;
-            
-            foreach (var frame in _frameInputs.Keys)
-            {
-                if (frame < cutoffFrame)
-                {
-                    framesToRemove.Add(frame);
-                }
-            }
-            
-            foreach (var frame in framesToRemove)
-            {
-                _frameInputs.Remove(frame);
-            }
-            
-            if (framesToRemove.Count > 0)
-            {
-                ASLogger.Instance.Debug($"清理了 {framesToRemove.Count} 个过期帧缓存，当前缓存帧数: {_frameInputs.Count}");
-            }
-        }
-        
-        /// <summary>
-        /// 获取当前缓存的帧数
-        /// </summary>
-        public int GetCacheFrameCount()
-        {
-            return _frameInputs.Count;
         }
         
         /// <summary>
@@ -655,8 +390,8 @@ namespace AstrumServer.Managers
             {
                 var notification = FrameSyncStartNotification.Create();
                 notification.roomId = _room.Info.Id;
-                notification.frameRate = FRAME_RATE;
-                notification.frameInterval = FRAME_INTERVAL_MS;
+                notification.frameRate = LSConstValue.FrameCountPerSecond;
+                notification.frameInterval = LSConstValue.UpdateInterval;
                 notification.startTime = StartTime;
                 notification.playerIds = new List<string>(PlayerIds);
                 notification.worldSnapshot = worldSnapshotData;

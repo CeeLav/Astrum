@@ -163,7 +163,7 @@ namespace AstrumServer.Managers
         }
 
         /// <summary>
-        /// 获取房间信息（兼容旧接口）
+        /// 获取房间信息
         /// </summary>
         public RoomInfo? GetRoomInfo(string roomId)
         {

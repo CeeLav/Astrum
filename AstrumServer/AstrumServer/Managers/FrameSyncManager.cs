@@ -27,9 +27,9 @@ namespace AstrumServer.Managers
         private readonly ServerNetworkManager _networkManager;
         private readonly UserManager _userManager;
         
-        // 帧同步配置
-        private const int FRAME_RATE = 20; // 20FPS
-        private const int FRAME_INTERVAL_MS = 1000 / FRAME_RATE; // 50ms
+        // 帧同步配置（使用 LSConstValue）
+        private const int FRAME_RATE = LSConstValue.FrameCountPerSecond; // 20FPS
+        private const int FRAME_INTERVAL_MS = LSConstValue.UpdateInterval; // 50ms
         
         // 房间帧同步状态
         private readonly ConcurrentDictionary<string, RoomFrameSyncState> _roomFrameStates = new();
@@ -229,11 +229,9 @@ namespace AstrumServer.Managers
                         existingServerSync.FrameBuffer.MoveForward(currentFrame);
                         existingServerSync.SaveState();
                     }
-                    else if (existingState.LogicRoom?.LSController != null)
+                    else
                     {
-                        // 兼容旧代码：使用基础接口
-                        existingState.LogicRoom.LSController.FrameBuffer.MoveForward(currentFrame);
-                        existingState.LogicRoom.LSController.SaveState();
+                        ASLogger.Instance.Error($"房间 {roomId} LSController 不是 ServerLSController，无法保存快照", "FrameSync.Room");
                     }
                     
                     var snapshotBuffer = existingState.LogicRoom?.LSController?.FrameBuffer?.Snapshot(currentFrame);
@@ -313,24 +311,9 @@ namespace AstrumServer.Managers
                     
                     ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
                 }
-                else if (frameState.LogicRoom?.LSController != null)
-                {
-                    // 兼容旧代码：使用基础接口
-                    frameState.LogicRoom.LSController.AuthorityFrame = 0;
-                    frameState.LogicRoom.LSController.FrameBuffer.MoveForward(0);
-                    frameState.LogicRoom.LSController.SaveState();
-                    
-                    var snapshotBuffer = frameState.LogicRoom.LSController.FrameBuffer.Snapshot(0);
-                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
-                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
-                    
-                    _roomFrameStates[roomId] = frameState;
-                    SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
-                    ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
-                }
                 else
                 {
-                    ASLogger.Instance.Error($"房间 {roomId} LSController 为空，无法保存快照", "FrameSync.Room");
+                    ASLogger.Instance.Error($"房间 {roomId} LSController 不是 ServerLSController 或为空，无法保存快照", "FrameSync.Room");
                 }
             }
             catch (Exception ex)
@@ -482,10 +465,6 @@ namespace AstrumServer.Managers
                 notification.frameRate = FRAME_RATE;
                 notification.frameInterval = FRAME_INTERVAL_MS;
                 notification.startTime = frameState.StartTime;
-                // 兼容客户端Room/LSController的CreationTime对齐
-                // 使用服务端帧开始时间作为CreationTime基准
-                // 若有更精细定义，可替换为真实Room创建时间
-                // 此处沿用frameState.StartTime以减少歧义
                 // 客户端将据此设置 Room.CreationTime/LSController.CreationTime
                 
                 notification.playerIds = new List<string>(frameState.PlayerIds);
