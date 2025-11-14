@@ -38,18 +38,15 @@ namespace AstrumServer.Managers
         private readonly RoomManager _roomManager;
         private readonly UserManager _userManager;
         private readonly IServerNetworkManager _networkManager;
-        private readonly FrameSyncManager _frameSyncManager;
-        
         // 上次检查超时的时间
         private long _lastTimeoutCheckTime = 0;
         private const long TIMEOUT_CHECK_INTERVAL_MS = 5000; // 5秒检查一次超时
         
-        public MatchmakingManager(RoomManager roomManager, UserManager userManager, IServerNetworkManager networkManager, FrameSyncManager frameSyncManager)
+        public MatchmakingManager(RoomManager roomManager, UserManager userManager, IServerNetworkManager networkManager)
         {
             _roomManager = roomManager;
             _userManager = userManager;
             _networkManager = networkManager;
-            _frameSyncManager = frameSyncManager;
             _lastTimeoutCheckTime = TimeInfo.Instance.ClientNow();
         }
 
@@ -248,28 +245,27 @@ namespace AstrumServer.Managers
                 
                 // 创建房间
                 var room = _roomManager.CreateRoom(creatorId, roomName, QUICK_MATCH_MAX_PLAYERS);
-                room.IsQuickMatch = true; // 标记为快速匹配房间
                 
                 // 将创建者之外的玩家加入房间
                 for (int i = 1; i < players.Count; i++)
                 {
                     var playerId = players[i].UserId;
-                    if (!_roomManager.JoinRoom(room.Id, playerId))
+                    if (!_roomManager.JoinRoom(room.Info.Id, playerId))
                     {
-                        ASLogger.Instance.Warning($"MatchmakingManager: 玩家加入房间失败: {playerId} -> {room.Id}");
+                        ASLogger.Instance.Warning($"MatchmakingManager: 玩家加入房间失败: {playerId} -> {room.Info.Id}");
                     }
                 }
                 
                 // 更新所有玩家的房间信息
                 foreach (var player in players)
                 {
-                    _userManager.UpdateUserRoom(player.UserId, room.Id);
+                    _userManager.UpdateUserRoom(player.UserId, room.Info.Id);
                 }
                 
                 // 快速匹配直接开始游戏（不再发送中间通知）
                 AutoStartQuickMatchGame(room, players);
                 
-                ASLogger.Instance.Info($"MatchmakingManager: 创建快速匹配房间成功并自动开始游戏: {room.Id}, 玩家数: {players.Count}");
+                ASLogger.Instance.Info($"MatchmakingManager: 创建快速匹配房间成功并自动开始游戏: {room.Info.Id}, 玩家数: {players.Count}");
             }
             catch (Exception ex)
             {
@@ -318,16 +314,17 @@ namespace AstrumServer.Managers
         /// <summary>
         /// 快速匹配自动开始游戏
         /// </summary>
-        private void AutoStartQuickMatchGame(RoomInfo room, List<MatchmakingEntry> players)
+        private void AutoStartQuickMatchGame(ServerRoom room, List<MatchmakingEntry> players)
         {
             try
             {
-                ASLogger.Instance.Info($"MatchmakingManager: 快速匹配自动开始游戏 - 房间: {room.Id}");
+                var firstPlayer = players[0];
+                ASLogger.Instance.Info($"MatchmakingManager: 快速匹配自动开始游戏 - 房间: {room.Info.Id}");
                 
                 // 1. 调用房间管理器开始游戏
-                if (!_roomManager.StartGame(room.Id, room.CreatorName))
+                if (!_roomManager.StartGame(room.Info.Id, room.Info.CreatorName))
                 {
-                    ASLogger.Instance.Warning($"MatchmakingManager: 房间管理器开始游戏失败: {room.Id}");
+                    ASLogger.Instance.Warning($"MatchmakingManager: 房间管理器开始游戏失败: {room.Info.Id}");
                     return;
                 }
                 
@@ -342,19 +339,19 @@ namespace AstrumServer.Managers
 
                 // 3. 构建游戏房间状态
                 var roomState = GameRoomState.Create();
-                roomState.roomId = room.Id;
+                roomState.roomId = room.Info.Id;
                 roomState.currentRound = 1;
                 roomState.maxRounds = gameConfig.maxRounds;
                 roomState.roundStartTime = TimeInfo.Instance.ClientNow();
-                roomState.activePlayers = new List<string>(room.PlayerNames);
+                roomState.activePlayers = new List<string>(room.Info.PlayerNames);
 
                 // 4. 创建游戏开始通知
                 var notification = GameStartNotification.Create();
-                notification.roomId = room.Id;
+                notification.roomId = room.Info.Id;
                 notification.config = gameConfig;
                 notification.roomState = roomState;
-                notification.startTime = room.GameStartTime;
-                notification.playerIds = new List<string>(room.PlayerNames);
+                notification.startTime = room.Info.GameStartTime;
+                notification.playerIds = new List<string>(room.Info.PlayerNames);
 
                 // 5. 发送 GameStartNotification 给房间内所有玩家
                 foreach (var player in players)
@@ -367,12 +364,10 @@ namespace AstrumServer.Managers
                     }
                 }
                 
-                ASLogger.Instance.Info($"MatchmakingManager: 已通知房间 {room.Id} 的所有玩家游戏开始 (Players: {room.CurrentPlayers})");
+                ASLogger.Instance.Info($"MatchmakingManager: 已通知房间 {room.Info.Id} 的所有玩家游戏开始 (Players: {room.Info.CurrentPlayers})");
                 
-                // 6. 启动房间帧同步
-                _frameSyncManager.StartRoomFrameSync(room.Id);
-                
-                ASLogger.Instance.Info($"MatchmakingManager: 房间 {room.Id} 帧同步已启动");
+                // 6. 启动房间帧同步（已在步骤1中完成，这里不需要重复调用）
+                ASLogger.Instance.Info($"MatchmakingManager: 房间 {room.Info.Id} 帧同步已启动");
             }
             catch (Exception ex)
             {

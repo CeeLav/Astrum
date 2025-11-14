@@ -38,6 +38,87 @@ namespace AstrumServer.Managers
         private static readonly object _logicEnvironmentLock = new();
         private static string? _logicConfigPathCache = null;
         
+        /// <summary>
+        /// 确保逻辑环境已初始化（静态方法，供 GameSession 调用）
+        /// </summary>
+        public static void EnsureLogicEnvironmentInitializedStatic()
+        {
+            if (_logicEnvironmentInitialized)
+            {
+                return;
+            }
+
+            lock (_logicEnvironmentLock)
+            {
+                if (_logicEnvironmentInitialized)
+                {
+                    return;
+                }
+
+                try
+                {
+                    string? configPath = null;
+
+                    // 优先使用环境变量
+                    var envConfigPath = Environment.GetEnvironmentVariable("ASTRUM_CONFIG_PATH");
+                    if (!string.IsNullOrWhiteSpace(envConfigPath) && Directory.Exists(envConfigPath))
+                    {
+                        configPath = Path.GetFullPath(envConfigPath);
+                    }
+                    else
+                    {
+                        // 从当前程序集所在目录向上查找，直到找到包含 AstrumConfig 的目录
+                        var currentDir = AppContext.BaseDirectory;
+                        var searchDir = new DirectoryInfo(currentDir);
+                        const int maxLevels = 10; // 最多向上查找10级
+                        int levels = 0;
+
+                        while (searchDir != null && levels < maxLevels)
+                        {
+                            var candidatePath = Path.Combine(searchDir.FullName, "AstrumConfig", "Tables", "output", "Client");
+                            if (Directory.Exists(candidatePath))
+                            {
+                                configPath = candidatePath;
+                                break;
+                            }
+                            searchDir = searchDir.Parent;
+                            levels++;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(configPath) || !Directory.Exists(configPath))
+                    {
+                        throw new DirectoryNotFoundException(
+                            $"未能找到客户端配置目录。请确保 AstrumConfig/Tables/output/Client 目录存在，" +
+                            $"或设置环境变量 ASTRUM_CONFIG_PATH 指向配置目录。当前工作目录: {AppContext.BaseDirectory}");
+                    }
+
+                    _logicConfigPathCache = configPath;
+
+                    if (!TableConfig.Instance.IsInitialized || !string.Equals(TableConfig.Instance.GetConfigPath(), configPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        TableConfig.Instance.Initialize(configPath);
+                    }
+
+                    // 预热关键单例
+                    ArchetypeRegistry.Instance.Initialize();
+                    _ = ActionConfig.Instance;
+                    _ = SkillConfig.Instance;
+                    _ = ComponentFactory.Instance;
+
+                    ASLogger.Instance.Info($"逻辑环境初始化完成，配置路径: {configPath}", "Logic.Init");
+
+                    _logicEnvironmentInitialized = true;
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"初始化逻辑环境失败: {ex.Message}", "Logic.Init");
+                    ASLogger.Instance.LogException(ex, LogLevel.Error);
+                    throw;
+                }
+            }
+        }
+        
         // 运行状态（弃用定时器，改为在Update中推进）
         private bool _isRunning = false;
         private const int MAX_ADVANCE_PER_UPDATE = 5; // 单次Update最多补帧数，防止雪崩
@@ -116,22 +197,23 @@ namespace AstrumServer.Managers
         }
         
         /// <summary>
-        /// 为房间开始帧同步
+        /// 为房间开始帧同步（已废弃，现在由 ServerRoom.StartGame() 自动处理）
         /// </summary>
+        [Obsolete("此方法已废弃，现在由 ServerRoom.StartGame() 自动处理帧同步")]
         public void StartRoomFrameSync(string roomId)
         {
             try
             {
-                var roomInfo = _roomManager.GetRoom(roomId);
-                if (roomInfo == null)
+                var room = _roomManager.GetRoom(roomId);
+                if (room == null)
                 {
                     ASLogger.Instance.Warning($"房间不存在，无法开始帧同步: {roomId}", "FrameSync.Room");
                     return;
                 }
                 
-                if (roomInfo.Status != 1) // 1=游戏中
+                if (room.Info.Status != 1) // 1=游戏中
                 {
-                    ASLogger.Instance.Warning($"房间不在游戏中，无法开始帧同步: {roomId} (Status: {roomInfo.Status})", "FrameSync.Room");
+                    ASLogger.Instance.Warning($"房间不在游戏中，无法开始帧同步: {roomId} (Status: {room.Info.Status})", "FrameSync.Room");
                     return;
                 }
                 
@@ -172,17 +254,17 @@ namespace AstrumServer.Managers
                     AuthorityFrame = 0,
                     IsActive = true,
                     StartTime = TimeInfo.Instance.ClientNow(),
-                    PlayerIds = new List<string>(roomInfo.PlayerNames),
+                    PlayerIds = new List<string>(room.Info.PlayerNames),
                     UserIdToPlayerId = new Dictionary<string, long>()
                 };
 
                 // 初始化逻辑环境与房间
                 EnsureLogicEnvironmentInitialized();
 
-                frameState.LogicRoom = CreateLogicRoom(roomId, roomInfo, frameState.StartTime);
+                frameState.LogicRoom = CreateLogicRoom(roomId, room.Info, frameState.StartTime);
                 
                 // 创建所有玩家实体（按 UserId 顺序，确保 UniqueId 一致）
-                foreach (var userId in roomInfo.PlayerNames.OrderBy(x => x))
+                foreach (var userId in room.Info.PlayerNames.OrderBy(x => x))
                 {
                     var playerId = frameState.LogicRoom.AddPlayer(); // 创建玩家实体，返回 UniqueId
                     if (playerId > 0)
@@ -755,15 +837,15 @@ namespace AstrumServer.Managers
             try
             {
                 // 检查房间是否还存在
-                var roomInfo = _roomManager.GetRoom(roomId);
-                if (roomInfo == null)
+                var room = _roomManager.GetRoom(roomId);
+                if (room == null)
                 {
                     ASLogger.Instance.Debug($"房间 {roomId} 不存在，停止帧同步");
                     return false;
                 }
                 
                 // 检查房间是否还有玩家
-                if (roomInfo.CurrentPlayers == 0)
+                if (room.Info.CurrentPlayers == 0)
                 {
                     ASLogger.Instance.Debug($"房间 {roomId} 没有玩家，停止帧同步");
                     return false;
@@ -856,80 +938,8 @@ namespace AstrumServer.Managers
 
         private void EnsureLogicEnvironmentInitialized()
         {
-            if (_logicEnvironmentInitialized)
-            {
-                return;
-            }
-
-            lock (_logicEnvironmentLock)
-            {
-                if (_logicEnvironmentInitialized)
-                {
-                    return;
-                }
-
-                try
-                {
-                    string? configPath = null;
-
-                    // 优先使用环境变量
-                    var envConfigPath = Environment.GetEnvironmentVariable("ASTRUM_CONFIG_PATH");
-                    if (!string.IsNullOrWhiteSpace(envConfigPath) && Directory.Exists(envConfigPath))
-                    {
-                        configPath = Path.GetFullPath(envConfigPath);
-                    }
-                    else
-                    {
-                        // 从当前程序集所在目录向上查找，直到找到包含 AstrumConfig 的目录
-                        var currentDir = AppContext.BaseDirectory;
-                        var searchDir = new DirectoryInfo(currentDir);
-                        const int maxLevels = 10; // 最多向上查找10级
-                        int levels = 0;
-
-                        while (searchDir != null && levels < maxLevels)
-                        {
-                            var candidatePath = Path.Combine(searchDir.FullName, "AstrumConfig", "Tables", "output", "Client");
-                            if (Directory.Exists(candidatePath))
-                            {
-                                configPath = candidatePath;
-                                break;
-                            }
-                            searchDir = searchDir.Parent;
-                            levels++;
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(configPath) || !Directory.Exists(configPath))
-                    {
-                        throw new DirectoryNotFoundException(
-                            $"未能找到客户端配置目录。请确保 AstrumConfig/Tables/output/Client 目录存在，" +
-                            $"或设置环境变量 ASTRUM_CONFIG_PATH 指向配置目录。当前工作目录: {AppContext.BaseDirectory}");
-                    }
-
-                    _logicConfigPathCache = configPath;
-
-                    if (!TableConfig.Instance.IsInitialized || !string.Equals(TableConfig.Instance.GetConfigPath(), configPath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        TableConfig.Instance.Initialize(configPath);
-                    }
-
-                    // 预热关键单例
-                    ArchetypeRegistry.Instance.Initialize();
-                    _ = ActionConfig.Instance;
-                    _ = SkillConfig.Instance;
-                    _ = ComponentFactory.Instance;
-
-                    ASLogger.Instance.Info($"逻辑环境初始化完成，配置路径: {configPath}", "Logic.Init");
-
-                    _logicEnvironmentInitialized = true;
-                }
-                catch (Exception ex)
-                {
-                    ASLogger.Instance.Error($"初始化逻辑环境失败: {ex.Message}", "Logic.Init");
-                    ASLogger.Instance.LogException(ex, LogLevel.Error);
-                    throw;
-                }
-            }
+            // 调用静态方法
+            EnsureLogicEnvironmentInitializedStatic();
         }
     }
     

@@ -37,9 +37,9 @@ namespace AstrumServer.Core
             
             // 使用ASLogger创建管理器
             _userManager = new UserManager();
-            _roomManager = new RoomManager();
+            _roomManager = new RoomManager(_networkManager, _userManager);
             _frameSyncManager = new FrameSyncManager(_roomManager, _networkManager, _userManager);
-            _matchmakingManager = new MatchmakingManager(_roomManager, _userManager, _networkManager, _frameSyncManager);
+            _matchmakingManager = new MatchmakingManager(_roomManager, _userManager, _networkManager);
             
             _networkManager.SetLogger(ASLogger.Instance);
         }
@@ -67,8 +67,7 @@ namespace AstrumServer.Core
                 _networkManager.OnMessageReceived += OnMessageReceived;
                 _networkManager.OnError += OnNetworkError;
                 
-                // 启动帧同步管理器
-                _frameSyncManager.Start();
+                // 帧同步现在由 RoomManager 统一管理，无需单独启动
                 
                 ASLogger.Instance.Info("Astrum游戏服务器启动成功，监听端口: 8888");
                 
@@ -80,8 +79,8 @@ namespace AstrumServer.Core
                         // 更新网络服务
                         _networkManager.Update();
                         
-                        // 帧同步推进（基于时间计算应到达的帧）
-                        _frameSyncManager.Update();
+                        // 更新所有房间（包括帧同步推进）
+                        _roomManager.UpdateAllRooms();
                         
                         // 更新匹配系统（检查匹配和超时）
                         _matchmakingManager.Update();
@@ -325,18 +324,18 @@ namespace AstrumServer.Core
                 }
                 
                 // 创建房间
-                var roomInfo = _roomManager.CreateRoom(userInfo.Id, request.RoomName, request.MaxPlayers);
+                var room = _roomManager.CreateRoom(userInfo.Id, request.RoomName, request.MaxPlayers);
                 
                 // 更新用户房间信息
-                _userManager.UpdateUserRoom(userInfo.Id, roomInfo.Id);
+                _userManager.UpdateUserRoom(userInfo.Id, room.Info.Id);
                 
                 // 发送创建成功响应
-                SendCreateRoomResponse(client.Id.ToString(), true, "房间创建成功", roomInfo);
+                SendCreateRoomResponse(client.Id.ToString(), true, "房间创建成功", room.Info);
                 
                 // 通知房间内所有玩家房间更新
-                NotifyRoomUpdate(roomInfo, "created", userInfo.Id);
+                NotifyRoomUpdate(room.Info, "created", userInfo.Id);
                 
-                ASLogger.Instance.Info($"用户 {userInfo.Id} 创建房间成功，房间ID: {roomInfo.Id}");
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 创建房间成功，房间ID: {room.Info.Id}");
             }
             catch (Exception ex)
             {
@@ -371,16 +370,19 @@ namespace AstrumServer.Core
                 var success = _roomManager.JoinRoom(request.RoomId, userInfo.Id);
                 if (success)
                 {
-                    var roomInfo = _roomManager.GetRoom(request.RoomId);
-                    _userManager.UpdateUserRoom(userInfo.Id, request.RoomId);
-                    
-                    // 发送加入成功响应
-                    SendJoinRoomResponse(client.Id.ToString(), true, "加入房间成功", roomInfo);
-                    
-                    // 通知房间内所有玩家房间更新
-                    NotifyRoomUpdate(roomInfo, "joined", userInfo.Id);
-                    
-                    ASLogger.Instance.Info($"用户 {userInfo.Id} 加入房间成功: {request.RoomId}");
+                    var room = _roomManager.GetRoom(request.RoomId);
+                    if (room != null)
+                    {
+                        _userManager.UpdateUserRoom(userInfo.Id, request.RoomId);
+                        
+                        // 发送加入成功响应
+                        SendJoinRoomResponse(client.Id.ToString(), true, "加入房间成功", room.Info);
+                        
+                        // 通知房间内所有玩家房间更新
+                        NotifyRoomUpdate(room.Info, "joined", userInfo.Id);
+                        
+                        ASLogger.Instance.Info($"用户 {userInfo.Id} 加入房间成功: {request.RoomId}");
+                    }
                 }
                 else
                 {
@@ -419,16 +421,15 @@ namespace AstrumServer.Core
                     SendLeaveRoomResponse(client.Id.ToString(), true, "离开房间成功", request.RoomId);
                     
                     // 获取更新后的房间信息并通知其他玩家
-                    var roomInfo = _roomManager.GetRoom(request.RoomId);
-                    if (roomInfo != null)
+                    var room = _roomManager.GetRoom(request.RoomId);
+                    if (room != null)
                     {
-                        NotifyRoomUpdate(roomInfo, "left", userInfo.Id);
+                        NotifyRoomUpdate(room.Info, "left", userInfo.Id);
                     }
                     else
                     {
-                        // 房间已被删除（房间变空），停止帧同步
-                        _frameSyncManager.StopRoomFrameSync(request.RoomId, "房间内所有玩家已离开");
-                        ASLogger.Instance.Info($"房间 {request.RoomId} 已变空，停止帧同步");
+                        // 房间已被删除（房间变空），帧同步已由 Room 自动停止
+                        ASLogger.Instance.Info($"房间 {request.RoomId} 已变空");
                     }
                     
                     ASLogger.Instance.Info($"用户 {userInfo.Id} 离开房间成功: {request.RoomId}");
@@ -679,8 +680,8 @@ namespace AstrumServer.Core
                     return;
                 }
                 
-                var roomInfo = _roomManager.GetRoom(userInfo.CurrentRoomId);
-                if (roomInfo == null)
+                var room = _roomManager.GetRoom(userInfo.CurrentRoomId);
+                if (room == null)
                 {
                     ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试开始游戏但房间不存在: {userInfo.CurrentRoomId}");
                     SendGameResponse(client.Id.ToString(), false, "房间不存在");
@@ -688,17 +689,17 @@ namespace AstrumServer.Core
                 }
                 
                 // 检查是否为房主
-                if (roomInfo.CreatorName != userInfo.Id)
+                if (room.Info.CreatorName != userInfo.Id)
                 {
                     ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试开始游戏但不是房主");
                     SendGameResponse(client.Id.ToString(), false, "只有房主才能开始游戏");
                     return;
                 }
                 
-                // 使用房间管理器开始游戏
-                if (!_roomManager.StartGame(roomInfo.Id, userInfo.Id))
+                // 使用房间管理器开始游戏（会自动启动帧同步）
+                if (!_roomManager.StartGame(room.Info.Id, userInfo.Id))
                 {
-                    ASLogger.Instance.Warning($"房间管理器开始游戏失败: {roomInfo.Id}");
+                    ASLogger.Instance.Warning($"房间管理器开始游戏失败: {room.Info.Id}");
                     SendGameResponse(client.Id.ToString(), false, "开始游戏失败");
                     return;
                 }
@@ -707,12 +708,9 @@ namespace AstrumServer.Core
                 SendGameResponse(client.Id.ToString(), true, "游戏开始成功");
 
                 // 先通知房间内所有玩家游戏开始（构建客户端房间/舞台）
-                NotifyGameStart(roomInfo, userInfo.Id);
-
-                // 再开始房间帧同步（并下发 FrameSyncStartNotification）
-                _frameSyncManager.StartRoomFrameSync(roomInfo.Id);
+                NotifyGameStart(room.Info, userInfo.Id);
                 
-                ASLogger.Instance.Info($"用户 {userInfo.Id} 开始游戏成功 - 房间: {roomInfo.Id}");
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 开始游戏成功 - 房间: {room.Info.Id}");
             }
             catch (Exception ex)
             {
@@ -744,8 +742,8 @@ namespace AstrumServer.Core
                     return;
                 }
                 
-                var roomInfo = _roomManager.GetRoom(userInfo.CurrentRoomId);
-                if (roomInfo == null)
+                var room = _roomManager.GetRoom(userInfo.CurrentRoomId);
+                if (room == null)
                 {
                     ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试结束游戏但房间不存在: {userInfo.CurrentRoomId}");
                     SendGameResponse(client.Id.ToString(), false, "房间不存在");
@@ -753,31 +751,28 @@ namespace AstrumServer.Core
                 }
                 
                 // 检查是否为房主
-                if (roomInfo.CreatorName != userInfo.Id)
+                if (room.Info.CreatorName != userInfo.Id)
                 {
                     ASLogger.Instance.Warning($"用户 {userInfo.Id} 尝试结束游戏但不是房主");
                     SendGameResponse(client.Id.ToString(), false, "只有房主才能结束游戏");
                     return;
                 }
                 
-                // 使用房间管理器结束游戏
-                if (!_roomManager.EndGame(roomInfo.Id, "房主主动结束"))
+                // 使用房间管理器结束游戏（会自动停止帧同步）
+                if (!_roomManager.EndGame(room.Info.Id, "房主主动结束"))
                 {
-                    ASLogger.Instance.Warning($"房间管理器结束游戏失败: {roomInfo.Id}");
+                    ASLogger.Instance.Warning($"房间管理器结束游戏失败: {room.Info.Id}");
                     SendGameResponse(client.Id.ToString(), false, "结束游戏失败");
                     return;
                 }
-                
-                // 停止房间帧同步
-                _frameSyncManager.StopRoomFrameSync(roomInfo.Id, "房主主动结束");
                 
                 // 发送结束游戏成功响应
                 SendGameResponse(client.Id.ToString(), true, "游戏结束成功");
                 
                 // 通知房间内所有玩家游戏结束
-                NotifyGameEnd(roomInfo, "房主主动结束");
+                NotifyGameEnd(room.Info, "房主主动结束");
                 
-                ASLogger.Instance.Info($"用户 {userInfo.Id} 结束游戏成功 - 房间: {roomInfo.Id}");
+                ASLogger.Instance.Info($"用户 {userInfo.Id} 结束游戏成功 - 房间: {room.Info.Id}");
             }
             catch (Exception ex)
             {
@@ -885,8 +880,16 @@ namespace AstrumServer.Core
                     return;
                 }
                 
-                // 将单帧输入数据传递给帧同步管理器
-                _frameSyncManager.HandleSingleInput(userInfo.CurrentRoomId, singleInput);
+                // 将单帧输入数据传递给房间
+                var room = _roomManager.GetRoom(userInfo.CurrentRoomId);
+                if (room != null)
+                {
+                    room.HandleInput(userInfo.Id, singleInput);
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 发送单帧输入但房间不存在: {userInfo.CurrentRoomId}");
+                }
                 
                 ASLogger.Instance.Debug($"处理用户 {userInfo.Id} 的单帧输入，房间: {userInfo.CurrentRoomId}，帧: {singleInput.FrameID}");
             }
@@ -1050,9 +1053,7 @@ namespace AstrumServer.Core
         {
             try
             {
-                // 停止帧同步管理器
-                _frameSyncManager.Stop();
-                ASLogger.Instance.Info("帧同步管理器已停止");
+                // 帧同步现在由 RoomManager 统一管理，房间销毁时会自动停止
                 
                 _networkManager.Shutdown();
                 ASLogger.Instance.Info("网络管理器已停止");

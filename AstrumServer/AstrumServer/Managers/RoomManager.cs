@@ -4,25 +4,29 @@ using System.Collections.Generic;
 using System.Linq;
 using Astrum.Generated;
 using Astrum.CommonBase;
+using AstrumServer.Network;
 
 namespace AstrumServer.Managers
 {
     /// <summary>
-    /// 房间管理器 - 管理所有房间
+    /// 房间管理器 - 管理所有房间实例
     /// </summary>
     public class RoomManager
     {
-        private readonly ConcurrentDictionary<string, RoomInfo> _rooms = new();
-        private readonly ConcurrentDictionary<string, List<string>> _roomPlayers = new(); // roomId -> List<userId>
+        private readonly ConcurrentDictionary<string, ServerRoom> _rooms = new();
+        private readonly ServerNetworkManager _networkManager;
+        private readonly UserManager _userManager;
 
-        public RoomManager()
+        public RoomManager(ServerNetworkManager networkManager, UserManager userManager)
         {
+            _networkManager = networkManager;
+            _userManager = userManager;
         }
 
         /// <summary>
         /// 创建房间
         /// </summary>
-        public RoomInfo CreateRoom(string creatorId, string roomName, int maxPlayers)
+        public ServerRoom CreateRoom(string creatorId, string roomName, int maxPlayers)
         {
             try
             {
@@ -41,13 +45,15 @@ namespace AstrumServer.Managers
                 roomInfo.GameStartTime = 0;
                 roomInfo.GameEndTime = 0;
 
+                // 创建房间实例
+                var room = new ServerRoom(roomInfo, _networkManager, _userManager);
+                
                 // 添加到管理器中
-                _rooms[roomId] = roomInfo;
-                _roomPlayers[roomId] = new List<string> { creatorId };
+                _rooms[roomId] = room;
 
                 ASLogger.Instance.Info($"创建房间: {roomId} (Name: {roomName}, Creator: {creatorId}, MaxPlayers: {maxPlayers})");
 
-                return roomInfo;
+                return room;
             }
             catch (Exception ex)
             {
@@ -64,36 +70,13 @@ namespace AstrumServer.Managers
         {
             try
             {
-                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                if (!_rooms.TryGetValue(roomId, out var room))
                 {
                     ASLogger.Instance.Warning($"房间不存在: {roomId}");
                     return false;
                 }
 
-                if (roomInfo.CurrentPlayers >= roomInfo.MaxPlayers)
-                {
-                    ASLogger.Instance.Warning($"房间已满: {roomId} (Current: {roomInfo.CurrentPlayers}, Max: {roomInfo.MaxPlayers})");
-                    return false;
-                }
-
-                if (roomInfo.PlayerNames.Contains(userId))
-                {
-                    ASLogger.Instance.Warning($"用户已在房间中: {userId} in {roomId}");
-                    return false;
-                }
-
-                // 添加用户到房间
-                roomInfo.CurrentPlayers++;
-                roomInfo.PlayerNames.Add(userId);
-
-                if (_roomPlayers.TryGetValue(roomId, out var players))
-                {
-                    players.Add(userId);
-                }
-
-                ASLogger.Instance.Info($"用户加入房间: {userId} -> {roomId} (Current: {roomInfo.CurrentPlayers}/{roomInfo.MaxPlayers})");
-
-                return true;
+                return room.AddPlayer(userId);
             }
             catch (Exception ex)
             {
@@ -110,43 +93,28 @@ namespace AstrumServer.Managers
         {
             try
             {
-                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                if (!_rooms.TryGetValue(roomId, out var room))
                 {
                     ASLogger.Instance.Warning($"房间不存在: {roomId}");
                     return false;
                 }
 
-                if (!roomInfo.PlayerNames.Contains(userId))
-                {
-                    ASLogger.Instance.Warning($"用户不在房间中: {userId} in {roomId}");
-                    return false;
-                }
-
-                // 从房间移除用户
-                roomInfo.CurrentPlayers--;
-                roomInfo.PlayerNames.Remove(userId);
-
-                if (_roomPlayers.TryGetValue(roomId, out var players))
-                {
-                    players.Remove(userId);
-                }
-
-                ASLogger.Instance.Info($"用户离开房间: {userId} <- {roomId} (Current: {roomInfo.CurrentPlayers}/{roomInfo.MaxPlayers})");
+                var success = room.RemovePlayer(userId);
 
                 // 如果房间空了，检查游戏状态并处理
-                if (roomInfo.CurrentPlayers == 0)
+                if (room.Info.CurrentPlayers == 0)
                 {
                     // 如果游戏正在进行中，先结束游戏
-                    if (roomInfo.Status == 1) // 1=游戏中
+                    if (room.Info.Status == 1) // 1=游戏中
                     {
-                        EndGame(roomId, "房间内所有玩家已离开");
+                        room.EndGame("房间内所有玩家已离开");
                     }
                     
                     // 删除房间
-                    DeleteRoom(roomId);
+                    DestroyRoom(roomId);
                 }
 
-                return true;
+                return success;
             }
             catch (Exception ex)
             {
@@ -157,17 +125,21 @@ namespace AstrumServer.Managers
         }
 
         /// <summary>
-        /// 删除房间
+        /// 销毁房间
         /// </summary>
-        public bool DeleteRoom(string roomId)
+        public bool DestroyRoom(string roomId)
         {
             try
             {
-                if (_rooms.TryRemove(roomId, out var roomInfo))
+                if (_rooms.TryRemove(roomId, out var room))
                 {
-                    _roomPlayers.TryRemove(roomId, out _);
+                    // 如果游戏正在进行中，先结束游戏
+                    if (room.IsPlaying)
+                    {
+                        room.EndGame("房间被销毁");
+                    }
                     
-                    ASLogger.Instance.Info($"删除房间: {roomId} (Name: {roomInfo.Name})");
+                    ASLogger.Instance.Info($"删除房间: {roomId} (Name: {room.Info.Name})");
                     return true;
                 }
 
@@ -182,12 +154,20 @@ namespace AstrumServer.Managers
         }
 
         /// <summary>
-        /// 获取房间信息
+        /// 获取房间实例
         /// </summary>
-        public RoomInfo? GetRoom(string roomId)
+        public ServerRoom? GetRoom(string roomId)
         {
-            _rooms.TryGetValue(roomId, out var roomInfo);
-            return roomInfo;
+            _rooms.TryGetValue(roomId, out var room);
+            return room;
+        }
+
+        /// <summary>
+        /// 获取房间信息（兼容旧接口）
+        /// </summary>
+        public RoomInfo? GetRoomInfo(string roomId)
+        {
+            return GetRoom(roomId)?.Info;
         }
 
         /// <summary>
@@ -195,7 +175,15 @@ namespace AstrumServer.Managers
         /// </summary>
         public List<RoomInfo> GetAllRooms()
         {
-            return _rooms.Values.ToList();
+            return _rooms.Values.Select(r => r.Info).ToList();
+        }
+
+        /// <summary>
+        /// 获取所有房间实例
+        /// </summary>
+        public IEnumerable<ServerRoom> GetAllRoomInstances()
+        {
+            return _rooms.Values;
         }
 
         /// <summary>
@@ -219,9 +207,9 @@ namespace AstrumServer.Managers
         /// </summary>
         public bool IsUserInRoom(string userId, string roomId)
         {
-            if (_rooms.TryGetValue(roomId, out var roomInfo))
+            if (_rooms.TryGetValue(roomId, out var room))
             {
-                return roomInfo.PlayerNames.Contains(userId);
+                return room.Info.PlayerNames.Contains(userId);
             }
             return false;
         }
@@ -234,8 +222,8 @@ namespace AstrumServer.Managers
             foreach (var kvp in _rooms)
             {
                 var roomId = kvp.Key;
-                var roomInfo = kvp.Value;
-                if (roomInfo.PlayerNames.Contains(userId))
+                var room = kvp.Value;
+                if (room.Info.PlayerNames.Contains(userId))
                 {
                     return roomId;
                 }
@@ -248,9 +236,9 @@ namespace AstrumServer.Managers
         /// </summary>
         public List<string> GetRoomPlayers(string roomId)
         {
-            if (_roomPlayers.TryGetValue(roomId, out var players))
+            if (_rooms.TryGetValue(roomId, out var room))
             {
-                return new List<string>(players);
+                return new List<string>(room.Info.PlayerNames);
             }
             return new List<string>();
         }
@@ -275,9 +263,9 @@ namespace AstrumServer.Managers
             foreach (var kvp in _rooms)
             {
                 var roomId = kvp.Key;
-                var roomInfo = kvp.Value;
+                var room = kvp.Value;
                 
-                if (roomInfo.CurrentPlayers == 0)
+                if (room.Info.CurrentPlayers == 0)
                 {
                     emptyRooms.Add(roomId);
                 }
@@ -285,7 +273,7 @@ namespace AstrumServer.Managers
 
             foreach (var roomId in emptyRooms)
             {
-                DeleteRoom(roomId);
+                DestroyRoom(roomId);
             }
 
             if (emptyRooms.Count > 0)
@@ -301,30 +289,28 @@ namespace AstrumServer.Managers
         {
             try
             {
-                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                if (!_rooms.TryGetValue(roomId, out var room))
                 {
                     ASLogger.Instance.Warning($"房间不存在: {roomId}");
                     return false;
                 }
 
-                if (roomInfo.Status != 0) // 0=等待中
+                if (room.Info.Status != 0) // 0=等待中
                 {
-                    ASLogger.Instance.Warning($"房间状态不是等待中，无法开始游戏: {roomId} (Status: {roomInfo.Status})");
+                    ASLogger.Instance.Warning($"房间状态不是等待中，无法开始游戏: {roomId} (Status: {room.Info.Status})");
                     return false;
                 }
 
-                if (roomInfo.CreatorName != hostId)
+                if (room.Info.CreatorName != hostId)
                 {
-                    ASLogger.Instance.Warning($"只有房主才能开始游戏: {hostId} (Creator: {roomInfo.CreatorName})");
+                    ASLogger.Instance.Warning($"只有房主才能开始游戏: {hostId} (Creator: {room.Info.CreatorName})");
                     return false;
                 }
 
-                // 更新房间状态
-                roomInfo.Status = 1; // 1=游戏中
-                roomInfo.GameStartTime = TimeInfo.Instance.ClientNow();
-                roomInfo.GameEndTime = 0;
+                // 调用房间的开始游戏方法
+                room.StartGame();
 
-                ASLogger.Instance.Info($"房间开始游戏: {roomId} (Host: {hostId}, Players: {roomInfo.CurrentPlayers})");
+                ASLogger.Instance.Info($"房间开始游戏: {roomId} (Host: {hostId}, Players: {room.Info.CurrentPlayers})");
 
                 return true;
             }
@@ -343,23 +329,22 @@ namespace AstrumServer.Managers
         {
             try
             {
-                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                if (!_rooms.TryGetValue(roomId, out var room))
                 {
                     ASLogger.Instance.Warning($"房间不存在: {roomId}");
                     return false;
                 }
 
-                if (roomInfo.Status != 1) // 1=游戏中
+                if (room.Info.Status != 1) // 1=游戏中
                 {
-                    ASLogger.Instance.Warning($"房间不在游戏中，无法结束游戏: {roomId} (Status: {roomInfo.Status})");
+                    ASLogger.Instance.Warning($"房间不在游戏中，无法结束游戏: {roomId} (Status: {room.Info.Status})");
                     return false;
                 }
 
-                // 更新房间状态
-                roomInfo.Status = 2; // 2=已结束
-                roomInfo.GameEndTime = TimeInfo.Instance.ClientNow();
+                // 调用房间的结束游戏方法
+                room.EndGame(reason);
 
-                ASLogger.Instance.Info($"房间结束游戏: {roomId} (Reason: {reason}, Duration: {roomInfo.GameEndTime - roomInfo.GameStartTime}ms)");
+                ASLogger.Instance.Info($"房间结束游戏: {roomId} (Reason: {reason})");
 
                 return true;
             }
@@ -378,16 +363,14 @@ namespace AstrumServer.Managers
         {
             try
             {
-                if (!_rooms.TryGetValue(roomId, out var roomInfo))
+                if (!_rooms.TryGetValue(roomId, out var room))
                 {
                     ASLogger.Instance.Warning($"房间不存在: {roomId}");
                     return false;
                 }
 
-                // 重置房间状态
-                roomInfo.Status = 0; // 0=等待中
-                roomInfo.GameStartTime = 0;
-                roomInfo.GameEndTime = 0;
+                // 调用房间的重置方法
+                room.Reset();
 
                 ASLogger.Instance.Info($"重置房间状态: {roomId}");
 
@@ -407,13 +390,32 @@ namespace AstrumServer.Managers
         public (int totalRooms, int totalPlayers, int emptyRooms, int waitingRooms, int playingRooms, int finishedRooms) GetRoomStatistics()
         {
             var totalRooms = _rooms.Count;
-            var totalPlayers = _rooms.Values.Sum(r => r.CurrentPlayers);
-            var emptyRooms = _rooms.Values.Count(r => r.CurrentPlayers == 0);
-            var waitingRooms = _rooms.Values.Count(r => r.Status == 0); // 0=等待中
-            var playingRooms = _rooms.Values.Count(r => r.Status == 1); // 1=游戏中
-            var finishedRooms = _rooms.Values.Count(r => r.Status == 2); // 2=已结束
+            var totalPlayers = _rooms.Values.Sum(r => r.Info.CurrentPlayers);
+            var emptyRooms = _rooms.Values.Count(r => r.Info.CurrentPlayers == 0);
+            var waitingRooms = _rooms.Values.Count(r => r.Info.Status == 0); // 0=等待中
+            var playingRooms = _rooms.Values.Count(r => r.Info.Status == 1); // 1=游戏中
+            var finishedRooms = _rooms.Values.Count(r => r.Info.Status == 2); // 2=已结束
 
             return (totalRooms, totalPlayers, emptyRooms, waitingRooms, playingRooms, finishedRooms);
         }
+
+        /// <summary>
+        /// 更新所有房间（由 GameServer 调用）
+        /// </summary>
+        public void UpdateAllRooms()
+        {
+            foreach (var room in _rooms.Values)
+            {
+                try
+                {
+                    room.Update();
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"更新房间 {room.Info.Id} 时出错: {ex.Message}");
+                    ASLogger.Instance.LogException(ex, LogLevel.Error);
+                }
+            }
+        }
     }
-} 
+}

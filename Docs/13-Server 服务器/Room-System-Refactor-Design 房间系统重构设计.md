@@ -54,8 +54,9 @@
 │  │  │  - Players, MaxPlayers                      │  │  │
 │  │  └────────────────────────────────────────────┘  │  │
 │  │  ┌────────────────────────────────────────────┐  │  │
-│  │  │  FrameSyncController (帧同步控制器)         │  │  │
+│  │  │  GameSession (游戏会话)                    │  │  │
 │  │  │  - AuthorityFrame                          │  │  │
+│  │  │  - LogicRoom                               │  │  │
 │  │  │  - InputBuffer                             │  │  │
 │  │  │  - ProcessFrame()                          │  │  │
 │  │  └────────────────────────────────────────────┘  │  │
@@ -126,11 +127,8 @@ public class Room
     // 房间信息
     public RoomInfo Info { get; private set; }
     
-    // 帧同步控制器
-    private FrameSyncController _frameSyncController;
-    
-    // 逻辑房间
-    private Room? _logicRoom;
+    // 游戏会话
+    private GameSession? _gameSession;
     
     // 玩家列表
     private readonly List<string> _playerIds = new();
@@ -148,7 +146,7 @@ public class Room
         Info = roomInfo;
         _networkManager = networkManager;
         _userManager = userManager;
-        _frameSyncController = new FrameSyncController(this);
+        _gameSession = new GameSession(this, networkManager, userManager);
     }
     
     // 玩家管理
@@ -159,7 +157,7 @@ public class Room
     public void StartGame();
     public void EndGame(string reason);
     
-    // 帧同步
+    // 游戏会话
     public void Update(); // 由 RoomManager 统一调用
     public void HandleInput(string userId, SingleInput input);
     
@@ -169,11 +167,12 @@ public class Room
 }
 ```
 
-#### FrameSyncController（帧同步控制器）
+#### GameSession（游戏会话）
 
-**职责**: 管理单个房间的帧同步逻辑
+**职责**: 管理单个房间的游戏逻辑和帧同步
 
 **核心功能**:
+- 管理逻辑房间（LogicRoom）
 - 管理帧号（AuthorityFrame）
 - 收集和缓存输入数据
 - 推进帧逻辑
@@ -181,13 +180,17 @@ public class Room
 
 **设计要点**:
 - 从 FrameSyncManager 中提取出来，作为 Room 的内部组件
-- 封装帧同步相关的所有逻辑
+- 封装游戏逻辑和帧同步相关的所有逻辑
+- 持有 LogicRoom，管理整个游戏会话
 - 通过 Room 访问网络和用户管理
 
 ```csharp
-public class FrameSyncController
+public class GameSession
 {
-    private readonly Room _room;
+    private readonly ServerRoom _room;
+    
+    // 逻辑房间
+    public Astrum.LogicCore.Core.Room? LogicRoom { get; private set; }
     
     // 帧同步状态
     public int AuthorityFrame { get; private set; }
@@ -200,15 +203,17 @@ public class FrameSyncController
     // 玩家ID映射
     private readonly Dictionary<string, long> _userIdToPlayerId = new();
     
-    public FrameSyncController(Room room)
+    public GameSession(ServerRoom room, ServerNetworkManager networkManager, UserManager userManager)
     {
         _room = room;
+        _networkManager = networkManager;
+        _userManager = userManager;
     }
     
-    // 开始帧同步
+    // 开始游戏会话
     public void Start();
     
-    // 停止帧同步
+    // 停止游戏会话
     public void Stop(string reason);
     
     // 更新帧（由 Room.Update 调用）
@@ -241,12 +246,12 @@ Room 初始化完成，返回给 GameServer
 ```
 GameServer.Update()
     ↓
-RoomManager.UpdateAllRooms()
+    RoomManager.UpdateAllRooms()
     ↓
 foreach Room in _rooms:
     Room.Update()
         ↓
-    FrameSyncController.Update()
+    GameSession.Update()
         ↓
     ProcessFrame()
         ↓
@@ -264,7 +269,7 @@ RoomManager.GetRoom(roomId)
     ↓
 Room.HandleInput(userId, input)
     ↓
-FrameSyncController.HandleInput(userId, input)
+GameSession.HandleInput(userId, input)
     ↓
 存储到输入缓冲区
 ```
@@ -305,13 +310,14 @@ private readonly ConcurrentDictionary<string, Room> _rooms = new();
 
 **状态管理**:
 - 房间状态通过 `RoomInfo.Status` 管理
-- 帧同步状态通过 `FrameSyncController.IsActive` 管理
+- 帧同步状态通过 `GameSession.IsActive` 管理
 - 游戏逻辑状态通过 `LogicRoom` 管理
 
-### 3.3 FrameSyncController 实现
+### 3.3 GameSession 实现
 
 **从 FrameSyncManager 提取的逻辑**:
 - `RoomFrameSyncState` 的所有字段和方法
+- LogicRoom 的创建和管理
 - 帧输入缓冲和收集逻辑
 - 帧推进逻辑
 - 帧数据发送逻辑
@@ -323,13 +329,13 @@ private readonly ConcurrentDictionary<string, Room> _rooms = new();
 ### 3.4 迁移策略
 
 **阶段1: 创建新类**
-- 创建 `Room` 类
-- 创建 `FrameSyncController` 类
+- 创建 `ServerRoom` 类
+- 创建 `GameSession` 类
 - 保持现有代码不变
 
 **阶段2: 逐步迁移**
-- 修改 `RoomManager` 管理 `Room` 实例
-- 将 `FrameSyncManager` 的逻辑迁移到 `FrameSyncController`
+- 修改 `RoomManager` 管理 `ServerRoom` 实例
+- 将 `FrameSyncManager` 的逻辑迁移到 `GameSession`
 - 更新 `GameServer` 调用新接口
 
 **阶段3: 清理旧代码**
@@ -355,7 +361,7 @@ private readonly ConcurrentDictionary<string, Room> _rooms = new();
 
 **影响**:
 - FrameSyncManager 职责大幅简化
-- 主要逻辑都在 Room 和 FrameSyncController 中
+- 主要逻辑都在 Room 和 GameSession 中
 
 ### 问题：Room 如何访问网络和用户管理？
 
@@ -380,7 +386,7 @@ private readonly ConcurrentDictionary<string, Room> _rooms = new();
 **备选方案**:
 1. **Room 直接管理**: Room 创建和管理 LogicRoom
 2. **延迟创建**: 游戏开始时才创建 LogicRoom
-3. **外部管理**: 由 FrameSyncController 管理
+3. **外部管理**: 由 GameSession 管理
 
 **选择**: 方案2 - 延迟创建
 
@@ -390,7 +396,7 @@ private readonly ConcurrentDictionary<string, Room> _rooms = new();
 - 符合按需创建原则
 
 **影响**:
-- StartGame 时需要创建 LogicRoom
+- StartGame 时 GameSession 会创建 LogicRoom
 - 需要处理创建失败的情况
 
 ## 5. 与现有系统的关系
@@ -418,7 +424,7 @@ private readonly ConcurrentDictionary<string, Room> _rooms = new();
 ### 6.1 单元测试
 
 - Room 的玩家管理功能
-- FrameSyncController 的输入处理和帧推进
+- GameSession 的输入处理和帧推进
 - RoomManager 的房间生命周期管理
 
 ### 6.2 集成测试
