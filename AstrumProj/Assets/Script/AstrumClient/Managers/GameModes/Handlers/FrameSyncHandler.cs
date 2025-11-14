@@ -53,7 +53,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     // 如果 Stage 已存在，设置 Room 到 Stage
                     if (_gameMode.MainStage != null)
                     {
-                        _gameMode.MainStage.SetRoom(room);
+                        _gameMode.SetRoomAndStage(room, _gameMode.MainStage);
                         ASLogger.Instance.Info($"已设置 Room 到现有 Stage", "FrameSync.Client");
                     }
                     else

@@ -223,28 +223,46 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 实体创建事件处理
+        /// 创建 EntityView（公共方法，供事件和同步方法调用）
         /// </summary>
-        /// <param name="eventData">事件数据</param>
+        /// <param name="entityId">实体ID</param>
+        /// <param name="entityName">实体名称（用于日志）</param>
+        /// <returns>是否创建成功</returns>
+        private bool CreateEntityViewInternal(long entityId, string entityName = null)
+        {
+            // 检查是否已存在
+            if (_entityViews.ContainsKey(entityId))
+            {
+                ASLogger.Instance.Debug($"Stage: EntityView 已存在，跳过创建 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
+                return false;
+            }
+            
+            // 创建 EntityView
+            var entityView = EntityViewFactory.Instance.CreateEntityView(entityId, this);
+            
+            if (entityView != null)
+            {
+                _entityViews[entityId] = entityView;
+                entityView.Transform.SetParent(StageRoot.transform);
+                OnEntityViewAdded?.Invoke(entityView);
+                ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
+                return true;
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"Stage: 无法创建实体视图 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
+                return false;
+            }
+        }
+        
         private void OnEntityCreated(EntityCreatedEventData eventData)
         {
             if (eventData.RoomId != _roomId || eventData.EntityId <= 0) return;
             
-            ASLogger.Instance.Info($"Stage: 收到实体创建事件 - {eventData.EntityName} (ID: {eventData.EntityId})");
+            ASLogger.Instance.Info($"Stage: 收到实体创建事件 - {eventData.EntityName} (ID: {eventData.EntityId})", "Stage.Event");
             
-            var entityView = EntityViewFactory.Instance.CreateEntityView(eventData.EntityId, this);
-            
-            if (entityView != null)
-            {
-                _entityViews[eventData.EntityId] = entityView;
-                entityView.Transform.SetParent(StageRoot.transform);
-                OnEntityViewAdded?.Invoke(entityView);
-                ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {eventData.EntityName}");
-            }
-            else
-            {
-                ASLogger.Instance.Warning($"Stage: 无法创建实体视图 - {eventData.EntityName} (ID: {eventData.EntityId})");
-            }
+            // 调用公共方法创建 EntityView
+            CreateEntityViewInternal(eventData.EntityId, eventData.EntityName);
         }
         
         /// <summary>
@@ -288,13 +306,9 @@ namespace Astrum.View.Core
                     
                     if (!_entityViews.ContainsKey(entity.UniqueId))
                     {
-                        // 创建 EntityView
-                        var entityView = EntityViewFactory.Instance.CreateEntityView(entity.UniqueId, this);
-                        if (entityView != null)
+                        // 调用公共方法创建 EntityView（与事件处理使用相同的逻辑）
+                        if (CreateEntityViewInternal(entity.UniqueId, entity.Name))
                         {
-                            _entityViews[entity.UniqueId] = entityView;
-                            entityView.Transform.SetParent(StageRoot.transform);
-                            OnEntityViewAdded?.Invoke(entityView);
                             createdCount++;
                             ASLogger.Instance.Debug($"Stage: 同步创建 EntityView - {entity.Name} (ID: {entity.UniqueId})", "Stage.Sync");
                         }

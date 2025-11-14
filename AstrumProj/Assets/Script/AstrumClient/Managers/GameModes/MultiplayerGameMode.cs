@@ -1,6 +1,7 @@
 using System;
 using Astrum.CommonBase;
 using Astrum.Client.Core;
+using Astrum.Client.Data;
 using Astrum.Client.Managers.GameModes.Handlers;
 using Astrum.Generated;
 using Astrum.LogicCore.Core;
@@ -192,6 +193,7 @@ namespace Astrum.Client.Managers.GameModes
             MainRoom = room;
             MainStage = stage;
             View.Managers.VFXManager.Instance.CurrentStage = stage;
+            MainStage.SetRoom(room);
             IsRunning = true;
         }
         
@@ -404,7 +406,7 @@ namespace Astrum.Client.Managers.GameModes
                     // 如果 Room 已存在（FrameSyncStartNotification 先到达），设置 Room 到 Stage
                     if (MainRoom != null)
                     {
-                        stage.SetRoom(MainRoom);
+                        SetRoomAndStage(MainRoom, MainStage);
                         ASLogger.Instance.Info($"已设置现有 Room 到 Stage", "MultiplayerGameMode");
                     }
                     
@@ -576,11 +578,52 @@ namespace Astrum.Client.Managers.GameModes
             // 订阅EntityView创建事件，用于设置相机跟随
             stage.OnEntityViewAdded += OnEntityViewAdded;
             
+            // 查找现有的 Entity 中是否有 Player，如果有则设置
+            FindAndSetupPlayer();
+            
             // 联机模式：请求创建玩家
-            RequestCreatePlayer();
+            //RequestCreatePlayer();
             ChangeState(GameModeState.Playing);
             
             ASLogger.Instance.Info("MultiplayerGameMode: 游戏准备完成");
+        }
+        
+        /// <summary>
+        /// 查找现有的 Entity 中是否有 Player，如果有则设置相关属性
+        /// </summary>
+        private void FindAndSetupPlayer()
+        {
+            if (MainRoom?.MainWorld == null)
+            {
+                ASLogger.Instance.Warning("MultiplayerGameMode: MainRoom 或 MainWorld 为空，无法查找 Player", "MultiplayerGameMode");
+                return;
+            }
+            
+            // 如果 PlayerId 已经设置，检查对应的 Entity 是否存在
+            if (PlayerId > 0)
+            {
+                var playerEntity = MainRoom.MainWorld.GetEntity(PlayerId);
+                if (playerEntity != null && !playerEntity.IsDestroyed)
+                {
+                    ASLogger.Instance.Info($"MultiplayerGameMode: 找到现有 Player Entity - ID: {PlayerId}, Name: {playerEntity.Name}", "MultiplayerGameMode");
+                    
+                    // 确保 MainRoom.MainPlayerId 已设置
+                    if (MainRoom.MainPlayerId != PlayerId)
+                    {
+                        MainRoom.MainPlayerId = PlayerId;
+                        ASLogger.Instance.Info($"MultiplayerGameMode: 设置 MainRoom.MainPlayerId = {PlayerId}", "MultiplayerGameMode");
+                    }
+                    
+                    // 设置相机跟随主玩家（如果 EntityView 已创建）
+                    SetCameraFollowMainPlayer();
+
+                    return;
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"MultiplayerGameMode: PlayerId 已设置 ({PlayerId})，但对应的 Entity 不存在或已销毁", "MultiplayerGameMode");
+                }
+            }
         }
         
         /// <summary>

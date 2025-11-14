@@ -105,7 +105,9 @@ namespace AstrumServer.Managers
                     serverSync.OnFrameProcessed = (frame, frameInputs) =>
                     {
                         SendFrameSyncData(frame, frameInputs);
-                        ASLogger.Instance.Debug($"处理房间 {roomInfo.Id} 帧 {frame}，输入数: {frameInputs.Inputs.Count}", "FrameSync.Processing");
+                        // 避免在日志中直接使用 frameInputs，防止触发 ToString() 导致序列化错误
+                        var inputCount = frameInputs?.Inputs?.Count ?? 0;
+                        ASLogger.Instance.Debug($"处理房间 {roomInfo.Id} 帧 {frame}，输入数: {inputCount}", "FrameSync.Processing");
                     };
                     
                     serverSync.AuthorityFrame = 0;
@@ -502,7 +504,9 @@ namespace AstrumServer.Managers
                 frameData.frameInputs = frameInputs;
                 frameData.timestamp = TimeInfo.Instance.ClientNow();
                 
-                ASLogger.Instance.Debug($"发送帧同步数据 - 房间: {_room.Info.Id}, 帧: {authorityFrame}, 输入数: {frameInputs.Inputs.Count}, 时间戳: {frameData.timestamp}", "FrameSync.Send");
+                // 避免在日志中直接使用 frameInputs，防止触发 ToString() 导致序列化错误
+                var inputCount = frameInputs?.Inputs?.Count ?? 0;
+                ASLogger.Instance.Debug($"发送帧同步数据 - 房间: {_room.Info.Id}, 帧: {authorityFrame}, 输入数: {inputCount}, 时间戳: {frameData.timestamp}", "FrameSync.Send");
                 
                 // 发送给房间内所有玩家
                 int successCount = 0;

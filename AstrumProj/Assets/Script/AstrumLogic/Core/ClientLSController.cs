@@ -269,8 +269,7 @@ namespace Astrum.LogicCore.Core
         public void SaveState()
         {
             // 客户端使用 PredictionFrame 保存状态（因为客户端是基于预测帧执行的）
-            // 但如果 AuthorityFrame 有效，优先使用 AuthorityFrame（用于回滚）
-            int frame = AuthorityFrame >= 0 ? AuthorityFrame : PredictionFrame;
+            int frame = PredictionFrame;
             
             // 检查帧号是否有效
             if (frame < 0)

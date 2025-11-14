@@ -185,9 +185,6 @@ namespace Astrum.Client.Input
             
             if (!plane.Raycast(ray, out float distance))
             {
-                ASLogger.Instance.Info(
-                    "LSInputAssembler: Raycast did not hit plane, reset mouse position",
-                    "Input.Mouse");
                 if (hasMouseX)
                 {
                     input.MouseWorldX = 0;
