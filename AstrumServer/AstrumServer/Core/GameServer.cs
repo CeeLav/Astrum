@@ -696,6 +696,10 @@ namespace AstrumServer.Core
                     return;
                 }
                 
+                // 先通知房间内所有玩家游戏开始（构建客户端房间/舞台）
+                // 注意：必须在 StartGame 之前发送，确保客户端游戏模式已切换
+                NotifyGameStart(room.Info, userInfo.Id);
+                
                 // 使用房间管理器开始游戏（会自动启动帧同步）
                 if (!_roomManager.StartGame(room.Info.Id, userInfo.Id))
                 {
@@ -706,9 +710,13 @@ namespace AstrumServer.Core
                 
                 // 发送开始游戏成功响应
                 SendGameResponse(client.Id.ToString(), true, "游戏开始成功");
-
-                // 先通知房间内所有玩家游戏开始（构建客户端房间/舞台）
-                NotifyGameStart(room.Info, userInfo.Id);
+                
+                // 发送帧同步开始通知（在 GameStartNotification 之后）
+                var gameSession = room.GetGameSession();
+                if (gameSession != null)
+                {
+                    gameSession.SendFrameSyncStartNotificationIfReady();
+                }
                 
                 ASLogger.Instance.Info($"用户 {userInfo.Id} 开始游戏成功 - 房间: {room.Info.Id}");
             }

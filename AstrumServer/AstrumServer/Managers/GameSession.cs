@@ -98,7 +98,7 @@ namespace AstrumServer.Managers
                 // 启动帧同步控制器
                 LogicRoom?.LSController?.Start();
                 
-                // 保存第0帧快照
+                // 保存第0帧快照（但不立即发送通知，由外部调用 SendFrameSyncStartNotificationIfReady() 发送）
                 if (LogicRoom?.LSController is ServerLSController serverSync)
                 {
                     // 设置回调，在每帧推进后发送帧数据
@@ -112,21 +112,7 @@ namespace AstrumServer.Managers
                     serverSync.FrameBuffer.MoveForward(0);
                     serverSync.SaveState();
                     
-                    // 获取快照数据
-                    var snapshotBuffer = serverSync.FrameBuffer.Snapshot(0);
-                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
-                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
-                    
-                    // 检查快照大小
-                    if (worldSnapshotData.Length > 1024 * 1024) // 1MB
-                    {
-                        ASLogger.Instance.Warning($"房间 {roomInfo.Id} 快照数据过大: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
-                    }
-                    
-                    // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
-                    SendFrameSyncStartNotification(worldSnapshotData);
-                    
-                    ASLogger.Instance.Info($"房间 {roomInfo.Id} 开始帧同步，玩家数: {PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
+                    ASLogger.Instance.Info($"房间 {roomInfo.Id} 帧同步已初始化，玩家数: {PlayerIds.Count}，等待发送 FrameSyncStartNotification", "FrameSync.Controller");
                 }
                 else
                 {
@@ -382,7 +368,44 @@ namespace AstrumServer.Managers
         }
         
         /// <summary>
-        /// 发送帧同步开始通知
+        /// 发送帧同步开始通知（如果已准备好）
+        /// 应该在 GameStartNotification 发送后调用
+        /// </summary>
+        public void SendFrameSyncStartNotificationIfReady()
+        {
+            if (!IsActive || LogicRoom?.LSController is not ServerLSController serverSync)
+            {
+                ASLogger.Instance.Warning($"房间 {_room.Info.Id} 帧同步未准备好，无法发送 FrameSyncStartNotification", "FrameSync.Controller");
+                return;
+            }
+            
+            try
+            {
+                // 获取快照数据
+                var snapshotBuffer = serverSync.FrameBuffer.Snapshot(0);
+                byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+                snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+                
+                // 检查快照大小
+                if (worldSnapshotData.Length > 1024 * 1024) // 1MB
+                {
+                    ASLogger.Instance.Warning($"房间 {_room.Info.Id} 快照数据过大: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
+                }
+                
+                // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
+                SendFrameSyncStartNotification(worldSnapshotData);
+                
+                ASLogger.Instance.Info($"房间 {_room.Info.Id} 已发送帧同步开始通知，玩家数: {PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"发送帧同步开始通知时出错: {ex.Message}", "FrameSync.Controller");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 发送帧同步开始通知（内部方法）
         /// </summary>
         private void SendFrameSyncStartNotification(byte[] worldSnapshotData)
         {
