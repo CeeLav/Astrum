@@ -167,9 +167,9 @@ namespace Astrum.Client.Managers.GameModes
                     MainRoom.MainPlayerId = eventData.PlayerID;
                 }
                 
-                if (MainRoom?.LSController != null)
+                if (MainRoom?.LSController is IClientFrameSync clientSync)
                 {
-                    MainRoom.LSController.MaxPredictionFrames = 5;
+                    clientSync.MaxPredictionFrames = 5;
                 }
                 
                 ASLogger.Instance.Info("MultiplayerGameMode: 主玩家创建完成, ID: " + PlayerId);
@@ -212,7 +212,10 @@ namespace Astrum.Client.Managers.GameModes
         public void RequestCreatePlayer()
         {
             var request = SingleInput.Create();
-            request.FrameID = MainRoom.LSController.PredictionFrame;
+            if (MainRoom.LSController is IClientFrameSync clientSync)
+            {
+                request.FrameID = clientSync.PredictionFrame;
+            }
             request.Input = new LSInput();
             request.Input.BornInfo = UserManager.Instance.UserId.GetHashCode();
             NetworkManager.Instance.Send(request);

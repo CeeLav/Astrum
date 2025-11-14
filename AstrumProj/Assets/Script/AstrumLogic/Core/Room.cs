@@ -67,9 +67,9 @@ namespace Astrum.LogicCore.Core
         public List<long> Monsters { get; private set; } = new List<long>();
 
         /// <summary>
-        /// 帧同步控制器
+        /// 帧同步控制器（基础接口，客户端和服务器通用）
         /// </summary>
-        public LSController? LSController { get; set; }
+        public ILSControllerBase? LSController { get; set; }
 
         /// <summary>
         /// 房间创建时间
@@ -200,10 +200,29 @@ namespace Astrum.LogicCore.Core
         public void FrameTick(OneFrameInputs oneFrameInputs)
         {
             // 确保FrameBuffer已经准备好当前帧
-            if (LSController != null && LSController.AuthorityFrame >= 0)
+            if (LSController != null)
             {
-                // 在保存状态前，确保FrameBuffer的MaxFrame已经更新
-                LSController.FrameBuffer.MoveForward(LSController.AuthorityFrame);
+                // 客户端使用 PredictionFrame，服务器使用 AuthorityFrame
+                int frameToUse = -1;
+                if (LSController is IClientFrameSync clientSync)
+                {
+                    frameToUse = clientSync.PredictionFrame;
+                }
+                else if (LSController is IServerFrameSync serverSync)
+                {
+                    frameToUse = serverSync.AuthorityFrame;
+                }
+                else
+                {
+                    // 兼容旧代码：使用 AuthorityFrame
+                    frameToUse = LSController.AuthorityFrame;
+                }
+                
+                if (frameToUse >= 0)
+                {
+                    // 在保存状态前，确保FrameBuffer的MaxFrame已经更新
+                    LSController.FrameBuffer.MoveForward(frameToUse);
+                }
             }
             
             LSController?.SaveState();
@@ -257,7 +276,8 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 初始化房间
         /// </summary>
-        public virtual void Initialize()
+        /// <param name="controllerType">LSController 类型（"client" 或 "server"），默认为 "client"</param>
+        public virtual void Initialize(string controllerType = "client")
         {
             TotalTime = 0f;
             if (MainWorld == null)
@@ -265,13 +285,18 @@ namespace Astrum.LogicCore.Core
                 ASLogger.Instance.Error($"Room {RoomId} has no MainWorld defined.");
             }
             MainWorld?.Initialize(0);
-            // 初始化帧同步控制器
+            
+            // 根据类型创建对应的 LSController
             if (LSController == null)
             {
-                LSController = new LSController
+                if (controllerType == "server")
                 {
-                    Room = this
-                };
+                    LSController = new ServerLSController { Room = this };
+                }
+                else
+                {
+                    LSController = new ClientLSController { Room = this };
+                }
             }
 
             // 初始化所有世界

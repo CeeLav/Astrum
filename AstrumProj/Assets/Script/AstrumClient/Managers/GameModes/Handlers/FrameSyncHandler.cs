@@ -236,26 +236,26 @@ namespace Astrum.Client.Managers.GameModes.Handlers
             try
             {
                 // 将帧输入数据传递给房间的帧同步控制器
-                if (_gameMode.MainRoom.LSController != null)
+                if (_gameMode.MainRoom.LSController is IClientFrameSync clientSync)
                 {
                     // 更新权威帧
                     if (frame > 0)
                     {
-                        _gameMode.MainRoom.LSController.AuthorityFrame = frame;
+                        clientSync.AuthorityFrame = frame;
                     }
                     else
                     {
-                        ++_gameMode.MainRoom.LSController.AuthorityFrame;
+                        ++clientSync.AuthorityFrame;
                     }
                     
-                    _gameMode.MainRoom.LSController.SetOneFrameInputs(frameInputs);
+                    clientSync.SetOneFrameInputs(frameInputs);
                     
                     ASLogger.Instance.Debug(
-                        $"FrameSyncHandler: 处理网络帧输入，帧: {_gameMode.MainRoom.LSController.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}");
+                        $"FrameSyncHandler: 处理网络帧输入，帧: {clientSync.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}");
                 }
                 else
                 {
-                    ASLogger.Instance.Warning("FrameSyncHandler: LSController 不存在，无法处理帧输入");
+                    ASLogger.Instance.Warning("FrameSyncHandler: LSController 不存在或不是客户端控制器，无法处理帧输入");
                 }
             }
             catch (Exception ex)

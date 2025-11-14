@@ -6,6 +6,7 @@ using Astrum.Generated;
 using Astrum.Client.Core;
 using Astrum.Client.Input;
 using Astrum.View.Core;
+using Astrum.LogicCore.Core;
 
 namespace Astrum.Client.Managers
 {
@@ -84,7 +85,10 @@ namespace Astrum.Client.Managers
                 playerTransform
             );
             
-            currentGameMode.MainRoom.LSController.SetPlayerInput(currentGameMode.PlayerId, input);
+            if (currentGameMode.MainRoom.LSController is IClientFrameSync clientSync)
+            {
+                clientSync.SetPlayerInput(currentGameMode.PlayerId, input);
+            }
         }
 
         

@@ -9,9 +9,9 @@ using Astrum.LogicCore.FrameSync;
 namespace Astrum.LogicCore.Core
 {
     /// <summary>
-    /// 帧同步控制器，负责管理帧同步逻辑
+    /// 客户端帧同步控制器，负责管理客户端预测帧同步逻辑
     /// </summary>
-    public class LSController
+    public class ClientLSController : ILSControllerBase, IClientFrameSync
     {
         /// <summary>
         /// 所属房间
@@ -54,7 +54,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         private LSInputSystem _inputSystem;
 
-
         /// <summary>
         /// 最大状态历史数量
         /// </summary>
@@ -65,7 +64,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public bool IsRunning { get; private set; } = false;
 
-        public LSController()
+        public ClientLSController()
         {
             _inputSystem = new LSInputSystem();
             _inputSystem.LSController = this;
@@ -73,7 +72,7 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 执行一帧
+        /// 执行一帧（客户端预测更新）
         /// </summary>
         public void Tick()
         {
@@ -109,7 +108,6 @@ namespace Astrum.LogicCore.Core
                     return;
                 }
             }
-            
         }
 
         /// <summary>
@@ -152,7 +150,6 @@ namespace Astrum.LogicCore.Core
             Room.MainWorld.Cleanup();
             Room.MainWorld = loadedWorld;
             var aInput = FrameBuffer.FrameInputs(frame);
-            //ASLogger.Instance.Warning($"aInput {aInput.Inputs[Room.MainPlayerId].MoveX}");
             Room.FrameTick(aInput);
             for(int i = AuthorityFrame +1; i <= PredictionFrame; ++i)
             {
@@ -160,9 +157,9 @@ namespace Astrum.LogicCore.Core
                 CopyOtherInputsTo(aInput, pInput);
                 Room.FrameTick(pInput);
             }
-            
         }
-        public void CopyOtherInputsTo(OneFrameInputs from, OneFrameInputs to)
+        
+        private void CopyOtherInputsTo(OneFrameInputs from, OneFrameInputs to)
         {
             long myId = Room.MainPlayerId;
             foreach (var kv in from.Inputs)
@@ -178,20 +175,15 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 详细比较两个 OneFrameInputs 的差异
         /// </summary>
-        /// <param name="inputs1">第一个输入</param>
-        /// <param name="inputs2">第二个输入</param>
-        /// <returns>差异描述</returns>
         private string CompareInputs(OneFrameInputs inputs1, OneFrameInputs inputs2)
         {
             var differences = new List<string>();
             
-            // 比较玩家数量
             if (inputs1.Inputs.Count != inputs2.Inputs.Count)
             {
                 differences.Add($"PlayerCount: {inputs1.Inputs.Count} vs {inputs2.Inputs.Count}");
             }
             
-            // 获取所有玩家ID
             var allPlayerIds = inputs1.Inputs.Keys.Union(inputs2.Inputs.Keys).OrderBy(x => x);
             
             foreach (var playerId in allPlayerIds)
@@ -211,7 +203,6 @@ namespace Astrum.LogicCore.Core
                     continue;
                 }
                 
-                // 比较具体输入字段
                 var playerDifferences = CompareSingleInput(input1, input2, playerId);
                 if (!string.IsNullOrEmpty(playerDifferences))
                 {
@@ -225,10 +216,6 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 比较单个 LSInput 的差异
         /// </summary>
-        /// <param name="input1">第一个输入</param>
-        /// <param name="input2">第二个输入</param>
-        /// <param name="playerId">玩家ID</param>
-        /// <returns>差异描述</returns>
         private string CompareSingleInput(LSInput input1, LSInput input2, long playerId)
         {
             var differences = new List<string>();
@@ -274,17 +261,21 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 保存状态
         /// </summary>
-        /// <param name="frame">帧号</param>
         public void SaveState()
         {
-            // 使用AuthorityFrame而不是MainWorld.CurFrame，因为CurFrame会在World.Update()中递增
-            // 而SaveState()是在FrameTick()开始时调用的，此时CurFrame还没有更新
-            int frame = AuthorityFrame;
+            // 客户端使用 PredictionFrame 保存状态（因为客户端是基于预测帧执行的）
+            // 但如果 AuthorityFrame 有效，优先使用 AuthorityFrame（用于回滚）
+            int frame = AuthorityFrame >= 0 ? AuthorityFrame : PredictionFrame;
             
-            // 确保FrameBuffer的MaxFrame已经更新到当前帧
+            // 检查帧号是否有效
+            if (frame < 0)
+            {
+                ASLogger.Instance.Warning($"ClientLSController.SaveState: 帧号无效 (AuthorityFrame: {AuthorityFrame}, PredictionFrame: {PredictionFrame})，跳过保存状态", "FrameSync.SaveState");
+                return;
+            }
+            
             if (frame > FrameBuffer.MaxFrame)
             {
-                // 如果帧号超出MaxFrame，先扩展FrameBuffer
                 while (FrameBuffer.MaxFrame < frame)
                 {
                     FrameBuffer.MoveForward(FrameBuffer.MaxFrame);
@@ -295,7 +286,6 @@ namespace Astrum.LogicCore.Core
             memoryBuffer.Seek(0, SeekOrigin.Begin);
             memoryBuffer.SetLength(0);
             
-            // 记录保存状态前的 World 信息
             if (Room?.MainWorld != null)
             {
                 var world = Room.MainWorld;
@@ -321,7 +311,6 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 加载状态
         /// </summary>
-        /// <param name="frame">帧号</param>
         public World LoadState(int frame)
         {
             var memoryBuffer = FrameBuffer.Snapshot(frame);
@@ -329,12 +318,9 @@ namespace Astrum.LogicCore.Core
             
             ASLogger.Instance.Debug($"加载帧状态 - 帧: {frame}, 数据大小: {memoryBuffer.Length} bytes", "FrameSync.LoadState");
             
-            // 检查快照数据是否为空
             if (memoryBuffer.Length == 0)
             {
                 ASLogger.Instance.Warning($"帧状态快照为空 - 帧: {frame}, 无法加载状态，返回当前World", "FrameSync.LoadState");
-                // 如果快照为空，返回当前World的深拷贝或返回null让调用者处理
-                // 这里返回null，让Rollback方法处理
                 return null;
             }
             
@@ -343,7 +329,6 @@ namespace Astrum.LogicCore.Core
                 World world = MemoryPackHelper.Deserialize( typeof(World),memoryBuffer) as World;
                 memoryBuffer.Seek(0, SeekOrigin.Begin);
                 
-                // 记录加载状态后的 World 信息
                 if (world != null)
                 {
                     ASLogger.Instance.Debug($"帧状态加载完成 - 帧: {frame}, World ID: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.LoadState");
@@ -381,7 +366,6 @@ namespace Astrum.LogicCore.Core
             IsPaused = false;
             AuthorityFrame = 0;
             LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            
         }
 
         /// <summary>
@@ -391,15 +375,11 @@ namespace Astrum.LogicCore.Core
         {
             IsRunning = false;
             IsPaused = false;
-            
-            
         }
         
         /// <summary>
         /// 添加玩家输入
         /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <param name="input">输入数据</param>
         public void SetPlayerInput(long playerId, LSInput input)
         {
             _inputSystem.ClientInput = input;
@@ -414,7 +394,6 @@ namespace Astrum.LogicCore.Core
         public void SetOneFrameInputs(OneFrameInputs inputs)
         {
             _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
-            // 服务端返回的消息比预测的还早,此时使用权威帧的输入覆盖预测帧的输入
             if (AuthorityFrame > PredictionFrame)
             {
                 var aFrame = FrameBuffer.FrameInputs(AuthorityFrame);
@@ -425,14 +404,12 @@ namespace Astrum.LogicCore.Core
                 var pFrame = FrameBuffer.FrameInputs(AuthorityFrame);
                 if (!inputs.Equal(pFrame))
                 {
-                    // 详细比较并输出差异
                     var differences = CompareInputs(inputs, pFrame);
                     ASLogger.Instance.Log(LogLevel.Warning, $"Input Mismatch at Frame {AuthorityFrame}. Rolling back from PredictionFrame {PredictionFrame} to AuthorityFrame {AuthorityFrame}.");
                     ASLogger.Instance.Log(LogLevel.Warning, $"Input Differences: {differences}");
                     
                     inputs.CopyTo(pFrame);
                     
-                    // 检查是否有快照数据可以回滚
                     var snapshotBuffer = FrameBuffer.Snapshot(AuthorityFrame);
                     if (snapshotBuffer.Length > 0)
                     {
@@ -448,6 +425,6 @@ namespace Astrum.LogicCore.Core
             var af = _inputSystem.FrameBuffer.FrameInputs(AuthorityFrame);
             inputs.CopyTo(af);
         }
-        
     }
 }
+

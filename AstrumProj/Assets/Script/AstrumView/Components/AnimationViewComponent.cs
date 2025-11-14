@@ -3,6 +3,7 @@ using Astrum.View.Core;
 using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Managers;
 using System.Collections.Generic;
@@ -739,9 +740,9 @@ namespace Astrum.View.Components
         /// <returns>当前PredictionFrame</returns>
         private int GetCurrentPredictionFrame()
         {
-            if (_ownerEntityView?.Stage?.Room?.LSController != null)
+            if (_ownerEntityView?.Stage?.Room?.LSController is IClientFrameSync clientSync)
             {
-                return _ownerEntityView.Stage.Room.LSController.PredictionFrame;
+                return clientSync.PredictionFrame;
             }
             
             // 如果无法获取，返回0作为fallback
@@ -756,13 +757,13 @@ namespace Astrum.View.Components
         /// <returns>帧同步时间（毫秒）</returns>
         private long CalculatePredictionFrameTime(int predictionFrame)
         {
-            if (_ownerEntityView?.Stage?.Room?.LSController != null)
+            if (_ownerEntityView?.Stage?.Room?.LSController is IClientFrameSync clientSync)
             {
-                // 使用LSController的方法获取指定帧同步时间
-                return _ownerEntityView.Stage.Room.LSController.GetPredictionFrameTime(predictionFrame);
+                // 使用 IClientFrameSync 的方法获取指定帧同步时间
+                return clientSync.GetPredictionFrameTime(predictionFrame);
             }
             
-            // 如果无法获取LSController，使用fallback方法
+            // 如果无法获取 IClientFrameSync，使用fallback方法
             long baseTime = GetFrameSyncBaseTime();
             return baseTime + (predictionFrame * FRAME_UPDATE_INTERVAL_MS);
         }
@@ -787,7 +788,7 @@ namespace Astrum.View.Components
         {
             if (_ownerEntityView?.Stage?.Room?.LSController != null)
             {
-                // 使用房间的帧同步控制器的创建时间作为基准
+                // 使用房间的帧同步控制器的创建时间作为基准（基础接口）
                 return _ownerEntityView.Stage.Room.LSController.CreationTime;
             }
             

@@ -91,7 +91,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public FrameBuffer FrameBuffer { get; private set; }
         
-        public LSController? LSController { get; set; }
+        public ILSControllerBase? LSController { get; set; }
         
         public long MainPlayerId => LSController?.Room?.MainPlayerId ?? -1;
         

@@ -93,10 +93,10 @@ namespace Astrum.Client.Managers.GameModes
             // 单机模式：模拟服务器的权威帧推进
             // 在联机模式下，AuthorityFrame 由服务器通过 FrameSyncData 更新
             // 在单机模式下，我们让 AuthorityFrame 跟随 PredictionFrame
-            if (MainRoom?.LSController != null && MainRoom.LSController.IsRunning)
+            if (MainRoom?.LSController is IClientFrameSync clientSync && clientSync.IsRunning)
             {
                 // 让权威帧等于预测帧（本地模式下无延迟，它们应该相等）
-                MainRoom.LSController.AuthorityFrame = MainRoom.LSController.PredictionFrame;
+                clientSync.AuthorityFrame = clientSync.PredictionFrame;
             }
             
             // 更新 Room 和 Stage
@@ -233,13 +233,13 @@ namespace Astrum.Client.Managers.GameModes
             MainRoom.MainPlayerId = playerID;
             
             // 启动本地帧同步控制器
-            if (MainRoom?.LSController != null && !MainRoom.LSController.IsRunning)
+            if (MainRoom?.LSController is IClientFrameSync clientSync && !clientSync.IsRunning)
             {
                 // 设置本地创建时间
-                MainRoom.LSController.CreationTime = TimeInfo.Instance.ServerNow();
+                clientSync.CreationTime = TimeInfo.Instance.ServerNow();
                 
                 // 启动控制器
-                MainRoom.LSController.Start();
+                clientSync.Start();
                 ASLogger.Instance.Info("SinglePlayerGameMode: 本地帧同步控制器已启动");
             }
             

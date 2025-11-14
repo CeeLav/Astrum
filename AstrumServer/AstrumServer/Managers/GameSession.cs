@@ -241,8 +241,17 @@ namespace AstrumServer.Managers
                 // 详细记录接收到的输入数据
                 LogReceivedInputDetails(userId, lsInput.PlayerId.ToString(), lsInput, AuthorityFrame);
                 
-                // 存储输入数据（内部会处理帧号验证和缓存）
-                StoreFrameInput(lsInput);
+                // 存储输入数据到 ServerLSController
+                if (LogicRoom?.LSController is IServerFrameSync serverSync)
+                {
+                    // 使用 ServerLSController 的输入缓存
+                    serverSync.AddPlayerInput(lsInput.Frame, lsInput.PlayerId, lsInput);
+                }
+                else
+                {
+                    // 兼容旧代码
+                    StoreFrameInput(lsInput);
+                }
                 
                 ASLogger.Instance.Debug($"收到玩家 {lsInput.PlayerId} 的单帧输入，房间: {_room.Info.Id}，客户端帧: {singleInput.FrameID}，服务器帧: {AuthorityFrame}，最终存储帧: {lsInput.Frame}");
             }
@@ -268,38 +277,43 @@ namespace AstrumServer.Managers
                     return;
                 }
                 
-                // 计算目标帧并推进一帧（由Update循环控制推进次数）
-                AuthorityFrame++;
-                
-                // 收集当前帧的所有输入数据（从缓存中获取）
-                var frameInputs = CollectFrameInputs(AuthorityFrame);
-                
-                // 推进逻辑世界
-                if (LogicRoom != null)
+                // 推进逻辑世界（通过 ServerLSController.Tick()）
+                if (LogicRoom?.LSController is IServerFrameSync serverSync)
                 {
+                    // 服务器使用 Tick() 方法推进权威帧（内部会推进 AuthorityFrame、收集输入、执行逻辑）
+                    serverSync.Tick();
+                    
+                    // 同步 GameSession 的 AuthorityFrame（用于兼容性）
+                    AuthorityFrame = serverSync.AuthorityFrame;
+                    
+                    // 收集当前帧的输入数据用于广播
+                    var frameInputs = serverSync.CollectFrameInputs(serverSync.AuthorityFrame);
+                    
+                    // 发送帧同步数据给房间内所有玩家
+                    SendFrameSyncData(serverSync.AuthorityFrame, frameInputs);
+                    
+                    ASLogger.Instance.Debug($"处理房间 {_room.Info.Id} 帧 {serverSync.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}", "FrameSync.Processing");
+                }
+                else if (LogicRoom != null)
+                {
+                    // 兼容旧代码：如果没有 ServerLSController，使用旧方式
+                    AuthorityFrame++;
+                    
+                    var frameInputs = CollectFrameInputs(AuthorityFrame);
+                    
                     var controller = LogicRoom.LSController;
-                    // 在调用FrameTick之前，先更新LSController的AuthorityFrame
-                    // 因为FrameTick内部会使用AuthorityFrame来保存状态
                     if (controller != null)
                     {
                         controller.AuthorityFrame = AuthorityFrame;
-                        if (controller.PredictionFrame < AuthorityFrame)
-                        {
-                            controller.PredictionFrame = AuthorityFrame;
-                        }
                     }
                     
                     LogicRoom.FrameTick(frameInputs);
+                    
+                    // 发送帧同步数据给房间内所有玩家
+                    SendFrameSyncData(AuthorityFrame, frameInputs);
+                    
+                    ASLogger.Instance.Debug($"处理房间 {_room.Info.Id} 帧 {AuthorityFrame}，输入数: {frameInputs.Inputs.Count}，缓存总帧数: {GetCacheFrameCount()}", "FrameSync.Processing");
                 }
-                
-                // 记录实际收集到的玩家数量
-                var actualPlayerCount = frameInputs.Inputs.Count;
-                ASLogger.Instance.Debug($"处理房间 {_room.Info.Id} 帧 {AuthorityFrame}，实际收到输入玩家数: {actualPlayerCount}");
-                
-                // 发送帧同步数据给房间内所有玩家
-                SendFrameSyncData(AuthorityFrame, frameInputs);
-                
-                ASLogger.Instance.Debug($"处理房间 {_room.Info.Id} 帧 {AuthorityFrame}，输入数: {frameInputs.Inputs.Count}，缓存总帧数: {GetCacheFrameCount()}", "FrameSync.Processing");
             }
             catch (Exception ex)
             {
@@ -566,7 +580,7 @@ namespace AstrumServer.Managers
             };
             
             logicRoom.MainWorld = world;
-            logicRoom.Initialize();
+            logicRoom.Initialize("server"); // 指定使用 ServerLSController
             logicRoom.SetServerCreationTime(startTime);
             
             return logicRoom;
