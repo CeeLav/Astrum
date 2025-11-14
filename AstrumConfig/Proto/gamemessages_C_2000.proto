@@ -117,7 +117,9 @@ message FrameSyncStartNotification
     int32 frameRate = 2;       // 帧率 (20FPS)
     int32 frameInterval = 3;   // 帧间隔 (50ms)
     int64 startTime = 4;       // 开始时间
-    repeated string playerIds = 5; // 玩家ID列表
+    repeated string playerIds = 5;           // 玩家ID列表（UserId）
+    bytes worldSnapshot = 6;                // 世界快照数据（第0帧）
+    map<string, int64> playerIdMapping = 7; // UserId -> PlayerId 映射
 }
 
 // 帧同步结束通知

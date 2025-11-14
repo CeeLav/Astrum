@@ -646,11 +646,22 @@ namespace Astrum.Generated
         public long startTime { get; set; }
 
         /// <summary>
-        /// 玩家ID列表
+        /// 玩家ID列表（UserId）
         /// </summary>
         [MemoryPackOrder(4)]
         public List<string> playerIds { get; set; } = new();
 
+        /// <summary>
+        /// 世界快照数据（第0帧）
+        /// </summary>
+        [MemoryPackOrder(5)]
+        public byte[] worldSnapshot { get; set; }
+
+        /// <summary>
+        /// UserId -> PlayerId 映射
+        /// </summary>
+        [MemoryPackOrder(6)]
+        public Dictionary<string, long> playerIdMapping { get; set; } = new();
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -663,6 +674,8 @@ namespace Astrum.Generated
             this.frameInterval = default;
             this.startTime = default;
             this.playerIds.Clear();
+            this.worldSnapshot = default;
+            this.playerIdMapping.Clear();
 
             ObjectPool.Instance.Recycle(this);
         }

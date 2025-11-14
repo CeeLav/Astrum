@@ -135,28 +135,100 @@ namespace AstrumServer.Managers
                     return;
                 }
                 
-                // 创建房间帧同步状态
+                // 检查是否已有房间状态（重连情况）
+                if (_roomFrameStates.TryGetValue(roomId, out var existingState))
+                {
+                    // 重连：保存当前帧快照并发送
+                    var currentFrame = existingState.AuthorityFrame;
+                    
+                    // 确保 FrameBuffer 已经准备好当前帧
+                    if (existingState.LogicRoom?.LSController != null)
+                    {
+                        existingState.LogicRoom.LSController.FrameBuffer.MoveForward(currentFrame);
+                        existingState.LogicRoom.LSController.SaveState();
+                    }
+                    
+                    var snapshotBuffer = existingState.LogicRoom?.LSController?.FrameBuffer?.Snapshot(currentFrame);
+                    if (snapshotBuffer != null && snapshotBuffer.Length > 0)
+                    {
+                        byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+                        snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+                        
+                        // 发送包含当前帧快照的通知
+                        SendFrameSyncStartNotification(roomId, existingState, worldSnapshotData);
+                        ASLogger.Instance.Info($"房间 {roomId} 重连，发送当前帧快照（帧: {currentFrame}）", "FrameSync.Room");
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Warning($"房间 {roomId} 重连，但快照数据为空", "FrameSync.Room");
+                    }
+                    return;
+                }
+                
+                // 新游戏：创建房间帧同步状态
                 var frameState = new RoomFrameSyncState
                 {
                     RoomId = roomId,
                     AuthorityFrame = 0,
                     IsActive = true,
                     StartTime = TimeInfo.Instance.ClientNow(),
-                    PlayerIds = new List<string>(roomInfo.PlayerNames)
+                    PlayerIds = new List<string>(roomInfo.PlayerNames),
+                    UserIdToPlayerId = new Dictionary<string, long>()
                 };
 
                 // 初始化逻辑环境与房间
                 EnsureLogicEnvironmentInitialized();
 
                 frameState.LogicRoom = CreateLogicRoom(roomId, roomInfo, frameState.StartTime);
+                
+                // 创建所有玩家实体（按 UserId 顺序，确保 UniqueId 一致）
+                foreach (var userId in roomInfo.PlayerNames.OrderBy(x => x))
+                {
+                    var playerId = frameState.LogicRoom.AddPlayer(); // 创建玩家实体，返回 UniqueId
+                    if (playerId > 0)
+                    {
+                        // 记录 PlayerId 映射
+                        frameState.UserIdToPlayerId[userId] = playerId;
+                        ASLogger.Instance.Info($"服务器：创建玩家实体 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Room");
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Warning($"服务器：创建玩家实体失败 - UserId: {userId}", "FrameSync.Room");
+                    }
+                }
+                
+                // 启动帧同步控制器
                 frameState.LogicRoom?.LSController?.Start();
- 
-                _roomFrameStates[roomId] = frameState;
                 
-                // 发送帧同步开始通知
-                SendFrameSyncStartNotification(roomId, frameState);
-                
-                ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}", "FrameSync.Room");
+                // 保存第0帧快照
+                if (frameState.LogicRoom?.LSController != null)
+                {
+                    frameState.LogicRoom.LSController.AuthorityFrame = 0;
+                    frameState.LogicRoom.LSController.FrameBuffer.MoveForward(0);
+                    frameState.LogicRoom.LSController.SaveState();
+                    
+                    // 获取快照数据
+                    var snapshotBuffer = frameState.LogicRoom.LSController.FrameBuffer.Snapshot(0);
+                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+                    
+                    // 检查快照大小
+                    if (worldSnapshotData.Length > 1024 * 1024) // 1MB
+                    {
+                        ASLogger.Instance.Warning($"房间 {roomId} 快照数据过大: {worldSnapshotData.Length} bytes", "FrameSync.Room");
+                    }
+                    
+                    _roomFrameStates[roomId] = frameState;
+                    
+                    // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
+                    SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
+                    
+                    ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
+                }
+                else
+                {
+                    ASLogger.Instance.Error($"房间 {roomId} LSController 为空，无法保存快照", "FrameSync.Room");
+                }
             }
             catch (Exception ex)
             {
@@ -301,7 +373,7 @@ namespace AstrumServer.Managers
         /// <summary>
         /// 发送帧同步开始通知
         /// </summary>
-        private void SendFrameSyncStartNotification(string roomId, RoomFrameSyncState frameState)
+        private void SendFrameSyncStartNotification(string roomId, RoomFrameSyncState frameState, byte[] worldSnapshotData)
         {
             try
             {
@@ -317,22 +389,30 @@ namespace AstrumServer.Managers
                 // 客户端将据此设置 Room.CreationTime/LSController.CreationTime
                 
                 notification.playerIds = new List<string>(frameState.PlayerIds);
+                notification.worldSnapshot = worldSnapshotData; // 世界快照数据
+                notification.playerIdMapping = new Dictionary<string, long>(frameState.UserIdToPlayerId); // PlayerId 映射
+                
+                ASLogger.Instance.Info($"准备发送帧同步开始通知，包含 {notification.playerIdMapping.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
                 
                 // 发送给房间内所有玩家
-                foreach (var playerId in frameState.PlayerIds)
+                foreach (var userId in frameState.PlayerIds)
                 {
-                    var sessionId = _userManager.GetSessionIdByUserId(playerId);
+                    var sessionId = _userManager.GetSessionIdByUserId(userId);
                     if (!string.IsNullOrEmpty(sessionId))
                     {
                         _networkManager.SendMessage(sessionId, notification);
+                        if (frameState.UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                        {
+                            ASLogger.Instance.Debug($"已发送帧同步开始通知给玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Room");
+                        }
                     }
                 }
                 
-                ASLogger.Instance.Info($"已发送帧同步开始通知给房间 {roomId} 的所有玩家");
+                ASLogger.Instance.Info($"已发送帧同步开始通知给房间 {roomId} 的所有玩家（共 {frameState.PlayerIds.Count} 个）", "FrameSync.Room");
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"发送帧同步开始通知时出错: {ex.Message}");
+                ASLogger.Instance.Error($"发送帧同步开始通知时出错: {ex.Message}", "FrameSync.Room");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
@@ -864,6 +944,9 @@ namespace AstrumServer.Managers
         public long StartTime { get; set; } = 0;
         public List<string> PlayerIds { get; set; } = new();
         public Room? LogicRoom { get; set; }
+        
+        // UserId -> PlayerId 映射（实体创建后确定）
+        public Dictionary<string, long> UserIdToPlayerId { get; set; } = new();
         
         // 帧输入缓冲区 (帧号 -> 输入数据)
         private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();

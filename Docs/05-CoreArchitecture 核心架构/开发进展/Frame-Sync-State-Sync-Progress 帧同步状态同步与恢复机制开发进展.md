@@ -23,7 +23,7 @@
 ### 当前版本
 - **版本号**: v1.0
 - **状态**: 🟡 设计完成，开发中
-- **功能完成度**: 20% (协议定义 100%，服务器端 0%，客户端 0%)
+- **功能完成度**: 90% (协议定义 100%，服务器端 100%，客户端 100%，测试 0%)
 
 ### 阶段划分
 - ✅ **Phase 0**: 技术方案设计 - **已完成**
@@ -34,16 +34,18 @@
 - ✅ **Phase 1**: 协议层实现 - **已完成**
   - ✅ 修改协议定义（添加 worldSnapshot 和 playerIdMapping）
   - ✅ 重新生成协议代码
-- ⏳ **Phase 2**: 服务器端实现 - **待开发**
-  - ⏳ 创建所有玩家实体
-  - ⏳ 保存第0帧快照
-  - ⏳ 发送快照和映射
-  - ⏳ 重连检测和处理
-- ⏳ **Phase 3**: 客户端实现 - **待开发**
-  - ⏳ 反序列化世界快照
-  - ⏳ 恢复世界状态
-  - ⏳ 创建 EntityView
-  - ⏳ 加载快照到 FrameBuffer
+- ✅ **Phase 2**: 服务器端实现 - **已完成**
+  - ✅ 添加 UserIdToPlayerId 字段到 RoomFrameSyncState
+  - ✅ 创建所有玩家实体
+  - ✅ 保存第0帧快照
+  - ✅ 发送快照和映射
+  - ✅ 重连检测和处理
+- ✅ **Phase 3**: 客户端实现 - **已完成**
+  - ✅ 反序列化世界快照
+  - ✅ 恢复世界状态
+  - ✅ 创建 EntityView
+  - ✅ 加载快照到 FrameBuffer
+  - ⏳ 移除旧的 BornInfo 逻辑（待测试后清理）
 - ⏳ **Phase 4**: 测试与优化 - **待开发**
   - ⏳ 单元测试
   - ⏳ 集成测试
@@ -144,9 +146,9 @@ foreach (var userId in roomInfo.PlayerNames.OrderBy(x => x))
 }
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 2.2 保存第0帧快照 ⏳
+#### 2.2 保存第0帧快照 ✅
 
 **文件**: `AstrumServer/AstrumServer/Managers/FrameSyncManager.cs`
 
@@ -176,9 +178,9 @@ byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
 snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 2.3 修改 SendFrameSyncStartNotification 包含快照和映射 ⏳
+#### 2.3 修改 SendFrameSyncStartNotification 包含快照和映射 ✅
 
 **文件**: `AstrumServer/AstrumServer/Managers/FrameSyncManager.cs`
 
@@ -208,9 +210,9 @@ private void SendFrameSyncStartNotification(string roomId, RoomFrameSyncState fr
 }
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 2.4 实现重连检测和处理 ⏳
+#### 2.4 实现重连检测和处理 ✅
 
 **文件**: `AstrumServer/AstrumServer/Managers/FrameSyncManager.cs`
 
@@ -238,9 +240,9 @@ if (_roomFrameStates.TryGetValue(roomId, out var existingState))
 }
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 2.5 添加 UserIdToPlayerId 字段到 RoomFrameSyncState ⏳
+#### 2.5 添加 UserIdToPlayerId 字段到 RoomFrameSyncState ✅
 
 **文件**: `AstrumServer/AstrumServer/Managers/FrameSyncManager.cs`
 
@@ -298,9 +300,9 @@ if (world == null)
 }
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 3.2 替换 MainRoom.MainWorld 为快照恢复的 World ⏳
+#### 3.2 替换 MainRoom.MainWorld 为快照恢复的 World ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/Handlers/FrameSyncHandler.cs`
 
@@ -328,9 +330,9 @@ if (MainRoom != null)
 }
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 3.3 从 playerIdMapping 获取 PlayerId ⏳
+#### 3.3 从 playerIdMapping 获取 PlayerId ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/MultiplayerGameMode.cs`
 
@@ -361,9 +363,9 @@ if (notification.playerIdMapping != null)
 }
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 3.4 将快照数据加载到 FrameBuffer ⏳
+#### 3.4 将快照数据加载到 FrameBuffer ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/Handlers/FrameSyncHandler.cs`
 
@@ -383,9 +385,9 @@ snapshotBuffer.SetLength(0);
 snapshotBuffer.Write(notification.worldSnapshot, 0, notification.worldSnapshot.Length);
 ```
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 3.5 为快照中的所有实体创建 EntityView ⏳
+#### 3.5 为快照中的所有实体创建 EntityView ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/Handlers/FrameSyncHandler.cs`
 
@@ -482,22 +484,23 @@ if (world.Entities != null)
 
 ### 服务器端 (Phase 2)
 
-- [ ] 添加 `UserIdToPlayerId` 字段到 `RoomFrameSyncState`
-- [ ] 修改 `StartRoomFrameSync` 创建所有玩家实体
-- [ ] 保存第0帧快照
-- [ ] 修改 `SendFrameSyncStartNotification` 包含快照和映射
-- [ ] 实现重连检测和处理
-- [ ] 添加日志记录
+- [x] 添加 `UserIdToPlayerId` 字段到 `RoomFrameSyncState`
+- [x] 修改 `StartRoomFrameSync` 创建所有玩家实体
+- [x] 保存第0帧快照
+- [x] 修改 `SendFrameSyncStartNotification` 包含快照和映射
+- [x] 实现重连检测和处理
+- [x] 添加日志记录（已完成）
 
 ### 客户端 (Phase 3)
 
-- [ ] 修改 `OnFrameSyncStartNotification` 反序列化世界快照
-- [ ] 替换 `MainRoom.MainWorld` 为快照恢复的 World
-- [ ] 从 `playerIdMapping` 获取 PlayerId
-- [ ] 将快照数据加载到 FrameBuffer
-- [ ] 为快照中的所有实体创建 EntityView
-- [ ] 移除旧的 `BornInfo` 发送逻辑
-- [ ] 添加错误处理和日志记录
+- [x] 修改 `OnFrameSyncStartNotification` 反序列化世界快照
+- [x] 替换 `MainRoom.MainWorld` 为快照恢复的 World
+- [x] 从 `playerIdMapping` 获取 PlayerId
+- [x] 将快照数据加载到 FrameBuffer
+- [x] 为快照中的所有实体创建 EntityView
+- [ ] 移除旧的 `RequestCreatePlayer()` 逻辑（待测试后清理）
+- [ ] 移除旧的 `BornInfo` 发送逻辑（待测试后清理）
+- [x] 添加错误处理和日志记录（已完成）
 
 ### 测试 (Phase 4)
 
@@ -584,7 +587,19 @@ if (world.Entities != null)
 - ✅ 完成 Phase 1（协议层实现）
   - ✅ 修改协议定义（添加 worldSnapshot 和 playerIdMapping）
   - ✅ 重新生成协议代码并验证
-- ⏳ 开始 Phase 2（服务器端实现）
+- ✅ 完成 Phase 2（服务器端实现）
+  - ✅ 添加 UserIdToPlayerId 字段
+  - ✅ 创建所有玩家实体
+  - ✅ 保存第0帧快照
+  - ✅ 修改 SendFrameSyncStartNotification 包含快照和映射
+  - ✅ 实现重连检测和处理
+- ✅ 完成 Phase 3（客户端实现）
+  - ✅ 反序列化世界快照
+  - ✅ 恢复世界状态
+  - ✅ 从 playerIdMapping 获取 PlayerId
+  - ✅ 加载快照到 FrameBuffer
+  - ✅ 为所有实体创建 EntityView
+- ⏳ 开始 Phase 4（测试与优化）
 
 ---
 
