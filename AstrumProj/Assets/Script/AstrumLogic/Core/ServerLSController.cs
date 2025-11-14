@@ -60,10 +60,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();
 
-        /// <summary>
-        /// 曾经上报过的玩家ID集合（用于保证所有玩家都有输入条目）
-        /// </summary>
-        private readonly HashSet<long> _uploadedPlayerIds = new();
 
         /// <summary>
         /// 最大缓存帧数
@@ -131,12 +127,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void AddPlayerInput(int frame, long playerId, LSInput input)
         {
-            // 登记曾经上报过的非零玩家ID
-            if (playerId != 0)
-            {
-                _uploadedPlayerIds.Add(playerId);
-            }
-            
             // 如果输入帧号已经过了，使用服务器的当前帧号
             if (frame < AuthorityFrame + 1)
             {
@@ -164,45 +154,44 @@ namespace Astrum.LogicCore.Core
 
         /// <summary>
         /// 收集指定帧的所有玩家输入（从输入缓存中）
+        /// 保证房间内所有玩家都有输入：有当前帧输入用当前帧，没有用上一帧，都没有用默认输入
         /// </summary>
         public OneFrameInputs CollectFrameInputs(int frame)
         {
             var frameInputs = OneFrameInputs.Create();
             
-            // 优先依据历史上报过的玩家ID进行下发（保证所有曾经上报过的玩家都有条目）
-            if (_uploadedPlayerIds.Count > 0)
+            // 获取房间内所有玩家
+            if (Room?.Players == null || Room.Players.Count == 0)
             {
-                var hadInputs = _frameInputs.TryGetValue(frame, out var inputsThisFrame) ? inputsThisFrame : null;
-                foreach (var playerId in _uploadedPlayerIds.OrderBy(x => x))
-                {
-                    if (playerId == 0) continue; // 保险过滤
-                    if (hadInputs != null && hadInputs.TryGetValue(playerId, out var actual))
-                    {
-                        frameInputs.Inputs[playerId] = actual;
-                    }
-                    else
-                    {
-                        // 为本帧未上报的历史玩家使用上一帧的输入
-                        var previousFrameInput = GetPreviousFrameInput(playerId, frame);
-                        frameInputs.Inputs[playerId] = previousFrameInput;
-                        ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，使用上一帧输入");
-                    }
-                }
+                return frameInputs;
             }
-            else
+            
+            // 获取当前帧的输入缓存
+            var currentFrameInputs = _frameInputs.TryGetValue(frame, out var inputsThisFrame) ? inputsThisFrame : null;
+            
+            // 遍历房间内所有玩家，确保每个玩家都有输入
+            foreach (var playerId in Room.Players)
             {
-                // 如果还没有历史上报ID，则仅收集本帧实际收到的有效输入（排除0）
-                if (_frameInputs.TryGetValue(frame, out var inputs))
+                if (playerId <= 0) continue; // 过滤无效ID
+                
+                LSInput input = null;
+                
+                // 1. 优先使用当前帧的输入
+                if (currentFrameInputs != null && currentFrameInputs.TryGetValue(playerId, out input))
                 {
-                    foreach (var kvp in inputs)
-                    {
-                        var playerId = kvp.Key;
-                        var input = kvp.Value;
-                        if (playerId != 0)
-                        {
-                            frameInputs.Inputs[playerId] = input;
-                        }
-                    }
+                    frameInputs.Inputs[playerId] = input;
+                }
+                // 2. 如果没有当前帧输入，使用上一帧的输入
+                else if ((input = GetPreviousFrameInput(playerId, frame)) != null)
+                {
+                    frameInputs.Inputs[playerId] = input;
+                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，使用上一帧输入");
+                }
+                // 3. 如果都没有，使用默认输入
+                else
+                {
+                    frameInputs.Inputs[playerId] = CreateDefaultInput(playerId, frame);
+                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报且无历史输入，使用默认输入");
                 }
             }
             
@@ -210,9 +199,9 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 获取上一帧的输入
+        /// 获取上一帧的输入（如果找不到则返回 null）
         /// </summary>
-        private LSInput GetPreviousFrameInput(long playerId, int currentFrame)
+        private LSInput? GetPreviousFrameInput(long playerId, int currentFrame)
         {
             // 从当前帧往前查找，直到找到该玩家的输入
             for (int frame = currentFrame - 1; frame >= Math.Max(0, currentFrame - MAX_CACHE_FRAMES); frame--)
@@ -223,8 +212,8 @@ namespace Astrum.LogicCore.Core
                 }
             }
             
-            // 如果找不到，创建默认输入
-            return CreateDefaultInput(playerId, currentFrame);
+            // 如果找不到，返回 null
+            return null;
         }
 
         /// <summary>
