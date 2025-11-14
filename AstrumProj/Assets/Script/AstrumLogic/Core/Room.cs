@@ -252,9 +252,17 @@ namespace Astrum.LogicCore.Core
         /// 初始化房间
         /// </summary>
         /// <param name="controllerType">LSController 类型（"client" 或 "server"），默认为 "client"</param>
-        public virtual void Initialize(string controllerType = "client")
+        /// <param name="worldSnapshot">World 快照数据（可选），如果提供则反序列化并替换 MainWorld</param>
+        public virtual void Initialize(string controllerType = "client", byte[] worldSnapshot = null)
         {
             TotalTime = 0f;
+            
+            // 如果提供了 World 快照，反序列化并替换 MainWorld
+            if (worldSnapshot != null && worldSnapshot.Length > 0)
+            {
+                LoadWorldFromSnapshot(worldSnapshot);
+            }
+            
             if (MainWorld == null)
             {
                 ASLogger.Instance.Error($"Room {RoomId} has no MainWorld defined.");
@@ -278,6 +286,51 @@ namespace Astrum.LogicCore.Core
             foreach (var world in Worlds)
             {
                 world?.Initialize(0);
+            }
+        }
+        
+        /// <summary>
+        /// 从快照数据加载 World（参考 Rollback 逻辑）
+        /// </summary>
+        /// <param name="worldSnapshot">World 快照数据</param>
+        /// <returns>反序列化后的 World，失败返回 null</returns>
+        public World LoadWorldFromSnapshot(byte[] worldSnapshot)
+        {
+            if (worldSnapshot == null || worldSnapshot.Length == 0)
+            {
+                ASLogger.Instance.Warning($"World 快照数据为空，无法加载", "Room.LoadWorld");
+                return null;
+            }
+            
+            try
+            {
+                World world = MemoryPackHelper.Deserialize(typeof(World), worldSnapshot, 0, worldSnapshot.Length) as World;
+                
+                if (world == null)
+                {
+                    ASLogger.Instance.Error("World 快照反序列化结果为空", "Room.LoadWorld");
+                    return null;
+                }
+                
+                ASLogger.Instance.Info($"World 快照反序列化成功，实体数量: {world.Entities?.Count ?? 0}", "Room.LoadWorld");
+                
+                // 参考 Rollback 逻辑：清理旧世界，设置新世界
+                MainWorld?.Cleanup();
+                MainWorld = world;
+                
+                // 重建 World 的引用关系
+                world.RoomId = (long)RoomId; // 显式类型转换：Room.RoomId (int) -> World.RoomId (long)
+                // 注意：World 的 Systems 等引用会在反序列化后自动重建（通过 MemoryPackConstructor）
+                
+                ASLogger.Instance.Info($"World 已加载并替换 MainWorld，RoomId: {RoomId}", "Room.LoadWorld");
+                
+                return world;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"World 快照反序列化失败: {ex.Message}", "Room.LoadWorld");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                return null;
             }
         }
 

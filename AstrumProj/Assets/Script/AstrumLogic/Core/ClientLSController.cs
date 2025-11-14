@@ -157,6 +157,11 @@ namespace Astrum.LogicCore.Core
                 CopyOtherInputsTo(aInput, pInput);
                 Room.FrameTick(pInput);
             }
+            
+            // 发布回滚事件，通知 View 层同步 EntityView
+            var rollbackEvent = new WorldRollbackEventData(loadedWorld.WorldId, loadedWorld.RoomId, frame);
+            EventSystem.Instance.Publish(rollbackEvent);
+            ASLogger.Instance.Debug($"发布世界回滚事件 - 帧: {frame}, WorldId: {loadedWorld.WorldId}, RoomId: {loadedWorld.RoomId}", "FrameSync.Rollback");
         }
         
         private void CopyOtherInputsTo(OneFrameInputs from, OneFrameInputs to)

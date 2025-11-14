@@ -202,6 +202,7 @@ namespace Astrum.View.Core
             EventSystem.Instance.Subscribe<EntityUpdatedEventData>(OnEntityUpdated);
             EventSystem.Instance.Subscribe<EntityActiveStateChangedEventData>(OnEntityActiveStateChanged);
             EventSystem.Instance.Subscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
+            EventSystem.Instance.Subscribe<WorldRollbackEventData>(OnWorldRollback);
             
             ASLogger.Instance.Info($"Stage: 订阅实体事件 - {_stageName}");
         }
@@ -216,6 +217,7 @@ namespace Astrum.View.Core
             EventSystem.Instance.Unsubscribe<EntityUpdatedEventData>(OnEntityUpdated);
             EventSystem.Instance.Unsubscribe<EntityActiveStateChangedEventData>(OnEntityActiveStateChanged);
             EventSystem.Instance.Unsubscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
+            EventSystem.Instance.Unsubscribe<WorldRollbackEventData>(OnWorldRollback);
             
             ASLogger.Instance.Info($"Stage: 取消订阅实体事件 - {_stageName}");
         }
@@ -263,6 +265,78 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
+        /// 同步 EntityView 和 Entity：创建少的，销毁多的
+        /// </summary>
+        public void SyncEntityViews()
+        {
+            if (_room?.MainWorld == null)
+            {
+                ASLogger.Instance.Warning($"Stage: 无法同步 EntityView，Room 或 MainWorld 为空", "Stage.Sync");
+                return;
+            }
+            
+            var world = _room.MainWorld;
+            int createdCount = 0;
+            int destroyedCount = 0;
+            
+            // 1. 创建少的：遍历所有 Entity，如果不存在对应的 EntityView，则创建
+            if (world.Entities != null)
+            {
+                foreach (var entity in world.Entities.Values)
+                {
+                    if (entity == null || entity.IsDestroyed) continue;
+                    
+                    if (!_entityViews.ContainsKey(entity.UniqueId))
+                    {
+                        // 创建 EntityView
+                        var entityView = EntityViewFactory.Instance.CreateEntityView(entity.UniqueId, this);
+                        if (entityView != null)
+                        {
+                            _entityViews[entity.UniqueId] = entityView;
+                            entityView.Transform.SetParent(StageRoot.transform);
+                            OnEntityViewAdded?.Invoke(entityView);
+                            createdCount++;
+                            ASLogger.Instance.Debug($"Stage: 同步创建 EntityView - {entity.Name} (ID: {entity.UniqueId})", "Stage.Sync");
+                        }
+                    }
+                }
+            }
+            
+            // 2. 销毁多的：遍历所有 EntityView，如果对应的 Entity 不存在或已销毁，则销毁 EntityView
+            var entityViewIdsToRemove = new List<long>();
+            foreach (var kvp in _entityViews)
+            {
+                var entityId = kvp.Key;
+                var entityView = kvp.Value;
+                
+                // 检查 Entity 是否存在且未销毁
+                var entity = world.GetEntity(entityId);
+                if (entity == null || entity.IsDestroyed)
+                {
+                    entityViewIdsToRemove.Add(entityId);
+                }
+            }
+            
+            // 销毁多余的 EntityView
+            foreach (var entityId in entityViewIdsToRemove)
+            {
+                if (_entityViews.TryGetValue(entityId, out var entityView))
+                {
+                    entityView.Destroy();
+                    _entityViews.Remove(entityId);
+                    OnEntityViewRemoved?.Invoke(entityId);
+                    destroyedCount++;
+                    ASLogger.Instance.Debug($"Stage: 同步销毁 EntityView - EntityId: {entityId}", "Stage.Sync");
+                }
+            }
+            
+            if (createdCount > 0 || destroyedCount > 0)
+            {
+                ASLogger.Instance.Info($"Stage: EntityView 同步完成 - 创建: {createdCount}, 销毁: {destroyedCount}", "Stage.Sync");
+            }
+        }
+        
+        /// <summary>
         /// 实体更新事件处理
         /// </summary>
         /// <param name="eventData">事件数据</param>
@@ -274,6 +348,20 @@ namespace Astrum.View.Core
             {
                 entityView.SyncWithEntity(eventData.EntityId);
             }
+        }
+        
+        /// <summary>
+        /// 世界回滚事件处理（回滚后需要同步 EntityView）
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        private void OnWorldRollback(WorldRollbackEventData eventData)
+        {
+            if (eventData.RoomId != _roomId) return;
+            
+            ASLogger.Instance.Info($"Stage: 收到世界回滚事件 - 帧: {eventData.RollbackFrame}, WorldId: {eventData.WorldId}", "Stage.Rollback");
+            
+            // 回滚后同步 EntityView（创建少的，销毁多的）
+            SyncEntityViews();
         }
         
         /// <summary>

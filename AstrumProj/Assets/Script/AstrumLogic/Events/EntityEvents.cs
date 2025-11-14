@@ -337,4 +337,43 @@ namespace Astrum.CommonBase
             BornInfo = bornInfo;
         }
     }
+    
+    /// <summary>
+    /// 世界回滚事件数据（用于通知 View 层同步 EntityView）
+    /// </summary>
+    public class WorldRollbackEventData : EventData
+    {
+        /// <summary>
+        /// 世界ID
+        /// </summary>
+        public int WorldId { get; set; }
+        
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        public long RoomId { get; set; }
+        
+        /// <summary>
+        /// 回滚到的帧号
+        /// </summary>
+        public int RollbackFrame { get; set; }
+        
+        /// <summary>
+        /// 回滚时间
+        /// </summary>
+        public DateTime RollbackTime { get; set; }
+        
+        public WorldRollbackEventData()
+        {
+            RollbackTime = DateTime.Now;
+        }
+        
+        public WorldRollbackEventData(int worldId, long roomId, int rollbackFrame)
+        {
+            WorldId = worldId;
+            RoomId = roomId;
+            RollbackFrame = rollbackFrame;
+            RollbackTime = DateTime.Now;
+        }
+    }
 }

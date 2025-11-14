@@ -45,8 +45,9 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 {
                     ASLogger.Instance.Info($"创建 Room（FrameSyncStartNotification 到达）", "FrameSync.Client");
                     
-                    // 创建 Room
+                    // 创建 Room 并初始化（传入 World 快照）
                     var room = new Room(1, notification.roomId);
+                    room.Initialize("client", notification.worldSnapshot);
                     _gameMode.MainRoom = room;
                     
                     // 如果 Stage 已存在，设置 Room 到 Stage
@@ -62,44 +63,29 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                         ASLogger.Instance.Warning($"收到 FrameSyncStartNotification 但 Stage 为空，等待 GameStartNotification 创建 Stage", "FrameSync.Client");
                     }
                 }
-                
-                // 反序列化 World
-                World world = null;
-                try
-                {
-                    world = MemoryPackHelper.Deserialize(typeof(World), notification.worldSnapshot, 0, notification.worldSnapshot.Length) as World;
-                }
-                catch (Exception ex)
-                {
-                    ASLogger.Instance.Error($"世界快照反序列化失败: {ex.Message}", "FrameSync.Client");
-                    ASLogger.Instance.LogException(ex, LogLevel.Error);
-                    return;
-                }
-                
-                if (world == null)
-                {
-                    ASLogger.Instance.Error("世界快照反序列化结果为空", "FrameSync.Client");
-                    return;
-                }
-                
-                ASLogger.Instance.Info($"世界快照反序列化成功，实体数量: {world.Entities?.Count ?? 0}", "FrameSync.Client");
-                
-                // 替换 MainRoom.MainWorld
-                if (_gameMode.MainRoom != null)
-                {
-                    // 清理旧的世界
-                    _gameMode.MainRoom.MainWorld?.Cleanup();
-                    
-                    // 设置新世界
-                    _gameMode.MainRoom.MainWorld = world;
-                    
-                    // 重建 World 的引用关系
-                    world.RoomId = (long)_gameMode.MainRoom.RoomId; // 显式类型转换：Room.RoomId (int) -> World.RoomId (long)
-                    // 注意：World 的 Systems 等引用会在反序列化后自动重建（通过 MemoryPackConstructor）
-                }
                 else
                 {
-                    ASLogger.Instance.Error("MainRoom 为空，无法恢复世界状态（即使已尝试创建）", "FrameSync.Client");
+                    // Room 已存在，使用 Room.LoadWorldFromSnapshot 加载 World 快照
+                    var loadedWorld = _gameMode.MainRoom.LoadWorldFromSnapshot(notification.worldSnapshot);
+                    if (loadedWorld == null)
+                    {
+                        ASLogger.Instance.Error("World 快照加载失败", "FrameSync.Client");
+                        return;
+                    }
+                }
+                
+                // 确保 MainRoom 存在
+                if (_gameMode.MainRoom == null)
+                {
+                    ASLogger.Instance.Error("MainRoom 为空，无法恢复世界状态", "FrameSync.Client");
+                    return;
+                }
+                
+                // 获取加载后的 World（用于后续处理）
+                var world = _gameMode.MainRoom.MainWorld;
+                if (world == null)
+                {
+                    ASLogger.Instance.Error("MainWorld 为空，无法继续处理", "FrameSync.Client");
                     return;
                 }
                 
@@ -153,21 +139,14 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     return;
                 }
                 
-                // 为快照中的所有实体创建 EntityView
-                if (world.Entities != null)
+                // 使用 Stage 的同步方法创建 EntityView（创建少的，销毁多的）
+                if (_gameMode.MainStage != null)
                 {
-                    int entityViewCount = 0;
-                    foreach (var entity in world.Entities.Values)
-                    {
-                        if (!entity.IsDestroyed)
-                        {
-                            // 发布 EntityCreatedEventData 事件，触发 Stage 创建 EntityView
-                            var eventData = new EntityCreatedEventData(entity, world.WorldId, world.RoomId);
-                            EventSystem.Instance.Publish(eventData);
-                            entityViewCount++;
-                        }
-                    }
-                    ASLogger.Instance.Info($"已为 {entityViewCount} 个实体创建 EntityView", "FrameSync.Client");
+                    _gameMode.MainStage.SyncEntityViews();
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"MainStage 为空，无法同步 EntityView", "FrameSync.Client");
                 }
                 
                 ASLogger.Instance.Info($"帧同步已启动，世界状态已恢复", "FrameSync.Client");
