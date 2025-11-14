@@ -455,7 +455,14 @@ namespace Astrum.View.Core
         {
             _room = room;
             _lastSyncTime = DateTime.Now;
-            ASLogger.Instance.Info($"Stage: 设置Room ID = {room}");
+            if (room != null)
+            {
+                ASLogger.Instance.Info($"Stage: 设置Room ID = {room.RoomId}");
+            }
+            else
+            {
+                ASLogger.Instance.Info($"Stage: 清除Room（设置为null）");
+            }
         }
         
         /// <summary>

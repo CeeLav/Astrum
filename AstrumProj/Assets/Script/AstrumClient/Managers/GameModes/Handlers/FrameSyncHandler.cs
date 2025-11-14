@@ -6,6 +6,7 @@ using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Core;
 using Astrum.Client.Managers;
+using Astrum.View.Core;
 
 namespace Astrum.Client.Managers.GameModes.Handlers
 {
@@ -37,6 +38,29 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 {
                     ASLogger.Instance.Error("世界快照数据为空，无法恢复世界状态", "FrameSync.Client");
                     return;
+                }
+                
+                // 如果 MainRoom 为空，创建 Room（Stage 应该在 GameStartNotification 中已创建）
+                if (_gameMode.MainRoom == null)
+                {
+                    ASLogger.Instance.Info($"创建 Room（FrameSyncStartNotification 到达）", "FrameSync.Client");
+                    
+                    // 创建 Room
+                    var room = new Room(1, notification.roomId);
+                    _gameMode.MainRoom = room;
+                    
+                    // 如果 Stage 已存在，设置 Room 到 Stage
+                    if (_gameMode.MainStage != null)
+                    {
+                        _gameMode.MainStage.SetRoom(room);
+                        ASLogger.Instance.Info($"已设置 Room 到现有 Stage", "FrameSync.Client");
+                    }
+                    else
+                    {
+                        // Stage 不存在（消息顺序问题：FrameSyncStartNotification 先于 GameStartNotification 到达）
+                        // 只创建 Room，不创建 Stage，等待 GameStartNotification 到达
+                        ASLogger.Instance.Warning($"收到 FrameSyncStartNotification 但 Stage 为空，等待 GameStartNotification 创建 Stage", "FrameSync.Client");
+                    }
                 }
                 
                 // 反序列化 World
@@ -75,7 +99,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 }
                 else
                 {
-                    ASLogger.Instance.Error("MainRoom 为空，无法恢复世界状态", "FrameSync.Client");
+                    ASLogger.Instance.Error("MainRoom 为空，无法恢复世界状态（即使已尝试创建）", "FrameSync.Client");
                     return;
                 }
                 

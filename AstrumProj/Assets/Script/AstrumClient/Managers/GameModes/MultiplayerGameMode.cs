@@ -392,18 +392,31 @@ namespace Astrum.Client.Managers.GameModes
             {
                 ASLogger.Instance.Info($"MultiplayerGameMode: 收到游戏开始通知 - 房间: {notification.roomId}");
                 
-                // 创建游戏Room和Stage
-                var room = CreateGameRoom(notification);
-                var world = new World();
-                room.MainWorld = world;
-                room.Initialize();
-                var stage = CreateGameStage(room);
-                
-                // 设置当前游戏状态
-                SetRoomAndStage(room, stage);
-                
-                // 切换到游戏场景
-                SwitchToGameScene(DungeonsGameSceneId, stage);
+                // 只创建 Stage，不创建 Room（Room 等待 FrameSyncStartNotification 到达时创建）
+                if (MainStage == null)
+                {
+                    var stage = CreateGameStage(null);
+                    
+                    // 设置当前游戏状态（Room 可能为 null，等待 FrameSyncStartNotification）
+                    MainStage = stage;
+                    View.Managers.VFXManager.Instance.CurrentStage = stage;
+                    
+                    // 如果 Room 已存在（FrameSyncStartNotification 先到达），设置 Room 到 Stage
+                    if (MainRoom != null)
+                    {
+                        stage.SetRoom(MainRoom);
+                        ASLogger.Instance.Info($"已设置现有 Room 到 Stage", "MultiplayerGameMode");
+                    }
+                    
+                    // 切换到游戏场景
+                    SwitchToGameScene(DungeonsGameSceneId, stage);
+                }
+                else
+                {
+                    // Stage 已存在，只需要切换场景（如果还没切换）
+                    ASLogger.Instance.Info($"Stage 已存在，只切换场景", "MultiplayerGameMode");
+                    SwitchToGameScene(DungeonsGameSceneId, MainStage);
+                }
                 
                 ASLogger.Instance.Info($"游戏开始 - 房间: {notification.roomId}, 玩家数: {notification.playerIds.Count}");
             }
@@ -513,12 +526,16 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 创建游戏舞台
         /// </summary>
+        /// <param name="room">房间（可以为 null，后续再设置）</param>
         private Stage CreateGameStage(Room room)
         {
             var stage = new Stage("GameStage", "游戏场景");
             stage.Initialize();
-            stage.SetRoom(room);
-            ASLogger.Instance.Info("创建游戏舞台");
+            if (room != null)
+            {
+                stage.SetRoom(room);
+            }
+            ASLogger.Instance.Info($"创建游戏舞台{(room != null ? "（已设置Room）" : "（Room待设置）")}");
             return stage;
         }
         
