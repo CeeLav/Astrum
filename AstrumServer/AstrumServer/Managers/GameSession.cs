@@ -344,12 +344,10 @@ namespace AstrumServer.Managers
                     serverSync.FrameBuffer.MoveForward(currentFrame);
                     serverSync.SaveState();
                     
-                    var snapshotBuffer = serverSync.FrameBuffer.Snapshot(currentFrame);
-                    if (snapshotBuffer != null && snapshotBuffer.Length > 0)
+                    // 使用 ServerLSController 封装的方法获取快照数据（与客户端逻辑一致）
+                    byte[] worldSnapshotData = serverSync.GetSnapshotBytes(currentFrame);
+                    if (worldSnapshotData != null && worldSnapshotData.Length > 0)
                     {
-                        byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
-                        snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
-                        
                         // 发送包含当前帧快照的通知
                         SendFrameSyncStartNotification(worldSnapshotData);
                         ASLogger.Instance.Info($"房间 {_room.Info.Id} 重连，发送当前帧快照（帧: {currentFrame}）", "FrameSync.Controller");
@@ -381,16 +379,30 @@ namespace AstrumServer.Managers
             
             try
             {
-                // 获取快照数据
-                var snapshotBuffer = serverSync.FrameBuffer.Snapshot(0);
-                byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
-                snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+                // 使用 ServerLSController 封装的方法获取快照数据（与客户端逻辑一致）
+                byte[] worldSnapshotData = serverSync.GetSnapshotBytes(0);
                 
-                // 检查快照大小
+                if (worldSnapshotData == null || worldSnapshotData.Length == 0)
+                {
+                    ASLogger.Instance.Warning($"房间 {_room.Info.Id} 快照数据为空，无法发送 FrameSyncStartNotification", "FrameSync.Controller");
+                    return;
+                }
+                
                 if (worldSnapshotData.Length > 1024 * 1024) // 1MB
                 {
                     ASLogger.Instance.Warning($"房间 {_room.Info.Id} 快照数据过大: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
                 }
+                
+                // 验证数据有效性
+                if (worldSnapshotData.Length < 4)
+                {
+                    ASLogger.Instance.Error($"房间 {_room.Info.Id} 快照数据太小，无法包含有效的 MemoryPack 数据 (大小: {worldSnapshotData.Length})", "FrameSync.Controller");
+                    return;
+                }
+                
+                // 计算哈希值用于验证
+                long hash = worldSnapshotData.Hash(0, worldSnapshotData.Length);
+                ASLogger.Instance.Debug($"房间 {_room.Info.Id} 准备发送快照 - 大小: {worldSnapshotData.Length} bytes, 哈希: {hash}", "FrameSync.Controller");
                 
                 // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
                 SendFrameSyncStartNotification(worldSnapshotData);

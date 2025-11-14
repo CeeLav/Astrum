@@ -282,6 +282,55 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
+        /// 获取快照数据的字节数组（用于网络传输）
+        /// </summary>
+        public byte[] GetSnapshotBytes(int frame)
+        {
+            var memoryBuffer = FrameBuffer.Snapshot(frame);
+            memoryBuffer.Seek(0, SeekOrigin.Begin);
+            
+            if (memoryBuffer.Length == 0)
+            {
+                ASLogger.Instance.Warning($"GetSnapshotBytes: 帧 {frame} 快照数据为空", "FrameSync.GetSnapshot");
+                return null;
+            }
+            
+            // 使用与 SaveState 中计算哈希相同的方式获取数据
+            // 参考 SaveState: memoryBuffer.GetBuffer().Hash(0, (int)memoryBuffer.Length)
+            byte[] buffer = memoryBuffer.GetBuffer();
+            if (buffer == null)
+            {
+                ASLogger.Instance.Error($"GetSnapshotBytes: 帧 {frame} 缓冲区为空", "FrameSync.GetSnapshot");
+                return null;
+            }
+            
+            // 验证缓冲区大小
+            if (buffer.Length < memoryBuffer.Length)
+            {
+                ASLogger.Instance.Error($"GetSnapshotBytes: 帧 {frame} 缓冲区大小不足 - Buffer: {buffer.Length}, Length: {memoryBuffer.Length}", "FrameSync.GetSnapshot");
+                return null;
+            }
+            
+            // 复制实际数据（从位置 0 开始，长度为 Length）
+            byte[] snapshotData = new byte[memoryBuffer.Length];
+            Array.Copy(buffer, 0, snapshotData, 0, (int)memoryBuffer.Length);
+            
+            // 计算哈希值用于验证
+            long hash = buffer.Hash(0, (int)memoryBuffer.Length);
+            long storedHash = FrameBuffer.GetHash(frame);
+            
+            ASLogger.Instance.Debug($"GetSnapshotBytes: 帧 {frame}, 数据大小: {snapshotData.Length} bytes, 计算哈希: {hash}, 存储哈希: {storedHash}", "FrameSync.GetSnapshot");
+            
+            // 验证哈希值是否匹配
+            if (hash != storedHash && storedHash != 0)
+            {
+                ASLogger.Instance.Warning($"GetSnapshotBytes: 帧 {frame} 哈希值不匹配 - 计算: {hash}, 存储: {storedHash}", "FrameSync.GetSnapshot");
+            }
+            
+            return snapshotData;
+        }
+        
+        /// <summary>
         /// 加载状态
         /// </summary>
         public World LoadState(int frame)

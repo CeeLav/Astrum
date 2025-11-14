@@ -38,10 +38,18 @@ namespace Astrum.LogicCore.Core
         {
             get
             {
+                if (Worlds == null || Worlds.Count == 0)
+                {
+                    return null;
+                }
                 return Worlds[0];
             }
             set
             {
+                if (Worlds == null)
+                {
+                    Worlds = new List<World>(1);
+                }
                 if (Worlds.Count < 1)
                 {
                     Worlds.Add(value);
@@ -302,8 +310,30 @@ namespace Astrum.LogicCore.Core
                 return null;
             }
             
+            // 记录接收到的数据信息
+            ASLogger.Instance.Info($"LoadWorldFromSnapshot: 开始反序列化，数据大小: {worldSnapshot.Length} bytes", "Room.LoadWorld");
+            
+            // 验证数据有效性（MemoryPack 格式检查）
+            if (worldSnapshot.Length < 4)
+            {
+                ASLogger.Instance.Error($"LoadWorldFromSnapshot: 数据太小，无法包含有效的 MemoryPack 数据 (大小: {worldSnapshot.Length})", "Room.LoadWorld");
+                return null;
+            }
+            
+            // 打印前几个字节用于调试
+            int previewBytes = Math.Min(16, worldSnapshot.Length);
+            string preview = string.Join(" ", worldSnapshot.Take(previewBytes).Select(b => b.ToString("X2")));
+            ASLogger.Instance.Debug($"LoadWorldFromSnapshot: 数据前 {previewBytes} 字节: {preview}", "Room.LoadWorld");
+            
             try
             {
+                // 验证索引范围
+                if (worldSnapshot.Length < 0)
+                {
+                    ASLogger.Instance.Error($"LoadWorldFromSnapshot: 数据长度无效: {worldSnapshot.Length}", "Room.LoadWorld");
+                    return null;
+                }
+                
                 World world = MemoryPackHelper.Deserialize(typeof(World), worldSnapshot, 0, worldSnapshot.Length) as World;
                 
                 if (world == null)
@@ -326,9 +356,15 @@ namespace Astrum.LogicCore.Core
                 
                 return world;
             }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                ASLogger.Instance.Error($"LoadWorldFromSnapshot: 索引越界错误 - 数据大小: {worldSnapshot.Length}, 错误: {ex.Message}", "Room.LoadWorld");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                return null;
+            }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"World 快照反序列化失败: {ex.Message}", "Room.LoadWorld");
+                ASLogger.Instance.Error($"LoadWorldFromSnapshot: World 快照反序列化失败 - 数据大小: {worldSnapshot.Length}, 错误: {ex.Message}", "Room.LoadWorld");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
                 return null;
             }
