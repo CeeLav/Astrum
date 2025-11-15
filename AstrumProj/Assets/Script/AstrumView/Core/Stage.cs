@@ -557,6 +557,7 @@ namespace Astrum.View.Core
         {
             _room = room;
             _lastSyncTime = DateTime.Now;
+            _roomId = room.RoomId;
             if (room != null)
             {
                 ASLogger.Instance.Info($"Stage: 设置Room ID = {room.RoomId}");

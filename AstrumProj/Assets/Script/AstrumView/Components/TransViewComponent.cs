@@ -553,11 +553,12 @@ namespace Astrum.View.Components
                 _visualSync.previousLogicPos = previousLogicPos;
                 _visualSync.lastLogicPos = currentLogicPos;
                 _visualSync.lastLogicFrame = currentLogicFrame;
+              /*  
             if(previousLogicPos != currentLogicPos)
                 ASLogger.Instance.Debug(
                     $"[TransViewComponent] [Interpolation] Logic frame advanced: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
                     $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}",
-                    "View.VisualFollow");
+                    "View.VisualFollow");*/
             }
             else
             {
@@ -577,11 +578,12 @@ namespace Astrum.View.Components
                     _visualSync.visualOffset = Vector3.Lerp(_visualSync.visualOffset, Vector3.zero, Mathf.Clamp01(deltaTime * 10f));
                     _visualSync.timeSinceLastLogicUpdate = 0;
                 }
+                /*
                 if(_visualSync.visualOffset != Vector3.zero)
                     ASLogger.Instance.Debug(
                         $"[TransViewComponent] [Interpolation] EntityID:{ownerEntity.UniqueId} Logic: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
                         $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, visualOffset={_visualSync.visualOffset}",
-                        "View.VisualFollow");
+                        "View.VisualFollow");*/
             }
 
             // 4. 应用最终视觉位置
