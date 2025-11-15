@@ -82,7 +82,8 @@ namespace Astrum.Client.MessageHandlers
         {
             try
             {
-                ASLogger.Instance.Debug($"FrameSyncDataHandler: 处理帧同步数据 - RoomId: {message.roomId}, AuthorityFrame: {message.authorityFrame}");
+                // 注释掉频繁的日志
+                // ASLogger.Instance.Debug($"FrameSyncDataHandler: 处理帧同步数据 - RoomId: {message.roomId}, AuthorityFrame: {message.authorityFrame}");
                 
                 // 如果当前是联机模式，调用MultiplayerGameMode的处理方法
                 var currentGameMode = GameDirector.Instance?.CurrentGameMode;

@@ -24,7 +24,7 @@ namespace Astrum.View.Components
         
         protected override void OnInitialize()
         {
-            ASLogger.Instance.Debug($"HUDViewComponent 初始化，实体ID: {OwnerEntity?.UniqueId}");
+            // ASLogger.Instance.Debug($"HUDViewComponent 初始化，实体ID: {OwnerEntity?.UniqueId}");
             RegisterOrUpdateHUD();
             
         }
@@ -68,7 +68,7 @@ namespace Astrum.View.Components
                     _maxHealth = newMaxHealth;
                     _currentShield = newCurrentShield;
                     
-                    ASLogger.Instance.Debug($"HUDViewComponent: 血量数据变化，注册/更新HUD");
+                    // ASLogger.Instance.Debug($"HUDViewComponent: 血量数据变化，注册/更新HUD");
                     
                     // 注册或更新HUD
                     RegisterOrUpdateHUD();
@@ -104,18 +104,18 @@ namespace Astrum.View.Components
             }
             
             Vector3 worldPosition = GetEntityWorldPosition();
-            ASLogger.Instance.Debug($"HUDViewComponent: 世界位置 - {worldPosition}");
+            // ASLogger.Instance.Debug($"HUDViewComponent: 世界位置 - {worldPosition}");
             
             if (!_isRegistered)
             {
                 // 注册新的HUD
-                ASLogger.Instance.Debug($"HUDViewComponent: 注册HUD，实体ID: {OwnerEntity.UniqueId}");
+                // ASLogger.Instance.Debug($"HUDViewComponent: 注册HUD，实体ID: {OwnerEntity.UniqueId}");
                 HUDManager.Instance.RegisterHUD(OwnerEntity.UniqueId, OwnerEntity, worldPosition);
                 _isRegistered = true;
             }
             else
             {
-                ASLogger.Instance.Debug($"HUDViewComponent: 更新HUD数据，实体ID: {OwnerEntity.UniqueId}");
+                // ASLogger.Instance.Debug($"HUDViewComponent: 更新HUD数据，实体ID: {OwnerEntity.UniqueId}");
             }
             
             // 更新HUD数据

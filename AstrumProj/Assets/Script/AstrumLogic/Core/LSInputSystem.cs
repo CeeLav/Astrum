@@ -137,8 +137,36 @@ namespace Astrum.LogicCore.Core
             {
                 predictionFrame.Inputs[MainPlayerId] = ClientInput;
             }
-            ASLogger.Instance.Debug($"Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}", "FrameSync.Prediction");
+            
+            // 只在有实际输入时输出日志
+            if (ClientInput != null && HasActualInput(ClientInput))
+            {
+                ASLogger.Instance.Debug($"Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}", "FrameSync.Prediction");
+            }
+            
             return predictionFrame;
+        }
+        
+        /// <summary>
+        /// 检查输入是否有实际动作（非空输入）
+        /// </summary>
+        private static bool HasActualInput(LSInput input)
+        {
+            if (input == null) return false;
+            
+            // 检查移动输入
+            if (input.MoveX != 0 || input.MoveY != 0)
+                return true;
+            
+            // 检查按钮输入
+            if (input.Attack || input.Skill1 || input.Skill2 || input.Roll || input.Dash)
+                return true;
+            
+            // 检查鼠标位置输入
+            if (input.MouseWorldX != 0 || input.MouseWorldZ != 0)
+                return true;
+            
+            return false;
         }
 
     }

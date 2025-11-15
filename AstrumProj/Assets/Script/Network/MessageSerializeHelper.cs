@@ -82,7 +82,7 @@ namespace Astrum.Network
                         }
                         
                         ushort opcode = BitConverter.ToUInt16(buffer, 0);
-                        ASLogger.Instance.Debug($"MessageSerializeHelper.ToMessage: Outer service, opcode: {opcode}");
+                        // ASLogger.Instance.Debug($"MessageSerializeHelper.ToMessage: Outer service, opcode: {opcode}");
                         
                         Type type = OpcodeType.Instance.GetType(opcode);
                         if (type == null)
@@ -105,7 +105,7 @@ namespace Astrum.Network
                         }
                         
                         ushort opcode = BitConverter.ToUInt16(buffer, Packet.ActorIdLength);
-                        ASLogger.Instance.Debug($"MessageSerializeHelper.ToMessage: Inner service, opcode: {opcode}");
+                        // ASLogger.Instance.Debug($"MessageSerializeHelper.ToMessage: Inner service, opcode: {opcode}");
                         
                         Type type = OpcodeType.Instance.GetType(opcode);
                         if (type == null)

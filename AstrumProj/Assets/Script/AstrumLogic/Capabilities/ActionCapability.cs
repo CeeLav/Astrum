@@ -177,9 +177,9 @@ namespace Astrum.LogicCore.Capabilities
             var hasValidCommand = HasValidCommand(entity, actionComponent.CurrentAction); //当前动作的指令是否还在输入
             var shouldTerminate = (actionComponent.CurrentAction.AutoTerminate && !hasValidCommand); //当前动作是否自动终止且没有有效指令
             var shouldContinue = !IsActionFinished(actionComponent, actionDuration) || hasValidCommand;//当前动作未结束或有有效指令则继续
-            ASLogger.Instance.Debug($"ActionCapability.CheckActionCancellation: CurrentActionId={actionComponent.CurrentAction.Id}, " +
-                $"CurrentFrame={actionComponent.CurrentFrame}, ActionDuration={actionDuration}, " +
-                $"ShouldContinue={shouldContinue}, ShouldTerminate={shouldTerminate} on entity {entity.UniqueId}");
+            // ASLogger.Instance.Debug($"ActionCapability.CheckActionCancellation: CurrentActionId={actionComponent.CurrentAction.Id}, " +
+            //     $"CurrentFrame={actionComponent.CurrentFrame}, ActionDuration={actionDuration}, " +
+            //     $"ShouldContinue={shouldContinue}, ShouldTerminate={shouldTerminate} on entity {entity.UniqueId}");
             if (!shouldContinue || shouldTerminate)
             {
                 // 添加默认下一个动作到预订单列表

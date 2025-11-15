@@ -194,7 +194,7 @@ namespace Astrum.Client.Managers
             try
             {
                 currentSession.Send(message);
-                ASLogger.Instance.Debug($"Message sent via Session: {message.GetType().Name}", "Network.Message");
+                // ASLogger.Instance.Debug($"Message sent via Session: {message.GetType().Name}", "Network.Message");
             }
             catch (Exception ex)
             {
@@ -356,7 +356,7 @@ namespace Astrum.Client.Managers
             if (currentSession != null && channelId == currentSession.Id)
             {
                 currentSession.LastRecvTime = TimeInfo.Instance.ClientNow();
-                ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}", "Network.Receive");
+                // ASLogger.Instance.Debug($"收到来自服务器的数据，ChannelId: {channelId}, 数据长度: {buffer.Length}", "Network.Receive");
             }
             
             // 异步处理消息，但不等待（fire-and-forget）
@@ -419,7 +419,7 @@ namespace Astrum.Client.Managers
                 {
                     // 使用新的消息处理器分发系统
                     await MessageHandlerDispatcher.Instance.DispatchAsync(msgObj);
-                    ASLogger.Instance.Debug($"消息已分发到处理器: {msgObj.GetType().Name}", "Network.Deserialize");
+                    // ASLogger.Instance.Debug($"消息已分发到处理器: {msgObj.GetType().Name}", "Network.Deserialize");
                 }
                 else
                 {

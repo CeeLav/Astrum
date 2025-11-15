@@ -107,7 +107,7 @@ namespace Astrum.LogicCore.Capabilities
                     : string.Empty);
 
             JObject root = null;
-            if (!string.IsNullOrWhiteSpace(raw))
+            if (!string.IsNullOrWhiteSpace(raw) && !IsInvalidJsonString(raw))
             {
                 try
                 {
@@ -191,7 +191,7 @@ namespace Astrum.LogicCore.Capabilities
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(overrideJson))
+            if (!string.IsNullOrWhiteSpace(overrideJson) && !IsInvalidJsonString(overrideJson))
             {
                 try
                 {
@@ -288,6 +288,21 @@ namespace Astrum.LogicCore.Capabilities
             {
                 trans.Position = spawnPosition;
             }
+        }
+
+        /// <summary>
+        /// 检查字符串是否为无效的 JSON 字符串（如 "undefined", "null" 等）
+        /// </summary>
+        private bool IsInvalidJsonString(string str)
+        {
+            if (string.IsNullOrWhiteSpace(str))
+                return true;
+
+            // 检查常见的无效 JSON 字符串值
+            var trimmed = str.Trim();
+            return trimmed.Equals("undefined", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("null", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("NaN", StringComparison.OrdinalIgnoreCase);
         }
 
         private string MergeTrajectoryOverride(string baseJson, JObject overrideObject)

@@ -192,9 +192,14 @@ namespace Astrum.Client.Managers.GameModes.Handlers
         {
             try
             {
-                ASLogger.Instance.Debug(
-                    $"FrameSyncHandler: 收到帧同步数据 - 房间: {frameData.roomId}，权威帧: {frameData.authorityFrame}，输入数: {frameData.frameInputs.Inputs.Count}", 
-                    "FrameSync.Client");
+                // 只在有实际输入时输出日志
+                bool hasActualInput = HasAnyActualInput(frameData.frameInputs);
+                if (hasActualInput)
+                {
+                    ASLogger.Instance.Debug(
+                        $"FrameSyncHandler: 收到帧同步数据 - 房间: {frameData.roomId}，权威帧: {frameData.authorityFrame}，输入数: {frameData.frameInputs.Inputs.Count}", 
+                        "FrameSync.Client");
+                }
                 
                 // 处理帧同步数据
                 DealNetFrameInputs(frameData.frameInputs, frameData.authorityFrame);
@@ -213,7 +218,12 @@ namespace Astrum.Client.Managers.GameModes.Handlers
         {
             try
             {
-                ASLogger.Instance.Debug($"FrameSyncHandler: 收到帧输入数据，输入数: {frameInputs.Inputs.Count}");
+                // 只在有实际输入时输出日志
+                bool hasActualInput = HasAnyActualInput(frameInputs);
+                if (hasActualInput)
+                {
+                    ASLogger.Instance.Debug($"FrameSyncHandler: 收到帧输入数据，输入数: {frameInputs.Inputs.Count}");
+                }
                 
                 // 处理帧输入数据
                 DealNetFrameInputs(frameInputs);
@@ -253,8 +263,13 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     
                     clientSync.SetOneFrameInputs(frameInputs);
                     
-                    ASLogger.Instance.Debug(
-                        $"FrameSyncHandler: 处理网络帧输入，帧: {clientSync.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}");
+                    // 只在有实际输入时输出日志
+                    bool hasActualInput = HasAnyActualInput(frameInputs);
+                    if (hasActualInput)
+                    {
+                        ASLogger.Instance.Debug(
+                            $"FrameSyncHandler: 处理网络帧输入，帧: {clientSync.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}");
+                    }
                 }
                 else
                 {
@@ -266,6 +281,44 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 ASLogger.Instance.Error($"FrameSyncHandler: 处理网络帧输入时出错: {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
+        }
+        
+        /// <summary>
+        /// 检查帧输入中是否有任何实际输入
+        /// </summary>
+        private static bool HasAnyActualInput(OneFrameInputs frameInputs)
+        {
+            if (frameInputs?.Inputs == null) return false;
+            
+            foreach (var input in frameInputs.Inputs.Values)
+            {
+                if (HasActualInput(input))
+                    return true;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// 检查单个输入是否有实际动作（非空输入）
+        /// </summary>
+        private static bool HasActualInput(LSInput input)
+        {
+            if (input == null) return false;
+            
+            // 检查移动输入
+            if (input.MoveX != 0 || input.MoveY != 0)
+                return true;
+            
+            // 检查按钮输入
+            if (input.Attack || input.Skill1 || input.Skill2 || input.Roll || input.Dash)
+                return true;
+            
+            // 检查鼠标位置输入
+            if (input.MouseWorldX != 0 || input.MouseWorldZ != 0)
+                return true;
+            
+            return false;
         }
     }
 }

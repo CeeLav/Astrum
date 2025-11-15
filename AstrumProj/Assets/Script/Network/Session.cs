@@ -199,7 +199,7 @@ namespace Astrum.Network
         public void Send(IMessage message)
         {
             LastSendTime = TimeInfo.Instance.ClientNow();
-            ASLogger.Instance.Debug($"发送消息: {message.GetType().Name}", "Network.Send");
+            // ASLogger.Instance.Debug($"发送消息: {message.GetType().Name}", "Network.Send");
             MemoryBuffer memoryBuffer = AService.Fetch();
             MessageSerializeHelper.MessageToStream(memoryBuffer, message as MessageObject);
             AService.Send(Id, memoryBuffer);

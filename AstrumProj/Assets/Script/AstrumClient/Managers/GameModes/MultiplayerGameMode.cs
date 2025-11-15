@@ -150,7 +150,34 @@ namespace Astrum.Client.Managers.GameModes
             request.Input = eventData.Input;
             request.Input.BornInfo = 0;
             NetworkManager.Instance.Send(request);
-            ASLogger.Instance.Debug($"MultiplayerGameMode: 发送单帧输入，帧: {eventData.FrameID}，输入: {JsonConvert.SerializeObject(eventData.Input)}");
+            
+            // 只在有实际输入时输出日志
+            if (eventData.Input != null && HasActualInput(eventData.Input))
+            {
+                ASLogger.Instance.Debug($"MultiplayerGameMode: 发送单帧输入，帧: {eventData.FrameID}，输入: {JsonConvert.SerializeObject(eventData.Input)}");
+            }
+        }
+        
+        /// <summary>
+        /// 检查输入是否有实际动作（非空输入）
+        /// </summary>
+        private static bool HasActualInput(LSInput input)
+        {
+            if (input == null) return false;
+            
+            // 检查移动输入
+            if (input.MoveX != 0 || input.MoveY != 0)
+                return true;
+            
+            // 检查按钮输入
+            if (input.Attack || input.Skill1 || input.Skill2 || input.Roll || input.Dash)
+                return true;
+            
+            // 检查鼠标位置输入
+            if (input.MouseWorldX != 0 || input.MouseWorldZ != 0)
+                return true;
+            
+            return false;
         }
         
         /// <summary>
