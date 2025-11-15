@@ -51,7 +51,7 @@ namespace Astrum.View.Components
             var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();
             var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();
             
-            ASLogger.Instance.Debug($"HUDViewComponent: 获取组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}");
+            //ASLogger.Instance.Debug($"HUDViewComponent: 获取组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}");
             
             if (dynamicStats != null && derivedStats != null)
             {
@@ -59,7 +59,7 @@ namespace Astrum.View.Components
                 FP newMaxHealth = derivedStats.Get(StatType.HP);
                 FP newCurrentShield = dynamicStats.Get(DynamicResourceType.SHIELD);
                 
-                ASLogger.Instance.Debug($"HUDViewComponent: 血量数据 - 当前: {newCurrentHealth}, 最大: {newMaxHealth}, 护盾: {newCurrentShield}");
+                //ASLogger.Instance.Debug($"HUDViewComponent: 血量数据 - 当前: {newCurrentHealth}, 最大: {newMaxHealth}, 护盾: {newCurrentShield}");
                 
                 // 检查数据是否有变化
                 if (newCurrentHealth != _currentHealth || newMaxHealth != _maxHealth || newCurrentShield != _currentShield)

@@ -230,6 +230,11 @@ namespace Astrum.LogicCore.Core
                 differences.Add($"PlayerId: {input1.PlayerId} vs {input2.PlayerId}");
             }
             
+            if (input1.Frame != input2.Frame)
+            {
+                differences.Add($"Frame: {input1.Frame} vs {input2.Frame}");
+            }
+            
             if (input1.MoveX != input2.MoveX)
             {
                 differences.Add($"MoveX: {input1.MoveX} vs {input2.MoveX}");
@@ -255,9 +260,34 @@ namespace Astrum.LogicCore.Core
                 differences.Add($"Skill2: {input1.Skill2} vs {input2.Skill2}");
             }
             
+            if (input1.Timestamp != input2.Timestamp)
+            {
+                differences.Add($"Timestamp: {input1.Timestamp} vs {input2.Timestamp}");
+            }
+            
             if (input1.BornInfo != input2.BornInfo)
             {
                 differences.Add($"BornInfo: {input1.BornInfo} vs {input2.BornInfo}");
+            }
+            
+            if (input1.Roll != input2.Roll)
+            {
+                differences.Add($"Roll: {input1.Roll} vs {input2.Roll}");
+            }
+            
+            if (input1.Dash != input2.Dash)
+            {
+                differences.Add($"Dash: {input1.Dash} vs {input2.Dash}");
+            }
+            
+            if (input1.MouseWorldX != input2.MouseWorldX)
+            {
+                differences.Add($"MouseWorldX: {input1.MouseWorldX} vs {input2.MouseWorldX}");
+            }
+            
+            if (input1.MouseWorldZ != input2.MouseWorldZ)
+            {
+                differences.Add($"MouseWorldZ: {input1.MouseWorldZ} vs {input2.MouseWorldZ}");
             }
             
             return differences.Count > 0 ? string.Join(", ", differences) : "";

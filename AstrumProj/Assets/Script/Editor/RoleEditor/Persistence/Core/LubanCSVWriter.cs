@@ -160,7 +160,16 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
             }
             else if (memberType == typeof(List<string>))
             {
-                memberMap.TypeConverter(new StringListTypeConverter());
+                // 根据字段名决定使用哪个转换器
+                // stringParams 使用竖线分隔（SkillEffectTable），其他使用逗号分隔（ActionTable Commands）
+                if (attr.Name != null && attr.Name.Equals("stringParams", StringComparison.OrdinalIgnoreCase))
+                {
+                    memberMap.TypeConverter(new PipeSeparatedStringListTypeConverter());
+                }
+                else
+                {
+                    memberMap.TypeConverter(new StringListTypeConverter());
+                }
             }
         }
         
@@ -295,6 +304,48 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                 
                 // 使用逗号分隔（与 Luban array#sep=, 格式一致）
                 return string.Join(",", list);
+            }
+            
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// List<string> 类型转换器：序列化为竖线分隔的字符串
+    /// 用于 SkillEffectTable 的 stringParams 字段 (array#sep=|,string)
+    /// </summary>
+    public class PipeSeparatedStringListTypeConverter : CsvHelper.TypeConversion.ITypeConverter
+    {
+        public object ConvertFromString(string text, CsvHelper.IReaderRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<string>();
+            
+            text = text.Trim().Trim('"');
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<string>();
+            
+            // 使用竖线分隔符
+            return text.Split('|', StringSplitOptions.RemoveEmptyEntries)
+                       .Select(s => s.Trim())
+                       .Where(s => !string.IsNullOrWhiteSpace(s)) // 过滤空字符串
+                       .ToList();
+        }
+
+        public string ConvertToString(object value, CsvHelper.IWriterRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            if (value == null)
+                return "";
+            
+            if (value is List<string> list)
+            {
+                // 过滤空字符串
+                var nonEmptyList = list.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                if (nonEmptyList.Count == 0)
+                    return "";
+                
+                // 使用竖线分隔（与 Luban array#sep=| 格式一致）
+                return string.Join("|", nonEmptyList);
             }
             
             return "";

@@ -115,7 +115,7 @@ namespace Astrum.LogicCore.Capabilities
                 }
                 catch (JsonReaderException ex)
                 {
-                    ASLogger.Instance.Warning($"ProjectileSpawnCapability: ignore invalid override json - {ex.Message}", "Projectile.Spawn");
+                    ASLogger.Instance.Warning($"ProjectileSpawnCapability: ignore invalid override json - {ex.Message} ProjectileID:{projectileId}", "Projectile.Spawn");
                 }
                 catch (Exception ex)
                 {
