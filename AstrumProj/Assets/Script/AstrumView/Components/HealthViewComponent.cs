@@ -100,7 +100,7 @@ namespace Astrum.View.Components
                     OnDeath();
                 }
                 
-                ASLogger.Instance.Debug($"HealthViewComponent: 同步血量数据，当前: {_currentHealth}/{_maxHealth}");
+                // ASLogger.Instance.Debug($"HealthViewComponent: 同步血量数据，当前: {_currentHealth}/{_maxHealth}");
             }
         }
         

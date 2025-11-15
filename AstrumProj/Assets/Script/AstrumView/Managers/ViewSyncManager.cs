@@ -137,7 +137,7 @@ namespace Astrum.View.Managers
                 // 同步实体ID列表
                 SyncEntitiesWithStage(stage, roomData.EntityIds);
                 
-                ASLogger.Instance.Debug($"ViewSyncManager: 同步Stage与Room - {stage.StageName}");
+                // ASLogger.Instance.Debug($"ViewSyncManager: 同步Stage与Room - {stage.StageName}");
             }
             catch (Exception ex)
             {
@@ -186,7 +186,7 @@ namespace Astrum.View.Managers
             if (processedCount > 0)
             {
                 _lastSyncFrame++;
-                ASLogger.Instance.Debug($"ViewSyncManager: 处理同步队列 - 处理数量: {processedCount}");
+                // ASLogger.Instance.Debug($"ViewSyncManager: 处理同步队列 - 处理数量: {processedCount}");
             }
         }
         
@@ -203,7 +203,7 @@ namespace Astrum.View.Managers
             }
             
             _pendingSyncEntityIds.Enqueue(entityId);
-            ASLogger.Instance.Debug($"ViewSyncManager: 调度实体同步 - Entity ID: {entityId}");
+            // ASLogger.Instance.Debug($"ViewSyncManager: 调度实体同步 - Entity ID: {entityId}");
         }
         
         /// <summary>
@@ -213,7 +213,7 @@ namespace Astrum.View.Managers
         {
             // 这里可以根据实际需求处理实体同步
             // 实际的数据获取和同步将在EntityView中处理
-            ASLogger.Instance.Debug($"ViewSyncManager: 处理实体同步 - Entity ID: {entityId}");
+            // ASLogger.Instance.Debug($"ViewSyncManager: 处理实体同步 - Entity ID: {entityId}");
         }
         
         /// <summary>

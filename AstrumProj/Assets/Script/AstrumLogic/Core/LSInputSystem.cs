@@ -162,10 +162,6 @@ namespace Astrum.LogicCore.Core
             if (input.Attack || input.Skill1 || input.Skill2 || input.Roll || input.Dash)
                 return true;
             
-            // 检查鼠标位置输入
-            if (input.MouseWorldX != 0 || input.MouseWorldZ != 0)
-                return true;
-            
             return false;
         }
 

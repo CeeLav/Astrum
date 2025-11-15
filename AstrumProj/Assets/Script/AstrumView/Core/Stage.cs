@@ -233,7 +233,7 @@ namespace Astrum.View.Core
             // 检查是否已存在
             if (_entityViews.ContainsKey(entityId))
             {
-                ASLogger.Instance.Debug($"Stage: EntityView 已存在，跳过创建 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
+                // ASLogger.Instance.Debug($"Stage: EntityView 已存在，跳过创建 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
                 return false;
             }
             
@@ -310,7 +310,7 @@ namespace Astrum.View.Core
                         if (CreateEntityViewInternal(entity.UniqueId, entity.Name))
                         {
                             createdCount++;
-                            ASLogger.Instance.Debug($"Stage: 同步创建 EntityView - {entity.Name} (ID: {entity.UniqueId})", "Stage.Sync");
+                            // ASLogger.Instance.Debug($"Stage: 同步创建 EntityView - {entity.Name} (ID: {entity.UniqueId})", "Stage.Sync");
                         }
                     }
                 }
@@ -340,7 +340,7 @@ namespace Astrum.View.Core
                     _entityViews.Remove(entityId);
                     OnEntityViewRemoved?.Invoke(entityId);
                     destroyedCount++;
-                    ASLogger.Instance.Debug($"Stage: 同步销毁 EntityView - EntityId: {entityId}", "Stage.Sync");
+                    // ASLogger.Instance.Debug($"Stage: 同步销毁 EntityView - EntityId: {entityId}", "Stage.Sync");
                 }
             }
             

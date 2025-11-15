@@ -266,8 +266,8 @@ namespace Astrum.LogicCore.Capabilities
             // 从 AvailableActions 字典中查找
             if (actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out var actionInfo))
             {
-                ASLogger.Instance.Debug($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
-                    $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {entity.UniqueId}");
+                // ASLogger.Instance.Debug($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
+                //     $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {entity.UniqueId}");
                 
                 // 切换到新动作
                 SwitchToAction(actionComponent, actionInfo, selectedAction, entity);
@@ -298,10 +298,10 @@ namespace Astrum.LogicCore.Capabilities
 
             TryUpdateFacingByCommand(entity, consumedCommand);
             
-            // 记录切换成功的日志
-            ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {entity.UniqueId} " +
-                $"from ActionId={previousActionId}(Frame={previousFrame}) to ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame}) " +
-                $"[Priority={preorderInfo.Priority}, TransitionFrames={preorderInfo.TransitionFrames}]");
+            // 记录切换成功的日志（注释掉频繁日志）
+            // ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {entity.UniqueId} " +
+            //     $"from ActionId={previousActionId}(Frame={previousFrame}) to ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame}) " +
+            //     $"[Priority={preorderInfo.Priority}, TransitionFrames={preorderInfo.TransitionFrames}]");
 
             UpdateMovementAndAnimationSpeed(entity, actionComponent);
         }

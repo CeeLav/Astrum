@@ -153,12 +153,12 @@ namespace Astrum.View.Core
         
         protected virtual void SyncTransformFromLogic(long entityId)
         {
-            ASLogger.Instance.Debug($"EntityView: 同步Transform数据，ID: {entityId}");
+            // ASLogger.Instance.Debug($"EntityView: 同步Transform数据，ID: {entityId}");
         }
         
         protected virtual void SyncComponentsFromLogic(long entityId)
         {
-            ASLogger.Instance.Debug($"EntityView: 同步Component数据，ID: {entityId}");
+            // ASLogger.Instance.Debug($"EntityView: 同步Component数据，ID: {entityId}");
         }
         
         /// <summary>

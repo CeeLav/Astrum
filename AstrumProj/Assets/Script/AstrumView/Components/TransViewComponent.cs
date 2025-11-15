@@ -190,7 +190,7 @@ namespace Astrum.View.Components
                 _targetRotation = movementData.Rotation;
                 _isMoving = movementData.IsMoving;
                 
-                ASLogger.Instance.Debug($"MovementViewComponent: 同步移动数据，位置: {_targetPosition}");
+                // ASLogger.Instance.Debug($"MovementViewComponent: 同步移动数据，位置: {_targetPosition}");
             }
         }
         
