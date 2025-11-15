@@ -28,7 +28,7 @@ namespace Astrum.CommonBase
             if (!_isInitialized || _config == null)
             {
                 // 默认不输出 Debug 级别日志，只有 Info 及以上级别才输出
-                return level >= LogLevel.Info;
+                return level >= LogLevel.Debug;
             }
             
             // 1. 检查全局最小级别
