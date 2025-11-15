@@ -29,7 +29,8 @@ message RoomInfo
 // 登录请求
 message LoginRequest
 {
-    string DisplayName = 1;    // 显示名称
+    string DisplayName = 1;        // 显示名称
+    string ClientInstanceId = 2;   // 客户端实例ID（用于稳定识别客户端，支持账号持久化）
 }
 
 // 创建房间请求

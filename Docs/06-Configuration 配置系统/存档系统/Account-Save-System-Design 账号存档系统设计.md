@@ -11,6 +11,7 @@
 - **服务器账号存档**：按账号ID持久化，支持登录时同步
 - **存档路径分离**：单人存档与账号存档使用不同目录和命名规则
 - **ParrelSync 支持**：检测克隆实例，为不同实例分配独立存档路径
+- **客户端实例ID持久化**：每个实例生成并持久化唯一的客户端ID，**直接作为账号ID使用**，统一账号和存档标识
 
 ## 概述
 
@@ -27,13 +28,14 @@
 - **存储位置**：客户端本地文件系统
 - **用途**：单机模式的游戏进度
 - **特点**：不与服务器同步，仅本地有效
-- **路径规则**：`{persistentDataPath}/LocalSaves/{instanceId}/PlayerProgressData.dat`
+- **路径规则**：`{persistentDataPath}/LocalSaves/{clientInstanceId}/PlayerProgressData.dat`
 
 #### 2. 账号存档（Account Save）
 - **存储位置**：服务器端文件系统/数据库
 - **用途**：多人模式的游戏进度，与账号绑定
 - **特点**：跨设备同步，服务器权威
-- **路径规则**：`{serverDataPath}/AccountSaves/{userId}/PlayerProgressData.dat`
+- **路径规则**：`{serverDataPath}/AccountSaves/{clientInstanceId}/PlayerProgressData.dat`
+- **统一标识**：客户端实例ID直接作为账号ID，无需映射
 
 ### 核心组件
 
@@ -65,6 +67,100 @@
 - 联机模式使用账号存档（需与服务器同步）
 
 ## 实现细节
+
+### 客户端实例ID管理
+
+#### ClientInstanceIdManager（客户端）
+
+**职责**：生成并持久化客户端实例ID，用于稳定识别客户端实例
+
+**设计要点**：
+- 基于 ParrelSync 实例ID生成唯一标识
+- 持久化到本地文件，确保每次启动使用相同ID
+- 支持多实例，每个实例有独立的ID
+- **直接作为账号ID使用**，统一账号和存档标识
+
+```csharp
+namespace Astrum.Client.Data
+{
+    /// <summary>
+    /// 客户端实例ID管理器 - 管理客户端实例的唯一标识符
+    /// </summary>
+    public static class ClientInstanceIdManager
+    {
+        private static string _cachedInstanceId;
+        private static string InstanceIdFilePath => 
+            Path.Combine(Application.persistentDataPath, "ClientInstanceId.dat");
+        
+        /// <summary>
+        /// 获取或生成客户端实例ID
+        /// </summary>
+        public static string GetOrCreateInstanceId()
+        {
+            if (!string.IsNullOrEmpty(_cachedInstanceId))
+            {
+                return _cachedInstanceId;
+            }
+            
+            // 尝试从文件加载
+            if (File.Exists(InstanceIdFilePath))
+            {
+                try
+                {
+                    _cachedInstanceId = File.ReadAllText(InstanceIdFilePath).Trim();
+                    if (!string.IsNullOrEmpty(_cachedInstanceId))
+                    {
+                        ASLogger.Instance.Info($"ClientInstanceIdManager: 加载已存在的实例ID - {_cachedInstanceId}");
+                        return _cachedInstanceId;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Warning($"ClientInstanceIdManager: 加载实例ID失败 - {ex.Message}");
+                }
+            }
+            
+            // 生成新的实例ID
+            _cachedInstanceId = GenerateInstanceId();
+            
+            // 保存到文件
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(InstanceIdFilePath));
+                File.WriteAllText(InstanceIdFilePath, _cachedInstanceId);
+                ASLogger.Instance.Info($"ClientInstanceIdManager: 生成并保存新的实例ID - {_cachedInstanceId}");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"ClientInstanceIdManager: 保存实例ID失败 - {ex.Message}");
+            }
+            
+            return _cachedInstanceId;
+        }
+        
+        /// <summary>
+        /// 生成实例ID
+        /// </summary>
+        private static string GenerateInstanceId()
+        {
+            var instanceId = ParrelSyncHelper.GetInstanceId();
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var random = UnityEngine.Random.Range(1000, 9999);
+            
+            // 格式：client_{instanceId}_{timestamp}_{random}
+            return $"client_{instanceId}_{timestamp}_{random}";
+        }
+        
+        /// <summary>
+        /// 清除缓存的实例ID（用于测试）
+        /// </summary>
+        public static void ClearCache()
+        {
+            _cachedInstanceId = null;
+        }
+    }
+}
+```
 
 ### ParrelSync 实例检测
 
@@ -118,8 +214,8 @@ public static class SaveSystem
     /// </summary>
     private static string GetLocalSavePath()
     {
-        var instanceId = ParrelSyncHelper.GetInstanceId();
-        var saveDir = Path.Combine(Application.persistentDataPath, "LocalSaves", instanceId);
+        var clientInstanceId = ClientInstanceIdManager.GetOrCreateInstanceId();
+        var saveDir = Path.Combine(Application.persistentDataPath, "LocalSaves", clientInstanceId);
         Directory.CreateDirectory(saveDir);
         return Path.Combine(saveDir, "PlayerProgressData.dat");
     }
@@ -127,15 +223,15 @@ public static class SaveSystem
     /// <summary>
     /// 获取账号存档路径（客户端暂存）
     /// </summary>
-    private static string GetAccountSavePath(string userId)
+    private static string GetAccountSavePath(string clientInstanceId = null)
     {
-        if (string.IsNullOrEmpty(userId))
+        // 如果没有提供，使用当前实例的客户端ID
+        if (string.IsNullOrEmpty(clientInstanceId))
         {
-            throw new ArgumentException("UserId cannot be null or empty", nameof(userId));
+            clientInstanceId = ClientInstanceIdManager.GetOrCreateInstanceId();
         }
         
-        var instanceId = ParrelSyncHelper.GetInstanceId();
-        var saveDir = Path.Combine(Application.persistentDataPath, "AccountSaves", instanceId, userId);
+        var saveDir = Path.Combine(Application.persistentDataPath, "AccountSaves", clientInstanceId);
         Directory.CreateDirectory(saveDir);
         return Path.Combine(saveDir, "PlayerProgressData.dat");
     }
@@ -143,11 +239,11 @@ public static class SaveSystem
     /// <summary>
     /// 加载玩家进度数据
     /// </summary>
-    public static PlayerProgressData LoadPlayerProgressData(SaveType saveType, string userId = null)
+    public static PlayerProgressData LoadPlayerProgressData(SaveType saveType, string clientInstanceId = null)
     {
         string path = saveType == SaveType.Local 
             ? GetLocalSavePath() 
-            : GetAccountSavePath(userId);
+            : GetAccountSavePath(clientInstanceId);
             
         if (!File.Exists(path))
         {
@@ -172,11 +268,11 @@ public static class SaveSystem
     /// <summary>
     /// 保存玩家进度数据
     /// </summary>
-    public static void SavePlayerProgressData(PlayerProgressData data, SaveType saveType, string userId = null)
+    public static void SavePlayerProgressData(PlayerProgressData data, SaveType saveType, string clientInstanceId = null)
     {
         string path = saveType == SaveType.Local 
             ? GetLocalSavePath() 
-            : GetAccountSavePath(userId);
+            : GetAccountSavePath(clientInstanceId);
             
         try
         {
@@ -215,30 +311,30 @@ namespace AstrumServer.Data
         }
         
         /// <summary>
-        /// 获取账号存档路径
+        /// 获取账号存档路径（使用客户端实例ID）
         /// </summary>
-        private string GetAccountSavePath(string userId)
+        private string GetAccountSavePath(string clientInstanceId)
         {
-            if (string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(clientInstanceId))
             {
-                throw new ArgumentException("UserId cannot be null or empty", nameof(userId));
+                throw new ArgumentException("ClientInstanceId cannot be null or empty", nameof(clientInstanceId));
             }
             
-            var userDir = Path.Combine(_saveDataPath, userId);
+            var userDir = Path.Combine(_saveDataPath, clientInstanceId);
             Directory.CreateDirectory(userDir);
             return Path.Combine(userDir, "PlayerProgressData.dat");
         }
         
         /// <summary>
-        /// 加载账号存档
+        /// 加载账号存档（使用客户端实例ID）
         /// </summary>
-        public PlayerProgressData LoadAccountSave(string userId)
+        public PlayerProgressData LoadAccountSave(string clientInstanceId)
         {
-            var path = GetAccountSavePath(userId);
+            var path = GetAccountSavePath(clientInstanceId);
             
             if (!File.Exists(path))
             {
-                ASLogger.Instance.Info($"AccountSaveManager: 账号存档不存在 - UserId: {userId}");
+                ASLogger.Instance.Info($"AccountSaveManager: 账号存档不存在 - ClientInstanceId: {clientInstanceId}");
                 return null;
             }
             
@@ -246,56 +342,56 @@ namespace AstrumServer.Data
             {
                 byte[] bytes = File.ReadAllBytes(path);
                 var data = MemoryPackSerializer.Deserialize<PlayerProgressData>(bytes);
-                ASLogger.Instance.Info($"AccountSaveManager: 成功加载账号存档 - UserId: {userId}");
+                ASLogger.Instance.Info($"AccountSaveManager: 成功加载账号存档 - ClientInstanceId: {clientInstanceId}");
                 return data;
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"AccountSaveManager: 加载账号存档失败 - UserId: {userId}, Error: {ex.Message}");
+                ASLogger.Instance.Error($"AccountSaveManager: 加载账号存档失败 - ClientInstanceId: {clientInstanceId}, Error: {ex.Message}");
                 return null;
             }
         }
         
         /// <summary>
-        /// 保存账号存档
+        /// 保存账号存档（使用客户端实例ID）
         /// </summary>
-        public bool SaveAccountSave(string userId, PlayerProgressData data)
+        public bool SaveAccountSave(string clientInstanceId, PlayerProgressData data)
         {
-            var path = GetAccountSavePath(userId);
+            var path = GetAccountSavePath(clientInstanceId);
             
             try
             {
                 byte[] bytes = MemoryPackSerializer.Serialize(data);
                 File.WriteAllBytes(path, bytes);
-                ASLogger.Instance.Info($"AccountSaveManager: 成功保存账号存档 - UserId: {userId}");
+                ASLogger.Instance.Info($"AccountSaveManager: 成功保存账号存档 - ClientInstanceId: {clientInstanceId}");
                 return true;
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"AccountSaveManager: 保存账号存档失败 - UserId: {userId}, Error: {ex.Message}");
+                ASLogger.Instance.Error($"AccountSaveManager: 保存账号存档失败 - ClientInstanceId: {clientInstanceId}, Error: {ex.Message}");
                 return false;
             }
         }
         
         /// <summary>
-        /// 删除账号存档
+        /// 删除账号存档（使用客户端实例ID）
         /// </summary>
-        public bool DeleteAccountSave(string userId)
+        public bool DeleteAccountSave(string clientInstanceId)
         {
-            var path = GetAccountSavePath(userId);
+            var path = GetAccountSavePath(clientInstanceId);
             
             try
             {
                 if (File.Exists(path))
                 {
                     File.Delete(path);
-                    ASLogger.Instance.Info($"AccountSaveManager: 成功删除账号存档 - UserId: {userId}");
+                    ASLogger.Instance.Info($"AccountSaveManager: 成功删除账号存档 - ClientInstanceId: {clientInstanceId}");
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"AccountSaveManager: 删除账号存档失败 - UserId: {userId}, Error: {ex.Message}");
+                ASLogger.Instance.Error($"AccountSaveManager: 删除账号存档失败 - ClientInstanceId: {clientInstanceId}, Error: {ex.Message}");
                 return false;
             }
         }
@@ -308,27 +404,27 @@ namespace AstrumServer.Data
 ```csharp
 public class PlayerDataManager : Singleton<PlayerDataManager>
 {
-    private PlayerProgressData _progressData;
-    private SaveSystem.SaveType _currentSaveType = SaveSystem.SaveType.Local;
-    private string _currentUserId = null;
-    
-    /// <summary>
-    /// 初始化管理器
-    /// </summary>
-    public void Initialize(SaveSystem.SaveType saveType = SaveSystem.SaveType.Local, string userId = null)
-    {
-        _currentSaveType = saveType;
-        _currentUserId = userId;
-        ASLogger.Instance.Info($"PlayerDataManager: 初始化 - SaveType: {saveType}, UserId: {userId}");
-        LoadProgressData();
-    }
-    
-    /// <summary>
-    /// 加载玩家进度数据
-    /// </summary>
-    public void LoadProgressData()
-    {
-        _progressData = SaveSystem.LoadPlayerProgressData(_currentSaveType, _currentUserId);
+        private PlayerProgressData _progressData;
+        private SaveSystem.SaveType _currentSaveType = SaveSystem.SaveType.Local;
+        private string _currentClientInstanceId = null;
+        
+        /// <summary>
+        /// 初始化管理器
+        /// </summary>
+        public void Initialize(SaveSystem.SaveType saveType = SaveSystem.SaveType.Local, string clientInstanceId = null)
+        {
+            _currentSaveType = saveType;
+            _currentClientInstanceId = clientInstanceId ?? ClientInstanceIdManager.GetOrCreateInstanceId();
+            ASLogger.Instance.Info($"PlayerDataManager: 初始化 - SaveType: {saveType}, ClientInstanceId: {_currentClientInstanceId}");
+            LoadProgressData();
+        }
+        
+        /// <summary>
+        /// 加载玩家进度数据
+        /// </summary>
+        public void LoadProgressData()
+        {
+            _progressData = SaveSystem.LoadPlayerProgressData(_currentSaveType, _currentClientInstanceId);
         if (_progressData == null)
         {
             _progressData = CreateDefaultProgressData();
@@ -358,7 +454,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         }
 
         EnsureDataIntegrity(_progressData);
-        SaveSystem.SavePlayerProgressData(_progressData, _currentSaveType, _currentUserId);
+        SaveSystem.SavePlayerProgressData(_progressData, _currentSaveType, _currentClientInstanceId);
     }
     
     // ... 其他方法保持不变 ...
@@ -367,23 +463,91 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
 
 ### 服务器端登录流程集成
 
+#### UserManager 改造
+
+服务器端需要根据客户端实例ID查找或创建账号：
+
+```csharp
+namespace AstrumServer.Managers
+{
+    public class UserManager
+    {
+        // 注意：不再需要客户端ID到账号ID的映射，直接使用客户端实例ID作为账号ID
+        
+        public UserManager()
+        {
+        }
+        
+        /// <summary>
+        /// 根据客户端实例ID获取或创建账号（客户端实例ID直接作为账号ID）
+        /// </summary>
+        public UserInfo GetOrCreateUserByClientId(string clientInstanceId, string sessionId, string displayName)
+        {
+            // 直接使用客户端实例ID作为账号ID
+            var userId = clientInstanceId;
+            
+            // 检查账号是否已存在
+            if (_users.TryGetValue(userId, out var existingUser))
+            {
+                // 更新Session映射
+                _sessionToUser[sessionId] = userId;
+                _userToSession[userId] = sessionId;
+                existingUser.LastLoginAt = TimeInfo.Instance.ClientNow();
+                
+                ASLogger.Instance.Info($"客户端实例 {clientInstanceId} 登录，使用已有账号: {userId}");
+                return existingUser;
+            }
+            
+            // 创建新账号（使用客户端实例ID作为账号ID）
+            var userInfo = UserInfo.Create();
+            userInfo.Id = userId;  // 直接使用客户端实例ID
+            userInfo.DisplayName = displayName;
+            userInfo.LastLoginAt = TimeInfo.Instance.ClientNow();
+            userInfo.CurrentRoomId = "";
+            
+            // 添加到管理器
+            _users[userId] = userInfo;
+            _sessionToUser[sessionId] = userId;
+            _userToSession[userId] = sessionId;
+            
+            ASLogger.Instance.Info($"为客户端实例 {clientInstanceId} 创建新账号: {userId}");
+            return userInfo;
+        }
+        
+        // ... 其他方法保持不变 ...
+    }
+}
+```
+
+#### 登录请求改造
+
 ```csharp
 // 在 GameServer.HandleLoginRequest 中
 private void HandleLoginRequest(Session client, LoginRequest request)
 {
     try
     {
-        ASLogger.Instance.Info($"客户端 {client.Id} 请求登录，显示名称: {request.DisplayName}");
+        // 获取客户端实例ID（如果请求中包含）
+        var clientInstanceId = request.ClientInstanceId;
+        if (string.IsNullOrEmpty(clientInstanceId))
+        {
+            // 兼容旧版本：使用Session ID作为临时标识
+            clientInstanceId = $"temp_{client.Id}";
+            ASLogger.Instance.Warning($"客户端未提供实例ID，使用临时标识: {clientInstanceId}");
+        }
         
-        // 为用户分配ID（或从持久化存储加载）
-        var userInfo = _userManager.AssignUserId(client.Id.ToString(), request.DisplayName);
+        ASLogger.Instance.Info($"客户端 {client.Id} 请求登录，实例ID: {clientInstanceId}, 显示名称: {request.DisplayName}");
         
-        // 加载账号存档
+        // 根据客户端实例ID获取或创建账号（客户端实例ID直接作为账号ID）
+        var userInfo = _userManager.GetOrCreateUserByClientId(
+            clientInstanceId, 
+            client.Id.ToString(), 
+            request.DisplayName ?? $"Player_{client.Id}"
+        );
+        
+        // 加载账号存档（使用客户端实例ID）
         var accountSaveManager = new AccountSaveManager();
-        var accountSave = accountSaveManager.LoadAccountSave(userInfo.Id);
-        
-        // 如果存在存档，可以在响应中返回（或通过单独的消息）
-        // 这里先简单处理，后续可以通过 LoadAccountSaveRequest 单独请求
+        var accountSave = accountSaveManager.LoadAccountSave(clientInstanceId);
         
         // 发送登录成功响应
         var response = LoginResponse.Create();
@@ -399,6 +563,23 @@ private void HandleLoginRequest(Session client, LoginRequest request)
     {
         // ... 错误处理 ...
     }
+}
+```
+
+#### 客户端登录请求改造
+
+```csharp
+// 在 UserManager.AutoLoginAsync 中
+public async Task<bool> AutoLoginAsync()
+{
+    // ... 前面的代码 ...
+    
+    // 创建登录请求
+    var loginRequest = LoginRequest.Create();
+    loginRequest.DisplayName = $"Player_{UnityEngine.Random.Range(1000, 9999)}";
+    loginRequest.ClientInstanceId = ClientInstanceIdManager.GetOrCreateInstanceId(); // 新增
+    
+    // ... 后面的代码 ...
 }
 ```
 
@@ -436,22 +617,21 @@ message SaveAccountSaveResponse {
 
 ```
 {Application.persistentDataPath}/
+├── ClientInstanceId.dat           # 客户端实例ID（持久化）
 ├── LocalSaves/                    # 单人存档目录
-│   ├── Main/                      # 主实例
+│   ├── client_Main_xxx_yyy/       # 主实例的客户端实例ID
 │   │   └── PlayerProgressData.dat
-│   ├── Clone_1/                   # ParrelSync 克隆实例1
+│   ├── client_Clone_1_xxx_yyy/    # 克隆实例1的客户端实例ID
 │   │   └── PlayerProgressData.dat
-│   └── Clone_2/                   # ParrelSync 克隆实例2
+│   └── client_Clone_2_xxx_yyy/    # 克隆实例2的客户端实例ID
 │       └── PlayerProgressData.dat
 └── AccountSaves/                  # 账号存档目录（客户端暂存）
-    ├── Main/                      # 主实例
-    │   ├── user_xxx/
-    │   │   └── PlayerProgressData.dat
-    │   └── user_yyy/
-    │       └── PlayerProgressData.dat
-    └── Clone_1/                   # ParrelSync 克隆实例1
-        └── user_zzz/
-            └── PlayerProgressData.dat
+    ├── client_Main_xxx_yyy/       # 使用客户端实例ID作为账号ID
+    │   └── PlayerProgressData.dat
+    ├── client_Clone_1_xxx_yyy/
+    │   └── PlayerProgressData.dat
+    └── client_Clone_2_xxx_yyy/
+        └── PlayerProgressData.dat
 ```
 
 ### 服务器端路径结构
@@ -459,33 +639,46 @@ message SaveAccountSaveResponse {
 ```
 {ServerDataPath}/
 └── AccountSaves/                  # 账号存档目录
-    ├── user_xxx/                  # 账号ID
+    ├── client_Main_xxx_yyy/       # 使用客户端实例ID作为账号ID
     │   └── PlayerProgressData.dat
-    ├── user_yyy/
+    ├── client_Clone_1_xxx_yyy/
     │   └── PlayerProgressData.dat
-    └── user_zzz/
+    └── client_Clone_2_xxx_yyy/
         └── PlayerProgressData.dat
 ```
+
+**统一标识说明**：
+- 客户端实例ID格式：`client_{instanceId}_{timestamp}_{random}`
+- 客户端实例ID = 账号ID（直接使用，无需映射）
+- 所有存档路径统一使用客户端实例ID
 
 ## 使用流程
 
 ### 单机模式存档流程
 
 1. **初始化**：`PlayerDataManager.Instance.Initialize(SaveSystem.SaveType.Local)`
-2. **加载存档**：自动从 `LocalSaves/{instanceId}/` 加载
-3. **保存存档**：保存到 `LocalSaves/{instanceId}/`
+2. **加载存档**：自动从 `LocalSaves/{clientInstanceId}/` 加载
+3. **保存存档**：保存到 `LocalSaves/{clientInstanceId}/`
 
 ### 联机模式存档流程
 
-1. **登录**：客户端连接服务器并登录
-2. **初始化**：`PlayerDataManager.Instance.Initialize(SaveSystem.SaveType.Account, userId)`
-3. **请求加载**：客户端发送 `LoadAccountSaveRequest`
-4. **服务器响应**：服务器返回账号存档数据
+1. **登录**：客户端连接服务器并登录，发送客户端实例ID
+2. **初始化**：`PlayerDataManager.Instance.Initialize(SaveSystem.SaveType.Account)`（自动使用当前实例的客户端ID）
+3. **请求加载**：客户端发送 `LoadAccountSaveRequest`（使用客户端实例ID）
+4. **服务器响应**：服务器返回账号存档数据（基于客户端实例ID查找）
 5. **应用存档**：客户端应用存档数据到实体
-6. **游戏过程中**：定期保存到本地暂存（`AccountSaves/{instanceId}/{userId}/`）
-7. **同步到服务器**：关键节点（关卡完成、退出游戏）发送 `SaveAccountSaveRequest` 同步到服务器
+6. **游戏过程中**：定期保存到本地暂存（`AccountSaves/{clientInstanceId}/`）
+7. **同步到服务器**：关键节点（关卡完成、退出游戏）发送 `SaveAccountSaveRequest` 同步到服务器（使用客户端实例ID）
 
 ## 关键决策与取舍
+
+- **问题**：如何统一客户端实例账号和存档地址？
+- **备选**：
+  1. 客户端实例ID直接作为账号ID，统一所有路径（选择）
+  2. 使用映射表关联客户端ID和账号ID
+  3. 分别管理客户端ID和账号ID
+- **选择**：客户端实例ID直接作为账号ID，简化设计，统一标识
+- **影响**：简化了服务器端逻辑，无需映射表，账号和存档路径完全统一
 
 - **问题**：如何区分单人存档和账号存档？
 - **备选**：
@@ -500,7 +693,7 @@ message SaveAccountSaveResponse {
   1. 使用 ParrelSync 提供的实例ID（选择）
   2. 使用端口号区分
   3. 手动配置实例标识
-- **选择**：使用 ParrelSync 的 `GetArgument()` 获取实例ID
+- **选择**：使用 ParrelSync 的 `GetArgument()` 获取实例ID，结合时间戳和随机数生成唯一客户端实例ID
 - **影响**：需要在客户端代码中集成 ParrelSync 检测逻辑
 
 - **问题**：账号存档何时同步到服务器？
@@ -519,10 +712,10 @@ message SaveAccountSaveResponse {
 
 ---
 
-*文档版本：v1.0*  
+*文档版本：v1.2*  
 *创建时间：2025-01-27*  
 *最后更新：2025-01-27*  
 *状态：设计完成*  
 *Owner*: Lavender  
-*变更摘要*: 创建账号存档系统设计方案，支持客户端单人存档与服务器账号存档分离，集成 ParrelSync 多实例支持
+*变更摘要*: 统一客户端实例账号和存档地址，客户端实例ID直接作为账号ID使用，简化设计
 
