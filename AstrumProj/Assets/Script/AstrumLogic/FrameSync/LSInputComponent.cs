@@ -3,6 +3,7 @@ using Astrum.Generated;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
 using MemoryPack;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.FrameSync
 {
@@ -12,6 +13,9 @@ namespace Astrum.LogicCore.FrameSync
     [MemoryPackable]
     public partial class LSInputComponent : BaseComponent
     {
+        [MemoryPackIgnore]
+        private bool _hasLoggedFirstNonZeroInput;
+
         /// <summary>
         /// 玩家ID
         /// </summary>
@@ -57,7 +61,18 @@ namespace Astrum.LogicCore.FrameSync
         /// <param name="input">输入数据</param>
         public void SetInput(LSInput input)
         {
-
+            // 只在首次收到非零输入时输出一条日志，避免刷屏
+            if (!_hasLoggedFirstNonZeroInput)
+            {
+                bool hasMove = input.MoveX != 0 || input.MoveY != 0;
+                bool hasButton = input.Dash || input.Attack || input.Skill1 || input.Skill2;
+                if (hasMove || hasButton)
+                {
+                    _hasLoggedFirstNonZeroInput = true;
+                    ASLogger.Instance.Info(
+                        $"LSInputComponent: PlayerId={PlayerId} 首次收到输入 Frame={input.Frame}, MoveX={input.MoveX}, MoveY={input.MoveY}, Dash={input.Dash}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}");
+                }
+            }
 
             // 保存上一帧输入
             PreviousInput = CurrentInput;

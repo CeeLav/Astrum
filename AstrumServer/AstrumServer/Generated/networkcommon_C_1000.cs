@@ -171,6 +171,12 @@ namespace Astrum.Generated
         [MemoryPackOrder(0)]
         public string DisplayName { get; set; }
 
+        /// <summary>
+        /// 客户端实例ID（用于稳定识别客户端，支持账号持久化）
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public string ClientInstanceId { get; set; }
+
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -179,6 +185,7 @@ namespace Astrum.Generated
             }
 
             this.DisplayName = default;
+            this.ClientInstanceId = default;
 
             ObjectPool.Instance.Recycle(this);
         }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Client.Core;
+using Astrum.Client.Data;
 using UnityEngine;
 using MemoryPack;
 
@@ -59,6 +60,7 @@ namespace Astrum.Client.Managers
                 // 创建登录请求
                 var loginRequest = LoginRequest.Create();
                 loginRequest.DisplayName = $"Player_{UnityEngine.Random.Range(1000, 9999)}";
+                loginRequest.ClientInstanceId = ClientInstanceIdManager.GetOrCreateInstanceId();
                 
                 // 发送登录请求
                 var networkManager = NetworkManager.Instance;

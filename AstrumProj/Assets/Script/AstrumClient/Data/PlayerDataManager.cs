@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Data;
 using Astrum.LogicCore.Inventory;
 using UnityEngine;
 
@@ -13,17 +14,42 @@ namespace Astrum.Client.Data
     public class PlayerDataManager : Singleton<PlayerDataManager>
     {
         private PlayerProgressData _progressData;
+        private SaveSystem.SaveType _currentSaveType = SaveSystem.SaveType.Local;
+        private string _currentClientInstanceId = null;
         
         /// <summary>当前玩家进度数据</summary>
         public PlayerProgressData ProgressData => _progressData;
         
         /// <summary>
+        /// 当前存档类型
+        /// </summary>
+        public SaveSystem.SaveType CurrentSaveType => _currentSaveType;
+        
+        /// <summary>
+        /// 当前客户端实例ID
+        /// </summary>
+        public string CurrentClientInstanceId => _currentClientInstanceId ?? ClientInstanceIdManager.GetOrCreateInstanceId();
+        
+        /// <summary>
         /// 初始化管理器
         /// </summary>
+        /// <param name="saveType">存档类型</param>
+        /// <param name="clientInstanceId">客户端实例ID（账号存档时使用，如果为null则使用当前实例的ID）</param>
+        public void Initialize(SaveSystem.SaveType saveType = SaveSystem.SaveType.Local, string clientInstanceId = null)
+        {
+            _currentSaveType = saveType;
+            _currentClientInstanceId = clientInstanceId ?? ClientInstanceIdManager.GetOrCreateInstanceId();
+            ASLogger.Instance.Info($"PlayerDataManager: 初始化 - SaveType: {saveType}, ClientInstanceId: {_currentClientInstanceId}");
+            LoadProgressData();
+        }
+        
+        /// <summary>
+        /// 初始化管理器（旧接口，默认使用单人存档）
+        /// </summary>
+        [System.Obsolete("使用 Initialize(SaveSystem.SaveType, string) 替代")]
         public void Initialize()
         {
-            ASLogger.Instance.Info("PlayerDataManager: 初始化玩家数据管理器");
-            LoadProgressData();
+            Initialize(SaveSystem.SaveType.Local);
         }
         
         /// <summary>
@@ -177,7 +203,7 @@ namespace Astrum.Client.Data
             }
 
             EnsureDataIntegrity(_progressData);
-            SaveSystem.SavePlayerProgressData(_progressData);
+            SaveSystem.SavePlayerProgressData(_progressData, _currentSaveType, _currentClientInstanceId);
         }
         
         /// <summary>
@@ -185,7 +211,7 @@ namespace Astrum.Client.Data
         /// </summary>
         public void LoadProgressData()
         {
-            _progressData = SaveSystem.LoadPlayerProgressData();
+            _progressData = SaveSystem.LoadPlayerProgressData(_currentSaveType, _currentClientInstanceId);
             if (_progressData == null)
             {
                 _progressData = CreateDefaultProgressData();

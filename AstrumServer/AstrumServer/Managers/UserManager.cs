@@ -21,13 +21,50 @@ namespace AstrumServer.Managers
         }
 
         /// <summary>
-        /// 用户连接时分配ID
+        /// 根据客户端实例ID获取或创建账号（客户端实例ID直接作为账号ID）
         /// </summary>
+        public UserInfo GetOrCreateUserByClientId(string clientInstanceId, string sessionId, string displayName)
+        {
+            // 直接使用客户端实例ID作为账号ID
+            var userId = clientInstanceId;
+            
+            // 检查账号是否已存在
+            if (_users.TryGetValue(userId, out var existingUser))
+            {
+                // 更新Session映射
+                _sessionToUser[sessionId] = userId;
+                _userToSession[userId] = sessionId;
+                existingUser.LastLoginAt = TimeInfo.Instance.ClientNow();
+                
+                ASLogger.Instance.Info($"客户端实例 {clientInstanceId} 登录，使用已有账号: {userId}");
+                return existingUser;
+            }
+            
+            // 创建新账号（使用客户端实例ID作为账号ID）
+            var userInfo = UserInfo.Create();
+            userInfo.Id = userId;  // 直接使用客户端实例ID
+            userInfo.DisplayName = displayName;
+            userInfo.LastLoginAt = TimeInfo.Instance.ClientNow();
+            userInfo.CurrentRoomId = "";
+            
+            // 添加到管理器
+            _users[userId] = userInfo;
+            _sessionToUser[sessionId] = userId;
+            _userToSession[userId] = sessionId;
+            
+            ASLogger.Instance.Info($"为客户端实例 {clientInstanceId} 创建新账号: {userId}");
+            return userInfo;
+        }
+
+        /// <summary>
+        /// 用户连接时分配ID（旧接口，保持向后兼容）
+        /// </summary>
+        [Obsolete("使用 GetOrCreateUserByClientId 替代，直接使用客户端实例ID作为账号ID")]
         public UserInfo AssignUserId(string sessionId, string displayName)
         {
             try
             {
-                // 生成唯一用户ID
+                // 生成唯一用户ID（临时兼容方案）
                 var userId = GenerateUserId();
                 
                 var userInfo = UserInfo.Create();
@@ -151,7 +188,7 @@ namespace AstrumServer.Managers
         }
 
         /// <summary>
-        /// 生成唯一用户ID
+        /// 生成唯一用户ID（仅用于向后兼容，新代码应使用客户端实例ID）
         /// </summary>
         private string GenerateUserId()
         {

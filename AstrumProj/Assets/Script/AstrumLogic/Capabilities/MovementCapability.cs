@@ -4,6 +4,7 @@ using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Physics;
 using TrueSync;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.Capabilities
 {
@@ -28,6 +29,11 @@ namespace Astrum.LogicCore.Capabilities
         private const string KEY_MOVEMENT_THRESHOLD = "MovementThreshold";
         private static readonly FP DEFAULT_MOVEMENT_THRESHOLD = (FP)0.1f;
         
+        // ====== 日志相关 Key ======
+        private const string KEY_LOGGED_NO_DERIVED_STATS = "Movement_Log_NoDerivedStats";
+        private const string KEY_LOGGED_BLOCKED_MOVE = "Movement_Log_BlockedMove";
+        private const string KEY_LOGGED_ZERO_SPEED = "Movement_Log_ZeroSpeed";
+        
         // ====== 生命周期 ======
         
         public override void OnAttached(Entity entity)
@@ -40,6 +46,9 @@ namespace Astrum.LogicCore.Capabilities
                 state.CustomData = new Dictionary<string, object>();
             
             state.CustomData[KEY_MOVEMENT_THRESHOLD] = DEFAULT_MOVEMENT_THRESHOLD;
+            state.CustomData[KEY_LOGGED_NO_DERIVED_STATS] = false;
+            state.CustomData[KEY_LOGGED_BLOCKED_MOVE] = false;
+            state.CustomData[KEY_LOGGED_ZERO_SPEED] = false;
             SetCapabilityState(entity, state);
         }
         
@@ -74,8 +83,14 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             
             // 获取移动阈值
-            //var state = GetCapabilityState(entity);
-            var threshold = (FP)(0.1f);
+            var state = GetCapabilityState(entity);
+            FP threshold = DEFAULT_MOVEMENT_THRESHOLD;
+            if (state.CustomData != null &&
+                state.CustomData.TryGetValue(KEY_MOVEMENT_THRESHOLD, out var thresholdObj) &&
+                thresholdObj is FP thresholdFp)
+            {
+                threshold = thresholdFp;
+            }
             
             // 原有移动逻辑（不变）
             var input = inputComponent.CurrentInput;
@@ -105,6 +120,17 @@ namespace Astrum.LogicCore.Capabilities
             var derivedStats = GetComponent<DerivedStatsComponent>(entity);
             if (derivedStats == null)
             {
+                // 有明显移动输入但没有派生属性组件，记录一次日志帮助排查
+                if (inputMagnitude > threshold &&
+                    state.CustomData != null &&
+                    state.CustomData.TryGetValue(KEY_LOGGED_NO_DERIVED_STATS, out var loggedObj1) &&
+                    loggedObj1 is bool loggedNoDerived == false)
+                {
+                    ASLogger.Instance.Warning(
+                        $"MovementCapability: 实体 {entity.UniqueId} 有移动输入但缺少 DerivedStatsComponent，无法获取 SPD。Frame={inputComponent.CurrentInput.Frame}, MoveX={inputComponent.CurrentInput.MoveX}, MoveY={inputComponent.CurrentInput.MoveY}");
+                    state.CustomData[KEY_LOGGED_NO_DERIVED_STATS] = true;
+                    SetCapabilityState(entity, state);
+                }
                 return;
             }
 
@@ -118,6 +144,19 @@ namespace Astrum.LogicCore.Capabilities
             if (inputMagnitude > threshold && movementComponent.CanMove)
             {
                 FP speed = movementComponent.Speed;
+                
+                 // 有移动输入但速度为0或很小，记录一次日志
+                if (state.CustomData != null &&
+                    state.CustomData.TryGetValue(KEY_LOGGED_ZERO_SPEED, out var loggedZeroObj) &&
+                    loggedZeroObj is bool loggedZero == false &&
+                    speed <= FP.EN4)
+                {
+                    ASLogger.Instance.Warning(
+                        $"MovementCapability: 实体 {entity.UniqueId} 有移动输入但 MovementComponent.Speed≈0，SPD={finalSpeed}。Frame={input.Frame}, MoveX={input.MoveX}, MoveY={input.MoveY}, CanMove={movementComponent.CanMove}, Dash={input.Dash}");
+                    state.CustomData[KEY_LOGGED_ZERO_SPEED] = true;
+                    SetCapabilityState(entity, state);
+                }
+
                 FP dt = (FP)deltaTime;
                 FP deltaX = moveX * speed * dt;
                 FP deltaY = moveY * speed * dt;
@@ -126,6 +165,19 @@ namespace Astrum.LogicCore.Capabilities
                 transComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
                 
                 entity.World?.HitSystem?.UpdateEntityPosition(entity);
+            }
+            else if (inputMagnitude > threshold && !movementComponent.CanMove)
+            {
+                // 有明显移动输入但标记为不能移动，仅记录一次
+                if (state.CustomData != null &&
+                    state.CustomData.TryGetValue(KEY_LOGGED_BLOCKED_MOVE, out var loggedObj2) &&
+                    loggedObj2 is bool loggedBlocked == false)
+                {
+                    ASLogger.Instance.Info(
+                        $"MovementCapability: 实体 {entity.UniqueId} 有移动输入但 CanMove=false。Frame={input.Frame}, MoveX={input.MoveX}, MoveY={input.MoveY}, Dash={input.Dash}");
+                    state.CustomData[KEY_LOGGED_BLOCKED_MOVE] = true;
+                    SetCapabilityState(entity, state);
+                }
             }
         }
         

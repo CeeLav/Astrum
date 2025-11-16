@@ -1,5 +1,5 @@
 using Astrum.CommonBase;
-using Astrum.Client.Data;
+using Astrum.LogicCore.Data;
 
 namespace Astrum.Client.Core
 {

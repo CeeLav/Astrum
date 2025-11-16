@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using AstrumServer.Network;
 using AstrumServer.Managers;
+using AstrumServer.Data;
 using Astrum.Network;
 using Astrum.Generated;
 using Astrum.CommonBase;
@@ -21,6 +22,7 @@ namespace AstrumServer.Core
         private readonly RoomManager _roomManager;
         private readonly FrameSyncManager _frameSyncManager;
         private readonly MatchmakingManager _matchmakingManager;
+        private readonly AccountSaveManager _accountSaveManager;
         
         // 系统状态记录，用于检测变化
         private int _lastUserCount = -1;
@@ -40,6 +42,7 @@ namespace AstrumServer.Core
             _roomManager = new RoomManager(_networkManager, _userManager);
             _frameSyncManager = new FrameSyncManager(_roomManager, _networkManager, _userManager);
             _matchmakingManager = new MatchmakingManager(_roomManager, _userManager, _networkManager);
+            _accountSaveManager = new AccountSaveManager();
             
             _networkManager.SetLogger(ASLogger.Instance);
         }
@@ -272,10 +275,31 @@ namespace AstrumServer.Core
         {
             try
             {
-                ASLogger.Instance.Info($"客户端 {client.Id} 请求登录，显示名称: {request.DisplayName}");
+                // 获取客户端实例ID（如果请求中包含）
+                var clientInstanceId = request.ClientInstanceId;
+                if (string.IsNullOrEmpty(clientInstanceId))
+                {
+                    // 兼容旧版本：使用Session ID作为临时标识
+                    clientInstanceId = $"temp_{client.Id}";
+                    ASLogger.Instance.Warning($"客户端未提供实例ID，使用临时标识: {clientInstanceId}");
+                }
                 
-                // 为用户分配ID
-                var userInfo = _userManager.AssignUserId(client.Id.ToString(), request.DisplayName);
+                ASLogger.Instance.Info($"客户端 {client.Id} 请求登录，实例ID: {clientInstanceId}, 显示名称: {request.DisplayName}");
+                
+                // 根据客户端实例ID获取或创建账号（客户端实例ID直接作为账号ID）
+                var userInfo = _userManager.GetOrCreateUserByClientId(
+                    clientInstanceId, 
+                    client.Id.ToString(), 
+                    request.DisplayName ?? $"Player_{client.Id}"
+                );
+                
+                // 加载账号存档
+                var accountSave = _accountSaveManager.LoadAccountSave(clientInstanceId);
+                if (accountSave != null)
+                {
+                    ASLogger.Instance.Info($"AccountSaveManager: 已加载账号存档 - ClientInstanceId: {clientInstanceId}, Level: {accountSave.Level}");
+                    // 注意：这里暂时不返回存档数据，后续可以通过单独的协议消息返回
+                }
                 
                 // 发送登录成功响应
                 var response = LoginResponse.Create();
