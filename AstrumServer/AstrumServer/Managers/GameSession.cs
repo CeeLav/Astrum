@@ -480,6 +480,88 @@ namespace AstrumServer.Managers
         }
         
         /// <summary>
+        /// 发送重连快照给特定玩家（公共方法，用于断线重连）
+        /// </summary>
+        public void SendReconnectSnapshotToPlayer(string userId)
+        {
+            if (!IsActive || LogicRoom?.LSController is not ServerLSController serverSync)
+            {
+                ASLogger.Instance.Warning($"房间 {_room.Info.Id} 游戏会话未激活或LSController无效，无法发送重连快照", "FrameSync.Controller");
+                return;
+            }
+            
+            try
+            {
+                ASLogger.Instance.Info($"房间 {_room.Info.Id} 发送重连快照给玩家 {userId}", "FrameSync.Controller");
+                
+                var currentFrame = AuthorityFrame;
+                
+                // 确保 FrameBuffer 已经准备好当前帧
+                serverSync.FrameBuffer.MoveForward(currentFrame);
+                serverSync.SaveState();
+                
+                // 获取当前帧快照数据
+                byte[] worldSnapshotData = serverSync.GetSnapshotBytes(currentFrame);
+                if (worldSnapshotData != null && worldSnapshotData.Length > 0)
+                {
+                    // 发送包含当前帧快照的通知（只发送给重连的玩家）
+                    SendFrameSyncStartNotificationToPlayer(worldSnapshotData, userId);
+                    ASLogger.Instance.Info($"房间 {_room.Info.Id} 重连快照已发送给玩家 {userId}（帧: {currentFrame}，大小: {worldSnapshotData.Length} bytes）", "FrameSync.Controller");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"房间 {_room.Info.Id} 重连，但快照数据为空", "FrameSync.Controller");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"发送重连快照时出错: {ex.Message}", "FrameSync.Controller");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 发送帧同步开始通知给特定玩家（内部方法，用于断线重连）
+        /// </summary>
+        private void SendFrameSyncStartNotificationToPlayer(byte[] worldSnapshotData, string userId)
+        {
+            try
+            {
+                var notification = FrameSyncStartNotification.Create();
+                notification.roomId = _room.Info.Id;
+                notification.frameRate = LSConstValue.FrameCountPerSecond;
+                notification.frameInterval = LSConstValue.UpdateInterval;
+                notification.startTime = StartTime;
+                notification.playerIds = new List<string>(PlayerIds);
+                notification.worldSnapshot = worldSnapshotData;
+                notification.playerIdMapping = new Dictionary<string, long>(UserIdToPlayerId);
+                
+                ASLogger.Instance.Info($"准备发送帧同步开始通知给玩家 {userId}，包含 {notification.playerIdMapping.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
+                
+                // 只发送给重连的玩家
+                var sessionId = _userManager.GetSessionIdByUserId(userId);
+                if (!string.IsNullOrEmpty(sessionId))
+                {
+                    _networkManager.SendMessage(sessionId, notification);
+                    if (UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                    {
+                        ASLogger.Instance.Debug($"已发送帧同步开始通知给玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Controller");
+                    }
+                    ASLogger.Instance.Info($"已发送帧同步开始通知给玩家 {userId}（断线重连）", "FrameSync.Controller");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"无法找到玩家 {userId} 的会话ID，无法发送帧同步开始通知", "FrameSync.Controller");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"发送帧同步开始通知时出错: {ex.Message}", "FrameSync.Controller");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
         /// 发送帧同步开始通知（内部方法）
         /// </summary>
         private void SendFrameSyncStartNotification(byte[] worldSnapshotData)

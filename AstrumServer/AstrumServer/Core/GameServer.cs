@@ -344,14 +344,26 @@ namespace AstrumServer.Core
                     _userManager.UpdateUserRoom(userInfo.Id, userRoomId);
                     userInfo.CurrentRoomId = userRoomId;
                     
-                    // 检查房间是否在游戏中，如果是，直接发送游戏开始通知
+                    // 检查房间是否在游戏中，如果是，直接发送游戏开始通知和快照
                     var room = _roomManager.GetRoom(userRoomId);
                     if (room != null && room.Info.Status == 1) // 1=游戏中
                     {
-                        ASLogger.Instance.Info($"用户 {userInfo.Id} 重连，房间 {userRoomId} 在游戏中，直接发送游戏开始通知");
+                        ASLogger.Instance.Info($"用户 {userInfo.Id} 重连，房间 {userRoomId} 在游戏中，发送游戏开始通知和快照");
                         
-                        // 启动房间帧同步（如果还未启动，会自动检测重连并发送通知）
-                        _frameSyncManager.StartRoomFrameSync(userRoomId);
+                        // 获取游戏会话
+                        var gameSession = room.GetGameSession();
+                        if (gameSession != null && gameSession.IsActive)
+                        {
+                            // 1. 发送 GameStartNotification（只发送给重连的玩家）
+                            NotifyGameStartToPlayer(room.Info, userInfo.Id);
+                            
+                            // 2. 发送当前帧快照（FrameSyncStartNotification，只发送给重连的玩家）
+                            gameSession.SendReconnectSnapshotToPlayer(userInfo.Id);
+                        }
+                        else
+                        {
+                            ASLogger.Instance.Warning($"用户 {userInfo.Id} 重连，但房间 {userRoomId} 的游戏会话不存在或未激活");
+                        }
                     }
                 }
                 
@@ -743,6 +755,56 @@ namespace AstrumServer.Core
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"通知游戏开始时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 通知特定玩家游戏开始（用于断线重连）
+        /// </summary>
+        private void NotifyGameStartToPlayer(RoomInfo roomInfo, string userId)
+        {
+            try
+            {
+                // 创建游戏配置
+                var gameConfig = GameConfig.Create();
+                gameConfig.maxPlayers = roomInfo.MaxPlayers;
+                gameConfig.roundTime = 60; // 60秒一回合
+                gameConfig.maxRounds = 5; // 最多5回合
+                gameConfig.allowSpectators = true;
+                gameConfig.gameModes = new List<string> { "经典模式", "快速模式" };
+
+                // 创建游戏房间状态
+                var roomState = GameRoomState.Create();
+                roomState.roomId = roomInfo.Id;
+                roomState.currentRound = 1;
+                roomState.maxRounds = gameConfig.maxRounds;
+                roomState.roundStartTime = roomInfo.GameStartTime;
+                roomState.activePlayers = new List<string>(roomInfo.PlayerNames);
+
+                // 创建游戏开始通知
+                var notification = GameStartNotification.Create();
+                notification.roomId = roomInfo.Id;
+                notification.config = gameConfig;
+                notification.roomState = roomState;
+                notification.startTime = roomInfo.GameStartTime;
+                notification.playerIds = new List<string>(roomInfo.PlayerNames);
+
+                // 只发送给重连的玩家
+                var sessionId = _userManager.GetSessionIdByUserId(userId);
+                if (!string.IsNullOrEmpty(sessionId))
+                {
+                    _networkManager.SendMessage(sessionId, notification);
+                    ASLogger.Instance.Info($"已通知玩家 {userId} 游戏开始（断线重连）");
+                }
+                else
+                {
+                    ASLogger.Instance.Warning($"无法找到玩家 {userId} 的会话ID，无法发送游戏开始通知");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"通知玩家游戏开始时出错: {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }

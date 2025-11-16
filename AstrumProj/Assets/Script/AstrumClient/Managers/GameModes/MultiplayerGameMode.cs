@@ -614,7 +614,7 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 查找现有的 Entity 中是否有 Player，如果有则设置相关属性
         /// </summary>
-        private void FindAndSetupPlayer()
+        public void FindAndSetupPlayer()
         {
             if (MainRoom?.MainWorld == null)
             {

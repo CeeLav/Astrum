@@ -143,6 +143,10 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 if (_gameMode.MainStage != null)
                 {
                     _gameMode.MainStage.SyncEntityViews();
+                    
+                    // 断线重连时，EntityView 可能已经创建，需要手动设置摄像机绑定
+                    // 如果 OnEntityViewAdded 事件已订阅，它会自动处理；但为了确保，这里也调用一次
+                    _gameMode.FindAndSetupPlayer();
                 }
                 else
                 {
@@ -251,15 +255,32 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 // 将帧输入数据传递给房间的帧同步控制器
                 if (_gameMode.MainRoom.LSController is ClientLSController clientSync)
                 {
+                    // 确定要设置的权威帧号
+                    int targetAuthorityFrame = frame > 0 ? frame : clientSync.AuthorityFrame + 1;
+                    
+                    // 断线重连时，服务器发送的帧号可能远大于客户端当前 MaxFrame
+                    // 需要先扩展 FrameBuffer 到足够的大小
+                    var frameBuffer = clientSync.FrameBuffer;
+                    if (targetAuthorityFrame > frameBuffer.MaxFrame)
+                    {
+                        ASLogger.Instance.Info(
+                            $"FrameSyncHandler: 检测到帧号超出范围，扩展 FrameBuffer - 当前 MaxFrame: {frameBuffer.MaxFrame}, 目标帧: {targetAuthorityFrame}", 
+                            "FrameSync.Client");
+                        
+                        // 扩展 FrameBuffer，留出足够的缓冲空间（至少1秒）
+                        int targetMaxFrame = targetAuthorityFrame + LSConstValue.FrameCountPerSecond;
+                        while (frameBuffer.MaxFrame < targetMaxFrame)
+                        {
+                            frameBuffer.MoveForward(frameBuffer.MaxFrame);
+                        }
+                        
+                        ASLogger.Instance.Info(
+                            $"FrameSyncHandler: FrameBuffer 已扩展 - 新 MaxFrame: {frameBuffer.MaxFrame}", 
+                            "FrameSync.Client");
+                    }
+                    
                     // 更新权威帧
-                    if (frame > 0)
-                    {
-                        clientSync.AuthorityFrame = frame;
-                    }
-                    else
-                    {
-                        ++clientSync.AuthorityFrame;
-                    }
+                    clientSync.AuthorityFrame = targetAuthorityFrame;
                     
                     clientSync.SetOneFrameInputs(frameInputs);
                     
