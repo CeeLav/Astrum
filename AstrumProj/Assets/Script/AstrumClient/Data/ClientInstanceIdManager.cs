@@ -22,10 +22,12 @@ namespace Astrum.Client.Data
         {
             if (!string.IsNullOrEmpty(_cachedInstanceId))
             {
+                ASLogger.Instance.Info($"ClientInstanceIdManager: 使用缓存的实例ID - {_cachedInstanceId}");
                 return _cachedInstanceId;
             }
             
             // 尝试从文件加载
+            ASLogger.Instance.Info($"ClientInstanceIdManager: 尝试从文件加载实例ID - 路径: {InstanceIdFilePath}");
             if (File.Exists(InstanceIdFilePath))
             {
                 try
@@ -33,18 +35,28 @@ namespace Astrum.Client.Data
                     _cachedInstanceId = File.ReadAllText(InstanceIdFilePath).Trim();
                     if (!string.IsNullOrEmpty(_cachedInstanceId))
                     {
-                        ASLogger.Instance.Info($"ClientInstanceIdManager: 加载已存在的实例ID - {_cachedInstanceId}");
+                        ASLogger.Instance.Info($"ClientInstanceIdManager: 成功加载已存在的实例ID - {_cachedInstanceId}");
                         return _cachedInstanceId;
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Warning("ClientInstanceIdManager: 文件存在但内容为空，将生成新的ID");
                     }
                 }
                 catch (Exception ex)
                 {
                     ASLogger.Instance.Warning($"ClientInstanceIdManager: 加载实例ID失败 - {ex.Message}");
+                    ASLogger.Instance.LogException(ex, LogLevel.Warning);
                 }
+            }
+            else
+            {
+                ASLogger.Instance.Info($"ClientInstanceIdManager: 实例ID文件不存在，将生成新的ID - 路径: {InstanceIdFilePath}");
             }
             
             // 生成新的实例ID
             _cachedInstanceId = GenerateInstanceId();
+            ASLogger.Instance.Info($"ClientInstanceIdManager: 生成新的实例ID - {_cachedInstanceId}");
             
             // 保存到文件
             try
@@ -55,11 +67,12 @@ namespace Astrum.Client.Data
                     Directory.CreateDirectory(directory);
                 }
                 File.WriteAllText(InstanceIdFilePath, _cachedInstanceId);
-                ASLogger.Instance.Info($"ClientInstanceIdManager: 生成并保存新的实例ID - {_cachedInstanceId}");
+                ASLogger.Instance.Info($"ClientInstanceIdManager: 成功保存实例ID到文件 - {InstanceIdFilePath}");
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"ClientInstanceIdManager: 保存实例ID失败 - {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
             
             return _cachedInstanceId;

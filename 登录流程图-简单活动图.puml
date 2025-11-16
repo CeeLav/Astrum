@@ -1,0 +1,59 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+    BackgroundColor #E1F5FF
+    BorderColor #0066CC
+}
+
+title Login and Reconnect Flow
+
+start
+
+:Client Start;
+:Get ClientInstanceId;
+:Connect to Server;
+
+if (Connection Success?) then (yes)
+  :Send LoginRequest;
+  :Server processes login;
+  :Check if user in room;
+  
+  if (User in room?) then (yes)
+    :Restore CurrentRoomId;
+  else (no)
+  endif
+  
+  :Send LoginResponse;
+  
+  if (Login Success?) then (yes)
+    :Set CurrentUser;
+    
+    if (CurrentRoomId exists?) then (yes)
+      :Detect reconnect;
+      
+      if (Not in room?) then (yes)
+        :Send JoinRoomRequest;
+        
+        if (Room in game?) then (yes)
+          :Server detects reconnect;
+          :Send snapshot;
+          :Restore game state;
+        else (no)
+          :Normal join;
+        endif
+      else (no)
+      endif
+    else (no)
+      :Show login UI;
+    endif
+  else (no)
+    :Show error;
+  endif
+else (no)
+  :Show error;
+endif
+
+stop
+
+@enduml
+

@@ -1,0 +1,96 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title 客户端登录与断线重连序列图
+
+actor Client
+participant "ClientInstanceIdManager" as CIDM
+participant "UserManager" as UM
+participant Server
+participant "RoomManager" as RM
+participant "FrameSyncManager" as FSM
+
+== 启动阶段 ==
+Client -> CIDM: GetOrCreateInstanceId()
+CIDM -> CIDM: 检查缓存
+alt 缓存存在
+    CIDM --> Client: 返回缓存的ID
+else 缓存不存在
+    CIDM -> CIDM: 从文件加载
+    alt 文件存在
+        CIDM --> Client: 返回文件中的ID
+    else 文件不存在
+        CIDM -> CIDM: 生成新ID
+        CIDM -> CIDM: 保存到文件
+        CIDM --> Client: 返回新ID
+    end
+end
+
+== 连接阶段 ==
+Client -> Server: ConnectRequest
+Server --> Client: ConnectResponse
+
+== 登录阶段 ==
+Client -> UM: AutoLoginAsync()
+UM -> Server: LoginRequest(ClientInstanceId, DisplayName)
+activate Server
+
+Server -> Server: GetOrCreateUserByClientId()
+Server -> RM: GetUserRoomId(userId)
+activate RM
+RM --> Server: roomId or null
+deactivate RM
+
+alt 用户在房间中
+    Server -> Server: UpdateUserRoom(userId, roomId)
+    Server -> Server: 恢复CurrentRoomId
+    note right: 断线重连情况
+end
+
+Server --> UM: LoginResponse(Success, User.CurrentRoomId)
+deactivate Server
+UM -> UM: HandleLoginResponse()
+UM -> UM: 设置CurrentUser
+
+== 断线重连阶段 ==
+alt CurrentRoomId存在
+    UM -> UM: 检测到断线重连
+    UM -> Server: JoinRoomRequest(roomId)
+    activate Server
+    
+    Server -> RM: JoinRoom(roomId, userId)
+    activate RM
+    RM --> Server: success
+    deactivate RM
+    
+    Server -> Server: 检查房间状态
+    
+    alt 房间在游戏中
+        Server -> FSM: StartRoomFrameSync(roomId)
+        activate FSM
+        FSM -> FSM: 检测到已有房间状态
+        FSM -> FSM: 保存当前帧快照
+        FSM --> Server: FrameSyncStartNotification(snapshot)
+        deactivate FSM
+        
+        Server --> UM: JoinRoomResponse(Success, Room)
+        Server --> Client: FrameSyncStartNotification(snapshot)
+        deactivate Server
+        
+        Client -> Client: 恢复世界状态
+        Client -> Client: 应用快照
+        note right: 客户端恢复游戏状态
+    else 房间不在游戏中
+        Server --> UM: JoinRoomResponse(Success, Room)
+        deactivate Server
+        note right: 正常加入房间
+    end
+else CurrentRoomId不存在
+    note right: 正常登录完成\n显示登录界面
+end
+
+@enduml
+

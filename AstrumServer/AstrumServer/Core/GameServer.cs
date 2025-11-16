@@ -183,16 +183,38 @@ namespace AstrumServer.Core
                     // 从匹配队列移除（如果在队列中）
                     _matchmakingManager.DequeuePlayer(userInfo.Id);
                     
-                    // 若在房间内，先从房间移除
+                    // 若在房间内，检查房间状态
                     if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
                     {
                         var roomId = userInfo.CurrentRoomId;
-                        var left = _roomManager.LeaveRoom(roomId, userInfo.Id);
-                        _userManager.UpdateUserRoom(userInfo.Id, "");
+                        var room = _roomManager.GetRoom(roomId);
+                        
+                        if (room != null)
+                        {
+                            // 如果房间在游戏中，保留玩家信息以便重连（不断开房间）
+                            if (room.Info.Status == 1) // 1=游戏中
+                            {
+                                ASLogger.Instance.Info($"用户 {userInfo.Id} 断线，房间 {roomId} 在游戏中，保留玩家信息以便重连");
+                                // 不清空 CurrentRoomId，不从房间移除玩家
+                                // 只移除 Session 映射，保留用户信息
+                            }
+                            else
+                            {
+                                // 房间不在游戏中，正常移除玩家
+                                var left = _roomManager.LeaveRoom(roomId, userInfo.Id);
+                                _userManager.UpdateUserRoom(userInfo.Id, "");
 
-                        // 若房间已为空，RoomManager 应删除房间；这里触发一次系统清理以确保及时清理
-                        CleanupSystem();
-                        ASLogger.Instance.Info($"用户 {userInfo.Id} 断线，已从房间 {roomId} 移除 (left={left})");
+                                // 若房间已为空，RoomManager 应删除房间；这里触发一次系统清理以确保及时清理
+                                CleanupSystem();
+                                ASLogger.Instance.Info($"用户 {userInfo.Id} 断线，已从房间 {roomId} 移除 (left={left})");
+                            }
+                        }
+                        else
+                        {
+                            // 房间不存在，清空房间信息
+                            _userManager.UpdateUserRoom(userInfo.Id, "");
+                            ASLogger.Instance.Warning($"用户 {userInfo.Id} 断线，房间 {roomId} 不存在，清空房间信息");
+                        }
                     }
                 }
             }
@@ -203,8 +225,28 @@ namespace AstrumServer.Core
             }
             finally
             {
-                // 最终移除用户映射
-                _userManager.RemoveUser(client.Id.ToString());
+                // 移除 Session 映射，但保留用户信息（如果房间在游戏中）
+                var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
+                if (userInfo != null && !string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                {
+                    var room = _roomManager.GetRoom(userInfo.CurrentRoomId);
+                    if (room != null && room.Info.Status == 1)
+                    {
+                        // 房间在游戏中，只移除 Session 映射，保留用户信息
+                        _userManager.RemoveSessionMapping(client.Id.ToString());
+                        ASLogger.Instance.Info($"用户 {userInfo.Id} 断线，保留用户信息以便重连（房间在游戏中）");
+                    }
+                    else
+                    {
+                        // 最终移除用户映射
+                        _userManager.RemoveUser(client.Id.ToString());
+                    }
+                }
+                else
+                {
+                    // 最终移除用户映射
+                    _userManager.RemoveUser(client.Id.ToString());
+                }
             }
         }
         
@@ -293,6 +335,16 @@ namespace AstrumServer.Core
                     request.DisplayName ?? $"Player_{client.Id}"
                 );
                 
+                // 检查用户是否在某个房间中（断线重连情况）
+                // 从房间信息中恢复 CurrentRoomId
+                var userRoomId = _roomManager.GetUserRoomId(userInfo.Id);
+                if (!string.IsNullOrEmpty(userRoomId))
+                {
+                    ASLogger.Instance.Info($"用户 {userInfo.Id} 在房间 {userRoomId} 中，恢复房间信息（断线重连）");
+                    _userManager.UpdateUserRoom(userInfo.Id, userRoomId);
+                    userInfo.CurrentRoomId = userRoomId;
+                }
+                
                 // 加载账号存档
                 var accountSave = _accountSaveManager.LoadAccountSave(clientInstanceId);
                 if (accountSave != null)
@@ -309,7 +361,7 @@ namespace AstrumServer.Core
                 response.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 
                 _networkManager.SendMessage(client.Id.ToString(), response);
-                ASLogger.Instance.Info($"客户端 {client.Id} 登录成功，用户ID: {userInfo.Id}");
+                ASLogger.Instance.Info($"客户端 {client.Id} 登录成功，用户ID: {userInfo.Id}, 房间ID: {userInfo.CurrentRoomId ?? ""}");
             }
             catch (Exception ex)
             {

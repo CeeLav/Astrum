@@ -205,15 +205,6 @@ namespace Astrum.Client.UI.Generated
         #region UI Event Handlers
 
         /// <summary>
-        /// 设置 LoginGameMode 引用
-        /// </summary>
-        public void SetLoginGameMode(LoginGameMode loginGameMode)
-        {
-            // This method is no longer needed as LoginGameMode is not directly referenced here.
-            // The button click events will now be handled by the LoginGameMode itself.
-        }
-
-        /// <summary>
         /// 连接按钮点击事件
         /// </summary>
         private void OnConnectButtonClicked()

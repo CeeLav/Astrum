@@ -119,6 +119,26 @@ namespace AstrumServer.Managers
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
+        
+        /// <summary>
+        /// 只移除 Session 映射，保留用户信息（用于断线重连）
+        /// </summary>
+        public void RemoveSessionMapping(string sessionId)
+        {
+            try
+            {
+                if (_sessionToUser.TryRemove(sessionId, out var userId))
+                {
+                    _userToSession.TryRemove(userId, out _);
+                    ASLogger.Instance.Info($"移除 Session 映射: {sessionId} -> {userId}，保留用户信息以便重连");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"移除 Session 映射时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
 
         /// <summary>
         /// 根据Session ID获取用户信息

@@ -58,9 +58,14 @@ namespace Astrum.Client.Managers
                 ASLogger.Instance.Info("UserManager: 开始自动登录...");
                 
                 // 创建登录请求
+                var clientInstanceId = ClientInstanceIdManager.GetOrCreateInstanceId();
+                ASLogger.Instance.Info($"UserManager: 准备登录，使用客户端实例ID - {clientInstanceId}");
+                
                 var loginRequest = LoginRequest.Create();
                 loginRequest.DisplayName = $"Player_{UnityEngine.Random.Range(1000, 9999)}";
-                loginRequest.ClientInstanceId = ClientInstanceIdManager.GetOrCreateInstanceId();
+                loginRequest.ClientInstanceId = clientInstanceId;
+                
+                ASLogger.Instance.Info($"UserManager: 登录请求已创建 - DisplayName: {loginRequest.DisplayName}, ClientInstanceId: {loginRequest.ClientInstanceId}");
                 
                 // 发送登录请求
                 var networkManager = NetworkManager.Instance;
@@ -171,6 +176,12 @@ namespace Astrum.Client.Managers
                     if (CurrentUser != null)
                     {
                         ASLogger.Instance.Info($"UserManager: 用户登录成功 - ID: {CurrentUser.Id}, Name: {CurrentUser.DisplayName}");
+                        
+                        // 检查是否有房间ID（断线重连情况）
+                        if (!string.IsNullOrEmpty(CurrentUser.CurrentRoomId))
+                        {
+                            ASLogger.Instance.Info($"UserManager: 检测到断线重连 - 房间ID: {CurrentUser.CurrentRoomId}");
+                        }
                         
                         // 触发登录成功事件
                         OnUserLoggedIn?.Invoke(CurrentUser);
