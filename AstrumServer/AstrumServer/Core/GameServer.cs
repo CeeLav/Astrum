@@ -343,6 +343,16 @@ namespace AstrumServer.Core
                     ASLogger.Instance.Info($"用户 {userInfo.Id} 在房间 {userRoomId} 中，恢复房间信息（断线重连）");
                     _userManager.UpdateUserRoom(userInfo.Id, userRoomId);
                     userInfo.CurrentRoomId = userRoomId;
+                    
+                    // 检查房间是否在游戏中，如果是，直接发送游戏开始通知
+                    var room = _roomManager.GetRoom(userRoomId);
+                    if (room != null && room.Info.Status == 1) // 1=游戏中
+                    {
+                        ASLogger.Instance.Info($"用户 {userInfo.Id} 重连，房间 {userRoomId} 在游戏中，直接发送游戏开始通知");
+                        
+                        // 启动房间帧同步（如果还未启动，会自动检测重连并发送通知）
+                        _frameSyncManager.StartRoomFrameSync(userRoomId);
+                    }
                 }
                 
                 // 加载账号存档
@@ -359,7 +369,7 @@ namespace AstrumServer.Core
                 response.Message = "登录成功";
                 response.User = userInfo;
                 response.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                
+
                 _networkManager.SendMessage(client.Id.ToString(), response);
                 ASLogger.Instance.Info($"客户端 {client.Id} 登录成功，用户ID: {userInfo.Id}, 房间ID: {userInfo.CurrentRoomId ?? ""}");
             }
@@ -1001,12 +1011,20 @@ namespace AstrumServer.Core
                 
                 ASLogger.Instance.Info($"用户 {userInfo.Id} 请求快速匹配");
                 
-                // 检查用户是否已在房间中
-                if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                // 检查用户是否真正在房间中（通过RoomManager检查，更准确）
+                var existingRoomId = _roomManager.GetUserRoomId(userInfo.Id);
+                if (!string.IsNullOrEmpty(existingRoomId))
                 {
-                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 已在房间中，无法加入匹配队列");
+                    ASLogger.Instance.Warning($"用户 {userInfo.Id} 已在房间中，无法加入匹配队列 - 房间ID: {existingRoomId}");
                     SendQuickMatchResponse(client.Id.ToString(), false, "您已在房间中", 0, 0);
                     return;
+                }
+                
+                // 如果CurrentRoomId存在但用户不在房间中，清空它（可能是重连失败的情况）
+                if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                {
+                    ASLogger.Instance.Info($"用户 {userInfo.Id} 的CurrentRoomId存在但不在房间中，清空房间信息 - 原房间ID: {userInfo.CurrentRoomId}");
+                    _userManager.UpdateUserRoom(userInfo.Id, "");
                 }
                 
                 // 加入匹配队列

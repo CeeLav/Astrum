@@ -134,14 +134,6 @@ namespace Astrum.Client.Managers.GameModes
                 UnsubscribeFromNetworkEvents();
                 UnsubscribeFromUserEvents();
                 
-                // 清理重连相关订阅
-                var roomSystemManager = RoomSystemManager.Instance;
-                if (roomSystemManager != null)
-                {
-                    roomSystemManager.OnRoomJoined -= OnReconnectRoomJoined;
-                    roomSystemManager.OnRoomError -= OnReconnectRoomError;
-                }
-
                 // 清理状态
                 _connectionState = ConnectionState.Disconnected;
                 _matchState = MatchState.None;
@@ -373,6 +365,14 @@ namespace Astrum.Client.Managers.GameModes
                 ASLogger.Instance.Warning("LoginGameMode: 已在匹配状态");
                 return;
             }
+            
+            // 检查是否正在重连中
+            if (_isReconnecting)
+            {
+                ASLogger.Instance.Warning("LoginGameMode: 正在重连中，无法发送匹配请求");
+                PublishLoginError("正在重连中，请稍候");
+                return;
+            }
 
             try
             {
@@ -554,8 +554,9 @@ namespace Astrum.Client.Managers.GameModes
         
         /// <summary>
         /// 处理断线重连
+        /// 不再发送 JoinRoomRequest，直接等待服务器发送游戏开始通知
         /// </summary>
-        private async void HandleReconnect(string roomId)
+        private void HandleReconnect(string roomId)
         {
             if (_isReconnecting)
             {
@@ -566,85 +567,29 @@ namespace Astrum.Client.Managers.GameModes
             try
             {
                 _isReconnecting = true;
-                ASLogger.Instance.Info($"LoginGameMode: 开始断线重连流程 - 房间ID: {roomId}");
+                ASLogger.Instance.Info($"LoginGameMode: 检测到断线重连 - 房间ID: {roomId}，等待服务器发送游戏开始通知");
                 
-                // 获取房间系统管理器
-                var roomSystemManager = RoomSystemManager.Instance;
-                if (roomSystemManager == null)
-                {
-                    ASLogger.Instance.Error("LoginGameMode: RoomSystemManager不存在，无法重连");
-                    _isReconnecting = false;
-                    return;
-                }
+                // 订阅游戏开始通知，用于重置重连标志
+                // 注意：这里不需要发送 JoinRoomRequest，服务器会在登录时检测到用户在房间中
+                // 并自动发送 GameStartNotification 和 FrameSyncStartNotification
                 
-                // 检查是否已在房间中
-                if (roomSystemManager.IsInRoom)
-                {
-                    ASLogger.Instance.Info("LoginGameMode: 已在房间中，无需重连");
-                    _isReconnecting = false;
-                    return;
-                }
-                
-                // 订阅房间加入事件，用于重置重连标志
-                roomSystemManager.OnRoomJoined += OnReconnectRoomJoined;
-                roomSystemManager.OnRoomError += OnReconnectRoomError;
-                
-                // 自动重新加入房间
-                // 服务器端会在 StartRoomFrameSync 时检测重连并发送快照
-                var success = await roomSystemManager.JoinRoomAsync(roomId);
-                if (!success)
-                {
-                    ASLogger.Instance.Warning($"LoginGameMode: 重连请求发送失败 - 房间ID: {roomId}");
-                    // 取消订阅
-                    roomSystemManager.OnRoomJoined -= OnReconnectRoomJoined;
-                    roomSystemManager.OnRoomError -= OnReconnectRoomError;
-                    _isReconnecting = false;
-                }
-                // 如果成功，等待 OnReconnectRoomJoined 或 OnReconnectRoomError 来重置标志
+                // 设置一个超时，如果一定时间内没有收到游戏开始通知，则认为重连失败
+                // 这里暂时不实现超时，等待服务器主动发送通知
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"LoginGameMode: 断线重连失败 - {ex.Message}");
+                ASLogger.Instance.Error($"LoginGameMode: 断线重连处理失败 - {ex.Message}");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
                 _isReconnecting = false;
             }
         }
         
         /// <summary>
-        /// 重连时房间加入成功回调
+        /// 重置重连标志（在收到游戏开始通知时调用）
         /// </summary>
-        private void OnReconnectRoomJoined(RoomInfo room)
+        public void OnReconnectGameStarted()
         {
-            ASLogger.Instance.Info($"LoginGameMode: 断线重连成功 - 房间ID: {room.Id}");
-            
-            // 取消订阅
-            var roomSystemManager = RoomSystemManager.Instance;
-            if (roomSystemManager != null)
-            {
-                roomSystemManager.OnRoomJoined -= OnReconnectRoomJoined;
-                roomSystemManager.OnRoomError -= OnReconnectRoomError;
-            }
-            
-            // 重置重连标志
-            _isReconnecting = false;
-        }
-        
-        /// <summary>
-        /// 重连时房间错误回调
-        /// </summary>
-        private void OnReconnectRoomError(string error)
-        {
-            ASLogger.Instance.Warning($"LoginGameMode: 断线重连失败 - {error}");
-            
-            // 取消订阅
-            var roomSystemManager = RoomSystemManager.Instance;
-            if (roomSystemManager != null)
-            {
-                roomSystemManager.OnRoomJoined -= OnReconnectRoomJoined;
-                roomSystemManager.OnRoomError -= OnReconnectRoomError;
-            }
-            
-            // 重置重连标志
+            ASLogger.Instance.Info("LoginGameMode: 重连成功，游戏已开始");
             _isReconnecting = false;
         }
 

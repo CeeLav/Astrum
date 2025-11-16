@@ -270,12 +270,17 @@ namespace Astrum.LogicCore.Core
             {
                 LoadWorldFromSnapshot(worldSnapshot);
             }
+            else
+            {
+                MainWorld = new World();
+                MainWorld.Initialize(0);
+                MainWorld.RoomId = RoomId;
+            }
             
             if (MainWorld == null)
             {
                 ASLogger.Instance.Error($"Room {RoomId} has no MainWorld defined.");
             }
-            MainWorld?.Initialize(0);
             
             // 根据类型创建对应的 LSController
             if (LSController == null)
@@ -288,12 +293,6 @@ namespace Astrum.LogicCore.Core
                 {
                     LSController = new ClientLSController { Room = this };
                 }
-            }
-
-            // 初始化所有世界
-            foreach (var world in Worlds)
-            {
-                world?.Initialize(0);
             }
         }
         

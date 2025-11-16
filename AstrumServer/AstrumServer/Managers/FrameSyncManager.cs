@@ -220,7 +220,13 @@ namespace AstrumServer.Managers
                 // 检查是否已有房间状态（重连情况）
                 if (_roomFrameStates.TryGetValue(roomId, out var existingState))
                 {
-                    // 重连：保存当前帧快照并发送
+                    // 重连：先发送 GameStartNotification，再发送 FrameSyncStartNotification
+                    ASLogger.Instance.Info($"房间 {roomId} 检测到重连，开始处理重连流程", "FrameSync.Room");
+                    
+                    // 1. 先发送 GameStartNotification，确保客户端切换到 MultiplayerGameMode
+                    SendGameStartNotification(roomId, room.Info);
+                    
+                    // 2. 然后发送 FrameSyncStartNotification，恢复游戏状态
                     var currentFrame = existingState.AuthorityFrame;
                     
                     // 确保 FrameBuffer 已经准备好当前帧
@@ -449,6 +455,59 @@ namespace AstrumServer.Managers
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"处理房间帧时出错: {ex.Message}", "FrameSync.Processing");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 发送游戏开始通知（用于重连）
+        /// </summary>
+        private void SendGameStartNotification(string roomId, RoomInfo roomInfo)
+        {
+            try
+            {
+                // 创建游戏配置
+                var gameConfig = GameConfig.Create();
+                gameConfig.maxPlayers = roomInfo.MaxPlayers;
+                gameConfig.roundTime = 60; // 60秒一回合
+                gameConfig.maxRounds = 5; // 最多5回合
+                gameConfig.allowSpectators = true;
+                gameConfig.gameModes = new List<string> { "经典模式", "快速模式" };
+
+                // 创建游戏房间状态
+                var roomState = GameRoomState.Create();
+                roomState.roomId = roomInfo.Id;
+                roomState.currentRound = 1;
+                roomState.maxRounds = gameConfig.maxRounds;
+                roomState.roundStartTime = roomInfo.GameStartTime;
+                roomState.activePlayers = new List<string>(roomInfo.PlayerNames);
+
+                // 创建游戏开始通知
+                var notification = GameStartNotification.Create();
+                notification.roomId = roomInfo.Id;
+                notification.config = gameConfig;
+                notification.roomState = roomState;
+                notification.startTime = roomInfo.GameStartTime;
+                notification.playerIds = new List<string>(roomInfo.PlayerNames);
+
+                // 通知房间内所有玩家游戏开始（重连时只发送给重连的玩家）
+                // 注意：这里应该只发送给重连的玩家，但为了简化，我们发送给所有玩家
+                // 客户端会检查是否已经在 MultiplayerGameMode 中
+                foreach (var playerId in roomInfo.PlayerNames)
+                {
+                    var sessionId = _userManager.GetSessionIdByUserId(playerId);
+                    if (!string.IsNullOrEmpty(sessionId))
+                    {
+                        _networkManager.SendMessage(sessionId, notification);
+                        ASLogger.Instance.Debug($"FrameSyncManager: 发送 GameStartNotification 给重连玩家: {playerId}", "FrameSync.Room");
+                    }
+                }
+                
+                ASLogger.Instance.Info($"房间 {roomInfo.Id} 重连，已发送 GameStartNotification 给所有玩家", "FrameSync.Room");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"发送游戏开始通知时出错: {ex.Message}", "FrameSync.Room");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }

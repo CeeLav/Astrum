@@ -84,8 +84,11 @@ namespace Astrum.LogicCore.Systems
         /// </summary>
         [MemoryPackIgnore]
         public World World { get; set; }
-        
-        public CapabilitySystem() { }
+
+        public CapabilitySystem()
+        {
+            EnsureStaticInitialized();
+        }
         
         /// <summary>
         /// MemoryPack 构造函数
@@ -127,15 +130,7 @@ namespace Astrum.LogicCore.Systems
                 _isStaticInitialized = true;
             }
         }
-        
-        /// <summary>
-        /// 初始化系统（在游戏启动时调用）
-        /// </summary>
-        public void Initialize()
-        {
-            EnsureStaticInitialized();
-        }
-        
+
         /// <summary>
         /// 注册 Capability
         /// </summary>

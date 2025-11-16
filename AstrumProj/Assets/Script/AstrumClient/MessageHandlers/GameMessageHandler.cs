@@ -64,10 +64,13 @@ namespace Astrum.Client.MessageHandlers
                     ASLogger.Instance.Info("GameStartNotificationHandler: 当前已在MultiplayerGameMode中，直接处理通知");
                     multiplayerMode.OnGameStartNotification(message);
                 }
-                // 情况2：还在登录模式中，需要先切换到联机模式再处理
+                // 情况2：还在登录模式中，需要先切换到联机模式再处理（断线重连情况）
                 else if (currentGameMode is LoginGameMode loginMode)
                 {
-                    ASLogger.Instance.Info("GameStartNotificationHandler: 当前在LoginGameMode中，先切换到联机模式");
+                    ASLogger.Instance.Info("GameStartNotificationHandler: 当前在LoginGameMode中，先切换到联机模式（断线重连）");
+                    
+                    // 重置重连标志
+                    loginMode.OnReconnectGameStarted();
                     
                     // 切换到联机模式
                     GameDirector.Instance.SwitchGameMode(GameModeType.Multiplayer);

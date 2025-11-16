@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using Astrum.CommonBase;
 using UnityEngine;
 
@@ -12,8 +14,34 @@ namespace Astrum.Client.Data
     public static class ClientInstanceIdManager
     {
         private static string _cachedInstanceId;
-        private static string InstanceIdFilePath => 
-            Path.Combine(Application.persistentDataPath, "ClientInstanceId.dat");
+        
+        private static string InstanceIdFilePath
+        {
+            get
+            {
+                // 为了确保每个实例都有唯一的ID文件
+                // 如果使用 ParrelSync，每个克隆实例应该有独立的 persistentDataPath
+                // 但为了确保唯一性，我们在文件名中包含实例标识
+                var isClone = ParrelSyncHelper.IsClone();
+                var instanceId = ParrelSyncHelper.GetInstanceId();
+                
+                // 如果是 ParrelSync 克隆实例，使用实例ID作为文件名
+                // ParrelSync 会为每个克隆实例设置独立的 persistentDataPath，但为了保险起见，还是加上实例ID
+                if (isClone)
+                {
+                    var fileName = $"ClientInstanceId_{instanceId}.dat";
+                    return Path.Combine(Application.persistentDataPath, fileName);
+                }
+                else
+                {
+                    // Main 实例，使用固定的文件名
+                    // 注意：如果有多个 Main 实例同时运行，它们会共享同一个ID文件
+                    // 但通常 Main 实例只有一个，或者使用 ParrelSync 来创建多个实例
+                    var fileName = "ClientInstanceId_Main.dat";
+                    return Path.Combine(Application.persistentDataPath, fileName);
+                }
+            }
+        }
         
         /// <summary>
         /// 获取或生成客户端实例ID

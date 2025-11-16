@@ -19,7 +19,7 @@ namespace Astrum.View.Managers
     public class ResourceManager : Singleton<ResourceManager>
     {
         [Header("资源管理设置")]
-        [SerializeField] private bool enableLogging = true;
+        [SerializeField] private bool enableLogging = false;
         [SerializeField] private string defaultPackageName = "DefaultPackage";
         
 #if YOO_ASSET_2

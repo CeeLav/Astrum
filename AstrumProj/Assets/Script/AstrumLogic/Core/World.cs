@@ -94,7 +94,6 @@ namespace Astrum.LogicCore.Core
             SkillEffectSystem = new SkillEffectSystem();
             CapabilitySystem = new CapabilitySystem();
             CapabilitySystem.World = this;
-            CapabilitySystem.Initialize();
             GlobalEventQueue = new Events.GlobalEventQueue(); // 初始化全局事件队列
         }
 
@@ -117,12 +116,12 @@ namespace Astrum.LogicCore.Core
             HitSystem = hitSystem ?? new HitSystem();
             SkillEffectSystem = skillEffectSystem ?? new SkillEffectSystem();
             CapabilitySystem = capabilitySystem ?? new CapabilitySystem();
+            
             CapabilitySystem.World = this;
             GlobalEventQueue = new Events.GlobalEventQueue(); // 初始化全局事件队列（不序列化）
             
             // 确保静态数据已初始化
-            CapabilitySystem.Initialize();
-            
+
             // 重建关系
             foreach (var entity in Entities.Values)
             {
@@ -136,10 +135,27 @@ namespace Astrum.LogicCore.Core
                 }
                 
                 // 重建 CapabilitySystem 的注册（从 Entity 的 CapabilityStates 恢复）
-                foreach (var kvp in entity.CapabilityStates)
+                if (entity.CapabilityStates != null && entity.CapabilityStates.Count > 0)
                 {
-                    CapabilitySystem.RegisterEntityCapability(entity.UniqueId, kvp.Key);
+                    foreach (var kvp in entity.CapabilityStates)
+                    {
+                        CapabilitySystem.RegisterEntityCapability(entity.UniqueId, kvp.Key);
+                    }
                 }
+                else
+                {
+                    ASLogger.Instance.Warning($"World 反序列化：Entity {entity.UniqueId} 的 CapabilityStates 为空", "World.Deserialize");
+                }
+            }
+            
+            // 验证重建结果
+            if (CapabilitySystem.TypeIdToEntityIds.Count == 0)
+            {
+                ASLogger.Instance.Error($"World 反序列化：重建后 TypeIdToEntityIds 仍为空！实体数量: {Entities.Count}", "World.Deserialize");
+            }
+            else
+            {
+                ASLogger.Instance.Info($"World 反序列化：成功重建 TypeIdToEntityIds，包含 {CapabilitySystem.TypeIdToEntityIds.Count} 种 Capability 类型", "World.Deserialize");
             }
             
             // 重建 Systems 的引用
@@ -263,7 +279,6 @@ namespace Astrum.LogicCore.Core
             
             CapabilitySystem = new CapabilitySystem();
             CapabilitySystem.World = this;
-            CapabilitySystem.Initialize();
 
             // 工厂与原型管理器初始化应由 GameApplication 负责
         }
