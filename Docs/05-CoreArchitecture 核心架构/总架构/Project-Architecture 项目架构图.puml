@@ -3,70 +3,179 @@
 skinparam backgroundColor #FFFFFF
 skinparam linetype ortho
 
-skinparam package {
-  BorderColor #CCCCCC
-  BorderThickness 1
-  FontSize 14
-  FontColor #333333
-}
-
 skinparam rectangle {
-  BorderColor #333333
-  BorderThickness 1
-  RoundCorner 5
-  FontSize 12
+    BorderColor #333333
+    BorderThickness 1
+    RoundCorner 5
+    FontSize 13
+    FontName "Microsoft YaHei"
 }
 
-title Astrum 项目分层架构图
+title Astrum 项目分层架构图 (嵌套布局版)
 
-' ===================== 定义大模块（垂直分层） =====================
+rectangle "1. 前端 UI 层 (Presentation UI)" as L1 #CFF8E6 {
+   rectangle "UI_Main" as UI_Main
+   note right of UI_Main
+     游戏主界面
+     (菜单 / 房间列表)
+   end note
 
-package "1. 前端 UI 层 (Presentation UI)" #CFF8E6 {
-    rectangle "游戏主界面 (菜单/房间列表)"
-    rectangle "战斗 HUD"
-    rectangle "提示/弹窗"
+   rectangle "UI_HUD" as UI_HUD
+   note right of UI_HUD
+     战斗 HUD
+   end note
+
+   rectangle "UI_Popup" as UI_Popup
+   note right of UI_Popup
+     提示 / 弹窗
+   end note
 }
 
-package "2. 展示层 (AstrumView)" #E3FFD2 {
-    rectangle "EntityView (角色/子弹/场景)"
-    rectangle "特效/动画"
-    rectangle "UI 视图逻辑"
+rectangle "2. 展示层 (AstrumView)" as L2 #E3FFD2 {
+   rectangle "V_Entity" as V_Entity
+   note right of V_Entity
+     EntityView
+     (角色 / 子弹 / 场景)
+   end note
+
+   rectangle "V_FX" as V_FX
+   note right of V_FX
+     特效 / 动画
+   end note
+
+   rectangle "V_Logic" as V_Logic
+   note right of V_Logic
+     UI 视图逻辑
+   end note
 }
 
-package "3. 客户端控制层 (AstrumClient)" #FFE7C6 {
-    rectangle "GameApplication"
-    rectangle "GameDirector"
-    rectangle "GameMode 系统"
-    rectangle "各类 Manager (Network/UI/Audio...)"
+rectangle "3. 客户端控制层 (AstrumClient)" as L3 #FFE7C6 {
+   rectangle "C_App" as C_App
+   note right of C_App
+     GameApplication
+   end note
+
+   rectangle "C_Director" as C_Director
+   note right of C_Director
+     GameDirector
+   end note
+
+   rectangle "C_Mode" as C_Mode
+   note right of C_Mode
+     GameMode 系统
+   end note
+
+   rectangle "C_Mgr" as C_Mgr
+   note right of C_Mgr
+     各类 Manager
+     (Network/UI/Audio...)
+   end note
 }
 
-package "4. 游戏逻辑层 (AstrumLogic)" #FFF8C6 {
-    rectangle "ECC 核心 (Entity/Component/Capability)"
-    rectangle "战斗/技能/属性系统"
-    rectangle "帧同步逻辑"
-    rectangle "World/Room/Stage"
+rectangle "4. 游戏逻辑层 (AstrumLogic)" as L4 #FFF8C6 {
+   rectangle "L_ECC" as L_ECC
+   note right of L_ECC
+     ECC 核心
+     (Entity / Component / Capability)
+   end note
+
+   rectangle "L_Combat" as L_Combat
+   note right of L_Combat
+     战斗 / 技能 / 属性系统
+   end note
+
+   rectangle "L_Frame" as L_Frame
+   note right of L_Frame
+     帧同步逻辑
+   end note
+
+   rectangle "L_World" as L_World
+   note right of L_World
+     World / Room / Stage
+   end note
 }
 
-package "5. 网络与会话层 (Network)" #F4D8FF {
-    rectangle "NetworkManager"
-    rectangle "Session 会话"
-    rectangle "TService TCP 服务"
-    rectangle "帧同步通道"
+rectangle "5. 网络与会话层 (Network)" as L5 #F4D8FF {
+   rectangle "N_Mgr" as N_Mgr
+   note right of N_Mgr
+     NetworkManager
+   end note
+
+   rectangle "N_Session" as N_Session
+   note right of N_Session
+     Session 会话
+   end note
+
+   rectangle "N_TCP" as N_TCP
+   note right of N_TCP
+     TService TCP 服务
+   end note
+
+   rectangle "N_Chan" as N_Chan
+   note right of N_Chan
+     帧同步通道
+   end note
 }
 
-package "6. 数据 & 配置层 (Data & Config)" #E2F5FF {
-    rectangle "Generated (自动生成代码)"
-    rectangle "AstrumConfig/Proto"
-    rectangle "配置表 (Table)"
+rectangle "6. 数据 & 配置层 (Data & Config)" as L6 #E2F5FF {
+   rectangle "D_Gen" as D_Gen
+   note right of D_Gen
+     Generated
+     (自动生成代码)
+   end note
+
+   rectangle "D_Proto" as D_Proto
+   note right of D_Proto
+     AstrumConfig / Proto
+   end note
+
+   rectangle "D_Table" as D_Table
+   note right of D_Table
+     配置表 (Table)
+   end note
 }
 
-package "7. 服务器层 (AstrumServer)" #FFD6D6 {
-    rectangle "AstrumServer 入口"
-    rectangle "GameSession / RoomManager"
-    rectangle "Server FrameSyncManager"
-    rectangle "UserManager / Matchmaking"
-    rectangle "AstrumLogic.Server (共享逻辑)"
+rectangle "7. 服务器层 (AstrumServer)" as L7 #FFD6D6 {
+   rectangle "S_Server" as S_Server
+   note right of S_Server
+     AstrumServer 入口
+   end note
+
+   rectangle "S_Room" as S_Room
+   note right of S_Room
+     GameSession / RoomManager
+   end note
+
+   rectangle "S_Frame" as S_Frame
+   note right of S_Frame
+     Server FrameSyncManager
+   end note
+
+   rectangle "S_Logic" as S_Logic
+   note right of S_Logic
+     AstrumLogic.Server
+     (共享逻辑)
+   end note
 }
+
+' ================= 强制垂直布局 =================
+L1 -[hidden]down-> L2
+L2 -[hidden]down-> L3
+L3 -[hidden]down-> L4
+L4 -[hidden]down-> L5
+L5 -[hidden]down-> L6
+L6 -[hidden]down-> L7
+
+' ================= 恢复部分关键连线 (可选) =================
+C_App ..> UI_Main : 驱动
+C_App ..> V_Entity : 创建
+
+C_Director ..> L_ECC : 驱动逻辑
+C_Director ..> N_Mgr : 网络调用
+
+C_Mode ..> L_Combat : 规则
+C_Mode ..> L_Frame : 配置
+
+C_Mgr ..> S_Server : 交互
 
 @enduml
-
