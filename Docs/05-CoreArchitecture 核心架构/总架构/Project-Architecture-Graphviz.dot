@@ -1,0 +1,149 @@
+digraph AstrumArchitecture {
+    // 全局设置
+    rankdir=TB; // 从上到下布局
+    splines=ortho; // 使用正交线（直角线）
+    nodesep=0.8; // 节点间距
+    ranksep=0.8; // 层级间距
+    fontname="Microsoft YaHei";
+    compound=true; // 允许边连接到子图 cluster
+    bgcolor="white";
+
+    // 默认节点样式
+    node [shape=box, style="filled,rounded", fontname="Microsoft YaHei", fontsize=12, height=0.6, penwidth=1.0];
+    // 默认边样式
+    edge [fontname="Microsoft YaHei", fontsize=10, color="#555555"];
+
+    // ===================== 1. 左列：服务器层 (Server) =====================
+    subgraph cluster_Server {
+        label="服务器层 (AstrumServer)";
+        bgcolor="#FFD6D6";
+        style="filled,rounded";
+        node [fillcolor="white"];
+
+        S_Server [label="AstrumServer 入口"];
+        S_Room [label="GameSession\nRoomManager"];
+        S_Frame [label="Server\nFrameSyncManager"];
+        S_User [label="UserManager\nMatchmaking"];
+        S_Logic [label="AstrumLogic.Server\n共享逻辑"];
+
+        // 内部竖排
+        S_Server -> S_Room -> S_Frame -> S_User -> S_Logic;
+    }
+
+    // ===================== 2. 中列：客户端控制层 (Client) =====================
+    subgraph cluster_Client {
+        label="客户端控制层 (AstrumClient)";
+        bgcolor="#FFE7C6";
+        style="filled,rounded";
+        node [fillcolor="white"];
+
+        C_App [label="GameApplication"];
+        C_Director [label="GameDirector"];
+        C_Mode [label="GameMode 系统"];
+        C_Mgr [label="各类 Manager\n(Network/UI/Audio...)"];
+
+        // 内部竖排
+        C_App -> C_Director -> C_Mode -> C_Mgr;
+    }
+
+    // ===================== 3. 右列：通用功能模块栈 (Modules) =====================
+    subgraph cluster_Modules {
+        label="通用功能模块栈 (Modules Stack)";
+        bgcolor="#F9F9F9";
+        style="dashed,rounded";
+        penwidth=1.5;
+
+        // --- 3.1 UI 层 ---
+        subgraph cluster_L1 {
+            label="1. 前端 UI 层";
+            bgcolor="#CFF8E6";
+            style="filled";
+            node [fillcolor="white"];
+            rank=same; // 强制横排
+            
+            UI_Main [label="主界面"];
+            UI_HUD [label="HUD"];
+            UI_Popup [label="弹窗"];
+        }
+
+        // --- 3.2 展示层 ---
+        subgraph cluster_L2 {
+            label="2. 展示层 (View)";
+            bgcolor="#E3FFD2";
+            style="filled";
+            node [fillcolor="white"];
+            rank=same; // 强制横排
+            
+            V_Entity [label="EntityView"];
+            V_FX [label="特效"];
+            V_Logic [label="UI逻辑"];
+        }
+
+        // --- 3.3 逻辑层 ---
+        subgraph cluster_L4 {
+            label="4. 游戏逻辑层 (Logic)";
+            bgcolor="#FFF8C6";
+            style="filled";
+            node [fillcolor="white"];
+            rank=same; // 强制横排
+
+            L_ECC [label="ECC核心"];
+            L_Combat [label="战斗系统"];
+            L_Frame [label="帧同步"];
+        }
+
+        // --- 3.4 网络层 ---
+        subgraph cluster_L5 {
+            label="5. 网络与会话层 (Net)";
+            bgcolor="#F4D8FF";
+            style="filled";
+            node [fillcolor="white"];
+            rank=same; // 强制横排
+
+            N_Mgr [label="Manager"];
+            N_Session [label="Session"];
+            N_TCP [label="TService"];
+        }
+
+        // --- 3.5 数据层 ---
+        subgraph cluster_L6 {
+            label="6. 数据 & 配置层 (Data)";
+            bgcolor="#E2F5FF";
+            style="filled";
+            node [fillcolor="white"];
+            rank=same; // 强制横排
+
+            D_Gen [label="Generated"];
+            D_Proto [label="Proto"];
+            D_Table [label="Table"];
+        }
+
+        // 模块间的隐式连接（控制堆叠顺序）
+        // 注意：Graphviz 的 cluster 之间不能直接连线，必须连内部节点
+        UI_Main -> V_Entity [style=invis];
+        V_Entity -> L_ECC [style=invis];
+        L_ECC -> N_Mgr [style=invis];
+        N_Mgr -> D_Gen [style=invis];
+    }
+
+    // ===================== 跨列对齐 (关键技巧) =====================
+    // 强制三列的顶部节点对齐
+    // {rank=same; S_Server; C_App; UI_Main} 
+    // 这样写会让 Graphviz 尽力把这三个放在同一水平线上
+    
+    // ===================== 跨列连线 (逻辑关系) =====================
+    
+    // 1. Client -> Server (中 -> 左)
+    C_Mgr -> S_Server [label="交互", style=dashed, constraint=false];
+
+    // 2. Client -> Modules (中 -> 右)
+    C_App -> UI_Main [label="驱动", style=dashed];
+    C_App -> V_Entity [style=dashed];
+    C_Director -> L_ECC [style=dashed];
+    C_Director -> N_Mgr [style=dashed];
+
+    // 3. Modules -> Server (右 -> 左)
+    N_TCP -> S_Server [label="TCP", style=dashed, constraint=false];
+
+}
+
