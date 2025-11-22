@@ -1,0 +1,72 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+
+skinparam package {
+  BorderColor #CCCCCC
+  BorderThickness 1
+  FontSize 14
+  FontColor #333333
+}
+
+skinparam rectangle {
+  BorderColor #333333
+  BorderThickness 1
+  RoundCorner 5
+  FontSize 12
+}
+
+title Astrum 项目分层架构图
+
+' ===================== 定义大模块（垂直分层） =====================
+
+package "1. 前端 UI 层 (Presentation UI)" #CFF8E6 {
+    rectangle "游戏主界面 (菜单/房间列表)"
+    rectangle "战斗 HUD"
+    rectangle "提示/弹窗"
+}
+
+package "2. 展示层 (AstrumView)" #E3FFD2 {
+    rectangle "EntityView (角色/子弹/场景)"
+    rectangle "特效/动画"
+    rectangle "UI 视图逻辑"
+}
+
+package "3. 客户端控制层 (AstrumClient)" #FFE7C6 {
+    rectangle "GameApplication"
+    rectangle "GameDirector"
+    rectangle "GameMode 系统"
+    rectangle "各类 Manager (Network/UI/Audio...)"
+}
+
+package "4. 游戏逻辑层 (AstrumLogic)" #FFF8C6 {
+    rectangle "ECC 核心 (Entity/Component/Capability)"
+    rectangle "战斗/技能/属性系统"
+    rectangle "帧同步逻辑"
+    rectangle "World/Room/Stage"
+}
+
+package "5. 网络与会话层 (Network)" #F4D8FF {
+    rectangle "NetworkManager"
+    rectangle "Session 会话"
+    rectangle "TService TCP 服务"
+    rectangle "帧同步通道"
+}
+
+package "6. 数据 & 配置层 (Data & Config)" #E2F5FF {
+    rectangle "Generated (自动生成代码)"
+    rectangle "AstrumConfig/Proto"
+    rectangle "配置表 (Table)"
+}
+
+package "7. 服务器层 (AstrumServer)" #FFD6D6 {
+    rectangle "AstrumServer 入口"
+    rectangle "GameSession / RoomManager"
+    rectangle "Server FrameSyncManager"
+    rectangle "UserManager / Matchmaking"
+    rectangle "AstrumLogic.Server (共享逻辑)"
+}
+
+@enduml
+
