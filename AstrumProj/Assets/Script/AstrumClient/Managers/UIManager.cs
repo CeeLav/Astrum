@@ -34,7 +34,31 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Update()
         {
-            // UI管理器更新逻辑（如果需要）
+            // 更新所有已显示的UI
+            foreach (var kvp in uiCache)
+            {
+                var uiGO = kvp.Value;
+                if (uiGO != null && uiGO.activeInHierarchy)
+                {
+                    var uiRefs = uiGO.GetComponent<UIRefs>();
+                    if (uiRefs != null)
+                    {
+                        var uiInstance = uiRefs.GetUIInstance();
+                        if (uiInstance is UIBase uiBase)
+                        {
+                            // 使用UIBase接口调用Update
+                            try
+                            {
+                                uiBase.Update();
+                            }
+                            catch (System.Exception ex)
+                            {
+                                Debug.LogError($"[UIManager] 调用UI实例Update方法时发生异常 ({kvp.Key}): {ex.Message}");
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -56,7 +80,24 @@ namespace Astrum.Client.Managers
             var uiGO = GetOrCreateUI(uiName);
             if (uiGO != null)
             {
-                uiGO.SetActive(true);
+                var uiRefs = uiGO.GetComponent<UIRefs>();
+                if (uiRefs != null)
+                {
+                    var uiInstance = uiRefs.GetUIInstance();
+                    if (uiInstance is UIBase uiBase)
+                    {
+                        uiBase.Show();
+                    }
+                    else
+                    {
+                        // 兼容旧代码：如果没有继承UIBase，直接激活GameObject
+                        uiGO.SetActive(true);
+                    }
+                }
+                else
+                {
+                    uiGO.SetActive(true);
+                }
             }
         }
 
@@ -68,7 +109,24 @@ namespace Astrum.Client.Managers
         {
             if (uiCache.TryGetValue(uiName, out var uiGO))
             {
-                uiGO.SetActive(false);
+                var uiRefs = uiGO.GetComponent<UIRefs>();
+                if (uiRefs != null)
+                {
+                    var uiInstance = uiRefs.GetUIInstance();
+                    if (uiInstance is UIBase uiBase)
+                    {
+                        uiBase.Hide();
+                    }
+                    else
+                    {
+                        // 兼容旧代码：如果没有继承UIBase，直接隐藏GameObject
+                        uiGO.SetActive(false);
+                    }
+                }
+                else
+                {
+                    uiGO.SetActive(false);
+                }
             }
         }
 

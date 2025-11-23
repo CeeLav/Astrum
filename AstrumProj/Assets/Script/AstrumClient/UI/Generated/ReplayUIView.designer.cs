@@ -13,7 +13,7 @@ namespace Astrum.Client.UI.Generated
     /// ReplayUIView 设计器部分
     /// 由UI生成器自动生成，包含UI元素引用和初始化逻辑
     /// </summary>
-    public partial class ReplayUIView
+    public partial class ReplayUIView : UIBase
     {
         #region UI References
 
@@ -59,8 +59,6 @@ namespace Astrum.Client.UI.Generated
 
         #region Properties
 
-        public bool IsInitialized => uiRefs != null;
-
         #endregion
 
         #region Initialization
@@ -68,11 +66,11 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 初始化UI
         /// </summary>
-        public void Initialize(UIRefs refs)
+        public new void Initialize(UIRefs refs)
         {
             uiRefs = refs;
             InitializeUIElements();
-            OnInitialize();
+            base.Initialize(refs);
         }
 
         /// <summary>
@@ -101,29 +99,7 @@ namespace Astrum.Client.UI.Generated
 
         #region Basic Methods
 
-        /// <summary>
-        /// 显示UI
-        /// </summary>
-        public virtual void Show()
-        {
-            if (uiRefs != null)
-            {
-                uiRefs.gameObject.SetActive(true);
-                OnShow();
-            }
-        }
-
-        /// <summary>
-        /// 隐藏UI
-        /// </summary>
-        public virtual void Hide()
-        {
-            if (uiRefs != null)
-            {
-                OnHide();
-                uiRefs.gameObject.SetActive(false);
-            }
-        }
+        // Show 和 Hide 方法已由 UIBase 提供
 
         #endregion
     }

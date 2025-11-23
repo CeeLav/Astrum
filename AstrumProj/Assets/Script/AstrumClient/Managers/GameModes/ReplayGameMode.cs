@@ -8,6 +8,8 @@ using Astrum.View.Core;
 using Astrum.View.Managers;
 using AstrumClient.MonitorTools;
 using Astrum.Client.Managers;
+using Astrum.Client.UI.Generated;
+using Astrum.Client.UI.Core;
 using UnityEngine;
 
 namespace Astrum.Client.Managers.GameModes
@@ -46,6 +48,23 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public float DurationSeconds => _timeline != null 
             ? _timeline.TotalFrames / (float)_timeline.TickRate 
+            : 0f;
+
+        /// <summary>
+        /// 当前帧
+        /// </summary>
+        public int CurrentFrame => _currentFrame;
+
+        /// <summary>
+        /// 总帧数
+        /// </summary>
+        public int TotalFrames => _timeline?.TotalFrames ?? 0;
+
+        /// <summary>
+        /// 当前时间（秒）
+        /// </summary>
+        public float CurrentTimeSeconds => _timeline != null && _timeline.TickRate > 0
+            ? _currentFrame / (float)_timeline.TickRate
             : 0f;
 
         /// <summary>
@@ -106,6 +125,9 @@ namespace Astrum.Client.Managers.GameModes
                 IsRunning = true;
                 _isPlaying = false; // 初始状态为暂停
                 
+                // 打开回放UI
+                OpenReplayUI();
+                
                 ASLogger.Instance.Info($"ReplayGameMode: 回放文件加载成功 - 总帧数: {_timeline.TotalFrames}, 帧率: {_timeline.TickRate}");
                 return true;
             }
@@ -163,6 +185,9 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("ReplayGameMode: 关闭回放游戏模式");
             ChangeState(GameModeState.Ending);
+            
+            // 关闭回放UI
+            CloseReplayUI();
             
             // 清理资源
             MainStage?.Destroy();
@@ -226,12 +251,70 @@ namespace Astrum.Client.Managers.GameModes
             int targetFrame = (int)(normalizedProgress * _timeline.TotalFrames);
             targetFrame = Mathf.Clamp(targetFrame, 0, _timeline.TotalFrames);
             
+            SeekToFrame(targetFrame);
+        }
+
+        /// <summary>
+        /// 跳转到指定帧
+        /// </summary>
+        public void SeekToFrame(int targetFrame)
+        {
+            if (_timeline == null || _lsController == null) return;
+            
+            targetFrame = Mathf.Clamp(targetFrame, 0, _timeline.TotalFrames);
+            
             ASLogger.Instance.Info($"ReplayGameMode: 跳转到帧 {targetFrame}");
             
             // 使用 FastForwardTo 跳转
             _lsController.FastForwardTo(targetFrame, frame => _timeline.GetFrameInputs(frame));
             
             _currentFrame = targetFrame;
+        }
+
+        /// <summary>
+        /// 打开回放UI
+        /// </summary>
+        private void OpenReplayUI()
+        {
+            try
+            {
+                var uiManager = UIManager.Instance;
+                if (uiManager == null)
+                {
+                    ASLogger.Instance.Warning("ReplayGameMode: UIManager 未初始化，无法打开回放UI");
+                    return;
+                }
+
+                // 显示UI（UI会自己通过GameDirector获取GameMode引用）
+                uiManager.ShowUI("ReplayUI");
+                ASLogger.Instance.Info("ReplayGameMode: 回放UI已打开");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"ReplayGameMode: 打开回放UI失败 - {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 关闭回放UI
+        /// </summary>
+        private void CloseReplayUI()
+        {
+            try
+            {
+                var uiManager = UIManager.Instance;
+                if (uiManager != null)
+                {
+                    uiManager.HideUI("ReplayUI");
+                    ASLogger.Instance.Info("ReplayGameMode: 回放UI已关闭");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"ReplayGameMode: 关闭回放UI失败 - {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
         }
 
         #region 私有方法
