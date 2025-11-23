@@ -2,6 +2,9 @@
 
 ## 📖 架构设计
 
+### 项目总架构
+- [项目架构图](总架构/Project-Architecture%20项目架构图.puml) - 项目整体分层架构图（PlantUML）
+
 ### ECC架构
 - [ECC系统说明](ECC/ECC-System%20ECC结构说明.md) - Entity-Component-Capability架构
 - [Archetype系统](ECC/Archetype-System%20Archetype结构说明.md) - 数据布局优化
