@@ -459,16 +459,21 @@ namespace Astrum.Editor.UIGenerator.Generators
             
             foreach (var group in groups)
             {
-                codeBuilder.AppendLine($"        // {group.Key}");
                 if (group.Value.Count == 1)
                 {
-                    // 单个元素，生成普通字段
+                    // 单个元素，生成普通字段，注释包含路径
                     var element = group.Value[0];
+                    codeBuilder.AppendLine($"        // {element.Path}");
                     codeBuilder.AppendLine($"        private {element.ComponentType.Name} {element.FieldName};");
                 }
                 else
                 {
-                    // 多个同名元素，生成数组字段
+                    // 多个同名元素，生成数组字段，注释包含所有路径
+                    codeBuilder.AppendLine($"        // {group.Key}");
+                    foreach (var element in group.Value)
+                    {
+                        codeBuilder.AppendLine($"        //   - {element.Path}");
+                    }
                     var firstElement = group.Value[0];
                     codeBuilder.AppendLine($"        private {firstElement.ComponentType.Name}[] {group.Key};");
                 }

@@ -163,6 +163,7 @@ namespace Astrum.LogicCore.Core
             {
                 var pInput = FrameBuffer.FrameInputs(i);
                 CopyOtherInputsTo(aInput, pInput);
+                SaveState();
                 Room.FrameTick(pInput);
             }
             
