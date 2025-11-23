@@ -32,6 +32,21 @@ namespace Astrum.Client.UI.Generated
         // Login/ConnectionStatus
         private Text connectionStatusText;
 
+        // Login/InputBG
+        private Image inputBGImage;
+
+        // Login/InputBG/InputField
+        private Image inputFieldImage;
+
+        // Login/InputBG/InputField
+        private InputField inputFieldInputField;
+
+        // Login/InputBG/InputField/Placeholder
+        private Text placeholderText;
+
+        // Login/InputBG/InputField/Text
+        private Text textText;
+
         // Login/ButtonContainer/ConnectButton
         private Button connectButtonButton;
 
@@ -49,6 +64,15 @@ namespace Astrum.Client.UI.Generated
 
         // Login/ButtonContainer/SinglePlayButton/SinglePlayContent/singleButtonText
         private Text singleButtonTextText;
+
+        // Login/ButtonContainer/ReplayButton
+        private Button replayButtonButton;
+
+        // Login/ButtonContainer/ReplayButton/ReplayBackground
+        private Image replayBackgroundImage;
+
+        // Login/ButtonContainer/ReplayButton/ReplayContent/ReplayButtonText
+        private Text replayButtonTextText;
 
         #endregion
 
@@ -79,12 +103,20 @@ namespace Astrum.Client.UI.Generated
             gameTitleText = uiRefs.GetComponent<Text>("Login/GameTitle");
             gameTitleTextText = uiRefs.GetComponent<Text>("Login/GameTitle/GameTitleText");
             connectionStatusText = uiRefs.GetComponent<Text>("Login/ConnectionStatus");
+            inputBGImage = uiRefs.GetComponent<Image>("Login/InputBG");
+            inputFieldImage = uiRefs.GetComponent<Image>("Login/InputBG/InputField");
+            inputFieldInputField = uiRefs.GetComponent<InputField>("Login/InputBG/InputField");
+            placeholderText = uiRefs.GetComponent<Text>("Login/InputBG/InputField/Placeholder");
+            textText = uiRefs.GetComponent<Text>("Login/InputBG/InputField/Text");
             connectButtonButton = uiRefs.GetComponent<Button>("Login/ButtonContainer/ConnectButton");
             buttonBackgroundImage = uiRefs.GetComponent<Image>("Login/ButtonContainer/ConnectButton/ButtonBackground");
             buttonTextText = uiRefs.GetComponent<Text>("Login/ButtonContainer/ConnectButton/ButtonContent/ButtonText");
             singlePlayButtonButton = uiRefs.GetComponent<Button>("Login/ButtonContainer/SinglePlayButton");
             singlePlayBackgroundImage = uiRefs.GetComponent<Image>("Login/ButtonContainer/SinglePlayButton/SinglePlayBackground");
             singleButtonTextText = uiRefs.GetComponent<Text>("Login/ButtonContainer/SinglePlayButton/SinglePlayContent/singleButtonText");
+            replayButtonButton = uiRefs.GetComponent<Button>("Login/ButtonContainer/ReplayButton");
+            replayBackgroundImage = uiRefs.GetComponent<Image>("Login/ButtonContainer/ReplayButton/ReplayBackground");
+            replayButtonTextText = uiRefs.GetComponent<Text>("Login/ButtonContainer/ReplayButton/ReplayContent/ReplayButtonText");
         }
 
         #endregion
