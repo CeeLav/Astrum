@@ -9,7 +9,8 @@
 **TL;DR**
 - 回放基于**世界快照 + 帧输入历史**，不重新发明状态保存机制，直接复用 `StateSnapshotManager` 产物  
 - 服务器在战斗过程中统一记录：周期性世界快照 `S(n)` + 每帧输入 `H(n)`，战斗结束后打包成单一回放文件  
-- 客户端增加 `ReplayGameMode`：加载指定回放文件，使用本地 `ClientLSController` 按录制输入推进逻辑  
+- 客户端增加 `ReplayGameMode`：加载指定回放文件，使用专用 `ReplayLSController` 按录制输入推进逻辑  
+- **ReplayLSController**：专门用于回放场景，无需预测/RTT补偿/回滚，仅按固定速度推进，支持跳转  
 - 播放/暂停：仅切换时间推进与否，不改变逻辑帧序列  
 - 拖动/倒退：查找目标帧之前最近快照 `S(k)`，加载快照后从 `k+1` 快速重算到目标帧  
 - 回放期间关闭网络依赖，所有帧输入来自本地文件，保证与实战结果**确定性一致**
@@ -33,7 +34,7 @@
 
 - 战斗期间在服务器侧**收集并持久化**该房间的快照与帧输入  
 - 战斗结束时生成**单一回放文件**（可下载/分发）  
-- 客户端增加 `ReplayGameMode`，不依赖网络、只消费回放文件数据驱动本地 `ClientLSController`。
+- 客户端增加 `ReplayGameMode`，不依赖网络、只消费回放文件数据驱动专用 `ReplayLSController`。
 
 ---
 
@@ -68,7 +69,7 @@
 │  ReplayTimeline（回放时间线/索引）                       │  │
 │        │                                                 │  │
 │        ▼                                                 │  │
-│  ClientLSController（本地离线帧同步）                    │  │
+│  ReplayLSController（回放专用帧同步控制器）              │  │
 │        │                                                 │  │
 │        ▼                                                 │  │
 │  World / ViewSync（逻辑执行 + 视图更新）                  │  │
@@ -91,7 +92,7 @@
 【客户端回放】
 选择回放文件 ─► ReplayGameMode.Load(filePath)
              └─► 反序列化 BattleReplayFile → ReplayTimeline
-             └─► 从起始快照 S(start) 装载 World 到 ClientLSController
+             └─► 从起始快照 S(start) 装载 World 到 ReplayLSController
              └─► 本地 Tick() 读取 H(t) 驱动逻辑帧（无网络）
 ```
 
@@ -185,7 +186,7 @@ public sealed class ReplayFrameInputs
 **职责**：
 
 - 从指定路径加载回放文件并构建 `ReplayTimeline`  
-- 创建/初始化本地 `ClientLSController` 与逻辑世界 `World`  
+- 创建/初始化本地 `ReplayLSController` 与逻辑世界 `World`  
 - 驱动本地逻辑帧推进（不依赖网络），控制播放/暂停/跳转  
 - 与 `ReplayUI` 对接：更新进度条、当前时间、状态（播放/暂停）  
 
@@ -193,7 +194,7 @@ public sealed class ReplayFrameInputs
 
 - `BattleReplayFile _replayData`  
 - `ReplayTimeline _timeline`  
-- `ClientLSController _lsController`  
+- `ReplayLSController _lsController`  
 - `int _currentFrame`  
 - `bool _isPlaying`  
 
@@ -207,7 +208,114 @@ public sealed class ReplayFrameInputs
   - 内部使用 `Dictionary<int, ReplayFrameInputs>` 或稀疏数组  
 - 提供基础信息：`TotalFrames`、`TickRate`、起始帧等  
 
-### 4.3 回放播放循环
+### 4.3 ReplayLSController（回放专用帧同步控制器）
+
+**位置（规划）**：`AstrumProj/Assets/Script/AstrumLogic/Core/ReplayLSController.cs`
+
+**职责**：专门用于回放场景的帧同步控制器，实现 `ILSControllerBase` 接口。
+
+**与 ClientLSController 的区别**：
+
+| 特性 | ClientLSController | ReplayLSController |
+|------|-------------------|-------------------|
+| **预测帧** | ✅ 需要（RTT补偿） | ❌ 不需要（输入已确定） |
+| **回滚机制** | ✅ 需要（服务器纠正） | ❌ 不需要（输入已确定） |
+| **RTT补偿** | ✅ 需要（网络延迟） | ❌ 不需要（离线回放） |
+| **输入来源** | 网络 + 本地预测 | 回放文件 |
+| **时间推进** | 基于服务器时间+RTT | 基于固定TickRate |
+| **跳转支持** | ❌ 不支持 | ✅ 支持（加载快照后快速推进） |
+
+**核心方法**：
+
+```csharp
+public class ReplayLSController : ILSControllerBase
+{
+    // 基础接口实现
+    public Room Room { get; set; }
+    public int AuthorityFrame { get; set; }
+    public FrameBuffer FrameBuffer { get; }
+    public int TickRate { get; set; }
+    public bool IsPaused { get; set; }
+    public bool IsRunning { get; }
+    
+    // 回放专用方法
+    /// <summary>
+    /// 设置当前帧的输入（从回放文件读取）
+    /// </summary>
+    public void SetFrameInputs(int frame, OneFrameInputs inputs);
+    
+    /// <summary>
+    /// 按固定速度推进一帧（无RTT补偿，无预测）
+    /// </summary>
+    public void Tick();
+    
+    /// <summary>
+    /// 快速推进到指定帧（用于跳转）
+    /// </summary>
+    public void FastForwardTo(int targetFrame, ReplayTimeline timeline);
+}
+```
+
+**Tick() 实现逻辑**：
+
+```csharp
+public void Tick()
+{
+    if (!IsRunning || IsPaused || Room == null) return;
+    
+    // 回放场景：按固定时间间隔推进，无需RTT补偿
+    long currentTime = TimeInfo.Instance.ServerNow();
+    long frameTime = CreationTime + (AuthorityFrame + 1) * LSConstValue.UpdateInterval;
+    
+    if (currentTime >= frameTime)
+    {
+        // 从回放文件获取该帧输入（由 ReplayGameMode 提前设置）
+        OneFrameInputs inputs = FrameBuffer.FrameInputs(AuthorityFrame + 1);
+        if (inputs != null)
+        {
+            AuthorityFrame++;
+            Room.FrameTick(inputs);
+        }
+    }
+}
+```
+
+**FastForwardTo() 实现逻辑**（用于拖动/跳转）：
+
+```csharp
+public void FastForwardTo(int targetFrame, ReplayTimeline timeline)
+{
+    // 1. 加载最近快照
+    var snapshot = timeline.GetNearestSnapshot(targetFrame);
+    LoadState(snapshot.Frame); // 从快照恢复世界状态
+    AuthorityFrame = snapshot.Frame;
+    
+    // 2. 快速推进到目标帧（关闭中间渲染）
+    for (int frame = snapshot.Frame + 1; frame <= targetFrame; frame++)
+    {
+        var inputs = timeline.GetFrameInputs(frame);
+        if (inputs != null)
+        {
+            SetFrameInputs(frame, inputs);
+            AuthorityFrame = frame;
+            Room.FrameTick(inputs);
+            // 可选：跳过视图更新，仅在最后同步一次
+        }
+    }
+    
+    // 3. 强制同步视图
+    // ForceSyncView();
+}
+```
+
+**设计要点**：
+
+- **简化逻辑**：移除所有预测、回滚、RTT补偿相关代码，只保留核心帧推进逻辑  
+- **确定性保证**：输入完全来自回放文件，确保与服务器战斗结果一致  
+- **性能优化**：跳转时支持关闭中间帧渲染，仅在目标帧同步视图  
+- **接口兼容**：实现 `ILSControllerBase`，可被 `Room` 统一管理
+
+### 4.4 回放播放循环
 
 **逻辑帧推进**：
 
@@ -216,7 +324,7 @@ public sealed class ReplayFrameInputs
 - 当 `_isPlaying == true` 时：
   - 逐帧从 `_currentFrame+1` 推进到 `targetFrame`：
     - 对于每个 `frame`：
-      - 从 `_timeline` 取出 `ReplayFrameInputs`，转为 `OneFrameInputs` 调用 `_lsController.SetOneFrameInputs(...)`  
+      - 从 `_timeline` 取出 `ReplayFrameInputs`，转为 `OneFrameInputs` 调用 `_lsController.SetFrameInputs(frame, inputs)`  
       - 调用 `_lsController.Tick()` 推进一帧逻辑  
   - 逻辑帧推进完毕后，触发视图同步（沿用现有逻辑，例如 World→View 的同步系统）  
 
@@ -239,32 +347,25 @@ public sealed class ReplayFrameInputs
 拖动或回退时统一采用：**“最近快照 + 向前重放”** 策略：
 
 1. 计算目标帧 `targetFrame`（由 UI 转换自进度条百分比）  
-2. 使用 `ReplayTimeline.GetNearestSnapshot(targetFrame)` 找到 `snapshotFrame <= targetFrame` 的最近快照  
-3. 调用 `_lsController.LoadState(snapshot.WorldData)` 恢复世界  
-4. 将 `_currentFrame = snapshotFrame`  
-5. 在单帧或多帧内快速执行：
-   - 从 `snapshotFrame+1` 到 `targetFrame`：按录制的 `ReplayFrameInputs` 调用 `_lsController.SetOneFrameInputs()` + `_lsController.Tick()`  
-   - 在这段“追帧”过程中可以：
-     - 关闭中间帧的视图插值，仅在到达 `targetFrame` 时进行一次强制视图同步  
-6. 更新进度条和当前时间显示  
+2. 调用 `_lsController.FastForwardTo(targetFrame, _timeline)`：
+   - 内部自动查找最近快照并加载
+   - 快速推进到目标帧（可选关闭中间渲染）
+   - 在目标帧强制同步视图  
+3. 更新 `_currentFrame = targetFrame`  
+4. 更新进度条和当前时间显示  
 
 ### 5.3 伪流程
 
 ```text
 OnSeek(float normalizedProgress)
     targetFrame = (int)(normalizedProgress * _timeline.TotalFrames)
-
-    snapshot = _timeline.GetNearestSnapshot(targetFrame)
-    LoadWorldFromSnapshot(snapshot)              // _lsController.LoadState(...)
-    _currentFrame = snapshot.Frame
-
-    for frame in (_currentFrame + 1) .. targetFrame:
-        inputs = _timeline.GetFrameInputs(frame)
-        _lsController.SetOneFrameInputs(inputs)
-        _lsController.Tick()                     // 仅逻辑推进，可选关闭中间渲染
-
+    
+    // ReplayLSController 内部处理快照加载和快速推进
+    _lsController.FastForwardTo(targetFrame, _timeline)
     _currentFrame = targetFrame
-    ForceSyncView()                             // 将最终逻辑状态同步到可见表现
+    
+    // 更新UI显示
+    UpdateProgressUI()
 ```
 
 **说明：**
@@ -295,7 +396,8 @@ UI 层只关心“时间”与“控制”，不直接接触具体帧同步细�
 - 回放 GameMode 下：
   - 不再通过网络接收 `FrameSyncStartNotification` / `OneFrameInputs`  
   - `FrameSyncHandler` 不参与回放逻辑，避免与真实在线帧同步混用  
-  - `ClientLSController` 的使用方式与在线模式保持一致，只是输入来源改为本地文件  
+  - 使用专用的 `ReplayLSController`，而非 `ClientLSController`，避免预测/回滚逻辑干扰  
+  - `Room` 创建时指定使用 `ReplayLSController` 实例  
 - 通过 GameModeFactory（若存在）新增一种模式：`Replay`，从回放入口场景或观战界面进入。  
 
 ---
@@ -314,7 +416,17 @@ UI 层只关心“时间”与“控制”，不直接接触具体帧同步细�
 
 - **问题**：回放逻辑放在客户端还是服务器？  
   - **选择**：完全在客户端本地复演，服务器只负责产生回放文件，不参与具体回放过程  
-  - **影响**：减轻服务器压力，同时避免在线逻辑与回放逻辑耦合。  
+  - **影响**：减轻服务器压力，同时避免在线逻辑与回放逻辑耦合。
+
+- **问题**：回放是否复用 ClientLSController？  
+  - **备选**：
+    - A. 复用 ClientLSController，通过配置禁用预测/回滚 → 代码耦合，逻辑复杂  
+    - B. 创建专用 ReplayLSController，简化逻辑 → 职责清晰，易于维护  
+  - **选择**：B，创建 `ReplayLSController` 专门处理回放场景  
+  - **影响**：
+    - 代码更清晰，回放逻辑与在线逻辑完全隔离  
+    - 性能更好，无需执行无用的预测/回滚逻辑  
+    - 易于扩展，回放专用功能（如跳转）不会影响在线逻辑  
 
 ---
 
@@ -326,15 +438,16 @@ UI 层只关心“时间”与“控制”，不直接接触具体帧同步细�
 - 计划落地代码（示例路径）：
   - 客户端：`AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/ReplayGameMode.cs`  
   - 客户端：`AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/ReplayTimeline.cs`  
+  - 客户端：`AstrumProj/Assets/Script/AstrumLogic/Core/ReplayLSController.cs`  
   - 服务器：`AstrumServer/.../FrameSync/BattleReplayRecorder.cs`  
 
 ---
 
-*文档版本：v1.0*  
+*文档版本：v1.1*  
 *创建时间：2025-11-23*  
-*最后更新：2025-11-23*  
+*最后更新：2025-01-27*  
 *状态：策划案*  
 *Owner*: 待定  
-*变更摘要*: 初始创建帧同步回放 GameMode 技术设计文档。
+*变更摘要*: 添加 ReplayLSController 专用控制器设计，明确与 ClientLSController 的区别。
 
 
