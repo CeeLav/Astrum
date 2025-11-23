@@ -15,6 +15,7 @@ using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Systems;
 using Astrum.LogicCore.Factories;
 using AstrumServer.Network;
+using AstrumServer.FrameSync;
 
 namespace AstrumServer.Managers
 {
@@ -310,12 +311,38 @@ namespace AstrumServer.Managers
                         ASLogger.Instance.Warning($"房间 {roomId} 快照数据过大: {worldSnapshotData.Length} bytes", "FrameSync.Room");
                     }
                     
+                    // 创建战斗回放录制器
+                    var players = new List<ReplayPlayerInfo>();
+                    foreach (var kvp in frameState.UserIdToPlayerId)
+                    {
+                        // 使用 UserId 作为显示名称（简化处理，后续可以从 UserManager 获取）
+                        players.Add(new ReplayPlayerInfo
+                        {
+                            UserId = kvp.Key,
+                            PlayerId = kvp.Value,
+                            DisplayName = kvp.Key // 暂时使用 UserId 作为显示名称
+                        });
+                    }
+                    
+                    var random = new Random();
+                    var randomSeed = random.Next(int.MinValue, int.MaxValue); // 使用 System.Random 生成随机种子
+                    frameState.ReplayRecorder = new BattleReplayRecorder(
+                        roomId,
+                        FRAME_RATE,
+                        frameState.StartTime,
+                        randomSeed,
+                        players
+                    );
+                    
+                    // 记录第0帧快照
+                    frameState.ReplayRecorder.OnWorldSnapshot(0, worldSnapshotData);
+                    
                     _roomFrameStates[roomId] = frameState;
                     
                     // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
                     SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
                     
-                    ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
+                    ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes，回放录制已启动", "FrameSync.Room");
                 }
                 else
                 {
@@ -342,6 +369,16 @@ namespace AstrumServer.Managers
 
                     frameState.LogicRoom?.Shutdown();
 
+                    // 完成回放录制并保存文件
+                    if (frameState.ReplayRecorder != null)
+                    {
+                        var replayFile = frameState.ReplayRecorder.Finish();
+                        if (replayFile != null)
+                        {
+                            SaveReplayFile(roomId, replayFile);
+                        }
+                    }
+
                     // 发送帧同步结束通知
                     SendFrameSyncEndNotification(roomId, frameState, reason);
                     
@@ -351,6 +388,40 @@ namespace AstrumServer.Managers
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"停止房间帧同步时出错: {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 保存回放文件到磁盘
+        /// </summary>
+        private void SaveReplayFile(string roomId, BattleReplayFile replayFile)
+        {
+            try
+            {
+                // 创建回放文件目录
+                var replayDir = Path.Combine(AppContext.BaseDirectory, "Replays");
+                if (!Directory.Exists(replayDir))
+                {
+                    Directory.CreateDirectory(replayDir);
+                }
+                
+                // 生成文件名：房间ID_时间戳.replay
+                var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+                var fileName = $"{roomId}_{timestamp}.replay";
+                var filePath = Path.Combine(replayDir, fileName);
+                
+                // 序列化回放文件
+                byte[] fileData = MemoryPackHelper.Serialize(replayFile);
+                
+                // 写入文件
+                File.WriteAllBytes(filePath, fileData);
+                
+                ASLogger.Instance.Info($"回放文件已保存 - 房间: {roomId}, 文件: {filePath}, 大小: {fileData.Length} bytes", "Replay.Save");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"保存回放文件失败 - 房间: {roomId}, 错误: {ex.Message}", "Replay.Save");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
@@ -446,6 +517,29 @@ namespace AstrumServer.Managers
                 // 记录实际收集到的玩家数量
                 var actualPlayerCount = frameInputs.Inputs.Count;
                 ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，实际收到输入玩家数: {actualPlayerCount}");
+                
+                // 记录帧输入到回放录制器
+                frameState.ReplayRecorder?.OnFrameInputs(frameState.AuthorityFrame, frameInputs);
+                
+                // 检查是否需要保存快照（每10帧保存一次）
+                if (frameState.LogicRoom?.LSController is ServerLSController serverSync)
+                {
+                    if (frameState.AuthorityFrame % 10 == 0)
+                    {
+                        serverSync.FrameBuffer.MoveForward(frameState.AuthorityFrame);
+                        serverSync.SaveState();
+                        
+                        var snapshotBuffer = serverSync.FrameBuffer.Snapshot(frameState.AuthorityFrame);
+                        if (snapshotBuffer != null && snapshotBuffer.Length > 0)
+                        {
+                            byte[] snapshotData = new byte[snapshotBuffer.Length];
+                            snapshotBuffer.Read(snapshotData, 0, (int)snapshotBuffer.Length);
+                            
+                            // 记录快照到回放录制器
+                            frameState.ReplayRecorder?.OnWorldSnapshot(frameState.AuthorityFrame, snapshotData);
+                        }
+                    }
+                }
                 
                 // 发送帧同步数据给房间内所有玩家
                 SendFrameSyncData(roomId, frameState.AuthorityFrame, frameInputs);
@@ -1013,6 +1107,9 @@ namespace AstrumServer.Managers
         
         // UserId -> PlayerId 映射（实体创建后确定）
         public Dictionary<string, long> UserIdToPlayerId { get; set; } = new();
+        
+        // 战斗回放录制器
+        public BattleReplayRecorder? ReplayRecorder { get; set; }
         
         // 帧输入缓冲区 (帧号 -> 输入数据)
         private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();

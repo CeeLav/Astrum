@@ -1,0 +1,373 @@
+using System;
+using System.IO;
+using Astrum.CommonBase;
+using Astrum.Client.Core;
+using Astrum.LogicCore.Core;
+using Astrum.LogicCore.FrameSync;
+using Astrum.View.Core;
+using Astrum.View.Managers;
+using AstrumClient.MonitorTools;
+using UnityEngine;
+
+namespace Astrum.Client.Managers.GameModes
+{
+    /// <summary>
+    /// 回放游戏模式 - 用于播放战斗回放
+    /// </summary>
+    [MonitorTarget]
+    public class ReplayGameMode : BaseGameMode
+    {
+        private const int HubSceneId = 1; // 回放使用 Hub 场景
+        
+        // 核心属性
+        public override Room MainRoom { get; set; }
+        public override Stage MainStage { get; set; }
+        public override long PlayerId { get; set; }
+        public override string ModeName => "Replay";
+        public override bool IsRunning { get; set; }
+        
+        // 回放相关
+        private ReplayTimeline _timeline;
+        private ReplayLSController _lsController;
+        private string _replayFilePath;
+        private bool _isPlaying = false;
+        private int _currentFrame = 0;
+
+        /// <summary>
+        /// 当前进度（0~1）
+        /// </summary>
+        public float Progress => _timeline != null && _timeline.TotalFrames > 0 
+            ? _currentFrame / (float)_timeline.TotalFrames 
+            : 0f;
+
+        /// <summary>
+        /// 总时长（秒）
+        /// </summary>
+        public float DurationSeconds => _timeline != null 
+            ? _timeline.TotalFrames / (float)_timeline.TickRate 
+            : 0f;
+
+        /// <summary>
+        /// 是否正在播放
+        /// </summary>
+        public bool IsPlaying => _isPlaying;
+
+        /// <summary>
+        /// 初始化回放游戏模式
+        /// </summary>
+        public override void Initialize()
+        {
+            ASLogger.Instance.Info("ReplayGameMode: 初始化回放游戏模式");
+            ChangeState(GameModeState.Initializing);
+            
+            ChangeState(GameModeState.Ready);
+            MonitorManager.Register(this);
+        }
+
+        /// <summary>
+        /// 加载回放文件
+        /// </summary>
+        public bool Load(string filePath)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"ReplayGameMode: 加载回放文件 - {filePath}");
+                
+                if (!File.Exists(filePath))
+                {
+                    ASLogger.Instance.Error($"ReplayGameMode: 回放文件不存在 - {filePath}");
+                    return false;
+                }
+
+                _replayFilePath = filePath;
+                
+                // 1. 加载回放文件
+                _timeline = new ReplayTimeline();
+                if (!_timeline.LoadFromFile(filePath))
+                {
+                    ASLogger.Instance.Error("ReplayGameMode: 加载回放文件失败");
+                    return false;
+                }
+
+                // 2. 创建 Room 和 ReplayLSController
+                CreateRoom();
+                
+                // 3. 从起始快照加载世界状态
+                LoadStartSnapshot();
+                
+                // 4. 创建 Stage
+                CreateStage();
+                
+                // 5. 切换到游戏场景
+                SwitchToGameScene(HubSceneId);
+                
+                ChangeState(GameModeState.Playing);
+                IsRunning = true;
+                _isPlaying = false; // 初始状态为暂停
+                
+                ASLogger.Instance.Info($"ReplayGameMode: 回放文件加载成功 - 总帧数: {_timeline.TotalFrames}, 帧率: {_timeline.TickRate}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"ReplayGameMode: 加载回放文件失败 - {ex.Message}");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 启动游戏（回放模式不使用此方法，使用 Load()）
+        /// </summary>
+        public override void StartGame(int sceneId)
+        {
+            ASLogger.Instance.Warning("ReplayGameMode: 回放模式应使用 Load() 方法，而不是 StartGame()");
+        }
+
+        /// <summary>
+        /// 更新回放逻辑
+        /// </summary>
+        public override void Update(float deltaTime)
+        {
+            if (!IsRunning || CurrentState != GameModeState.Playing) return;
+            
+            // 更新回放控制器（传入 deltaTime）
+            if (_isPlaying && _lsController != null)
+            {
+                // 预加载下一帧输入
+                int nextFrame = _lsController.AuthorityFrame + 1;
+                if (nextFrame <= _timeline.TotalFrames)
+                {
+                    var inputs = _timeline.GetFrameInputs(nextFrame);
+                    if (inputs != null)
+                    {
+                        _lsController.SetFrameInputs(nextFrame, inputs);
+                    }
+                }
+                
+                // 更新回放（使用 deltaTime）
+                _lsController.Tick(deltaTime);
+                _currentFrame = _lsController.AuthorityFrame;
+            }
+            
+            // 更新 Room 和 Stage
+            MainRoom?.Update(deltaTime);
+            MainStage?.Update(deltaTime);
+        }
+
+        /// <summary>
+        /// 关闭回放游戏模式
+        /// </summary>
+        public override void Shutdown()
+        {
+            ASLogger.Instance.Info("ReplayGameMode: 关闭回放游戏模式");
+            ChangeState(GameModeState.Ending);
+            
+            // 清理资源
+            MainStage?.Destroy();
+            HUDManager.Instance?.ClearAll();
+            MainRoom?.Shutdown();
+            
+            MainRoom = null;
+            MainStage = null;
+            _timeline = null;
+            _lsController = null;
+            PlayerId = -1;
+            IsRunning = false;
+            _isPlaying = false;
+            _currentFrame = 0;
+            
+            ChangeState(GameModeState.Finished);
+        }
+
+        /// <summary>
+        /// 播放回放
+        /// </summary>
+        public void Play()
+        {
+            if (_lsController != null)
+            {
+                _lsController.IsPaused = false;
+                _isPlaying = true;
+                ASLogger.Instance.Info("ReplayGameMode: 开始播放回放");
+            }
+        }
+
+        /// <summary>
+        /// 暂停回放
+        /// </summary>
+        public void Pause()
+        {
+            if (_lsController != null)
+            {
+                _lsController.IsPaused = true;
+                _isPlaying = false;
+                ASLogger.Instance.Info("ReplayGameMode: 暂停回放");
+            }
+        }
+
+        /// <summary>
+        /// 停止回放
+        /// </summary>
+        public void Stop()
+        {
+            Pause();
+            Seek(0f); // 跳转到开始
+        }
+
+        /// <summary>
+        /// 跳转到指定进度（0~1）
+        /// </summary>
+        public void Seek(float normalizedProgress)
+        {
+            if (_timeline == null || _lsController == null) return;
+            
+            int targetFrame = (int)(normalizedProgress * _timeline.TotalFrames);
+            targetFrame = Mathf.Clamp(targetFrame, 0, _timeline.TotalFrames);
+            
+            ASLogger.Instance.Info($"ReplayGameMode: 跳转到帧 {targetFrame}");
+            
+            // 使用 FastForwardTo 跳转
+            _lsController.FastForwardTo(targetFrame, frame => _timeline.GetFrameInputs(frame));
+            
+            _currentFrame = targetFrame;
+        }
+
+        #region 私有方法
+
+        /// <summary>
+        /// 创建 Room 和 ReplayLSController
+        /// </summary>
+        private void CreateRoom()
+        {
+            // 创建 Room（使用回放时间线的房间ID）
+            int roomId = Math.Abs(_timeline.RoomId.GetHashCode());
+            var room = new Room(roomId, _timeline.RoomId);
+            
+            // 创建 ReplayLSController
+            _lsController = new ReplayLSController
+            {
+                Room = room,
+                TickRate = _timeline.TickRate,
+                CreationTime = _timeline.StartTimestamp
+            };
+            
+            // 设置 Room 的 LSController
+            room.LSController = _lsController;
+            
+            // 初始化 Room（使用 "replay" 模式，但实际使用 ReplayLSController）
+            room.Initialize("client"); // 暂时使用 client，后续可以支持 "replay"
+            
+            MainRoom = room;
+            
+            ASLogger.Instance.Info($"ReplayGameMode: 创建 Room 和 ReplayLSController - 房间ID: {_timeline.RoomId}, 帧率: {_timeline.TickRate}");
+        }
+
+        /// <summary>
+        /// 从起始快照加载世界状态
+        /// </summary>
+        private void LoadStartSnapshot()
+        {
+            if (_timeline == null || MainRoom == null) return;
+            
+            // 获取第0帧快照
+            var snapshot = _timeline.GetNearestSnapshot(0);
+            if (snapshot == null)
+            {
+                ASLogger.Instance.Error("ReplayGameMode: 未找到起始快照（第0帧）");
+                return;
+            }
+            
+            // 解压缩快照数据
+            byte[] worldData = DecompressSnapshot(snapshot.WorldData);
+            if (worldData == null || worldData.Length == 0)
+            {
+                ASLogger.Instance.Error("ReplayGameMode: 快照数据为空");
+                return;
+            }
+            
+            // 加载世界状态
+            var world = MainRoom.LoadWorldFromSnapshot(worldData);
+            if (world == null)
+            {
+                ASLogger.Instance.Error("ReplayGameMode: 加载世界状态失败");
+                return;
+            }
+            
+            // 设置初始帧
+            _lsController.AuthorityFrame = 0;
+            _currentFrame = 0;
+            
+            ASLogger.Instance.Info($"ReplayGameMode: 从快照加载世界状态成功 - 帧: {snapshot.Frame}, 实体数: {world.Entities?.Count ?? 0}");
+        }
+
+        /// <summary>
+        /// 创建 Stage
+        /// </summary>
+        private void CreateStage()
+        {
+            if (MainRoom == null) return;
+            
+            var stage = new Stage(MainRoom);
+            MainStage = stage;
+            
+            ASLogger.Instance.Info("ReplayGameMode: 创建 Stage");
+        }
+
+        /// <summary>
+        /// 切换到游戏场景
+        /// </summary>
+        private void SwitchToGameScene(int sceneId)
+        {
+            var resourceManager = ResourceManager.Instance;
+            if (resourceManager != null)
+            {
+                resourceManager.LoadSceneAsync(sceneId.ToString(), () =>
+                {
+                    ASLogger.Instance.Info($"ReplayGameMode: 场景加载完成 - 场景ID: {sceneId}");
+                });
+            }
+        }
+
+        /// <summary>
+        /// 解压缩快照数据（GZip）
+        /// </summary>
+        private byte[] DecompressSnapshot(byte[] compressedData)
+        {
+            try
+            {
+                using (var output = new MemoryStream())
+                {
+                    using (var input = new MemoryStream(compressedData))
+                    using (var gzip = new System.IO.Compression.GZipStream(input, System.IO.Compression.CompressionMode.Decompress))
+                    {
+                        gzip.CopyTo(output);
+                    }
+                    return output.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"ReplayGameMode: 解压缩快照数据失败 - {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 创建默认配置
+        /// </summary>
+        protected override GameModeConfig CreateDefaultConfig()
+        {
+            return new GameModeConfig
+            {
+                ModeName = "Replay",
+                AutoSave = false,
+                UpdateInterval = 0.016f,
+                CustomSettings = new System.Collections.Generic.Dictionary<string, object>()
+            };
+        }
+
+        #endregion
+    }
+}
+

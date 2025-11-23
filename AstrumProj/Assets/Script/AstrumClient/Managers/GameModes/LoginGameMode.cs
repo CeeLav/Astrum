@@ -461,6 +461,53 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
 
+        /// <summary>
+        /// 启动回放（切换到 Replay 模式）
+        /// </summary>
+        public void StartReplay(string replayFilePath)
+        {
+            try
+            {
+                ASLogger.Instance.Info($"LoginGameMode: 启动回放 - 文件路径: {replayFilePath}");
+
+                // 1. 验证文件是否存在
+                if (!System.IO.File.Exists(replayFilePath))
+                {
+                    PublishLoginError($"回放文件不存在: {replayFilePath}");
+                    return;
+                }
+
+                // 2. 隐藏登录 UI
+                HideLoginUI();
+
+                // 3. 切换到 Replay 模式
+                GameDirector.Instance.SwitchGameMode(GameModeType.Replay);
+
+                // 4. 加载回放文件
+                var replayGameMode = GameDirector.Instance.CurrentGameMode as ReplayGameMode;
+                if (replayGameMode != null)
+                {
+                    if (!replayGameMode.Load(replayFilePath))
+                    {
+                        PublishLoginError("加载回放文件失败");
+                        return;
+                    }
+                }
+                else
+                {
+                    PublishLoginError("无法获取 ReplayGameMode 实例");
+                    return;
+                }
+
+                ASLogger.Instance.Info("LoginGameMode: 启动回放成功");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"LoginGameMode: 启动回放失败 - {ex.Message}");
+                PublishLoginError($"启动回放失败: {ex.Message}");
+            }
+        }
+
         #endregion
 
         #region 事件处理

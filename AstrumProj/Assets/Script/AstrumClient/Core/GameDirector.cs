@@ -19,7 +19,8 @@ namespace Astrum.Client.Core
         Login,          // 登录模式
         Hub,            // Hub 模式
         SinglePlayer,   // 单机模式
-        Multiplayer     // 联机模式
+        Multiplayer,    // 联机模式
+        Replay          // 回放模式
     }
 
     /// <summary>
@@ -131,6 +132,7 @@ namespace Astrum.Client.Core
                 GameModeType.Hub => new HubGameMode(),
                 GameModeType.SinglePlayer => new SinglePlayerGameMode(),
                 GameModeType.Multiplayer => new MultiplayerGameMode(),
+                GameModeType.Replay => new ReplayGameMode(),
                 _ => throw new System.ArgumentException($"Unknown GameMode type: {gameModeType}")
             };
             

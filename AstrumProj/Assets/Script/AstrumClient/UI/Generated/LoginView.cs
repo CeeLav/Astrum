@@ -59,8 +59,17 @@ namespace Astrum.Client.UI.Generated
                 singlePlayButtonButton.onClick.AddListener(OnSinglePlayButtonClicked);
             }
 
+            // 绑定回放按钮事件
+            if (replayButtonButton != null)
+            {
+                replayButtonButton.onClick.AddListener(OnReplayButtonClicked);
+            }
+
             // 订阅登录事件
             SubscribeToLoginEvents();
+            
+            // 加载缓存的回放文件地址
+            LoadCachedReplayFilePath();
 
             // 初始化UI状态
             UpdateConnectionStatus("未连接");
@@ -246,6 +255,62 @@ namespace Astrum.Client.UI.Generated
             }
 
             gameMode.StartSinglePlayerGame();
+        }
+
+        /// <summary>
+        /// 回放按钮点击事件
+        /// </summary>
+        private void OnReplayButtonClicked()
+        {
+            // 获取输入的文件路径
+            string filePath = inputFieldInputField?.text?.Trim();
+            
+            if (string.IsNullOrEmpty(filePath))
+            {
+                UpdateConnectionStatus("错误: 请输入回放文件路径");
+                return;
+            }
+            
+            // 保存到缓存
+            SaveReplayFilePath(filePath);
+            
+            // 从 GameDirector 获取当前的 LoginGameMode
+            var gameMode = GameDirector.Instance?.CurrentGameMode as LoginGameMode;
+            if (gameMode == null)
+            {
+                Debug.LogError("LoginView: 无法从 GameDirector 获取 LoginGameMode");
+                return;
+            }
+            
+            // 启动回放
+            gameMode.StartReplay(filePath);
+        }
+
+        /// <summary>
+        /// 加载缓存的回放文件地址
+        /// </summary>
+        private void LoadCachedReplayFilePath()
+        {
+            if (inputFieldInputField != null)
+            {
+                string cachedPath = PlayerPrefs.GetString("ReplayFilePath", "");
+                if (!string.IsNullOrEmpty(cachedPath))
+                {
+                    inputFieldInputField.text = cachedPath;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 保存回放文件地址到缓存
+        /// </summary>
+        private void SaveReplayFilePath(string filePath)
+        {
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                PlayerPrefs.SetString("ReplayFilePath", filePath);
+                PlayerPrefs.Save();
+            }
         }
 
         #endregion
