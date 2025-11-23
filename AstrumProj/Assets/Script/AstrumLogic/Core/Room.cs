@@ -208,7 +208,6 @@ namespace Astrum.LogicCore.Core
         public void FrameTick(OneFrameInputs oneFrameInputs)
         {
             // 保存状态（SaveState 内部会处理 FrameBuffer 的准备和帧号选择）
-            LSController?.SaveState();
             foreach (var pairs in oneFrameInputs.Inputs)
             {
                 var input = pairs.Value;

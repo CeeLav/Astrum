@@ -95,6 +95,7 @@ namespace Astrum.LogicCore.Core
                 ++PredictionFrame;
 
                 OneFrameInputs oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
+                SaveState();
                 Room.FrameTick(oneOneFrameInputs);
                 if (Room.MainPlayerId > 0)
                 {

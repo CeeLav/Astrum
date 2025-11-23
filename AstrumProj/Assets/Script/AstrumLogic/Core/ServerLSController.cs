@@ -108,7 +108,7 @@ namespace Astrum.LogicCore.Core
                 
                 // 确保 FrameBuffer 已准备好
                 FrameBuffer.MoveForward(AuthorityFrame);
-                
+                SaveState();
                 // 执行逻辑
                 Room.FrameTick(frameInputs);
                 
