@@ -2,7 +2,7 @@
 
 # 帧同步回放 GameMode 设计
 
-> 📖 **版本**: v1.0 | 📅 **最后更新**: 2025-11-23  
+> 📖 **版本**: v1.1 | 📅 **最后更新**: 2025-01-27  
 > 👥 **面向读者**: 客户端帧同步开发、服务器战斗记录/状态快照开发  
 > 🎯 **目标**: 基于现有帧同步与快照机制，实现可播放/暂停/拖动进度的战斗回放 GameMode
 
@@ -12,7 +12,7 @@
 - 客户端增加 `ReplayGameMode`：加载指定回放文件，使用专用 `ReplayLSController` 按录制输入推进逻辑  
 - **ReplayLSController**：专门用于回放场景，无需预测/RTT补偿/回滚，仅按固定速度推进，支持跳转  
 - 播放/暂停：仅切换时间推进与否，不改变逻辑帧序列  
-- 拖动/倒退：查找目标帧之前最近快照 `S(k)`，加载快照后从 `k+1` 快速重算到目标帧  
+- 拖动/倒退：查找目标帧之前最近快照 `S(k)`，加载快照后从 `k` 开始运行到目标帧（快照是输入运算前状态）  
 - 回放期间关闭网络依赖，所有帧输入来自本地文件，保证与实战结果**确定性一致**
 
 ---
@@ -245,9 +245,9 @@ public class ReplayLSController : ILSControllerBase
     public void SetFrameInputs(int frame, OneFrameInputs inputs);
     
     /// <summary>
-    /// 按固定速度推进一帧（无RTT补偿，无预测）
+    /// 更新回放（传入 deltaTime，基于本地时间推进）
     /// </summary>
-    public void Tick();
+    public void Tick(float deltaTime);
     
     /// <summary>
     /// 快速推进到指定帧（用于跳转）
@@ -259,23 +259,42 @@ public class ReplayLSController : ILSControllerBase
 **Tick() 实现逻辑**：
 
 ```csharp
-public void Tick()
+// 回放本地时间（毫秒），通过 deltaTime 递增，不依赖 TimeInfo
+private float _replayElapsedTime = 0f; // 累计播放时间（秒）
+
+/// <summary>
+/// 更新回放（由 ReplayGameMode 调用，传入 deltaTime）
+/// </summary>
+public void Tick(float deltaTime)
 {
     if (!IsRunning || IsPaused || Room == null) return;
     
-    // 回放场景：按固定时间间隔推进，无需RTT补偿
-    long currentTime = TimeInfo.Instance.ServerNow();
-    long frameTime = CreationTime + (AuthorityFrame + 1) * LSConstValue.UpdateInterval;
+    // 累计播放时间
+    _replayElapsedTime += deltaTime;
     
-    if (currentTime >= frameTime)
+    // 计算期望到达的帧：floor(elapsedTime * TickRate)
+    int expectedFrame = (int)(_replayElapsedTime * TickRate);
+    
+    // 推进到期望帧（单次最多推进若干帧，避免卡顿）
+    const int MAX_FRAMES_PER_TICK = 5;
+    int steps = 0;
+    while (AuthorityFrame < expectedFrame && steps < MAX_FRAMES_PER_TICK)
     {
-        // 从回放文件获取该帧输入（由 ReplayGameMode 提前设置）
-        OneFrameInputs inputs = FrameBuffer.FrameInputs(AuthorityFrame + 1);
+        int nextFrame = AuthorityFrame + 1;
+        
+        // 从回放文件获取该帧输入（由 ReplayGameMode 提前设置到 FrameBuffer）
+        OneFrameInputs inputs = FrameBuffer.FrameInputs(nextFrame);
         if (inputs != null)
         {
-            AuthorityFrame++;
+            AuthorityFrame = nextFrame;
             Room.FrameTick(inputs);
         }
+        else
+        {
+            // 没有更多输入，停止推进
+            break;
+        }
+        steps++;
     }
 }
 ```
@@ -285,48 +304,82 @@ public void Tick()
 ```csharp
 public void FastForwardTo(int targetFrame, ReplayTimeline timeline)
 {
-    // 1. 加载最近快照
+    // 1. 查找目标帧之前最近的快照（快照保存的是该帧输入运算前的状态）
     var snapshot = timeline.GetNearestSnapshot(targetFrame);
-    LoadState(snapshot.Frame); // 从快照恢复世界状态
-    AuthorityFrame = snapshot.Frame;
+    int snapshotFrame = snapshot.Frame;
     
-    // 2. 快速推进到目标帧（关闭中间渲染）
-    for (int frame = snapshot.Frame + 1; frame <= targetFrame; frame++)
+    // 2. 加载快照（此时世界状态是 snapshotFrame 帧输入运算前的状态）
+    LoadState(snapshotFrame);
+    AuthorityFrame = snapshotFrame;
+    
+    // 3. 重要：快照保存的是该帧输入运算前的状态
+    //    所以需要从 snapshotFrame 开始运行到 targetFrame（包含 snapshotFrame 本身）
+    //    例如：快照是第 10 帧，目标是第 15 帧
+    //    - 加载快照后，状态是第 10 帧输入运算前
+    //    - 运行第 10 帧输入 → 得到第 10 帧输入运算后
+    //    - 运行第 11-15 帧输入 → 得到第 15 帧状态
+    for (int frame = snapshotFrame; frame <= targetFrame; frame++)
     {
         var inputs = timeline.GetFrameInputs(frame);
         if (inputs != null)
         {
+            // 设置输入到 FrameBuffer
             SetFrameInputs(frame, inputs);
             AuthorityFrame = frame;
             Room.FrameTick(inputs);
             // 可选：跳过视图更新，仅在最后同步一次
         }
+        else
+        {
+            // 没有该帧输入，停止推进
+            break;
+        }
     }
     
-    // 3. 强制同步视图
+    // 4. 更新回放时间，使其与当前帧同步
+    _replayElapsedTime = targetFrame / (float)TickRate;
+    
+    // 5. 强制同步视图
     // ForceSyncView();
 }
 ```
 
 **设计要点**：
 
+- **本地时间管理**：使用 `_replayElapsedTime` 维护回放时间，通过 `deltaTime` 递增，不依赖 `TimeInfo`  
 - **简化逻辑**：移除所有预测、回滚、RTT补偿相关代码，只保留核心帧推进逻辑  
 - **确定性保证**：输入完全来自回放文件，确保与服务器战斗结果一致  
+- **快照理解**：快照保存的是该帧输入运算前的状态，加载后需要运行该帧输入才能得到运算后状态  
 - **性能优化**：跳转时支持关闭中间帧渲染，仅在目标帧同步视图  
-- **接口兼容**：实现 `ILSControllerBase`，可被 `Room` 统一管理
+- **接口兼容**：实现 `ILSControllerBase`，但 `Tick()` 方法签名改为 `Tick(float deltaTime)`，由 `ReplayGameMode` 调用
 
 ### 4.4 回放播放循环
 
 **逻辑帧推进**：
 
-- `ReplayGameMode.Tick(deltaTime)` 中，根据 `TickRate` 将真实时间映射为目标逻辑帧：
-  - `targetFrame = startFrame + floor(elapsedTime * TickRate)`  
-- 当 `_isPlaying == true` 时：
-  - 逐帧从 `_currentFrame+1` 推进到 `targetFrame`：
-    - 对于每个 `frame`：
-      - 从 `_timeline` 取出 `ReplayFrameInputs`，转为 `OneFrameInputs` 调用 `_lsController.SetFrameInputs(frame, inputs)`  
-      - 调用 `_lsController.Tick()` 推进一帧逻辑  
-  - 逻辑帧推进完毕后，触发视图同步（沿用现有逻辑，例如 World→View 的同步系统）  
+- `ReplayGameMode.Tick(deltaTime)` 中：
+  - 当 `_isPlaying == true` 时：
+    - 调用 `_lsController.Tick(deltaTime)`，内部会根据累计时间自动推进到期望帧
+    - `ReplayLSController` 内部维护 `_replayElapsedTime`，通过 `deltaTime` 递增
+    - 每次 `Tick()` 时，从 `_timeline` 读取当前帧需要的输入，设置到 `FrameBuffer`
+    - `ReplayLSController.Tick()` 内部会检查期望帧，并推进逻辑
+  - 逻辑帧推进完毕后，触发视图同步（沿用现有逻辑，例如 World→View 的同步系统）
+
+**输入预加载**：
+
+- 在 `ReplayGameMode.Tick()` 中，提前将下一帧的输入设置到 `FrameBuffer`：
+  ```csharp
+  // 预加载下一帧输入
+  int nextFrame = _lsController.AuthorityFrame + 1;
+  if (nextFrame <= _timeline.TotalFrames)
+  {
+      var inputs = _timeline.GetFrameInputs(nextFrame);
+      if (inputs != null)
+      {
+          _lsController.SetFrameInputs(nextFrame, inputs);
+      }
+  }
+  ```  
 
 **暂停**：
 
@@ -377,9 +430,148 @@ OnSeek(float normalizedProgress)
 
 ## 6. UI 交互与 GameMode 集成
 
-### 6.1 ReplayUI 与 ReplayGameMode 协议
+### 6.1 Login 窗口回放入口
 
-UI 层只关心“时间”与“控制”，不直接接触具体帧同步细节：
+**位置**：`LoginView`（`AstrumProj/Assets/Script/AstrumClient/UI/Generated/LoginView.cs`）
+
+**UI 元素**：
+- 回放文件地址输入框：`ReplayFilePathInputField`（InputField）
+- 回放按钮：`ReplayButton`（已存在）
+
+**功能需求**：
+1. 在 Login 窗口添加回放文件地址输入框
+2. 绑定 `ReplayButton` 点击事件，启动回放
+3. 使用 `PlayerPrefs` 缓存上一次输入的回放文件地址
+4. 启动时自动加载缓存的地址到输入框
+
+**实现步骤**：
+
+1. **修改 Login Prefab**：
+   - 在 `Login/InputBG` 下添加新的 `ReplayFilePathInputField`（InputField）
+   - 设置 Placeholder 文本："请输入回放文件路径"
+   - 重新生成 UI 代码（使用 UI Generator）
+
+2. **LoginView.cs 实现**：
+
+```csharp
+// 在 LoginView.cs 中添加
+private const string REPLAY_FILE_PATH_KEY = "ReplayFilePath";
+
+protected virtual void OnInitialize()
+{
+    // ... 现有代码 ...
+    
+    // 绑定回放按钮事件
+    if (replayButtonButton != null)
+    {
+        replayButtonButton.onClick.AddListener(OnReplayButtonClicked);
+    }
+    
+    // 加载缓存的回放文件地址
+    LoadCachedReplayFilePath();
+}
+
+/// <summary>
+/// 加载缓存的回放文件地址
+/// </summary>
+private void LoadCachedReplayFilePath()
+{
+    if (replayFilePathInputFieldInputField != null)
+    {
+        string cachedPath = PlayerPrefs.GetString(REPLAY_FILE_PATH_KEY, "");
+        if (!string.IsNullOrEmpty(cachedPath))
+        {
+            replayFilePathInputFieldInputField.text = cachedPath;
+        }
+    }
+}
+
+/// <summary>
+/// 保存回放文件地址到缓存
+/// </summary>
+private void SaveReplayFilePath(string filePath)
+{
+    if (!string.IsNullOrEmpty(filePath))
+    {
+        PlayerPrefs.SetString(REPLAY_FILE_PATH_KEY, filePath);
+        PlayerPrefs.Save();
+    }
+}
+
+/// <summary>
+/// 回放按钮点击事件
+/// </summary>
+private void OnReplayButtonClicked()
+{
+    // 获取输入的文件路径
+    string filePath = replayFilePathInputFieldInputField?.text?.Trim();
+    
+    if (string.IsNullOrEmpty(filePath))
+    {
+        UpdateConnectionStatus("错误: 请输入回放文件路径");
+        return;
+    }
+    
+    // 保存到缓存
+    SaveReplayFilePath(filePath);
+    
+    // 从 GameDirector 获取当前的 LoginGameMode
+    var gameMode = GameDirector.Instance?.CurrentGameMode as LoginGameMode;
+    if (gameMode == null)
+    {
+        Debug.LogError("LoginView: 无法从 GameDirector 获取 LoginGameMode");
+        return;
+    }
+    
+    // 启动回放
+    gameMode.StartReplay(filePath);
+}
+```
+
+3. **LoginGameMode.cs 实现**：
+
+```csharp
+/// <summary>
+/// 启动回放（切换到 Replay 模式）
+/// </summary>
+public void StartReplay(string replayFilePath)
+{
+    try
+    {
+        ASLogger.Instance.Info($"LoginGameMode: 启动回放 - 文件路径: {replayFilePath}");
+        
+        // 1. 验证文件是否存在
+        if (!System.IO.File.Exists(replayFilePath))
+        {
+            PublishLoginError($"回放文件不存在: {replayFilePath}");
+            return;
+        }
+        
+        // 2. 隐藏登录 UI
+        HideLoginUI();
+        
+        // 3. 切换到 Replay 模式
+        GameDirector.Instance.SwitchGameMode(GameModeType.Replay);
+        
+        // 4. 启动回放（加载回放场景并传递文件路径）
+        // 注意：需要在 GameDirector 或 ReplayGameMode 中支持传递文件路径参数
+        GameDirector.Instance.StartReplay(replayFilePath);
+        
+        ASLogger.Instance.Info("LoginGameMode: 启动回放成功");
+    }
+    catch (Exception ex)
+    {
+        ASLogger.Instance.Error($"LoginGameMode: 启动回放失败 - {ex.Message}");
+        PublishLoginError($"启动回放失败: {ex.Message}");
+    }
+}
+```
+
+### 6.2 ReplayUI 与 ReplayGameMode 协议
+
+**回放界面 UI**（回放过程中的控制界面）：
+
+UI 层只关心"时间"与"控制"，不直接接触具体帧同步细节：
 
 - `Play()` / `Pause()` / `Stop()`  
 - `Seek(float normalized)`：0~1，对应 0~TotalFrames  
@@ -391,14 +583,15 @@ UI 层只关心“时间”与“控制”，不直接接触具体帧同步细�
 - `float DurationSeconds { get; }`：总时长（基于 `TotalFrames / TickRate`）  
 - `bool IsPlaying { get; }`  
 
-### 6.2 与现有 GameMode/FrameSyncHandler 的关系
+### 6.3 与现有 GameMode/FrameSyncHandler 的关系
 
 - 回放 GameMode 下：
   - 不再通过网络接收 `FrameSyncStartNotification` / `OneFrameInputs`  
   - `FrameSyncHandler` 不参与回放逻辑，避免与真实在线帧同步混用  
   - 使用专用的 `ReplayLSController`，而非 `ClientLSController`，避免预测/回滚逻辑干扰  
   - `Room` 创建时指定使用 `ReplayLSController` 实例  
-- 通过 GameModeFactory（若存在）新增一种模式：`Replay`，从回放入口场景或观战界面进入。  
+- **回放入口**：在 `Login` 窗口添加回放文件地址输入框和回放按钮，通过 `LoginGameMode.StartReplay()` 启动
+- 通过 GameModeFactory（若存在）新增一种模式：`Replay`，从 Login 窗口进入  
 
 ---
 
@@ -439,15 +632,17 @@ UI 层只关心“时间”与“控制”，不直接接触具体帧同步细�
   - 客户端：`AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/ReplayGameMode.cs`  
   - 客户端：`AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/ReplayTimeline.cs`  
   - 客户端：`AstrumProj/Assets/Script/AstrumLogic/Core/ReplayLSController.cs`  
+  - 客户端：`AstrumProj/Assets/Script/AstrumClient/UI/Generated/LoginView.cs`（添加回放入口）  
+  - 客户端：`AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/LoginGameMode.cs`（添加 StartReplay 方法）  
   - 服务器：`AstrumServer/.../FrameSync/BattleReplayRecorder.cs`  
 
 ---
 
-*文档版本：v1.1*  
+*文档版本：v1.2*  
 *创建时间：2025-11-23*  
 *最后更新：2025-01-27*  
 *状态：策划案*  
 *Owner*: 待定  
-*变更摘要*: 添加 ReplayLSController 专用控制器设计，明确与 ClientLSController 的区别。
+*变更摘要*: 添加 Login 窗口回放入口设计，包括回放文件地址输入框、缓存机制和启动流程。
 
 
