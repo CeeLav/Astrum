@@ -13,14 +13,14 @@ namespace Astrum.LogicCore.FrameSync
     /// </summary>
     public class ReplayTimeline
     {
-        // 回放文件数据结构（与服务器端保持一致）
-        private ReplayFileData _replayData;
+        // 回放文件数据结构（现在在 AstrumLogic 中，服务器和客户端共享）
+        private BattleReplayFile _replayData;
         
         // 快照索引（按帧号排序，用于二分查找）
-        private readonly List<ReplaySnapshotData> _snapshots = new();
+        private readonly List<ReplaySnapshot> _snapshots = new();
         
         // 帧输入索引（帧号 -> 输入数据）
-        private readonly Dictionary<int, ReplayFrameInputsData> _frameInputs = new();
+        private readonly Dictionary<int, ReplayFrameInputs> _frameInputs = new();
 
         /// <summary>
         /// 总帧数
@@ -45,7 +45,7 @@ namespace Astrum.LogicCore.FrameSync
         /// <summary>
         /// 玩家列表
         /// </summary>
-        public List<ReplayPlayerInfoData> Players => _replayData?.Players ?? new List<ReplayPlayerInfoData>();
+        public List<ReplayPlayerInfo> Players => _replayData?.Players ?? new List<ReplayPlayerInfo>();
 
         /// <summary>
         /// 房间ID
@@ -68,8 +68,6 @@ namespace Astrum.LogicCore.FrameSync
                 byte[] fileData = File.ReadAllBytes(filePath);
                 
                 // 反序列化回放文件（使用 MemoryPack）
-                // 注意：需要引用服务器端的 BattleReplayFile 类型，或者创建客户端版本
-                // 暂时使用动态反序列化
                 _replayData = DeserializeReplayFile(fileData);
                 
                 if (_replayData == null)
@@ -80,25 +78,14 @@ namespace Astrum.LogicCore.FrameSync
 
                 // 构建快照索引（按帧号排序）
                 _snapshots.Clear();
-                foreach (var snapshot in _replayData.Snapshots)
-                {
-                    _snapshots.Add(new ReplaySnapshotData
-                    {
-                        Frame = snapshot.Frame,
-                        WorldData = snapshot.WorldData
-                    });
-                }
+                _snapshots.AddRange(_replayData.Snapshots);
                 _snapshots.Sort((a, b) => a.Frame.CompareTo(b.Frame));
 
                 // 构建帧输入索引
                 _frameInputs.Clear();
                 foreach (var frameInput in _replayData.FrameInputs)
                 {
-                    _frameInputs[frameInput.Frame] = new ReplayFrameInputsData
-                    {
-                        Frame = frameInput.Frame,
-                        InputsData = frameInput.InputsData
-                    };
+                    _frameInputs[frameInput.Frame] = frameInput;
                 }
 
                 ASLogger.Instance.Info($"ReplayTimeline: 加载回放文件成功 - 总帧数: {TotalFrames}, 快照数: {_snapshots.Count}, 帧输入数: {_frameInputs.Count}", "Replay.Timeline");
@@ -115,14 +102,14 @@ namespace Astrum.LogicCore.FrameSync
         /// <summary>
         /// 获取最近快照（frame0 <= frame 且距离最近的快照）
         /// </summary>
-        public ReplaySnapshotData? GetNearestSnapshot(int frame)
+        public ReplaySnapshot? GetNearestSnapshot(int frame)
         {
             if (_snapshots.Count == 0) return null;
 
             // 二分查找：找到 frame0 <= frame 的最大快照
             int left = 0;
             int right = _snapshots.Count - 1;
-            ReplaySnapshotData? result = null;
+            ReplaySnapshot? result = null;
 
             while (left <= right)
             {
@@ -148,10 +135,10 @@ namespace Astrum.LogicCore.FrameSync
         /// </summary>
         public OneFrameInputs? GetFrameInputs(int frame)
         {
-            if (_frameInputs.TryGetValue(frame, out var frameInputsData))
+            if (_frameInputs.TryGetValue(frame, out var frameInputs))
             {
                 // 反序列化输入数据
-                return DeserializeFrameInputs(frameInputsData.InputsData);
+                return DeserializeFrameInputs(frameInputs.InputsData);
             }
             return null;
         }
@@ -173,22 +160,13 @@ namespace Astrum.LogicCore.FrameSync
         /// <summary>
         /// 反序列化回放文件
         /// </summary>
-        private ReplayFileData DeserializeReplayFile(byte[] data)
+        private BattleReplayFile? DeserializeReplayFile(byte[] data)
         {
             try
             {
-                // 使用反射获取服务器端的 BattleReplayFile 类型
-                // 或者创建客户端版本的数据结构
-                // 暂时使用简化版本
-                var type = Type.GetType("AstrumServer.FrameSync.BattleReplayFile, AstrumLogic.Server");
-                if (type == null)
-                {
-                    // 如果找不到服务器端类型，使用客户端版本
-                    type = typeof(ReplayFileData);
-                }
-
-                object obj = MemoryPackHelper.Deserialize(type, data, 0, data.Length);
-                return ConvertToReplayFileData(obj);
+                // 直接使用 BattleReplayFile（现在在 AstrumLogic 中，服务器和客户端共享）
+                object obj = MemoryPackHelper.Deserialize(typeof(BattleReplayFile), data, 0, data.Length);
+                return obj as BattleReplayFile;
             }
             catch (Exception ex)
             {
@@ -196,97 +174,6 @@ namespace Astrum.LogicCore.FrameSync
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
                 return null;
             }
-        }
-
-        /// <summary>
-        /// 转换服务器端类型到客户端数据结构
-        /// </summary>
-        private ReplayFileData ConvertToReplayFileData(object obj)
-        {
-            // 使用反射获取属性值
-            var type = obj.GetType();
-            var replayData = new ReplayFileData();
-
-            var versionProp = type.GetProperty("Version");
-            var roomIdProp = type.GetProperty("RoomId");
-            var tickRateProp = type.GetProperty("TickRate");
-            var totalFramesProp = type.GetProperty("TotalFrames");
-            var startTimestampProp = type.GetProperty("StartTimestamp");
-            var randomSeedProp = type.GetProperty("RandomSeed");
-            var playersProp = type.GetProperty("Players");
-            var snapshotsProp = type.GetProperty("Snapshots");
-            var frameInputsProp = type.GetProperty("FrameInputs");
-
-            if (versionProp != null) replayData.Version = (int)versionProp.GetValue(obj);
-            if (roomIdProp != null) replayData.RoomId = (string)roomIdProp.GetValue(obj) ?? "";
-            if (tickRateProp != null) replayData.TickRate = (int)tickRateProp.GetValue(obj);
-            if (totalFramesProp != null) replayData.TotalFrames = (int)totalFramesProp.GetValue(obj);
-            if (startTimestampProp != null) replayData.StartTimestamp = (long)startTimestampProp.GetValue(obj);
-            if (randomSeedProp != null) replayData.RandomSeed = (int)randomSeedProp.GetValue(obj);
-
-            if (playersProp != null)
-            {
-                var players = playersProp.GetValue(obj) as System.Collections.IEnumerable;
-                if (players != null)
-                {
-                    foreach (var player in players)
-                    {
-                        var playerType = player.GetType();
-                        var userIdProp = playerType.GetProperty("UserId");
-                        var playerIdProp = playerType.GetProperty("PlayerId");
-                        var displayNameProp = playerType.GetProperty("DisplayName");
-
-                        replayData.Players.Add(new ReplayPlayerInfoData
-                        {
-                            UserId = (string)(userIdProp?.GetValue(player) ?? ""),
-                            PlayerId = (long)(playerIdProp?.GetValue(player) ?? 0L),
-                            DisplayName = (string)(displayNameProp?.GetValue(player) ?? "")
-                        });
-                    }
-                }
-            }
-
-            if (snapshotsProp != null)
-            {
-                var snapshots = snapshotsProp.GetValue(obj) as System.Collections.IEnumerable;
-                if (snapshots != null)
-                {
-                    foreach (var snapshot in snapshots)
-                    {
-                        var snapshotType = snapshot.GetType();
-                        var frameProp = snapshotType.GetProperty("Frame");
-                        var worldDataProp = snapshotType.GetProperty("WorldData");
-
-                        replayData.Snapshots.Add(new ReplaySnapshotData
-                        {
-                            Frame = (int)(frameProp?.GetValue(snapshot) ?? 0),
-                            WorldData = (byte[])(worldDataProp?.GetValue(snapshot) ?? Array.Empty<byte>())
-                        });
-                    }
-                }
-            }
-
-            if (frameInputsProp != null)
-            {
-                var frameInputs = frameInputsProp.GetValue(obj) as System.Collections.IEnumerable;
-                if (frameInputs != null)
-                {
-                    foreach (var frameInput in frameInputs)
-                    {
-                        var frameInputType = frameInput.GetType();
-                        var frameProp = frameInputType.GetProperty("Frame");
-                        var inputsDataProp = frameInputType.GetProperty("InputsData");
-
-                        replayData.FrameInputs.Add(new ReplayFrameInputsData
-                        {
-                            Frame = (int)(frameProp?.GetValue(frameInput) ?? 0),
-                            InputsData = (byte[])(inputsDataProp?.GetValue(frameInput) ?? Array.Empty<byte>())
-                        });
-                    }
-                }
-            }
-
-            return replayData;
         }
 
         /// <summary>
@@ -323,41 +210,6 @@ namespace Astrum.LogicCore.FrameSync
             }
         }
 
-        #region 内部数据结构（客户端版本）
-
-        private class ReplayFileData
-        {
-            public int Version { get; set; }
-            public string RoomId { get; set; } = "";
-            public int TickRate { get; set; }
-            public int TotalFrames { get; set; }
-            public long StartTimestamp { get; set; }
-            public int RandomSeed { get; set; }
-            public List<ReplayPlayerInfoData> Players { get; set; } = new();
-            public List<ReplaySnapshotData> Snapshots { get; set; } = new();
-            public List<ReplayFrameInputsData> FrameInputs { get; set; } = new();
-        }
-
-        public class ReplayPlayerInfoData
-        {
-            public string UserId { get; set; } = "";
-            public long PlayerId { get; set; }
-            public string DisplayName { get; set; } = "";
-        }
-
-        public class ReplaySnapshotData
-        {
-            public int Frame { get; set; }
-            public byte[] WorldData { get; set; } = Array.Empty<byte>();
-        }
-
-        private class ReplayFrameInputsData
-        {
-            public int Frame { get; set; }
-            public byte[] InputsData { get; set; } = Array.Empty<byte>();
-        }
-
-        #endregion
     }
 }
 

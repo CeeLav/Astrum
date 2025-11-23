@@ -7,6 +7,7 @@ using Astrum.LogicCore.FrameSync;
 using Astrum.View.Core;
 using Astrum.View.Managers;
 using AstrumClient.MonitorTools;
+using Astrum.Client.Managers;
 using UnityEngine;
 
 namespace Astrum.Client.Managers.GameModes
@@ -308,8 +309,12 @@ namespace Astrum.Client.Managers.GameModes
         {
             if (MainRoom == null) return;
             
-            var stage = new Stage(MainRoom);
+            var stage = new Stage("ReplayStage", "回放场景");
+            stage.Initialize();
+            stage.SetRoom(MainRoom);
+            
             MainStage = stage;
+            View.Managers.VFXManager.Instance.CurrentStage = stage;
             
             ASLogger.Instance.Info("ReplayGameMode: 创建 Stage");
         }
@@ -319,10 +324,10 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void SwitchToGameScene(int sceneId)
         {
-            var resourceManager = ResourceManager.Instance;
-            if (resourceManager != null)
+            var sceneManager = SceneManager.Instance;
+            if (sceneManager != null)
             {
-                resourceManager.LoadSceneAsync(sceneId.ToString(), () =>
+                sceneManager.LoadSceneAsync(sceneId, () =>
                 {
                     ASLogger.Instance.Info($"ReplayGameMode: 场景加载完成 - 场景ID: {sceneId}");
                 });

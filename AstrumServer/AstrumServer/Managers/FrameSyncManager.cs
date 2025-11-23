@@ -369,14 +369,10 @@ namespace AstrumServer.Managers
 
                     frameState.LogicRoom?.Shutdown();
 
-                    // 完成回放录制并保存文件
+                    // 完成回放录制（文件已在录制过程中定时保存）
                     if (frameState.ReplayRecorder != null)
                     {
-                        var replayFile = frameState.ReplayRecorder.Finish();
-                        if (replayFile != null)
-                        {
-                            SaveReplayFile(roomId, replayFile);
-                        }
+                        frameState.ReplayRecorder.Finish();
                     }
 
                     // 发送帧同步结束通知
@@ -392,39 +388,6 @@ namespace AstrumServer.Managers
             }
         }
         
-        /// <summary>
-        /// 保存回放文件到磁盘
-        /// </summary>
-        private void SaveReplayFile(string roomId, BattleReplayFile replayFile)
-        {
-            try
-            {
-                // 创建回放文件目录
-                var replayDir = Path.Combine(AppContext.BaseDirectory, "Replays");
-                if (!Directory.Exists(replayDir))
-                {
-                    Directory.CreateDirectory(replayDir);
-                }
-                
-                // 生成文件名：房间ID_时间戳.replay
-                var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-                var fileName = $"{roomId}_{timestamp}.replay";
-                var filePath = Path.Combine(replayDir, fileName);
-                
-                // 序列化回放文件
-                byte[] fileData = MemoryPackHelper.Serialize(replayFile);
-                
-                // 写入文件
-                File.WriteAllBytes(filePath, fileData);
-                
-                ASLogger.Instance.Info($"回放文件已保存 - 房间: {roomId}, 文件: {filePath}, 大小: {fileData.Length} bytes", "Replay.Save");
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"保存回放文件失败 - 房间: {roomId}, 错误: {ex.Message}", "Replay.Save");
-                ASLogger.Instance.LogException(ex, LogLevel.Error);
-            }
-        }
         
         public Dictionary<string,int> currentPlayerIdMap = new Dictionary<string, int>();
         

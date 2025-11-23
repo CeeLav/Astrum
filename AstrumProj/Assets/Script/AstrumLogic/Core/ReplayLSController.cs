@@ -195,34 +195,12 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 保存当前帧状态
+        /// 保存当前帧状态（回放模式下不需要保存，空实现）
         /// </summary>
         public void SaveState()
         {
-            if (Room == null || Room.MainWorld == null) return;
-
-            int frame = AuthorityFrame;
-            if (frame < 0) return;
-
-            // 确保 FrameBuffer 已经准备好当前帧
-            if (frame > _frameBuffer.MaxFrame)
-            {
-                while (_frameBuffer.MaxFrame < frame)
-                {
-                    _frameBuffer.MoveForward(_frameBuffer.MaxFrame);
-                }
-            }
-
-            var memoryBuffer = _frameBuffer.Snapshot(frame);
-            memoryBuffer.Seek(0, SeekOrigin.Begin);
-            memoryBuffer.SetLength(0);
-
-            MemoryPackHelper.Serialize(Room.MainWorld, memoryBuffer);
-            memoryBuffer.Seek(0, SeekOrigin.Begin);
-            
-            // 计算哈希值用于验证（使用 GetBuffer() 获取底层 byte[]）
-            long hash = memoryBuffer.GetBuffer().Hash(0, (int)memoryBuffer.Length);
-            _frameBuffer.SetHash(frame, hash);
+            // 回放模式下不需要保存状态，因为状态是从回放文件加载的
+            // 此方法不应被调用，但为了满足接口要求，提供空实现
         }
 
         /// <summary>

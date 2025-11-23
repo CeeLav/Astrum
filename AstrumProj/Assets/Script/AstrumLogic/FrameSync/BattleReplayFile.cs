@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using MemoryPack;
 
-namespace AstrumServer.FrameSync
+namespace Astrum.LogicCore.FrameSync
 {
     /// <summary>
     /// 战斗回放文件数据结构

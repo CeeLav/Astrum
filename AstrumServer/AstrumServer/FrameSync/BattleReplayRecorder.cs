@@ -6,7 +6,7 @@ using System.Linq;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.Core;
-using AstrumServer.FrameSync;
+using Astrum.LogicCore.FrameSync;
 
 namespace AstrumServer.FrameSync
 {
@@ -26,6 +26,11 @@ namespace AstrumServer.FrameSync
         
         private int _totalFrames = 0;
         private bool _isFinished = false;
+        
+        // 定时保存相关
+        private long _lastSaveTime = 0;
+        private const long SAVE_INTERVAL_MS = 5000; // 5秒保存一次
+        private string _currentFilePath = "";
 
         /// <summary>
         /// 构造函数
@@ -37,6 +42,10 @@ namespace AstrumServer.FrameSync
             _startTimestamp = startTimestamp;
             _randomSeed = randomSeed;
             _players = players ?? new List<ReplayPlayerInfo>();
+            _lastSaveTime = startTimestamp;
+            
+            // 初始化文件路径
+            _currentFilePath = GetReplayFilePath(roomId, startTimestamp);
         }
 
         /// <summary>
@@ -97,6 +106,14 @@ namespace AstrumServer.FrameSync
                 _frameInputs[frame] = frameInputs;
                 _totalFrames = Math.Max(_totalFrames, frame);
                 
+                // 检查是否需要定时保存（每5秒）
+                long currentTime = TimeInfo.Instance.ClientNow();
+                if (currentTime - _lastSaveTime >= SAVE_INTERVAL_MS)
+                {
+                    SaveReplayFilePeriodically();
+                    _lastSaveTime = currentTime;
+                }
+                
                 ASLogger.Instance.Debug($"BattleReplayRecorder: 记录帧输入 - 房间: {_roomId}, 帧: {frame}, 输入数: {inputs.Inputs.Count}, 数据大小: {inputsData.Length} bytes", "Replay.Recorder");
             }
             catch (Exception ex)
@@ -120,6 +137,9 @@ namespace AstrumServer.FrameSync
             try
             {
                 _isFinished = true;
+
+                // 最后一次保存
+                SaveReplayFilePeriodically();
 
                 // 按帧号排序快照
                 _snapshots.Sort((a, b) => a.Frame.CompareTo(b.Frame));
@@ -150,6 +170,91 @@ namespace AstrumServer.FrameSync
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// 定时保存回放文件（每5秒）
+        /// </summary>
+        private void SaveReplayFilePeriodically()
+        {
+            try
+            {
+                // 按帧号排序快照
+                var sortedSnapshots = new List<ReplaySnapshot>(_snapshots);
+                sortedSnapshots.Sort((a, b) => a.Frame.CompareTo(b.Frame));
+
+                // 将帧输入转换为列表（按帧号排序）
+                var frameInputsList = _frameInputs.Values.OrderBy(x => x.Frame).ToList();
+
+                var replayFile = new BattleReplayFile
+                {
+                    Version = 1,
+                    RoomId = _roomId,
+                    TickRate = _tickRate,
+                    TotalFrames = _totalFrames,
+                    StartTimestamp = _startTimestamp,
+                    RandomSeed = _randomSeed,
+                    Players = _players,
+                    Snapshots = sortedSnapshots,
+                    FrameInputs = frameInputsList
+                };
+
+                // 序列化回放文件
+                byte[] fileData = MemoryPackHelper.Serialize(replayFile);
+                
+                // 写入文件（覆盖）
+                File.WriteAllBytes(_currentFilePath, fileData);
+                
+                ASLogger.Instance.Debug($"回放文件已定时保存 - 房间: {_roomId}, 文件: {_currentFilePath}, 大小: {fileData.Length} bytes, 总帧数: {_totalFrames}", "Replay.Save");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"定时保存回放文件失败 - 房间: {_roomId}, 错误: {ex.Message}", "Replay.Save");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// 获取回放文件路径
+        /// </summary>
+        private string GetReplayFilePath(string roomId, long startTimestamp)
+        {
+            // 查找 AstrumConfig 目录
+            string? configPath = null;
+            var currentDir = AppContext.BaseDirectory;
+            var searchDir = new DirectoryInfo(currentDir);
+            const int maxLevels = 10;
+            int levels = 0;
+
+            while (searchDir != null && levels < maxLevels)
+            {
+                var candidatePath = Path.Combine(searchDir.FullName, "AstrumConfig", "Record");
+                var parentDir = Path.GetDirectoryName(candidatePath);
+                if (parentDir != null && Directory.Exists(parentDir)) // 检查 AstrumConfig 目录是否存在
+                {
+                    configPath = candidatePath;
+                    break;
+                }
+                searchDir = searchDir.Parent;
+                levels++;
+            }
+
+            if (string.IsNullOrEmpty(configPath))
+            {
+                // 如果找不到，使用当前目录下的 AstrumConfig/Record
+                configPath = Path.Combine(currentDir, "AstrumConfig", "Record");
+            }
+
+            // 创建目录
+            if (!Directory.Exists(configPath))
+            {
+                Directory.CreateDirectory(configPath);
+            }
+
+            // 生成文件名：房间ID_时间戳.replay
+            var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(startTimestamp).ToString("yyyyMMdd_HHmmss");
+            var fileName = $"{roomId}_{timestamp}.replay";
+            return Path.Combine(configPath, fileName);
         }
 
         /// <summary>
