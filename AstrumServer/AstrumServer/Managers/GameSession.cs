@@ -6,6 +6,7 @@ using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 using AstrumServer.Network;
+using AstrumServer.FrameSync;
 
 namespace AstrumServer.Managers
 {
@@ -35,6 +36,9 @@ namespace AstrumServer.Managers
         
         // 玩家ID列表
         public List<string> PlayerIds { get; private set; } = new();
+        
+        // 回放录制器
+        private BattleReplayRecorder? _replayRecorder;
         
         
         public GameSession(ServerRoom room, ServerNetworkManager networkManager, UserManager userManager)
@@ -101,20 +105,70 @@ namespace AstrumServer.Managers
                 // 保存第0帧快照（但不立即发送通知，由外部调用 SendFrameSyncStartNotificationIfReady() 发送）
                 if (LogicRoom?.LSController is ServerLSController serverSync)
                 {
-                    // 设置回调，在每帧推进后发送帧数据
+                    serverSync.AuthorityFrame = 0;
+                    serverSync.FrameBuffer.MoveForward(0);
+                    serverSync.SaveState();
+                    
+                    // 获取第0帧快照数据
+                    var snapshotBuffer = serverSync.FrameBuffer.Snapshot(0);
+                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
+                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
+                    
+                    // 创建回放录制器
+                    var players = new List<ReplayPlayerInfo>();
+                    foreach (var kvp in UserIdToPlayerId)
+                    {
+                        players.Add(new ReplayPlayerInfo
+                        {
+                            UserId = kvp.Key,
+                            PlayerId = kvp.Value,
+                            DisplayName = kvp.Key // 暂时使用 UserId 作为显示名称
+                        });
+                    }
+                    
+                    var random = new Random();
+                    var randomSeed = random.Next(int.MinValue, int.MaxValue);
+                    _replayRecorder = new BattleReplayRecorder(
+                        roomInfo.Id,
+                        LSConstValue.FrameCountPerSecond,
+                        StartTime,
+                        randomSeed,
+                        players
+                    );
+                    
+                    // 记录第0帧快照
+                    _replayRecorder.OnWorldSnapshot(0, worldSnapshotData);
+                    
+                    // 设置回调，在每帧推进后发送帧数据和录制回放
                     serverSync.OnFrameProcessed = (frame, frameInputs) =>
                     {
+                        // 发送帧数据
                         SendFrameSyncData(frame, frameInputs);
+                        
+                        // 录制帧输入
+                        _replayRecorder?.OnFrameInputs(frame, frameInputs);
+                        
+                        // 每10帧保存一次快照
+                        if (frame % 10 == 0)
+                        {
+                            serverSync.FrameBuffer.MoveForward(frame);
+                            serverSync.SaveState();
+                            
+                            var frameSnapshotBuffer = serverSync.FrameBuffer.Snapshot(frame);
+                            if (frameSnapshotBuffer != null && frameSnapshotBuffer.Length > 0)
+                            {
+                                byte[] snapshotData = new byte[frameSnapshotBuffer.Length];
+                                frameSnapshotBuffer.Read(snapshotData, 0, (int)frameSnapshotBuffer.Length);
+                                _replayRecorder?.OnWorldSnapshot(frame, snapshotData);
+                            }
+                        }
+                        
                         // 避免在日志中直接使用 frameInputs，防止触发 ToString() 导致序列化错误
                         var inputCount = frameInputs?.Inputs?.Count ?? 0;
                         ASLogger.Instance.Debug($"处理房间 {roomInfo.Id} 帧 {frame}，输入数: {inputCount}", "FrameSync.Processing");
                     };
                     
-                    serverSync.AuthorityFrame = 0;
-                    serverSync.FrameBuffer.MoveForward(0);
-                    serverSync.SaveState();
-                    
-                    ASLogger.Instance.Info($"房间 {roomInfo.Id} 帧同步已初始化，玩家数: {PlayerIds.Count}，等待发送 FrameSyncStartNotification", "FrameSync.Controller");
+                    ASLogger.Instance.Info($"房间 {roomInfo.Id} 帧同步已初始化，玩家数: {PlayerIds.Count}，回放录制已启动，等待发送 FrameSyncStartNotification", "FrameSync.Controller");
                 }
                 else
                 {
@@ -138,6 +192,17 @@ namespace AstrumServer.Managers
             try
             {
                 IsActive = false;
+                
+                // 完成回放录制
+                if (_replayRecorder != null)
+                {
+                    var replayFile = _replayRecorder.Finish();
+                    if (replayFile != null)
+                    {
+                        ASLogger.Instance.Info($"房间 {_room.Info.Id} 回放录制完成，总帧数: {replayFile.TotalFrames}", "Replay.Recorder");
+                    }
+                    _replayRecorder = null;
+                }
                 
                 LogicRoom?.Shutdown();
                 

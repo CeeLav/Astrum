@@ -46,6 +46,8 @@ namespace AstrumServer.FrameSync
             
             // 初始化文件路径
             _currentFilePath = GetReplayFilePath(roomId, startTimestamp);
+            
+            ASLogger.Instance.Info($"BattleReplayRecorder 初始化 - 房间: {roomId}, 文件路径: {_currentFilePath}, TickRate: {tickRate}, 玩家数: {_players.Count}", "Replay.Recorder");
         }
 
         /// <summary>
@@ -202,14 +204,33 @@ namespace AstrumServer.FrameSync
                 // 序列化回放文件
                 byte[] fileData = MemoryPackHelper.Serialize(replayFile);
                 
+                // 确保目录存在
+                var directory = Path.GetDirectoryName(_currentFilePath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                    ASLogger.Instance.Info($"创建回放文件目录: {directory}", "Replay.Save");
+                }
+                
                 // 写入文件（覆盖）
                 File.WriteAllBytes(_currentFilePath, fileData);
                 
-                ASLogger.Instance.Debug($"回放文件已定时保存 - 房间: {_roomId}, 文件: {_currentFilePath}, 大小: {fileData.Length} bytes, 总帧数: {_totalFrames}", "Replay.Save");
+                ASLogger.Instance.Info($"回放文件已定时保存 - 房间: {_roomId}, 文件: {_currentFilePath}, 大小: {fileData.Length} bytes, 总帧数: {_totalFrames}, 快照数: {sortedSnapshots.Count}, 帧输入数: {frameInputsList.Count}", "Replay.Save");
+                
+                // 验证文件是否真的写入成功
+                if (File.Exists(_currentFilePath))
+                {
+                    var fileInfo = new FileInfo(_currentFilePath);
+                    ASLogger.Instance.Debug($"回放文件验证成功 - 文件存在，大小: {fileInfo.Length} bytes", "Replay.Save");
+                }
+                else
+                {
+                    ASLogger.Instance.Error($"回放文件验证失败 - 文件不存在: {_currentFilePath}", "Replay.Save");
+                }
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"定时保存回放文件失败 - 房间: {_roomId}, 错误: {ex.Message}", "Replay.Save");
+                ASLogger.Instance.Error($"定时保存回放文件失败 - 房间: {_roomId}, 文件路径: {_currentFilePath}, 错误: {ex.Message}", "Replay.Save");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
