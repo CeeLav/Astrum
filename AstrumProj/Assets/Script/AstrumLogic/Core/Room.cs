@@ -75,11 +75,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public long CreationTime { get; private set; }
 
-        /// <summary>
-        /// 房间总运行时间
-        /// </summary>
-        public float TotalTime { get; private set; } = 0f;
-
         public long MainPlayerId { get; set; } = -1;
 
         public Room()
@@ -159,10 +154,20 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsActive) return;
 
-            TotalTime += deltaTime;
-
             // 更新帧同步控制器
-            LSController?.Tick();
+            if (LSController != null)
+            {
+                // ReplayLSController 需要使用 Tick(float deltaTime) 方法
+                if (LSController is ReplayLSController replayController)
+                {
+                    replayController.Tick(deltaTime);
+                }
+                else
+                {
+                    // 其他控制器使用无参 Tick() 方法
+                    LSController.Tick();
+                }
+            }
             
         }
         
@@ -219,12 +224,10 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 初始化房间
         /// </summary>
-        /// <param name="controllerType">LSController 类型（"client" 或 "server"），默认为 "client"</param>
+        /// <param name="controllerType">LSController 类型（"client"、"server" 或 "replay"），默认为 "client"</param>
         /// <param name="worldSnapshot">World 快照数据（可选），如果提供则反序列化并替换 MainWorld</param>
         public virtual void Initialize(string controllerType = "client", byte[] worldSnapshot = null)
         {
-            TotalTime = 0f;
-            
             // 如果提供了 World 快照，反序列化并替换 MainWorld
             if (worldSnapshot != null && worldSnapshot.Length > 0)
             {
@@ -242,17 +245,27 @@ namespace Astrum.LogicCore.Core
                 ASLogger.Instance.Error($"Room {RoomId} has no MainWorld defined.");
             }
             
-            // 根据类型创建对应的 LSController
+            // 如果 LSController 已经设置（比如 ReplayLSController），则不重新创建
             if (LSController == null)
             {
+                // 根据类型创建对应的 LSController
                 if (controllerType == "server")
                 {
                     LSController = new ServerLSController { Room = this };
                 }
-                else
+                else if (controllerType == "replay")
+                {
+                    LSController = new ReplayLSController { Room = this };
+                }
+                else // "client" 或其他
                 {
                     LSController = new ClientLSController { Room = this };
                 }
+            }
+            else
+            {
+                // 确保 LSController 的 Room 引用正确
+                LSController.Room = this;
             }
         }
         

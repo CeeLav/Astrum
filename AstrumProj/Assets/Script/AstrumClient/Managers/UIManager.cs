@@ -3,6 +3,7 @@ using UnityEngine;
 using Astrum.Client.UI.Core;
 using Astrum.Client.Core;
 using Astrum.CommonBase;
+using Astrum.View.Managers;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -128,18 +129,29 @@ namespace Astrum.Client.Managers
                 return cachedUI;
             }
 
-            // 加载Prefab
+            // 使用 ResourceManager 加载Prefab
             string prefabPath = $"{uiPrefabPath}{uiName}.prefab";
             GameObject prefab = null;
             
+            var resourceManager = ResourceManager.Instance;
+            if (resourceManager != null)
+            {
+                // 尝试使用 ResourceManager 加载资源
+                prefab = resourceManager.LoadResource<GameObject>(prefabPath);
+            }
+            
+            // 如果 ResourceManager 未初始化或加载失败，使用回退方案
+            if (prefab == null)
+            {
 #if UNITY_EDITOR
-            // 在Editor中使用AssetDatabase加载
-            prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                // 在Editor中使用AssetDatabase加载（回退方案）
+                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 #else
-            // 在运行时使用Resources加载
-            var resourcesPath = $"UI/{uiName}";
-            prefab = Resources.Load<GameObject>(resourcesPath);
+                // 在运行时使用Resources加载（回退方案）
+                var resourcesPath = $"UI/{uiName}";
+                prefab = Resources.Load<GameObject>(resourcesPath);
 #endif
+            }
             
             if (prefab == null)
             {

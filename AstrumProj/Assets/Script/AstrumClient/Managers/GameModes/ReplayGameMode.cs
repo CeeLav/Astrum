@@ -21,6 +21,7 @@ namespace Astrum.Client.Managers.GameModes
     public class ReplayGameMode : BaseGameMode
     {
         private const int HubSceneId = 1; // 回放使用 Hub 场景
+        private const int DungeonsGameSceneId = 2;
         
         // 核心属性
         public override Room MainRoom { get; set; }
@@ -109,17 +110,33 @@ namespace Astrum.Client.Managers.GameModes
                     return false;
                 }
 
-                // 2. 创建 Room 和 ReplayLSController
-                CreateRoom();
+                // 2. 获取起始快照数据
+                var startSnapshot = _timeline.GetNearestSnapshot(0);
+                if (startSnapshot == null)
+                {
+                    ASLogger.Instance.Error("ReplayGameMode: 未找到起始快照（第0帧）");
+                    return false;
+                }
                 
-                // 3. 从起始快照加载世界状态
-                LoadStartSnapshot();
+                // 解压缩快照数据
+                byte[] worldData = DecompressSnapshot(startSnapshot.WorldData);
+                if (worldData == null || worldData.Length == 0)
+                {
+                    ASLogger.Instance.Error("ReplayGameMode: 快照数据为空");
+                    return false;
+                }
+                
+                // 3. 创建 Room 并直接使用快照初始化（这样角色会在初始化时创建）
+                CreateRoom(worldData);
+                
+                // 4. 设置快照到 FrameBuffer（用于 FastForwardTo 等操作）
+                SetupSnapshotInFrameBuffer(startSnapshot, worldData);
                 
                 // 4. 创建 Stage
                 CreateStage();
                 
                 // 5. 切换到游戏场景
-                SwitchToGameScene(HubSceneId);
+                SwitchToGameScene(DungeonsGameSceneId);
                 
                 ChangeState(GameModeState.Playing);
                 IsRunning = true;
@@ -155,6 +172,7 @@ namespace Astrum.Client.Managers.GameModes
             if (!IsRunning || CurrentState != GameModeState.Playing) return;
             
             // 更新回放控制器（传入 deltaTime）
+            
             if (_isPlaying && _lsController != null)
             {
                 // 预加载下一帧输入
@@ -169,7 +187,7 @@ namespace Astrum.Client.Managers.GameModes
                 }
                 
                 // 更新回放（使用 deltaTime）
-                _lsController.Tick(deltaTime);
+                //_lsController.Tick(deltaTime);
                 _currentFrame = _lsController.AuthorityFrame;
             }
             
@@ -286,7 +304,7 @@ namespace Astrum.Client.Managers.GameModes
                 }
 
                 // 显示UI（UI会自己通过GameDirector获取GameMode引用）
-                uiManager.ShowUI("ReplayUI");
+                uiManager.ShowUI("GameUI/ReplayUI");
                 ASLogger.Instance.Info("ReplayGameMode: 回放UI已打开");
             }
             catch (Exception ex)
@@ -306,7 +324,7 @@ namespace Astrum.Client.Managers.GameModes
                 var uiManager = UIManager.Instance;
                 if (uiManager != null)
                 {
-                    uiManager.HideUI("ReplayUI");
+                    uiManager.HideUI("GameUI/ReplayUI");
                     ASLogger.Instance.Info("ReplayGameMode: 回放UI已关闭");
                 }
             }
@@ -320,69 +338,54 @@ namespace Astrum.Client.Managers.GameModes
         #region 私有方法
 
         /// <summary>
-        /// 创建 Room 和 ReplayLSController
+        /// 创建 Room 和 ReplayLSController（使用快照数据初始化）
         /// </summary>
-        private void CreateRoom()
+        private void CreateRoom(byte[] worldSnapshot)
         {
             // 创建 Room（使用回放时间线的房间ID）
             int roomId = Math.Abs(_timeline.RoomId.GetHashCode());
             var room = new Room(roomId, _timeline.RoomId);
             
-            // 创建 ReplayLSController
-            _lsController = new ReplayLSController
+            // 初始化 Room（使用 "replay" 模式，并传入快照数据，这样角色会在初始化时创建）
+            room.Initialize("replay", worldSnapshot);
+            
+            // 获取 Room 创建的 ReplayLSController 并设置回放相关参数
+            _lsController = room.LSController as ReplayLSController;
+            if (_lsController != null)
             {
-                Room = room,
-                TickRate = _timeline.TickRate,
-                CreationTime = _timeline.StartTimestamp
-            };
-            
-            // 设置 Room 的 LSController
-            room.LSController = _lsController;
-            
-            // 初始化 Room（使用 "replay" 模式，但实际使用 ReplayLSController）
-            room.Initialize("client"); // 暂时使用 client，后续可以支持 "replay"
+                _lsController.TickRate = _timeline.TickRate;
+                _lsController.CreationTime = _timeline.StartTimestamp;
+                _lsController.AuthorityFrame = 0;
+            }
+            else
+            {
+                ASLogger.Instance.Error("ReplayGameMode: Room.Initialize 未能创建 ReplayLSController");
+            }
             
             MainRoom = room;
+            _currentFrame = 0;
             
-            ASLogger.Instance.Info($"ReplayGameMode: 创建 Room 和 ReplayLSController - 房间ID: {_timeline.RoomId}, 帧率: {_timeline.TickRate}");
+            ASLogger.Instance.Info($"ReplayGameMode: 创建 Room 和 ReplayLSController - 房间ID: {_timeline.RoomId}, 帧率: {_timeline.TickRate}, 实体数: {room.MainWorld?.Entities?.Count ?? 0}");
         }
 
         /// <summary>
-        /// 从起始快照加载世界状态
+        /// 设置快照到 FrameBuffer（用于 FastForwardTo 等操作）
         /// </summary>
-        private void LoadStartSnapshot()
+        private void SetupSnapshotInFrameBuffer(ReplaySnapshot snapshot, byte[] worldData)
         {
-            if (_timeline == null || MainRoom == null) return;
+            if (_lsController == null || worldData == null || worldData.Length == 0) return;
             
-            // 获取第0帧快照
-            var snapshot = _timeline.GetNearestSnapshot(0);
-            if (snapshot == null)
+            // 将快照数据加载到 FrameBuffer（用于 FastForwardTo 等操作）
+            _lsController.FrameBuffer.MoveForward(0);
+            var snapshotBuffer = _lsController.FrameBuffer.Snapshot(0);
+            if (snapshotBuffer != null)
             {
-                ASLogger.Instance.Error("ReplayGameMode: 未找到起始快照（第0帧）");
-                return;
+                snapshotBuffer.SetLength(0);
+                snapshotBuffer.Seek(0, System.IO.SeekOrigin.Begin);
+                snapshotBuffer.Write(worldData, 0, worldData.Length);
+                
+                ASLogger.Instance.Info($"ReplayGameMode: 快照数据已设置到 FrameBuffer - 帧: {snapshot.Frame}, 数据大小: {worldData.Length} bytes");
             }
-            
-            // 解压缩快照数据
-            byte[] worldData = DecompressSnapshot(snapshot.WorldData);
-            if (worldData == null || worldData.Length == 0)
-            {
-                ASLogger.Instance.Error("ReplayGameMode: 快照数据为空");
-                return;
-            }
-            
-            // 加载世界状态
-            var world = MainRoom.LoadWorldFromSnapshot(worldData);
-            if (world == null)
-            {
-                ASLogger.Instance.Error("ReplayGameMode: 加载世界状态失败");
-                return;
-            }
-            
-            // 设置初始帧
-            _lsController.AuthorityFrame = 0;
-            _currentFrame = 0;
-            
-            ASLogger.Instance.Info($"ReplayGameMode: 从快照加载世界状态成功 - 帧: {snapshot.Frame}, 实体数: {world.Entities?.Count ?? 0}");
         }
 
         /// <summary>
@@ -398,7 +401,7 @@ namespace Astrum.Client.Managers.GameModes
             
             MainStage = stage;
             View.Managers.VFXManager.Instance.CurrentStage = stage;
-            
+            MainStage.SyncEntityViews();
             ASLogger.Instance.Info("ReplayGameMode: 创建 Stage");
         }
 
