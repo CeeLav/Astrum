@@ -1,18 +1,44 @@
 # 帧同步回放 GameMode 开发进展
 
-> 📊 **当前版本**: v0.1.0  
+> 📊 **当前版本**: v0.2.0  
 > 📅 **最后更新**: 2025-01-27  
 > 👤 **负责人**: 待定
 
 ## TL;DR（四象限）
-- **状态/进度**：📝 策划案完成，准备开始开发
-- **已达成**：技术设计文档完成，包含服务器录制、客户端回放、UI集成等完整方案
-- **风险/阻塞**：无
-- **下一步**：开始实现服务器端 BattleReplayRecorder，然后实现客户端 ReplayLSController 和 ReplayGameMode
+- **状态/进度**：🚧 核心功能已实现，UI交互待完善
+- **已达成**：服务器录制、客户端回放核心逻辑、回放文件数据结构、Login入口、重构设计文档
+- **风险/阻塞**：ReplayUIView业务逻辑未实现，UI更新机制待完善
+- **下一步**：完善ReplayUIView实现，优化职责边界，改进快照加载策略
 
 ---
 
 ## 版本历史
+
+### v0.2.0 - 核心功能实现 (2025-01-27)
+**状态**: 🚧 开发中
+
+**完成内容**:
+- [x] **服务器端**：`BattleReplayRecorder` 实现（周期性保存，每5秒）
+- [x] **服务器端**：回放文件数据结构 `BattleReplayFile`（MemoryPack + GZip压缩）
+- [x] **服务器端**：集成到 `GameSession`（录制输入和快照）
+- [x] **客户端**：`ReplayLSController` 实现（帧推进、跳转、快照加载）
+- [x] **客户端**：`ReplayTimeline` 实现（回放文件加载、快照/输入查询）
+- [x] **客户端**：`ReplayGameMode` 实现（加载、播放控制、Room管理）
+- [x] **客户端**：`Room.Initialize()` 支持回放模式（快照初始化）
+- [x] **客户端**：Login 窗口回放入口（`ReplayButton` + `InputField`）
+- [x] **客户端**：`LoginGameMode.StartReplay()` 实现
+- [x] **客户端**：`ReplayUIView` UI框架创建（designer.cs）
+- [x] **文档**：重构设计文档（`Frame-Sync-Replay-Refactor-Design`）
+
+**待完成**:
+- [ ] **客户端**：`ReplayUIView` 业务逻辑实现（`OnUpdate`、`UpdateUI`、交互方法）
+- [ ] **客户端**：UI显示帧数和时间（格式化显示，相对时间从0开始）
+- [ ] **优化**：职责边界优化（快照加载移到 `ReplayLSController`）
+- [ ] **优化**：帧推进逻辑优化（移除冗余预加载）
+- [ ] **优化**：`FastForwardTo()` 支持回退（重新加载快照）
+- [ ] **测试**：回放功能完整测试
+
+**预计工时**: 剩余 8-12 小时
 
 ### v0.1.0 - 初始规划 (2025-01-27)
 **状态**: 📝 策划案完成
@@ -25,46 +51,35 @@
 - [x] ReplayLSController 设计
 - [x] Login 窗口回放入口设计
 
-**待完成**:
-- [ ] 服务器端：BattleReplayRecorder 实现
-- [ ] 服务器端：回放文件序列化/反序列化
-- [ ] 客户端：ReplayLSController 实现
-- [ ] 客户端：ReplayTimeline 实现
-- [ ] 客户端：ReplayGameMode 实现
-- [ ] 客户端：Login 窗口回放入口实现
-- [ ] 客户端：回放控制 UI（播放/暂停/拖动）
-
-**预计工时**: 40-50 小时
-
 ---
 
 ## 当前阶段
 
-**阶段名称**: 开发准备阶段
+**阶段名称**: UI完善与优化阶段
 
-**完成度**: 10%
+**完成度**: 75%
 
 **下一步计划**:
-1. **服务器端开发**（优先级：高）
-   - 实现 `BattleReplayRecorder` 类
-   - 集成到 `FrameSyncManager` 和 `StateSnapshotManager`
-   - 实现回放文件序列化（MemoryPack）
-   - 测试录制功能
+1. **UI业务逻辑实现**（优先级：高）
+   - 实现 `ReplayUIView.OnUpdate()`、`UpdateUI()`、`RefreshReplayGameMode()`
+   - 实现帧数显示格式化（`"1234 / 5000"`）
+   - 实现时间显示格式化（`"00:20 / 01:23"`，相对时间从0开始）
+   - 实现 `OnPlayButtonClicked()`、`OnPauseButtonClicked()`、`OnSliderValueChanged()` 等交互方法
 
-2. **客户端核心实现**（优先级：高）
-   - 实现 `ReplayLSController`（基于 `ILSControllerBase`）
-   - 实现 `ReplayTimeline`（回放文件索引）
-   - 实现 `ReplayGameMode`（回放主逻辑）
+2. **职责边界优化**（优先级：中）
+   - 将 `SetupSnapshotInFrameBuffer()` 移到 `ReplayLSController`，改为 `LoadSnapshot()` 方法
+   - 移除 `ReplayGameMode.Update()` 中的预加载逻辑
+   - 统一播放状态管理
 
-3. **客户端 UI 集成**（优先级：中）
-   - Login 窗口添加回放文件地址输入框
-   - 实现回放控制 UI（播放/暂停/进度条）
-   - 实现地址缓存功能（PlayerPrefs）
+3. **快照加载改进**（优先级：中）
+   - 实现 `FastForwardTo()` 的回退支持（重新加载快照）
+   - 增强错误处理和日志记录
+   - 添加回滚机制
 
 4. **测试与优化**（优先级：中）
-   - 回放功能测试
+   - 回放功能完整测试
    - 跳转性能优化
-   - 文件大小优化
+   - UI交互体验优化
 
 ---
 
@@ -72,80 +87,97 @@
 
 ### 服务器端任务
 
-#### 1. BattleReplayRecorder 实现
-- [ ] 创建 `BattleReplayRecorder` 类
-- [ ] 实现 `OnWorldSnapshot()` 方法
-- [ ] 实现 `OnFrameInputs()` 方法
-- [ ] 实现 `Finish()` 方法生成回放文件
-- [ ] 集成到 `FrameSyncManager.StartRoomFrameSync()`
-- [ ] 集成到 `StateSnapshotManager.SaveWorldSnapshot()`
+#### 1. BattleReplayRecorder 实现 ✅
+- [x] 创建 `BattleReplayRecorder` 类
+- [x] 实现 `OnWorldSnapshot()` 方法
+- [x] 实现 `OnFrameInputs()` 方法
+- [x] 实现 `Finish()` 方法生成回放文件
+- [x] 实现周期性保存（每5秒保存一次）
+- [x] 集成到 `GameSession`（`Start()`、`OnFrameProcessed`、`Stop()`）
+- [x] 文件保存路径：`Astrum\AstrumConfig\Record`
 
-**相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 3 节
+**相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 3 节  
+**相关代码**: `AstrumServer/AstrumServer/FrameSync/BattleReplayRecorder.cs`
 
-#### 2. 回放文件序列化
-- [ ] 定义 `BattleReplayFile` 数据结构（MemoryPack）
-- [ ] 定义 `ReplaySnapshot` 数据结构
-- [ ] 定义 `ReplayFrameInputs` 数据结构
-- [ ] 实现序列化方法
-- [ ] 实现反序列化方法（客户端使用）
-- [ ] 文件压缩（GZip）支持
+#### 2. 回放文件序列化 ✅
+- [x] 定义 `BattleReplayFile` 数据结构（MemoryPack）
+- [x] 定义 `ReplaySnapshot` 数据结构
+- [x] 定义 `ReplayFrameInputs` 数据结构
+- [x] 实现序列化方法（MemoryPack）
+- [x] 实现反序列化方法（客户端使用）
+- [x] 文件压缩（GZip）支持
+- [x] 数据结构移至 `AstrumLogic`（服务器和客户端共享）
 
-**相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 3.3 节
+**相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 3.3 节  
+**相关代码**: `AstrumProj/Assets/Script/AstrumLogic/FrameSync/BattleReplayFile.cs`
 
 ### 客户端任务
 
-#### 3. ReplayLSController 实现
-- [ ] 创建 `ReplayLSController` 类，实现 `ILSControllerBase`
-- [ ] 实现 `Tick(float deltaTime)` 方法（本地时间推进）
-- [ ] 实现 `SetFrameInputs()` 方法
-- [ ] 实现 `FastForwardTo()` 方法（跳转功能）
-- [ ] 实现 `LoadState()` 方法（快照加载）
-- [ ] 实现 `SaveState()` 方法（快照保存）
+#### 3. ReplayLSController 实现 ✅
+- [x] 创建 `ReplayLSController` 类，实现 `ILSControllerBase`
+- [x] 实现 `Tick(float deltaTime)` 方法（本地时间推进，相对时间从0开始）
+- [x] 实现 `SetFrameInputs()` 方法
+- [x] 实现 `FastForwardTo()` 方法（跳转功能，暂不支持回退）
+- [x] 实现 `LoadState()` 方法（快照加载）
+- [x] 实现 `SaveState()` 方法（空实现，回放不需要保存）
+- [ ] 优化：`FastForwardTo()` 支持回退（重新加载快照）
 
 **相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 4.3 节  
 **相关代码**: `AstrumProj/Assets/Script/AstrumLogic/Core/ReplayLSController.cs`
 
-#### 4. ReplayTimeline 实现
-- [ ] 创建 `ReplayTimeline` 类
-- [ ] 实现回放文件加载（反序列化）
-- [ ] 实现 `GetNearestSnapshot(int frame)` 方法（二分查找）
-- [ ] 实现 `GetFrameInputs(int frame)` 方法
-- [ ] 提供基础信息访问（TotalFrames、TickRate 等）
+#### 4. ReplayTimeline 实现 ✅
+- [x] 创建 `ReplayTimeline` 类
+- [x] 实现回放文件加载（反序列化）
+- [x] 实现 `GetNearestSnapshot(int frame)` 方法（二分查找）
+- [x] 实现 `GetFrameInputs(int frame)` 方法
+- [x] 提供基础信息访问（TotalFrames、TickRate、StartTimestamp等）
+- [x] 支持快照数据解压缩（GZip）
 
 **相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 4.2 节  
-**相关代码**: `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/ReplayTimeline.cs`
+**相关代码**: `AstrumProj/Assets/Script/AstrumLogic/FrameSync/ReplayTimeline.cs`
 
-#### 5. ReplayGameMode 实现
-- [ ] 创建 `ReplayGameMode` 类，继承 `BaseGameMode`
-- [ ] 实现 `Load(string filePath)` 方法（加载回放文件）
-- [ ] 实现 `Tick(float deltaTime)` 方法（驱动回放）
-- [ ] 实现播放/暂停控制
-- [ ] 实现跳转功能（调用 `ReplayLSController.FastForwardTo()`）
-- [ ] 集成视图同步
+#### 5. ReplayGameMode 实现 ✅
+- [x] 创建 `ReplayGameMode` 类，继承 `BaseGameMode`
+- [x] 实现 `Load(string filePath)` 方法（加载回放文件）
+- [x] 实现 `Update(float deltaTime)` 方法（驱动回放）
+- [x] 实现播放/暂停控制（`Play()`、`Pause()`、`Stop()`）
+- [x] 实现跳转功能（`Seek()`、`SeekToFrame()`，调用 `ReplayLSController.FastForwardTo()`）
+- [x] 集成视图同步（创建 Stage、同步 EntityViews）
+- [x] 支持快照初始化 Room（`Room.Initialize("replay", worldSnapshot)`）
+- [ ] 优化：移除预加载逻辑，统一职责边界
 
 **相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 4.1、4.4 节  
 **相关代码**: `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/ReplayGameMode.cs`
 
-#### 6. Login 窗口回放入口
-- [ ] 修改 Login Prefab，添加 `ReplayFilePathInputField`
-- [ ] 重新生成 UI 代码（UI Generator）
-- [ ] 在 `LoginView.cs` 实现地址缓存（PlayerPrefs）
-- [ ] 实现 `OnReplayButtonClicked()` 方法
-- [ ] 在 `LoginGameMode.cs` 实现 `StartReplay()` 方法
+#### 6. Login 窗口回放入口 ✅
+- [x] 修改 Login Prefab，添加 `ReplayFilePathInputField`
+- [x] 重新生成 UI 代码（UI Generator）
+- [x] 实现 `OnReplayButtonClicked()` 方法
+- [x] 在 `LoginGameMode.cs` 实现 `StartReplay()` 方法
+- [ ] 优化：实现地址缓存功能（PlayerPrefs）
 
 **相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 6.1 节  
 **相关代码**: 
 - `AstrumProj/Assets/Script/AstrumClient/UI/Generated/LoginView.cs`
 - `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/LoginGameMode.cs`
 
-#### 7. 回放控制 UI
-- [ ] 创建 ReplayUI Prefab（播放/暂停按钮、进度条）
-- [ ] 生成 UI 代码
-- [ ] 实现播放/暂停控制
-- [ ] 实现进度条拖动（调用 `ReplayGameMode.Seek()`）
-- [ ] 显示当前时间/总时长
+#### 7. 回放控制 UI 🚧
+- [x] 创建 ReplayUI Prefab（播放/暂停按钮、进度条、帧/时间显示）
+- [x] 生成 UI 代码（designer.cs）
+- [ ] 实现 `ReplayUIView.OnUpdate()` 方法
+- [ ] 实现 `UpdateUI()` 方法（更新播放/暂停按钮、进度条、帧/时间显示）
+- [ ] 实现帧数显示格式化（`"1234 / 5000"`）
+- [ ] 实现时间显示格式化（`"00:20 / 01:23"`，相对时间从0开始）
+- [ ] 实现 `OnPlayButtonClicked()`、`OnPauseButtonClicked()` 方法
+- [ ] 实现 `OnSliderValueChanged()`、`OnSliderDragEnd()` 方法
+- [ ] 实现 `RefreshReplayGameMode()` 方法（从 GameDirector 获取）
 
-**相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 6.2 节
+**相关文档**: 
+- `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 6.2 节
+- `Frame-Sync-Replay-Refactor-Design 回放系统重构设计.md` 第 4.2 节  
+**相关代码**: 
+- `AstrumProj/Assets/Script/AstrumClient/UI/Generated/ReplayUIView.cs`
+- `AstrumProj/Assets/Script/AstrumClient/UI/Generated/ReplayUIView.designer.cs`
 
 ---
 
@@ -154,9 +186,11 @@
 ### 关键实现细节
 
 1. **快照理解**：快照保存的是该帧输入运算**前**的状态，加载后需要运行该帧输入才能得到运算后状态
-2. **时间管理**：回放使用本地时间（`_replayElapsedTime`），通过 `deltaTime` 递增，不依赖 `TimeInfo`
-3. **跳转优化**：使用最近快照 + 快速推进策略，支持关闭中间帧渲染
-4. **文件格式**：使用 MemoryPack 序列化，GZip 压缩
+2. **时间管理**：回放使用**相对时间**（从0开始），`_replayElapsedTime` 通过 `deltaTime` 递增，不依赖 `TimeInfo` 或绝对时间戳
+3. **跳转优化**：使用最近快照 + 快速推进策略，支持关闭中间帧渲染（暂不支持回退）
+4. **文件格式**：使用 MemoryPack 序列化，GZip 压缩，数据结构在 `AstrumLogic` 中共享
+5. **录制策略**：服务器每5秒保存一次回放文件，战斗结束时执行最终保存
+6. **UI更新机制**：`UIManager.Update()` 统一驱动所有 UI 的 `Update()`，`ReplayUIView` 从 `GameDirector` 获取 `ReplayGameMode`
 
 ### 依赖关系
 
@@ -169,14 +203,15 @@
 ## 相关文档
 
 - **技术设计**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md`
+- **重构设计**: `Frame-Sync-Replay-Refactor-Design 回放系统重构设计.md` ⭐ **新增**
 - **上游设计**: `Frame-Sync-Mechanism 帧同步机制.md`
 - **上游设计**: `Frame-Sync-State-Sync-Design 帧同步状态同步与恢复机制设计.md`
 - **相关重构**: `LSController-Refactor-Design LSController重构设计.md`
 
 ---
 
-*文档版本：v0.1.0*  
+*文档版本：v0.2.0*  
 *创建时间：2025-01-27*  
 *最后更新：2025-01-27*  
-*状态：开发准备阶段*
+*状态：UI完善与优化阶段*
 
