@@ -4,7 +4,7 @@ using System.IO;
 using Astrum.CommonBase;
 using cfg;
 using Luban;
-using cfg.Entity;
+using cfg.BaseUnit;
 using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.SkillSystem;
 

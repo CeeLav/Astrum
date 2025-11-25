@@ -125,7 +125,7 @@ namespace Astrum.Editor.RoleEditor.Modules
                 }
                 else
                 {
-                    string[] entityNames = allEntities.Select(e => $"[{e.EntityId}] {e.ArchetypeName}").ToArray();
+                    string[] entityNames = allEntities.Select(e => $"[{e.EntityId}] {e.Archetype}").ToArray();
                     int[] entityIds = allEntities.Select(e => e.EntityId).ToArray();
                     
                     int currentIndex = System.Array.IndexOf(entityIds, _selectedEntityId);

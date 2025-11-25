@@ -5,16 +5,16 @@ using Astrum.Editor.RoleEditor.Persistence.Mappings;
 namespace Astrum.Editor.RoleEditor.Persistence
 {
     /// <summary>
-    /// EntityModelTable 数据写入器
+    /// BaseUnitModelTable 数据写入器
     /// </summary>
     public static class EntityModelDataWriter
     {
         /// <summary>
-        /// 写入 EntityModelTable 数据
+        /// 写入 BaseUnitModelTable 数据
         /// </summary>
-        public static bool WriteAll(List<EntityModelTableData> dataList, bool enableBackup = true)
+        public static bool WriteAll(List<BaseUnitModelTableData> dataList, bool enableBackup = true)
         {
-            var config = EntityModelTableData.GetTableConfig();
+            var config = BaseUnitModelTableData.GetTableConfig();
             bool success = LubanCSVWriter.WriteTable(config, dataList, enableBackup);
             
             if (success)
@@ -27,9 +27,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 更新单个 EntityModel 数据
+        /// 更新单个 BaseUnitModel 数据
         /// </summary>
-        public static bool UpdateById(int modelId, EntityModelTableData newData, bool enableBackup = true)
+        public static bool UpdateById(int modelId, BaseUnitModelTableData newData, bool enableBackup = true)
         {
             var allData = EntityModelDataReader.ReadAll();
             var index = allData.FindIndex(d => d.ModelId == modelId);
@@ -47,7 +47,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 删除 EntityModel 数据
+        /// 删除 BaseUnitModel 数据
         /// </summary>
         public static bool DeleteById(int modelId, bool enableBackup = true)
         {

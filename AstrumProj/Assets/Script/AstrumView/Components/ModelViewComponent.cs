@@ -22,11 +22,11 @@ namespace Astrum.View.Components
             if (modelId == 0)
                 return;
             
-            // 从 EntityModelTable 获取模型配置
-            var modelConfig = Astrum.LogicCore.Managers.TableConfig.Instance.Tables.TbEntityModelTable?.Get(modelId);
+            // 从 BaseUnitModelTable 获取模型配置
+            var modelConfig = Astrum.LogicCore.Managers.TableConfig.Instance.Tables.TbBaseUnitModelTable?.Get(modelId);
             if (modelConfig == null)
             {
-                Debug.LogWarning($"ModelViewComponent: EntityModelTable not found for modelId={modelId}");
+                Debug.LogWarning($"ModelViewComponent: BaseUnitModelTable not found for modelId={modelId}");
                 return;
             }
             

@@ -76,10 +76,10 @@ namespace Astrum.LogicCore.Components
             }
             
             // 获取模型配置
-            var modelConfig = TableConfig.Instance.Tables.TbEntityModelTable.Get(entityConfig.ModelId);
+            var modelConfig = TableConfig.Instance.Tables.TbBaseUnitModelTable.Get(entityConfig.ModelId);
             if (modelConfig == null)
             {
-                ASLogger.Instance.Warning($"CollisionComponent: ModelId {entityConfig.ModelId} not found in EntityModelTable");
+                ASLogger.Instance.Warning($"CollisionComponent: ModelId {entityConfig.ModelId} not found in BaseUnitModelTable");
                 return;
             }
             

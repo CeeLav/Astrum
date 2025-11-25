@@ -77,7 +77,7 @@ namespace Astrum.Editor.RoleEditor.Modules
             
             _currentEntityId = entityId;
             
-            // 从EntityBaseTable获取模型ID
+            // 从BaseUnitTable获取模型ID
             var entityData = ConfigTableHelper.GetEntityById(entityId);
             if (entityData == null || entityData.ModelId == 0)
             {
@@ -86,7 +86,7 @@ namespace Astrum.Editor.RoleEditor.Modules
                 return;
             }
             
-            // 从 EntityModelTable 获取模型路径
+            // 从 BaseUnitModelTable 获取模型路径
             var modelData = EntityModelDataReader.ReadById(entityData.ModelId);
             if (modelData == null || string.IsNullOrEmpty(modelData.ModelPath))
             {

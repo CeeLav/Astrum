@@ -2,7 +2,7 @@ using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.SkillSystem;
 using Astrum.CommonBase;
 using cfg;
-using cfg.Entity;
+using cfg.BaseUnit;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -58,7 +58,7 @@ namespace Astrum.LogicCore.Managers
         /// <summary>
         /// 构造普通动作信息
         /// </summary>
-        private ActionInfo ConstructActionInfo(int actionId, long entityId, cfg.Entity.ActionTable actionTable)
+        private ActionInfo ConstructActionInfo(int actionId, long entityId, cfg.BaseUnit.ActionTable actionTable)
         {
             var actionInfo = new NormalActionInfo();
             
@@ -71,7 +71,7 @@ namespace Astrum.LogicCore.Managers
         /// <summary>
         /// 构造技能动作信息
         /// </summary>
-        private SkillActionInfo? ConstructSkillActionInfo(int actionId, long entityId, cfg.Entity.ActionTable actionTable)
+        private SkillActionInfo? ConstructSkillActionInfo(int actionId, long entityId, cfg.BaseUnit.ActionTable actionTable)
         {
             // 从 SkillActionTable 获取技能专属数据
             var configManager = TableConfig.Instance;
@@ -100,7 +100,7 @@ namespace Astrum.LogicCore.Managers
         /// <summary>
         /// 构造移动动作信息
         /// </summary>
-        private MoveActionInfo? ConstructMoveActionInfo(int actionId, long entityId, cfg.Entity.ActionTable actionTable)
+        private MoveActionInfo? ConstructMoveActionInfo(int actionId, long entityId, cfg.BaseUnit.ActionTable actionTable)
         {
             // 从 MoveActionTable 获取移动专属数据
             var configManager = TableConfig.Instance;
@@ -131,7 +131,7 @@ namespace Astrum.LogicCore.Managers
         /// </summary>
         /// <param name="actionInfo">要填充的 ActionInfo 实例（或其派生类实例）</param>
         /// <param name="actionTable">ActionTable 配置数据</param>
-        public void PopulateBaseActionFields(ActionInfo actionInfo, cfg.Entity.ActionTable actionTable)
+        public void PopulateBaseActionFields(ActionInfo actionInfo, cfg.BaseUnit.ActionTable actionTable)
         {
             // 基础字段
             actionInfo.Id = actionTable.ActionId;
@@ -175,7 +175,7 @@ namespace Astrum.LogicCore.Managers
         /// <summary>
         /// 填充 MoveActionInfo 扩展字段（移动速度、根节点位移数据）
         /// </summary>
-        private void PopulateMoveActionFields(MoveActionInfo moveActionInfo, cfg.Entity.MoveActionTable moveActionTable)
+        private void PopulateMoveActionFields(MoveActionInfo moveActionInfo, cfg.BaseUnit.MoveActionTable moveActionTable)
         {
             // 设置基准移动速度
             if (moveActionTable.MoveSpeed > 0)
@@ -201,7 +201,7 @@ namespace Astrum.LogicCore.Managers
         /// <param name="moveActionTable">移动动作表数据</param>
         /// <param name="actionId">动作ID（用于日志）</param>
         /// <returns>根节点位移数据，如果不存在或加载失败则返回空的 AnimationRootMotionData</returns>
-        private AnimationRootMotionData LoadMoveRootMotionData(cfg.Entity.MoveActionTable moveActionTable, int actionId)
+        private AnimationRootMotionData LoadMoveRootMotionData(cfg.BaseUnit.MoveActionTable moveActionTable, int actionId)
         {
             // 检查 RootMotionData 是否为空
             if (moveActionTable.RootMotionData == null || moveActionTable.RootMotionData.Length == 0)

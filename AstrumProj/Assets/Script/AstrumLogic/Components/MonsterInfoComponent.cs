@@ -1,7 +1,7 @@
-using Astrum.LogicCore.Managers;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
-using cfg.Entity;
+using Astrum.LogicCore.Managers;
+using cfg.BaseUnit;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Components
@@ -32,7 +32,7 @@ namespace Astrum.LogicCore.Components
         /// 获取怪物配置表数据（健壮性增强：拿不到时记录错误）
         /// </summary>
         [MemoryPackIgnore]
-        public EntityBaseTable? MonsterConfig
+        public BaseUnitTable? MonsterConfig
         {
             get
             {
@@ -42,10 +42,10 @@ namespace Astrum.LogicCore.Components
                     return null;
                 }
 
-                var cfg = TableConfig.Instance.Tables.TbEntityBaseTable.Get(MonsterId);
+                var cfg = TableConfig.Instance.Tables.TbBaseUnitTable.Get(MonsterId);
                 if (cfg == null)
                 {
-                    ASLogger.Instance.Error($"MonsterInfoComponent.MonsterConfig: EntityBaseTable not found for MonsterId={MonsterId}");
+                    ASLogger.Instance.Error($"MonsterInfoComponent.MonsterConfig: BaseUnitTable not found for MonsterId={MonsterId}");
                 }
                 return cfg;
             }

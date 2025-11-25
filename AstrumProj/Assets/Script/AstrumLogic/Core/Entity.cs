@@ -8,8 +8,8 @@ using Astrum.LogicCore.Systems;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.Managers;
-using cfg.Entity;
 using MemoryPack;
+using cfg.BaseUnit;
 
 namespace Astrum.LogicCore.Core
 {
@@ -38,12 +38,12 @@ namespace Astrum.LogicCore.Core
         
         public int EntityConfigId { get; set; } = 0;
         [MemoryPackIgnore]
-        public EntityBaseTable EntityConfig
+        public BaseUnitTable EntityConfig
         {
             get
             {
                 if (EntityConfigId == 0) return null;
-                return TableConfig.Instance.Tables.TbEntityBaseTable.Get(EntityConfigId);
+                return TableConfig.Instance.Tables.TbBaseUnitTable.Get(EntityConfigId);
             }
         }
 

@@ -8,6 +8,7 @@ using Astrum.CommonBase;
 using MemoryPack;
 using Astrum.LogicCore.Archetypes;
 using Astrum.LogicCore.Managers;
+using cfg;
 
 namespace Astrum.LogicCore.Core
 {
@@ -188,16 +189,12 @@ namespace Astrum.LogicCore.Core
             }
         }
 
-        public void QueueCreateEntity(string archetypeName, EntityCreationParams creationParams, Action<Entity>? postCreate = null)
+        public void QueueCreateEntity(EArchetype archetype, EntityCreationParams creationParams, Action<Entity>? postCreate = null)
         {
-            if (string.IsNullOrWhiteSpace(archetypeName))
-            {
-                throw new ArgumentException("archetypeName cannot be null or empty", nameof(archetypeName));
-            }
 
             var pending = new PendingEntityCreation
             {
-                ArchetypeName = archetypeName,
+                Archetype = archetype,
                 CreationParams = CloneCreationParams(creationParams),
                 PostCreateAction = postCreate
             };
@@ -299,7 +296,7 @@ namespace Astrum.LogicCore.Core
 
         private sealed class PendingEntityCreation
         {
-            public string ArchetypeName = string.Empty;
+            public EArchetype Archetype;
             public EntityCreationParams CreationParams = new EntityCreationParams();
             public Action<Entity>? PostCreateAction;
         }
@@ -328,7 +325,7 @@ namespace Astrum.LogicCore.Core
             foreach (var pending in _pendingCreateEntities)
             {
                 var entity = EntityFactory.Instance.CreateByArchetype(
-                    pending.ArchetypeName,
+                    pending.Archetype.ToString(),
                     pending.CreationParams,
                     this);
 

@@ -5,23 +5,23 @@ using Astrum.Editor.RoleEditor.Persistence.Mappings;
 namespace Astrum.Editor.RoleEditor.Persistence
 {
     /// <summary>
-    /// EntityModelTable 数据读取器
+    /// BaseUnitModelTable 数据读取器
     /// </summary>
     public static class EntityModelDataReader
     {
         /// <summary>
-        /// 读取 EntityModelTable 数据
+        /// 读取 BaseUnitModelTable 数据
         /// </summary>
-        public static List<EntityModelTableData> ReadAll()
+        public static List<BaseUnitModelTableData> ReadAll()
         {
-            var config = EntityModelTableData.GetTableConfig();
-            return LubanCSVReader.ReadTable<EntityModelTableData>(config);
+            var config = BaseUnitModelTableData.GetTableConfig();
+            return LubanCSVReader.ReadTable<BaseUnitModelTableData>(config);
         }
         
         /// <summary>
-        /// 读取单个 EntityModel 数据
+        /// 读取单个 BaseUnitModel 数据
         /// </summary>
-        public static EntityModelTableData ReadById(int modelId)
+        public static BaseUnitModelTableData ReadById(int modelId)
         {
             var allData = ReadAll();
             return allData.Find(d => d.ModelId == modelId);
@@ -30,10 +30,10 @@ namespace Astrum.Editor.RoleEditor.Persistence
         /// <summary>
         /// 读取为字典
         /// </summary>
-        public static Dictionary<int, EntityModelTableData> ReadAsDictionary()
+        public static Dictionary<int, BaseUnitModelTableData> ReadAsDictionary()
         {
             var allData = ReadAll();
-            var dict = new Dictionary<int, EntityModelTableData>();
+            var dict = new Dictionary<int, BaseUnitModelTableData>();
             
             foreach (var data in allData)
             {

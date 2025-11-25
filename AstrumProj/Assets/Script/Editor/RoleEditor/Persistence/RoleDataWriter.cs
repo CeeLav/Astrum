@@ -28,9 +28,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 var roleTableDataList = ConvertToRoleTableData(roles);
                 var statsDataList = ConvertToStatsData(roles);
                 
-                // 2. 使用通用写入器写入EntityBaseTable
+                // 2. 使用通用写入器写入BaseUnitTable
                 bool entitySuccess = LubanCSVWriter.WriteTable(
-                    EntityTableData.GetTableConfig(),
+                    BaseUnitTableData.GetTableConfig(),
                     entityDataList,
                     enableBackup: true
                 );
@@ -49,9 +49,9 @@ namespace Astrum.Editor.RoleEditor.Persistence
                     enableBackup: true
                 );
                 
-                // 5. 写入 EntityStatsTable
+                // 5. 写入 BaseUnitStatsTable
                 bool statsSuccess = LubanCSVWriter.WriteTable(
-                    EntityStatsTableData.GetTableConfig(),
+                    BaseUnitStatsTableData.GetTableConfig(),
                     statsDataList,
                     enableBackup: true
                 );
@@ -79,15 +79,15 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 转换为EntityTableData列表
+        /// 转换为BaseUnitTableData列表
         /// </summary>
-        private static List<EntityTableData> ConvertToEntityData(List<RoleEditorData> roles)
+        private static List<BaseUnitTableData> ConvertToEntityData(List<RoleEditorData> roles)
         {
-            return roles.OrderBy(r => r.EntityId).Select(r => new EntityTableData
+            return roles.OrderBy(r => r.EntityId).Select(r => new BaseUnitTableData
             {
                 EntityId = r.EntityId,
                 EntityName = r.ModelName,  // 使用 ModelName 作为 EntityName
-                ArchetypeName = r.ArchetypeName,
+                Archetype = r.ArchetypeName,  // CSV中字段名为archetype
                 ModelId = r.EntityId + 1000,  // 临时方案：EntityId + 1000 作为 ModelId（后续可优化）
                 IdleAction = r.IdleAction,
                 WalkAction = r.WalkAction,
@@ -100,13 +100,13 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 转换为 EntityModelTableData 列表
+        /// 转换为 BaseUnitModelTableData 列表
         /// </summary>
-        private static List<EntityModelTableData> ConvertToModelData(List<RoleEditorData> roles)
+        private static List<BaseUnitModelTableData> ConvertToModelData(List<RoleEditorData> roles)
         {
-            // 合并现有的 EntityModelTable 数据
+            // 合并现有的 BaseUnitModelTable 数据
             var existingModels = EntityModelDataReader.ReadAsDictionary();
-            var modelDataList = new List<EntityModelTableData>();
+            var modelDataList = new List<BaseUnitModelTableData>();
             
             foreach (var role in roles.OrderBy(r => r.EntityId))
             {
@@ -126,7 +126,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 else
                 {
                     // 创建新数据
-                    modelDataList.Add(new EntityModelTableData
+                    modelDataList.Add(new BaseUnitModelTableData
                     {
                         ModelId = modelId,
                         ModelPath = role.ModelPath,
@@ -154,11 +154,11 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 转换为 EntityStatsTableData 列表
+        /// 转换为 BaseUnitStatsTableData 列表
         /// </summary>
-        private static List<EntityStatsTableData> ConvertToStatsData(List<RoleEditorData> roles)
+        private static List<BaseUnitStatsTableData> ConvertToStatsData(List<RoleEditorData> roles)
         {
-            return roles.OrderBy(r => r.EntityId).Select(r => new EntityStatsTableData
+            return roles.OrderBy(r => r.EntityId).Select(r => new BaseUnitStatsTableData
             {
                 EntityId = r.EntityId,
                 BaseAttack = r.BaseAttack,

@@ -18,7 +18,7 @@ public sealed partial class ProjectileTable : Luban.BeanBase
     {
         ProjectileId = _buf.ReadInt();
         ProjectileName = _buf.ReadString();
-        ProjectileArchetype = _buf.ReadString();
+        ProjectileArchetype = (EArchetype)_buf.ReadInt();
         LifeTime = _buf.ReadInt();
         TrajectoryType = _buf.ReadString();
         TrajectoryData = _buf.ReadString();
@@ -55,7 +55,7 @@ public sealed partial class ProjectileTable : Luban.BeanBase
     /// <summary>
     /// 实体原型
     /// </summary>
-    public readonly string ProjectileArchetype;
+    public readonly EArchetype ProjectileArchetype;
     /// <summary>
     /// 生命周期(帧)
     /// </summary>

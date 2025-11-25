@@ -8,19 +8,19 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
     /// </summary>
     public class RoleTableData
     {
-        [TableField(0, "RoleId")]
+        [TableField(0, "id")]
         public int RoleId { get; set; }
         
-        [TableField(1, "RoleName")]
+        [TableField(1, "name")]
         public string RoleName { get; set; }
         
-        [TableField(2, "RoleDescription")]
+        [TableField(2, "description")]
         public string RoleDescription { get; set; }
         
-        [TableField(3, "RoleType")]
+        [TableField(3, "roleType")]
         public int RoleType { get; set; }
         
-        [TableField(4, "DefaultSkillIds")]
+        [TableField(4, "defaultSkillIds")]
         public List<int> DefaultSkillIds { get; set; } = new List<int>();
         
         /// <summary>

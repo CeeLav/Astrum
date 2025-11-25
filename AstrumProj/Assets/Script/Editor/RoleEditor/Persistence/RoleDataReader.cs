@@ -25,8 +25,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
             
             try
             {
-                // 1. 使用通用读取器读取EntityBaseTable
-                var entityDataList = LubanCSVReader.ReadTable<EntityTableData>(EntityTableData.GetTableConfig());
+                // 1. 使用通用读取器读取BaseUnitTable
+                var entityDataList = LubanCSVReader.ReadTable<BaseUnitTableData>(BaseUnitTableData.GetTableConfig());
                 var entityDataDict = entityDataList.ToDictionary(e => e.EntityId);
                 
                 // 2. 使用通用读取器读取RoleBaseTable
@@ -36,8 +36,8 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 // 3. 读取 EntityModelTable
                 var modelDataDict = EntityModelDataReader.ReadAsDictionary();
                 
-                // 4. 读取 EntityStatsTable
-                var statsDataList = LubanCSVReader.ReadTable<EntityStatsTableData>(EntityStatsTableData.GetTableConfig());
+                // 4. 读取 BaseUnitStatsTable
+                var statsDataList = LubanCSVReader.ReadTable<BaseUnitStatsTableData>(BaseUnitStatsTableData.GetTableConfig());
                 var statsDataDict = statsDataList.ToDictionary(s => s.EntityId);
                 
                 // 5. 合并数据
@@ -54,13 +54,13 @@ namespace Astrum.Editor.RoleEditor.Persistence
         }
         
         /// <summary>
-        /// 合并EntityBaseTable、RoleBaseTable和EntityStatsTable数据
+        /// 合并BaseUnitTable、RoleBaseTable和BaseUnitStatsTable数据
         /// </summary>
         private static List<RoleEditorData> MergeData(
-            Dictionary<int, EntityTableData> entityDataDict,
+            Dictionary<int, BaseUnitTableData> entityDataDict,
             Dictionary<int, RoleTableData> roleDataDict,
-            Dictionary<int, EntityModelTableData> modelDataDict,
-            Dictionary<int, EntityStatsTableData> statsDataDict)
+            Dictionary<int, BaseUnitModelTableData> modelDataDict,
+            Dictionary<int, BaseUnitStatsTableData> statsDataDict)
         {
             var result = new List<RoleEditorData>();
             
@@ -77,7 +77,7 @@ namespace Astrum.Editor.RoleEditor.Persistence
                 if (entityDataDict.TryGetValue(id, out var entityData))
                 {
                     roleData.EntityId = entityData.EntityId;
-                    roleData.ArchetypeName = entityData.ArchetypeName;
+                    roleData.ArchetypeName = entityData.Archetype;  // CSV中字段名为archetype
                     roleData.ModelName = entityData.EntityName;  // 使用 EntityName 作为 ModelName
                     roleData.IdleAction = entityData.IdleAction;
                     roleData.WalkAction = entityData.WalkAction;

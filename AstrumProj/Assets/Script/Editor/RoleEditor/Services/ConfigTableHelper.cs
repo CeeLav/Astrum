@@ -16,7 +16,7 @@ namespace Astrum.Editor.RoleEditor.Services
         private const string LOG_PREFIX = "[ConfigTableHelper]";
         
         // 缓存数据
-        private static List<EntityTableData> _entityTableCache;
+        private static List<BaseUnitTableData> _entityTableCache;
         private static List<RoleTableData> _roleTableCache;
         private static List<ActionTableCacheData> _actionTableCache;
         
@@ -161,16 +161,16 @@ namespace Astrum.Editor.RoleEditor.Services
         /// <summary>
         /// 获取所有实体列表
         /// </summary>
-        public static List<EntityTableData> GetAllEntities()
+        public static List<BaseUnitTableData> GetAllEntities()
         {
             LoadEntityTableIfNeeded();
-            return _entityTableCache ?? new List<EntityTableData>();
+            return _entityTableCache ?? new List<BaseUnitTableData>();
         }
         
         /// <summary>
         /// 根据实体ID获取实体数据
         /// </summary>
-        public static EntityTableData GetEntityById(int entityId)
+        public static BaseUnitTableData GetEntityById(int entityId)
         {
             if (entityId <= 0) return null;
             
@@ -187,23 +187,23 @@ namespace Astrum.Editor.RoleEditor.Services
             
             try
             {
-                var config = EntityTableData.GetTableConfig();
+                var config = BaseUnitTableData.GetTableConfig();
                 
-                Debug.Log($"{LOG_PREFIX} Attempting to load EntityTable from: {config.FilePath}");
-                _entityTableCache = LubanCSVReader.ReadTable<EntityTableData>(config);
+                Debug.Log($"{LOG_PREFIX} Attempting to load BaseUnitTable from: {config.FilePath}");
+                _entityTableCache = LubanCSVReader.ReadTable<BaseUnitTableData>(config);
                 Debug.Log($"{LOG_PREFIX} Loaded {_entityTableCache.Count} entity records from CSV");
                 
                 // 调试：打印前几条记录
                 for (int i = 0; i < Mathf.Min(3, _entityTableCache.Count); i++)
                 {
                     var record = _entityTableCache[i];
-                    Debug.Log($"{LOG_PREFIX} Entity {i}: Id={record.EntityId}, EntityName={record.EntityName}, ArchetypeName={record.ArchetypeName}, ModelId={record.ModelId}");
+                    Debug.Log($"{LOG_PREFIX} Entity {i}: Id={record.EntityId}, EntityName={record.EntityName}, Archetype={record.Archetype}, ModelId={record.ModelId}");
                 }
             }
             catch (System.Exception ex)
             {
                 Debug.LogError($"{LOG_PREFIX} Failed to load EntityTable: {ex.Message}");
-                _entityTableCache = new List<EntityTableData>();
+                _entityTableCache = new List<BaseUnitTableData>();
             }
         }
         

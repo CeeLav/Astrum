@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Astrum.CommonBase;
+using cfg;
 using cfg.Projectile;
 using TrueSync;
 
@@ -26,7 +27,7 @@ namespace Astrum.LogicCore.SkillSystem
     {
         public int ProjectileId { get; set; }
         public string ProjectileName { get; set; } = string.Empty;
-        public string ProjectileArchetype { get; set; } = string.Empty;
+        public EArchetype ProjectileArchetype { get; set; }
         public int LifeTime { get; set; } = 300;
         public TrajectoryType TrajectoryType { get; set; } = TrajectoryType.Linear;
         public string TrajectoryData { get; set; } = string.Empty;
@@ -149,7 +150,7 @@ namespace Astrum.LogicCore.SkillSystem
                 {
                     ProjectileId = row.ProjectileId,
                     ProjectileName = row.ProjectileName ?? string.Empty,
-                    ProjectileArchetype = row.ProjectileArchetype ?? string.Empty,
+                    ProjectileArchetype = row.ProjectileArchetype,
                     LifeTime = row.LifeTime,
                     TrajectoryType = trajectoryType,
                     TrajectoryData = row.TrajectoryData ?? string.Empty,

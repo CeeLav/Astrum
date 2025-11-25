@@ -44,10 +44,10 @@ namespace Astrum.LogicCore.Components
                 return;
             }
             
-            var entityStatsConfig = configManager.Tables.TbEntityStatsTable.Get(entityId);
+            var entityStatsConfig = configManager.Tables.TbBaseUnitStatsTable.Get(entityId);
             if (entityStatsConfig == null)
             {
-                ASLogger.Instance.Error($"[BaseStats] EntityStatsTable not found for entityId={entityId}");
+                ASLogger.Instance.Error($"[BaseStats] BaseUnitStatsTable not found for entityId={entityId}");
                 return;
             }
             
@@ -96,8 +96,8 @@ namespace Astrum.LogicCore.Components
             {
                 // 查找对应等级的成长配置（通过遍历查找匹配entityId和level的记录）
                 // TODO pxa 优化
-                cfg.Entity.EntityGrowthTable growthConfig = null;
-                foreach (var config in configManager.Tables.TbEntityGrowthTable.DataList)
+                cfg.BaseUnit.BaseUnitGrowthTable growthConfig = null;
+                foreach (var config in configManager.Tables.TbBaseUnitGrowthTable.DataList)
                 {
                     if (config.EntityId == entityId && config.Level == lv)
                     {

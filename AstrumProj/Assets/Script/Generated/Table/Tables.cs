@@ -13,13 +13,13 @@ namespace cfg
 {
 public partial class Tables
 {
+    public BaseUnit.TbActionTable TbActionTable {get; }
+    public BaseUnit.TbBaseUnitGrowthTable TbBaseUnitGrowthTable {get; }
+    public BaseUnit.TbBaseUnitModelTable TbBaseUnitModelTable {get; }
+    public BaseUnit.TbBaseUnitStatsTable TbBaseUnitStatsTable {get; }
+    public BaseUnit.TbBaseUnitTable TbBaseUnitTable {get; }
+    public BaseUnit.TbMoveActionTable TbMoveActionTable {get; }
     public Buff.TbBuffTable TbBuffTable {get; }
-    public Entity.TbActionTable TbActionTable {get; }
-    public Entity.TbEntityBaseTable TbEntityBaseTable {get; }
-    public Entity.TbEntityGrowthTable TbEntityGrowthTable {get; }
-    public Entity.TbEntityModelTable TbEntityModelTable {get; }
-    public Entity.TbEntityStatsTable TbEntityStatsTable {get; }
-    public Entity.TbMoveActionTable TbMoveActionTable {get; }
     public Input.TbActionCommandMappingTable TbActionCommandMappingTable {get; }
     public Input.TbInputBindingTable TbInputBindingTable {get; }
     public Input.TbInputContextTable TbInputContextTable {get; }
@@ -41,13 +41,13 @@ public partial class Tables
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
+        TbActionTable = new BaseUnit.TbActionTable(loader("baseunit_tbactiontable"));
+        TbBaseUnitGrowthTable = new BaseUnit.TbBaseUnitGrowthTable(loader("baseunit_tbbaseunitgrowthtable"));
+        TbBaseUnitModelTable = new BaseUnit.TbBaseUnitModelTable(loader("baseunit_tbbaseunitmodeltable"));
+        TbBaseUnitStatsTable = new BaseUnit.TbBaseUnitStatsTable(loader("baseunit_tbbaseunitstatstable"));
+        TbBaseUnitTable = new BaseUnit.TbBaseUnitTable(loader("baseunit_tbbaseunittable"));
+        TbMoveActionTable = new BaseUnit.TbMoveActionTable(loader("baseunit_tbmoveactiontable"));
         TbBuffTable = new Buff.TbBuffTable(loader("buff_tbbufftable"));
-        TbActionTable = new Entity.TbActionTable(loader("entity_tbactiontable"));
-        TbEntityBaseTable = new Entity.TbEntityBaseTable(loader("entity_tbentitybasetable"));
-        TbEntityGrowthTable = new Entity.TbEntityGrowthTable(loader("entity_tbentitygrowthtable"));
-        TbEntityModelTable = new Entity.TbEntityModelTable(loader("entity_tbentitymodeltable"));
-        TbEntityStatsTable = new Entity.TbEntityStatsTable(loader("entity_tbentitystatstable"));
-        TbMoveActionTable = new Entity.TbMoveActionTable(loader("entity_tbmoveactiontable"));
         TbActionCommandMappingTable = new Input.TbActionCommandMappingTable(loader("input_tbactioncommandmappingtable"));
         TbInputBindingTable = new Input.TbInputBindingTable(loader("input_tbinputbindingtable"));
         TbInputContextTable = new Input.TbInputContextTable(loader("input_tbinputcontexttable"));
@@ -71,13 +71,13 @@ public partial class Tables
     
     private void ResolveRef()
     {
-        TbBuffTable.ResolveRef(this);
         TbActionTable.ResolveRef(this);
-        TbEntityBaseTable.ResolveRef(this);
-        TbEntityGrowthTable.ResolveRef(this);
-        TbEntityModelTable.ResolveRef(this);
-        TbEntityStatsTable.ResolveRef(this);
+        TbBaseUnitGrowthTable.ResolveRef(this);
+        TbBaseUnitModelTable.ResolveRef(this);
+        TbBaseUnitStatsTable.ResolveRef(this);
+        TbBaseUnitTable.ResolveRef(this);
         TbMoveActionTable.ResolveRef(this);
+        TbBuffTable.ResolveRef(this);
         TbActionCommandMappingTable.ResolveRef(this);
         TbInputBindingTable.ResolveRef(this);
         TbInputContextTable.ResolveRef(this);

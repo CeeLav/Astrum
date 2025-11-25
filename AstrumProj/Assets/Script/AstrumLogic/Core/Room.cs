@@ -130,7 +130,7 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 添加怪物
         /// </summary>
-        /// <param name="monsterConfigId">怪物配置ID（从EntityBaseTable中读取）</param>
+        /// <param name="monsterConfigId">怪物配置ID（从BaseUnitTable中读取）</param>
         /// <returns>怪物实体ID，失败返回-1</returns>
         public long AddMonster(int monsterConfigId)
         {

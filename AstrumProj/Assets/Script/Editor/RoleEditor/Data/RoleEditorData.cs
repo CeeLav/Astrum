@@ -141,6 +141,11 @@ namespace Astrum.Editor.RoleEditor.Data
         public float BaseSpeed = 5f;
         
         // ===== 进阶属性 =====
+        [TitleGroup("角色配置/进阶属性", "进阶属性", TitleAlignments.Centered, true, true)]
+        [HideLabel]
+        [ReadOnly]
+        [PropertyOrder(-1)]
+        public string _advancedPropertiesHeader = "";
         
         [TitleGroup("角色配置/进阶属性/暴击系统")]
         [LabelText("基础暴击率 (%)"), Range(0, 100)]

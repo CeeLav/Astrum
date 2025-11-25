@@ -10,7 +10,7 @@ namespace Astrum.Editor.RoleEditor.Core
         public const string CONFIG_ROOT = "AstrumConfig/Tables/Datas";
         
         /// <summary>实体表路径</summary>
-        public const string ENTITY_TABLE_PATH = CONFIG_ROOT + "/Entity/#EntityBaseTable.csv";
+        public const string ENTITY_TABLE_PATH = CONFIG_ROOT + "/BaseUnit/#BaseUnitTable.csv";
         
         /// <summary>角色表路径</summary>
         public const string ROLE_TABLE_PATH = CONFIG_ROOT + "/Role/#RoleBaseTable.csv";
@@ -22,7 +22,7 @@ namespace Astrum.Editor.RoleEditor.Core
         public const string SKILL_ACTION_TABLE_PATH = CONFIG_ROOT + "/Skill/#SkillActionTable.csv";
         
         /// <summary>动作表路径</summary>
-        public const string ACTION_TABLE_PATH = CONFIG_ROOT + "/Entity/#ActionTable.csv";
+        public const string ACTION_TABLE_PATH = CONFIG_ROOT + "/BaseUnit/#ActionTable.csv";
         
         /// <summary>技能效果表路径</summary>
         public const string SKILL_EFFECT_TABLE_PATH = CONFIG_ROOT + "/Skill/#SkillEffectTable.csv";

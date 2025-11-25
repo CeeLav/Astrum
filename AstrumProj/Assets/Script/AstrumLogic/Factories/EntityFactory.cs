@@ -172,8 +172,8 @@ namespace Astrum.LogicCore.Factories
         /// <returns>创建的实体</returns>
         public Entity CreateEntity(int entityConfigId, World world)
         {
-            var tb = TableConfig.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
-            var archetypeName = tb != null ? tb.ArchetypeName : string.Empty;
+            var tb = TableConfig.Instance.Tables.TbBaseUnitTable.Get(entityConfigId);
+            var archetypeName = tb != null ? tb.Archetype.ToString() : string.Empty;
             return !string.IsNullOrEmpty(archetypeName)
                 ? CreateByArchetype(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world)
                 : null;
@@ -188,8 +188,8 @@ namespace Astrum.LogicCore.Factories
         /// <returns>创建的实体</returns>
         public T CreateEntity<T>(int entityConfigId, World world) where T : Entity, new()
         {
-            var tb = TableConfig.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
-            var archetypeName = tb != null ? tb.ArchetypeName : string.Empty;
+            var tb = TableConfig.Instance.Tables.TbBaseUnitTable.Get(entityConfigId);
+            var archetypeName = tb != null ? tb.Archetype.ToString() : string.Empty;
             return !string.IsNullOrEmpty(archetypeName)
                 ? CreateByArchetype<T>(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world)
                 : null;
@@ -323,7 +323,7 @@ namespace Astrum.LogicCore.Factories
 
             try
             {
-                var entityConfig = TableConfig.Instance.Tables.TbEntityBaseTable.Get(entityConfigId);
+                var entityConfig = TableConfig.Instance.Tables.TbBaseUnitTable.Get(entityConfigId);
                 return entityConfig?.EntityName ?? $"Entity_{entityConfigId}";
             }
             catch
