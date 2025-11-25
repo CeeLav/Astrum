@@ -1,9 +1,10 @@
 using System;
 using Astrum.LogicCore.FrameSync;
+using cfg;
 
 namespace Astrum.LogicCore.Archetypes
 {
-    [Archetype("Controllable")]
+    [Archetype(EArchetype.Controllable)]
     public class ControllableArchetype : Archetype
     {
         private static readonly Type[] _comps =

@@ -3,10 +3,11 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
+using cfg;
 
 namespace Astrum.LogicCore.Archetypes
 {
-    [Archetype("Role", "BaseUnit", "Combat", "Controllable")]
+    [Archetype(EArchetype.Role, "BaseUnit", "Combat", "Controllable")]
     public class RoleArchetype : Archetype
     {
         private static readonly Type[] _comps = 

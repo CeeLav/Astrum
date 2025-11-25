@@ -6,6 +6,7 @@ using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.View.Archetypes;
 using Astrum.View.Components;
+using cfg;
 
 namespace Astrum.View.Core
 {
@@ -73,10 +74,10 @@ namespace Astrum.View.Core
         
         private Type[] GetRequiredViewComponentTypes(Entity entity)
         {
-            var archetypeName = entity.ArchetypeName;
-            if (string.IsNullOrEmpty(archetypeName)) return Array.Empty<Type>();
+            var archetype = entity.Archetype;
+            if (archetype == default(EArchetype)) return Array.Empty<Type>();
             
-            ViewArchetypeManager.Instance.TryGetComponents(archetypeName, out var viewComponentTypes);
+            ViewArchetypeManager.Instance.TryGetComponents(archetype, out var viewComponentTypes);
             return viewComponentTypes ?? Array.Empty<Type>();
         }
         

@@ -10,6 +10,7 @@ using Astrum.Generated;
 using Astrum.LogicCore.Managers;
 using MemoryPack;
 using cfg.BaseUnit;
+using cfg;
 
 namespace Astrum.LogicCore.Core
 {
@@ -32,9 +33,9 @@ namespace Astrum.LogicCore.Core
         public string Name { get; set; } = string.Empty;
         
         /// <summary>
-        /// 实体原型名称（用于生命周期钩子）
+        /// 实体原型（用于生命周期钩子）
         /// </summary>
-        public string ArchetypeName { get; set; } = string.Empty;
+        public EArchetype Archetype { get; set; }
         
         public int EntityConfigId { get; set; } = 0;
         [MemoryPackIgnore]
@@ -103,7 +104,7 @@ namespace Astrum.LogicCore.Core
         public World World { get; set; }
 
         // 运行时子原型：激活列表与引入映射（用于安全卸载）
-        public List<string> ActiveSubArchetypes { get; private set; } = new List<string>();
+        public List<EArchetype> ActiveSubArchetypes { get; private set; } = new List<EArchetype>();
         // 引用计数字典（类型名 -> 引用次数），用于决定组件/能力的装配与卸载
         public Dictionary<string, int> ComponentRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
         public Dictionary<string, int> CapabilityRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -118,11 +119,11 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, string archetypeName, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<string> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
+        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
-            ArchetypeName = archetypeName;
+            Archetype = archetype;
             EntityConfigId = entityConfigId;
             IsActive = isActive;
             IsDestroyed = isDestroyed;
@@ -139,7 +140,7 @@ namespace Astrum.LogicCore.Core
                 component.EntityId = UniqueId;
             }
 
-            ActiveSubArchetypes = activeSubArchetypes ?? new List<string>();
+            ActiveSubArchetypes = activeSubArchetypes ?? new List<EArchetype>();
             ComponentRefCounts = componentRefCounts ?? new Dictionary<string, int>(StringComparer.Ordinal);
             CapabilityRefCounts = capabilityRefCounts ?? new Dictionary<string, int>(StringComparer.Ordinal);
         }
@@ -147,15 +148,14 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 运行时挂载子原型（按需装配组件/能力，去重）。
         /// </summary>
-        public bool AttachSubArchetype(string subArchetypeName, out string? reason)
+        public bool AttachSubArchetype(EArchetype subArchetype, out string? reason)
         {
             reason = null;
-            if (string.IsNullOrWhiteSpace(subArchetypeName)) { reason = "SubArchetype name is empty"; return false; }
-            if (ActiveSubArchetypes.Contains(subArchetypeName, StringComparer.OrdinalIgnoreCase)) { return true; }
+            if (ActiveSubArchetypes.Contains(subArchetype)) { return true; }
 
-            if (!Astrum.LogicCore.Archetypes.ArchetypeRegistry.Instance.TryGet(subArchetypeName, out var info))
+            if (!Astrum.LogicCore.Archetypes.ArchetypeRegistry.Instance.TryGet(subArchetype, out var info))
             {
-                reason = $"SubArchetype '{subArchetypeName}' not found";
+                reason = $"SubArchetype '{subArchetype}' not found";
                 return false;
             }
 
@@ -229,22 +229,22 @@ namespace Astrum.LogicCore.Core
                 }
             }
 
-            ActiveSubArchetypes.Add(subArchetypeName);
+            ActiveSubArchetypes.Add(subArchetype);
             return true;
         }
 
         /// <summary>
         /// 运行时卸载子原型：按声明差集卸载（主原型+其他子原型覆盖的成员保留）。
         /// </summary>
-        public bool DetachSubArchetype(string subArchetypeName, out string? reason)
+        public bool DetachSubArchetype(EArchetype subArchetype, out string? reason)
         {
             reason = null;
-            if (!ActiveSubArchetypes.Contains(subArchetypeName, StringComparer.OrdinalIgnoreCase)) return true;
+            if (!ActiveSubArchetypes.Contains(subArchetype)) return true;
 
             // 目标子原型声明
-            if (!Astrum.LogicCore.Archetypes.ArchetypeRegistry.Instance.TryGet(subArchetypeName, out var subInfo))
+            if (!Astrum.LogicCore.Archetypes.ArchetypeRegistry.Instance.TryGet(subArchetype, out var subInfo))
             {
-                ActiveSubArchetypes.RemoveAll(n => string.Equals(n, subArchetypeName, StringComparison.OrdinalIgnoreCase));
+                ActiveSubArchetypes.Remove(subArchetype);
                 return true;
             }
 
@@ -304,11 +304,11 @@ namespace Astrum.LogicCore.Core
                 }
             }
 
-            ActiveSubArchetypes.RemoveAll(n => string.Equals(n, subArchetypeName, StringComparison.OrdinalIgnoreCase));
+            ActiveSubArchetypes.Remove(subArchetype);
             return true;
         }
 
-        private void RollbackAdded(string subArchetypeName, List<string> addedCompTypes, List<string> addedCapTypes)
+        private void RollbackAdded(EArchetype subArchetype, List<string> addedCompTypes, List<string> addedCapTypes)
         {
             // 旧 Capability 已废弃，不需要回滚
             // 移除刚添加的组件
@@ -328,12 +328,12 @@ namespace Astrum.LogicCore.Core
 
         private static string GetTypeKey(Type t) => t.AssemblyQualifiedName ?? t.FullName;
 
-        public bool IsSubArchetypeActive(string subArchetypeName)
+        public bool IsSubArchetypeActive(EArchetype subArchetype)
         {
-            return ActiveSubArchetypes.Contains(subArchetypeName, StringComparer.OrdinalIgnoreCase);
+            return ActiveSubArchetypes.Contains(subArchetype);
         }
 
-        public IReadOnlyList<string> ListActiveSubArchetypes() => ActiveSubArchetypes;
+        public IReadOnlyList<EArchetype> ListActiveSubArchetypes() => ActiveSubArchetypes;
 
         /// <summary>
         /// 添加组件

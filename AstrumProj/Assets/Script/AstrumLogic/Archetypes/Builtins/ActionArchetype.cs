@@ -1,10 +1,11 @@
 using System;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Capabilities;
+using cfg;
 
 namespace Astrum.LogicCore.Archetypes
 {
-    [Archetype("Action")]
+    [Archetype(EArchetype.Action)]
     public class ActionArchetype : Archetype
     {
         private static readonly Type[] _comps =

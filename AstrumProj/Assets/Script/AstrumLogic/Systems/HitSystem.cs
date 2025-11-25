@@ -299,8 +299,8 @@ namespace Astrum.LogicCore.Physics
                 return false;
             
             
-            string archetype1 = entity1.ArchetypeName;
-            string archetype2 = entity2.ArchetypeName;
+            var archetype1 = entity1.Archetype;
+            var archetype2 = entity2.Archetype;
             
             return archetype1 == archetype2;
         }
@@ -313,8 +313,8 @@ namespace Astrum.LogicCore.Physics
             if (caster == null || target == null)
                 return false;
             
-            string casterArchetype = caster.ArchetypeName;
-            string targetArchetype = target.ArchetypeName;
+            var casterArchetype = caster.Archetype;
+            var targetArchetype = target.Archetype;
             
             return casterArchetype != targetArchetype;
         }

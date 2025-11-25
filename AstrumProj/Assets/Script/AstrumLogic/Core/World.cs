@@ -21,7 +21,7 @@ namespace Astrum.LogicCore.Core
         private struct PendingSubChange
         {
             public long EntityId;
-            public string Name;
+            public EArchetype Archetype;
             public bool Attach;
         }
 
@@ -280,13 +280,12 @@ namespace Astrum.LogicCore.Core
             // 工厂与原型管理器初始化应由 GameApplication 负责
         }
 
-        public void EnqueueSubArchetypeChange(long entityId, string subArchetypeName, bool attach)
+        public void EnqueueSubArchetypeChange(long entityId, EArchetype subArchetype, bool attach)
         {
-            if (string.IsNullOrWhiteSpace(subArchetypeName)) return;
             _pendingSubArchetypeChanges.Add(new PendingSubChange
             {
                 EntityId = entityId,
-                Name = subArchetypeName,
+                Archetype = subArchetype,
                 Attach = attach
             });
         }
@@ -325,7 +324,7 @@ namespace Astrum.LogicCore.Core
             foreach (var pending in _pendingCreateEntities)
             {
                 var entity = EntityFactory.Instance.CreateByArchetype(
-                    pending.Archetype.ToString(),
+                    pending.Archetype,
                     pending.CreationParams,
                     this);
 
@@ -361,11 +360,11 @@ namespace Astrum.LogicCore.Core
                 if (ent == null) continue;
                 if (change.Attach)
                 {
-                    ent.AttachSubArchetype(change.Name, out _);
+                    ent.AttachSubArchetype(change.Archetype, out _);
                 }
                 else
                 {
-                    ent.DetachSubArchetype(change.Name, out _);
+                    ent.DetachSubArchetype(change.Archetype, out _);
                 }
             }
             _pendingSubArchetypeChanges.Clear();

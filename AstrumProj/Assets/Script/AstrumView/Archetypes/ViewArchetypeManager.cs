@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Astrum.LogicCore.Archetypes;
+using cfg;
 
 namespace Astrum.View.Archetypes
 {
@@ -14,7 +15,7 @@ namespace Astrum.View.Archetypes
         private static readonly Lazy<ViewArchetypeManager> _instance = new Lazy<ViewArchetypeManager>(() => new ViewArchetypeManager());
         public static ViewArchetypeManager Instance => _instance.Value;
 
-        private readonly Dictionary<string, HashSet<Type>> _logicNameToViewComponents = new Dictionary<string, HashSet<Type>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<EArchetype, HashSet<Type>> _logicArchetypeToViewComponents = new Dictionary<EArchetype, HashSet<Type>>();
         private bool _initialized;
 
         private ViewArchetypeManager() { }
@@ -38,10 +39,11 @@ namespace Astrum.View.Archetypes
                 foreach (var attr in attrs)
                 {
                     if (string.IsNullOrWhiteSpace(attr.LogicArchetypeName)) continue;
-                    if (!_logicNameToViewComponents.TryGetValue(attr.LogicArchetypeName, out var set))
+                    if (!Enum.TryParse<EArchetype>(attr.LogicArchetypeName, true, out var archetypeEnum)) continue;
+                    if (!_logicArchetypeToViewComponents.TryGetValue(archetypeEnum, out var set))
                     {
                         set = new HashSet<Type>();
-                        _logicNameToViewComponents[attr.LogicArchetypeName] = set;
+                        _logicArchetypeToViewComponents[archetypeEnum] = set;
                     }
                     foreach (var c in comps)
                     {
@@ -52,23 +54,17 @@ namespace Astrum.View.Archetypes
         }
 
         /// <summary>
-        /// 获取指定逻辑原型名对应的视图组件并集（包含其合并父链）。
+        /// 获取指定逻辑原型对应的视图组件并集（包含其合并父链）。
         /// </summary>
-        public bool TryGetComponents(string logicArchetypeName, out Type[] viewComponents)
+        public bool TryGetComponents(EArchetype logicArchetype, out Type[] viewComponents)
         {
             if (!_initialized) Initialize();
             var result = new HashSet<Type>();
 
-            if (string.IsNullOrWhiteSpace(logicArchetypeName))
+            var chain = ArchetypeRegistry.Instance.GetMergeChain(logicArchetype);
+            foreach (var archetype in chain)
             {
-                viewComponents = Array.Empty<Type>();
-                return false;
-            }
-
-            var chain = ArchetypeRegistry.Instance.GetMergeChain(logicArchetypeName);
-            foreach (var name in chain)
-            {
-                if (_logicNameToViewComponents.TryGetValue(name, out var set))
+                if (_logicArchetypeToViewComponents.TryGetValue(archetype, out var set))
                 {
                     foreach (var t in set)
                     {

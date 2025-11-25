@@ -6,6 +6,7 @@ using Astrum.CommonBase;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Archetypes;
 using Astrum.LogicCore.Components;
+using cfg;
 
 namespace Astrum.LogicCore.Factories
 {
@@ -28,30 +29,30 @@ namespace Astrum.LogicCore.Factories
         /// <summary>
         /// 通过 Archetype 创建实体（最小外观，后续接入组件/能力并集装配）。
         /// </summary>
-        /// <param name="archetypeName">原型名，例如 "Role"</param>
+        /// <param name="archetype">原型</param>
         /// <param name="entityConfigId">实体配置ID（用于命名/资源）</param>
         /// <param name="world">所属世界</param>
         /// <returns>创建的实体</returns>
-        public Entity CreateByArchetype(string archetypeName, int entityConfigId, World world)
+        public Entity CreateByArchetype(EArchetype archetype, int entityConfigId, World world)
         {
-            return CreateByArchetype(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
+            return CreateByArchetype(archetype, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
         }
 
-        public Entity CreateByArchetype(string archetypeName, EntityCreationParams creationParams, World world)
+        public Entity CreateByArchetype(EArchetype archetype, EntityCreationParams creationParams, World world)
         {
-            return CreateByArchetype<Entity>(archetypeName, creationParams, world);
+            return CreateByArchetype<Entity>(archetype, creationParams, world);
         }
 
-        public T CreateByArchetype<T>(string archetypeName, int entityConfigId, World world) where T : Entity, new()
+        public T CreateByArchetype<T>(EArchetype archetype, int entityConfigId, World world) where T : Entity, new()
         {
-            return CreateByArchetype<T>(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
+            return CreateByArchetype<T>(archetype, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
         }
 
-        public T CreateByArchetype<T>(string archetypeName, EntityCreationParams creationParams, World world) where T : Entity, new()
+        public T CreateByArchetype<T>(EArchetype archetype, EntityCreationParams creationParams, World world) where T : Entity, new()
         {
-            if (!ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
+            if (!ArchetypeRegistry.Instance.TryGet(archetype, out var info))
             {
-                throw new Exception($"Archetype '{archetypeName}' not found");
+                throw new Exception($"Archetype '{archetype}' not found");
             }
 
             creationParams ??= new EntityCreationParams();
@@ -59,8 +60,8 @@ namespace Astrum.LogicCore.Factories
 
             var entity = new T
             {
-                Name = entityConfigId > 0 ? GetEntityNameFromConfig(entityConfigId) : archetypeName,
-                ArchetypeName = archetypeName,
+                Name = entityConfigId > 0 ? GetEntityNameFromConfig(entityConfigId) : archetype.ToString(),
+                Archetype = archetype,
                 EntityConfigId = entityConfigId,
                 CreationTime = DateTime.Now,
                 IsActive = true,
@@ -70,7 +71,7 @@ namespace Astrum.LogicCore.Factories
             entity.World = world;
             
             // 【生命周期钩子】组件挂载前
-            CallArchetypeLifecycleMethod(archetypeName, "OnBeforeComponentsAttach", entity, world);
+            CallArchetypeLifecycleMethod(archetype, "OnBeforeComponentsAttach", entity, world);
 
             // 按 ArchetypeInfo 装配组件
             var componentFactory = ComponentFactory.Instance;
@@ -86,10 +87,10 @@ namespace Astrum.LogicCore.Factories
             }
 
             // 【生命周期钩子】组件挂载后
-            CallArchetypeLifecycleMethod(archetypeName, "OnAfterComponentsAttach", entity, world);
+            CallArchetypeLifecycleMethod(archetype, "OnAfterComponentsAttach", entity, world);
 
             // 【生命周期钩子】能力挂载前
-            CallArchetypeLifecycleMethod(archetypeName, "OnBeforeCapabilitiesAttach", entity, world);
+            CallArchetypeLifecycleMethod(archetype, "OnBeforeCapabilitiesAttach", entity, world);
 
             // 按 ArchetypeInfo 装配能力（新方式：使用 CapabilitySystem）
             foreach (var capType in info.Capabilities ?? Array.Empty<Type>())
@@ -133,7 +134,7 @@ namespace Astrum.LogicCore.Factories
             }
 
             // 【生命周期钩子】能力挂载后
-            CallArchetypeLifecycleMethod(archetypeName, "OnAfterCapabilitiesAttach", entity, world);
+            CallArchetypeLifecycleMethod(archetype, "OnAfterCapabilitiesAttach", entity, world);
 
             // 初始化引用计数：按主原型声明与实际实例同步
             foreach (var t in info.Components ?? Array.Empty<Type>())
@@ -173,10 +174,8 @@ namespace Astrum.LogicCore.Factories
         public Entity CreateEntity(int entityConfigId, World world)
         {
             var tb = TableConfig.Instance.Tables.TbBaseUnitTable.Get(entityConfigId);
-            var archetypeName = tb != null ? tb.Archetype.ToString() : string.Empty;
-            return !string.IsNullOrEmpty(archetypeName)
-                ? CreateByArchetype(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world)
-                : null;
+            if (tb == null) return null;
+            return CreateByArchetype(tb.Archetype, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
         }
 
         /// <summary>
@@ -189,10 +188,8 @@ namespace Astrum.LogicCore.Factories
         public T CreateEntity<T>(int entityConfigId, World world) where T : Entity, new()
         {
             var tb = TableConfig.Instance.Tables.TbBaseUnitTable.Get(entityConfigId);
-            var archetypeName = tb != null ? tb.Archetype.ToString() : string.Empty;
-            return !string.IsNullOrEmpty(archetypeName)
-                ? CreateByArchetype<T>(archetypeName, new EntityCreationParams { EntityConfigId = entityConfigId }, world)
-                : null;
+            if (tb == null) return null;
+            return CreateByArchetype<T>(tb.Archetype, new EntityCreationParams { EntityConfigId = entityConfigId }, world);
         }
 
         /// <summary>
@@ -232,11 +229,11 @@ namespace Astrum.LogicCore.Factories
             if (entity == null) return;
 
             // 【生命周期钩子】实体销毁前
-            if (!string.IsNullOrEmpty(entity.ArchetypeName))
+            if (entity.Archetype != default(EArchetype))
             {
-                if (ArchetypeRegistry.Instance.TryGet(entity.ArchetypeName, out var info))
+                if (ArchetypeRegistry.Instance.TryGet(entity.Archetype, out var info))
                 {
-                    CallArchetypeLifecycleMethod(entity.ArchetypeName, "OnEntityDestroy", entity, world);
+                    CallArchetypeLifecycleMethod(entity.Archetype, "OnEntityDestroy", entity, world);
                 }
             }
 
@@ -335,16 +332,16 @@ namespace Astrum.LogicCore.Factories
         /// <summary>
         /// 调用 Archetype 的静态生命周期方法
         /// </summary>
-        /// <param name="archetypeName">原型名称</param>
+        /// <param name="archetype">原型</param>
         /// <param name="methodName">方法名称</param>
         /// <param name="entity">实体</param>
         /// <param name="world">世界</param>
-        private void CallArchetypeLifecycleMethod(string archetypeName, string methodName, Entity entity, World world)
+        private void CallArchetypeLifecycleMethod(EArchetype archetype, string methodName, Entity entity, World world)
         {
             try
             {
-                // 根据 archetypeName 获取对应的类型
-                var archetypeType = GetArchetypeType(archetypeName);
+                // 根据 archetype 获取对应的类型
+                var archetypeType = GetArchetypeType(archetype);
                 if (archetypeType != null)
                 {
                     // 使用反射调用静态方法
@@ -358,23 +355,23 @@ namespace Astrum.LogicCore.Factories
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Error($"调用 Archetype {archetypeName} 的 {methodName} 方法失败: {ex.Message}");
+                ASLogger.Instance.Error($"调用 Archetype {archetype} 的 {methodName} 方法失败: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 根据原型名称获取类型（使用反射自动获取，无需硬编码）
+        /// 根据原型获取类型（使用反射自动获取，无需硬编码）
         /// </summary>
-        /// <param name="archetypeName">原型名称</param>
+        /// <param name="archetype">原型</param>
         /// <returns>类型</returns>
-        private Type GetArchetypeType(string archetypeName)
+        private Type GetArchetypeType(EArchetype archetype)
         {
-            if (ArchetypeRegistry.Instance.TryGet(archetypeName, out var info))
+            if (ArchetypeRegistry.Instance.TryGet(archetype, out var info))
             {
                 return info.ArchetypeType;
             }
             
-            ASLogger.Instance.Error($"GetArchetypeType: Archetype '{archetypeName}' not found in registry");
+            ASLogger.Instance.Error($"GetArchetypeType: Archetype '{archetype}' not found in registry");
             return null;
         }
 

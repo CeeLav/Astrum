@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Astrum.CommonBase;
+using cfg;
 
 namespace Astrum.LogicCore.Archetypes
 {
@@ -13,7 +14,7 @@ namespace Astrum.LogicCore.Archetypes
     {
 
 
-        private readonly Dictionary<string, ArchetypeInfo> _nameToInfo = new Dictionary<string, ArchetypeInfo>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<EArchetype, ArchetypeInfo> _archetypeToInfo = new Dictionary<EArchetype, ArchetypeInfo>();
 
         public ArchetypeRegistry()
         {
@@ -24,7 +25,7 @@ namespace Astrum.LogicCore.Archetypes
         /// </summary>
         public void Initialize()
         {
-            _nameToInfo.Clear();
+            _archetypeToInfo.Clear();
 
             // 扫描当前域的所有程序集，收集 Archetype
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -39,14 +40,14 @@ namespace Astrum.LogicCore.Archetypes
                 {
                     if (t == null || t.IsAbstract || !typeof(Archetype).IsAssignableFrom(t)) continue;
                     var attr = t.GetCustomAttribute<ArchetypeAttribute>();
-                    if (attr == null || string.IsNullOrWhiteSpace(attr.Name)) continue;
+                    if (attr == null) continue;
 
                     var instance = Activator.CreateInstance(t) as Archetype;
                     if (instance == null) continue;
 
-                    _nameToInfo[attr.Name] = new ArchetypeInfo
+                    _archetypeToInfo[attr.Archetype] = new ArchetypeInfo
                     {
-                        Name = attr.Name,
+                        archetype = attr.Archetype,
                         RawMerge = attr.Merge ?? Array.Empty<string>(),
                         Components = instance.Components ?? Array.Empty<Type>(),
                         Capabilities = instance.Capabilities ?? Array.Empty<Type>(),
@@ -57,25 +58,26 @@ namespace Astrum.LogicCore.Archetypes
             }
 
             // 合并展开
-            foreach (var kv in _nameToInfo.ToArray())
+            foreach (var kv in _archetypeToInfo.ToArray())
             {
-                var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var visited = new HashSet<EArchetype>();
                 Expand(kv.Value, visited);
             }
         }
 
-        private void Expand(ArchetypeInfo data, HashSet<string> visited)
+        private void Expand(ArchetypeInfo data, HashSet<EArchetype> visited)
         {
-            if (visited.Contains(data.Name)) return;
-            visited.Add(data.Name);
+            if (visited.Contains(data.archetype)) return;
+            visited.Add(data.archetype);
 
             var comps = new HashSet<Type>(data.Components ?? Array.Empty<Type>());
             var caps = new HashSet<Type>(data.Capabilities ?? Array.Empty<Type>());
 
             foreach (var parentName in data.RawMerge ?? Array.Empty<string>())
             {
-                if (!_nameToInfo.TryGetValue(parentName, out var parent))
-                    throw new Exception($"Missing merged archetype '{parentName}' in '{data.Name}'");
+                if (!Enum.TryParse<EArchetype>(parentName, true, out var parentEnum) || 
+                    !_archetypeToInfo.TryGetValue(parentEnum, out var parent))
+                    throw new Exception($"Missing merged archetype '{parentName}' in '{data.archetype}'");
 
                 Expand(parent, visited);
                 foreach (var c in parent.Components ?? Array.Empty<Type>()) comps.Add(c);
@@ -84,49 +86,47 @@ namespace Astrum.LogicCore.Archetypes
 
             data.Components = comps.ToArray();
             data.Capabilities = caps.ToArray();
-            _nameToInfo[data.Name] = data;
+            _archetypeToInfo[data.archetype] = data;
         }
 
-        public bool TryGet(string name, out ArchetypeInfo info)
+        public bool TryGet(EArchetype archetype, out ArchetypeInfo info)
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                info = default;
-                return false;
-            }
-            return _nameToInfo.TryGetValue(name, out info);
+            return _archetypeToInfo.TryGetValue(archetype, out info);
         }
 
-        public ArchetypeInfo Get(string name)
+        public ArchetypeInfo Get(EArchetype archetype)
         {
-            if (TryGet(name, out var info)) return info;
-            throw new Exception($"Archetype '{name}' not found");
+            if (TryGet(archetype, out var info)) return info;
+            throw new Exception($"Archetype '{archetype}' not found");
         }
 
-        public IEnumerable<string> AllNames => _nameToInfo.Keys;
+        public IEnumerable<EArchetype> AllArchetypes => _archetypeToInfo.Keys;
 
         /// <summary>
         /// 获取给定 Archetype 的合并链（父 → ... → 子，不包含重复）。
-        /// 返回序列末尾为传入的 name 本身。
+        /// 返回序列末尾为传入的 archetype 本身。
         /// </summary>
-        public IList<string> GetMergeChain(string name)
+        public IList<EArchetype> GetMergeChain(EArchetype archetype)
         {
-            var sequence = new List<string>();
-            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            BuildChain(name, sequence, visited);
+            var sequence = new List<EArchetype>();
+            var visited = new HashSet<EArchetype>();
+            BuildChain(archetype, sequence, visited);
             return sequence;
         }
 
-        private void BuildChain(string name, IList<string> seq, HashSet<string> visited)
+        private void BuildChain(EArchetype archetype, IList<EArchetype> seq, HashSet<EArchetype> visited)
         {
-            if (string.IsNullOrWhiteSpace(name) || visited.Contains(name)) return;
-            visited.Add(name);
-            if (!_nameToInfo.TryGetValue(name, out var info)) return;
-            foreach (var p in info.RawMerge ?? Array.Empty<string>())
+            if (visited.Contains(archetype)) return;
+            visited.Add(archetype);
+            if (!_archetypeToInfo.TryGetValue(archetype, out var info)) return;
+            foreach (var parentName in info.RawMerge ?? Array.Empty<string>())
             {
-                BuildChain(p, seq, visited);
+                if (Enum.TryParse<EArchetype>(parentName, true, out var parentEnum))
+                {
+                    BuildChain(parentEnum, seq, visited);
+                }
             }
-            if (!seq.Contains(name, StringComparer.OrdinalIgnoreCase)) seq.Add(name);
+            if (!seq.Contains(archetype)) seq.Add(archetype);
         }
     }
 
@@ -135,7 +135,7 @@ namespace Astrum.LogicCore.Archetypes
     /// </summary>
     public struct ArchetypeInfo
     {
-        public string Name;
+        public EArchetype archetype;
         public string[] RawMerge;  // 直接父 Archetype 名称列表
         public Type[] Components;   // 合并后的组件类型列表
         public Type[] Capabilities; // 合并后的能力类型列表

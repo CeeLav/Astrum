@@ -1,3 +1,4 @@
+using cfg;
 using System;
 
 namespace Astrum.LogicCore.Archetypes
@@ -5,12 +6,12 @@ namespace Astrum.LogicCore.Archetypes
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class ArchetypeAttribute : Attribute
     {
-        public string Name { get; }
+        public EArchetype Archetype { get; }
         public string[] Merge { get; }
 
-        public ArchetypeAttribute(string name, params string[] merge)
+        public ArchetypeAttribute(EArchetype archetype, params string[] merge)
         {
-            Name = name;
+            Archetype = archetype;
             Merge = merge ?? Array.Empty<string>();
         }
     }

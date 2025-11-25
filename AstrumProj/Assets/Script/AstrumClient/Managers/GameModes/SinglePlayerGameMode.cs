@@ -10,6 +10,7 @@ using Astrum.View.Core;
 using Astrum.View.Managers;
 using AstrumClient.MonitorTools;
 using UnityEngine;
+using cfg;
 // 使用别名避免与 BEPU 的 Entity 类冲突
 using AstrumEntity = Astrum.LogicCore.Core.Entity;
 
@@ -345,7 +346,7 @@ namespace Astrum.Client.Managers.GameModes
                 }
 
                 // 在帧末挂载 AI 子原型，确保确定性
-                world.EnqueueSubArchetypeChange(entity.UniqueId, "AI", true);
+                world.EnqueueSubArchetypeChange(entity.UniqueId, EArchetype.AI, true);
                 ASLogger.Instance.Info($"SinglePlayerGameMode: 已创建 Role 并挂载 AI，EntityId={entity.UniqueId}");
                 return entity.UniqueId;
             }
