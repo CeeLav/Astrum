@@ -5,6 +5,7 @@ using System.Linq;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
+using cfg;
 
 namespace Astrum.LogicCore.Core
 {
@@ -160,8 +161,9 @@ namespace Astrum.LogicCore.Core
         {
             var frameInputs = OneFrameInputs.Create();
             
-            // 获取房间内所有玩家
-            if (Room?.Players == null || Room.Players.Count == 0)
+            // 获取房间内所有玩家（通过Archetype查询）
+            var players = Room?.GetEntitiesByArchetype(cfg.EArchetype.Role);
+            if (players == null || !players.Any())
             {
                 return frameInputs;
             }
@@ -170,8 +172,9 @@ namespace Astrum.LogicCore.Core
             var currentFrameInputs = _frameInputs.TryGetValue(frame, out var inputsThisFrame) ? inputsThisFrame : null;
             
             // 遍历房间内所有玩家，确保每个玩家都有输入
-            foreach (var playerId in Room.Players)
+            foreach (var player in players)
             {
+                var playerId = player.UniqueId;
                 if (playerId <= 0) continue; // 过滤无效ID
                 
                 LSInput input = null;

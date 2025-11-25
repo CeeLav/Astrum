@@ -227,7 +227,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 创建Player");
             
-            var playerID = MainRoom.AddPlayer();
+            var playerID = MainRoom.CreateEntity(1003);
             PlayerId = playerID;
             
             // 设置 MainPlayerId（LSController 需要检查这个值）
@@ -271,12 +271,12 @@ namespace Astrum.Client.Managers.GameModes
             int monsterConfigId = 1006;
             
             // 使用封装的接口创建怪物
-            var monsterId = MainRoom.AddMonster(monsterConfigId);
+            var monsterId = MainRoom.CreateEntity(monsterConfigId);
             
             if (monsterId > 0)
             {
                 // 获取创建的怪物实体
-                var monsterEntity = MainRoom.GetMonster(monsterId);
+                var monsterEntity = MainRoom.MainWorld?.GetEntity(monsterId);
                 if (monsterEntity != null)
                 {
                     // 可选：设置怪物等级和AI类型

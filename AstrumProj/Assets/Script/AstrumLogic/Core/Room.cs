@@ -5,6 +5,7 @@ using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Managers;
+using cfg;
 using EventSystem = Astrum.CommonBase.EventSystem;
 
 namespace Astrum.LogicCore.Core
@@ -60,19 +61,9 @@ namespace Astrum.LogicCore.Core
         } // 默认返回第一个世界，如果没有则返回空
 
         /// <summary>
-        /// 玩家列表
-        /// </summary>
-        public List<long> Players { get; private set; } = new List<long>();
-
-        /// <summary>
         /// 最大玩家数
         /// </summary>
         public int MaxPlayers { get; set; } = 8;
-
-        /// <summary>
-        /// 怪物列表
-        /// </summary>
-        public List<long> Monsters { get; private set; } = new List<long>();
 
         /// <summary>
         /// 帧同步控制器（基础接口，客户端和服务器通用）
@@ -102,92 +93,62 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 添加玩家
+        /// 创建实体（统一接口，由上层决定创建什么类型的实体）
         /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <returns>是否添加成功</returns>
-        public long AddPlayer()
-        {
-            if (Players.Count >= MaxPlayers)
-            {
-                return -1;
-            }
-            var player = MainWorld.CreateEntity(1003); // 创建玩家实体，EntityConfigId=1001 (需要根据实际配置表确定)
-            Players.Add(player.UniqueId);
-            return player.UniqueId;
-        }
-
-        /// <summary>
-        /// 移除玩家
-        /// </summary>
-        /// <param name="playerId">玩家ID</param>
-        /// <returns>是否移除成功</returns>
-        public bool RemovePlayer(int playerId)
-        {
-            return Players.Remove(playerId);
-        }
-
-        /// <summary>
-        /// 添加怪物
-        /// </summary>
-        /// <param name="monsterConfigId">怪物配置ID（从BaseUnitTable中读取）</param>
-        /// <returns>怪物实体ID，失败返回-1</returns>
-        public long AddMonster(int monsterConfigId)
+        /// <param name="entityConfigId">实体配置ID</param>
+        /// <returns>创建的实体ID，失败返回-1</returns>
+        public long CreateEntity(int entityConfigId)
         {
             if (MainWorld == null)
             {
-                ASLogger.Instance.Error($"Room.AddMonster: MainWorld不存在");
+                ASLogger.Instance.Error($"Room.CreateEntity: MainWorld不存在");
                 return -1;
             }
 
-            // 创建怪物实体
-            var monster = MainWorld.CreateEntity(monsterConfigId);
-            if (monster == null)
+            var entity = MainWorld.CreateEntity(entityConfigId);
+            if (entity == null)
             {
-                ASLogger.Instance.Error($"Room.AddMonster: 创建怪物失败，ConfigId={monsterConfigId}");
+                ASLogger.Instance.Error($"Room.CreateEntity: 创建实体失败，ConfigId={entityConfigId}");
                 return -1;
             }
 
-            // 添加到怪物列表
-            Monsters.Add(monster.UniqueId);
-            ASLogger.Instance.Info($"Room.AddMonster: 怪物创建成功，EntityId={monster.UniqueId}, ConfigId={monsterConfigId}");
-                
-            return monster.UniqueId;
+            ASLogger.Instance.Info($"Room.CreateEntity: 实体创建成功，EntityId={entity.UniqueId}, ConfigId={entityConfigId}");
+            return entity.UniqueId;
         }
 
         /// <summary>
-        /// 移除怪物
+        /// 根据Archetype类型获取实体集合
         /// </summary>
-        /// <param name="monsterId">怪物实体ID</param>
+        /// <param name="archetype">实体原型类型</param>
+        /// <returns>匹配的实体集合</returns>
+        public IEnumerable<Entity> GetEntitiesByArchetype(EArchetype archetype)
+        {
+            if (MainWorld == null) return Enumerable.Empty<Entity>();
+            
+            return MainWorld.Entities.Values
+                .Where(e => e.Archetype == archetype);
+        }
+
+        /// <summary>
+        /// 移除实体（统一接口）
+        /// </summary>
+        /// <param name="entityId">实体ID</param>
+        /// <param name="destroyEntity">是否销毁实体，默认true</param>
         /// <returns>是否移除成功</returns>
-        public bool RemoveMonster(long monsterId)
+        public bool RemoveEntity(long entityId, bool destroyEntity = true)
         {
-            if (Monsters.Remove(monsterId))
+            if (MainWorld == null) return false;
+            
+            var entity = MainWorld.GetEntity(entityId);
+            if (entity == null) return false;
+            
+            if (destroyEntity)
             {
-                // 从世界中销毁实体
-                var monster = MainWorld?.GetEntity(monsterId);
-                if (monster != null)
-                {
-                    MainWorld.DestroyEntity(monsterId);
-                    ASLogger.Instance.Info($"Room.RemoveMonster: 怪物已移除，EntityId={monsterId}");
-                }
-                return true;
+                MainWorld.DestroyEntity(entityId);
+                ASLogger.Instance.Info($"Room.RemoveEntity: 实体已移除并销毁，EntityId={entityId}");
             }
-            return false;
-        }
-
-        /// <summary>
-        /// 获取怪物实体
-        /// </summary>
-        /// <param name="monsterId">怪物实体ID</param>
-        /// <returns>怪物实体，不存在返回null</returns>
-        public Entity? GetMonster(long monsterId)
-        {
-            if (!Monsters.Contains(monsterId))
-            {
-                return null;
-            }
-            return MainWorld?.GetEntity(monsterId);
+            
+            return true;
         }
 
         /// <summary>
@@ -393,9 +354,6 @@ namespace Astrum.LogicCore.Core
             {
                 world?.Cleanup();
             }
-            
-            // 清理玩家列表
-            Players.Clear();
             
             // 清理帧同步控制器
             LSController = null;

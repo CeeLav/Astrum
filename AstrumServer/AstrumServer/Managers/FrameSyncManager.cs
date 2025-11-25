@@ -277,7 +277,7 @@ namespace AstrumServer.Managers
                 // 创建所有玩家实体（按 UserId 顺序，确保 UniqueId 一致）
                 foreach (var userId in room.Info.PlayerNames.OrderBy(x => x))
                 {
-                    var playerId = frameState.LogicRoom.AddPlayer(); // 创建玩家实体，返回 UniqueId
+                    var playerId = frameState.LogicRoom.CreateEntity(1003); // 创建玩家实体，返回 UniqueId
                     if (playerId > 0)
                     {
                         // 记录 PlayerId 映射

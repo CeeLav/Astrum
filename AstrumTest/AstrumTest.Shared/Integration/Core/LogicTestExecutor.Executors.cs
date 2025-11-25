@@ -67,9 +67,6 @@ namespace AstrumTest.Shared.Integration.Core
                         }
                     }
                     
-                    // 添加到 Room
-                    Room.Players.Add(entity.UniqueId);
-                    
                     // 注册到物理世界
                     HitManager.Instance.RegisterEntity(entity);
                     
@@ -83,7 +80,6 @@ namespace AstrumTest.Shared.Integration.Core
                     if (_entities.ContainsKey(input.EntityId))
                     {
                         var entityToDestroy = _entities[input.EntityId];
-                        Room.Players.Remove(entityToDestroy.UniqueId);
                         HitManager.Instance.UnregisterEntity(entityToDestroy);
                         _entities.Remove(input.EntityId);
                         _output.WriteLine($"      销毁实体: {input.EntityId}");
