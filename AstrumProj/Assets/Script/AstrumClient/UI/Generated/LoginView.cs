@@ -20,7 +20,7 @@ namespace Astrum.Client.UI.Generated
     /// LoginView 逻辑部分
     /// 用于编写UI的业务逻辑代码
     /// </summary>
-    public partial class LoginView
+    public partial class LoginView : UIBase
     {
         #region Fields
 
@@ -45,7 +45,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 初始化完成后的回调
         /// </summary>
-        protected virtual void OnInitialize()
+        protected override void OnInitialize()
         {
             // 绑定按钮事件
             if (connectButtonButton != null)
@@ -86,7 +86,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 显示时的回调
         /// </summary>
-        protected virtual void OnShow()
+        protected override void OnShow()
         {
             // 更新连接状态显示
             UpdateConnectionStatus();
@@ -95,7 +95,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 隐藏时的回调
         /// </summary>
-        protected virtual void OnHide()
+        protected override void OnHide()
         {
             // 取消订阅登录事件
             UnsubscribeFromLoginEvents();

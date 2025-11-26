@@ -16,7 +16,7 @@ namespace Astrum.Client.UI.Generated
     /// RoomDetailView 逻辑部分
     /// 用于编写UI的业务逻辑代码
     /// </summary>
-    public partial class RoomDetailView
+    public partial class RoomDetailView : UIBase
     {
         #region Fields
 
@@ -40,7 +40,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 初始化完成后的回调
         /// </summary>
-        protected virtual void OnInitialize()
+        protected override void OnInitialize()
         {
             // 绑定按钮事件
             BindButtonEvents();
@@ -55,7 +55,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 显示时的回调
         /// </summary>
-        protected virtual void OnShow()
+        protected override void OnShow()
         {
             // 更新房间信息显示
             UpdateRoomInfo();
@@ -64,7 +64,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 隐藏时的回调
         /// </summary>
-        protected virtual void OnHide()
+        protected override void OnHide()
         {
             // 取消订阅事件
             UnsubscribeFromRoomSystemEvents();

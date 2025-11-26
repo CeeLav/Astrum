@@ -35,7 +35,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 初始化完成后的回调
         /// </summary>
-        protected virtual void OnInitialize()
+        protected override void OnInitialize()
         {
             // 绑定按钮事件
             if (playButton != null)
@@ -79,7 +79,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 显示时的回调
         /// </summary>
-        protected virtual void OnShow()
+        protected override void OnShow()
         {
             RefreshReplayGameMode();
             UpdateUI();
@@ -88,7 +88,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 隐藏时的回调
         /// </summary>
-        protected virtual void OnHide()
+        protected override void OnHide()
         {
             // 清理引用
             _replayGameMode = null;

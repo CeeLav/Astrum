@@ -121,14 +121,14 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine($"    /// {uiName} UI逻辑类");
             codeBuilder.AppendLine($"    /// 由UI生成器自动生成");
             codeBuilder.AppendLine($"    /// </summary>");
-            codeBuilder.AppendLine($"    public class {uiName}UI");
+            codeBuilder.AppendLine($"    public class {uiName}UI : UIBase");
             codeBuilder.AppendLine("    {");
             
             // 添加字段
             codeBuilder.AppendLine("        #region Fields");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("        // UI引用");
-            codeBuilder.AppendLine("        private UIRefs uiRefs;");
+            codeBuilder.AppendLine("        // private UIRefs uiRefs; // Inherited from UIBase");
             codeBuilder.AppendLine();
             
             // 生成UI元素引用字段
@@ -140,7 +140,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             // 添加属性
             codeBuilder.AppendLine("        #region Properties");
             codeBuilder.AppendLine();
-            codeBuilder.AppendLine("        public bool IsInitialized => uiRefs != null;");
+            codeBuilder.AppendLine("        // public bool IsInitialized => uiRefs != null; // Inherited from UIBase");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("        #endregion");
             codeBuilder.AppendLine();
@@ -151,11 +151,11 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 初始化UI");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        public void Initialize(UIRefs refs)");
+            codeBuilder.AppendLine("        public override void Initialize(UIRefs refs)");
             codeBuilder.AppendLine("        {");
-            codeBuilder.AppendLine("            uiRefs = refs;");
+            codeBuilder.AppendLine("            this.uiRefs = refs;");
             codeBuilder.AppendLine("            InitializeUIElements();");
-            codeBuilder.AppendLine("            OnInitialize();");
+            codeBuilder.AppendLine("            base.Initialize(refs);");
             codeBuilder.AppendLine("        }");
             codeBuilder.AppendLine();
             
@@ -165,7 +165,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 初始化完成后的回调");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        protected virtual void OnInitialize()");
+            codeBuilder.AppendLine("        protected override void OnInitialize()");
             codeBuilder.AppendLine("        {");
             codeBuilder.AppendLine("            // 在这里添加初始化逻辑");
             codeBuilder.AppendLine("        }");
@@ -173,31 +173,17 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 显示UI");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        public virtual void Show()");
-            codeBuilder.AppendLine("        {");
-            codeBuilder.AppendLine("            if (uiRefs != null)");
-            codeBuilder.AppendLine("            {");
-            codeBuilder.AppendLine("                uiRefs.gameObject.SetActive(true);");
-            codeBuilder.AppendLine("                OnShow();");
-            codeBuilder.AppendLine("            }");
-            codeBuilder.AppendLine("        }");
+            codeBuilder.AppendLine("        // Show inherited from UIBase");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 隐藏UI");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        public virtual void Hide()");
-            codeBuilder.AppendLine("        {");
-            codeBuilder.AppendLine("            if (uiRefs != null)");
-            codeBuilder.AppendLine("            {");
-            codeBuilder.AppendLine("                OnHide();");
-            codeBuilder.AppendLine("                uiRefs.gameObject.SetActive(false);");
-            codeBuilder.AppendLine("            }");
-            codeBuilder.AppendLine("        }");
+            codeBuilder.AppendLine("        // Hide inherited from UIBase");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 显示时的回调");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        protected virtual void OnShow()");
+            codeBuilder.AppendLine("        protected override void OnShow()");
             codeBuilder.AppendLine("        {");
             codeBuilder.AppendLine("            // 在这里添加显示逻辑");
             codeBuilder.AppendLine("        }");
@@ -205,7 +191,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 隐藏时的回调");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        protected virtual void OnHide()");
+            codeBuilder.AppendLine("        protected override void OnHide()");
             codeBuilder.AppendLine("        {");
             codeBuilder.AppendLine("            // 在这里添加隐藏逻辑");
             codeBuilder.AppendLine("        }");
@@ -299,7 +285,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        #region UI References");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("        // UI引用");
-            codeBuilder.AppendLine("        private UIRefs uiRefs;");
+            codeBuilder.AppendLine("        // private UIRefs uiRefs; // Inherited from UIBase");
             codeBuilder.AppendLine();
             
             // 生成UI元素引用字段
@@ -311,7 +297,8 @@ namespace Astrum.Editor.UIGenerator.Generators
             // 添加属性
             codeBuilder.AppendLine("        #region Properties");
             codeBuilder.AppendLine();
-            codeBuilder.AppendLine("        public bool IsInitialized => uiRefs != null;");
+            codeBuilder.AppendLine("        // Inherited from UIBase");
+            codeBuilder.AppendLine("        // public bool IsInitialized => uiRefs != null;");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("        #endregion");
             codeBuilder.AppendLine();
@@ -322,11 +309,11 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 初始化UI");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        public void Initialize(UIRefs refs)");
+            codeBuilder.AppendLine("        public override void Initialize(UIRefs refs)");
             codeBuilder.AppendLine("        {");
-            codeBuilder.AppendLine("            uiRefs = refs;");
+            codeBuilder.AppendLine("            this.uiRefs = refs;");
             codeBuilder.AppendLine("            InitializeUIElements();");
-            codeBuilder.AppendLine("            OnInitialize();");
+            codeBuilder.AppendLine("            base.Initialize(refs);");
             codeBuilder.AppendLine("        }");
             codeBuilder.AppendLine();
             
@@ -339,29 +326,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             // 添加基础方法
             codeBuilder.AppendLine("        #region Basic Methods");
             codeBuilder.AppendLine();
-            codeBuilder.AppendLine("        /// <summary>");
-            codeBuilder.AppendLine("        /// 显示UI");
-            codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        public virtual void Show()");
-            codeBuilder.AppendLine("        {");
-            codeBuilder.AppendLine("            if (uiRefs != null)");
-            codeBuilder.AppendLine("            {");
-            codeBuilder.AppendLine("                uiRefs.gameObject.SetActive(true);");
-            codeBuilder.AppendLine("                OnShow();");
-            codeBuilder.AppendLine("            }");
-            codeBuilder.AppendLine("        }");
-            codeBuilder.AppendLine();
-            codeBuilder.AppendLine("        /// <summary>");
-            codeBuilder.AppendLine("        /// 隐藏UI");
-            codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        public virtual void Hide()");
-            codeBuilder.AppendLine("        {");
-            codeBuilder.AppendLine("            if (uiRefs != null)");
-            codeBuilder.AppendLine("            {");
-            codeBuilder.AppendLine("                OnHide();");
-            codeBuilder.AppendLine("                uiRefs.gameObject.SetActive(false);");
-            codeBuilder.AppendLine("            }");
-            codeBuilder.AppendLine("        }");
+            codeBuilder.AppendLine("        // Show/Hide inherited from UIBase");
             codeBuilder.AppendLine();
             codeBuilder.AppendLine("        #endregion");
             codeBuilder.AppendLine("    }");
@@ -398,7 +363,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine($"    /// {className} 逻辑部分");
             codeBuilder.AppendLine($"    /// 用于编写UI的业务逻辑代码");
             codeBuilder.AppendLine($"    /// </summary>");
-            codeBuilder.AppendLine($"    public partial class {className}");
+            codeBuilder.AppendLine($"    public partial class {className} : UIBase");
             codeBuilder.AppendLine("    {");
             
             // 添加虚方法供重写
@@ -407,7 +372,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 初始化完成后的回调");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        protected virtual void OnInitialize()");
+            codeBuilder.AppendLine("        protected override void OnInitialize()");
             codeBuilder.AppendLine("        {");
             codeBuilder.AppendLine("            // 在这里添加初始化逻辑");
             codeBuilder.AppendLine("        }");
@@ -415,7 +380,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 显示时的回调");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        protected virtual void OnShow()");
+            codeBuilder.AppendLine("        protected override void OnShow()");
             codeBuilder.AppendLine("        {");
             codeBuilder.AppendLine("            // 在这里添加显示逻辑");
             codeBuilder.AppendLine("        }");
@@ -423,7 +388,7 @@ namespace Astrum.Editor.UIGenerator.Generators
             codeBuilder.AppendLine("        /// <summary>");
             codeBuilder.AppendLine("        /// 隐藏时的回调");
             codeBuilder.AppendLine("        /// </summary>");
-            codeBuilder.AppendLine("        protected virtual void OnHide()");
+            codeBuilder.AppendLine("        protected override void OnHide()");
             codeBuilder.AppendLine("        {");
             codeBuilder.AppendLine("            // 在这里添加隐藏逻辑");
             codeBuilder.AppendLine("        }");

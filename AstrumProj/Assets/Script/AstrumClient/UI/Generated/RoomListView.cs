@@ -16,7 +16,7 @@ namespace Astrum.Client.UI.Generated
     /// RoomListView 逻辑部分
     /// 用于编写UI的业务逻辑代码
     /// </summary>
-    public partial class RoomListView
+    public partial class RoomListView : UIBase
     {
         #region Fields
 
@@ -40,7 +40,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 初始化完成后的回调
         /// </summary>
-        protected virtual void OnInitialize()
+        protected override void OnInitialize()
         {
             // 绑定按钮事件
             BindButtonEvents();
@@ -55,7 +55,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 显示时的回调
         /// </summary>
-        protected virtual void OnShow()
+        protected override void OnShow()
         {
             // 自动刷新房间列表
             RefreshRoomList();
@@ -67,15 +67,16 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 更新方法 - 处理自动刷新
         /// </summary>
-        private void Update()
+        public override void Update()
         {
+            base.Update();
             UpdateAutoRefresh();
         }
 
         /// <summary>
         /// 隐藏时的回调
         /// </summary>
-        protected virtual void OnHide()
+        protected override void OnHide()
         {
             // 停止自动刷新
             StopAutoRefresh();

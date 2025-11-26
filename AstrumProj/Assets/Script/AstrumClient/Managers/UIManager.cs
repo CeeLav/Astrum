@@ -20,8 +20,8 @@ namespace Astrum.Client.Managers
         // UI配置
         private string uiPrefabPath = "Assets/ArtRes/UI/";
 
-        // UI缓存
-        private Dictionary<string, GameObject> uiCache = new Dictionary<string, GameObject>();
+        // UI缓存 (UIBase)
+        private Dictionary<string, UIBase> viewCache = new Dictionary<string, UIBase>();
 
         /// <summary>
         /// 初始化UI管理器
@@ -37,41 +37,17 @@ namespace Astrum.Client.Managers
         public void Update()
         {
             // 遍历所有活动的 UI，调用其 Update 方法
-            foreach (var kvp in uiCache)
+            foreach (var view in viewCache.Values)
             {
-                var uiGO = kvp.Value;
-                if (uiGO != null && uiGO.activeInHierarchy)
+                if (view != null && view.IsVisible)
                 {
-                    var uiRefs = uiGO.GetComponent<UIRefs>();
-                    if (uiRefs != null)
+                    try
                     {
-                        // 通过反射获取 uiInstance
-                        var uiInstanceField = typeof(UIRefs).GetField("uiInstance", BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (uiInstanceField != null)
-                        {
-                            var uiInstance = uiInstanceField.GetValue(uiRefs);
-                            if (uiInstance != null)
-                            {
-                                // 检查是否有 Update 方法
-                                var updateMethod = uiInstance.GetType().GetMethod("Update", 
-                                    BindingFlags.Public | BindingFlags.Instance,
-                                    null, 
-                                    new System.Type[0], 
-                                    null);
-                                
-                                if (updateMethod != null)
-                                {
-                                    try
-                                    {
-                                        updateMethod.Invoke(uiInstance, null);
-                                    }
-                                    catch (System.Exception ex)
-                                    {
-                                        Debug.LogError($"[UIManager] 调用 UI Update 方法失败 ({kvp.Key}): {ex.Message}");
-                                    }
-                                }
-                            }
-                        }
+                        view.Update();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[UIManager] Error updating view: {ex.Message}\n{ex.StackTrace}");
                     }
                 }
             }
@@ -93,10 +69,10 @@ namespace Astrum.Client.Managers
         /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public void ShowUI(string uiName)
         {
-            var uiGO = GetOrCreateUI(uiName);
-            if (uiGO != null)
+            var view = GetOrCreateUI(uiName);
+            if (view != null)
             {
-                uiGO.SetActive(true);
+                view.Show();
             }
         }
 
@@ -106,9 +82,9 @@ namespace Astrum.Client.Managers
         /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public void HideUI(string uiName)
         {
-            if (uiCache.TryGetValue(uiName, out var uiGO))
+            if (viewCache.TryGetValue(uiName, out var view))
             {
-                uiGO.SetActive(false);
+                view.Hide();
             }
         }
 
@@ -118,9 +94,9 @@ namespace Astrum.Client.Managers
         /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public GameObject GetUI(string uiName)
         {
-            if (uiCache.TryGetValue(uiName, out var uiGO))
+            if (viewCache.TryGetValue(uiName, out var view))
             {
-                return uiGO;
+                return view.GameObject;
             }
             return null;
         }
@@ -131,10 +107,14 @@ namespace Astrum.Client.Managers
         /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public void DestroyUI(string uiName)
         {
-            if (uiCache.TryGetValue(uiName, out var uiGO))
+            if (viewCache.TryGetValue(uiName, out var view))
             {
-                uiCache.Remove(uiName);
-                UnityEngine.Object.Destroy(uiGO);
+                viewCache.Remove(uiName);
+                if (view.GameObject != null)
+                {
+                    UnityEngine.Object.Destroy(view.GameObject);
+                }
+                view.Destroy();
             }
         }
 
@@ -144,7 +124,7 @@ namespace Astrum.Client.Managers
         /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public bool HasUI(string uiName)
         {
-            return uiCache.ContainsKey(uiName);
+            return viewCache.ContainsKey(uiName);
         }
 
         /// <summary>
@@ -153,19 +133,19 @@ namespace Astrum.Client.Managers
         /// <param name="uiName">UI名称，支持路径格式，如 "Hub/Bag" 或 "Login"</param>
         public bool IsUIVisible(string uiName)
         {
-            if (uiCache.TryGetValue(uiName, out var uiGO))
+            if (viewCache.TryGetValue(uiName, out var view))
             {
-                return uiGO.activeInHierarchy;
+                return view.IsVisible;
             }
             return false;
         }
 
-        private GameObject GetOrCreateUI(string uiName)
+        private UIBase GetOrCreateUI(string uiName)
         {
             // 先从缓存中获取
-            if (uiCache.TryGetValue(uiName, out var cachedUI))
+            if (viewCache.TryGetValue(uiName, out var cachedView))
             {
-                return cachedUI;
+                return cachedView;
             }
 
             // 使用 ResourceManager 加载Prefab
@@ -212,10 +192,37 @@ namespace Astrum.Client.Managers
             var uiGO = UnityEngine.Object.Instantiate(prefab, uiRootTransform);
             uiGO.name = cleanName;
             
+            // 获取 UIRefs
+            var uiRefs = uiGO.GetComponent<UIRefs>();
+            if (uiRefs == null)
+            {
+                Debug.LogError($"[UIManager] UI {uiName} 缺少 UIRefs 组件");
+                UnityEngine.Object.Destroy(uiGO);
+                return null;
+            }
+
+            // 获取 Logic Instance
+            var instance = uiRefs.GetUIInstance();
+            if (instance == null)
+            {
+                Debug.LogError($"[UIManager] UI {uiName} 逻辑实例创建失败");
+                UnityEngine.Object.Destroy(uiGO);
+                return null;
+            }
+
+            // 转换为 UIBase
+            var uiBase = instance as UIBase;
+            if (uiBase == null)
+            {
+                Debug.LogError($"[UIManager] UI {uiName} 的逻辑类 ({instance.GetType().Name}) 未继承 UIBase");
+                UnityEngine.Object.Destroy(uiGO);
+                return null;
+            }
+
             // 缓存UI（使用完整路径作为key）
-            uiCache[uiName] = uiGO;
+            viewCache[uiName] = uiBase;
             
-            return uiGO;
+            return uiBase;
         }
 
         /// <summary>
@@ -223,14 +230,12 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void ClearAllUI()
         {
-            foreach (var kvp in uiCache)
+            var keys = new List<string>(viewCache.Keys);
+            foreach (var key in keys)
             {
-                if (kvp.Value != null)
-                {
-                    UnityEngine.Object.Destroy(kvp.Value);
-                }
+                DestroyUI(key);
             }
-            uiCache.Clear();
+            viewCache.Clear();
         }
 
     }

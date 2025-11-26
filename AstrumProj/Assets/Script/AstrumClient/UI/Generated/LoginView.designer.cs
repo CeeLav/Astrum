@@ -18,7 +18,7 @@ namespace Astrum.Client.UI.Generated
         #region UI References
 
         // UI引用
-        private UIRefs uiRefs;
+        // private UIRefs uiRefs; // Inherited from UIBase
 
         // Login
         private Image loginImage;
@@ -78,7 +78,8 @@ namespace Astrum.Client.UI.Generated
 
         #region Properties
 
-        public bool IsInitialized => uiRefs != null;
+        // Inherited from UIBase
+        // public bool IsInitialized => uiRefs != null;
 
         #endregion
 
@@ -87,11 +88,11 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 初始化UI
         /// </summary>
-        public void Initialize(UIRefs refs)
+        public override void Initialize(UIRefs refs)
         {
-            uiRefs = refs;
+            this.uiRefs = refs;
             InitializeUIElements();
-            OnInitialize();
+            base.Initialize(refs);
         }
 
         /// <summary>
@@ -123,29 +124,7 @@ namespace Astrum.Client.UI.Generated
 
         #region Basic Methods
 
-        /// <summary>
-        /// 显示UI
-        /// </summary>
-        public virtual void Show()
-        {
-            if (uiRefs != null)
-            {
-                uiRefs.gameObject.SetActive(true);
-                OnShow();
-            }
-        }
-
-        /// <summary>
-        /// 隐藏UI
-        /// </summary>
-        public virtual void Hide()
-        {
-            if (uiRefs != null)
-            {
-                OnHide();
-                uiRefs.gameObject.SetActive(false);
-            }
-        }
+        // Show and Hide are inherited from UIBase
 
         #endregion
     }

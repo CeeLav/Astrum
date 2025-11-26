@@ -70,9 +70,9 @@ namespace Astrum.Client.UI.Generated
         /// </summary>
         public override void Initialize(UIRefs refs)
         {
-            base.Initialize(refs);
+            this.uiRefs = refs;
             InitializeUIElements();
-            // OnInitialize() is called by base.Initialize()
+            base.Initialize(refs);
         }
 
         /// <summary>

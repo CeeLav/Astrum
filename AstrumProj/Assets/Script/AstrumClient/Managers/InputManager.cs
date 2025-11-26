@@ -5,6 +5,7 @@ using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.Client.Core;
 using Astrum.Client.Input;
+using Astrum.Client.Managers.GameModes;
 using Astrum.View.Core;
 using Astrum.LogicCore.Core;
 
@@ -64,7 +65,7 @@ namespace Astrum.Client.Managers
         public void Update()
         {
             var currentGameMode = GameDirector.Instance?.CurrentGameMode;
-            if (currentGameMode?.MainRoom == null)
+            if (currentGameMode?.MainRoom == null || currentGameMode is ReplayGameMode)
             {
                 return;
             }

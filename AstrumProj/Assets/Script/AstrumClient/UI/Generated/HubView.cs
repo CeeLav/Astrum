@@ -17,14 +17,14 @@ namespace Astrum.Client.UI.Generated
     /// HubView 逻辑部分
     /// 用于编写UI的业务逻辑代码
     /// </summary>
-    public partial class HubView
+    public partial class HubView : UIBase
     {
         #region Virtual Methods
 
         /// <summary>
         /// 初始化完成后的回调
         /// </summary>
-        protected virtual void OnInitialize()
+        protected override void OnInitialize()
         {
             // 绑定探索按钮事件
             if (startExplorationButtonButton != null)
@@ -54,7 +54,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 显示时的回调
         /// </summary>
-        protected virtual void OnShow()
+        protected override void OnShow()
         {
             // 显示时确保刷新一次（避免场景切换后数据未展示）
             RefreshUI();
@@ -63,7 +63,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 隐藏时的回调
         /// </summary>
-        protected virtual void OnHide()
+        protected override void OnHide()
         {
             // 取消订阅事件
             EventSystem.Instance.Unsubscribe<PlayerDataChangedEventData>(OnPlayerDataChanged);

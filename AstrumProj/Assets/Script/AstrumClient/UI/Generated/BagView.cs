@@ -16,7 +16,7 @@ namespace Astrum.Client.UI.Generated
     /// BagView 逻辑部分
     /// 用于编写UI的业务逻辑代码
     /// </summary>
-    public partial class BagView
+    public partial class BagView : UIBase
     {
         private string currentTab = "All"; // 当前选中的标签页
         private TMP_Text levelValueText;
@@ -27,7 +27,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 初始化完成后的回调
         /// </summary>
-        protected virtual void OnInitialize()
+        protected override void OnInitialize()
         {
             // 绑定关闭按钮
             if (btnCloseButton != null)
@@ -65,7 +65,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 显示时的回调
         /// </summary>
-        protected virtual void OnShow()
+        protected override void OnShow()
         {
             // 显示时刷新数据
             RefreshCharacterStats();
@@ -74,7 +74,7 @@ namespace Astrum.Client.UI.Generated
         /// <summary>
         /// 隐藏时的回调
         /// </summary>
-        protected virtual void OnHide()
+        protected override void OnHide()
         {
         }
 
