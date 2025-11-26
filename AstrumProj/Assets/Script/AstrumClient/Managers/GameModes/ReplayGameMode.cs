@@ -136,6 +136,7 @@ namespace Astrum.Client.Managers.GameModes
                 SwitchToGameScene(DungeonsGameSceneId);
                 
                 ChangeState(GameModeState.Playing);
+                
                 IsRunning = true;
                 _isPlaying = false; // 初始状态为暂停
                 
@@ -359,6 +360,7 @@ namespace Astrum.Client.Managers.GameModes
                     }
                     return (-1, null);
                 };
+                _lsController.Start();
             }
             else
             {
@@ -383,6 +385,8 @@ namespace Astrum.Client.Managers.GameModes
             stage.SetRoom(MainRoom);
             
             MainStage = stage;
+            stage.SetActive(true);
+            
             View.Managers.VFXManager.Instance.CurrentStage = stage;
             MainStage.SyncEntityViews();
             ASLogger.Instance.Info("ReplayGameMode: 创建 Stage");
