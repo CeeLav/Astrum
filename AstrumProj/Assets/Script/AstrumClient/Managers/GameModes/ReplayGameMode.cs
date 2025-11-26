@@ -129,9 +129,6 @@ namespace Astrum.Client.Managers.GameModes
                 // 3. 创建 Room 并直接使用快照初始化（这样角色会在初始化时创建）
                 CreateRoom(worldData);
                 
-                // 4. 设置快照到 FrameBuffer（用于 FastForwardTo 等操作）
-                SetupSnapshotInFrameBuffer(startSnapshot, worldData);
-                
                 // 4. 创建 Stage
                 CreateStage();
                 
@@ -175,16 +172,7 @@ namespace Astrum.Client.Managers.GameModes
             
             if (_isPlaying && _lsController != null)
             {
-                // 预加载下一帧输入
-                int nextFrame = _lsController.AuthorityFrame + 1;
-                if (nextFrame <= _timeline.TotalFrames)
-                {
-                    var inputs = _timeline.GetFrameInputs(nextFrame);
-                    if (inputs != null)
-                    {
-                        _lsController.SetFrameInputs(nextFrame, inputs);
-                    }
-                }
+                // 输入预加载已移至 ReplayLSController 内部处理
                 
                 // 更新回放（使用 deltaTime）
                 //_lsController.Tick(deltaTime);
@@ -284,9 +272,9 @@ namespace Astrum.Client.Managers.GameModes
             ASLogger.Instance.Info($"ReplayGameMode: 跳转到帧 {targetFrame}");
             
             // 使用 FastForwardTo 跳转
-            _lsController.FastForwardTo(targetFrame, frame => _timeline.GetFrameInputs(frame));
+            _lsController.FastForwardTo(targetFrame);
             
-            _currentFrame = targetFrame;
+            _currentFrame = _lsController.AuthorityFrame;
         }
 
         /// <summary>
@@ -356,6 +344,21 @@ namespace Astrum.Client.Managers.GameModes
                 _lsController.TickRate = _timeline.TickRate;
                 _lsController.CreationTime = _timeline.StartTimestamp;
                 _lsController.AuthorityFrame = 0;
+                
+                // 设置输入提供者
+                _lsController.InputProvider = (frame) => _timeline.GetFrameInputs(frame);
+                
+                // 设置最近快照提供者
+                _lsController.NearestSnapshotProvider = (frame) =>
+                {
+                    var snapshot = _timeline.GetNearestSnapshot(frame);
+                    if (snapshot != null)
+                    {
+                        var data = _timeline.GetSnapshotWorldData(snapshot.Frame);
+                        return (snapshot.Frame, data);
+                    }
+                    return (-1, null);
+                };
             }
             else
             {
@@ -366,26 +369,6 @@ namespace Astrum.Client.Managers.GameModes
             _currentFrame = 0;
             
             ASLogger.Instance.Info($"ReplayGameMode: 创建 Room 和 ReplayLSController - 房间ID: {_timeline.RoomId}, 帧率: {_timeline.TickRate}, 实体数: {room.MainWorld?.Entities?.Count ?? 0}");
-        }
-
-        /// <summary>
-        /// 设置快照到 FrameBuffer（用于 FastForwardTo 等操作）
-        /// </summary>
-        private void SetupSnapshotInFrameBuffer(ReplaySnapshot snapshot, byte[] worldData)
-        {
-            if (_lsController == null || worldData == null || worldData.Length == 0) return;
-            
-            // 将快照数据加载到 FrameBuffer（用于 FastForwardTo 等操作）
-            _lsController.FrameBuffer.MoveForward(0);
-            var snapshotBuffer = _lsController.FrameBuffer.Snapshot(0);
-            if (snapshotBuffer != null)
-            {
-                snapshotBuffer.SetLength(0);
-                snapshotBuffer.Seek(0, System.IO.SeekOrigin.Begin);
-                snapshotBuffer.Write(worldData, 0, worldData.Length);
-                
-                ASLogger.Instance.Info($"ReplayGameMode: 快照数据已设置到 FrameBuffer - 帧: {snapshot.Frame}, 数据大小: {worldData.Length} bytes");
-            }
         }
 
         /// <summary>

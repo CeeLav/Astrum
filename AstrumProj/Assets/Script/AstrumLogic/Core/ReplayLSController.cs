@@ -2,165 +2,233 @@ using System;
 using System.IO;
 using Astrum.CommonBase;
 using Astrum.Generated;
+using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
 
-namespace Astrum.LogicCore.Core
+namespace Astrum.LogicCore.FrameSync
 {
     /// <summary>
-    /// 回放专用帧同步控制器 - 专门用于回放场景，无需预测/RTT补偿/回滚
+    /// 回放专用的逻辑控制器
+    /// 负责基于本地时间推进逻辑帧，不进行预测或回滚
     /// </summary>
     public class ReplayLSController : ILSControllerBase
     {
-        /// <summary>
-        /// 所属房间
-        /// </summary>
-        public Room Room { get; set; }
-
-        /// <summary>
-        /// 权威帧（回放中的当前帧）
-        /// </summary>
-        public int AuthorityFrame { get; set; } = -1;
-
-        /// <summary>
-        /// 帧缓冲区
-        /// </summary>
-        private readonly FrameBuffer _frameBuffer = new FrameBuffer();
-
-        public FrameBuffer FrameBuffer => _frameBuffer;
-
-        /// <summary>
-        /// 帧率（如60FPS）
-        /// </summary>
-        public int TickRate { get; set; } = 20;
-
-        /// <summary>
-        /// 创建时间（毫秒）
-        /// </summary>
-        public long CreationTime { get; set; }
-
-        /// <summary>
-        /// 是否暂停
-        /// </summary>
-        public bool IsPaused { get; set; } = false;
-
-        /// <summary>
-        /// 是否正在运行
-        /// </summary>
-        public bool IsRunning { get; private set; } = false;
-
-        /// <summary>
-        /// 回放本地时间（秒），通过 deltaTime 递增，不依赖 TimeInfo
-        /// </summary>
         private float _replayElapsedTime = 0f;
+        
+        // ILSControllerBase 接口实现
+        public int TickRate { get; set; } = 20;
+        public long CreationTime { get; set; }
+        public int AuthorityFrame { get; set; } = 0;
+        public int PredictionFrame { get; set; } = 0; // 回放不需要预测，保持为0或与AuthorityFrame一致
+        public bool IsRunning { get; set; } = false;
+        public bool IsPaused { get; set; } = false;
+        public Room Room { get; set; }
+        public int MaxPredictionWindow { get; set; } = 0; // 不使用预测窗口
+
+        private FrameBuffer _frameBuffer;
+        public FrameBuffer FrameBuffer => _frameBuffer;
+        
+        /// <summary>
+        /// 输入提供者，用于在缺少输入时获取输入（通常由 ReplayGameMode 提供）
+        /// </summary>
+        public Func<int, OneFrameInputs> InputProvider { get; set; }
 
         /// <summary>
-        /// 单次最多推进帧数（避免卡顿）
+        /// 快照信息提供者，返回 (帧号, 快照数据)
         /// </summary>
-        private const int MAX_FRAMES_PER_TICK = 5;
+        public Func<int, (int, byte[])> NearestSnapshotProvider { get; set; }
 
         public ReplayLSController()
         {
-            CreationTime = TimeInfo.Instance.ClientNow();
+            _frameBuffer = new FrameBuffer(128, 4096); // 这里的 buffer size 可能需要根据回放长度调整，或者动态扩容
+        }
+
+        public void Start()
+        {
+            IsRunning = true;
+            IsPaused = false;
+            _replayElapsedTime = 0f;
+            AuthorityFrame = 0;
+            ASLogger.Instance.Info("ReplayLSController: Started", "Replay.Controller");
+        }
+
+        public void Stop()
+        {
+            IsRunning = false;
+            IsPaused = false;
+            ASLogger.Instance.Info("ReplayLSController: Stopped", "Replay.Controller");
         }
 
         /// <summary>
-        /// 更新回放（传入 deltaTime，基于本地时间推进）
-        /// 注意：ILSControllerBase 接口要求无参 Tick()，这里提供一个重载方法
+        /// 保存当前帧状态 (空实现)
         /// </summary>
+        public void SaveState()
+        {
+            // 回放模式不使用 FrameBuffer 保存运行时状态
+        }
+
+        /// <summary>
+        /// 加载指定帧的状态 (空实现)
+        /// </summary>
+        public World LoadState(int frame)
+        {
+            // 回放模式不使用 FrameBuffer 加载运行时状态
+            return null;
+        }
+
+        /// <summary>
+        /// 加载快照数据到 FrameBuffer (空实现)
+        /// </summary>
+        public void LoadSnapshot(int frame, byte[] snapshotData)
+        {
+            // 回放模式不使用 FrameBuffer 保存运行时状态
+        }
+
+        /// <summary>
+        /// 回滚到指定帧（仅支持文件快照回滚）
+        /// </summary>
+        private bool Rollback(int targetFrame)
+        {
+            if (NearestSnapshotProvider == null)
+            {
+                ASLogger.Instance.Error("ReplayLSController: 无法回滚，NearestSnapshotProvider 未设置", "Replay.Controller");
+                return false;
+            }
+
+            var (frame, data) = NearestSnapshotProvider(targetFrame);
+            if (frame >= 0 && frame <= targetFrame && data != null)
+            {
+                return RollbackToFileSnapshot(frame, data, targetFrame);
+            }
+
+            ASLogger.Instance.Error($"ReplayLSController: 无法回滚，找不到 <= {targetFrame} 的有效文件快照", "Replay.Controller");
+            return false;
+        }
+
+        private bool RollbackToFileSnapshot(int snapshotFrame, byte[] data, int targetFrame)
+        {
+            try
+            {
+                using (var memoryBuffer = new MemoryBuffer(data.Length))
+                {
+                    memoryBuffer.SetLength(0);
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    memoryBuffer.Write(data, 0, data.Length);
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    
+                    var world = MemoryPackHelper.Deserialize(typeof(World), memoryBuffer) as World;
+                    if (world != null)
+                    {
+                        ApplyWorldState(world, snapshotFrame);
+                        ASLogger.Instance.Info($"ReplayLSController: 已从文件快照回滚到帧 {snapshotFrame} (目标: {targetFrame})", "Replay.Controller");
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"ReplayLSController: 文件快照回滚失败 - {ex.Message}", "Replay.Controller");
+            }
+            return false;
+        }
+
+        private void ApplyWorldState(World world, int frame)
+        {
+            Room.MainWorld = world;
+            Room.MainWorld.RoomId = Room.RoomId;
+            AuthorityFrame = frame;
+            _replayElapsedTime = frame / (float)TickRate;
+        }
+
         public void Tick(float deltaTime)
         {
             if (!IsRunning || IsPaused || Room == null) return;
 
-            // 累计播放时间
             _replayElapsedTime += deltaTime;
-
+            
             // 计算期望到达的帧：floor(elapsedTime * TickRate)
             int expectedFrame = (int)(_replayElapsedTime * TickRate);
-
+            
             // 推进到期望帧（单次最多推进若干帧，避免卡顿）
             int steps = 0;
+            const int MAX_FRAMES_PER_TICK = 5; // 限制单次更新帧数
+            
             while (AuthorityFrame < expectedFrame && steps < MAX_FRAMES_PER_TICK)
             {
                 int nextFrame = AuthorityFrame + 1;
-
-                // 从回放文件获取该帧输入（由 ReplayGameMode 提前设置到 FrameBuffer）
-                OneFrameInputs inputs = _frameBuffer.FrameInputs(nextFrame);
+                
+                // 从 InputProvider 获取输入 (Timeline)
+                // 注意：FrameBuffer 可能会返回复用的非空对象，所以不能依赖 _frameBuffer.FrameInputs(nextFrame) == null 来判断
+                // 必须直接从数据源获取
+                OneFrameInputs inputs = null;
+                if (InputProvider != null)
+                {
+                    inputs = InputProvider(nextFrame);
+                }
+                
                 if (inputs != null)
                 {
                     AuthorityFrame = nextFrame;
                     Room.FrameTick(inputs);
+                    
+                    // 回放模式不使用 FrameBuffer 保存运行时状态
                 }
                 else
                 {
-                    // 没有更多输入，停止推进
+                    // 没有更多输入，可能是回放结束
+                    // ASLogger.Instance.Debug($"ReplayLSController: 帧 {nextFrame} 无输入，停止推进", "Replay.Controller");
                     break;
                 }
+                
                 steps++;
             }
         }
-
-        /// <summary>
-        /// 实现 ILSControllerBase 接口的 Tick() 方法
-        /// 回放场景下，这个方法应该由 ReplayGameMode 调用 Tick(float deltaTime) 重载
-        /// </summary>
+        
         public void Tick()
         {
-            // 回放场景下，应该使用 Tick(float deltaTime) 重载
-            // 这里提供一个默认实现，但建议直接调用 Tick(float deltaTime)
             ASLogger.Instance.Warning("ReplayLSController: 请使用 Tick(float deltaTime) 方法，而不是无参 Tick()", "Replay.Controller");
-        }
-
-        /// <summary>
-        /// 设置当前帧的输入（从回放文件读取）
-        /// </summary>
-        public void SetFrameInputs(int frame, OneFrameInputs inputs)
-        {
-            if (inputs == null) return;
-
-            // 确保 FrameBuffer 已准备好该帧
-            _frameBuffer.MoveForward(frame);
-            
-            // 将输入设置到 FrameBuffer
-            var frameInputs = _frameBuffer.FrameInputs(frame);
-            if (frameInputs != null)
-            {
-                inputs.CopyTo(frameInputs);
-            }
         }
 
         /// <summary>
         /// 快速推进到指定帧（用于跳转）
         /// </summary>
-        public void FastForwardTo(int targetFrame, Func<int, OneFrameInputs> getFrameInputs)
+        public void FastForwardTo(int targetFrame, Func<int, OneFrameInputs> getFrameInputs = null)
         {
-            if (getFrameInputs == null)
+            // 使用传入的 provider 或默认属性
+            var provider = getFrameInputs ?? InputProvider;
+            
+            if (provider == null)
             {
-                ASLogger.Instance.Error("ReplayLSController: FastForwardTo 需要提供 getFrameInputs 回调", "Replay.Controller");
+                ASLogger.Instance.Error("ReplayLSController: FastForwardTo 需要提供 getFrameInputs 回调或设置 InputProvider", "Replay.Controller");
                 return;
             }
 
-            // 1. 查找目标帧之前最近的快照（快照保存的是该帧输入运算前的状态）
-            // 注意：这里需要从 FrameBuffer 中查找快照，或者由调用者提供快照加载逻辑
-            // 简化处理：如果当前帧小于目标帧，直接推进；如果大于，需要回退（不支持）
-            
-            if (AuthorityFrame > targetFrame)
+            // 1. 如果目标帧小于当前帧，需要回滚
+            if (targetFrame < AuthorityFrame)
             {
-                ASLogger.Instance.Warning($"ReplayLSController: 无法回退，当前帧 {AuthorityFrame} > 目标帧 {targetFrame}，需要重新加载快照", "Replay.Controller");
-                return;
+                if (!Rollback(targetFrame))
+                {
+                    return; // 回滚失败
+                }
+                // 回滚后 AuthorityFrame 会变小，继续执行下面的推进逻辑
             }
 
             // 2. 快速推进到目标帧（关闭中间渲染）
-            for (int frame = AuthorityFrame + 1; frame <= targetFrame; frame++)
+            int startFrame = AuthorityFrame + 1;
+            
+            for (int frame = startFrame; frame <= targetFrame; frame++)
             {
-                var inputs = getFrameInputs(frame);
+                // 直接从 Provider 获取输入
+                var inputs = provider(frame);
+                
                 if (inputs != null)
                 {
-                    // 设置输入到 FrameBuffer
-                    SetFrameInputs(frame, inputs);
                     AuthorityFrame = frame;
                     
-                    // 执行逻辑（可选：跳过视图更新，仅在最后同步一次）
+                    // 执行逻辑
                     Room.FrameTick(inputs);
+                    
+                    // 回放模式不使用 FrameBuffer 保存运行时状态
                 }
                 else
                 {
@@ -171,76 +239,7 @@ namespace Astrum.LogicCore.Core
             }
 
             // 3. 更新回放时间，使其与当前帧同步
-            _replayElapsedTime = targetFrame / (float)TickRate;
-        }
-
-        /// <summary>
-        /// 启动控制器
-        /// </summary>
-        public void Start()
-        {
-            IsRunning = true;
-            IsPaused = false;
-            AuthorityFrame = 0;
-            _replayElapsedTime = 0f;
-        }
-
-        /// <summary>
-        /// 停止控制器
-        /// </summary>
-        public void Stop()
-        {
-            IsRunning = false;
-            IsPaused = false;
-        }
-
-        /// <summary>
-        /// 保存当前帧状态（回放模式下不需要保存，空实现）
-        /// </summary>
-        public void SaveState()
-        {
-            // 回放模式下不需要保存状态，因为状态是从回放文件加载的
-            // 此方法不应被调用，但为了满足接口要求，提供空实现
-        }
-
-        /// <summary>
-        /// 加载指定帧的状态
-        /// </summary>
-        public World LoadState(int frame)
-        {
-            var memoryBuffer = _frameBuffer.Snapshot(frame);
-            memoryBuffer.Seek(0, SeekOrigin.Begin);
-
-            if (memoryBuffer.Length == 0)
-            {
-                ASLogger.Instance.Warning($"ReplayLSController: 帧状态快照为空 - 帧: {frame}，无法加载状态", "Replay.Controller");
-                return null;
-            }
-
-            try
-            {
-                World world = MemoryPackHelper.Deserialize(typeof(World), memoryBuffer) as World;
-                memoryBuffer.Seek(0, SeekOrigin.Begin);
-
-                if (world != null)
-                {
-                    ASLogger.Instance.Debug($"ReplayLSController: 帧状态加载完成 - 帧: {frame}, World ID: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "Replay.Controller");
-                }
-                else
-                {
-                    ASLogger.Instance.Warning($"ReplayLSController: 帧状态加载失败 - 帧: {frame}，反序列化结果为 null", "Replay.Controller");
-                }
-
-                return world;
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"ReplayLSController: 帧状态反序列化失败 - 帧: {frame}, 错误: {ex.Message}", "Replay.Controller");
-                ASLogger.Instance.LogException(ex, LogLevel.Error);
-                memoryBuffer.Seek(0, SeekOrigin.Begin);
-                return null;
-            }
+            _replayElapsedTime = AuthorityFrame / (float)TickRate;
         }
     }
 }
-

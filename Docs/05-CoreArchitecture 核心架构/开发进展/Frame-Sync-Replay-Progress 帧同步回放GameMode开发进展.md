@@ -57,29 +57,19 @@
 
 **阶段名称**: UI完善与优化阶段
 
-**完成度**: 75%
+**完成度**: 95%
 
 **下一步计划**:
-1. **UI业务逻辑实现**（优先级：高）
-   - 实现 `ReplayUIView.OnUpdate()`、`UpdateUI()`、`RefreshReplayGameMode()`
-   - 实现帧数显示格式化（`"1234 / 5000"`）
-   - 实现时间显示格式化（`"00:20 / 01:23"`，相对时间从0开始）
-   - 实现 `OnPlayButtonClicked()`、`OnPauseButtonClicked()`、`OnSliderValueChanged()` 等交互方法
+1. **测试与优化**（优先级：高）
+   - 在 Unity Editor 中重新生成项目文件以解决编译错误
+   - 验证回放功能（播放、暂停、跳转、拖动）
+   - 验证UI显示（帧数、时间）
+   - 验证回退功能
+   - 优化 UI 交互体验
 
-2. **职责边界优化**（优先级：中）
-   - 将 `SetupSnapshotInFrameBuffer()` 移到 `ReplayLSController`，改为 `LoadSnapshot()` 方法
-   - 移除 `ReplayGameMode.Update()` 中的预加载逻辑
-   - 统一播放状态管理
-
-3. **快照加载改进**（优先级：中）
-   - 实现 `FastForwardTo()` 的回退支持（重新加载快照）
-   - 增强错误处理和日志记录
-   - 添加回滚机制
-
-4. **测试与优化**（优先级：中）
-   - 回放功能完整测试
-   - 跳转性能优化
-   - UI交互体验优化
+2. **剩余任务**
+   - 完整测试
+   - 性能分析与优化
 
 ---
 
@@ -117,10 +107,11 @@
 - [x] 创建 `ReplayLSController` 类，实现 `ILSControllerBase`
 - [x] 实现 `Tick(float deltaTime)` 方法（本地时间推进，相对时间从0开始）
 - [x] 实现 `SetFrameInputs()` 方法
-- [x] 实现 `FastForwardTo()` 方法（跳转功能，暂不支持回退）
+- [x] 实现 `FastForwardTo()` 方法（跳转功能，支持回退）
 - [x] 实现 `LoadState()` 方法（快照加载）
 - [x] 实现 `SaveState()` 方法（空实现，回放不需要保存）
-- [ ] 优化：`FastForwardTo()` 支持回退（重新加载快照）
+- [x] 优化：`FastForwardTo()` 支持回退（重新加载快照）
+- [x] 优化：职责边界优化（提供 `LoadSnapshot` 方法）
 
 **相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 4.3 节  
 **相关代码**: `AstrumProj/Assets/Script/AstrumLogic/Core/ReplayLSController.cs`
@@ -144,7 +135,7 @@
 - [x] 实现跳转功能（`Seek()`、`SeekToFrame()`，调用 `ReplayLSController.FastForwardTo()`）
 - [x] 集成视图同步（创建 Stage、同步 EntityViews）
 - [x] 支持快照初始化 Room（`Room.Initialize("replay", worldSnapshot)`）
-- [ ] 优化：移除预加载逻辑，统一职责边界
+- [x] 优化：移除预加载逻辑，统一职责边界
 
 **相关文档**: `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 4.1、4.4 节  
 **相关代码**: `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/ReplayGameMode.cs`
@@ -161,16 +152,17 @@
 - `AstrumProj/Assets/Script/AstrumClient/UI/Generated/LoginView.cs`
 - `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/LoginGameMode.cs`
 
-#### 7. 回放控制 UI 🚧
+#### 7. 回放控制 UI ✅
 - [x] 创建 ReplayUI Prefab（播放/暂停按钮、进度条、帧/时间显示）
 - [x] 生成 UI 代码（designer.cs）
-- [ ] 实现 `ReplayUIView.OnUpdate()` 方法
-- [ ] 实现 `UpdateUI()` 方法（更新播放/暂停按钮、进度条、帧/时间显示）
-- [ ] 实现帧数显示格式化（`"1234 / 5000"`）
-- [ ] 实现时间显示格式化（`"00:20 / 01:23"`，相对时间从0开始）
-- [ ] 实现 `OnPlayButtonClicked()`、`OnPauseButtonClicked()` 方法
-- [ ] 实现 `OnSliderValueChanged()`、`OnSliderDragEnd()` 方法
-- [ ] 实现 `RefreshReplayGameMode()` 方法（从 GameDirector 获取）
+- [x] 创建 `UIBase` 基类并继承
+- [x] 实现 `ReplayUIView.Update()` 方法（由 `UIManager` 驱动）
+- [x] 实现 `UpdateUI()` 方法（更新播放/暂停按钮、进度条、帧/时间显示）
+- [x] 实现帧数显示格式化（`"1234 / 5000"`）
+- [x] 实现时间显示格式化（`"00:20 / 01:23"`，相对时间从0开始）
+- [x] 实现 `OnPlayButtonClicked()`、`OnPauseButtonClicked()` 方法
+- [x] 实现 `OnSliderValueChanged()`、`OnSliderDragEnd()` 方法（EventTrigger 支持）
+- [x] 实现 `RefreshReplayGameMode()` 方法（从 GameDirector 获取）
 
 **相关文档**: 
 - `Frame-Sync-Replay-Design 帧同步回放GameMode设计.md` 第 6.2 节
@@ -178,6 +170,7 @@
 **相关代码**: 
 - `AstrumProj/Assets/Script/AstrumClient/UI/Generated/ReplayUIView.cs`
 - `AstrumProj/Assets/Script/AstrumClient/UI/Generated/ReplayUIView.designer.cs`
+- `AstrumProj/Assets/Script/AstrumClient/UI/Core/UIBase.cs`
 
 ---
 

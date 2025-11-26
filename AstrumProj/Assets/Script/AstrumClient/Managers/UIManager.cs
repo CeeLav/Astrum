@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using Astrum.Client.UI.Core;
 using Astrum.Client.Core;
@@ -35,7 +36,45 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Update()
         {
-            // UI管理器更新逻辑（如果需要）
+            // 遍历所有活动的 UI，调用其 Update 方法
+            foreach (var kvp in uiCache)
+            {
+                var uiGO = kvp.Value;
+                if (uiGO != null && uiGO.activeInHierarchy)
+                {
+                    var uiRefs = uiGO.GetComponent<UIRefs>();
+                    if (uiRefs != null)
+                    {
+                        // 通过反射获取 uiInstance
+                        var uiInstanceField = typeof(UIRefs).GetField("uiInstance", BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (uiInstanceField != null)
+                        {
+                            var uiInstance = uiInstanceField.GetValue(uiRefs);
+                            if (uiInstance != null)
+                            {
+                                // 检查是否有 Update 方法
+                                var updateMethod = uiInstance.GetType().GetMethod("Update", 
+                                    BindingFlags.Public | BindingFlags.Instance,
+                                    null, 
+                                    new System.Type[0], 
+                                    null);
+                                
+                                if (updateMethod != null)
+                                {
+                                    try
+                                    {
+                                        updateMethod.Invoke(uiInstance, null);
+                                    }
+                                    catch (System.Exception ex)
+                                    {
+                                        Debug.LogError($"[UIManager] 调用 UI Update 方法失败 ({kvp.Key}): {ex.Message}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
