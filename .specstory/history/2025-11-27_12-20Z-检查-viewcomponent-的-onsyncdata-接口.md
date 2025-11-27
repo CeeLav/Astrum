@@ -1773,3 +1773,3117 @@ Lines added: 775, lines removed: 1
 
 ---
 
+_**User (2025-11-27 08:04Z)**_
+
+BaseComponent 不要用事件，而是用类似置脏标记，在 Stage 更新的时候查询处理
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+将方案改为脏标记机制，更新技术设计文档。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+将方案改为脏标记机制，更新技术设计文档。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: 4
+
+```diff
+@@ -7,8 +7,9 @@
+  **TL;DR**
+  - ViewComponent 通过 &#96;GetWatchedComponentTypes()&#96; 声明需要监听的 BaseComponent 类型
+- - BaseComponent 提供 &#96;OnDataChanged&#96; 事件，子类在数据变化时调用 &#96;NotifyDataChanged()&#96;
+- - Entity 统一处理组件数据变化，发布 &#96;EntityComponentChangedEventData&#96; 事件
+- - EntityView 建立 ViewComponent 与 BaseComponent 的映射关系，自动触发同步
+- - 采用混合方案：重要变化使用事件通知，频繁变化在 Update 中主动拉取
++ - BaseComponent 使用脏标记机制，子类在数据变化时调用 &#96;MarkDirty()&#96; 设置脏标记
++ - Entity 维护组件的脏标记状态，在查询时提供脏标记信息
++ - Stage 在更新时查询所有 Entity 的脏组件，通知对应的 EntityView
++ - EntityView 建立 ViewComponent 与 BaseComponent 的映射关系，被动接收同步请求
++ - 采用混合方案：重要变化使用脏标记查询，频繁变化在 Update 中主动拉取
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 2
+
+```diff
+@@ -43,6 +43,7 @@
+  │ BaseComponent   │
+  │                 │
+- │ OnDataChanged   │──┐
+- │ NotifyDataChanged│  │
++ │ IsDirty         │──┐
++ │ MarkDirty()     │  │
++ │ ClearDirty()    │  │
+  └────────┬────────┘  │
+           │           │
+```
+
+**Chunk 2**
+Lines added: 16, lines removed: 14
+
+```diff
+@@ -52,21 +53,23 @@
+  │     Entity      │  │
+  │                 │  │
+- │ 订阅组件事件     │  │
+- │ 发布统一事件     │──┼──┐
+- └────────┬────────┘  │  │
+-          │           │  │
+-          │           │  │
+- ┌────────▼────────┐  │  │
+- │  EventSystem    │  │  │
+- │                 │  │  │
+- │ EntityComponent │  │  │
+- │ ChangedEvent    │──┼──┼──┐
+- └─────────────────┘  │  │  │
+-                       │  │  │
+- ┌─────────────────┐  │  │  │
++ │ 维护脏标记集合   │  │
++ │ GetDirtyComponents│ │
++ └────────┬────────┘  │
++          │           │
++          │           │
++ ┌────────▼────────┐  │
++ │     Stage      │  │
++ │                 │  │
++ │ Update()        │  │
++ │ 查询脏组件       │──┼──┐
++ │ 通知EntityView   │  │  │
++ └────────┬────────┘  │  │  │
++          │           │  │  │
++          │           │  │  │
++ ┌────────▼────────┐  │  │  │
+  │   EntityView    │  │  │  │
+  │                 │  │  │  │
+  │ 建立映射关系     │  │  │  │
+- │ 监听事件         │  │  │  │
++ │ 接收同步请求     │  │  │  │
+  │ 触发同步         │──┼──┼──┼──┐
+  └────────┬────────┘  │  │  │  │
+```
+
+**Chunk 3**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -85,5 +88,5 @@
+                      └───────┘  │
+                                 │
+-                                └── 自动同步流程
++                                └── 脏标记查询同步流程
+  &#96;&#96;&#96;
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 28, lines removed: 10
+
+```diff
+@@ -98,24 +98,42 @@
+  
+  **新增内容**:
+- - &#96;OnDataChanged&#96; 事件：组件数据变化时触发
+- - &#96;NotifyDataChanged()&#96; 方法：供子类调用的通知方法
++ - &#96;IsDirty&#96; 属性：脏标记，表示组件数据是否已变化
++ - &#96;MarkDirty()&#96; 方法：设置脏标记
++ - &#96;ClearDirty()&#96; 方法：清除脏标记
+  - &#96;ComponentName&#96; 属性：组件类型名称（用于日志和调试）
+  
+  **设计要点**:
+- - 事件为可选机制，子类根据需要在数据变化时调用 &#96;NotifyDataChanged()&#96;
+- - 对于频繁变化的组件（如 &#96;TransComponent&#96;），可以不使用事件，由 ViewComponent 在 Update 中主动拉取
++ - 脏标记为轻量级机制，子类在数据变化时调用 &#96;MarkDirty()&#96;
++ - 对于频繁变化的组件（如 &#96;TransComponent&#96;），可以不使用脏标记，由 ViewComponent 在 Update 中主动拉取
++ - 脏标记在 Stage 查询后统一清除，避免重复处理
+  
+- #### 2.2.2 Entity 统一处理
++ #### 2.2.2 Entity 脏标记管理
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs&#96;
+  
+  **修改内容**:
+- - 在 &#96;AddComponent&#96; 时订阅组件的 &#96;OnDataChanged&#96; 事件
+- - 在 &#96;RemoveComponent&#96; 时取消订阅
+- - 当组件数据变化时，发布 &#96;EntityComponentChangedEventData&#96;（changeType=&quot;update&quot;）
++ - 维护脏组件集合：&#96;HashSet&lt;BaseComponent&gt; _dirtyComponents&#96;
++ - 提供 &#96;GetDirtyComponents()&#96; 方法：返回当前所有脏组件
++ - 提供 &#96;ClearDirtyComponents()&#96; 方法：清除所有脏标记
++ - 在组件调用 &#96;MarkDirty()&#96; 时，自动添加到脏组件集合
++ 
++ **设计要点**:
++ - Entity 统一管理所有组件的脏标记状态
++ - 提供批量查询接口，便于 Stage 统一处理
++ - 脏标记在查询后统一清除，避免重复处理
++ 
++ #### 2.2.3 Stage 查询处理
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/Stage.cs&#96;
++ 
++ **修改内容**:
++ - 在 &#96;Update()&#96; 方法中，遍历所有 Entity，查询脏组件
++ - 对于有脏组件的 Entity，通知对应的 EntityView 进行同步
++ - 同步完成后，清除 Entity 的脏标记
+  
+  **设计要点**:
+- - Entity 作为统一的事件转发层，将组件变化转换为实体级别的事件
+- - 保持现有的事件发布机制，不破坏现有代码
++ - Stage 作为协调层，统一处理所有 Entity 的脏组件查询
++ - 批量处理，减少遍历次数
++ - 在视图层更新时处理，确保逻辑层和视图层的同步时机
+  
+  #### 2.2.3 ViewComponent 增强
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -159,10 +159,10 @@
+  - &#96;RegisterViewComponentWatchedTypes()&#96; 方法：建立映射关系
+  - &#96;UnregisterViewComponentWatchedTypes()&#96; 方法：清理映射关系
+- - 订阅 &#96;EntityComponentChangedEventData&#96; 事件
+- - 当监听的组件变化时，调用对应 ViewComponent 的同步方法
++ - &#96;SyncDirtyComponents()&#96; 方法：接收 Stage 的同步请求，处理脏组件
+  
+  **设计要点**:
+  - EntityView 作为协调层，负责建立和维护 ViewComponent 与 BaseComponent 的映射关系
+- - 通过事件驱动的方式触发同步，避免轮询带来的性能开销
++ - 被动接收 Stage 的同步请求，避免主动轮询带来的性能开销
++ - 根据 ViewComponent 的监听声明，只处理需要同步的组件
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -170,5 +170,5 @@
+  ## 3. 实现细节
+  
+- ### 3.1 BaseComponent 数据变化通知
++ ### 3.1 BaseComponent 脏标记机制
+  
+  #### 3.1.1 基类增强
+```
+
+**Chunk 2**
+Lines added: 20, lines removed: 5
+
+```diff
+@@ -181,15 +181,30 @@
+      
+      /// &lt;summary&gt;
+-     /// 组件数据变化事件
++     /// 脏标记，表示组件数据是否已变化
+      /// &lt;/summary&gt;
+-     public event Action&lt;BaseComponent&gt; OnDataChanged;
++     public bool IsDirty { get; private set; }
+      
+      /// &lt;summary&gt;
+-     /// 通知组件数据已变化
++     /// 设置脏标记
+      /// 子类在关键数据变化时调用此方法
+      /// &lt;/summary&gt;
+-     protected void NotifyDataChanged()
++     protected void MarkDirty()
+      {
+-         OnDataChanged?.Invoke(this);
++         IsDirty = true;
++         
++         // 通知所属 Entity 记录脏组件
++         if (EntityId != 0)
++         {
++             // 通过 Entity 的静态方法或实例方法通知
++             // 这里需要在 Entity 中提供相应的方法
++         }
++     }
++     
++     /// &lt;summary&gt;
++     /// 清除脏标记
++     /// &lt;/summary&gt;
++     public void ClearDirty()
++     {
++         IsDirty = false;
+      }
+      
+```
+
+**Chunk 3**
+Lines added: 10, lines removed: 9
+
+```diff
+@@ -204,18 +219,19 @@
+  
+  &#96;&#96;&#96;csharp
+- // HealthComponent.cs 示例
+- public partial class HealthComponent : BaseComponent
++ // DynamicStatsComponent.cs 示例
++ public partial class DynamicStatsComponent : BaseComponent
+  {
+-     private float _currentHealth;
++     private Dictionary&lt;DynamicResourceType, FP&gt; _resources = new Dictionary&lt;DynamicResourceType, FP&gt;();
+      
+-     public float CurrentHealth
++     public void Set(DynamicResourceType type, FP value)
+      {
+-         get =&gt; _currentHealth;
+-         set
++         if (!_resources.ContainsKey(type) || _resources[type] != value)
+          {
+-             if (_currentHealth != value)
++             _resources[type] = value;
++             
++             // 对于重要的资源变化（如血量），设置脏标记
++             if (type == DynamicResourceType.CURRENT_HP)
+              {
+-                 _currentHealth = value;
+-                 NotifyDataChanged(); // 通知数据变化
++                 MarkDirty();
+              }
+          }
+```
+
+**Chunk 4**
+Lines added: 10, lines removed: 10
+
+```diff
+@@ -224,34 +240,34 @@
+  &#96;&#96;&#96;
+  
+- ### 3.2 Entity 统一事件处理
++ ### 3.2 Entity 脏标记管理
+  
+  &#96;&#96;&#96;csharp
+  // Entity.cs
+  public partial class Entity
+  {
+-     // 在 AddComponent 方法中添加
++     // 脏组件集合
++     private HashSet&lt;BaseComponent&gt; _dirtyComponents = new HashSet&lt;BaseComponent&gt;();
++     
++     // 在 AddComponent 方法中
+      public T AddComponent&lt;T&gt;(T component) where T : BaseComponent
+      {
+          // 现有代码...
+          
+-         // 订阅组件数据变化事件
+-         component.OnDataChanged += OnComponentDataChanged;
+-         
+-         // 发布组件添加事件
++         // 发布组件添加事件（保持现有机制）
+          PublishComponentChangedEvent(component, &quot;add&quot;);
+          
+          return component;
+      }
+      
+-     // 在 RemoveComponent 方法中添加
++     // 在 RemoveComponent 方法中
+      public bool RemoveComponent&lt;T&gt;() where T : BaseComponent
+      {
+          var component = GetComponent&lt;T&gt;();
+          if (component != null)
+          {
+-             // 取消订阅组件数据变化事件
+-             component.OnDataChanged -= OnComponentDataChanged;
++             // 从脏组件集合中移除
++             _dirtyComponents.Remove(component);
+              
+-             // 发布组件移除事件
++             // 发布组件移除事件（保持现有机制）
+              PublishComponentChangedEvent(component, &quot;remove&quot;);
+              
+```
+
+**Chunk 5**
+Lines added: 52, lines removed: 5
+
+```diff
+@@ -263,10 +279,57 @@
+      
+      /// &lt;summary&gt;
+-     /// 处理组件数据变化
++     /// 记录组件为脏（由 BaseComponent.MarkDirty() 调用）
++     /// &lt;/summary&gt;
++     public void MarkComponentDirty(BaseComponent component)
++     {
++         if (component != null &amp;&amp; component.EntityId == UniqueId)
++         {
++             _dirtyComponents.Add(component);
++         }
++     }
++     
++     /// &lt;summary&gt;
++     /// 获取所有脏组件
++     /// &lt;/summary&gt;
++     public IReadOnlyCollection&lt;BaseComponent&gt; GetDirtyComponents()
++     {
++         return _dirtyComponents;
++     }
++     
++     /// &lt;summary&gt;
++     /// 清除所有脏标记
+      /// &lt;/summary&gt;
+-     private void OnComponentDataChanged(BaseComponent component)
+-     {
+-         // 发布组件更新事件
+-         PublishComponentChangedEvent(component, &quot;update&quot;);
++     public void ClearDirtyComponents()
++     {
++         foreach (var component in _dirtyComponents)
++         {
++             component.ClearDirty();
++         }
++         _dirtyComponents.Clear();
++     }
++ }
++ &#96;&#96;&#96;
++ 
++ ### 3.3 BaseComponent 通知 Entity
++ 
++ &#96;&#96;&#96;csharp
++ // BaseComponent.cs 修改
++ public abstract partial class BaseComponent
++ {
++     // 所属实体的引用（需要在 Entity.AddComponent 时设置）
++     private Entity _ownerEntity;
++     
++     public Entity OwnerEntity
++     {
++         get =&gt; _ownerEntity;
++         internal set =&gt; _ownerEntity = value;
++     }
++     
++     protected void MarkDirty()
++     {
++         IsDirty = true;
++         
++         // 通知所属 Entity
++         _ownerEntity?.MarkComponentDirty(this);
+      }
+  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 51, lines removed: 13
+
+```diff
+@@ -380,25 +380,63 @@
+  &#96;&#96;&#96;
+  
+- ### 3.4 EntityView 协调机制
++ ### 3.4 Stage 查询处理
+  
+  &#96;&#96;&#96;csharp
+- // EntityView.cs
+- public class EntityView
++ // Stage.cs
++ public class Stage
+  {
+      // 现有代码...
+      
+-     // 组件类型到 ViewComponent 列表的映射
+-     private Dictionary&lt;Type, List&lt;ViewComponent&gt;&gt; _componentToViewComponentsMap = new Dictionary&lt;Type, List&lt;ViewComponent&gt;&gt;();
++     /// &lt;summary&gt;
++     /// 更新 Stage
++     /// &lt;/summary&gt;
++     public virtual void Update(float deltaTime)
++     {
++         // 现有更新逻辑...
++         
++         // 处理脏组件同步
++         SyncDirtyComponents();
++         
++         // 其他更新逻辑...
++     }
+      
+      /// &lt;summary&gt;
+-     /// 初始化实体视图
++     /// 同步所有 Entity 的脏组件
+      /// &lt;/summary&gt;
+-     public virtual void Initialize(long entityId, Stage stage)
+-     {
+-         // 现有代码...
+-         
+-         // 订阅组件变化事件
+-         EventSystem.Instance.Subscribe&lt;EntityComponentChangedEventData&gt;(OnEntityComponentChanged);
+-     }
++     private void SyncDirtyComponents()
++     {
++         if (_room?.MainWorld == null) return;
++         
++         // 遍历所有 Entity
++         foreach (var entity in _room.MainWorld.GetAllEntities())
++         {
++             var dirtyComponents = entity.GetDirtyComponents();
++             if (dirtyComponents.Count &gt; 0)
++             {
++                 // 获取对应的 EntityView
++                 if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
++                 {
++                     // 通知 EntityView 同步脏组件
++                     entityView.SyncDirtyComponents(dirtyComponents);
++                 }
++                 
++                 // 清除脏标记
++                 entity.ClearDirtyComponents();
++             }
++         }
++     }
++ }
++ &#96;&#96;&#96;
++ 
++ ### 3.5 EntityView 协调机制
++ 
++ &#96;&#96;&#96;csharp
++ // EntityView.cs
++ public class EntityView
++ {
++     // 现有代码...
++     
++     // 组件类型到 ViewComponent 列表的映射
++     private Dictionary&lt;Type, List&lt;ViewComponent&gt;&gt; _componentToViewComponentsMap = new Dictionary&lt;Type, List&lt;ViewComponent&gt;&gt;();
+      
+      /// &lt;summary&gt;
+```
+
+**Chunk 2**
+Lines added: 28, lines removed: 49
+
+```diff
+@@ -467,59 +505,38 @@
+      
+      /// &lt;summary&gt;
+-     /// 处理实体组件变化事件
++     /// 同步脏组件（由 Stage 调用）
+      /// &lt;/summary&gt;
+-     private void OnEntityComponentChanged(EntityComponentChangedEventData eventData)
++     public void SyncDirtyComponents(IReadOnlyCollection&lt;BaseComponent&gt; dirtyComponents)
+      {
+-         // 检查是否属于当前实体
+-         if (eventData.EntityId != _entityId)
++         if (dirtyComponents == null || dirtyComponents.Count == 0)
+          {
+              return;
+          }
+          
+-         // 只处理更新事件
+-         if (eventData.ChangeType.ToLower() != &quot;update&quot;)
+-         {
+-             return;
+-         }
+-         
+-         // 获取组件类型
+-         var componentTypeName = eventData.ComponentType;
+-         Type componentType = null;
+-         
+-         // 尝试通过类型名称查找类型
+-         foreach (var type in _componentToViewComponentsMap.Keys)
+-         {
+-             if (type.Name == componentTypeName)
+-             {
+-                 componentType = type;
+-                 break;
+-             }
+-         }
+-         
+-         if (componentType == null || !_componentToViewComponentsMap.ContainsKey(componentType))
+-         {
+-             return;
+-         }
+-         
+-         // 获取对应的 ViewComponent 列表
+-         var viewComponents = _componentToViewComponentsMap[componentType];
+-         
+-         // 从 OwnerEntity 获取组件实例
+-         var component = OwnerEntity?.GetComponent(componentType);
+-         if (component == null)
+-         {
+-             return;
+-         }
+-         
+-         // 通知所有监听的 ViewComponent
+-         foreach (var viewComponent in viewComponents)
+-         {
+-             if (viewComponent != null &amp;&amp; viewComponent.IsEnabled)
+-             {
+-                 // 调用 ViewComponent 的数据同步方法
+-                 viewComponent.SyncDataFromComponent(component);
+-             }
+-         }
+-     }
++         // 遍历所有脏组件
++         foreach (var component in dirtyComponents)
++         {
++             var componentType = component.GetType();
++             
++             // 检查是否有 ViewComponent 监听此组件类型
++             if (!_componentToViewComponentsMap.ContainsKey(componentType))
++             {
++                 continue;
++             }
++             
++             // 获取对应的 ViewComponent 列表
++             var viewComponents = _componentToViewComponentsMap[componentType];
++             
++             // 通知所有监听的 ViewComponent
++             foreach (var viewComponent in viewComponents)
++             {
++                 if (viewComponent != null &amp;&amp; viewComponent.IsEnabled)
++                 {
++                     // 调用 ViewComponent 的数据同步方法
++                     viewComponent.SyncDataFromComponent(component);
++                 }
++             }
++         }
++     }
+      
+      /// &lt;summary&gt;
+```
+
+**Chunk 3**
+Lines added: undefined, lines removed: 3
+
+```diff
+@@ -528,7 +545,4 @@
+      public virtual void Destroy()
+      {
+-         // 取消订阅事件
+-         EventSystem.Instance.Unsubscribe&lt;EntityComponentChangedEventData&gt;(OnEntityComponentChanged);
+-         
+          // 清理映射关系
+          _componentToViewComponentsMap.Clear();
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 6
+
+```diff
+@@ -649,15 +649,15 @@
+  1. BaseComponent 数据变化
+     ↓
+- 2. 子类调用 NotifyDataChanged()
++ 2. 子类调用 MarkDirty()
+     ↓
+- 3. 触发 OnDataChanged 事件
++ 3. BaseComponent.IsDirty = true
+     ↓
+- 4. Entity.OnComponentDataChanged() 处理
++ 4. Entity.MarkComponentDirty() 记录脏组件
+     ↓
+- 5. Entity 发布 EntityComponentChangedEventData
++ 5. Stage.Update() 调用 SyncDirtyComponents()
+     ↓
+- 6. EventSystem 分发事件
++ 6. Stage 遍历所有 Entity，查询脏组件
+     ↓
+- 7. EntityView.OnEntityComponentChanged() 接收
++ 7. 对于有脏组件的 Entity，调用 EntityView.SyncDirtyComponents()
+     ↓
+  8. EntityView 查找对应的 ViewComponent
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -668,4 +668,6 @@
+      ↓
+  11. ViewComponent.OnSyncData() 执行同步逻辑
++     ↓
++ 12. Entity.ClearDirtyComponents() 清除脏标记
+  &#96;&#96;&#96;
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 31, lines removed: 9
+
+```diff
+@@ -710,22 +710,44 @@
+  - 需要在文档中说明使用场景
+  
+- ### 5.2 为什么在 Entity 层面统一处理？
++ ### 5.2 为什么使用脏标记而不是事件？
+  
+- **问题**: BaseComponent 的数据变化事件应该在哪里处理？
++ **问题**: BaseComponent 的数据变化应该如何通知 ViewComponent？
+  
+  **备选方案**:
+- - 方案A：ViewComponent 直接订阅 BaseComponent 的事件
+- - 方案B：Entity 统一处理，发布实体级别的事件
++ - 方案A：使用事件机制（OnDataChanged）
++ - 方案B：使用脏标记机制（IsDirty）
++ - 方案C：在 Stage 更新时统一查询
++ 
++ **选择**: 方案B + 方案C（脏标记 + Stage 查询）
++ 
++ **理由**:
++ - 性能：避免事件系统的开销，脏标记是轻量级的布尔值
++ - 批量处理：Stage 可以批量查询所有 Entity 的脏组件，减少遍历次数
++ - 可控性：在 Stage 更新时统一处理，时机可控
++ - 简单性：不需要维护事件订阅关系，减少内存开销
++ 
++ **影响**:
++ - Entity 需要维护脏组件集合
++ - Stage 需要在更新时查询脏组件
++ - 需要在同步后清除脏标记，避免重复处理
++ 
++ ### 5.3 为什么在 Stage 层面查询？
++ 
++ **问题**: 脏组件的查询应该在哪里进行？
++ 
++ **备选方案**:
++ - 方案A：在 EntityView 中主动轮询
++ - 方案B：在 Stage 中统一查询
+  
+  **选择**: 方案B
+  
+  **理由**:
+- - 解耦：ViewComponent 不需要直接依赖 BaseComponent，只需要依赖 Entity
+- - 统一：所有组件变化都通过统一的事件机制处理
+- - 可维护性：集中管理，便于调试和扩展
++ - 集中管理：Stage 统一管理所有 EntityView，便于批量处理
++ - 性能优化：一次遍历所有 Entity，比每个 EntityView 单独查询更高效
++ - 时机控制：在视图层更新时处理，确保逻辑层和视图层的同步时机
+  
+  **影响**:
+- - Entity 需要维护组件事件的订阅关系
+- - 需要在组件添加/移除时正确管理事件订阅
++ - Stage 需要维护 EntityView 的引用
++ - 需要在 Stage.Update() 中添加查询逻辑
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 3
+
+```diff
+@@ -778,12 +778,13 @@
+  1. **识别关键数据变化点**
+     - 找出需要通知 ViewComponent 的数据变化点
+-    - 例如：血量变化、状态变化、位置变化（如果使用事件）
++    - 例如：血量变化、状态变化、属性变化
+  
+- 2. **添加 NotifyDataChanged() 调用**
++ 2. **添加 MarkDirty() 调用**
+     - 在属性 setter 或关键方法中调用
+     - 确保只在数据真正变化时调用
+  
+  3. **测试验证**
+-    - 验证数据变化能正确通知 ViewComponent
++    - 验证数据变化能正确设置脏标记
++    - 验证 Stage 能正确查询并处理脏组件
+     - 验证性能影响在可接受范围内
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -849,5 +849,5 @@
+  &#96;&#96;&#96;
+  
+- ### 7.2 BaseComponent 通知示例
++ ### 7.2 BaseComponent 脏标记示例
+  
+  &#96;&#96;&#96;csharp
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -862,8 +862,8 @@
+              _resources[type] = value;
+              
+-             // 对于重要的资源变化（如血量），通知数据变化
++             // 对于重要的资源变化（如血量），设置脏标记
+              if (type == DynamicResourceType.CURRENT_HP)
+              {
+-                 NotifyDataChanged();
++                 MarkDirty();
+              }
+          }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 4
+
+```diff
+@@ -878,13 +878,15 @@
+  ### 8.1 性能考虑
+  
+- - **事件频率控制**：避免在每帧都变化的属性上频繁触发事件
++ - **脏标记查询频率**：Stage 每帧查询一次，避免过度查询
+  - **映射查找优化**：EntityView 的映射查找使用字典，时间复杂度 O(1)
+- - **批量更新**：如果多个组件同时变化，考虑批量通知机制
++ - **批量处理**：Stage 批量查询所有 Entity 的脏组件，减少遍历次数
++ - **脏标记清除**：同步后立即清除，避免重复处理
+  
+  ### 8.2 生命周期管理
+  
+- - **事件订阅清理**：确保在 Entity 销毁时正确取消订阅
++ - **脏组件集合清理**：确保在 Entity 销毁时清理脏组件集合
+  - **映射关系清理**：确保在 ViewComponent 移除时清理映射关系
+- - **空引用检查**：在事件处理中检查 OwnerEntity 是否为 null
++ - **空引用检查**：在同步处理中检查 OwnerEntity 是否为 null
++ - **脏标记重置**：确保在同步后清除脏标记，避免重复处理
+  
+  ### 8.3 向后兼容
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+补充 Entity.AddComponent 时设置 BaseComponent 的 OwnerEntity 的说明：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -253,4 +253,7 @@
+      {
+          // 现有代码...
++         
++         // 设置组件的 OwnerEntity 引用（用于 MarkDirty 时通知 Entity）
++         component.OwnerEntity = this;
+          
+          // 发布组件添加事件（保持现有机制）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -271,4 +271,7 @@
+              // 从脏组件集合中移除
+              _dirtyComponents.Remove(component);
++             
++             // 清除组件的 OwnerEntity 引用
++             component.OwnerEntity = null;
+              
+              // 发布组件移除事件（保持现有机制）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+已更新技术设计文档，将事件机制改为脏标记机制。主要变更：
+
+1. **BaseComponent**：移除事件，添加 `IsDirty` 属性和 `MarkDirty()`/`ClearDirty()` 方法
+2. **Entity**：移除事件订阅，添加脏组件集合管理和查询方法
+3. **Stage**：在 `Update()` 中统一查询所有 Entity 的脏组件并处理
+4. **EntityView**：移除事件订阅，添加 `SyncDirtyComponents()` 方法被动接收同步请求
+
+核心流程：
+- BaseComponent 数据变化 → 调用 `MarkDirty()` → Entity 记录脏组件
+- Stage.Update() → 查询所有 Entity 的脏组件 → 通知 EntityView 同步
+- EntityView → 查找对应的 ViewComponent → 调用同步方法
+- 同步完成后清除脏标记
+
+该方案的优势：
+- 性能：避免事件系统开销，脏标记为轻量级布尔值
+- 批量处理：Stage 可批量查询，减少遍历次数
+- 可控性：在 Stage 更新时统一处理，时机可控
+
+文档已更新完成。需要我继续进入 EXECUTE 模式实施这些改动吗？
+
+---
+
+_**User (2025-11-27 08:04Z)**_
+
+直接 Entity 脏标记管理，不用 BaseComponent里存IsDirty 用 HashSet<int> 记录 哪个Basecomponent 脏了 ComponentId 是 Component 唯一标识符
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+更新文档：BaseComponent 不存储 IsDirty，由 Entity 用 HashSet<int> 记录脏组件的 ComponentId。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 5
+
+```diff
+@@ -98,13 +98,12 @@
+  
+  **新增内容**:
+- - &#96;IsDirty&#96; 属性：脏标记，表示组件数据是否已变化
+- - &#96;MarkDirty()&#96; 方法：设置脏标记
+- - &#96;ClearDirty()&#96; 方法：清除脏标记
++ - &#96;MarkDirty()&#96; 方法：通知 Entity 该组件已变脏
+  - &#96;ComponentName&#96; 属性：组件类型名称（用于日志和调试）
+  
+  **设计要点**:
+- - 脏标记为轻量级机制，子类在数据变化时调用 &#96;MarkDirty()&#96;
++ - BaseComponent 不存储脏标记状态，只提供通知方法
++ - 子类在数据变化时调用 &#96;MarkDirty()&#96;，通知所属 Entity
+  - 对于频繁变化的组件（如 &#96;TransComponent&#96;），可以不使用脏标记，由 ViewComponent 在 Update 中主动拉取
+- - 脏标记在 Stage 查询后统一清除，避免重复处理
++ - 脏标记由 Entity 统一管理，使用 ComponentId 作为唯一标识
+  
+  #### 2.2.2 Entity 脏标记管理
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 4
+
+```diff
+@@ -112,11 +112,13 @@
+  
+  **修改内容**:
+- - 维护脏组件集合：&#96;HashSet&lt;BaseComponent&gt; _dirtyComponents&#96;
+- - 提供 &#96;GetDirtyComponents()&#96; 方法：返回当前所有脏组件
++ - 维护脏组件 ID 集合：&#96;HashSet&lt;int&gt; _dirtyComponentIds&#96;
++ - 提供 &#96;GetDirtyComponentIds()&#96; 方法：返回当前所有脏组件的 ComponentId
++ - 提供 &#96;GetDirtyComponents()&#96; 方法：根据 ComponentId 返回对应的组件实例
+  - 提供 &#96;ClearDirtyComponents()&#96; 方法：清除所有脏标记
+- - 在组件调用 &#96;MarkDirty()&#96; 时，自动添加到脏组件集合
++ - 在组件调用 &#96;MarkDirty()&#96; 时，将 ComponentId 添加到脏组件集合
+  
+  **设计要点**:
+- - Entity 统一管理所有组件的脏标记状态
++ - Entity 统一管理所有组件的脏标记状态，使用 ComponentId 作为唯一标识
++ - 使用 HashSet&lt;int&gt; 存储 ComponentId，性能高效
+  - 提供批量查询接口，便于 Stage 统一处理
+  - 脏标记在查询后统一清除，避免重复处理
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 12, lines removed: 19
+
+```diff
+@@ -181,31 +181,24 @@
+      // 现有代码...
+      
+-     /// &lt;summary&gt;
+-     /// 脏标记，表示组件数据是否已变化
+-     /// &lt;/summary&gt;
+-     public bool IsDirty { get; private set; }
++     // 所属实体的引用（需要在 Entity.AddComponent 时设置）
++     private Entity _ownerEntity;
+      
+      /// &lt;summary&gt;
+-     /// 设置脏标记
+-     /// 子类在关键数据变化时调用此方法
++     /// 所属实体（内部设置，用于 MarkDirty 时通知 Entity）
+      /// &lt;/summary&gt;
+-     protected void MarkDirty()
+-     {
+-         IsDirty = true;
+-         
+-         // 通知所属 Entity 记录脏组件
+-         if (EntityId != 0)
+-         {
+-             // 通过 Entity 的静态方法或实例方法通知
+-             // 这里需要在 Entity 中提供相应的方法
+-         }
++     public Entity OwnerEntity
++     {
++         get =&gt; _ownerEntity;
++         internal set =&gt; _ownerEntity = value;
+      }
+      
+      /// &lt;summary&gt;
+-     /// 清除脏标记
++     /// 标记组件为脏
++     /// 子类在关键数据变化时调用此方法
+      /// &lt;/summary&gt;
+-     public void ClearDirty()
++     protected void MarkDirty()
+      {
+-         IsDirty = false;
++         // 通知所属 Entity 记录脏组件（使用 ComponentId）
++         _ownerEntity?.MarkComponentDirty(ComponentId);
+      }
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -240,6 +240,6 @@
+  public partial class Entity
+  {
+-     // 脏组件集合
+-     private HashSet&lt;BaseComponent&gt; _dirtyComponents = new HashSet&lt;BaseComponent&gt;();
++     // 脏组件 ID 集合（使用 ComponentId 作为唯一标识）
++     private HashSet&lt;int&gt; _dirtyComponentIds = new HashSet&lt;int&gt;();
+      
+      // 在 AddComponent 方法中
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -263,6 +263,6 @@
+          if (component != null)
+          {
+-             // 从脏组件集合中移除
+-             _dirtyComponents.Remove(component);
++             // 从脏组件 ID 集合中移除
++             _dirtyComponentIds.Remove(component.ComponentId);
+              
+              // 清除组件的 OwnerEntity 引用
+```
+
+**Chunk 3**
+Lines added: 40, lines removed: 39
+
+```diff
+@@ -281,55 +281,56 @@
+      /// 记录组件为脏（由 BaseComponent.MarkDirty() 调用）
+      /// &lt;/summary&gt;
+-     public void MarkComponentDirty(BaseComponent component)
++     /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
++     public void MarkComponentDirty(int componentId)
+      {
+-         if (component != null &amp;&amp; component.EntityId == UniqueId)
+-         {
+-             _dirtyComponents.Add(component);
+-         }
++         _dirtyComponentIds.Add(componentId);
+      }
+      
+      /// &lt;summary&gt;
+-     /// 获取所有脏组件
++     /// 获取所有脏组件的 ComponentId
+      /// &lt;/summary&gt;
+-     public IReadOnlyCollection&lt;BaseComponent&gt; GetDirtyComponents()
++     public IReadOnlyCollection&lt;int&gt; GetDirtyComponentIds()
+      {
+-         return _dirtyComponents;
++         return _dirtyComponentIds;
+      }
+      
+      /// &lt;summary&gt;
+-     /// 清除所有脏标记
++     /// 根据 ComponentId 获取对应的组件实例
+      /// &lt;/summary&gt;
+-     public void ClearDirtyComponents()
++     public BaseComponent GetComponentById(int componentId)
+      {
+-         foreach (var component in _dirtyComponents)
++         foreach (var component in Components.Values)
+          {
+-             component.ClearDirty();
+-         }
+-         _dirtyComponents.Clear();
+-     }
+- }
+- &#96;&#96;&#96;
+- 
+- ### 3.3 BaseComponent 通知 Entity
+- 
+- &#96;&#96;&#96;csharp
+- // BaseComponent.cs 修改
+- public abstract partial class BaseComponent
+- {
+-     // 所属实体的引用（需要在 Entity.AddComponent 时设置）
+-     private Entity _ownerEntity;
+-     
+-     public Entity OwnerEntity
+-     {
+-         get =&gt; _ownerEntity;
+-         internal set =&gt; _ownerEntity = value;
+-     }
+-     
+-     protected void MarkDirty()
+-     {
+-         IsDirty = true;
+-         
+-         // 通知所属 Entity
+-         _ownerEntity?.MarkComponentDirty(this);
++             if (component.ComponentId == componentId)
++             {
++                 return component;
++             }
++         }
++         return null;
++     }
++     
++     /// &lt;summary&gt;
++     /// 获取所有脏组件实例
++     /// &lt;/summary&gt;
++     public List&lt;BaseComponent&gt; GetDirtyComponents()
++     {
++         var dirtyComponents = new List&lt;BaseComponent&gt;();
++         foreach (var componentId in _dirtyComponentIds)
++         {
++             var component = GetComponentById(componentId);
++             if (component != null)
++             {
++                 dirtyComponents.Add(component);
++             }
++         }
++         return dirtyComponents;
++     }
++     
++     /// &lt;summary&gt;
++     /// 清除所有脏标记
++     /// &lt;/summary&gt;
++     public void ClearDirtyComponents()
++     {
++         _dirtyComponentIds.Clear();
+      }
+  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: 2
+
+```diff
+@@ -412,10 +412,13 @@
+          foreach (var entity in _room.MainWorld.GetAllEntities())
+          {
+-             var dirtyComponents = entity.GetDirtyComponents();
+-             if (dirtyComponents.Count &gt; 0)
++             var dirtyComponentIds = entity.GetDirtyComponentIds();
++             if (dirtyComponentIds.Count &gt; 0)
+              {
+                  // 获取对应的 EntityView
+                  if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
+                  {
++                     // 获取脏组件实例
++                     var dirtyComponents = entity.GetDirtyComponents();
++                     
+                      // 通知 EntityView 同步脏组件
+                      entityView.SyncDirtyComponents(dirtyComponents);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 11, lines removed: 9
+
+```diff
+@@ -655,23 +655,25 @@
+  2. 子类调用 MarkDirty()
+     ↓
+- 3. BaseComponent.IsDirty = true
++ 3. BaseComponent.MarkDirty() 通知 Entity
+     ↓
+- 4. Entity.MarkComponentDirty() 记录脏组件
++ 4. Entity.MarkComponentDirty(ComponentId) 记录脏组件 ID
+     ↓
+  5. Stage.Update() 调用 SyncDirtyComponents()
+     ↓
+- 6. Stage 遍历所有 Entity，查询脏组件
++ 6. Stage 遍历所有 Entity，查询脏组件 ID
+     ↓
+- 7. 对于有脏组件的 Entity，调用 EntityView.SyncDirtyComponents()
++ 7. Entity.GetDirtyComponents() 根据 ID 获取组件实例
+     ↓
+- 8. EntityView 查找对应的 ViewComponent
++ 8. 对于有脏组件的 Entity，调用 EntityView.SyncDirtyComponents()
+     ↓
+- 9. 调用 ViewComponent.SyncDataFromComponent()
++ 9. EntityView 查找对应的 ViewComponent
+     ↓
+- 10. ViewComponent 提取数据并调用 SyncData()
++ 10. 调用 ViewComponent.SyncDataFromComponent()
+      ↓
+- 11. ViewComponent.OnSyncData() 执行同步逻辑
++ 11. ViewComponent 提取数据并调用 SyncData()
+      ↓
+- 12. Entity.ClearDirtyComponents() 清除脏标记
++ 12. ViewComponent.OnSyncData() 执行同步逻辑
++     ↓
++ 13. Entity.ClearDirtyComponents() 清除脏标记
+  &#96;&#96;&#96;
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 2
+
+```diff
+@@ -728,11 +728,13 @@
+  
+  **理由**:
+- - 性能：避免事件系统的开销，脏标记是轻量级的布尔值
++ - 性能：避免事件系统的开销，使用 HashSet&lt;int&gt; 存储 ComponentId，性能高效
+  - 批量处理：Stage 可以批量查询所有 Entity 的脏组件，减少遍历次数
+  - 可控性：在 Stage 更新时统一处理，时机可控
+  - 简单性：不需要维护事件订阅关系，减少内存开销
++ - 集中管理：Entity 统一管理脏标记，BaseComponent 不需要存储状态
+  
+  **影响**:
+- - Entity 需要维护脏组件集合
++ - Entity 需要维护脏组件 ID 集合（HashSet&lt;int&gt;）
++ - BaseComponent 需要保存 OwnerEntity 引用，用于通知
+  - Stage 需要在更新时查询脏组件
+  - 需要在同步后清除脏标记，避免重复处理
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -886,8 +886,10 @@
+  ### 8.1 性能考虑
+  
++ - **脏标记存储**：使用 HashSet&lt;int&gt; 存储 ComponentId，查找和插入都是 O(1)
+  - **脏标记查询频率**：Stage 每帧查询一次，避免过度查询
+  - **映射查找优化**：EntityView 的映射查找使用字典，时间复杂度 O(1)
+  - **批量处理**：Stage 批量查询所有 Entity 的脏组件，减少遍历次数
+  - **脏标记清除**：同步后立即清除，避免重复处理
++ - **组件查找优化**：Entity 根据 ComponentId 查找组件，需要遍历 Components，但脏组件数量通常较少
+  
+  ### 8.2 生命周期管理
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+更新架构图，反映使用 ComponentId 的设计：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 2
+
+```diff
+@@ -43,7 +43,6 @@
+  │ BaseComponent   │
+  │                 │
+- │ IsDirty         │──┐
++ │ ComponentId     │──┐
+  │ MarkDirty()     │  │
+- │ ClearDirty()    │  │
+  └────────┬────────┘  │
+           │           │
+```
+
+**Chunk 2**
+Lines added: 3, lines removed: 1
+
+```diff
+@@ -53,5 +52,7 @@
+  │     Entity      │  │
+  │                 │  │
+- │ 维护脏标记集合   │  │
++ │ HashSet&lt;int&gt;    │  │
++ │ _dirtyComponentIds│ │
++ │ MarkComponentDirty│ │
+  │ GetDirtyComponents│ │
+  └────────┬────────┘  │
+```
+
+**Chunk 3**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -62,5 +63,5 @@
+  │                 │  │
+  │ Update()        │  │
+- │ 查询脏组件       │──┼──┐
++ │ 查询脏组件ID     │──┼──┐
+  │ 通知EntityView   │  │  │
+  └────────┬────────┘  │  │  │
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+已更新技术设计文档，主要变更：
+
+1. **BaseComponent**：
+   - 移除 `IsDirty` 属性和 `ClearDirty()` 方法
+   - 保留 `MarkDirty()` 方法，用于通知 Entity
+   - 添加 `OwnerEntity` 引用，用于通知
+
+2. **Entity**：
+   - 使用 `HashSet<int> _dirtyComponentIds` 存储脏组件的 ComponentId
+   - `MarkComponentDirty(int componentId)` 接收 ComponentId 而非组件实例
+   - 提供 `GetDirtyComponentIds()` 和 `GetDirtyComponents()` 方法
+   - 提供 `GetComponentById(int componentId)` 方法用于查找组件
+
+3. **架构图**：已更新，反映使用 ComponentId 的设计
+
+核心优势：
+- 性能：使用 `HashSet<int>` 存储 ComponentId，查找和插入为 O(1)
+- 集中管理：Entity 统一管理脏标记，BaseComponent 不存储状态
+- 内存效率：只存储 ComponentId，不存储组件引用
+
+文档已更新完成。需要我继续进入 EXECUTE 模式实施这些改动吗？
+
+---
+
+_**User (2025-11-27 08:04Z)**_
+
+ViewComponent也应该监听的 ID，然后 `SyncDataFromComponent` 参数就别 component了，直接传对应的ID就行 然后 SyncData 就删了吧
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+更新文档：ViewComponent 监听 ComponentId，`SyncDataFromComponent` 接收 ComponentId，删除 `SyncData`。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 5
+
+```diff
+@@ -144,11 +144,10 @@
+  
+  **新增内容**:
+- - &#96;GetWatchedComponentTypes()&#96; 虚方法：返回需要监听的 BaseComponent 类型数组
+- - &#96;SyncDataFromComponent(BaseComponent component)&#96; 虚方法：从 BaseComponent 提取数据并同步
+- - &#96;SyncData(object data)&#96; 公共方法：供外部调用，内部调用 &#96;OnSyncData&#96;
++ - &#96;GetWatchedComponentIds()&#96; 虚方法：返回需要监听的 BaseComponent 的 ComponentId 数组
++ - &#96;SyncDataFromComponent(int componentId)&#96; 虚方法：根据 ComponentId 从 OwnerEntity 获取组件并同步数据
+  
+  **设计要点**:
+- - 默认不监听任何组件，子类重写 &#96;GetWatchedComponentTypes()&#96; 声明需要监听的类型
+- - &#96;SyncDataFromComponent&#96; 由子类实现，提供灵活的数据提取逻辑
++ - 默认不监听任何组件，子类重写 &#96;GetWatchedComponentIds()&#96; 声明需要监听的 ComponentId
++ - &#96;SyncDataFromComponent&#96; 由子类实现，根据 ComponentId 从 OwnerEntity 获取组件并提取数据
+  - 保持现有的 &#96;OnSyncData&#96; 抽象方法，确保向后兼容
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: 5
+
+```diff
+@@ -157,13 +157,13 @@
+  
+  **新增内容**:
+- - &#96;_componentToViewComponentsMap&#96; 字典：维护 BaseComponent 类型到 ViewComponent 列表的映射
+- - &#96;RegisterViewComponentWatchedTypes()&#96; 方法：建立映射关系
+- - &#96;UnregisterViewComponentWatchedTypes()&#96; 方法：清理映射关系
++ - &#96;_componentIdToViewComponentsMap&#96; 字典：维护 ComponentId 到 ViewComponent 列表的映射
++ - &#96;RegisterViewComponentWatchedIds()&#96; 方法：建立映射关系
++ - &#96;UnregisterViewComponentWatchedIds()&#96; 方法：清理映射关系
+  - &#96;SyncDirtyComponents()&#96; 方法：接收 Stage 的同步请求，处理脏组件
+  
+  **设计要点**:
+- - EntityView 作为协调层，负责建立和维护 ViewComponent 与 BaseComponent 的映射关系
++ - EntityView 作为协调层，负责建立和维护 ViewComponent 与 ComponentId 的映射关系
+  - 被动接收 Stage 的同步请求，避免主动轮询带来的性能开销
+- - 根据 ViewComponent 的监听声明，只处理需要同步的组件
++ - 根据 ViewComponent 的监听声明（ComponentId），只处理需要同步的组件
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 16, lines removed: 19
+
+```diff
+@@ -346,32 +346,29 @@
+      
+      /// &lt;summary&gt;
+-     /// 获取需要监听的 BaseComponent 类型列表
+-     /// 子类重写此方法以声明需要监听的组件类型
++     /// 获取需要监听的 BaseComponent 的 ComponentId 列表
++     /// 子类重写此方法以声明需要监听的组件 ID
+      /// &lt;/summary&gt;
+-     /// &lt;returns&gt;需要监听的 BaseComponent 类型数组&lt;/returns&gt;
+-     public virtual Type[] GetWatchedComponentTypes()
++     /// &lt;returns&gt;需要监听的 ComponentId 数组&lt;/returns&gt;
++     public virtual int[] GetWatchedComponentIds()
+      {
+-         return new Type[0]; // 默认不监听任何组件
++         return new int[0]; // 默认不监听任何组件
+      }
+      
+      /// &lt;summary&gt;
+-     /// 从 BaseComponent 提取数据并同步
++     /// 根据 ComponentId 从 OwnerEntity 获取组件并同步数据
+      /// 子类重写此方法以自定义数据提取逻辑
+      /// &lt;/summary&gt;
+-     /// &lt;param name=&quot;component&quot;&gt;BaseComponent 实例&lt;/param&gt;
+-     protected virtual void SyncDataFromComponent(BaseComponent component)
++     /// &lt;param name=&quot;componentId&quot;&gt;BaseComponent 的 ComponentId&lt;/param&gt;
++     protected virtual void SyncDataFromComponent(int componentId)
+      {
+          // 默认实现：子类可以重写以自定义数据提取逻辑
+-         // 例如：从 component 提取数据，构造数据对象，然后调用 SyncData
+-     }
+-     
+-     /// &lt;summary&gt;
+-     /// 同步数据（公共方法，供外部调用）
+-     /// &lt;/summary&gt;
+-     /// &lt;param name=&quot;data&quot;&gt;数据对象&lt;/param&gt;
+-     public void SyncData(object data)
+-     {
+-         if (!_isEnabled) return;
+-         OnSyncData(data);
++         // 例如：从 OwnerEntity 根据 ComponentId 获取组件，提取数据，构造数据对象，然后调用 OnSyncData
++         if (OwnerEntity == null) return;
++         
++         var component = OwnerEntity.GetComponentById(componentId);
++         if (component != null)
++         {
++             // 子类应该重写此方法，从 component 提取数据并调用 OnSyncData
++         }
+      }
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 16, lines removed: 16
+
+```diff
+@@ -468,36 +468,36 @@
+      
+      /// &lt;summary&gt;
+-     /// 注册 ViewComponent 监听的组件类型
++     /// 注册 ViewComponent 监听的组件 ID
+      /// &lt;/summary&gt;
+-     private void RegisterViewComponentWatchedTypes(ViewComponent viewComponent)
++     private void RegisterViewComponentWatchedIds(ViewComponent viewComponent)
+      {
+-         var watchedTypes = viewComponent.GetWatchedComponentTypes();
+-         foreach (var type in watchedTypes)
++         var watchedIds = viewComponent.GetWatchedComponentIds();
++         foreach (var componentId in watchedIds)
+          {
+-             if (!_componentToViewComponentsMap.ContainsKey(type))
++             if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
+              {
+-                 _componentToViewComponentsMap[type] = new List&lt;ViewComponent&gt;();
++                 _componentIdToViewComponentsMap[componentId] = new List&lt;ViewComponent&gt;();
+              }
+-             if (!_componentToViewComponentsMap[type].Contains(viewComponent))
++             if (!_componentIdToViewComponentsMap[componentId].Contains(viewComponent))
+              {
+-                 _componentToViewComponentsMap[type].Add(viewComponent);
++                 _componentIdToViewComponentsMap[componentId].Add(viewComponent);
+              }
+          }
+      }
+      
+      /// &lt;summary&gt;
+-     /// 取消注册 ViewComponent 监听的组件类型
++     /// 取消注册 ViewComponent 监听的组件 ID
+      /// &lt;/summary&gt;
+-     private void UnregisterViewComponentWatchedTypes(ViewComponent viewComponent)
++     private void UnregisterViewComponentWatchedIds(ViewComponent viewComponent)
+      {
+-         var watchedTypes = viewComponent.GetWatchedComponentTypes();
+-         foreach (var type in watchedTypes)
++         var watchedIds = viewComponent.GetWatchedComponentIds();
++         foreach (var componentId in watchedIds)
+          {
+-             if (_componentToViewComponentsMap.ContainsKey(type))
++             if (_componentIdToViewComponentsMap.ContainsKey(componentId))
+              {
+-                 _componentToViewComponentsMap[type].Remove(viewComponent);
+-                 if (_componentToViewComponentsMap[type].Count == 0)
++                 _componentIdToViewComponentsMap[componentId].Remove(viewComponent);
++                 if (_componentIdToViewComponentsMap[componentId].Count == 0)
+                  {
+-                     _componentToViewComponentsMap.Remove(type);
++                     _componentIdToViewComponentsMap.Remove(componentId);
+                  }
+              }
+```
+
+**Chunk 2**
+Lines added: 7, lines removed: 9
+
+```diff
+@@ -508,24 +508,22 @@
+      /// 同步脏组件（由 Stage 调用）
+      /// &lt;/summary&gt;
+-     public void SyncDirtyComponents(IReadOnlyCollection&lt;BaseComponent&gt; dirtyComponents)
++     public void SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)
+      {
+-         if (dirtyComponents == null || dirtyComponents.Count == 0)
++         if (dirtyComponentIds == null || dirtyComponentIds.Count == 0)
+          {
+              return;
+          }
+          
+-         // 遍历所有脏组件
+-         foreach (var component in dirtyComponents)
++         // 遍历所有脏组件 ID
++         foreach (var componentId in dirtyComponentIds)
+          {
+-             var componentType = component.GetType();
+-             
+-             // 检查是否有 ViewComponent 监听此组件类型
+-             if (!_componentToViewComponentsMap.ContainsKey(componentType))
++             // 检查是否有 ViewComponent 监听此组件 ID
++             if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
+              {
+                  continue;
+              }
+              
+              // 获取对应的 ViewComponent 列表
+-             var viewComponents = _componentToViewComponentsMap[componentType];
++             var viewComponents = _componentIdToViewComponentsMap[componentId];
+              
+              // 通知所有监听的 ViewComponent
+```
+
+**Chunk 3**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -534,6 +532,6 @@
+                  if (viewComponent != null &amp;&amp; viewComponent.IsEnabled)
+                  {
+-                     // 调用 ViewComponent 的数据同步方法
+-                     viewComponent.SyncDataFromComponent(component);
++                     // 调用 ViewComponent 的数据同步方法（传入 ComponentId）
++                     viewComponent.SyncDataFromComponent(componentId);
+                  }
+              }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -438,6 +438,6 @@
+      // 现有代码...
+      
+-     // 组件类型到 ViewComponent 列表的映射
+-     private Dictionary&lt;Type, List&lt;ViewComponent&gt;&gt; _componentToViewComponentsMap = new Dictionary&lt;Type, List&lt;ViewComponent&gt;&gt;();
++     // ComponentId 到 ViewComponent 列表的映射
++     private Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap = new Dictionary&lt;int, List&lt;ViewComponent&gt;&gt;();
+      
+      /// &lt;summary&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -449,5 +449,5 @@
+          
+          // 建立映射关系
+-         RegisterViewComponentWatchedTypes(component);
++         RegisterViewComponentWatchedIds(component);
+      }
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -461,5 +461,5 @@
+          {
+              // 清理映射关系
+-             UnregisterViewComponentWatchedTypes(component);
++             UnregisterViewComponentWatchedIds(component);
+              
+              // 现有代码...
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 5
+
+```diff
+@@ -415,9 +415,6 @@
+                  if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
+                  {
+-                     // 获取脏组件实例
+-                     var dirtyComponents = entity.GetDirtyComponents();
+-                     
+-                     // 通知 EntityView 同步脏组件
+-                     entityView.SyncDirtyComponents(dirtyComponents);
++                     // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
++                     entityView.SyncDirtyComponents(dirtyComponentIds);
+                  }
+                  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -542,5 +542,5 @@
+      {
+          // 清理映射关系
+-         _componentToViewComponentsMap.Clear();
++         _componentIdToViewComponentsMap.Clear();
+          
+          // 现有代码...
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 43, lines removed: 9
+
+```diff
+@@ -558,25 +558,59 @@
+  {
+      // 现有代码...
++     
++     // 需要监听的组件 ID（在初始化时获取）
++     private int _dynamicStatsComponentId;
++     private int _derivedStatsComponentId;
++     
++     protected override void OnInitialize()
++     {
++         // 现有初始化代码...
++         
++         // 获取需要监听的组件 ID
++         if (OwnerEntity != null)
++         {
++             var dynamicStats = OwnerEntity.GetComponent&lt;DynamicStatsComponent&gt;();
++             var derivedStats = OwnerEntity.GetComponent&lt;DerivedStatsComponent&gt;();
++             
++             if (dynamicStats != null)
++             {
++                 _dynamicStatsComponentId = dynamicStats.ComponentId;
++             }
++             if (derivedStats != null)
++             {
++                 _derivedStatsComponentId = derivedStats.ComponentId;
++             }
++         }
++     }
+      
+      /// &lt;summary&gt;
+-     /// 声明需要监听的组件类型
++     /// 声明需要监听的组件 ID
+      /// &lt;/summary&gt;
+-     public override Type[] GetWatchedComponentTypes()
++     public override int[] GetWatchedComponentIds()
+      {
+-         return new Type[]
++         var ids = new List&lt;int&gt;();
++         if (_dynamicStatsComponentId != 0)
+          {
+-             typeof(DynamicStatsComponent),
+-             typeof(DerivedStatsComponent)
+-         };
++             ids.Add(_dynamicStatsComponentId);
++         }
++         if (_derivedStatsComponentId != 0)
++         {
++             ids.Add(_derivedStatsComponentId);
++         }
++         return ids.ToArray();
+      }
+      
+      /// &lt;summary&gt;
+-     /// 从 BaseComponent 提取数据并同步
++     /// 根据 ComponentId 同步数据
+      /// &lt;/summary&gt;
+-     protected override void SyncDataFromComponent(BaseComponent component)
++     protected override void SyncDataFromComponent(int componentId)
+      {
+          if (OwnerEntity == null) return;
+          
+-         // 获取相关组件
++         // 根据 ComponentId 获取组件
++         var component = OwnerEntity.GetComponentById(componentId);
++         if (component == null) return;
++         
++         // 获取相关组件（可能需要多个组件的数据）
+          var dynamicStats = OwnerEntity.GetComponent&lt;DynamicStatsComponent&gt;();
+          var derivedStats = OwnerEntity.GetComponent&lt;DerivedStatsComponent&gt;();
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -591,6 +625,6 @@
+              );
+              
+-             // 调用同步方法
+-             SyncData(healthData);
++             // 直接调用 OnSyncData
++             OnSyncData(healthData);
+          }
+      }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -641,5 +641,5 @@
+  &#96;&#96;&#96;
+  
+- #### 3.5.2 TransViewComponent 示例（频繁变化，不使用事件）
++ #### 3.5.2 TransViewComponent 示例（频繁变化，不使用脏标记）
+  
+  &#96;&#96;&#96;csharp
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -648,7 +648,7 @@
+  {
+      // 对于频繁变化的组件，可以不声明监听，在 Update 中主动拉取
+-     public override Type[] GetWatchedComponentTypes()
++     public override int[] GetWatchedComponentIds()
+      {
+-         return new Type[0]; // 不监听，在 Update 中主动拉取
++         return new int[0]; // 不监听，在 Update 中主动拉取
+      }
+      
+```
+
+**Chunk 3**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -662,5 +662,5 @@
+              if (transComponent != null)
+              {
+-                 // 直接使用数据，不需要通过事件通知
++                 // 直接使用数据，不需要通过脏标记通知
+                  // 现有实现...
+              }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -695,7 +695,7 @@
+  9. EntityView 查找对应的 ViewComponent
+     ↓
+- 10. 调用 ViewComponent.SyncDataFromComponent()
++ 10. 调用 ViewComponent.SyncDataFromComponent(componentId)
+      ↓
+- 11. ViewComponent 提取数据并调用 SyncData()
++ 11. ViewComponent 根据 ComponentId 获取组件并提取数据
+      ↓
+  12. ViewComponent.OnSyncData() 执行同步逻辑
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 12, lines removed: 7
+
+```diff
+@@ -794,15 +794,20 @@
+     - 分析组件数据变化频率
+     - 频繁变化：不声明监听，在 Update 中主动拉取
+-    - 重要变化：声明监听，使用事件通知
++    - 重要变化：声明监听，使用脏标记机制
+  
+- 2. **实现 GetWatchedComponentTypes()**
+-    - 返回需要监听的 BaseComponent 类型数组
++ 2. **在 OnInitialize() 中获取 ComponentId**
++    - 从 OwnerEntity 获取需要监听的组件实例
++    - 保存组件的 ComponentId
++ 
++ 3. **实现 GetWatchedComponentIds()**
++    - 返回需要监听的 ComponentId 数组
+     - 如果不需要监听，返回空数组
+  
+- 3. **实现 SyncDataFromComponent()（可选）**
+-    - 如果使用事件通知，实现此方法提取数据
+-    - 如果使用主动拉取，可以不实现
++ 4. **实现 SyncDataFromComponent(int componentId)**
++    - 根据 ComponentId 从 OwnerEntity 获取组件
++    - 提取数据并构造数据对象
++    - 直接调用 OnSyncData(data)
+  
+- 4. **保持 OnSyncData() 实现**
++ 5. **保持 OnSyncData() 实现**
+     - 现有的 OnSyncData 实现保持不变
+     - 确保数据格式兼容
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 45, lines removed: 10
+
+```diff
+@@ -841,19 +841,54 @@
+      private bool _isAlive = true;
+      
+-     // 声明需要监听的组件类型
+-     public override Type[] GetWatchedComponentTypes()
+-     {
+-         return new Type[]
+-         {
+-             typeof(DynamicStatsComponent),
+-             typeof(DerivedStatsComponent)
+-         };
++     // 需要监听的组件 ID
++     private int _dynamicStatsComponentId;
++     private int _derivedStatsComponentId;
++     
++     protected override void OnInitialize()
++     {
++         // 现有初始化代码...
++         
++         // 获取需要监听的组件 ID
++         if (OwnerEntity != null)
++         {
++             var dynamicStats = OwnerEntity.GetComponent&lt;DynamicStatsComponent&gt;();
++             var derivedStats = OwnerEntity.GetComponent&lt;DerivedStatsComponent&gt;();
++             
++             if (dynamicStats != null)
++             {
++                 _dynamicStatsComponentId = dynamicStats.ComponentId;
++             }
++             if (derivedStats != null)
++             {
++                 _derivedStatsComponentId = derivedStats.ComponentId;
++             }
++         }
++     }
++     
++     // 声明需要监听的组件 ID
++     public override int[] GetWatchedComponentIds()
++     {
++         var ids = new List&lt;int&gt;();
++         if (_dynamicStatsComponentId != 0)
++         {
++             ids.Add(_dynamicStatsComponentId);
++         }
++         if (_derivedStatsComponentId != 0)
++         {
++             ids.Add(_derivedStatsComponentId);
++         }
++         return ids.ToArray();
+      }
+      
+-     // 从组件提取数据并同步
+-     protected override void SyncDataFromComponent(BaseComponent component)
++     // 根据 ComponentId 同步数据
++     protected override void SyncDataFromComponent(int componentId)
+      {
+          if (OwnerEntity == null) return;
+          
++         // 根据 ComponentId 获取组件（虽然这里可能不需要，因为需要多个组件的数据）
++         var component = OwnerEntity.GetComponentById(componentId);
++         if (component == null) return;
++         
++         // 获取相关组件
+          var dynamicStats = OwnerEntity.GetComponent&lt;DynamicStatsComponent&gt;();
+          var derivedStats = OwnerEntity.GetComponent&lt;DerivedStatsComponent&gt;();
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -867,5 +902,6 @@
+              );
+              
+-             SyncData(healthData);
++             // 直接调用 OnSyncData
++             OnSyncData(healthData);
+          }
+      }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -955,5 +955,5 @@
+  - **脏标记存储**：使用 HashSet&lt;int&gt; 存储 ComponentId，查找和插入都是 O(1)
+  - **脏标记查询频率**：Stage 每帧查询一次，避免过度查询
+- - **映射查找优化**：EntityView 的映射查找使用字典，时间复杂度 O(1)
++ - **映射查找优化**：EntityView 使用 ComponentId 作为键，映射查找使用字典，时间复杂度 O(1)
+  - **批量处理**：Stage 批量查询所有 Entity 的脏组件，减少遍历次数
+  - **脏标记清除**：同步后立即清除，避免重复处理
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -80,6 +80,7 @@
+  │ ViewComponent   │  │  │  │  │
+  │                 │  │  │  │  │
+- │ GetWatchedTypes │  │  │  │  │
++ │ GetWatchedIds   │  │  │  │  │
+  │ SyncDataFromComp│  │  │  │  │
++ │ (componentId)   │  │  │  │  │
+  │ OnSyncData      │◄─┘  │  │  │
+  └─────────────────┘     │  │  │
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+已更新技术设计文档，主要变更：
+
+1. **ViewComponent**：
+   - 将 `GetWatchedComponentTypes()` 改为 `GetWatchedComponentIds()`，返回 ComponentId 数组
+   - 将 `SyncDataFromComponent(BaseComponent component)` 改为 `SyncDataFromComponent(int componentId)`
+   - 删除 `SyncData(object data)` 公共方法，直接调用 `OnSyncData`
+
+2. **EntityView**：
+   - 将 `_componentToViewComponentsMap` 改为 `_componentIdToViewComponentsMap`，使用 ComponentId 作为键
+   - 相关方法改为使用 ComponentId
+   - `SyncDirtyComponents()` 接收 ComponentId 集合
+
+3. **Stage**：
+   - 传递 ComponentId 集合给 EntityView，而不是组件实例
+
+4. **示例代码**：
+   - 更新所有示例，展示如何在 `OnInitialize()` 中获取 ComponentId
+   - 展示如何使用 ComponentId 进行同步
+
+核心优势：
+- 更轻量：只传递 ComponentId，不传递组件引用
+- 更灵活：ViewComponent 可以根据 ComponentId 自行获取组件
+- 更简洁：删除不必要的 `SyncData` 方法，直接调用 `OnSyncData`
+
+文档已更新完成。需要我继续进入 EXECUTE 模式实施这些改动吗？
+
+---
+
+_**User (2025-11-27 08:04Z)**_
+
+BaseComponent 不要加对 OwnerEntity的引用。可以通过 ID 获取
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+更新文档：移除 BaseComponent 对 OwnerEntity 的引用，改为通过 EntityId 获取 Entity。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "BaseComponent EntityId World GetEntity" • **6** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs` | L39 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L62-104 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L64 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | L59 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L188-244 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L75 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+更新文档：移除 BaseComponent 对 OwnerEntity 的引用，改为通过 EntityId 获取 Entity。
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "World GetEntity EntityId static manager" • **5** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L188-244 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L64 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L75 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L419-451 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L62-104 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 29, lines removed: 13
+
+```diff
+@@ -181,25 +181,41 @@
+  {
+      // 现有代码...
+-     
+-     // 所属实体的引用（需要在 Entity.AddComponent 时设置）
+-     private Entity _ownerEntity;
++     // BaseComponent 已经有 EntityId 属性
+      
+      /// &lt;summary&gt;
+-     /// 所属实体（内部设置，用于 MarkDirty 时通知 Entity）
++     /// 标记组件为脏
++     /// 子类在关键数据变化时调用此方法
+      /// &lt;/summary&gt;
+-     public Entity OwnerEntity
+-     {
+-         get =&gt; _ownerEntity;
+-         internal set =&gt; _ownerEntity = value;
++     protected void MarkDirty()
++     {
++         // 通过 EntityId 获取 Entity 实例（需要通过 World 或其他方式）
++         // 这里假设有一个全局的方式可以通过 EntityId 获取 Entity
++         // 例如：World.GetEntity(EntityId) 或 EntityManager.GetEntity(EntityId)
++         var entity = GetOwnerEntity();
++         if (entity != null)
++         {
++             entity.MarkComponentDirty(ComponentId);
++         }
+      }
+      
+      /// &lt;summary&gt;
+-     /// 标记组件为脏
+-     /// 子类在关键数据变化时调用此方法
++     /// 获取所属实体（通过 EntityId 获取）
+      /// &lt;/summary&gt;
+-     protected void MarkDirty()
++     protected Entity GetOwnerEntity()
+      {
+-         // 通知所属 Entity 记录脏组件（使用 ComponentId）
+-         _ownerEntity?.MarkComponentDirty(ComponentId);
++         // 需要通过 EntityId 获取 Entity
++         // 具体实现取决于项目的架构，可能需要：
++         // 1. 通过 World 管理器获取
++         // 2. 通过 Entity 管理器获取
++         // 3. 通过静态方法获取
++         // 这里提供一个示例实现（需要根据实际项目调整）
++         // return WorldManager.Instance?.GetEntity(EntityId);
++         // 或者
++         // return Entity.GetEntityById(EntityId);
++         
++         // 注意：这里需要根据实际项目架构实现
++         // 如果 Entity 有 World 引用，可以通过 World.GetEntity(EntityId) 获取
++         // 但 BaseComponent 需要知道如何获取 World
++         return null; // 占位符，需要实际实现
+      }
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "AddComponent|OnAttachToEntity" in "AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `AddComponent(comp);` | L173 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `comp.OnAttachToEntity(this);` | L174 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `public void AddComponent<T>(T component) where T : BaseComponent` | L341 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+更新文档：移除 BaseComponent 对 OwnerEntity 的引用，改为通过 EntityId 获取 Entity。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 3
+
+```diff
+@@ -264,7 +264,6 @@
+      {
+          // 现有代码...
+-         
+-         // 设置组件的 OwnerEntity 引用（用于 MarkDirty 时通知 Entity）
+-         component.OwnerEntity = this;
++         // 注意：BaseComponent 已经有 EntityId 属性，在 AddComponent 时会设置
++         // component.EntityId = UniqueId; （如果还没有设置的话）
+          
+          // 发布组件添加事件（保持现有机制）
+```
+
+**Chunk 2**
+Lines added: undefined, lines removed: 3
+
+```diff
+@@ -282,7 +281,4 @@
+              // 从脏组件 ID 集合中移除
+              _dirtyComponentIds.Remove(component.ComponentId);
+-             
+-             // 清除组件的 OwnerEntity 引用
+-             component.OwnerEntity = null;
+              
+              // 发布组件移除事件（保持现有机制）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 12, lines removed: 11
+
+```diff
+@@ -205,17 +205,18 @@
+      {
+          // 需要通过 EntityId 获取 Entity
+-         // 具体实现取决于项目的架构，可能需要：
+-         // 1. 通过 World 管理器获取
+-         // 2. 通过 Entity 管理器获取
+-         // 3. 通过静态方法获取
+-         // 这里提供一个示例实现（需要根据实际项目调整）
++         // 具体实现取决于项目的架构
++         // 
++         // 方案1：如果 BaseComponent 有 WorldId，可以通过 WorldManager 获取
++         // return WorldManager.Instance?.GetWorld(WorldId)?.GetEntity(EntityId);
++         //
++         // 方案2：如果 Entity 有全局注册表，可以通过静态方法获取
++         // return EntityRegistry.GetEntity(EntityId);
++         //
++         // 方案3：如果 World 有全局访问方式，可以通过 World 获取
+          // return WorldManager.Instance?.GetEntity(EntityId);
+-         // 或者
+-         // return Entity.GetEntityById(EntityId);
+-         
++         //
+          // 注意：这里需要根据实际项目架构实现
+-         // 如果 Entity 有 World 引用，可以通过 World.GetEntity(EntityId) 获取
+-         // 但 BaseComponent 需要知道如何获取 World
+-         return null; // 占位符，需要实际实现
++         // BaseComponent 已经有 EntityId 属性，只需要提供获取 Entity 的方式
++         return null; // 占位符，需要根据实际项目架构实现
+      }
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+更新文档，移除 BaseComponent 对 OwnerEntity 的引用，改为通过 EntityId 获取 Entity。
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "BaseComponent WorldId World reference" • **8** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L1-74 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs` | L1-40 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L64-104 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L107-153 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L74-107 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/BaseStatsComponent.cs` | L1-35 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L1-64 |
+| `AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs` | L1-59 |
+
+</details>
+</tool-use>
+
+---
+
+Cancelled
+
+---
+
+_**User (2025-11-27 08:04Z)**_
+
+不要在BaseComponent里搞MarkDirty了，只保留 Entity里的方法就行
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+更新文档：移除 BaseComponent 的 MarkDirty 方法，仅保留 Entity 中的方法。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 8
+
+```diff
+@@ -95,15 +95,11 @@
+  ### 2.2 核心组件
+  
+- #### 2.2.1 BaseComponent 增强
++ #### 2.2.1 BaseComponent
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs&#96;
+  
+- **新增内容**:
+- - &#96;MarkDirty()&#96; 方法：通知 Entity 该组件已变脏
+- - &#96;ComponentName&#96; 属性：组件类型名称（用于日志和调试）
+- 
+- **设计要点**:
+- - BaseComponent 不存储脏标记状态，只提供通知方法
+- - 子类在数据变化时调用 &#96;MarkDirty()&#96;，通知所属 Entity
++ **说明**:
++ - BaseComponent 不需要添加任何新方法
++ - 子类在数据变化时，需要通过 EntityId 获取 Entity，然后调用 Entity 的方法标记组件为脏
+  - 对于频繁变化的组件（如 &#96;TransComponent&#96;），可以不使用脏标记，由 ViewComponent 在 Update 中主动拉取
+  - 脏标记由 Entity 统一管理，使用 ComponentId 作为唯一标识
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 55
+
+```diff
+@@ -168,61 +168,13 @@
+  ## 3. 实现细节
+  
+- ### 3.1 BaseComponent 脏标记机制
+- 
+- #### 3.1.1 基类增强
+- 
+- &#96;&#96;&#96;csharp
+- // BaseComponent.cs
+- public abstract partial class BaseComponent
+- {
+-     // 现有代码...
+-     // BaseComponent 已经有 EntityId 属性
+-     
+-     /// &lt;summary&gt;
+-     /// 标记组件为脏
+-     /// 子类在关键数据变化时调用此方法
+-     /// &lt;/summary&gt;
+-     protected void MarkDirty()
+-     {
+-         // 通过 EntityId 获取 Entity 实例（需要通过 World 或其他方式）
+-         // 这里假设有一个全局的方式可以通过 EntityId 获取 Entity
+-         // 例如：World.GetEntity(EntityId) 或 EntityManager.GetEntity(EntityId)
+-         var entity = GetOwnerEntity();
+-         if (entity != null)
+-         {
+-             entity.MarkComponentDirty(ComponentId);
+-         }
+-     }
+-     
+-     /// &lt;summary&gt;
+-     /// 获取所属实体（通过 EntityId 获取）
+-     /// &lt;/summary&gt;
+-     protected Entity GetOwnerEntity()
+-     {
+-         // 需要通过 EntityId 获取 Entity
+-         // 具体实现取决于项目的架构
+-         // 
+-         // 方案1：如果 BaseComponent 有 WorldId，可以通过 WorldManager 获取
+-         // return WorldManager.Instance?.GetWorld(WorldId)?.GetEntity(EntityId);
+-         //
+-         // 方案2：如果 Entity 有全局注册表，可以通过静态方法获取
+-         // return EntityRegistry.GetEntity(EntityId);
+-         //
+-         // 方案3：如果 World 有全局访问方式，可以通过 World 获取
+-         // return WorldManager.Instance?.GetEntity(EntityId);
+-         //
+-         // 注意：这里需要根据实际项目架构实现
+-         // BaseComponent 已经有 EntityId 属性，只需要提供获取 Entity 的方式
+-         return null; // 占位符，需要根据实际项目架构实现
+-     }
+-     
+-     /// &lt;summary&gt;
+-     /// 获取组件类型名称（用于日志和调试）
+-     /// &lt;/summary&gt;
+-     public virtual string ComponentName =&gt; GetType().Name;
+- }
+- &#96;&#96;&#96;
++ ### 3.1 BaseComponent 使用说明
++ 
++ #### 3.1.1 BaseComponent 不需要修改
++ 
++ BaseComponent 不需要添加任何新方法，保持现有实现即可。
+  
+  #### 3.1.2 子类使用示例
++ 
++ 子类在数据变化时，需要通过 EntityId 获取 Entity，然后调用 Entity 的方法标记组件为脏：
+  
+  &#96;&#96;&#96;csharp
+```
+
+**Chunk 2**
+Lines added: 13, lines removed: 2
+
+```diff
+@@ -238,11 +190,22 @@
+              _resources[type] = value;
+              
+-             // 对于重要的资源变化（如血量），设置脏标记
++             // 对于重要的资源变化（如血量），标记组件为脏
+              if (type == DynamicResourceType.CURRENT_HP)
+              {
+-                 MarkDirty();
++                 // 通过 EntityId 获取 Entity，然后调用 Entity 的方法
++                 // 具体实现取决于项目的架构，可能需要：
++                 // 1. 通过 World 管理器获取 Entity
++                 // 2. 通过 Entity 管理器获取 Entity
++                 // 3. 通过静态方法获取 Entity
++                 // 
++                 // 示例（需要根据实际项目架构调整）：
++                 // var entity = GetEntityById(EntityId);
++                 // entity?.MarkComponentDirty(ComponentId);
+              }
+          }
+      }
++     
++     // 注意：这里需要根据实际项目架构提供获取 Entity 的方法
++     // 例如：通过 World.GetEntity(EntityId) 获取
+  }
+  &#96;&#96;&#96;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: 2
+
+```diff
+@@ -910,8 +910,11 @@
+              _resources[type] = value;
+              
+-             // 对于重要的资源变化（如血量），设置脏标记
++             // 对于重要的资源变化（如血量），标记组件为脏
+              if (type == DynamicResourceType.CURRENT_HP)
+              {
+-                 MarkDirty();
++                 // 通过 EntityId 获取 Entity，然后调用 Entity 的方法
++                 // 具体实现取决于项目的架构
++                 // 示例：var entity = WorldManager.Instance?.GetEntity(EntityId);
++                 //       entity?.MarkComponentDirty(ComponentId);
+              }
+          }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 2
+
+```diff
+@@ -792,6 +792,7 @@
+     - 例如：血量变化、状态变化、属性变化
+  
+- 2. **添加 MarkDirty() 调用**
+-    - 在属性 setter 或关键方法中调用
++ 2. **添加脏标记调用**
++    - 在属性 setter 或关键方法中，通过 EntityId 获取 Entity
++    - 调用 Entity.MarkComponentDirty(ComponentId) 标记组件为脏
+     - 确保只在数据真正变化时调用
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 1
+
+```diff
+@@ -44,8 +44,10 @@
+  │                 │
+  │ ComponentId     │──┐
+- │ MarkDirty()     │  │
++ │ EntityId        │  │
+  └────────┬────────┘  │
+           │           │
+           │ 数据变化   │
++          │ 通过EntityId│
++          │ 获取Entity │
+           │           │
+  ┌────────▼────────┐  │
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -654,9 +654,9 @@
+  1. BaseComponent 数据变化
+     ↓
+- 2. 子类调用 MarkDirty()
++ 2. 子类通过 EntityId 获取 Entity
+     ↓
+- 3. BaseComponent.MarkDirty() 通知 Entity
++ 3. 调用 Entity.MarkComponentDirty(ComponentId) 记录脏组件 ID
+     ↓
+- 4. Entity.MarkComponentDirty(ComponentId) 记录脏组件 ID
++ 4. Entity 将 ComponentId 添加到 _dirtyComponentIds 集合
+     ↓
+  5. Stage.Update() 调用 SyncDirtyComponents()
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+已更新技术设计文档，主要变更：
+
+1. **BaseComponent**：
+   - 移除 `MarkDirty()` 方法
+   - 不再添加任何新方法
+   - 子类通过 EntityId 获取 Entity，然后调用 `Entity.MarkComponentDirty(ComponentId)`
+
+2. **Entity**：
+   - 保留 `MarkComponentDirty(int componentId)` 方法
+   - 保留脏标记管理相关方法
+
+3. **数据流**：
+   - 更新流程说明，反映子类直接调用 Entity 方法的设计
+
+4. **示例代码**：
+   - 更新示例，展示子类如何通过 EntityId 获取 Entity 并调用方法
+
+设计更简洁：BaseComponent 不包含脏标记相关方法，子类直接调用 Entity 的方法。文档已更新完成。
+
+---
+
+_**User (2025-11-27 08:04Z)**_
+
+GetWatchedComponentIds 默认返回 null
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+更新文档：将 `GetWatchedComponentIds` 的默认返回值改为 `null`。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -324,8 +324,8 @@
+      /// 子类重写此方法以声明需要监听的组件 ID
+      /// &lt;/summary&gt;
+-     /// &lt;returns&gt;需要监听的 ComponentId 数组&lt;/returns&gt;
++     /// &lt;returns&gt;需要监听的 ComponentId 数组，如果不需要监听则返回 null&lt;/returns&gt;
+      public virtual int[] GetWatchedComponentIds()
+      {
+-         return new int[0]; // 默认不监听任何组件
++         return null; // 默认不监听任何组件
+      }
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -445,4 +445,9 @@
+      {
+          var watchedIds = viewComponent.GetWatchedComponentIds();
++         if (watchedIds == null || watchedIds.Length == 0)
++         {
++             return; // 没有需要监听的组件
++         }
++         
+          foreach (var componentId in watchedIds)
+          {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -469,4 +469,9 @@
+      {
+          var watchedIds = viewComponent.GetWatchedComponentIds();
++         if (watchedIds == null || watchedIds.Length == 0)
++         {
++             return; // 没有需要取消监听的组件
++         }
++         
+          foreach (var componentId in watchedIds)
+          {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -635,5 +635,5 @@
+      public override int[] GetWatchedComponentIds()
+      {
+-         return new int[0]; // 不监听，在 Update 中主动拉取
++         return null; // 不监听，在 Update 中主动拉取
+      }
+      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -787,5 +787,5 @@
+  3. **实现 GetWatchedComponentIds()**
+     - 返回需要监听的 ComponentId 数组
+-    - 如果不需要监听，返回空数组
++    - 如果不需要监听，返回 null
+  
+  4. **实现 SyncDataFromComponent(int componentId)**
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+已更新技术设计文档，主要变更：
+
+1. **ViewComponent.GetWatchedComponentIds()**：
+   - 默认返回值从 `new int[0]` 改为 `null`
+   - 更新方法注释，说明返回 `null` 表示不监听任何组件
+
+2. **EntityView 的注册/取消注册方法**：
+   - `RegisterViewComponentWatchedIds()` 添加 null 检查
+   - `UnregisterViewComponentWatchedIds()` 添加 null 检查
+
+3. **示例代码**：
+   - 更新 `TransViewComponent` 示例，返回 `null` 而不是空数组
+
+4. **迁移指南**：
+   - 更新说明，明确返回 `null` 表示不监听
+
+文档已更新完成。`GetWatchedComponentIds()` 默认返回 `null`，表示不监听任何组件。
+
+---
+
