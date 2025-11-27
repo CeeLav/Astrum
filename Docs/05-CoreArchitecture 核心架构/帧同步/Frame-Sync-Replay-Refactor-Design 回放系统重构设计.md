@@ -464,35 +464,6 @@ UIManager.Update()
 
 ---
 
-## 7. 实施计划
-
-### 7.1 第一阶段：完善 UI 更新机制
-
-**任务**:
-1. 实现 `ReplayUIView.OnUpdate()`、`UpdateUI()`、`RefreshReplayGameMode()`
-2. 实现 `OnPlayButtonClicked()`、`OnPauseButtonClicked()`、`OnSliderValueChanged()` 等交互方法
-3. 测试 UI 更新和交互功能
-
-**预计工时**: 2-3 小时
-
-### 7.2 第二阶段：优化职责边界
-
-**任务**:
-1. 将 `SetupSnapshotInFrameBuffer()` 移到 `ReplayLSController`，改为 `LoadSnapshot()` 方法
-2. 移除 `ReplayGameMode.Update()` 中的预加载逻辑
-3. 统一播放状态管理
-
-**预计工时**: 2-3 小时
-
-### 7.3 第三阶段：改进快照加载和错误处理
-
-**任务**:
-1. 实现 `FastForwardTo()` 的回退支持
-2. 增强错误处理和日志记录
-3. 添加回滚机制
-
-**预计工时**: 3-4 小时
-
 ---
 
 ## 8. 相关文档
@@ -505,7 +476,6 @@ UIManager.Update()
 *文档版本：v1.1*  
 *创建时间：2025-01-27*  
 *最后更新：2025-01-27*  
-*状态：设计完成*  
 *Owner*: AI Assistant  
 *变更摘要*: 补充UI显示帧数和时间的说明，明确回放使用相对时间（从0开始）的概念
 
