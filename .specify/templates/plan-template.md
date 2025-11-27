@@ -1,35 +1,34 @@
-# Implementation Plan: [FEATURE]
+# 实施计划: [功能名称]
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**分支**: `[###-feature-name]` | **日期**: [DATE] | **规格说明**: [link]
+**输入**: 功能规格说明来自 `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**注意**: 此模板由 `/speckit.plan` 命令填充。执行工作流请参见 `.specify/templates/commands/plan.md`。
 
-## Summary
+## 摘要
 
-[Extract from feature spec: primary requirement + technical approach from research]
+[从功能规格说明中提取：主要需求 + 研究中的技术方案]
 
-## Technical Context
+## 技术上下文
 
 <!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
+  操作要求：用项目的技术细节替换本节内容。
+  此处结构仅供参考，用于指导迭代过程。
 -->
 
-**Language/Version**: C# / .NET 9.0 (服务器), Unity 2022.3 LTS (客户端)  
-**Primary Dependencies**: Unity Engine, TrueSync FP Math, BEPU Physics v1, MemoryPack, Protocol Buffers  
-**Storage**: 配置数据使用 Luban CSV 框架，运行时状态使用内存快照  
-**Testing**: NUnit (单元测试), 确定性测试框架, 回滚测试框架, 性能测试工具  
-**Target Platform**: Windows 10/11, macOS, Linux (客户端和服务器)  
-**Project Type**: Unity 游戏客户端 + .NET 服务器 (帧同步架构)  
-**Performance Goals**: 60 FPS 稳定运行，单帧执行时间 < 16.67ms，网络延迟 < 100ms  
-**Constraints**: 确定性执行（必须使用定点数），禁止浮点数游戏逻辑，禁止非确定性操作，状态必须可序列化  
-**Scale/Scope**: 多人游戏（2-8 玩家），ECC 架构，技能系统，物理碰撞检测
+**语言/版本**: C# / .NET 9.0 (服务器), Unity 2022.3 LTS (客户端)  
+**主要依赖**: Unity Engine, TrueSync FP Math, BEPU Physics v1, MemoryPack, Protocol Buffers  
+**存储**: 配置数据使用 Luban CSV 框架，运行时状态使用内存快照  
+**测试**: NUnit (单元测试), 确定性测试框架, 回滚测试框架, 性能测试工具  
+**目标平台**: Windows 10/11, macOS, Linux (客户端和服务器)  
+**项目类型**: Unity 游戏客户端 + .NET 服务器 (帧同步架构)  
+**性能目标**: 60 FPS 稳定运行，单帧执行时间 < 16.67ms，网络延迟 < 100ms  
+**约束条件**: 确定性执行（必须使用定点数），禁止浮点数游戏逻辑，禁止非确定性操作，状态必须可序列化  
+**规模/范围**: 多人游戏（2-8 玩家），ECC 架构，技能系统，物理碰撞检测
 
-## Constitution Check
+## 章程检查
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*关卡：必须在阶段 0 研究之前通过。阶段 1 设计后重新检查。*
 
 ### 确定性执行检查
 - [ ] 所有数值计算是否使用定点数（FP Math）而非浮点数？
@@ -57,30 +56,29 @@
 - [ ] 是否实现回滚测试？
 - [ ] 是否进行性能测试验证单帧执行时间？
 
-## Project Structure
+## 项目结构
 
-### Documentation (this feature)
+### 文档（此功能）
 
 ```text
 specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── plan.md              # 本文件 (/speckit.plan 命令输出)
+├── research.md          # 阶段 0 输出 (/speckit.plan 命令)
+├── data-model.md        # 阶段 1 输出 (/speckit.plan 命令)
+├── quickstart.md        # 阶段 1 输出 (/speckit.plan 命令)
+├── contracts/           # 阶段 1 输出 (/speckit.plan 命令)
+└── tasks.md             # 阶段 2 输出 (/speckit.tasks 命令 - 不由 /speckit.plan 创建)
 ```
 
-### Source Code (repository root)
+### 源代码（仓库根目录）
 <!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
+  操作要求：用此功能的具体布局替换下面的占位符树。
+  删除未使用的选项，并用真实路径扩展所选结构（例如，apps/admin, packages/something）。
+  交付的计划不得包含选项标签。
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+# [如果未使用则删除] 选项 1: 单项目（默认）
 src/
 ├── models/
 ├── services/
@@ -92,7 +90,7 @@ tests/
 ├── integration/
 └── unit/
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+# [如果未使用则删除] 选项 2: Web 应用（当检测到 "frontend" + "backend" 时）
 backend/
 ├── src/
 │   ├── models/
@@ -107,22 +105,21 @@ frontend/
 │   └── services/
 └── tests/
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+# [如果未使用则删除] 选项 3: 移动端 + API（当检测到 "iOS/Android" 时）
 api/
-└── [same as backend above]
+└── [与上面的 backend 相同]
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+ios/ 或 android/
+└── [平台特定结构：功能模块、UI 流程、平台测试]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**结构决策**: [记录所选结构并引用上面捕获的真实目录]
 
-## Complexity Tracking
+## 复杂度跟踪
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> **仅在章程检查有必须证明的违规时填写**
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| 违规项 | 为何需要 | 拒绝更简单替代方案的原因 |
+|--------|----------|------------------------|
+| [例如，第 4 个项目] | [当前需求] | [为什么 3 个项目不够] |
+| [例如，Repository 模式] | [具体问题] | [为什么直接数据库访问不够] |

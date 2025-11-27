@@ -11,9 +11,11 @@ Version change: 0.0.0 → 1.0.0 (初始版本)
   - 技术栈约束
   - 开发工作流
 模板更新状态：
-  - ✅ plan-template.md - 已更新 Constitution Check 和技术上下文
-  - ✅ spec-template.md - 已添加帧同步特定标准
-  - ✅ tasks-template.md - 已添加确定性测试、性能测试、回滚测试任务
+  - ✅ plan-template.md - 已更新 Constitution Check 和技术上下文，已中文化
+  - ✅ spec-template.md - 已添加帧同步特定标准，已中文化
+  - ✅ tasks-template.md - 已添加确定性测试、性能测试、回滚测试任务，已中文化
+  - ✅ checklist-template.md - 已中文化
+  - ✅ agent-file-template.md - 已中文化
 -->
 
 # Astrum 项目章程
