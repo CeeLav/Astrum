@@ -3,6 +3,7 @@ using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Managers;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Capabilities;
 using MemoryPack;
 using TrueSync;
 // 使用别名避免与 BEPU 的 Entity 类冲突
@@ -16,6 +17,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class CollisionComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<CollisionComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>碰撞形状列表（可多个）</summary>
         public List<CollisionShape> Shapes { get; set; } = new();
         

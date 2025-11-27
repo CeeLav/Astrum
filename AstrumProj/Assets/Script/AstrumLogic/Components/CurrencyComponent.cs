@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Inventory;
+using Astrum.LogicCore.Capabilities;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Components
@@ -11,6 +12,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class CurrencyComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<CurrencyComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>货币余额表</summary>
         public Dictionary<CurrencyType, long> Balances { get; set; } = new();
 

@@ -1,6 +1,7 @@
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.Capabilities;
 using cfg.BaseUnit;
 using MemoryPack;
 
@@ -12,6 +13,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class MonsterInfoComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<MonsterInfoComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>
         /// 怪物配置ID（直接使用EntityId）
         /// </summary>

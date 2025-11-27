@@ -1,5 +1,6 @@
 using Astrum.LogicCore.Stats;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Capabilities;
 using TrueSync;
 using MemoryPack;
 
@@ -11,6 +12,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class GrowthComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<GrowthComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>角色ID（关联成长表）</summary>
         public int RoleId { get; set; }
         

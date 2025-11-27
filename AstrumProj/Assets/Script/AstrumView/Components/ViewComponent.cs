@@ -180,27 +180,27 @@ namespace Astrum.View.Components
         }
         
         /// <summary>
-        /// 获取需要监听的 BaseComponent 的 ComponentId 列表
-        /// 子类重写此方法以声明需要监听的组件 ID
+        /// 获取需要监听的 BaseComponent 的 ComponentTypeId 列表
+        /// 子类重写此方法以声明需要监听的组件类型 ID
         /// </summary>
-        /// <returns>需要监听的 ComponentId 数组，如果不需要监听则返回 null</returns>
+        /// <returns>需要监听的 ComponentTypeId 数组，如果不需要监听则返回 null</returns>
         public virtual int[] GetWatchedComponentIds()
         {
             return null; // 默认不监听任何组件
         }
         
         /// <summary>
-        /// 根据 ComponentId 从 OwnerEntity 获取组件并同步数据
+        /// 根据 ComponentTypeId 从 OwnerEntity 获取组件并同步数据
         /// 子类重写此方法以自定义数据提取逻辑
         /// </summary>
-        /// <param name="componentId">BaseComponent 的 ComponentId</param>
-        public virtual void SyncDataFromComponent(int componentId)
+        /// <param name="componentTypeId">BaseComponent 的 ComponentTypeId</param>
+        public virtual void SyncDataFromComponent(int componentTypeId)
         {
             // 默认实现：子类可以重写以自定义数据提取逻辑
-            // 例如：从 OwnerEntity 根据 ComponentId 获取组件，提取数据，构造数据对象，然后调用 OnSyncData
+            // 例如：从 OwnerEntity 根据 ComponentTypeId 获取组件，提取数据，构造数据对象，然后调用 OnSyncData
             if (OwnerEntity == null) return;
             
-            var component = OwnerEntity.GetComponentById(componentId);
+            var component = OwnerEntity.GetComponentById(componentTypeId);
             if (component != null)
             {
                 // 子类应该重写此方法，从 component 提取数据并调用 OnSyncData

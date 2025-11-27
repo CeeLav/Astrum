@@ -105,7 +105,7 @@ namespace Astrum.LogicCore.Core
         public Dictionary<string, int> CapabilityRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
         
         /// <summary>
-        /// 脏组件 ID 集合（使用 ComponentId 作为唯一标识）
+        /// 脏组件类型 ID 集合（使用 ComponentTypeId 作为唯一标识）
         /// 不序列化，运行时数据
         /// </summary>
         [MemoryPackIgnore]
@@ -368,7 +368,7 @@ namespace Astrum.LogicCore.Core
             if (component != null)
             {
                 // 从脏组件 ID 集合中移除
-                _dirtyComponentIds.Remove(component.GetComponentId());
+                _dirtyComponentIds.Remove(component.GetComponentTypeId());
                 
                 Components.Remove(component);
 
@@ -521,33 +521,33 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 记录组件为脏（由 BaseComponent 子类调用）
+        /// 记录组件为脏（由 Capability 调用）
         /// </summary>
-        /// <param name="componentId">组件的 ComponentId</param>
-        public void MarkComponentDirty(int componentId)
+        /// <param name="componentTypeId">组件的 ComponentTypeId</param>
+        public void MarkComponentDirty(int componentTypeId)
         {
-            _dirtyComponentIds.Add(componentId);
+            _dirtyComponentIds.Add(componentTypeId);
         }
         
         /// <summary>
-        /// 获取所有脏组件的 ComponentId
+        /// 获取所有脏组件的 ComponentTypeId
         /// </summary>
-        /// <returns>脏组件的 ComponentId 集合</returns>
+        /// <returns>脏组件的 ComponentTypeId 集合</returns>
         public IReadOnlyCollection<int> GetDirtyComponentIds()
         {
             return _dirtyComponentIds;
         }
         
         /// <summary>
-        /// 根据 ComponentId 获取对应的组件实例
+        /// 根据 ComponentTypeId 获取对应的组件实例
         /// </summary>
-        /// <param name="componentId">组件的 ComponentId</param>
+        /// <param name="componentTypeId">组件的 ComponentTypeId</param>
         /// <returns>组件实例，如果不存在返回 null</returns>
-        public BaseComponent GetComponentById(int componentId)
+        public BaseComponent GetComponentById(int componentTypeId)
         {
             foreach (var component in Components)
             {
-                if (component.GetComponentId() == componentId)
+                if (component.GetComponentTypeId() == componentTypeId)
                 {
                     return component;
                 }

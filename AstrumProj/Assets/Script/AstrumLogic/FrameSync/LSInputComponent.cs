@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Astrum.Generated;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Capabilities;
 using MemoryPack;
 using Astrum.CommonBase;
 
@@ -13,6 +14,15 @@ namespace Astrum.LogicCore.FrameSync
     [MemoryPackable]
     public partial class LSInputComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<LSInputComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         [MemoryPackIgnore]
         private bool _hasLoggedFirstNonZeroInput;
 

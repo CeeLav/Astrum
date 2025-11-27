@@ -1,4 +1,5 @@
 using Astrum.LogicCore.ActionSystem;
+using Astrum.LogicCore.Capabilities;
 using MemoryPack;
 using System.Collections.Generic;
 
@@ -10,6 +11,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class ActionComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<ActionComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>当前动作ID（序列化字段）</summary>
         public int CurrentActionId { get; set; } = 0;
         

@@ -50,6 +50,9 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             FP actualHeal = dynamicStats.Heal(healAmount, derivedStats);
             FP afterHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
             
+            // 标记 DynamicStatsComponent 为脏
+            target.MarkComponentDirty(dynamicStats.GetComponentTypeId());
+            
             ASLogger.Instance.Info($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
             
             // 5. TODO: 播放视觉效果/音效（使用 effectConfig.GetVisualEffectPath() / GetSoundEffectPath()）

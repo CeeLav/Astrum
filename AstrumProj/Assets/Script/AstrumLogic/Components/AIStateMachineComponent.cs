@@ -1,4 +1,5 @@
 using System;
+using Astrum.LogicCore.Capabilities;
 using MemoryPack;
 using TrueSync;
 using Astrum.LogicCore.Core;
@@ -8,6 +9,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class AIStateMachineComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<AIStateMachineComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         public string CurrentState { get; set; } = string.Empty;
         public string NextState { get; set; } = string.Empty;
         public string LastState { get; set; } = string.Empty;

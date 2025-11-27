@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Astrum.LogicCore.SkillSystem;
+using Astrum.LogicCore.Capabilities;
 using MemoryPack;
 using TrueSync;
 
@@ -11,6 +12,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class ProjectileComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<ProjectileComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>
         /// 本弹道携带的技能效果列表（支持多个效果叠加）
         /// </summary>

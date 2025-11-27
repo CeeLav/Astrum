@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using TrueSync;
 using MemoryPack;
+using Astrum.LogicCore.Capabilities;
 
 namespace Astrum.LogicCore.Components
 {
@@ -12,6 +13,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class DerivedStatsComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<DerivedStatsComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>最终属性容器</summary>
         public Stats.Stats FinalStats { get; set; } = new Stats.Stats();
         

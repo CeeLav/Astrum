@@ -2,6 +2,7 @@ using Astrum.LogicCore.Stats;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
+using Astrum.LogicCore.Capabilities;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Components
@@ -12,6 +13,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class LevelComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<LevelComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>当前等级</summary>
         public int CurrentLevel { get; set; } = 1;
         

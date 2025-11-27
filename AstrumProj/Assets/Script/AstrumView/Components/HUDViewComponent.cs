@@ -23,13 +23,13 @@ namespace Astrum.View.Components
         private FP _maxHealth = FP.Zero;
         private FP _currentShield = FP.Zero;
         
-        // 监听的组件 ID
+        // 监听的组件类型 ID
         private int _dynamicStatsComponentId;
         private int _derivedStatsComponentId;
         
         protected override void OnInitialize()
         {
-            // 获取需要监听的组件 ComponentId
+            // 获取需要监听的组件 ComponentTypeId
             if (OwnerEntity != null)
             {
                 var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();
@@ -37,12 +37,12 @@ namespace Astrum.View.Components
                 
                 if (dynamicStats != null)
                 {
-                    _dynamicStatsComponentId = DynamicStatsComponent.ComponentId;
+                    _dynamicStatsComponentId = DynamicStatsComponent.ComponentTypeId;
                 }
                 
                 if (derivedStats != null)
                 {
-                    _derivedStatsComponentId = DerivedStatsComponent.ComponentId;
+                    _derivedStatsComponentId = DerivedStatsComponent.ComponentTypeId;
                 }
             }
             
@@ -64,16 +64,9 @@ namespace Astrum.View.Components
             return ids.Count > 0 ? ids.ToArray() : null;
         }
         
-        public override void SyncDataFromComponent(int componentId)
+        public override void SyncDataFromComponent(int componentTypeId)
         {
             if (OwnerEntity == null)
-            {
-                return;
-            }
-            
-            // 根据 ComponentId 获取组件并提取数据
-            var component = OwnerEntity.GetComponentById(componentId);
-            if (component == null)
             {
                 return;
             }

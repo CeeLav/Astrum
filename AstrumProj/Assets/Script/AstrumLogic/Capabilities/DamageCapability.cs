@@ -80,6 +80,9 @@ namespace Astrum.LogicCore.Capabilities
             FP actualDamage = dynamicStats.TakeDamage(evt.Damage, derivedStats);
             FP afterHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
             
+            // 标记 DynamicStatsComponent 为脏
+            entity.MarkComponentDirty(dynamicStats.GetComponentTypeId());
+            
             ASLogger.Instance.Info($"[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
             
             // 4. 死亡判定由 DeadCapability 自动检测血量处理

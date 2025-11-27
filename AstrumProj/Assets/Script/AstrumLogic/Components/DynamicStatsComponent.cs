@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Astrum.CommonBase;
 using TrueSync;
 using MemoryPack;
+using Astrum.LogicCore.Capabilities;
 
 namespace Astrum.LogicCore.Components
 {
@@ -12,6 +13,15 @@ namespace Astrum.LogicCore.Components
     [MemoryPackable]
     public partial class DynamicStatsComponent : BaseComponent
     {
+        /// <summary>
+        /// 组件类型 ID（基于 TypeHash 的稳定哈希值，编译期常量）
+        /// </summary>
+        public static readonly int ComponentTypeId = TypeHash<DynamicStatsComponent>.GetHash();
+        
+        /// <summary>
+        /// 获取组件的类型 ID
+        /// </summary>
+        public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>动态资源容器（使用定点数）</summary>
         public Dictionary<DynamicResourceType, FP> Resources { get; set; } = new Dictionary<DynamicResourceType, FP>();
         

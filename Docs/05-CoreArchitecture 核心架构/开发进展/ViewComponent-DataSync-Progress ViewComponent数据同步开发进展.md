@@ -55,9 +55,10 @@
   - ⏳ 迁移 HealthViewComponent（待评估是否需要）
   - ✅ 迁移 HUDViewComponent
   - ⏳ 其他 ViewComponent 评估
-- ⏳ **Phase 6**: 现有 BaseComponent 迁移 - **待开发**
-  - ⏳ 在关键组件中添加脏标记调用
-  - ⏳ 测试验证
+- ✅ **Phase 6**: 现有 BaseComponent 迁移 - **已完成**
+  - ✅ 在 DamageCapability 中添加 DynamicStatsComponent 置脏调用
+  - ✅ 在 HealEffectHandler 中添加 DynamicStatsComponent 置脏调用
+  - ⏳ DerivedStatsComponent 置脏（待找到对应的 Capability）
 - ⏳ **Phase 7**: 测试与优化 - **待开发**
   - ⏳ 单元测试
   - ⏳ 集成测试
@@ -263,29 +264,36 @@
 
 ---
 
-### Phase 6: 现有 BaseComponent 迁移 ⏳
+### Phase 6: 现有 BaseComponent 迁移 ✅
 
-**目标**: 在关键 BaseComponent 中添加脏标记调用
+**目标**: 在关键 Capability 中添加脏标记调用
 
-#### 6.1 迁移 DynamicStatsComponent
+#### 6.1 迁移 DynamicStatsComponent 置脏 ✅
 
-**文件**: `AstrumProj/Assets/Script/AstrumLogic/Components/DynamicStatsComponent.cs`
+**文件**: `AstrumProj/Assets/Script/AstrumLogic/Capabilities/DamageCapability.cs`
 
-**任务**:
-- 在 `Set()` 方法中，对于重要资源变化（如血量），调用 Entity.MarkComponentDirty
-- 需要通过 EntityId 获取 Entity（具体方式待确定）
+**完成内容**:
+- ✅ 在 `OnDamage` 方法中，调用 `dynamicStats.TakeDamage` 后，标记 DynamicStatsComponent 为脏
+- ✅ 使用 `entity.MarkComponentDirty(dynamicStats.GetComponentId())` 标记
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 6.2 其他关键组件迁移
+**文件**: `AstrumProj/Assets/Script/AstrumLogic/SkillSystem/EffectHandlers/HealEffectHandler.cs`
 
-**文件**: 其他关键 BaseComponent 文件
+**完成内容**:
+- ✅ 在 `Handle` 方法中，调用 `dynamicStats.Heal` 后，标记 DynamicStatsComponent 为脏
+- ✅ 使用 `target.MarkComponentDirty(dynamicStats.GetComponentId())` 标记
 
-**任务**:
-- 识别需要脏标记的关键组件
-- 在数据变化时调用 Entity.MarkComponentDirty
+**状态**: ✅ 已完成
 
-**状态**: ⏳ 待开发
+#### 6.2 DerivedStatsComponent 置脏 ⏳
+
+**说明**:
+- DerivedStatsComponent 的修改通常发生在 Buff 系统更新时
+- 目前没有找到对应的 Capability 来更新 DerivedStatsComponent
+- 可能需要创建 BuffCapability 或找到其他更新 DerivedStatsComponent 的 Capability
+
+**状态**: ⏳ 待实现
 
 ---
 
@@ -367,8 +375,9 @@
 
 ### Phase 6: 现有 BaseComponent 迁移
 
-- [ ] 6.1 迁移 DynamicStatsComponent
-- [ ] 6.2 评估其他关键组件
+- [x] 6.1 在 DamageCapability 中添加 DynamicStatsComponent 置脏调用
+- [x] 6.2 在 HealEffectHandler 中添加 DynamicStatsComponent 置脏调用
+- [ ] 6.3 DerivedStatsComponent 置脏（待找到对应的 Capability）
 
 ### Phase 7: 测试与优化
 
@@ -382,13 +391,17 @@
 
 ### 待解决
 
-1. **BaseComponent 如何通过 EntityId 获取 Entity**
+1. **BaseComponent 如何通过 EntityId 获取 Entity** ✅ 已解决
    - 问题：BaseComponent 需要通过 EntityId 获取 Entity 来调用 MarkComponentDirty
-   - 方案：需要确定通过什么方式获取 Entity（World 管理器、Entity 管理器等）
-   - 优先级：高
+   - 解决方案：改为由 Capability 来调用置脏，而不是在 BaseComponent 内部调用
+   - 状态：✅ 已解决
+   - 实现方式：在 DamageCapability 和 HealEffectHandler 中，修改组件后调用 `entity.MarkComponentDirty(component.GetComponentId())`
+
+2. **DerivedStatsComponent 置脏**
+   - 问题：DerivedStatsComponent 的修改通常发生在 Buff 系统更新时，但目前没有找到对应的 Capability
+   - 方案：需要创建 BuffCapability 或找到其他更新 DerivedStatsComponent 的 Capability
+   - 优先级：中
    - 状态：待实现
-   - 临时方案：可以考虑在 Entity 的 AddComponent 时，将 Entity 引用传递给 BaseComponent（但用户要求不这样做）
-   - 备选方案：通过 Room 或 World 管理器获取 Entity
 
 2. **ComponentId 的生成方式**
    - 问题：当前 BaseComponent.ComponentId 是静态的，需要确认是否正确

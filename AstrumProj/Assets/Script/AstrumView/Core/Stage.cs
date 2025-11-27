@@ -245,6 +245,10 @@ namespace Astrum.View.Core
                 _entityViews[entityId] = entityView;
                 entityView.Transform.SetParent(StageRoot.transform);
                 OnEntityViewAdded?.Invoke(entityView);
+                
+                // 触发新实体的全量同步
+                SyncEntityViewComponents(entityView);
+                
                 ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
                 return true;
             }
@@ -347,6 +351,49 @@ namespace Astrum.View.Core
             if (createdCount > 0 || destroyedCount > 0)
             {
                 ASLogger.Instance.Info($"Stage: EntityView 同步完成 - 创建: {createdCount}, 销毁: {destroyedCount}", "Stage.Sync");
+            }
+            
+            // 3. 全量同步：将所有组件视为脏，触发全量更新
+            SyncAllComponents();
+        }
+        
+        /// <summary>
+        /// 同步指定 EntityView 的所有 ViewComponent（触发全量更新）
+        /// </summary>
+        /// <param name="entityView">要同步的 EntityView</param>
+        private void SyncEntityViewComponents(EntityView entityView)
+        {
+            if (entityView == null) return;
+            
+            // 遍历所有 ViewComponent
+            foreach (var viewComponent in entityView.ViewComponents)
+            {
+                if (viewComponent == null || !viewComponent.IsEnabled) continue;
+                
+                // 获取该 ViewComponent 监听的 ComponentTypeId 列表
+                var watchedIds = viewComponent.GetWatchedComponentIds();
+                if (watchedIds == null || watchedIds.Length == 0) continue;
+                
+                // 对每个监听的 ComponentTypeId，触发同步
+                foreach (var componentTypeId in watchedIds)
+                {
+                    viewComponent.SyncDataFromComponent(componentTypeId);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 全量同步所有 Entity 的所有组件（在 SyncEntityViews 时调用）
+        /// 直接触发所有 ViewComponent 的 SyncDataFromComponent
+        /// </summary>
+        private void SyncAllComponents()
+        {
+            if (_room?.MainWorld == null) return;
+            
+            // 遍历所有 EntityView
+            foreach (var entityView in _entityViews.Values)
+            {
+                SyncEntityViewComponents(entityView);
             }
         }
         

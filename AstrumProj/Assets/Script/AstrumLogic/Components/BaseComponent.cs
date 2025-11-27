@@ -8,23 +8,27 @@ namespace Astrum.LogicCore.Components
     public abstract partial class BaseComponent
     {
         /// <summary>
-        /// 组件的唯一标识符
-        /// </summary>
-        public static int ComponentId { get; set; }
-
-        /// <summary>
         /// 所属实体的ID
         /// </summary>
         public long EntityId { get; set; }
 
         protected BaseComponent()
         {
-            ComponentId = GetHashCode();
         }
 
+        /// <summary>
+        /// 获取组件的类型 ID（子类需要重写此方法）
+        /// </summary>
+        /// <returns>组件的类型 ID</returns>
+        public abstract int GetComponentTypeId();
+        
+        /// <summary>
+        /// 获取组件的实例 ID（兼容旧代码，返回类型 ID）
+        /// </summary>
+        /// <returns>组件的 ID</returns>
         public int GetComponentId()
         {
-            return ComponentId;
+            return GetComponentTypeId();
         }
         
         public virtual void OnAttachToEntity(Entity entity)
@@ -38,7 +42,7 @@ namespace Astrum.LogicCore.Components
         /// <returns>字符串表示</returns>
         public override string ToString()
         {
-            return $"{GetType().Name}[Id={ComponentId}, EntityId={EntityId}]";
+            return $"{GetType().Name}[TypeId={GetComponentTypeId()}, EntityId={EntityId}]";
         }
     }
 }

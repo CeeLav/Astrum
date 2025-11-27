@@ -26,7 +26,7 @@ namespace Astrum.View.Core
         protected List<ViewComponent> _viewComponents = new List<ViewComponent>();
         protected DateTime _lastSyncTime = DateTime.MinValue;
         
-        // ComponentId 到 ViewComponent 列表的映射
+        // ComponentTypeId 到 ViewComponent 列表的映射
         private Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap = new Dictionary<int, List<ViewComponent>>();
         
         // Unity GameObject引用
@@ -463,7 +463,7 @@ namespace Astrum.View.Core
         /// <summary>
         /// 同步脏组件（由 Stage 调用）
         /// </summary>
-        /// <param name="dirtyComponentIds">脏组件的 ComponentId 集合</param>
+        /// <param name="dirtyComponentIds">脏组件的 ComponentTypeId 集合</param>
         public void SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)
         {
             if (dirtyComponentIds == null || dirtyComponentIds.Count == 0)
@@ -488,7 +488,7 @@ namespace Astrum.View.Core
                 {
                     if (viewComponent != null && viewComponent.IsEnabled)
                     {
-                        // 调用 ViewComponent 的数据同步方法（传入 ComponentId）
+                        // 调用 ViewComponent 的数据同步方法（传入 ComponentTypeId）
                         viewComponent.SyncDataFromComponent(componentId);
                     }
                 }
