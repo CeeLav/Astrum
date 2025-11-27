@@ -109,6 +109,8 @@ namespace Astrum.LogicCore.FrameSync
         {
             try
             {
+                ASLogger.Instance.Info($"ReplayLSController: 开始回滚到文件快照 - 快照帧: {snapshotFrame}, 目标帧: {targetFrame}, 数据大小: {data.Length} bytes", "Replay.Controller");
+                
                 using (var memoryBuffer = new MemoryBuffer(data.Length))
                 {
                     memoryBuffer.SetLength(0);
@@ -119,25 +121,97 @@ namespace Astrum.LogicCore.FrameSync
                     var world = MemoryPackHelper.Deserialize(typeof(World), memoryBuffer) as World;
                     if (world != null)
                     {
+                        // 输出反序列化后的实体位置信息
+                        LogEntityPositions(world, "反序列化后的World");
+                        
                         ApplyWorldState(world, snapshotFrame);
+                        
+                        // 输出应用后的实体位置信息
+                        if (Room?.MainWorld != null)
+                        {
+                            LogEntityPositions(Room.MainWorld, "应用后的MainWorld");
+                        }
+                        
                         ASLogger.Instance.Info($"ReplayLSController: 已从文件快照回滚到帧 {snapshotFrame} (目标: {targetFrame})", "Replay.Controller");
                         return true;
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Error($"ReplayLSController: 反序列化结果为 null", "Replay.Controller");
                     }
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"ReplayLSController: 文件快照回滚失败 - {ex.Message}", "Replay.Controller");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
             return false;
+        }
+        
+        /// <summary>
+        /// 输出实体的位置信息（用于调试）
+        /// </summary>
+        private void LogEntityPositions(World world, string context)
+        {
+            if (world == null)
+            {
+                ASLogger.Instance.Warning($"ReplayLSController: {context} - World 为 null", "Replay.Controller");
+                return;
+            }
+            
+            ASLogger.Instance.Info($"ReplayLSController: {context} - WorldId: {world.WorldId}, 实体数量: {world.Entities?.Count ?? 0}", "Replay.Controller");
+            
+            if (world.Entities != null)
+            {
+                foreach (var entity in world.Entities.Values)
+                {
+                    if (entity == null || entity.IsDestroyed) continue;
+                    
+                    var transComponent = entity.GetComponent<Astrum.LogicCore.Components.TransComponent>();
+                    if (transComponent != null)
+                    {
+                        var pos = transComponent.GetPosition();
+                        ASLogger.Instance.Info($"  - 实体: {entity.Name} (ID: {entity.UniqueId}), 位置: ({pos.x}, {pos.y}, {pos.z})", "Replay.Controller");
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Info($"  - 实体: {entity.Name} (ID: {entity.UniqueId}), 无TransComponent", "Replay.Controller");
+                    }
+                }
+            }
         }
 
         private void ApplyWorldState(World world, int frame)
         {
+            if (Room == null)
+            {
+                ASLogger.Instance.Error("ReplayLSController: ApplyWorldState - Room 为 null", "Replay.Controller");
+                return;
+            }
+            
+            if (world == null)
+            {
+                ASLogger.Instance.Error("ReplayLSController: ApplyWorldState - World 为 null", "Replay.Controller");
+                return;
+            }
+            
+            // 记录应用前的状态
+            if (Room.MainWorld != null)
+            {
+                ASLogger.Instance.Info($"ReplayLSController: 应用前 - 当前AuthorityFrame: {AuthorityFrame}, MainWorld实体数量: {Room.MainWorld.Entities?.Count ?? 0}", "Replay.Controller");
+            }
+            
+            // 清理旧世界
+            Room.MainWorld?.Cleanup();
+            
+            // 应用新世界
             Room.MainWorld = world;
             Room.MainWorld.RoomId = Room.RoomId;
             AuthorityFrame = frame;
             _replayElapsedTime = frame / (float)TickRate;
+            
+            ASLogger.Instance.Info($"ReplayLSController: 应用后 - AuthorityFrame: {AuthorityFrame}, MainWorld实体数量: {Room.MainWorld.Entities?.Count ?? 0}", "Replay.Controller");
         }
 
         public void Tick(float deltaTime)
