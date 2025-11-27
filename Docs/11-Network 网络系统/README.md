@@ -498,6 +498,16 @@ _serverNetworkManager.SendMessage(sessionId, response);
 
 ---
 
+## 服务器端文档
+
+### [房间系统重构设计](服务器/Room-System-Refactor-Design%20房间系统重构设计.md)
+房间系统的重构方案和技术设计
+
+### [联机启动流程Review](服务器/联机启动流程Review.md)
+联机启动流程的审查和优化
+
+---
+
 ## 相关文档
 
 - [联机模式设计文档](../09-GameModes%20游戏模式/Network-Multiplayer%20联机模式.md)

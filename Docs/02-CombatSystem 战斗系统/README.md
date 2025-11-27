@@ -46,6 +46,12 @@ Skill → SkillAction → SkillEffect 三层架构，包含配置表设计和流
 - [待完成功能清单](物理系统/Todo-List%20待完成功能清单.md)
 - [测试用例清单](物理系统/Test-Cases%20测试用例清单.md)
 
+### [AI系统](AI系统/AI-StateMachine-Design%20AI状态机设计.md)
+AI状态机架构，通过组件和能力分离实现决策与状态管理
+
+**子文档**:
+- [AI开发进展](AI系统/_status%20开发进展/AI-Progress%20AI开发进展.md)
+
 ---
 
 ## 🚀 开发进展
@@ -83,6 +89,7 @@ Skill → SkillAction → SkillEffect 三层架构，包含配置表设计和流
 | 射击系统 | 📝 设计完成 | 10% |
 | 输入系统 | ✅ 完成 | 80% |
 | 物理系统 | ✅ 完成 | 80% |
+| AI系统 | ✅ 完成 | 70% |
 
 ---
 

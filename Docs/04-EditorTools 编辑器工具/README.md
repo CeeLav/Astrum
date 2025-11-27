@@ -31,6 +31,17 @@ Luban 配置生成工具的完整使用指南
 - 数据序列化格式
 - 实现细节
 
+### 技术参考
+
+#### [Partial类生成指南](技术参考/Partial-Class-Generation%20Partial类生成指南.md)
+Partial Class 的使用和自动生成
+
+#### [资源清单生成器](技术参考/ResourceManifest-Generator%20资源清单生成器.md)
+ResourceManifestGenerator 的使用说明
+
+#### [开发指南](技术参考/开发指南/)
+服务器配置、测试指南等开发相关文档
+
 ---
 
 ## 🚀 开发进展

@@ -33,10 +33,10 @@ Docs/AI 系统/
 
 ## 🔗 相关文档
 
-- [核心架构](../05-CoreArchitecture%20核心架构/ECC/) - ECC架构说明
-- [战斗系统](../02-CombatSystem%20战斗系统/) - AI可能需要的战斗相关组件
+- [核心架构](../../05-CoreArchitecture%20核心架构/ECC/) - ECC架构说明
+- [战斗系统总览](../Combat-System%20战斗系统总览.md) - AI可能需要的战斗相关组件
 
 ---
 
-**返回**: [文档中心](../README.md)
+**返回**: [战斗系统文档](../README.md) | [文档中心](../../README.md)
 
