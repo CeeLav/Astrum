@@ -1,50 +1,113 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+Version change: 0.0.0 → 1.0.0 (初始版本)
+新增原则：
+  - I. 确定性执行原则（NON-NEGOTIABLE）
+  - II. 性能优化原则
+  - III. ECC架构原则
+  - IV. 网络同步原则
+  - V. 测试与验证原则
+新增章节：
+  - 技术栈约束
+  - 开发工作流
+模板更新状态：
+  - ✅ plan-template.md - 已更新 Constitution Check 和技术上下文
+  - ✅ spec-template.md - 已添加帧同步特定标准
+  - ✅ tasks-template.md - 已添加确定性测试、性能测试、回滚测试任务
+-->
 
-## Core Principles
+# Astrum 项目章程
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+## 核心原则
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### I. 确定性执行原则（NON-NEGOTIABLE）
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+所有游戏逻辑必须保证确定性执行。使用定点数（FP Math）进行所有数值计算，禁止使用浮点数进行游戏逻辑运算。所有随机数生成必须使用确定性随机数生成器，并确保所有客户端使用相同的随机种子。时间相关的逻辑必须基于帧数而非真实时间。任何可能导致非确定性的操作（如浮点运算、系统时间、线程调度）必须在架构层面被禁止或隔离。
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**理由**：帧同步网络同步机制要求所有客户端在相同输入下产生完全相同的状态，任何非确定性行为都会导致客户端状态分叉，破坏游戏同步。
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. 性能优化原则
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+每一帧的执行时间必须严格控制，确保在目标帧率（60 FPS）下稳定运行。禁止在游戏循环中进行耗时操作（如文件IO、网络请求、复杂序列化）。使用对象池管理频繁创建销毁的对象。优先使用值类型和结构体减少GC压力。关键路径必须进行性能分析，确保单帧执行时间在预算范围内。
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**理由**：帧同步要求所有客户端以相同频率执行逻辑，任何性能瓶颈都会导致客户端掉帧，进而影响同步质量。性能优化是帧同步项目的基础要求。
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### III. ECC架构原则
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+严格遵循 Entity-Component-Capability 架构模式。Entity 仅作为唯一标识符容器，Component 存储纯数据，Capability 包含逻辑实现。禁止在 Component 中包含任何逻辑代码。禁止在 Capability 中直接访问其他 Entity，必须通过系统层进行协调。所有状态变更必须通过明确的接口和方法，禁止直接修改 Component 数据。
+
+**理由**：ECC 架构提供了清晰的数据与逻辑分离，便于确定性执行、状态序列化和回滚机制的实现。同时提高了代码的可测试性和可维护性。
+
+### IV. 网络同步原则
+
+所有游戏状态必须可序列化，使用 MemoryPack 进行高效序列化。实现完整的状态回滚机制，支持任意帧的状态恢复。网络消息必须包含帧号，确保消息的有序处理。客户端预测和服务器权威验证必须正确实现，处理预测错误时的状态修正。
+
+**理由**：帧同步网络同步依赖于状态快照和回滚机制，必须确保所有状态可以被正确保存、传输和恢复。这是实现流畅多人游戏体验的基础。
+
+### V. 测试与验证原则
+
+所有游戏逻辑必须编写确定性单元测试，确保相同输入产生相同输出。实现回滚测试，验证状态回滚的正确性。网络同步逻辑必须进行集成测试，模拟多客户端场景。性能测试必须验证单帧执行时间符合预算。
+
+**理由**：确定性测试是验证帧同步正确性的唯一可靠方法。回滚测试确保状态恢复机制的正确性。性能测试确保游戏在目标平台上稳定运行。
+
+## 技术栈约束
+
+### 必需技术栈
+
+- **Unity 2022.3 LTS**：游戏引擎，提供稳定的开发环境
+- **TrueSync FP Math**：定点数数学库，确保确定性计算
+- **BEPU Physics v1**：确定性物理引擎，用于碰撞检测
+- **MemoryPack**：高性能序列化库，用于状态快照
+- **Protocol Buffers**：网络协议定义，确保跨平台兼容性
+
+### 禁止使用的技术
+
+- 禁止使用 Unity 标准浮点数数学库进行游戏逻辑计算
+- 禁止使用非确定性物理引擎（如 Unity Physics）
+- 禁止在游戏循环中使用阻塞IO操作
+- 禁止使用非确定性随机数生成器
+
+### 代码生成要求
+
+- 协议定义（.proto）必须通过代码生成工具生成，禁止手动修改生成代码
+- UI 代码必须通过 UIGenerator 工具生成，确保一致性
+- 配置表必须通过 Luban 工具生成，确保类型安全
+
+## 开发工作流
+
+### 代码审查要求
+
+所有 Pull Request 必须验证以下内容：
+
+- 确定性：代码中不包含任何可能导致非确定性的操作
+- 性能：关键路径代码已进行性能分析，符合帧时间预算
+- 架构：遵循 ECC 架构原则，数据与逻辑正确分离
+- 测试：新增功能包含相应的确定性测试和回滚测试
+
+### 编译与验证流程
+
+1. 修改协议后必须运行协议生成工具
+2. 使用 `dotnet build AstrumProj.sln` 编译客户端项目
+3. 使用 `dotnet build AstrumServer.sln` 编译服务器项目
+4. 运行单元测试验证功能正确性
+5. 在 Unity 编辑器中运行场景进行集成测试
+
+### 资源管理要求
+
+- 首次使用或资源更新后必须生成资源清单，避免启动卡顿
+- 使用 `Astrum/资源管理/生成资源清单` 菜单生成资源清单
+- 场景文件必须放置在 `Assets/Scenes/` 目录下
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+本章程是 Astrum 项目的最高指导原则，所有开发活动必须遵循本章程的规定。章程的修改必须经过以下流程：
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+1. **提案阶段**：提出章程修改提案，说明修改理由和影响范围
+2. **评审阶段**：技术团队评审提案，评估对现有代码和架构的影响
+3. **批准阶段**：获得项目负责人批准后，更新章程版本号
+4. **同步阶段**：更新所有相关模板和文档，确保一致性
+5. **通知阶段**：通知所有团队成员章程变更，必要时提供迁移指南
+
+所有代码审查必须验证对章程的遵循情况。任何违反章程的代码不得合并到主分支。对于特殊情况需要偏离章程的，必须获得明确批准并记录在案。
+
+**Version**: 1.0.0 | **Ratified**: 2025-11-27 | **Last Amended**: 2025-11-27

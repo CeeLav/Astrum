@@ -113,3 +113,9 @@
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+
+### 帧同步特定标准
+
+- **SC-DET-001**: [确定性测试标准, e.g., "所有游戏逻辑在相同输入下产生相同输出，通过确定性单元测试验证"]
+- **SC-PERF-001**: [性能标准, e.g., "单帧执行时间不超过 16.67ms（60 FPS），通过性能测试验证"]
+- **SC-ROLLBACK-001**: [回滚测试标准, e.g., "状态回滚机制正确实现，能够恢复到任意帧的状态"]

@@ -85,6 +85,9 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T011-DET [P] [US1] 确定性测试：验证相同输入产生相同输出 in tests/deterministic/test_[name].cs
+- [ ] T011-PERF [P] [US1] 性能测试：验证单帧执行时间符合预算 in tests/performance/test_[name].cs
+- [ ] T011-ROLLBACK [P] [US1] 回滚测试：验证状态回滚正确性 in tests/rollback/test_[name].cs
 
 ### Implementation for User Story 1
 
@@ -109,6 +112,9 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T019-DET [P] [US2] 确定性测试：验证相同输入产生相同输出 in tests/deterministic/test_[name].cs
+- [ ] T019-PERF [P] [US2] 性能测试：验证单帧执行时间符合预算 in tests/performance/test_[name].cs
+- [ ] T019-ROLLBACK [P] [US2] 回滚测试：验证状态回滚正确性 in tests/rollback/test_[name].cs
 
 ### Implementation for User Story 2
 
@@ -131,6 +137,9 @@ Examples of foundational tasks (adjust based on your project):
 
 - [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
 - [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T025-DET [P] [US3] 确定性测试：验证相同输入产生相同输出 in tests/deterministic/test_[name].cs
+- [ ] T025-PERF [P] [US3] 性能测试：验证单帧执行时间符合预算 in tests/performance/test_[name].cs
+- [ ] T025-ROLLBACK [P] [US3] 回滚测试：验证状态回滚正确性 in tests/rollback/test_[name].cs
 
 ### Implementation for User Story 3
 
