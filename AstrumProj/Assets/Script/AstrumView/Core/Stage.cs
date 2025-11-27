@@ -559,6 +559,9 @@ namespace Astrum.View.Core
         {
             if (!_isActive) return;
             
+            // 处理脏组件同步
+            SyncDirtyComponents();
+            
             // 调用子类的更新方法
             OnUpdate(deltaTime);
             
@@ -570,6 +573,32 @@ namespace Astrum.View.Core
             
             // 更新环境
             _environment?.Update();
+        }
+        
+        /// <summary>
+        /// 同步所有 Entity 的脏组件
+        /// </summary>
+        private void SyncDirtyComponents()
+        {
+            if (_room?.MainWorld == null) return;
+            
+            // 遍历所有 Entity
+            foreach (var entity in _room.MainWorld.Entities.Values)
+            {
+                var dirtyComponentIds = entity.GetDirtyComponentIds();
+                if (dirtyComponentIds.Count > 0)
+                {
+                    // 获取对应的 EntityView
+                    if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
+                    {
+                        // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
+                        entityView.SyncDirtyComponents(dirtyComponentIds);
+                    }
+                    
+                    // 清除脏标记
+                    entity.ClearDirtyComponents();
+                }
+            }
         }
         
         /// <summary>

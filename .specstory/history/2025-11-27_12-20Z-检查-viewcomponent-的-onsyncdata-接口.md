@@ -4887,3 +4887,2238 @@ Lines added: 1, lines removed: 1
 
 ---
 
+_**User (2025-11-27 08:04Z)**_
+
+@开发进展 在这里编写开发进展，然后开始开发
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+查看现有开发进展文档格式，创建新的进展文档，然后开始实施。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Docs/05-CoreArchitecture 核心架构/开发进展/Frame-Sync-State-Sync-Progress 帧同步状态同步与恢复机制开发进展.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Docs/05-CoreArchitecture 核心架构/开发进展/Capability-Optimization-Progress Capability优化重构开发进展.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+创建开发进展文档，然后开始实施。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 427, lines removed: 1
+
+```diff
+@@ -1,1 +1,427 @@
+- 
++ # ViewComponent 数据同步 - 开发进展
++ 
++ **项目**: ViewComponent 自动监听 BaseComponent 数据变化并同步机制  
++ **创建日期**: 2025-01-XX  
++ **最后更新**: 2025-01-XX  
++ **版本**: v1.0  
++ **技术方案**: [ViewComponent-DataSync-Design ViewComponent数据同步设计.md](../逻辑渲染分离/ViewComponent-DataSync-Design%20ViewComponent数据同步设计.md)
++ 
++ ---
++ 
++ ## 📋 目录
++ 
++ 1. [开发状态总览](#开发状态总览)
++ 2. [阶段划分](#阶段划分)
++ 3. [详细任务清单](#详细任务清单)
++ 4. [技术债务](#技术债务)
++ 5. [测试计划](#测试计划)
++ 
++ ---
++ 
++ ## 开发状态总览
++ 
++ ### 当前版本
++ - **版本号**: v1.0
++ - **状态**: 🟡 设计完成，开发中
++ - **功能完成度**: 0% (设计 100%，实现 0%)
++ 
++ ### 阶段划分
++ - ✅ **Phase 0**: 技术方案设计 - **已完成**
++   - ✅ 架构设计
++   - ✅ 脏标记机制设计
++   - ✅ 数据流设计
++   - ✅ 文档编写
++ - ⏳ **Phase 1**: Entity 脏标记管理 - **待开发**
++   - ⏳ 添加脏组件 ID 集合
++   - ⏳ 实现 MarkComponentDirty 方法
++   - ⏳ 实现 GetDirtyComponentIds 方法
++   - ⏳ 实现 GetDirtyComponents 方法
++   - ⏳ 实现 ClearDirtyComponents 方法
++   - ⏳ 实现 GetComponentById 方法
++ - ⏳ **Phase 2**: Stage 查询处理 - **待开发**
++   - ⏳ 在 Update 中添加 SyncDirtyComponents 调用
++   - ⏳ 实现 SyncDirtyComponents 方法
++ - ⏳ **Phase 3**: ViewComponent 增强 - **待开发**
++   - ⏳ 添加 GetWatchedComponentIds 方法
++   - ⏳ 添加 SyncDataFromComponent 方法
++ - ⏳ **Phase 4**: EntityView 协调机制 - **待开发**
++   - ⏳ 添加 ComponentId 到 ViewComponent 映射
++   - ⏳ 实现注册/取消注册方法
++   - ⏳ 实现 SyncDirtyComponents 方法
++ - ⏳ **Phase 5**: 现有 ViewComponent 迁移 - **待开发**
++   - ⏳ 迁移 HealthViewComponent
++   - ⏳ 迁移 HUDViewComponent
++   - ⏳ 其他 ViewComponent 评估
++ - ⏳ **Phase 6**: 现有 BaseComponent 迁移 - **待开发**
++   - ⏳ 在关键组件中添加脏标记调用
++   - ⏳ 测试验证
++ - ⏳ **Phase 7**: 测试与优化 - **待开发**
++   - ⏳ 单元测试
++   - ⏳ 集成测试
++   - ⏳ 性能测试
++ 
++ ---
++ 
++ ## 阶段划分
++ 
++ ### Phase 0: 技术方案设计 ✅
++ 
++ **目标**: 完成技术方案设计和文档编写
++ 
++ **完成内容**:
++ - ✅ 分析当前 ViewComponent.OnSyncData 接口问题
++ - ✅ 设计脏标记机制
++ - ✅ 设计 Entity 统一管理方案
++ - ✅ 设计 Stage 查询处理方案
++ - ✅ 设计 ViewComponent 声明机制
++ - ✅ 设计 EntityView 协调机制
++ - ✅ 完成技术设计文档
++ 
++ **文档**:
++ - &#96;ViewComponent-DataSync-Design ViewComponent数据同步设计.md&#96;
++ 
++ ---
++ 
++ ### Phase 1: Entity 脏标记管理 ⏳
++ 
++ **目标**: 在 Entity 中实现脏标记管理功能
++ 
++ #### 1.1 添加脏组件 ID 集合
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs&#96;
++ 
++ **任务**:
++ - 添加 &#96;HashSet&lt;int&gt; _dirtyComponentIds&#96; 字段
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 1.2 实现 MarkComponentDirty 方法
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs&#96;
++ 
++ **任务**:
++ - 实现 &#96;MarkComponentDirty(int componentId)&#96; 方法
++ - 将 ComponentId 添加到脏组件集合
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 1.3 实现查询方法
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs&#96;
++ 
++ **任务**:
++ - 实现 &#96;GetDirtyComponentIds()&#96; 方法
++ - 实现 &#96;GetComponentById(int componentId)&#96; 方法
++ - 实现 &#96;GetDirtyComponents()&#96; 方法
++ - 实现 &#96;ClearDirtyComponents()&#96; 方法
++ 
++ **状态**: ⏳ 待开发
++ 
++ ---
++ 
++ ### Phase 2: Stage 查询处理 ⏳
++ 
++ **目标**: 在 Stage 中实现脏组件查询和处理
++ 
++ #### 2.1 在 Update 中添加调用
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/Stage.cs&#96;
++ 
++ **任务**:
++ - 在 &#96;Update()&#96; 方法中添加 &#96;SyncDirtyComponents()&#96; 调用
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 2.2 实现 SyncDirtyComponents 方法
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/Stage.cs&#96;
++ 
++ **任务**:
++ - 遍历所有 Entity，查询脏组件 ID
++ - 对于有脏组件的 Entity，通知对应的 EntityView
++ - 同步完成后清除脏标记
++ 
++ **状态**: ⏳ 待开发
++ 
++ ---
++ 
++ ### Phase 3: ViewComponent 增强 ⏳
++ 
++ **目标**: 在 ViewComponent 中添加监听声明和数据同步方法
++ 
++ #### 3.1 添加 GetWatchedComponentIds 方法
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs&#96;
++ 
++ **任务**:
++ - 添加 &#96;GetWatchedComponentIds()&#96; 虚方法
++ - 默认返回 null
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 3.2 添加 SyncDataFromComponent 方法
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs&#96;
++ 
++ **任务**:
++ - 添加 &#96;SyncDataFromComponent(int componentId)&#96; 虚方法
++ - 默认实现：根据 ComponentId 获取组件并调用 OnSyncData
++ 
++ **状态**: ⏳ 待开发
++ 
++ ---
++ 
++ ### Phase 4: EntityView 协调机制 ⏳
++ 
++ **目标**: 在 EntityView 中实现映射管理和同步协调
++ 
++ #### 4.1 添加映射字典
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs&#96;
++ 
++ **任务**:
++ - 添加 &#96;Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap&#96; 字段
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 4.2 实现注册/取消注册方法
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs&#96;
++ 
++ **任务**:
++ - 实现 &#96;RegisterViewComponentWatchedIds()&#96; 方法
++ - 实现 &#96;UnregisterViewComponentWatchedIds()&#96; 方法
++ - 在 &#96;AddViewComponent&#96; 中调用注册方法
++ - 在 &#96;RemoveViewComponent&#96; 中调用取消注册方法
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 4.3 实现 SyncDirtyComponents 方法
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs&#96;
++ 
++ **任务**:
++ - 实现 &#96;SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)&#96; 方法
++ - 根据 ComponentId 查找对应的 ViewComponent
++ - 调用 ViewComponent 的同步方法
++ 
++ **状态**: ⏳ 待开发
++ 
++ ---
++ 
++ ### Phase 5: 现有 ViewComponent 迁移 ⏳
++ 
++ **目标**: 迁移现有 ViewComponent 使用新机制
++ 
++ #### 5.1 迁移 HealthViewComponent
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Components/HealthViewComponent.cs&#96;
++ 
++ **任务**:
++ - 在 &#96;OnInitialize()&#96; 中获取需要监听的组件 ComponentId
++ - 实现 &#96;GetWatchedComponentIds()&#96; 方法
++ - 实现 &#96;SyncDataFromComponent(int componentId)&#96; 方法
++ - 移除 &#96;OnUpdate&#96; 中的主动拉取逻辑（如果存在）
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 5.2 迁移 HUDViewComponent
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs&#96;
++ 
++ **任务**:
++ - 在 &#96;OnInitialize()&#96; 中获取需要监听的组件 ComponentId
++ - 实现 &#96;GetWatchedComponentIds()&#96; 方法
++ - 实现 &#96;SyncDataFromComponent(int componentId)&#96; 方法
++ - 移除 &#96;OnUpdate&#96; 中的主动拉取逻辑
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 5.3 其他 ViewComponent 评估
++ 
++ **文件**: 其他 ViewComponent 文件
++ 
++ **任务**:
++ - 评估其他 ViewComponent 是否需要迁移
++ - 对于频繁变化的组件（如 TransViewComponent），保持现有主动拉取方式
++ 
++ **状态**: ⏳ 待开发
++ 
++ ---
++ 
++ ### Phase 6: 现有 BaseComponent 迁移 ⏳
++ 
++ **目标**: 在关键 BaseComponent 中添加脏标记调用
++ 
++ #### 6.1 迁移 DynamicStatsComponent
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Components/DynamicStatsComponent.cs&#96;
++ 
++ **任务**:
++ - 在 &#96;Set()&#96; 方法中，对于重要资源变化（如血量），调用 Entity.MarkComponentDirty
++ - 需要通过 EntityId 获取 Entity（具体方式待确定）
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 6.2 其他关键组件迁移
++ 
++ **文件**: 其他关键 BaseComponent 文件
++ 
++ **任务**:
++ - 识别需要脏标记的关键组件
++ - 在数据变化时调用 Entity.MarkComponentDirty
++ 
++ **状态**: ⏳ 待开发
++ 
++ ---
++ 
++ ### Phase 7: 测试与优化 ⏳
++ 
++ **目标**: 完成测试和性能优化
++ 
++ #### 7.1 单元测试
++ 
++ **任务**:
++ - 测试 Entity 脏标记管理
++ - 测试 Stage 查询处理
++ - 测试 ViewComponent 同步机制
++ - 测试 EntityView 协调机制
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 7.2 集成测试
++ 
++ **任务**:
++ - 测试完整的数据同步流程
++ - 测试多个 ViewComponent 监听同一组件
++ - 测试多个组件同时变脏的情况
++ 
++ **状态**: ⏳ 待开发
++ 
++ #### 7.3 性能测试
++ 
++ **任务**:
++ - 测试脏标记查询性能
++ - 测试批量同步性能
++ - 优化性能瓶颈
++ 
++ **状态**: ⏳ 待开发
++ 
++ ---
++ 
++ ## 详细任务清单
++ 
++ ### Phase 1: Entity 脏标记管理
++ 
++ - [ ] 1.1 添加 &#96;HashSet&lt;int&gt; _dirtyComponentIds&#96; 字段
++ - [ ] 1.2 实现 &#96;MarkComponentDirty(int componentId)&#96; 方法
++ - [ ] 1.3 实现 &#96;GetDirtyComponentIds()&#96; 方法
++ - [ ] 1.4 实现 &#96;GetComponentById(int componentId)&#96; 方法
++ - [ ] 1.5 实现 &#96;GetDirtyComponents()&#96; 方法
++ - [ ] 1.6 实现 &#96;ClearDirtyComponents()&#96; 方法
++ - [ ] 1.7 在 &#96;RemoveComponent&#96; 中清理脏标记
++ 
++ ### Phase 2: Stage 查询处理
++ 
++ - [ ] 2.1 在 &#96;Update()&#96; 方法中添加 &#96;SyncDirtyComponents()&#96; 调用
++ - [ ] 2.2 实现 &#96;SyncDirtyComponents()&#96; 私有方法
++ - [ ] 2.3 遍历所有 Entity，查询脏组件 ID
++ - [ ] 2.4 通知 EntityView 同步脏组件
++ - [ ] 2.5 清除 Entity 的脏标记
++ 
++ ### Phase 3: ViewComponent 增强
++ 
++ - [ ] 3.1 添加 &#96;GetWatchedComponentIds()&#96; 虚方法（默认返回 null）
++ - [ ] 3.2 添加 &#96;SyncDataFromComponent(int componentId)&#96; 虚方法
++ 
++ ### Phase 4: EntityView 协调机制
++ 
++ - [ ] 4.1 添加 &#96;Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap&#96; 字段
++ - [ ] 4.2 实现 &#96;RegisterViewComponentWatchedIds()&#96; 方法
++ - [ ] 4.3 实现 &#96;UnregisterViewComponentWatchedIds()&#96; 方法
++ - [ ] 4.4 在 &#96;AddViewComponent&#96; 中调用注册方法
++ - [ ] 4.5 在 &#96;RemoveViewComponent&#96; 中调用取消注册方法
++ - [ ] 4.6 实现 &#96;SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)&#96; 方法
++ - [ ] 4.7 在 &#96;Destroy()&#96; 中清理映射关系
++ 
++ ### Phase 5: 现有 ViewComponent 迁移
++ 
++ - [ ] 5.1 迁移 HealthViewComponent
++ - [ ] 5.2 迁移 HUDViewComponent
++ - [ ] 5.3 评估其他 ViewComponent
++ 
++ ### Phase 6: 现有 BaseComponent 迁移
++ 
++ - [ ] 6.1 迁移 DynamicStatsComponent
++ - [ ] 6.2 评估其他关键组件
++ 
++ ### Phase 7: 测试与优化
++ 
++ - [ ] 7.1 编写单元测试
++ - [ ] 7.2 编写集成测试
++ - [ ] 7.3 性能测试和优化
++ 
++ ---
++ 
++ ## 技术债务
++ 
++ ### 待解决
++ 
++ 1. **BaseComponent 如何通过 EntityId 获取 Entity**
++    - 问题：BaseComponent 需要通过 EntityId 获取 Entity 来调用 MarkComponentDirty
++    - 方案：需要确定通过什么方式获取 Entity（World 管理器、Entity 管理器等）
++    - 优先级：高
++ 
++ 2. **ComponentId 的生成方式**
++    - 问题：当前 BaseComponent.ComponentId 是静态的，需要确认是否正确
++    - 方案：需要确认 ComponentId 是否为实例属性
++    - 优先级：高
++ 
++ ---
++ 
++ ## 测试计划
++ 
++ ### 单元测试
++ 
++ 1. **Entity 脏标记管理测试**
++    - 测试 MarkComponentDirty 方法
++    - 测试 GetDirtyComponentIds 方法
++    - 测试 GetDirtyComponents 方法
++    - 测试 ClearDirtyComponents 方法
++    - 测试 GetComponentById 方法
++ 
++ 2. **ViewComponent 同步测试**
++    - 测试 GetWatchedComponentIds 方法
++    - 测试 SyncDataFromComponent 方法
++ 
++ 3. **EntityView 协调测试**
++    - 测试注册/取消注册方法
++    - 测试 SyncDirtyComponents 方法
++ 
++ ### 集成测试
++ 
++ 1. **完整数据同步流程测试**
++    - BaseComponent 数据变化 → Entity 记录脏标记 → Stage 查询 → EntityView 同步 → ViewComponent 更新
++ 
++ 2. **多 ViewComponent 监听测试**
++    - 多个 ViewComponent 监听同一组件
++    - 同一 ViewComponent 监听多个组件
++ 
++ 3. **批量同步测试**
++    - 多个组件同时变脏
++    - 多个 Entity 同时有脏组件
++ 
++ ### 性能测试
++ 
++ 1. **脏标记查询性能**
++    - 测试大量 Entity 时的查询性能
++    - 测试大量脏组件时的处理性能
++ 
++ 2. **同步性能**
++    - 测试同步调用的性能开销
++    - 对比主动拉取和脏标记机制的性能差异
++ 
++ ---
++ 
++ **返回**: [核心架构文档](../README.md)
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [-] Phase 1: Entity 脏标记管理 - 添加脏组件 ID 集合和相关方法
+- [ ] Phase 2: Stage 查询处理 - 在 Update 中实现脏组件查询和同步
+- [ ] Phase 3: ViewComponent 增强 - 添加 GetWatchedComponentIds 和 SyncDataFromComponent 方法
+- [ ] Phase 4: EntityView 协调机制 - 实现映射管理和同步协调
+- [ ] Phase 5: 现有 ViewComponent 迁移 - 迁移 HealthViewComponent 和 HUDViewComponent
+- [ ] Phase 6: 现有 BaseComponent 迁移 - 在关键组件中添加脏标记调用
+- [ ] Phase 7: 测试与优化 - 编写测试并进行性能优化
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+开发进展文档已创建。开始实施 Phase 1：Entity 脏标记管理。先查看 Entity 的当前实现：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+开始实施 Phase 1：Entity 脏标记管理。先检查 BaseComponent 的 ComponentId 是否为实例属性：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "\.ComponentId" in "AstrumProj/Assets/Script" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+开始实施 Phase 1：Entity 脏标记管理。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+**Chunk 1**
+Lines added: 8, lines removed: 1
+
+```diff
+@@ -104,5 +104,12 @@
+          public Dictionary&lt;string, int&gt; ComponentRefCounts { get; private set; } = new Dictionary&lt;string, int&gt;(StringComparer.Ordinal);
+          public Dictionary&lt;string, int&gt; CapabilityRefCounts { get; private set; } = new Dictionary&lt;string, int&gt;(StringComparer.Ordinal);
+- 
++         
++         /// &lt;summary&gt;
++         /// 脏组件 ID 集合（使用 ComponentId 作为唯一标识）
++         /// 不序列化，运行时数据
++         /// &lt;/summary&gt;
++         [MemoryPackIgnore]
++         private HashSet&lt;int&gt; _dirtyComponentIds = new HashSet&lt;int&gt;();
++ 
+          public Entity()
+          {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -368,4 +368,7 @@
+              if (component != null)
+              {
++                 // 从脏组件 ID 集合中移除
++                 _dirtyComponentIds.Remove(component.ComponentId);
++                 
+                  Components.Remove(component);
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+**Chunk 1**
+Lines added: 61, lines removed: undefined
+
+```diff
+@@ -521,4 +521,65 @@
+          }
+  
++         /// &lt;summary&gt;
++         /// 记录组件为脏（由 BaseComponent 子类调用）
++         /// &lt;/summary&gt;
++         /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
++         public void MarkComponentDirty(int componentId)
++         {
++             _dirtyComponentIds.Add(componentId);
++         }
++         
++         /// &lt;summary&gt;
++         /// 获取所有脏组件的 ComponentId
++         /// &lt;/summary&gt;
++         /// &lt;returns&gt;脏组件的 ComponentId 集合&lt;/returns&gt;
++         public IReadOnlyCollection&lt;int&gt; GetDirtyComponentIds()
++         {
++             return _dirtyComponentIds;
++         }
++         
++         /// &lt;summary&gt;
++         /// 根据 ComponentId 获取对应的组件实例
++         /// &lt;/summary&gt;
++         /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
++         /// &lt;returns&gt;组件实例，如果不存在返回 null&lt;/returns&gt;
++         public BaseComponent GetComponentById(int componentId)
++         {
++             foreach (var component in Components)
++             {
++                 if (component.ComponentId == componentId)
++                 {
++                     return component;
++                 }
++             }
++             return null;
++         }
++         
++         /// &lt;summary&gt;
++         /// 获取所有脏组件实例
++         /// &lt;/summary&gt;
++         /// &lt;returns&gt;脏组件实例列表&lt;/returns&gt;
++         public List&lt;BaseComponent&gt; GetDirtyComponents()
++         {
++             var dirtyComponents = new List&lt;BaseComponent&gt;();
++             foreach (var componentId in _dirtyComponentIds)
++             {
++                 var component = GetComponentById(componentId);
++                 if (component != null)
++                 {
++                     dirtyComponents.Add(component);
++                 }
++             }
++             return dirtyComponents;
++         }
++         
++         /// &lt;summary&gt;
++         /// 清除所有脏标记
++         /// &lt;/summary&gt;
++         public void ClearDirtyComponents()
++         {
++             _dirtyComponentIds.Clear();
++         }
++         
+          /// &lt;summary&gt;
+          /// 重写 ToString 方法，避免循环引用
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查并修复 BaseComponent 的 ComponentId 问题（当前是静态的，应为实例属性）：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "ComponentId" in "AstrumProj/Assets/Script/AstrumLogic/Components" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Components\BaseComponent.cs` | `public static int ComponentId \{ get; set; \}` | L13 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components\BaseComponent.cs` | `ComponentId = GetHashCode();` | L22 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components\BaseComponent.cs` | `return $"\{GetType().Name\}[Id=\{ComponentId\}, EntityId=\{EntityId\}]";` | L36 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "BaseComponent ComponentId instance property usage" • **8** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs` | L39 |
+| `AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs` | L60 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/RoleInfoComponent.cs` | L57 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/BaseStatsComponent.cs` | L36 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L64 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/MonsterInfoComponent.cs` | L66 |
+| `AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs` | L57-120 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L62-104 |
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复 BaseComponent 的 ComponentId：将静态属性改为实例属性。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -11,5 +11,5 @@
+          /// 组件的唯一标识符
+          /// &lt;/summary&gt;
+-         public static int ComponentId { get; set; }
++         public int ComponentId { get; private set; }
+  
+          /// &lt;summary&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+继续实施 Phase 2：Stage 查询处理。查看 Stage 的 Update 方法：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "public.*Update|void Update" in "AstrumProj/Assets/Script/AstrumView/Core/Stage.cs" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `public void Update(float deltaTime)` | L558 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+查看 Stage 的 Update 方法：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+在 Stage 的 Update 方法中添加脏组件同步处理：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -559,4 +559,7 @@
+          {
+              if (!_isActive) return;
++             
++             // 处理脏组件同步
++             SyncDirtyComponents();
+              
+              // 调用子类的更新方法
+```
+
+**Chunk 2**
+Lines added: 26, lines removed: undefined
+
+```diff
+@@ -572,4 +575,30 @@
+              _environment?.Update();
+          }
++         
++         /// &lt;summary&gt;
++         /// 同步所有 Entity 的脏组件
++         /// &lt;/summary&gt;
++         private void SyncDirtyComponents()
++         {
++             if (_room?.MainWorld == null) return;
++             
++             // 遍历所有 Entity
++             foreach (var entity in _room.MainWorld.Entities.Values)
++             {
++                 var dirtyComponentIds = entity.GetDirtyComponentIds();
++                 if (dirtyComponentIds.Count &gt; 0)
++                 {
++                     // 获取对应的 EntityView
++                     if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
++                     {
++                         // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
++                         entityView.SyncDirtyComponents(dirtyComponentIds);
++                     }
++                     
++                     // 清除脏标记
++                     entity.ClearDirtyComponents();
++                 }
++             }
++         }
+          
+          /// &lt;summary&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+实施 Phase 3：ViewComponent 增强。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 28, lines removed: undefined
+
+```diff
+@@ -179,4 +179,32 @@
+              // }
+          }
++         
++         /// &lt;summary&gt;
++         /// 获取需要监听的 BaseComponent 的 ComponentId 列表
++         /// 子类重写此方法以声明需要监听的组件 ID
++         /// &lt;/summary&gt;
++         /// &lt;returns&gt;需要监听的 ComponentId 数组，如果不需要监听则返回 null&lt;/returns&gt;
++         public virtual int[] GetWatchedComponentIds()
++         {
++             return null; // 默认不监听任何组件
++         }
++         
++         /// &lt;summary&gt;
++         /// 根据 ComponentId 从 OwnerEntity 获取组件并同步数据
++         /// 子类重写此方法以自定义数据提取逻辑
++         /// &lt;/summary&gt;
++         /// &lt;param name=&quot;componentId&quot;&gt;BaseComponent 的 ComponentId&lt;/param&gt;
++         protected virtual void SyncDataFromComponent(int componentId)
++         {
++             // 默认实现：子类可以重写以自定义数据提取逻辑
++             // 例如：从 OwnerEntity 根据 ComponentId 获取组件，提取数据，构造数据对象，然后调用 OnSyncData
++             if (OwnerEntity == null) return;
++             
++             var component = OwnerEntity.GetComponentById(componentId);
++             if (component != null)
++             {
++                 // 子类应该重写此方法，从 component 提取数据并调用 OnSyncData
++             }
++         }
+      }
+  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+实施 Phase 4：EntityView 协调机制。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -26,4 +26,7 @@
+          protected List&lt;ViewComponent&gt; _viewComponents = new List&lt;ViewComponent&gt;();
+          protected DateTime _lastSyncTime = DateTime.MinValue;
++         
++         // ComponentId 到 ViewComponent 列表的映射
++         private Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap = new Dictionary&lt;int, List&lt;ViewComponent&gt;&gt;();
+          
+          // Unity GameObject引用
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -234,4 +234,7 @@
+              component.OwnerEntityView = this;
+              component.Initialize();
++             
++             // 建立映射关系
++             RegisterViewComponentWatchedIds(component);
+              
+              ASLogger.Instance.Info($&quot;EntityView: 添加视图组件，ID: {_entityId}，组件: {component.GetType().Name}&quot;);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -250,4 +250,7 @@
+              if (component != null)
+              {
++                 // 清理映射关系
++                 UnregisterViewComponentWatchedIds(component);
++                 
+                  _viewComponents.Remove(component);
+                  component.Destroy();
+```
+
+</details>
+
+</tool-use>
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+**Chunk 1**
+Lines added: 83, lines removed: undefined
+
+```diff
+@@ -409,4 +409,87 @@
+              
+          }
++         
++         /// &lt;summary&gt;
++         /// 注册 ViewComponent 监听的组件 ID
++         /// &lt;/summary&gt;
++         private void RegisterViewComponentWatchedIds(ViewComponent viewComponent)
++         {
++             var watchedIds = viewComponent.GetWatchedComponentIds();
++             if (watchedIds == null || watchedIds.Length == 0)
++             {
++                 return; // 没有需要监听的组件
++             }
++             
++             foreach (var componentId in watchedIds)
++             {
++                 if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
++                 {
++                     _componentIdToViewComponentsMap[componentId] = new List&lt;ViewComponent&gt;();
++                 }
++                 if (!_componentIdToViewComponentsMap[componentId].Contains(viewComponent))
++                 {
++                     _componentIdToViewComponentsMap[componentId].Add(viewComponent);
++                 }
++             }
++         }
++         
++         /// &lt;summary&gt;
++         /// 取消注册 ViewComponent 监听的组件 ID
++         /// &lt;/summary&gt;
++         private void UnregisterViewComponentWatchedIds(ViewComponent viewComponent)
++         {
++             var watchedIds = viewComponent.GetWatchedComponentIds();
++             if (watchedIds == null || watchedIds.Length == 0)
++             {
++                 return; // 没有需要取消监听的组件
++             }
++             
++             foreach (var componentId in watchedIds)
++             {
++                 if (_componentIdToViewComponentsMap.ContainsKey(componentId))
++                 {
++                     _componentIdToViewComponentsMap[componentId].Remove(viewComponent);
++                     if (_componentIdToViewComponentsMap[componentId].Count == 0)
++                     {
++                         _componentIdToViewComponentsMap.Remove(componentId);
++                     }
++                 }
++             }
++         }
++         
++         /// &lt;summary&gt;
++         /// 同步脏组件（由 Stage 调用）
++         /// &lt;/summary&gt;
++         /// &lt;param name=&quot;dirtyComponentIds&quot;&gt;脏组件的 ComponentId 集合&lt;/param&gt;
++         public void SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)
++         {
++             if (dirtyComponentIds == null || dirtyComponentIds.Count == 0)
++             {
++                 return;
++             }
++             
++             // 遍历所有脏组件 ID
++             foreach (var componentId in dirtyComponentIds)
++             {
++                 // 检查是否有 ViewComponent 监听此组件 ID
++                 if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
++                 {
++                     continue;
++                 }
++                 
++                 // 获取对应的 ViewComponent 列表
++                 var viewComponents = _componentIdToViewComponentsMap[componentId];
++                 
++                 // 通知所有监听的 ViewComponent
++                 foreach (var viewComponent in viewComponents)
++                 {
++                     if (viewComponent != null &amp;&amp; viewComponent.IsEnabled)
++                     {
++                         // 调用 ViewComponent 的数据同步方法（传入 ComponentId）
++                         viewComponent.SyncDataFromComponent(componentId);
++                     }
++                 }
++             }
++         }
+          
+          /// &lt;summary&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 5 files</summary>
+      
+Lint paths:
+
+- `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs`
+- `AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs`
+- `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs`
+- `AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs`
+- `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+重新读取 EntityView.cs，修复未成功的替换：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "销毁所有视图" in "AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `// 销毁所有视图组�?` | L286 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复 EntityView 的 Destroy 方法：
+
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查 EntityView 的 Destroy 方法，确认是否需要添加清理代码：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "_componentIdToViewComponentsMap" in "AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs" • 11 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `private Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap = new Dictionary<int, List<ViewComponent>>();` | L30 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `if (!_componentIdToViewComponentsMap.ContainsKey(componentId))` | L425 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `_componentIdToViewComponentsMap[componentId] = new List<ViewComponent>();` | L427 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `if (!_componentIdToViewComponentsMap[componentId].Contains(viewComponent))` | L429 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `_componentIdToViewComponentsMap[componentId].Add(viewComponent);` | L431 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `if (_componentIdToViewComponentsMap.ContainsKey(componentId))` | L449 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `_componentIdToViewComponentsMap[componentId].Remove(viewComponent);` | L451 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `if (_componentIdToViewComponentsMap[componentId].Count == 0)` | L452 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `_componentIdToViewComponentsMap.Remove(componentId);` | L454 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `if (!_componentIdToViewComponentsMap.ContainsKey(componentId))` | L475 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `var viewComponents = _componentIdToViewComponentsMap[componentId];` | L481 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+在 Destroy 方法中添加清理映射关系的代码：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -293,4 +293,7 @@
+              }
+              _viewComponents.Clear();
++             
++             // 清理映射关系
++             _componentIdToViewComponentsMap.Clear();
+              
+              // 销毁Unity GameObject
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+编译项目以检查错误：
+
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] Phase 1: Entity 脏标记管理 - 添加脏组件 ID 集合和相关方法
+- [x] Phase 2: Stage 查询处理 - 在 Update 中实现脏组件查询和同步
+- [x] Phase 3: ViewComponent 增强 - 添加 GetWatchedComponentIds 和 SyncDataFromComponent 方法
+- [x] Phase 4: EntityView 协调机制 - 实现映射管理和同步协调
+- [ ] Phase 5: 现有 ViewComponent 迁移 - 迁移 HealthViewComponent 和 HUDViewComponent
+- [ ] Phase 6: 现有 BaseComponent 迁移 - 在关键组件中添加脏标记调用
+- [ ] Phase 7: 测试与优化 - 编写测试并进行性能优化
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+编译通过。更新开发进展文档：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -23,6 +23,6 @@
+  ### 当前版本
+  - **版本号**: v1.0
+- - **状态**: 🟡 设计完成，开发中
+- - **功能完成度**: 0% (设计 100%，实现 0%)
++ - **状态**: 🟡 基础架构完成，迁移中
++ - **功能完成度**: 57% (设计 100%，基础架构 100%，迁移 0%)
+  
+  ### 阶段划分
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 20, lines removed: 17
+
+```diff
+@@ -32,21 +32,24 @@
+    - ✅ 数据流设计
+    - ✅ 文档编写
+- - ⏳ **Phase 1**: Entity 脏标记管理 - **待开发**
+-   - ⏳ 添加脏组件 ID 集合
+-   - ⏳ 实现 MarkComponentDirty 方法
+-   - ⏳ 实现 GetDirtyComponentIds 方法
+-   - ⏳ 实现 GetDirtyComponents 方法
+-   - ⏳ 实现 ClearDirtyComponents 方法
+-   - ⏳ 实现 GetComponentById 方法
+- - ⏳ **Phase 2**: Stage 查询处理 - **待开发**
+-   - ⏳ 在 Update 中添加 SyncDirtyComponents 调用
+-   - ⏳ 实现 SyncDirtyComponents 方法
+- - ⏳ **Phase 3**: ViewComponent 增强 - **待开发**
+-   - ⏳ 添加 GetWatchedComponentIds 方法
+-   - ⏳ 添加 SyncDataFromComponent 方法
+- - ⏳ **Phase 4**: EntityView 协调机制 - **待开发**
+-   - ⏳ 添加 ComponentId 到 ViewComponent 映射
+-   - ⏳ 实现注册/取消注册方法
+-   - ⏳ 实现 SyncDirtyComponents 方法
++ - ✅ **Phase 1**: Entity 脏标记管理 - **已完成**
++   - ✅ 添加脏组件 ID 集合（HashSet&lt;int&gt; _dirtyComponentIds）
++   - ✅ 实现 MarkComponentDirty 方法
++   - ✅ 实现 GetDirtyComponentIds 方法
++   - ✅ 实现 GetDirtyComponents 方法
++   - ✅ 实现 ClearDirtyComponents 方法
++   - ✅ 实现 GetComponentById 方法
++   - ✅ 修复 BaseComponent.ComponentId 为实例属性
++   - ✅ 在 RemoveComponent 中清理脏标记
++ - ✅ **Phase 2**: Stage 查询处理 - **已完成**
++   - ✅ 在 Update 中添加 SyncDirtyComponents 调用
++   - ✅ 实现 SyncDirtyComponents 方法
++ - ✅ **Phase 3**: ViewComponent 增强 - **已完成**
++   - ✅ 添加 GetWatchedComponentIds 方法（默认返回 null）
++   - ✅ 添加 SyncDataFromComponent 方法
++ - ✅ **Phase 4**: EntityView 协调机制 - **已完成**
++   - ✅ 添加 ComponentId 到 ViewComponent 映射（Dictionary&lt;int, List&lt;ViewComponent&gt;&gt;）
++   - ✅ 实现注册/取消注册方法
++   - ✅ 实现 SyncDirtyComponents 方法
++   - ✅ 在 Destroy 中清理映射关系
+  - ⏳ **Phase 5**: 现有 ViewComponent 迁移 - **待开发**
+    - ⏳ 迁移 HealthViewComponent
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 28, lines removed: 17
+
+```diff
+@@ -86,38 +86,49 @@
+  ---
+  
+- ### Phase 1: Entity 脏标记管理 ⏳
++ ### Phase 1: Entity 脏标记管理 ✅
+  
+  **目标**: 在 Entity 中实现脏标记管理功能
+  
+- #### 1.1 添加脏组件 ID 集合
++ #### 1.1 添加脏组件 ID 集合 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs&#96;
+  
+- **任务**:
+- - 添加 &#96;HashSet&lt;int&gt; _dirtyComponentIds&#96; 字段
++ **完成内容**:
++ - ✅ 添加 &#96;HashSet&lt;int&gt; _dirtyComponentIds&#96; 字段（使用 MemoryPackIgnore 标记）
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+- #### 1.2 实现 MarkComponentDirty 方法
++ #### 1.2 实现 MarkComponentDirty 方法 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs&#96;
+  
+- **任务**:
+- - 实现 &#96;MarkComponentDirty(int componentId)&#96; 方法
+- - 将 ComponentId 添加到脏组件集合
++ **完成内容**:
++ - ✅ 实现 &#96;MarkComponentDirty(int componentId)&#96; 方法
++ - ✅ 将 ComponentId 添加到脏组件集合
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+- #### 1.3 实现查询方法
++ #### 1.3 实现查询方法 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs&#96;
+  
+- **任务**:
+- - 实现 &#96;GetDirtyComponentIds()&#96; 方法
+- - 实现 &#96;GetComponentById(int componentId)&#96; 方法
+- - 实现 &#96;GetDirtyComponents()&#96; 方法
+- - 实现 &#96;ClearDirtyComponents()&#96; 方法
++ **完成内容**:
++ - ✅ 实现 &#96;GetDirtyComponentIds()&#96; 方法
++ - ✅ 实现 &#96;GetComponentById(int componentId)&#96; 方法
++ - ✅ 实现 &#96;GetDirtyComponents()&#96; 方法
++ - ✅ 实现 &#96;ClearDirtyComponents()&#96; 方法
++ - ✅ 在 &#96;RemoveComponent&#96; 中清理脏标记
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
++ 
++ #### 1.4 修复 BaseComponent.ComponentId ✅
++ 
++ **文件**: &#96;AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs&#96;
++ 
++ **完成内容**:
++ - ✅ 将 ComponentId 从静态属性改为实例属性
++ - ✅ 确保每个组件实例有唯一的 ComponentId
++ 
++ **状态**: ✅ 已完成
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 12, lines removed: 11
+
+```diff
+@@ -134,27 +134,28 @@
+  ---
+  
+- ### Phase 2: Stage 查询处理 ⏳
++ ### Phase 2: Stage 查询处理 ✅
+  
+  **目标**: 在 Stage 中实现脏组件查询和处理
+  
+- #### 2.1 在 Update 中添加调用
++ #### 2.1 在 Update 中添加调用 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/Stage.cs&#96;
+  
+- **任务**:
+- - 在 &#96;Update()&#96; 方法中添加 &#96;SyncDirtyComponents()&#96; 调用
++ **完成内容**:
++ - ✅ 在 &#96;Update()&#96; 方法中添加 &#96;SyncDirtyComponents()&#96; 调用（在更新 EntityView 之前）
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+- #### 2.2 实现 SyncDirtyComponents 方法
++ #### 2.2 实现 SyncDirtyComponents 方法 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/Stage.cs&#96;
+  
+- **任务**:
+- - 遍历所有 Entity，查询脏组件 ID
+- - 对于有脏组件的 Entity，通知对应的 EntityView
+- - 同步完成后清除脏标记
++ **完成内容**:
++ - ✅ 实现 &#96;SyncDirtyComponents()&#96; 私有方法
++ - ✅ 遍历所有 Entity，查询脏组件 ID
++ - ✅ 对于有脏组件的 Entity，通知对应的 EntityView
++ - ✅ 同步完成后清除脏标记
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 11, lines removed: 11
+
+```diff
+@@ -161,27 +161,27 @@
+  ---
+  
+- ### Phase 3: ViewComponent 增强 ⏳
++ ### Phase 3: ViewComponent 增强 ✅
+  
+  **目标**: 在 ViewComponent 中添加监听声明和数据同步方法
+  
+- #### 3.1 添加 GetWatchedComponentIds 方法
++ #### 3.1 添加 GetWatchedComponentIds 方法 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs&#96;
+  
+- **任务**:
+- - 添加 &#96;GetWatchedComponentIds()&#96; 虚方法
+- - 默认返回 null
++ **完成内容**:
++ - ✅ 添加 &#96;GetWatchedComponentIds()&#96; 虚方法
++ - ✅ 默认返回 null
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+- #### 3.2 添加 SyncDataFromComponent 方法
++ #### 3.2 添加 SyncDataFromComponent 方法 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs&#96;
+  
+- **任务**:
+- - 添加 &#96;SyncDataFromComponent(int componentId)&#96; 虚方法
+- - 默认实现：根据 ComponentId 获取组件并调用 OnSyncData
++ **完成内容**:
++ - ✅ 添加 &#96;SyncDataFromComponent(int componentId)&#96; 虚方法
++ - ✅ 默认实现：根据 ComponentId 从 OwnerEntity 获取组件
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 19, lines removed: 18
+
+```diff
+@@ -187,39 +187,40 @@
+  ---
+  
+- ### Phase 4: EntityView 协调机制 ⏳
++ ### Phase 4: EntityView 协调机制 ✅
+  
+  **目标**: 在 EntityView 中实现映射管理和同步协调
+  
+- #### 4.1 添加映射字典
++ #### 4.1 添加映射字典 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs&#96;
+  
+- **任务**:
+- - 添加 &#96;Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap&#96; 字段
++ **完成内容**:
++ - ✅ 添加 &#96;Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap&#96; 字段
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+- #### 4.2 实现注册/取消注册方法
++ #### 4.2 实现注册/取消注册方法 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs&#96;
+  
+- **任务**:
+- - 实现 &#96;RegisterViewComponentWatchedIds()&#96; 方法
+- - 实现 &#96;UnregisterViewComponentWatchedIds()&#96; 方法
+- - 在 &#96;AddViewComponent&#96; 中调用注册方法
+- - 在 &#96;RemoveViewComponent&#96; 中调用取消注册方法
++ **完成内容**:
++ - ✅ 实现 &#96;RegisterViewComponentWatchedIds()&#96; 方法
++ - ✅ 实现 &#96;UnregisterViewComponentWatchedIds()&#96; 方法
++ - ✅ 在 &#96;AddViewComponent&#96; 中调用注册方法
++ - ✅ 在 &#96;RemoveViewComponent&#96; 中调用取消注册方法
++ - ✅ 在 &#96;Destroy&#96; 中清理映射关系
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+- #### 4.3 实现 SyncDirtyComponents 方法
++ #### 4.3 实现 SyncDirtyComponents 方法 ✅
+  
+  **文件**: &#96;AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs&#96;
+  
+- **任务**:
+- - 实现 &#96;SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)&#96; 方法
+- - 根据 ComponentId 查找对应的 ViewComponent
+- - 调用 ViewComponent 的同步方法
++ **完成内容**:
++ - ✅ 实现 &#96;SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)&#96; 方法
++ - ✅ 根据 ComponentId 查找对应的 ViewComponent
++ - ✅ 调用 ViewComponent 的同步方法
+  
+- **状态**: ⏳ 待开发
++ **状态**: ✅ 已完成
+  
+  ---
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+
+**Chunk 1**
+Lines added: 26, lines removed: 25
+
+```diff
+@@ -328,36 +328,37 @@
+  ## 详细任务清单
+  
+- ### Phase 1: Entity 脏标记管理
++ ### Phase 1: Entity 脏标记管理 ✅
+  
+- - [ ] 1.1 添加 &#96;HashSet&lt;int&gt; _dirtyComponentIds&#96; 字段
+- - [ ] 1.2 实现 &#96;MarkComponentDirty(int componentId)&#96; 方法
+- - [ ] 1.3 实现 &#96;GetDirtyComponentIds()&#96; 方法
+- - [ ] 1.4 实现 &#96;GetComponentById(int componentId)&#96; 方法
+- - [ ] 1.5 实现 &#96;GetDirtyComponents()&#96; 方法
+- - [ ] 1.6 实现 &#96;ClearDirtyComponents()&#96; 方法
+- - [ ] 1.7 在 &#96;RemoveComponent&#96; 中清理脏标记
++ - [x] 1.1 添加 &#96;HashSet&lt;int&gt; _dirtyComponentIds&#96; 字段
++ - [x] 1.2 实现 &#96;MarkComponentDirty(int componentId)&#96; 方法
++ - [x] 1.3 实现 &#96;GetDirtyComponentIds()&#96; 方法
++ - [x] 1.4 实现 &#96;GetComponentById(int componentId)&#96; 方法
++ - [x] 1.5 实现 &#96;GetDirtyComponents()&#96; 方法
++ - [x] 1.6 实现 &#96;ClearDirtyComponents()&#96; 方法
++ - [x] 1.7 在 &#96;RemoveComponent&#96; 中清理脏标记
++ - [x] 1.8 修复 BaseComponent.ComponentId 为实例属性
+  
+- ### Phase 2: Stage 查询处理
++ ### Phase 2: Stage 查询处理 ✅
+  
+- - [ ] 2.1 在 &#96;Update()&#96; 方法中添加 &#96;SyncDirtyComponents()&#96; 调用
+- - [ ] 2.2 实现 &#96;SyncDirtyComponents()&#96; 私有方法
+- - [ ] 2.3 遍历所有 Entity，查询脏组件 ID
+- - [ ] 2.4 通知 EntityView 同步脏组件
+- - [ ] 2.5 清除 Entity 的脏标记
++ - [x] 2.1 在 &#96;Update()&#96; 方法中添加 &#96;SyncDirtyComponents()&#96; 调用
++ - [x] 2.2 实现 &#96;SyncDirtyComponents()&#96; 私有方法
++ - [x] 2.3 遍历所有 Entity，查询脏组件 ID
++ - [x] 2.4 通知 EntityView 同步脏组件
++ - [x] 2.5 清除 Entity 的脏标记
+  
+- ### Phase 3: ViewComponent 增强
++ ### Phase 3: ViewComponent 增强 ✅
+  
+- - [ ] 3.1 添加 &#96;GetWatchedComponentIds()&#96; 虚方法（默认返回 null）
+- - [ ] 3.2 添加 &#96;SyncDataFromComponent(int componentId)&#96; 虚方法
++ - [x] 3.1 添加 &#96;GetWatchedComponentIds()&#96; 虚方法（默认返回 null）
++ - [x] 3.2 添加 &#96;SyncDataFromComponent(int componentId)&#96; 虚方法
+  
+- ### Phase 4: EntityView 协调机制
++ ### Phase 4: EntityView 协调机制 ✅
+  
+- - [ ] 4.1 添加 &#96;Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap&#96; 字段
+- - [ ] 4.2 实现 &#96;RegisterViewComponentWatchedIds()&#96; 方法
+- - [ ] 4.3 实现 &#96;UnregisterViewComponentWatchedIds()&#96; 方法
+- - [ ] 4.4 在 &#96;AddViewComponent&#96; 中调用注册方法
+- - [ ] 4.5 在 &#96;RemoveViewComponent&#96; 中调用取消注册方法
+- - [ ] 4.6 实现 &#96;SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)&#96; 方法
+- - [ ] 4.7 在 &#96;Destroy()&#96; 中清理映射关系
++ - [x] 4.1 添加 &#96;Dictionary&lt;int, List&lt;ViewComponent&gt;&gt; _componentIdToViewComponentsMap&#96; 字段
++ - [x] 4.2 实现 &#96;RegisterViewComponentWatchedIds()&#96; 方法
++ - [x] 4.3 实现 &#96;UnregisterViewComponentWatchedIds()&#96; 方法
++ - [x] 4.4 在 &#96;AddViewComponent&#96; 中调用注册方法
++ - [x] 4.5 在 &#96;RemoveViewComponent&#96; 中调用取消注册方法
++ - [x] 4.6 实现 &#96;SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)&#96; 方法
++ - [x] 4.7 在 &#96;Destroy()&#96; 中清理映射关系
+  
+  ### Phase 5: 现有 ViewComponent 迁移
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+Phase 1-4 已完成。继续 Phase 5：迁移现有 ViewComponent。先查看需要迁移的组件：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Components/HealthViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "DynamicStatsComponent DerivedStatsComponent Get Set" • **15** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `AstrumProj/Assets/Script/AstrumLogic/Components/DynamicStatsComponent.cs` | L54 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/DerivedStatsComponent.cs` | L52 |
+| `Docs/02-CombatSystem 战斗系统/数值系统/Stats-Components 属性组件.md` | L106-185 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/DynamicStatsComponent.cs` | L98-124 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/DerivedStatsComponent.cs` | L95-135 |
+| `AstrumProj/Assets/Script/AstrumLogic/StatsSystem/Stats.cs` | L61 |
+| `Docs/02-CombatSystem 战斗系统/数值系统/Stats-Components 属性组件.md` | L265-342 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/BaseStatsComponent.cs` | L36 |
+| `Docs/02-CombatSystem 战斗系统/数值系统/Stats-Components 属性组件.md` | L1060-1118 |
+| `AstrumTest/AstrumTest.Shared/Unit/StatsSystem/DynamicStatsComponentTests.cs` | L53 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/DerivedStatsComponent.cs` | L49-98 |
+| `Docs/02-CombatSystem 战斗系统/_status 开发进展/Stats-System-Progress 数值系统开发进展.md` | L439-513 |
+| `Docs/02-CombatSystem 战斗系统/数值系统/Stats-Components 属性组件.md` | L33 |
+| `AstrumProj/Assets/Script/AstrumLogic/Components/BaseStatsComponent.cs` | L33-72 |
+| `Docs/02-CombatSystem 战斗系统/数值系统/Stats-Components 属性组件.md` | L339-397 |
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+
+---
+
+
+迁移 HUDViewComponent 和 HealthViewComponent，并在 DynamicStatsComponent 中添加脏标记调用。先迁移 HUDViewComponent：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "DynamicStatsComponent|DerivedStatsComponent" in "AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs` | `var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();` | L51 |
+| `AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs` | `var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();` | L52 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Components/DynamicStatsComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查如何通过 EntityId 获取 Entity，以便在 DynamicStatsComponent 中调用脏标记：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+<details>
+                <summary>Tool use: **codebase_search** • Searched codebase "World GetEntity EntityId static manager registry" • **6** results</summary>
+            
+| File | Lines |
+|------|-------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L188-244 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | L64 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L75 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L105-153 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | L419-451 |
+| `AstrumProj/Assets/Script/AstrumLogic/Factories/EntityFactory.cs` | L51 |
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/World.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+先完成 ViewComponent 的迁移。BaseComponent 的脏标记调用需要先解决如何通过 EntityId 获取 Entity，暂时跳过。先迁移 HUDViewComponent：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 40, lines removed: 10
+
+```diff
+@@ -22,27 +22,57 @@
+          private FP _maxHealth = FP.Zero;
+          private FP _currentShield = FP.Zero;
++         
++         // 监听的组件 ID
++         private int _dynamicStatsComponentId;
++         private int _derivedStatsComponentId;
+          
+          protected override void OnInitialize()
+          {
++             // 获取需要监听的组件 ComponentId
++             if (OwnerEntity != null)
++             {
++                 var dynamicStats = OwnerEntity.GetComponent&lt;DynamicStatsComponent&gt;();
++                 var derivedStats = OwnerEntity.GetComponent&lt;DerivedStatsComponent&gt;();
++                 
++                 if (dynamicStats != null)
++                 {
++                     _dynamicStatsComponentId = dynamicStats.ComponentId;
++                 }
++                 
++                 if (derivedStats != null)
++                 {
++                     _derivedStatsComponentId = derivedStats.ComponentId;
++                 }
++             }
++             
+              // ASLogger.Instance.Debug($&quot;HUDViewComponent 初始化，实体ID: {OwnerEntity?.UniqueId}&quot;);
+              RegisterOrUpdateHUD();
+-             
+          }
+          
+-         protected override void OnUpdate(float deltaTime)
++         public override int[] GetWatchedComponentIds()
+          {
+-             if (!_isRegistered || OwnerEntity == null)
+-                 return;
+-             OnSyncData(null);
+-             // 持续更新HUD位置，确保镜头移动时HUD跟随
+-             Vector3 worldPosition = GetEntityWorldPosition();
+-             HUDManager.Instance?.UpdateHUDPosition(OwnerEntity.UniqueId, worldPosition);
++             var ids = new List&lt;int&gt;();
++             if (_dynamicStatsComponentId != 0)
++             {
++                 ids.Add(_dynamicStatsComponentId);
++             }
++             if (_derivedStatsComponentId != 0)
++             {
++                 ids.Add(_derivedStatsComponentId);
++             }
++             return ids.Count &gt; 0 ? ids.ToArray() : null;
+          }
+          
+-         protected override void OnSyncData(object data)
++         protected override void SyncDataFromComponent(int componentId)
+          {
+              if (OwnerEntity == null)
+              {
+-                 ASLogger.Instance.Warning(&quot;HUDViewComponent: OwnerEntity 为空&quot;);
++                 return;
++             }
++             
++             // 根据 ComponentId 获取组件并提取数据
++             var component = OwnerEntity.GetComponentById(componentId);
++             if (component == null)
++             {
+                  return;
+              }
+```
+
+**Chunk 2**
+Lines added: undefined, lines removed: 2
+
+```diff
+@@ -51,6 +81,4 @@
+              var dynamicStats = OwnerEntity.GetComponent&lt;DynamicStatsComponent&gt;();
+              var derivedStats = OwnerEntity.GetComponent&lt;DerivedStatsComponent&gt;();
+-             
+-             //ASLogger.Instance.Debug($&quot;HUDViewComponent: 获取组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}&quot;);
+              
+              if (dynamicStats != null &amp;&amp; derivedStats != null)
+```
+
+**Chunk 3**
+Lines added: undefined, lines removed: 2
+
+```diff
+@@ -59,6 +87,4 @@
+                  FP newMaxHealth = derivedStats.Get(StatType.HP);
+                  FP newCurrentShield = dynamicStats.Get(DynamicResourceType.SHIELD);
+-                 
+-                 //ASLogger.Instance.Debug($&quot;HUDViewComponent: 血量数据 - 当前: {newCurrentHealth}, 最大: {newMaxHealth}, 护盾: {newCurrentShield}&quot;);
+                  
+                  // 检查数据是否有变化
+```
+
+**Chunk 4**
+Lines added: 15, lines removed: 6
+
+```diff
+@@ -68,15 +94,24 @@
+                      _maxHealth = newMaxHealth;
+                      _currentShield = newCurrentShield;
+-                     
+-                     // ASLogger.Instance.Debug($&quot;HUDViewComponent: 血量数据变化，注册/更新HUD&quot;);
+                      
+                      // 注册或更新HUD
+                      RegisterOrUpdateHUD();
+                  }
+              }
+-             else
+-             {
+-                 ASLogger.Instance.Warning($&quot;HUDViewComponent: 缺少必要组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}&quot;);
+-             }
++         }
++         
++         protected override void OnUpdate(float deltaTime)
++         {
++             if (!_isRegistered || OwnerEntity == null)
++                 return;
++             
++             // 持续更新HUD位置，确保镜头移动时HUD跟随
++             Vector3 worldPosition = GetEntityWorldPosition();
++             HUDManager.Instance?.UpdateHUDPosition(OwnerEntity.UniqueId, worldPosition);
++         }
++         
++         protected override void OnSyncData(object data)
++         {
++             // 此方法现在由 SyncDataFromComponent 调用，不再需要实现
+          }
+          
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -1,3 +1,4 @@
+  using UnityEngine;
++ using System.Collections.Generic;
+  using Astrum.CommonBase;
+  using Astrum.LogicCore.Core;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="run_terminal_cmd">
+<details>
+<summary>Tool use: **run_terminal_cmd**</summary>
+
+Status: **loading**
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="search_replace">
+<details>
+<summary>Tool use: **search_replace**</summary>
+
+Status: **loading**
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+

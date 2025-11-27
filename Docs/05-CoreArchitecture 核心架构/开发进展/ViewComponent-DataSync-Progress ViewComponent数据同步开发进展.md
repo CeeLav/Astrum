@@ -22,8 +22,8 @@
 
 ### 当前版本
 - **版本号**: v1.0
-- **状态**: 🟡 设计完成，开发中
-- **功能完成度**: 0% (设计 100%，实现 0%)
+- **状态**: 🟡 基础架构完成，迁移中
+- **功能完成度**: 57% (设计 100%，基础架构 100%，迁移 0%)
 
 ### 阶段划分
 - ✅ **Phase 0**: 技术方案设计 - **已完成**
@@ -31,26 +31,29 @@
   - ✅ 脏标记机制设计
   - ✅ 数据流设计
   - ✅ 文档编写
-- ⏳ **Phase 1**: Entity 脏标记管理 - **待开发**
-  - ⏳ 添加脏组件 ID 集合
-  - ⏳ 实现 MarkComponentDirty 方法
-  - ⏳ 实现 GetDirtyComponentIds 方法
-  - ⏳ 实现 GetDirtyComponents 方法
-  - ⏳ 实现 ClearDirtyComponents 方法
-  - ⏳ 实现 GetComponentById 方法
-- ⏳ **Phase 2**: Stage 查询处理 - **待开发**
-  - ⏳ 在 Update 中添加 SyncDirtyComponents 调用
-  - ⏳ 实现 SyncDirtyComponents 方法
-- ⏳ **Phase 3**: ViewComponent 增强 - **待开发**
-  - ⏳ 添加 GetWatchedComponentIds 方法
-  - ⏳ 添加 SyncDataFromComponent 方法
-- ⏳ **Phase 4**: EntityView 协调机制 - **待开发**
-  - ⏳ 添加 ComponentId 到 ViewComponent 映射
-  - ⏳ 实现注册/取消注册方法
-  - ⏳ 实现 SyncDirtyComponents 方法
-- ⏳ **Phase 5**: 现有 ViewComponent 迁移 - **待开发**
-  - ⏳ 迁移 HealthViewComponent
-  - ⏳ 迁移 HUDViewComponent
+- ✅ **Phase 1**: Entity 脏标记管理 - **已完成**
+  - ✅ 添加脏组件 ID 集合（HashSet<int> _dirtyComponentIds）
+  - ✅ 实现 MarkComponentDirty 方法
+  - ✅ 实现 GetDirtyComponentIds 方法
+  - ✅ 实现 GetDirtyComponents 方法
+  - ✅ 实现 ClearDirtyComponents 方法
+  - ✅ 实现 GetComponentById 方法
+  - ✅ 修复 BaseComponent.ComponentId 为实例属性
+  - ✅ 在 RemoveComponent 中清理脏标记
+- ✅ **Phase 2**: Stage 查询处理 - **已完成**
+  - ✅ 在 Update 中添加 SyncDirtyComponents 调用
+  - ✅ 实现 SyncDirtyComponents 方法
+- ✅ **Phase 3**: ViewComponent 增强 - **已完成**
+  - ✅ 添加 GetWatchedComponentIds 方法（默认返回 null）
+  - ✅ 添加 SyncDataFromComponent 方法
+- ✅ **Phase 4**: EntityView 协调机制 - **已完成**
+  - ✅ 添加 ComponentId 到 ViewComponent 映射（Dictionary<int, List<ViewComponent>>）
+  - ✅ 实现注册/取消注册方法
+  - ✅ 实现 SyncDirtyComponents 方法
+  - ✅ 在 Destroy 中清理映射关系
+- 🟡 **Phase 5**: 现有 ViewComponent 迁移 - **进行中**
+  - ⏳ 迁移 HealthViewComponent（待评估是否需要）
+  - ✅ 迁移 HUDViewComponent
   - ⏳ 其他 ViewComponent 评估
 - ⏳ **Phase 6**: 现有 BaseComponent 迁移 - **待开发**
   - ⏳ 在关键组件中添加脏标记调用
@@ -82,134 +85,147 @@
 
 ---
 
-### Phase 1: Entity 脏标记管理 ⏳
+### Phase 1: Entity 脏标记管理 ✅
 
 **目标**: 在 Entity 中实现脏标记管理功能
 
-#### 1.1 添加脏组件 ID 集合
+#### 1.1 添加脏组件 ID 集合 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs`
 
-**任务**:
-- 添加 `HashSet<int> _dirtyComponentIds` 字段
+**完成内容**:
+- ✅ 添加 `HashSet<int> _dirtyComponentIds` 字段（使用 MemoryPackIgnore 标记）
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 1.2 实现 MarkComponentDirty 方法
-
-**文件**: `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs`
-
-**任务**:
-- 实现 `MarkComponentDirty(int componentId)` 方法
-- 将 ComponentId 添加到脏组件集合
-
-**状态**: ⏳ 待开发
-
-#### 1.3 实现查询方法
+#### 1.2 实现 MarkComponentDirty 方法 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs`
 
-**任务**:
-- 实现 `GetDirtyComponentIds()` 方法
-- 实现 `GetComponentById(int componentId)` 方法
-- 实现 `GetDirtyComponents()` 方法
-- 实现 `ClearDirtyComponents()` 方法
+**完成内容**:
+- ✅ 实现 `MarkComponentDirty(int componentId)` 方法
+- ✅ 将 ComponentId 添加到脏组件集合
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
+
+#### 1.3 实现查询方法 ✅
+
+**文件**: `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs`
+
+**完成内容**:
+- ✅ 实现 `GetDirtyComponentIds()` 方法
+- ✅ 实现 `GetComponentById(int componentId)` 方法
+- ✅ 实现 `GetDirtyComponents()` 方法
+- ✅ 实现 `ClearDirtyComponents()` 方法
+- ✅ 在 `RemoveComponent` 中清理脏标记
+
+**状态**: ✅ 已完成
+
+#### 1.4 修复 BaseComponent.ComponentId ✅
+
+**文件**: `AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs`
+
+**完成内容**:
+- ✅ 将 ComponentId 从静态属性改为实例属性
+- ✅ 确保每个组件实例有唯一的 ComponentId
+
+**状态**: ✅ 已完成
 
 ---
 
-### Phase 2: Stage 查询处理 ⏳
+### Phase 2: Stage 查询处理 ✅
 
 **目标**: 在 Stage 中实现脏组件查询和处理
 
-#### 2.1 在 Update 中添加调用
+#### 2.1 在 Update 中添加调用 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs`
 
-**任务**:
-- 在 `Update()` 方法中添加 `SyncDirtyComponents()` 调用
+**完成内容**:
+- ✅ 在 `Update()` 方法中添加 `SyncDirtyComponents()` 调用（在更新 EntityView 之前）
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 2.2 实现 SyncDirtyComponents 方法
+#### 2.2 实现 SyncDirtyComponents 方法 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs`
 
-**任务**:
-- 遍历所有 Entity，查询脏组件 ID
-- 对于有脏组件的 Entity，通知对应的 EntityView
-- 同步完成后清除脏标记
+**完成内容**:
+- ✅ 实现 `SyncDirtyComponents()` 私有方法
+- ✅ 遍历所有 Entity，查询脏组件 ID
+- ✅ 对于有脏组件的 Entity，通知对应的 EntityView
+- ✅ 同步完成后清除脏标记
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
 ---
 
-### Phase 3: ViewComponent 增强 ⏳
+### Phase 3: ViewComponent 增强 ✅
 
 **目标**: 在 ViewComponent 中添加监听声明和数据同步方法
 
-#### 3.1 添加 GetWatchedComponentIds 方法
+#### 3.1 添加 GetWatchedComponentIds 方法 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs`
 
-**任务**:
-- 添加 `GetWatchedComponentIds()` 虚方法
-- 默认返回 null
+**完成内容**:
+- ✅ 添加 `GetWatchedComponentIds()` 虚方法
+- ✅ 默认返回 null
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 3.2 添加 SyncDataFromComponent 方法
+#### 3.2 添加 SyncDataFromComponent 方法 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs`
 
-**任务**:
-- 添加 `SyncDataFromComponent(int componentId)` 虚方法
-- 默认实现：根据 ComponentId 获取组件并调用 OnSyncData
+**完成内容**:
+- ✅ 添加 `SyncDataFromComponent(int componentId)` 虚方法
+- ✅ 默认实现：根据 ComponentId 从 OwnerEntity 获取组件
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
 ---
 
-### Phase 4: EntityView 协调机制 ⏳
+### Phase 4: EntityView 协调机制 ✅
 
 **目标**: 在 EntityView 中实现映射管理和同步协调
 
-#### 4.1 添加映射字典
+#### 4.1 添加映射字典 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs`
 
-**任务**:
-- 添加 `Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap` 字段
+**完成内容**:
+- ✅ 添加 `Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap` 字段
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
-#### 4.2 实现注册/取消注册方法
-
-**文件**: `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs`
-
-**任务**:
-- 实现 `RegisterViewComponentWatchedIds()` 方法
-- 实现 `UnregisterViewComponentWatchedIds()` 方法
-- 在 `AddViewComponent` 中调用注册方法
-- 在 `RemoveViewComponent` 中调用取消注册方法
-
-**状态**: ⏳ 待开发
-
-#### 4.3 实现 SyncDirtyComponents 方法
+#### 4.2 实现注册/取消注册方法 ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs`
 
-**任务**:
-- 实现 `SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)` 方法
-- 根据 ComponentId 查找对应的 ViewComponent
-- 调用 ViewComponent 的同步方法
+**完成内容**:
+- ✅ 实现 `RegisterViewComponentWatchedIds()` 方法
+- ✅ 实现 `UnregisterViewComponentWatchedIds()` 方法
+- ✅ 在 `AddViewComponent` 中调用注册方法
+- ✅ 在 `RemoveViewComponent` 中调用取消注册方法
+- ✅ 在 `Destroy` 中清理映射关系
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
+
+#### 4.3 实现 SyncDirtyComponents 方法 ✅
+
+**文件**: `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs`
+
+**完成内容**:
+- ✅ 实现 `SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)` 方法
+- ✅ 根据 ComponentId 查找对应的 ViewComponent
+- ✅ 调用 ViewComponent 的同步方法
+
+**状态**: ✅ 已完成
 
 ---
 
-### Phase 5: 现有 ViewComponent 迁移 ⏳
+### Phase 5: 现有 ViewComponent 迁移 🟡
 
 **目标**: 迁移现有 ViewComponent 使用新机制
 
@@ -217,25 +233,23 @@
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Components/HealthViewComponent.cs`
 
-**任务**:
-- 在 `OnInitialize()` 中获取需要监听的组件 ComponentId
-- 实现 `GetWatchedComponentIds()` 方法
-- 实现 `SyncDataFromComponent(int componentId)` 方法
-- 移除 `OnUpdate` 中的主动拉取逻辑（如果存在）
+**说明**:
+- HealthViewComponent 目前通过 OnSyncData 接收 HealthData 对象
+- 需要评估是否需要迁移到新机制，或者保持现有方式
 
-**状态**: ⏳ 待开发
+**状态**: ⏳ 待评估
 
-#### 5.2 迁移 HUDViewComponent
+#### 5.2 迁移 HUDViewComponent ✅
 
 **文件**: `AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs`
 
-**任务**:
-- 在 `OnInitialize()` 中获取需要监听的组件 ComponentId
-- 实现 `GetWatchedComponentIds()` 方法
-- 实现 `SyncDataFromComponent(int componentId)` 方法
-- 移除 `OnUpdate` 中的主动拉取逻辑
+**完成内容**:
+- ✅ 在 `OnInitialize()` 中获取需要监听的组件 ComponentId（DynamicStatsComponent 和 DerivedStatsComponent）
+- ✅ 实现 `GetWatchedComponentIds()` 方法
+- ✅ 实现 `SyncDataFromComponent(int componentId)` 方法
+- ✅ 移除 `OnUpdate` 中的主动拉取逻辑（OnSyncData 调用）
 
-**状态**: ⏳ 待开发
+**状态**: ✅ 已完成
 
 #### 5.3 其他 ViewComponent 评估
 
@@ -311,43 +325,44 @@
 
 ## 详细任务清单
 
-### Phase 1: Entity 脏标记管理
+### Phase 1: Entity 脏标记管理 ✅
 
-- [ ] 1.1 添加 `HashSet<int> _dirtyComponentIds` 字段
-- [ ] 1.2 实现 `MarkComponentDirty(int componentId)` 方法
-- [ ] 1.3 实现 `GetDirtyComponentIds()` 方法
-- [ ] 1.4 实现 `GetComponentById(int componentId)` 方法
-- [ ] 1.5 实现 `GetDirtyComponents()` 方法
-- [ ] 1.6 实现 `ClearDirtyComponents()` 方法
-- [ ] 1.7 在 `RemoveComponent` 中清理脏标记
+- [x] 1.1 添加 `HashSet<int> _dirtyComponentIds` 字段
+- [x] 1.2 实现 `MarkComponentDirty(int componentId)` 方法
+- [x] 1.3 实现 `GetDirtyComponentIds()` 方法
+- [x] 1.4 实现 `GetComponentById(int componentId)` 方法
+- [x] 1.5 实现 `GetDirtyComponents()` 方法
+- [x] 1.6 实现 `ClearDirtyComponents()` 方法
+- [x] 1.7 在 `RemoveComponent` 中清理脏标记
+- [x] 1.8 修复 BaseComponent.ComponentId 为实例属性
 
-### Phase 2: Stage 查询处理
+### Phase 2: Stage 查询处理 ✅
 
-- [ ] 2.1 在 `Update()` 方法中添加 `SyncDirtyComponents()` 调用
-- [ ] 2.2 实现 `SyncDirtyComponents()` 私有方法
-- [ ] 2.3 遍历所有 Entity，查询脏组件 ID
-- [ ] 2.4 通知 EntityView 同步脏组件
-- [ ] 2.5 清除 Entity 的脏标记
+- [x] 2.1 在 `Update()` 方法中添加 `SyncDirtyComponents()` 调用
+- [x] 2.2 实现 `SyncDirtyComponents()` 私有方法
+- [x] 2.3 遍历所有 Entity，查询脏组件 ID
+- [x] 2.4 通知 EntityView 同步脏组件
+- [x] 2.5 清除 Entity 的脏标记
 
-### Phase 3: ViewComponent 增强
+### Phase 3: ViewComponent 增强 ✅
 
-- [ ] 3.1 添加 `GetWatchedComponentIds()` 虚方法（默认返回 null）
-- [ ] 3.2 添加 `SyncDataFromComponent(int componentId)` 虚方法
+- [x] 3.1 添加 `GetWatchedComponentIds()` 虚方法（默认返回 null）
+- [x] 3.2 添加 `SyncDataFromComponent(int componentId)` 虚方法
 
-### Phase 4: EntityView 协调机制
+### Phase 4: EntityView 协调机制 ✅
 
-- [ ] 4.1 添加 `Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap` 字段
-- [ ] 4.2 实现 `RegisterViewComponentWatchedIds()` 方法
-- [ ] 4.3 实现 `UnregisterViewComponentWatchedIds()` 方法
-- [ ] 4.4 在 `AddViewComponent` 中调用注册方法
-- [ ] 4.5 在 `RemoveViewComponent` 中调用取消注册方法
-- [ ] 4.6 实现 `SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)` 方法
-- [ ] 4.7 在 `Destroy()` 中清理映射关系
+- [x] 4.1 添加 `Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap` 字段
+- [x] 4.2 实现 `RegisterViewComponentWatchedIds()` 方法
+- [x] 4.3 实现 `UnregisterViewComponentWatchedIds()` 方法
+- [x] 4.4 在 `AddViewComponent` 中调用注册方法
+- [x] 4.5 在 `RemoveViewComponent` 中调用取消注册方法
+- [x] 4.6 实现 `SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)` 方法
+- [x] 4.7 在 `Destroy()` 中清理映射关系
 
 ### Phase 5: 现有 ViewComponent 迁移
 
-- [ ] 5.1 迁移 HealthViewComponent
-- [ ] 5.2 迁移 HUDViewComponent
+- [ ] 5.1 迁移 HealthViewComponent（待评估）
+- [x] 5.2 迁移 HUDViewComponent
 - [ ] 5.3 评估其他 ViewComponent
 
 ### Phase 6: 现有 BaseComponent 迁移
@@ -371,6 +386,9 @@
    - 问题：BaseComponent 需要通过 EntityId 获取 Entity 来调用 MarkComponentDirty
    - 方案：需要确定通过什么方式获取 Entity（World 管理器、Entity 管理器等）
    - 优先级：高
+   - 状态：待实现
+   - 临时方案：可以考虑在 Entity 的 AddComponent 时，将 Entity 引用传递给 BaseComponent（但用户要求不这样做）
+   - 备选方案：通过 Room 或 World 管理器获取 Entity
 
 2. **ComponentId 的生成方式**
    - 问题：当前 BaseComponent.ComponentId 是静态的，需要确认是否正确

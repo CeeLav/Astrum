@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
@@ -22,28 +23,58 @@ namespace Astrum.View.Components
         private FP _maxHealth = FP.Zero;
         private FP _currentShield = FP.Zero;
         
+        // 监听的组件 ID
+        private int _dynamicStatsComponentId;
+        private int _derivedStatsComponentId;
+        
         protected override void OnInitialize()
         {
+            // 获取需要监听的组件 ComponentId
+            if (OwnerEntity != null)
+            {
+                var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();
+                var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();
+                
+                if (dynamicStats != null)
+                {
+                    _dynamicStatsComponentId = DynamicStatsComponent.ComponentId;
+                }
+                
+                if (derivedStats != null)
+                {
+                    _derivedStatsComponentId = DerivedStatsComponent.ComponentId;
+                }
+            }
+            
             // ASLogger.Instance.Debug($"HUDViewComponent 初始化，实体ID: {OwnerEntity?.UniqueId}");
             RegisterOrUpdateHUD();
-            
         }
         
-        protected override void OnUpdate(float deltaTime)
+        public override int[] GetWatchedComponentIds()
         {
-            if (!_isRegistered || OwnerEntity == null)
-                return;
-            OnSyncData(null);
-            // 持续更新HUD位置，确保镜头移动时HUD跟随
-            Vector3 worldPosition = GetEntityWorldPosition();
-            HUDManager.Instance?.UpdateHUDPosition(OwnerEntity.UniqueId, worldPosition);
+            var ids = new List<int>();
+            if (_dynamicStatsComponentId != 0)
+            {
+                ids.Add(_dynamicStatsComponentId);
+            }
+            if (_derivedStatsComponentId != 0)
+            {
+                ids.Add(_derivedStatsComponentId);
+            }
+            return ids.Count > 0 ? ids.ToArray() : null;
         }
         
-        protected override void OnSyncData(object data)
+        public override void SyncDataFromComponent(int componentId)
         {
             if (OwnerEntity == null)
             {
-                ASLogger.Instance.Warning("HUDViewComponent: OwnerEntity 为空");
+                return;
+            }
+            
+            // 根据 ComponentId 获取组件并提取数据
+            var component = OwnerEntity.GetComponentById(componentId);
+            if (component == null)
+            {
                 return;
             }
             
@@ -51,15 +82,11 @@ namespace Astrum.View.Components
             var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();
             var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();
             
-            //ASLogger.Instance.Debug($"HUDViewComponent: 获取组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}");
-            
             if (dynamicStats != null && derivedStats != null)
             {
                 FP newCurrentHealth = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
                 FP newMaxHealth = derivedStats.Get(StatType.HP);
                 FP newCurrentShield = dynamicStats.Get(DynamicResourceType.SHIELD);
-                
-                //ASLogger.Instance.Debug($"HUDViewComponent: 血量数据 - 当前: {newCurrentHealth}, 最大: {newMaxHealth}, 护盾: {newCurrentShield}");
                 
                 // 检查数据是否有变化
                 if (newCurrentHealth != _currentHealth || newMaxHealth != _maxHealth || newCurrentShield != _currentShield)
@@ -68,16 +95,25 @@ namespace Astrum.View.Components
                     _maxHealth = newMaxHealth;
                     _currentShield = newCurrentShield;
                     
-                    // ASLogger.Instance.Debug($"HUDViewComponent: 血量数据变化，注册/更新HUD");
-                    
                     // 注册或更新HUD
                     RegisterOrUpdateHUD();
                 }
             }
-            else
-            {
-                ASLogger.Instance.Warning($"HUDViewComponent: 缺少必要组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}");
-            }
+        }
+        
+        protected override void OnUpdate(float deltaTime)
+        {
+            if (!_isRegistered || OwnerEntity == null)
+                return;
+            
+            // 持续更新HUD位置，确保镜头移动时HUD跟随
+            Vector3 worldPosition = GetEntityWorldPosition();
+            HUDManager.Instance?.UpdateHUDPosition(OwnerEntity.UniqueId, worldPosition);
+        }
+        
+        protected override void OnSyncData(object data)
+        {
+            // 此方法现在由 SyncDataFromComponent 调用，不再需要实现
         }
         
         protected override void OnDestroy()

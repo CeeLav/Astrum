@@ -21,6 +21,11 @@ namespace Astrum.LogicCore.Components
         {
             ComponentId = GetHashCode();
         }
+
+        public int GetComponentId()
+        {
+            return ComponentId;
+        }
         
         public virtual void OnAttachToEntity(Entity entity)
         {

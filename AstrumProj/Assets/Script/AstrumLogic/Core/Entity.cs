@@ -103,6 +103,13 @@ namespace Astrum.LogicCore.Core
         // 引用计数字典（类型名 -> 引用次数），用于决定组件/能力的装配与卸载
         public Dictionary<string, int> ComponentRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
         public Dictionary<string, int> CapabilityRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
+        
+        /// <summary>
+        /// 脏组件 ID 集合（使用 ComponentId 作为唯一标识）
+        /// 不序列化，运行时数据
+        /// </summary>
+        [MemoryPackIgnore]
+        private HashSet<int> _dirtyComponentIds = new HashSet<int>();
 
         public Entity()
         {
@@ -360,6 +367,9 @@ namespace Astrum.LogicCore.Core
             var component = Components.FirstOrDefault(c => c is T);
             if (component != null)
             {
+                // 从脏组件 ID 集合中移除
+                _dirtyComponentIds.Remove(component.GetComponentId());
+                
                 Components.Remove(component);
 
                 // 发布组件移除事件
@@ -510,6 +520,67 @@ namespace Astrum.LogicCore.Core
             EventSystem.Instance.Publish(eventData);
         }
 
+        /// <summary>
+        /// 记录组件为脏（由 BaseComponent 子类调用）
+        /// </summary>
+        /// <param name="componentId">组件的 ComponentId</param>
+        public void MarkComponentDirty(int componentId)
+        {
+            _dirtyComponentIds.Add(componentId);
+        }
+        
+        /// <summary>
+        /// 获取所有脏组件的 ComponentId
+        /// </summary>
+        /// <returns>脏组件的 ComponentId 集合</returns>
+        public IReadOnlyCollection<int> GetDirtyComponentIds()
+        {
+            return _dirtyComponentIds;
+        }
+        
+        /// <summary>
+        /// 根据 ComponentId 获取对应的组件实例
+        /// </summary>
+        /// <param name="componentId">组件的 ComponentId</param>
+        /// <returns>组件实例，如果不存在返回 null</returns>
+        public BaseComponent GetComponentById(int componentId)
+        {
+            foreach (var component in Components)
+            {
+                if (component.GetComponentId() == componentId)
+                {
+                    return component;
+                }
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// 获取所有脏组件实例
+        /// </summary>
+        /// <returns>脏组件实例列表</returns>
+        public List<BaseComponent> GetDirtyComponents()
+        {
+            var dirtyComponents = new List<BaseComponent>();
+            foreach (var componentId in _dirtyComponentIds)
+            {
+                var component = GetComponentById(componentId);
+                if (component != null)
+                {
+                    dirtyComponents.Add(component);
+                }
+            }
+            return dirtyComponents;
+        }
+        
+        /// <summary>
+        /// 清除所有脏标记
+        /// </summary>
+        public void ClearDirtyComponents()
+        {
+            _dirtyComponentIds.Clear();
+        }
+        
         /// <summary>
         /// 重写 ToString 方法，避免循环引用
         /// </summary>

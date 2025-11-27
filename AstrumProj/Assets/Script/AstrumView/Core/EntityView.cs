@@ -26,6 +26,9 @@ namespace Astrum.View.Core
         protected List<ViewComponent> _viewComponents = new List<ViewComponent>();
         protected DateTime _lastSyncTime = DateTime.MinValue;
         
+        // ComponentId 到 ViewComponent 列表的映射
+        private Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap = new Dictionary<int, List<ViewComponent>>();
+        
         // Unity GameObject引用
         protected GameObject _gameObject;
         protected Transform _transform;
@@ -231,6 +234,9 @@ namespace Astrum.View.Core
             component.OwnerEntityView = this;
             component.Initialize();
             
+            // 建立映射关系
+            RegisterViewComponentWatchedIds(component);
+            
             ASLogger.Instance.Info($"EntityView: 添加视图组件，ID: {_entityId}，组件: {component.GetType().Name}");
         }
         
@@ -243,6 +249,9 @@ namespace Astrum.View.Core
             var component = GetViewComponent<T>();
             if (component != null)
             {
+                // 清理映射关系
+                UnregisterViewComponentWatchedIds(component);
+                
                 _viewComponents.Remove(component);
                 component.Destroy();
                 
@@ -283,6 +292,9 @@ namespace Astrum.View.Core
                 }
             }
             _viewComponents.Clear();
+            
+            // 清理映射关系
+            _componentIdToViewComponentsMap.Clear();
             
             // 销毁Unity GameObject
             if (_gameObject != null)
@@ -398,6 +410,89 @@ namespace Astrum.View.Core
         protected virtual void OnReset()
         {
             
+        }
+        
+        /// <summary>
+        /// 注册 ViewComponent 监听的组件 ID
+        /// </summary>
+        private void RegisterViewComponentWatchedIds(ViewComponent viewComponent)
+        {
+            var watchedIds = viewComponent.GetWatchedComponentIds();
+            if (watchedIds == null || watchedIds.Length == 0)
+            {
+                return; // 没有需要监听的组件
+            }
+            
+            foreach (var componentId in watchedIds)
+            {
+                if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
+                {
+                    _componentIdToViewComponentsMap[componentId] = new List<ViewComponent>();
+                }
+                if (!_componentIdToViewComponentsMap[componentId].Contains(viewComponent))
+                {
+                    _componentIdToViewComponentsMap[componentId].Add(viewComponent);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 取消注册 ViewComponent 监听的组件 ID
+        /// </summary>
+        private void UnregisterViewComponentWatchedIds(ViewComponent viewComponent)
+        {
+            var watchedIds = viewComponent.GetWatchedComponentIds();
+            if (watchedIds == null || watchedIds.Length == 0)
+            {
+                return; // 没有需要取消监听的组件
+            }
+            
+            foreach (var componentId in watchedIds)
+            {
+                if (_componentIdToViewComponentsMap.ContainsKey(componentId))
+                {
+                    _componentIdToViewComponentsMap[componentId].Remove(viewComponent);
+                    if (_componentIdToViewComponentsMap[componentId].Count == 0)
+                    {
+                        _componentIdToViewComponentsMap.Remove(componentId);
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 同步脏组件（由 Stage 调用）
+        /// </summary>
+        /// <param name="dirtyComponentIds">脏组件的 ComponentId 集合</param>
+        public void SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)
+        {
+            if (dirtyComponentIds == null || dirtyComponentIds.Count == 0)
+            {
+                return;
+            }
+            
+            // 遍历所有脏组件 ID
+            foreach (var componentId in dirtyComponentIds)
+            {
+                // 检查是否有 ViewComponent 监听此组件 ID
+                if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
+                {
+                    continue;
+                }
+                
+                // 获取对应的 ViewComponent 列表
+                var viewComponents = _componentIdToViewComponentsMap[componentId];
+                
+                // 通知所有监听的 ViewComponent
+                foreach (var viewComponent in viewComponents)
+                {
+                    if (viewComponent != null && viewComponent.IsEnabled)
+                    {
+                        // 调用 ViewComponent 的数据同步方法（传入 ComponentId）
+                        viewComponent.SyncDataFromComponent(componentId);
+                    }
+                }
+            }
         }
         
         /// <summary>
