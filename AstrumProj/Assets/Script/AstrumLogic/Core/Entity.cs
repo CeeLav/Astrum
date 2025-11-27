@@ -135,6 +135,12 @@ namespace Astrum.LogicCore.Core
             CapabilityStates = capabilityStates ?? new Dictionary<int, CapabilityState>();
             DisabledTags = disabledTags ?? new Dictionary<CapabilityTag, HashSet<long>>();
 
+            // 同步 _nextId，确保反序列化后创建的新实体不会与已反序列化的实体ID冲突
+            if (uniqueId >= _nextId)
+            {
+                _nextId = uniqueId + 1;
+            }
+
             foreach (var component in Components)
             {
                 component.EntityId = UniqueId;
