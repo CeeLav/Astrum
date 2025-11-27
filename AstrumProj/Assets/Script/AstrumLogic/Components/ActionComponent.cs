@@ -53,11 +53,11 @@ namespace Astrum.LogicCore.Components
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public ActionComponent(int componentId, long entityId, int currentActionId, 
+        public ActionComponent( long entityId, int currentActionId, 
             int currentFrame, List<ActionCommand> inputCommands, List<PreorderActionInfo> preorderActions, 
             Dictionary<string, PreorderActionInfo> externalPreorders, Dictionary<int, ActionInfo> availableActions)
         {
-            ComponentId = componentId;
+            
             EntityId = entityId;
             CurrentActionId = currentActionId;
             CurrentFrame = currentFrame;

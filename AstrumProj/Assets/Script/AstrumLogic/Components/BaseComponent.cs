@@ -10,7 +10,7 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 组件的唯一标识符
         /// </summary>
-        public int ComponentId { get; set; }
+        public static int ComponentId { get; set; }
 
         /// <summary>
         /// 所属实体的ID

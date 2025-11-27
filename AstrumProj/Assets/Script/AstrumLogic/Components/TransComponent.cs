@@ -28,9 +28,8 @@ namespace Astrum.LogicCore.Components
         }
 
         [MemoryPackConstructor]
-        public TransComponent(int componentId, long entityId, TSVector position, TSQuaternion rotation) : base()
+        public TransComponent(long entityId, TSVector position, TSQuaternion rotation) : base()
         {
-            ComponentId = componentId;
             EntityId = entityId;
             Position = position;
             Rotation = rotation;

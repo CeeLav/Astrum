@@ -59,7 +59,6 @@ namespace Astrum.LogicCore.Components
         /// </summary>
         [MemoryPackConstructor]
         public KnockbackComponent(
-            int componentId,
             long entityId, 
             bool isKnockingBack, 
             TSVector direction, 
@@ -70,7 +69,6 @@ namespace Astrum.LogicCore.Components
             KnockbackType type, 
             long casterId)
         {
-            ComponentId = componentId;
             EntityId = entityId;
             IsKnockingBack = isKnockingBack;
             Direction = direction;

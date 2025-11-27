@@ -64,11 +64,6 @@ namespace Astrum.LogicCore.Core
         public DateTime CreationTime { get; set; }
 
         /// <summary>
-        /// 组件掩码，用于快速查询和筛选
-        /// </summary>
-        public long ComponentMask { get; private set; } = 0;
-
-        /// <summary>
         /// 挂载的组件列表
         /// </summary>
         public List<BaseComponent> Components { get; private set; } = new List<BaseComponent>();
@@ -119,7 +114,7 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, long componentMask, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
+        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
@@ -128,7 +123,6 @@ namespace Astrum.LogicCore.Core
             IsActive = isActive;
             IsDestroyed = isDestroyed;
             CreationTime = creationTime;
-            ComponentMask = componentMask;
             Components = components;
             ParentId = parentId;
             ChildrenIds = childrenIds;
@@ -304,7 +298,6 @@ namespace Astrum.LogicCore.Core
                     if (comp != null)
                     {
                         Components.Remove(comp);
-                        UpdateComponentMask();
                         PublishComponentChangedEvent(comp, "Remove");
                     }
                 }
@@ -326,7 +319,6 @@ namespace Astrum.LogicCore.Core
                 if (comp != null)
                 {
                     Components.Remove(comp);
-                    UpdateComponentMask();
                     PublishComponentChangedEvent(comp, "Remove");
                 }
             }
@@ -354,8 +346,7 @@ namespace Astrum.LogicCore.Core
             Components.Add(component);
             
             // 更新组件掩码
-            UpdateComponentMask();
-            
+
             // 发布组件添加事件
             PublishComponentChangedEvent(component, "Add");
         }
@@ -370,8 +361,7 @@ namespace Astrum.LogicCore.Core
             if (component != null)
             {
                 Components.Remove(component);
-                UpdateComponentMask();
-                
+
                 // 发布组件移除事件
                 PublishComponentChangedEvent(component, "Remove");
             }
@@ -476,19 +466,6 @@ namespace Astrum.LogicCore.Core
             ChildrenIds.Remove(childId);
         }
 
-
-        /// <summary>
-        /// 更新组件掩码
-        /// </summary>
-        private void UpdateComponentMask()
-        {
-            ComponentMask = 0;
-            foreach (var component in Components)
-            {
-                // 这里可以根据组件类型设置相应的位标志
-                ComponentMask |= (1L << component.ComponentId);
-            }
-        }
 
         /// <summary>
         /// 获取实体需要的组件类型列表
