@@ -276,6 +276,12 @@ namespace Astrum.Client.Managers.GameModes
             _lsController.FastForwardTo(targetFrame);
             
             _currentFrame = _lsController.AuthorityFrame;
+            
+            // 重置视图，强制与逻辑层同步
+            if (MainStage != null)
+            {
+                MainStage.ResetReplayViews();
+            }
         }
 
         /// <summary>

@@ -62,7 +62,7 @@ namespace Astrum.Client.UI.Generated
                 
                 var pointerDown = new UnityEngine.EventSystems.EventTrigger.Entry();
                 pointerDown.eventID = UnityEngine.EventSystems.EventTriggerType.PointerDown;
-                pointerDown.callback.AddListener((data) => { _isDraggingSlider = true; });
+                pointerDown.callback.AddListener((data) => { OnSliderDragStart(); });
                 eventTrigger.triggers.Add(pointerDown);
                 
                 var pointerUp = new UnityEngine.EventSystems.EventTrigger.Entry();
@@ -160,7 +160,10 @@ namespace Astrum.Client.UI.Generated
             if (sliderSlider != null && !_isDraggingSlider)
             {
                 float progress = _replayGameMode.Progress;
+                // 临时移除监听器，避免触发 OnSliderValueChanged
+                sliderSlider.onValueChanged.RemoveListener(OnSliderValueChanged);
                 sliderSlider.value = progress;
+                sliderSlider.onValueChanged.AddListener(OnSliderValueChanged);
             }
             
             // 更新帧数显示
@@ -225,19 +228,41 @@ namespace Astrum.Client.UI.Generated
         }
 
         /// <summary>
+        /// 进度条拖动开始
+        /// </summary>
+        private void OnSliderDragStart()
+        {
+            _isDraggingSlider = true;
+            
+            // 如果正在播放，则暂停
+            if (_replayGameMode != null && _replayGameMode.IsPlaying)
+            {
+                _replayGameMode.Pause();
+            }
+        }
+
+        /// <summary>
         /// 进度条值变化（拖动时）
         /// </summary>
         private void OnSliderValueChanged(float value)
         {
-            // 标记正在拖动
-            _isDraggingSlider = true;
+            // 标记正在拖动（如果还没有标记的话）
+            if (!_isDraggingSlider)
+            {
+                _isDraggingSlider = true;
+                
+                // 如果正在播放，则暂停
+                if (_replayGameMode != null && _replayGameMode.IsPlaying)
+                {
+                    _replayGameMode.Pause();
+                }
+            }
             
             // 注意：这里不立即跳转，等待拖动结束
-            // Unity Slider 没有 onEndDrag，需要在 Update 中检测鼠标释放
         }
 
         /// <summary>
-        /// 进度条拖动结束（需要在 Update 中检测）
+        /// 进度条拖动结束
         /// </summary>
         private void OnSliderDragEnd()
         {

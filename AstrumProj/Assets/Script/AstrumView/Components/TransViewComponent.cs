@@ -195,6 +195,73 @@ namespace Astrum.View.Components
         }
         
         /// <summary>
+        /// 重置组件（用于回放跳转时强制与逻辑层同步）
+        /// </summary>
+        protected override void OnReset()
+        {
+            if (!_isEnabled || _ownerEntityView == null) return;
+            
+            var ownerEntity = OwnerEntity;
+            if (ownerEntity == null)
+            {
+                ASLogger.Instance.Warning($"TransViewComponent: OnReset - OwnerEntity为null，EntityId: {_ownerEntityView.EntityId}", "View.Transform");
+                return;
+            }
+            
+            var transComponent = ownerEntity.GetComponent<TransComponent>();
+            if (transComponent == null)
+            {
+                ASLogger.Instance.Warning($"TransViewComponent: OnReset - 实体缺少TransComponent，实体ID: {ownerEntity.UniqueId}", "View.Transform");
+                return;
+            }
+            
+            // 1. 从逻辑层获取最新的位置和旋转数据
+            var fixedPos = transComponent.Position;
+            Vector3 logicPosition = new Vector3(
+                (float)fixedPos.x,
+                (float)fixedPos.y,
+                (float)fixedPos.z
+            );
+            
+            var fixedRot = transComponent.Rotation;
+            Quaternion logicRotation = new Quaternion(
+                (float)fixedRot.x,
+                (float)fixedRot.y,
+                (float)fixedRot.z,
+                (float)fixedRot.w
+            );
+            
+            // 2. 立即应用到视图（不使用插值，直接设置）
+            _ownerEntityView.SetWorldPosition(logicPosition);
+            _ownerEntityView.SetWorldRotation(logicRotation);
+            
+            // 3. 重置内部状态
+            _targetPosition = logicPosition;
+            _targetRotation = logicRotation;
+            _lastPosition = logicPosition;
+            _currentVelocity = Vector3.zero;
+            _isMoving = false;
+            _isRotating = false;
+            _movementDirection = Vector3.zero;
+            _rotationVelocity = Quaternion.identity;
+            
+            // 4. 重置视觉同步数据
+            _visualSync.lastLogicPos = logicPosition;
+            _visualSync.previousLogicPos = logicPosition;
+            _visualSync.visualOffset = Vector3.zero;
+            _visualSync.timeSinceLastLogicUpdate = 0f;
+            _visualSync.lastLogicFrame = ownerEntity.World?.CurFrame ?? 0;
+            
+            // 5. 重置视觉跟随模式（根据当前动作状态重新确定）
+            if (enableVisualFollow)
+            {
+                _currentMode = DetermineVisualFollowMode(ownerEntity);
+            }
+            
+            ASLogger.Instance.Debug($"TransViewComponent: OnReset - 强制同步完成，位置: {logicPosition}, 旋转: {logicRotation}, EntityId: {ownerEntity.UniqueId}", "View.Transform");
+        }
+        
+        /// <summary>
         /// 更新旋转（从逻辑层读取并平滑过渡）
         /// </summary>
         /// <param name="deltaTime">帧时间</param>

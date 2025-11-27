@@ -128,27 +128,26 @@ namespace Astrum.View.Core
         {
             UpdateView(Time.deltaTime);
         }
-        
+
         /// <summary>
-        /// 与逻辑实体同步
+        /// 重置视图（用于回放跳转时强制同步）
         /// </summary>
-        /// <param name="entityId">实体UniqueId</param>
-        public virtual void SyncWithEntity(long entityId)
+        public virtual void Reset()
         {
-            if (entityId != _entityId)
+            if (_entityId == 0) return;
+            
+            // 1. 重置所有 ViewComponent
+            foreach (var component in _viewComponents)
             {
-                ASLogger.Instance.Warning($"EntityView: 实体ID不匹配，期望: {_entityId}，实际: {entityId}");
-                return;
+                if (component != null && component.IsEnabled)
+                {
+                    component.Reset();
+                }
             }
             
-            // 通过逻辑层的Component获取数据并同步
-            SyncTransformFromLogic(entityId);
-            SyncComponentsFromLogic(entityId);
-            
-            _lastSyncTime = DateTime.Now;
-            
-            // 子类特定的同步逻辑
-            OnSyncWithEntity(entityId);
+
+            // 子类特定的重置逻辑
+            OnReset();
         }
         
         protected virtual void SyncTransformFromLogic(long entityId)
@@ -389,6 +388,14 @@ namespace Astrum.View.Core
         }
 
         protected virtual void OnSyncWithEntity(long entityId)
+        {
+            
+        }
+        
+        /// <summary>
+        /// 子类特定的重置逻辑
+        /// </summary>
+        protected virtual void OnReset()
         {
             
         }

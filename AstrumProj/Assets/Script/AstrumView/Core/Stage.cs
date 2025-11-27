@@ -360,7 +360,6 @@ namespace Astrum.View.Core
             
             if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
             {
-                entityView.SyncWithEntity(eventData.EntityId);
             }
         }
         
@@ -376,6 +375,29 @@ namespace Astrum.View.Core
             
             // 回滚后同步 EntityView（创建少的，销毁多的）
             SyncEntityViews();
+        }
+        
+        /// <summary>
+        /// 重置回放视图（用于回放跳转时强制同步所有视图）
+        /// </summary>
+        public void ResetReplayViews()
+        {
+            ASLogger.Instance.Info("Stage: 重置回放视图", "Stage.Reset");
+            
+            // 1. 同步 EntityView（创建少的，销毁多的）
+            SyncEntityViews();
+            
+            // 2. 遍历所有 EntityView，调用 Reset
+            foreach (var kvp in _entityViews)
+            {
+                var entityView = kvp.Value;
+                if (entityView != null)
+                {
+                    entityView.Reset();
+                }
+            }
+            
+            ASLogger.Instance.Info($"Stage: 回放视图重置完成 - 实体数量: {_entityViews.Count}", "Stage.Reset");
         }
         
         /// <summary>

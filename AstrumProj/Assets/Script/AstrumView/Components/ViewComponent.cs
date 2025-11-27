@@ -123,6 +123,17 @@ namespace Astrum.View.Components
             OnEnabledChanged?.Invoke(this, enabled);
             Debug.Log($"ViewComponent: 设置启用状态，ID: {_componentId}，启用: {enabled}");
         }
+        
+        /// <summary>
+        /// 重置组件（用于回放跳转时强制与逻辑层同步）
+        /// </summary>
+        public virtual void Reset()
+        {
+            if (!_isEnabled || _ownerEntityView == null) return;
+            
+            // 子类特定的重置逻辑（强制同步逻辑层数据）
+            OnReset();
+        }
 
         /// <summary>
         /// 获取组件类型名称
@@ -147,5 +158,25 @@ namespace Astrum.View.Components
         protected abstract void OnUpdate(float deltaTime);
         protected abstract void OnDestroy();
         protected abstract void OnSyncData(object data);
+        
+        // 虚方法 - 子类可以重写
+        /// <summary>
+        /// 重置组件（子类重写以实现强制同步逻辑层数据）
+        /// 子类应该从 OwnerEntity 获取最新的组件数据并强制同步到视图
+        /// </summary>
+        protected virtual void OnReset()
+        {
+            // 默认实现：子类应该重写此方法，从 OwnerEntity 获取数据并同步
+            // 例如：
+            // var entity = OwnerEntity;
+            // if (entity != null)
+            // {
+            //     var component = entity.GetComponent<SomeComponent>();
+            //     if (component != null)
+            //     {
+            //         // 强制同步数据到视图
+            //     }
+            // }
+        }
     }
 }
