@@ -284,7 +284,12 @@ namespace Astrum.Client.Managers.GameModes
                         monsterInfo.AIType = 1; // 1=基础AI
                         ASLogger.Instance.Debug($"SinglePlayerGameMode: 设置Monster属性 - Level: {monsterInfo.Level}, AIType: {monsterInfo.AIType}");
                     }
-                    
+
+                    monsterEntity.AttachSubArchetype(EArchetype.AI, out string reason);
+                    if (reason != null)
+                    {
+                        ASLogger.Instance.Info($"SinglePlayerGameMode: <UNK>Monster<UNK> - Reason: {reason}");
+                    }
                     ASLogger.Instance.Info($"SinglePlayerGameMode: Monster创建并初始化完成，ID: {monsterId}");
                 }
             }

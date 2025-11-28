@@ -11,7 +11,7 @@ namespace Astrum.LogicCore.Archetypes
     /// Monster原型 = BaseUnit + Combat + AI差异
     /// 继承BaseUnit（基础移动）和Combat（战斗系统），不继承Controllable（不需要玩家控制）
     /// </summary>
-    [Archetype(EArchetype.Monster, "BaseUnit", "Combat")]
+    [Archetype(EArchetype.Monster, "BaseUnit", "Combat","Controllable")]
     public class MonsterArchetype : Archetype
     {
         private static readonly Type[] _comps = 

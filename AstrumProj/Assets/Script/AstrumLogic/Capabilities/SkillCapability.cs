@@ -125,7 +125,11 @@ namespace Astrum.LogicCore.Capabilities
 		private void LoadInitialSkills(Entity entity)
 		{
 			var roleInfo = GetComponent<RoleInfoComponent>(entity);
-			if (roleInfo?.RoleConfig == null) return;
+			if (roleInfo?.RoleConfig == null)
+			{
+				LearnSkill(entity, 2001, 1);//临时给一个普通攻击
+				return;
+			}
 
 			var cfg = roleInfo.RoleConfig;
 			if (cfg.DefaultSkillIds == null || cfg.DefaultSkillIds.Length == 0)
