@@ -59,22 +59,4 @@ ActionInfo 及其 Extension 字段 SHALL 支持 MemoryPack 序列化和反序列
 - **THEN** 序列化成功
 - **AND** 反序列化后 Extension 仍为 null
 
-## REMOVED Requirements
-
-### Requirement: ActionInfo 继承体系
-
-**Reason**: 使用继承体系增加了序列化复杂度和类型检查开销，且 NormalActionInfo 无额外字段仅作为占位。
-
-**Migration**: 
-- NormalActionInfo、MoveActionInfo、SkillActionInfo 类已删除
-- 所有使用这些类的代码应改为使用 ActionInfo 和 Extension 字段
-- 类型检查（`is MoveActionInfo`）应改为 Extension 字段检查（`MoveExtension != null`）
-
-### Requirement: MemoryPackUnion 多态序列化
-
-**Reason**: ActionInfo 不再是抽象类，无需多态序列化支持。
-
-**Migration**: 
-- 移除所有 `[MemoryPackUnion]` 属性
-- ActionInfo 作为单一具体类直接序列化
 
