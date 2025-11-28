@@ -64,7 +64,6 @@ namespace Astrum.LogicCore.Factories
                 Archetype = archetype,
                 EntityConfigId = entityConfigId,
                 CreationTime = DateTime.Now,
-                IsActive = true,
                 IsDestroyed = false
             };
             // 确保组件 OnAttachToEntity 内可访问 World

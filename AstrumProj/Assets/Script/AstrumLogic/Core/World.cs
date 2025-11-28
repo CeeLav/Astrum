@@ -416,29 +416,6 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
-        /// 发布实体更新事件
-        /// </summary>
-        /// <param name="entity">更新的实体</param>
-        /// <param name="updateType">更新类型</param>
-        /// <param name="updateData">更新数据</param>
-        public void PublishEntityUpdatedEvent(Entity entity, string updateType, object updateData)
-        {
-            var eventData = new EntityUpdatedEventData(entity, WorldId, RoomId, updateType, updateData);
-            EventSystem.Instance.Publish(eventData);
-        }
-        
-        /// <summary>
-        /// 发布实体激活状态变化事件
-        /// </summary>
-        /// <param name="entity">状态变化的实体</param>
-        /// <param name="isActive">是否激活</param>
-        public void PublishEntityActiveStateChangedEvent(Entity entity, bool isActive)
-        {
-            var eventData = new EntityActiveStateChangedEventData(entity, WorldId, RoomId, isActive);
-            EventSystem.Instance.Publish(eventData);
-        }
-
-        /// <summary>
         /// 按配置创建实体（支持 ArchetypeName 列）
         /// </summary>
         public Entity CreateEntity(int entityConfigId)

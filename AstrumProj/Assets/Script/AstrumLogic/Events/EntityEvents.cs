@@ -175,63 +175,6 @@ namespace Astrum.CommonBase
     }
     
     /// <summary>
-    /// 实体激活状态变化事件数据
-    /// </summary>
-    public class EntityActiveStateChangedEventData : EventData
-    {
-        /// <summary>
-        /// 实体ID
-        /// </summary>
-        public long EntityId { get; set; }
-        
-        /// <summary>
-        /// 实体名称
-        /// </summary>
-        public string EntityName { get; set; }
-        
-        /// <summary>
-        /// 实体类型
-        /// </summary>
-        public string EntityType { get; set; }
-        
-        /// <summary>
-        /// 世界ID
-        /// </summary>
-        public int WorldId { get; set; }
-        
-        /// <summary>
-        /// 房间ID
-        /// </summary>
-        public long RoomId { get; set; }
-        
-        /// <summary>
-        /// 是否激活
-        /// </summary>
-        public bool IsActive { get; set; }
-        
-        /// <summary>
-        /// 状态变化时间
-        /// </summary>
-        public DateTime StateChangeTime { get; set; }
-        
-        public EntityActiveStateChangedEventData()
-        {
-            StateChangeTime = DateTime.Now;
-        }
-        
-        public EntityActiveStateChangedEventData(Entity entity, int worldId, long roomId, bool isActive)
-        {
-            EntityId = entity.UniqueId;
-            EntityName = entity.Name;
-            EntityType = entity.GetType().Name;
-            WorldId = worldId;
-            RoomId = roomId;
-            IsActive = isActive;
-            StateChangeTime = DateTime.Now;
-        }
-    }
-    
-    /// <summary>
     /// 实体组件变化事件数据
     /// </summary>
     public class EntityComponentChangedEventData : EventData
@@ -316,25 +259,6 @@ namespace Astrum.CommonBase
         {
             FrameID = frameID;
             Input = lSInput;
-        }
-    }
-    
-    /// <summary>
-    /// 新玩家创建事件数据
-    /// </summary>
-    public class NewPlayerEventData : EventData
-    {
-        /// <summary>
-        /// 实体ID
-        /// </summary>
-        public long PlayerID { get; set; }
-
-        public int BornInfo { get; set; }
-        
-        public NewPlayerEventData(long playerID, int bornInfo)
-        {
-            PlayerID = playerID;
-            BornInfo = bornInfo;
         }
     }
     

@@ -26,15 +26,11 @@ namespace Astrum.View.Core
         // Stage状态
         protected bool _isActive;
         protected bool _isLoaded;
-        protected DateTime _lastSyncTime;
         
         // 视图组件
         protected Dictionary<long, EntityView> _entityViews;
-        protected Dictionary<long, GameObject> _unitViews;
-        
+
         // Unity组件
-        protected Camera _camera;
-        protected Environment _environment;
         protected GameObject _stageRoot;
         // Stage根节点不应在切场景时销毁，需持久化
         public GameObject StageRoot => _stageRoot;
@@ -46,10 +42,7 @@ namespace Astrum.View.Core
         public Room Room => _room;
         public bool IsActive => _isActive;
         public bool IsLoaded => _isLoaded;
-        public DateTime LastSyncTime => _lastSyncTime;
         public Dictionary<long, EntityView> EntityViews => _entityViews;
-        public Camera Camera => _camera;
-        public Environment Environment => _environment;
         
         /// <summary>
         /// 获取指定实体的 EntityView
@@ -62,12 +55,8 @@ namespace Astrum.View.Core
         }
         
         // 事件
-        public event Action OnStageActivated;
-        public event Action OnStageDeactivated;
-        public event Action OnStageLoaded;
-        public event Action OnStageUnloaded;
+
         public event Action<EntityView> OnEntityViewAdded;
-        public event Action<long> OnEntityViewRemoved;
         
         /// <summary>
         /// 构造函数
@@ -79,9 +68,7 @@ namespace Astrum.View.Core
             _roomId = 0;
             _isActive = false;
             _isLoaded = false;
-            _lastSyncTime = DateTime.MinValue;
             _entityViews = new Dictionary<long, EntityView>();
-            _unitViews = new Dictionary<long, GameObject>();
         }
         
         /// <summary>
@@ -91,105 +78,13 @@ namespace Astrum.View.Core
         {
             if (_isLoaded) return;
             
-            
             // 创建Stage根对象
             CreateStageRoot();
-            
-            // 设置摄像机
-            SetupCamera();
-            
-            // 设置环境
-            SetupEnvironment();
             
             // 订阅实体事件
             SubscribeToEntityEvents();
             
-            // 调用子类的初始化方法
-            OnInitialize();
-            
             _isLoaded = true;
-            OnStageLoaded?.Invoke();
-        }
-        
-        /// <summary>
-        /// 子类可重写的初始化方法
-        /// </summary>
-        protected virtual void OnInitialize()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的加载方法
-        /// </summary>
-        protected virtual void OnLoad()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的卸载方法
-        /// </summary>
-        protected virtual void OnUnload()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的更新方法
-        /// </summary>
-        protected virtual void OnUpdate(float deltaTime)
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的渲染方法
-        /// </summary>
-        protected virtual void OnRender()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的Stage进入方法
-        /// </summary>
-        protected virtual void OnStageEnter()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的Stage退出方法
-        /// </summary>
-        protected virtual void OnStageExit()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的激活方法
-        /// </summary>
-        protected virtual void OnActivate()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的停用方法
-        /// </summary>
-        protected virtual void OnDeactivate()
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的房间同步方法
-        /// </summary>
-        /// <param name="roomData">房间数据</param>
-        protected virtual void OnSyncWithRoom(RoomData roomData)
-        {
-        }
-        
-        /// <summary>
-        /// 子类可重写的实体视图创建方法
-        /// </summary>
-        /// <param name="entityId">实体UniqueId</param>
-        /// <returns>创建的实体视图</returns>
-        protected virtual EntityView CreateEntityView(long entityId)
-        {
-            return null;
         }
         
         /// <summary>
@@ -199,8 +94,6 @@ namespace Astrum.View.Core
         {
             EventSystem.Instance.Subscribe<EntityCreatedEventData>(OnEntityCreated);
             EventSystem.Instance.Subscribe<EntityDestroyedEventData>(OnEntityDestroyed);
-            EventSystem.Instance.Subscribe<EntityUpdatedEventData>(OnEntityUpdated);
-            EventSystem.Instance.Subscribe<EntityActiveStateChangedEventData>(OnEntityActiveStateChanged);
             EventSystem.Instance.Subscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
             EventSystem.Instance.Subscribe<WorldRollbackEventData>(OnWorldRollback);
             
@@ -214,8 +107,6 @@ namespace Astrum.View.Core
         {
             EventSystem.Instance.Unsubscribe<EntityCreatedEventData>(OnEntityCreated);
             EventSystem.Instance.Unsubscribe<EntityDestroyedEventData>(OnEntityDestroyed);
-            EventSystem.Instance.Unsubscribe<EntityUpdatedEventData>(OnEntityUpdated);
-            EventSystem.Instance.Unsubscribe<EntityActiveStateChangedEventData>(OnEntityActiveStateChanged);
             EventSystem.Instance.Unsubscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
             EventSystem.Instance.Unsubscribe<WorldRollbackEventData>(OnWorldRollback);
             
@@ -281,7 +172,6 @@ namespace Astrum.View.Core
             {
                 entityView.Destroy();
                 _entityViews.Remove(eventData.EntityId);
-                OnEntityViewRemoved?.Invoke(eventData.EntityId);
                 ASLogger.Instance.Info($"Stage: 销毁实体视图 - {eventData.EntityName}");
             }
         }
@@ -342,7 +232,6 @@ namespace Astrum.View.Core
                 {
                     entityView.Destroy();
                     _entityViews.Remove(entityId);
-                    OnEntityViewRemoved?.Invoke(entityId);
                     destroyedCount++;
                     // ASLogger.Instance.Debug($"Stage: 同步销毁 EntityView - EntityId: {entityId}", "Stage.Sync");
                 }
@@ -398,19 +287,6 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 实体更新事件处理
-        /// </summary>
-        /// <param name="eventData">事件数据</param>
-        private void OnEntityUpdated(EntityUpdatedEventData eventData)
-        {
-            if (eventData.RoomId != _roomId) return;
-            
-            if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
-            {
-            }
-        }
-        
-        /// <summary>
         /// 世界回滚事件处理（回滚后需要同步 EntityView）
         /// </summary>
         /// <param name="eventData">事件数据</param>
@@ -445,21 +321,6 @@ namespace Astrum.View.Core
             }
             
             ASLogger.Instance.Info($"Stage: 回放视图重置完成 - 实体数量: {_entityViews.Count}", "Stage.Reset");
-        }
-        
-        /// <summary>
-        /// 实体激活状态变化事件处理
-        /// </summary>
-        /// <param name="eventData">事件数据</param>
-        private void OnEntityActiveStateChanged(EntityActiveStateChangedEventData eventData)
-        {
-            if (eventData.RoomId != _roomId) return;
-            
-            // 获取对应的EntityView并设置激活状态
-            if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
-            {
-                entityView.SetActive(eventData.IsActive);
-            }
         }
         
         /// <summary>
@@ -504,41 +365,6 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 设置摄像机
-        /// </summary>
-        private void SetupCamera()
-        {
-            _camera = Camera.main;
-            if (_camera == null)
-            {
-                GameObject cameraObj = new GameObject("Stage Camera");
-                cameraObj.transform.SetParent(_stageRoot.transform);
-                _camera = cameraObj.AddComponent<Camera>();
-                _camera.tag = "MainCamera";
-                _camera.transform.position = new Vector3(0, 10, -10);
-                _camera.transform.rotation = Quaternion.Euler(30, 0, 0);
-            }
-            
-            ASLogger.Instance.Info("Stage: 摄像机设置完成");
-        }
-        
-        /// <summary>
-        /// 设置环境
-        /// </summary>
-        private void SetupEnvironment()
-        {
-            _environment = UnityEngine.Object.FindObjectOfType<Environment>();
-            if (_environment == null)
-            {
-                GameObject envObj = new GameObject("Environment");
-                envObj.transform.SetParent(_stageRoot.transform);
-                _environment = envObj.AddComponent<Environment>();
-            }
-            
-            ASLogger.Instance.Info("Stage: 环境设置完成");
-        }
-        
-        /// <summary>
         /// 激活Stage
         /// </summary>
         public void SetActive(bool active)
@@ -554,14 +380,10 @@ namespace Astrum.View.Core
             
             if (_isActive)
             {
-                OnActivate();
-                OnStageActivated?.Invoke();
                 ASLogger.Instance.Info($"Stage: 激活 {_stageName}");
             }
             else
             {
-                OnDeactivate();
-                OnStageDeactivated?.Invoke();
                 ASLogger.Instance.Info($"Stage: 停用 {_stageName}");
             }
         }
@@ -572,9 +394,6 @@ namespace Astrum.View.Core
         public void OnEnter()
         {
             ASLogger.Instance.Info($"Stage: 进入 {_stageName}");
-            
-            // 调用子类的进入方法
-            OnStageEnter();
             
             // 激活所有实体视图
             foreach (var entityView in _entityViews.Values)
@@ -592,11 +411,6 @@ namespace Astrum.View.Core
         public void OnExit()
         {
             ASLogger.Instance.Info($"Stage: 退出 {_stageName}");
-            
-            // 调用子类的退出方法
-            OnStageExit();
-            
-
         }
         
         /// <summary>
@@ -609,17 +423,11 @@ namespace Astrum.View.Core
             // 处理脏组件同步
             SyncDirtyComponents();
             
-            // 调用子类的更新方法
-            OnUpdate(deltaTime);
-            
             // 更新所有EntityView
             foreach (var entityView in _entityViews.Values)
             {
                 entityView?.UpdateView(deltaTime);
             }
-            
-            // 更新环境
-            _environment?.Update();
         }
         
         /// <summary>
@@ -654,7 +462,6 @@ namespace Astrum.View.Core
         public void SetRoom(Room room)
         {
             _room = room;
-            _lastSyncTime = DateTime.Now;
             _roomId = room.RoomId;
             if (room != null)
             {
@@ -676,15 +483,7 @@ namespace Astrum.View.Core
             // 取消订阅实体事件
             UnsubscribeFromEntityEvents();
             
-            // 清理所有单位视图
-            foreach (var unitView in _unitViews.Values)
-            {
-                if (unitView != null)
-                {
-                    UnityEngine.Object.Destroy(unitView);
-                }
-            }
-            _unitViews.Clear();
+
             
             // 清理所有实体视图
             foreach (var entityView in _entityViews.Values)
@@ -705,7 +504,6 @@ namespace Astrum.View.Core
             
             _isLoaded = false;
             _isActive = false;
-            OnStageUnloaded?.Invoke();
         }
     }
 }

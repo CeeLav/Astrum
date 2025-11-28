@@ -47,7 +47,6 @@ namespace Astrum.Client.Managers.GameModes
             
             // 注册事件（使用现有 EventSystem）
             EventSystem.Instance.Subscribe<FrameDataUploadEventData>(FrameDataUpload);
-            EventSystem.Instance.Subscribe<NewPlayerEventData>(OnPlayerCreated);
             
             // 注册状态变化处理器（使用现有 EventSystem）
             EventSystem.Instance.Subscribe<GameModeStateChangedEventData>(OnStateChanged);
@@ -93,7 +92,6 @@ namespace Astrum.Client.Managers.GameModes
             
             // 取消订阅事件
             EventSystem.Instance.Unsubscribe<FrameDataUploadEventData>(FrameDataUpload);
-            EventSystem.Instance.Unsubscribe<NewPlayerEventData>(OnPlayerCreated);
             
             // 取消注册状态变化处理器
             EventSystem.Instance.Unsubscribe<GameModeStateChangedEventData>(OnStateChanged);
@@ -174,34 +172,6 @@ namespace Astrum.Client.Managers.GameModes
                 return true;
             
             return false;
-        }
-        
-        /// <summary>
-        /// 玩家创建事件
-        /// </summary>
-        private void OnPlayerCreated(NewPlayerEventData eventData)
-        {
-            if (eventData.BornInfo == UserManager.Instance.UserId.GetHashCode())
-            {
-                PlayerId = eventData.PlayerID;
-                
-                // 关键：设置 Room.MainPlayerId，否则 LSController 不会发布输入事件
-                if (MainRoom != null)
-                {
-                    MainRoom.MainPlayerId = eventData.PlayerID;
-                }
-                
-                if (MainRoom?.LSController is ClientLSController clientSync)
-                {
-                    clientSync.MaxPredictionFrames = 5;
-                }
-                
-                ASLogger.Instance.Info("MultiplayerGameMode: 主玩家创建完成, ID: " + PlayerId);
-                
-                // 设置相机跟随主玩家
-                SetCameraFollowMainPlayer();
-            }
-            ASLogger.Instance.Debug($"MultiplayerGameMode: <OnPlayerCreated>: {eventData.PlayerID} , BornInfo: {eventData.BornInfo}");
         }
         
         #endregion

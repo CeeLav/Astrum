@@ -48,10 +48,6 @@ namespace Astrum.LogicCore.Core
             }
         }
 
-        /// <summary>
-        /// 实体是否激活，控制逻辑执行
-        /// </summary>
-        public bool IsActive { get; set; } = true;
 
         /// <summary>
         /// 实体是否已销毁，用于生命周期管理
@@ -121,13 +117,12 @@ namespace Astrum.LogicCore.Core
         /// MemoryPack 构造函数
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId,bool isActive, bool isDestroyed, DateTime creationTime, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
+        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId, bool isDestroyed, DateTime creationTime, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
             Archetype = archetype;
             EntityConfigId = entityConfigId;
-            IsActive = isActive;
             IsDestroyed = isDestroyed;
             CreationTime = creationTime;
             Components = components;
@@ -407,20 +402,6 @@ namespace Astrum.LogicCore.Core
             inputComponent?.SetInput(input);
         }
 
-        /// <summary>
-        /// 设置激活状态
-        /// </summary>
-        /// <param name="active">是否激活</param>
-        public void SetActive(bool active)
-        {
-            if (IsActive != active)
-            {
-                IsActive = active;
-                
-                // 发布激活状态变化事件
-                PublishActiveStateChangedEvent(active);
-            }
-        }
 
         /// <summary>
         /// 销毁实体
@@ -428,7 +409,6 @@ namespace Astrum.LogicCore.Core
         public void Destroy()
         {
             IsDestroyed = true;
-            IsActive = false;
             
             // 清理组件
             Components.Clear();
@@ -493,18 +473,6 @@ namespace Astrum.LogicCore.Core
         public virtual Type[] GetRequiredCapabilityTypes()
         {
             return new Type[0];
-        }
-        
-        /// <summary>
-        /// 发布激活状态变化事件
-        /// </summary>
-        /// <param name="isActive">是否激活</param>
-        private void PublishActiveStateChangedEvent(bool isActive)
-        {
-            // 注意：这里需要获取World和Room信息，暂时通过静态方法获取
-            // 在实际使用中，可能需要通过其他方式获取这些信息
-            var eventData = new EntityActiveStateChangedEventData(this, 0, 0, isActive);
-            EventSystem.Instance.Publish(eventData);
         }
         
         /// <summary>
@@ -587,7 +555,7 @@ namespace Astrum.LogicCore.Core
         /// <returns>字符串表示</returns>
         public override string ToString()
         {
-            return $"Entity[Id={UniqueId}, Name={Name}, Active={IsActive}, Components={Components.Count}, Capabilities={CapabilityStates.Count}]";
+            return $"Entity[Id={UniqueId}, Name={Name}, Components={Components.Count}, Capabilities={CapabilityStates.Count}]";
         }
     }
 }

@@ -378,9 +378,9 @@ namespace Astrum.LogicCore.Systems
                         continue;
                     }
                     
-                    if (entity == null || !entity.IsActive || entity.IsDestroyed)
+                    if (entity == null || entity.IsDestroyed)
                     {
-                        // 实体已销毁或未激活，清理注册
+                        // 实体已销毁，清理注册
                         UnregisterEntityCapability(entityId, typeId);
                         continue;
                     }
@@ -606,10 +606,10 @@ namespace Astrum.LogicCore.Systems
             {
                 var evt = events.Dequeue();
                 
-                // 广播给所有激活实体
+                // 广播给所有实体
                 foreach (var entity in World.Entities.Values)
                 {
-                    if (entity == null || !entity.IsActive || entity.IsDestroyed)
+                    if (entity == null || entity.IsDestroyed)
                         continue;
                     
                     DispatchEventToEntity(entity, evt);
