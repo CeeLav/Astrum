@@ -162,14 +162,16 @@ namespace Astrum.View.Components
             if (actionComp == null || positionComp == null) return;
             
             // 检查当前动作是否是技能动作
-            if (!(actionComp.CurrentAction is SkillActionInfo skillAction)) return;
+            var actionInfo = actionComp.CurrentAction;
+            if (actionInfo?.SkillExtension == null) return;
             
             // 获取当前帧的触发信息
-            if (skillAction.TriggerEffects == null) return;
+            var triggerEffects = actionInfo.GetTriggerEffects();
+            if (triggerEffects == null || triggerEffects.Count == 0) return;
             
             Gizmos.color = AttackBoxColor;
             
-            foreach (var trigger in skillAction.TriggerEffects)
+            foreach (var trigger in triggerEffects)
             {
                 // 只显示碰撞类型的触发帧
                 if (trigger.TriggerType != "Collision") continue;

@@ -18,11 +18,11 @@ namespace Astrum.LogicCore.Managers
     {
         /// <summary>
         /// 获取动作信息（工厂方法）
-        /// 根据动作类型自动返回 ActionInfo 或 SkillActionInfo
+        /// 统一返回 ActionInfo，根据 ActionType 填充对应的 Extension
         /// </summary>
         /// <param name="actionId">动作ID</param>
         /// <param name="entityId">实体ID</param>
-        /// <returns>组装后的ActionInfo或其派生类</returns>
+        /// <returns>组装后的ActionInfo</returns>
         public ActionInfo? GetAction(int actionId, long entityId)
         {
             // 通过ConfigManager获取表格数据
@@ -40,90 +40,69 @@ namespace Astrum.LogicCore.Managers
                 return null;
             }
             
-            // 根据 ActionType 判断动作类型
+            // 创建 ActionInfo 实例
+            var actionInfo = new ActionInfo();
+            
+            // 填充基础字段（通用逻辑）
+            PopulateBaseActionFields(actionInfo, actionTable);
+            
+            // 根据 ActionType 填充对应的 Extension
             if (actionTable.ActionType.Equals("Skill", System.StringComparison.OrdinalIgnoreCase))
             {
-                return ConstructSkillActionInfo(actionId, entityId, actionTable);
+                var skillActionTable = configManager.Tables.TbSkillActionTable.Get(actionId);
+                if (skillActionTable == null)
+                {
+                    ASLogger.Instance.Error($"ActionConfigManager.GetAction: SkillActionTable not found for actionId={actionId}");
+                    return null;
+                }
+                actionInfo.SkillExtension = CreateSkillExtension(skillActionTable, actionId);
             }
             else if (actionTable.ActionType.Equals("Move", System.StringComparison.OrdinalIgnoreCase))
             {
-                return ConstructMoveActionInfo(actionId, entityId, actionTable);
+                var moveActionTable = configManager.Tables.TbMoveActionTable.Get(actionId);
+                if (moveActionTable == null)
+                {
+                    ASLogger.Instance.Error($"ActionConfigManager.GetAction: MoveActionTable not found for actionId={actionId}");
+                    return null;
+                }
+                actionInfo.MoveExtension = CreateMoveExtension(moveActionTable, actionId);
             }
-            else
-            {
-                return ConstructActionInfo(actionId, entityId, actionTable);
-            }
-        }
-        
-        /// <summary>
-        /// 构造普通动作信息
-        /// </summary>
-        private ActionInfo ConstructActionInfo(int actionId, long entityId, cfg.BaseUnit.ActionTable actionTable)
-        {
-            var actionInfo = new NormalActionInfo();
-            
-            // 填充基类字段（通用逻辑）
-            PopulateBaseActionFields(actionInfo, actionTable);
+            // 其他类型动作，Extension 保持为 null
             
             return actionInfo;
         }
         
         /// <summary>
-        /// 构造技能动作信息
+        /// 创建移动动作扩展数据
         /// </summary>
-        private SkillActionInfo? ConstructSkillActionInfo(int actionId, long entityId, cfg.BaseUnit.ActionTable actionTable)
+        private MoveActionExtension CreateMoveExtension(cfg.BaseUnit.MoveActionTable moveActionTable, int actionId)
         {
-            // 从 SkillActionTable 获取技能专属数据
-            var configManager = TableConfig.Instance;
-            var skillActionTable = configManager.Tables.TbSkillActionTable.Get(actionId);
-            
-            if (skillActionTable == null)
+            var extension = new MoveActionExtension
             {
-                ASLogger.Instance.Error($"ActionConfigManager.ConstructSkillActionInfo: SkillActionTable not found for actionId={actionId}");
-                return null;
-            }
+                MoveSpeed = moveActionTable.MoveSpeed,
+                RootMotionData = LoadMoveRootMotionData(moveActionTable, actionId)
+            };
             
-            // 创建 SkillActionInfo 实例
-            var skillActionInfo = new SkillActionInfo();
-            
-            // 复用基类字段填充逻辑
-            PopulateBaseActionFields(skillActionInfo, actionTable);
-            
-            // 填充派生类特有字段
-            PopulateSkillActionFields(skillActionInfo, skillActionTable);
-            
-            ASLogger.Instance.Debug($"ActionConfigManager: Constructed SkillActionInfo for actionId={actionId}");
-            
-            return skillActionInfo;
+            return extension;
         }
         
         /// <summary>
-        /// 构造移动动作信息
+        /// 创建技能动作扩展数据
         /// </summary>
-        private MoveActionInfo? ConstructMoveActionInfo(int actionId, long entityId, cfg.BaseUnit.ActionTable actionTable)
+        private SkillActionExtension CreateSkillExtension(cfg.Skill.SkillActionTable skillActionTable, int actionId)
         {
-            // 从 MoveActionTable 获取移动专属数据
-            var configManager = TableConfig.Instance;
-            var moveActionTable = configManager.Tables.TbMoveActionTable.Get(actionId);
-            
-            if (moveActionTable == null)
+            // 注意：TriggerEffects 需要根据技能等级解析，这里先初始化为空列表
+            // 实际使用时由 SkillConfig 根据技能等级解析 TriggerFrames
+            var extension = new SkillActionExtension
             {
-                ASLogger.Instance.Error($"ActionConfigManager.ConstructMoveActionInfo: MoveActionTable not found for actionId={actionId}");
-                return null;
-            }
+                ActualCost = skillActionTable.ActualCost,
+                ActualCooldown = skillActionTable.ActualCooldown,
+                TriggerFrames = skillActionTable.TriggerFrames ?? string.Empty,
+                TriggerEffects = new List<TriggerFrameInfo>(), // 初始为空，由 SkillConfig 解析
+                RootMotionData = LoadSkillRootMotionData(skillActionTable, actionId)
+            };
             
-            // 创建 MoveActionInfo 实例
-            var moveActionInfo = new MoveActionInfo();
-            
-            // 复用基类字段填充逻辑
-            PopulateBaseActionFields(moveActionInfo, actionTable);
-            
-            // 填充移动动作特有字段
-            PopulateMoveActionFields(moveActionInfo, moveActionTable);
-            
-            ASLogger.Instance.Debug($"ActionConfigManager: Constructed MoveActionInfo for actionId={actionId}");
-            
-            return moveActionInfo;
+            return extension;
         }
         
         /// <summary>
@@ -172,28 +151,6 @@ namespace Astrum.LogicCore.Managers
             actionInfo.AnimationSpeedMultiplier = 1f;
         }
 
-        /// <summary>
-        /// 填充 MoveActionInfo 扩展字段（移动速度、根节点位移数据）
-        /// </summary>
-        private void PopulateMoveActionFields(MoveActionInfo moveActionInfo, cfg.BaseUnit.MoveActionTable moveActionTable)
-        {
-            // 设置基准移动速度
-            if (moveActionTable.MoveSpeed > 0)
-            {
-                var baseSpeed = FP.FromFloat(moveActionTable.MoveSpeed / 1000f);
-                moveActionInfo.BaseMoveSpeed = baseSpeed;
-            }
-            else
-            {
-                moveActionInfo.BaseMoveSpeed = null;
-            }
-            
-            // 加载根节点位移数据
-            moveActionInfo.RootMotionData = LoadMoveRootMotionData(moveActionTable, moveActionInfo.Id);
-            
-            // 默认动画倍率
-            moveActionInfo.AnimationSpeedMultiplier = 1f;
-        }
         
         /// <summary>
         /// 从 MoveActionTable 加载根节点位移数据
@@ -236,27 +193,12 @@ namespace Astrum.LogicCore.Managers
         }
         
         /// <summary>
-        /// 填充 SkillActionInfo 派生类字段
-        /// </summary>
-        /// <param name="skillActionInfo">要填充的 SkillActionInfo 实例</param>
-        /// <param name="skillActionTable">SkillActionTable 配置数据</param>
-        public void PopulateSkillActionFields(SkillActionInfo skillActionInfo, cfg.Skill.SkillActionTable skillActionTable)
-        {
-            skillActionInfo.ActualCost = skillActionTable.ActualCost;
-            skillActionInfo.ActualCooldown = skillActionTable.ActualCooldown;
-            skillActionInfo.TriggerFrames = skillActionTable.TriggerFrames ?? string.Empty;
-            
-            // 加载根节点位移数据
-            skillActionInfo.RootMotionData = LoadRootMotionData(skillActionTable, skillActionInfo.Id);
-        }
-        
-        /// <summary>
         /// 从 SkillActionTable 加载根节点位移数据
         /// </summary>
         /// <param name="skillActionTable">技能动作表数据</param>
         /// <param name="actionId">动作ID（用于日志）</param>
         /// <returns>根节点位移数据，如果不存在或加载失败则返回空的 AnimationRootMotionData</returns>
-        private AnimationRootMotionData LoadRootMotionData(cfg.Skill.SkillActionTable skillActionTable, int actionId)
+        public AnimationRootMotionData LoadSkillRootMotionData(cfg.Skill.SkillActionTable skillActionTable, int actionId)
         {
             // 检查 RootMotionData 是否为空
             if (skillActionTable.RootMotionData == null || skillActionTable.RootMotionData.Length == 0)

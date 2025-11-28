@@ -896,9 +896,10 @@ namespace Astrum.LogicCore.Capabilities
             }
             
             // 如果是移动动作，计算动画播放倍率
-            if (currentAction is MoveActionInfo moveAction && moveAction.BaseMoveSpeed.HasValue && moveAction.BaseMoveSpeed.Value > FP.Zero)
+            var baseMoveSpeed = currentAction.GetBaseMoveSpeed();
+            if (baseMoveSpeed.HasValue && baseMoveSpeed.Value > FP.Zero)
             {
-                var animationReferenceSpeed = moveAction.BaseMoveSpeed.Value;  // 动画设计速度（来自 MoveActionTable）
+                var animationReferenceSpeed = baseMoveSpeed.Value;  // 动画设计速度（来自 MoveActionTable）
                 var actualSpeed = movementComponent.Speed;  // 角色实际速度（来自 BaseUnitStatsTable + Buff）
                 
                 // 计算动画播放倍率 = 实际速度 / 动画设计速度

@@ -1,18 +1,17 @@
 using MemoryPack;
 using System.Collections.Generic;
 using TrueSync;
+using Astrum.LogicCore.SkillSystem;
 
 namespace Astrum.LogicCore.ActionSystem
 {
     /// <summary>
     /// 动作信息 - 动作系统的核心数据结构（运行时数据）
     /// 由表格数据和运行时数据共同组装而成
+    /// 使用 Extension 模式存储不同类型动作的扩展数据
     /// </summary>
     [MemoryPackable]
-    [MemoryPackUnion(0, typeof(NormalActionInfo))]     // 普通动作
-    [MemoryPackUnion(1, typeof(Astrum.LogicCore.SkillSystem.SkillActionInfo))]  // 技能动作
-    [MemoryPackUnion(2, typeof(MoveActionInfo))]       // 移动动作
-    public abstract partial class ActionInfo
+    public partial class ActionInfo
     {
         /// <summary>动作唯一标识符</summary>
         public int Id { get; set; } = 0;
@@ -52,9 +51,16 @@ namespace Astrum.LogicCore.ActionSystem
         public int Duration { get; set; } = 0;
         
         /// <summary>
-        /// 动作配置的基准移动速度（若无配置则为空），单位：逻辑米/秒
+        /// 移动动作扩展数据（仅当 ActionType 为 "Move" 时非空）
         /// </summary>
-        public FP? BaseMoveSpeed { get; set; }
+        [MemoryPackAllowSerialize]
+        public MoveActionExtension? MoveExtension { get; set; }
+        
+        /// <summary>
+        /// 技能动作扩展数据（仅当 ActionType 为 "Skill" 时非空）
+        /// </summary>
+        [MemoryPackAllowSerialize]
+        public SkillActionExtension? SkillExtension { get; set; }
         
         /// <summary>
         /// 当前动作对应的动画播放速度倍率（默认1，受逻辑速度影响）
@@ -74,7 +80,8 @@ namespace Astrum.LogicCore.ActionSystem
         [MemoryPackConstructor]
         public ActionInfo(int id, string catalog, List<CancelTag> cancelTags, List<BeCancelledTag> beCancelledTags, 
             List<TempBeCancelledTag> tempBeCancelledTags, List<ActionCommand> commands, int autoNextActionId, 
-            bool keepPlayingAnim, bool autoTerminate, int priority, int duration)
+            bool keepPlayingAnim, bool autoTerminate, int priority, int duration,
+            MoveActionExtension? moveExtension, SkillActionExtension? skillExtension)
         {
             Id = id;
             Catalog = catalog ?? string.Empty;
@@ -87,8 +94,60 @@ namespace Astrum.LogicCore.ActionSystem
             AutoTerminate = autoTerminate;
             Priority = priority;
             Duration = duration;
-            BaseMoveSpeed = null;
+            MoveExtension = moveExtension;
+            SkillExtension = skillExtension;
             AnimationSpeedMultiplier = 1f;
+        }
+        
+        // ========== 便利访问方法 ==========
+        
+        /// <summary>
+        /// 获取基准移动速度（从 MoveExtension 转换）
+        /// </summary>
+        /// <returns>移动速度（FP），如果不存在则返回 null</returns>
+        public FP? GetBaseMoveSpeed()
+        {
+            if (MoveExtension != null && MoveExtension.MoveSpeed > 0)
+            {
+                return FP.FromFloat(MoveExtension.MoveSpeed / 1000f);
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// 获取根节点位移数据（从 MoveExtension 或 SkillExtension）
+        /// </summary>
+        /// <returns>根节点位移数据，如果不存在则返回 null</returns>
+        public AnimationRootMotionData? GetRootMotionData()
+        {
+            return MoveExtension?.RootMotionData ?? SkillExtension?.RootMotionData;
+        }
+        
+        /// <summary>
+        /// 获取实际法力消耗（从 SkillExtension）
+        /// </summary>
+        /// <returns>法力消耗，如果不存在则返回 0</returns>
+        public int GetActualCost()
+        {
+            return SkillExtension?.ActualCost ?? 0;
+        }
+        
+        /// <summary>
+        /// 获取实际冷却帧数（从 SkillExtension）
+        /// </summary>
+        /// <returns>冷却帧数，如果不存在则返回 0</returns>
+        public int GetActualCooldown()
+        {
+            return SkillExtension?.ActualCooldown ?? 0;
+        }
+        
+        /// <summary>
+        /// 获取触发效果列表（从 SkillExtension）
+        /// </summary>
+        /// <returns>触发效果列表，如果不存在则返回空列表</returns>
+        public List<TriggerFrameInfo> GetTriggerEffects()
+        {
+            return SkillExtension?.TriggerEffects ?? new List<TriggerFrameInfo>();
         }
     }
 }

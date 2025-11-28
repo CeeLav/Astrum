@@ -456,10 +456,8 @@ namespace Astrum.View.Components
             var actionComponent = ownerEntity.GetComponent<ActionComponent>();
             if (actionComponent?.CurrentAction != null)
             {
-                // 检查是否为技能动作（SkillActionInfo）
-                // 通过检查类型名称来判断（因为 SkillActionInfo 可能在不同命名空间）
-                var actionType = actionComponent.CurrentAction.GetType();
-                if (actionType.Name == "SkillActionInfo" || actionType.FullName.Contains("SkillActionInfo"))
+                // 检查是否为技能动作（通过 SkillExtension 判断）
+                if (actionComponent.CurrentAction.SkillExtension != null)
                 {
                     return VisualFollowMode.RootMotion;
                 }

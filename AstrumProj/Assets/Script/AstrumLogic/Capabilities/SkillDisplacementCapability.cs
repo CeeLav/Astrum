@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.SkillSystem;
+using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Core;
 using Astrum.CommonBase;
@@ -55,12 +56,13 @@ namespace Astrum.LogicCore.Capabilities
                 return false;
             
             // 2. 检查当前动作是否是技能动作
-            if (!(actionComponent.CurrentAction is SkillActionInfo skillAction))
+            var actionInfo = actionComponent.CurrentAction;
+            if (actionInfo?.SkillExtension == null)
                 return false;
             
             // 3. 检查是否有根节点位移数据（检查 HasMotion 属性）
-            if (skillAction.RootMotionData == null || 
-                !skillAction.RootMotionData.HasMotion)
+            var rootMotionData = actionInfo.GetRootMotionData();
+            if (rootMotionData == null || !rootMotionData.HasMotion)
                 return false;
             
             return true;
@@ -82,11 +84,12 @@ namespace Astrum.LogicCore.Capabilities
                 return true;
             
             // 检查是否仍然是技能动作且有位移数据
-            if (!(actionComponent.CurrentAction is SkillActionInfo skillAction))
+            var actionInfo = actionComponent.CurrentAction;
+            if (actionInfo?.SkillExtension == null)
                 return true;
             
-            if (skillAction.RootMotionData == null || 
-                !skillAction.RootMotionData.HasMotion)
+            var rootMotionData = actionInfo.GetRootMotionData();
+            if (rootMotionData == null || !rootMotionData.HasMotion)
                 return true;
             
             return false;
@@ -119,15 +122,15 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            var skillAction = actionComponent.CurrentAction as SkillActionInfo;
-            if (skillAction == null)
+            var actionInfo = actionComponent.CurrentAction;
+            if (actionInfo?.SkillExtension == null)
             {
                 return;
             }
             
             // 应用当前帧的位移
             int currentFrame = actionComponent.CurrentFrame;
-            ApplyRootMotion(entity, skillAction, currentFrame);
+            ApplyRootMotion(entity, actionInfo, currentFrame);
         }
         
         // ====== 辅助方法 ======
@@ -136,28 +139,35 @@ namespace Astrum.LogicCore.Capabilities
         /// 应用动画根节点位移
         /// </summary>
         /// <param name="entity">实体</param>
-        /// <param name="skillAction">技能动作信息</param>
+        /// <param name="actionInfo">动作信息</param>
         /// <param name="currentFrame">当前帧索引</param>
-        private void ApplyRootMotion(Entity entity, SkillActionInfo skillAction, int currentFrame)
+        private void ApplyRootMotion(Entity entity, ActionInfo actionInfo, int currentFrame)
         {
-            // 1. 检查帧索引有效性
-            if (currentFrame < 0 || 
-                currentFrame >= skillAction.RootMotionData.Frames.Count)
+            // 1. 获取根节点位移数据
+            var rootMotionData = actionInfo.GetRootMotionData();
+            if (rootMotionData == null || !rootMotionData.HasMotion)
             {
                 return;
             }
             
-            // 2. 获取当前帧的位移数据
-            var frameData = skillAction.RootMotionData.Frames[currentFrame];
+            // 2. 检查帧索引有效性
+            if (currentFrame < 0 || 
+                currentFrame >= rootMotionData.Frames.Count)
+            {
+                return;
+            }
             
-            // 3. 获取实体的变换组件
+            // 3. 获取当前帧的位移数据
+            var frameData = rootMotionData.Frames[currentFrame];
+            
+            // 4. 获取实体的变换组件
             var transComponent = GetComponent<TransComponent>(entity);
             if (transComponent == null)
             {
                 return;
             }
             
-            // 4. 应用增量位移（局部空间转世界空间）
+            // 5. 应用增量位移（局部空间转世界空间）
             TSVector worldDeltaPosition = TransformDeltaToWorld(
                 frameData.DeltaPosition, 
                 transComponent.Rotation
@@ -206,10 +216,11 @@ namespace Astrum.LogicCore.Capabilities
         public bool IsDisplacementActive(Entity entity)
         {
             var actionComponent = GetComponent<ActionComponent>(entity);
-            if (actionComponent?.CurrentAction is SkillActionInfo skillAction)
+            var actionInfo = actionComponent?.CurrentAction;
+            if (actionInfo?.SkillExtension != null)
             {
-                return skillAction.RootMotionData != null && 
-                       skillAction.RootMotionData.HasMotion;
+                var rootMotionData = actionInfo.GetRootMotionData();
+                return rootMotionData != null && rootMotionData.HasMotion;
             }
             return false;
         }
@@ -222,9 +233,10 @@ namespace Astrum.LogicCore.Capabilities
         public int GetCurrentSkillActionId(Entity entity)
         {
             var actionComponent = GetComponent<ActionComponent>(entity);
-            if (actionComponent?.CurrentAction is SkillActionInfo skillAction)
+            var actionInfo = actionComponent?.CurrentAction;
+            if (actionInfo?.SkillExtension != null)
             {
-                return skillAction.Id;
+                return actionInfo.Id;
             }
             return 0;
         }

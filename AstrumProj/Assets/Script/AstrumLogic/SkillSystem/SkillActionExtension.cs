@@ -1,4 +1,3 @@
-using Astrum.LogicCore.ActionSystem;
 using MemoryPack;
 using System.Collections.Generic;
 using Astrum.CommonBase;
@@ -6,11 +5,11 @@ using Astrum.CommonBase;
 namespace Astrum.LogicCore.SkillSystem
 {
     /// <summary>
-    /// 技能动作信息 - 继承自NormalActionInfo，添加技能系统专属字段
-    /// 对应SkillActionTable配置
+    /// 技能动作扩展数据（运行时版本，支持 MemoryPack 序列化）
+    /// 对应 SkillActionTable 的专属字段
     /// </summary>
     [MemoryPackable]
-    public partial class SkillActionInfo : NormalActionInfo
+    public partial class SkillActionExtension
     {
         /// <summary>实际法力消耗（暂不使用，预留）</summary>
         public int ActualCost { get; set; } = 0;
@@ -32,25 +31,17 @@ namespace Astrum.LogicCore.SkillSystem
         /// <summary>
         /// 默认构造函数
         /// </summary>
-        public SkillActionInfo() : base()
+        public SkillActionExtension()
         {
+            RootMotionData = new AnimationRootMotionData();
         }
         
         /// <summary>
         /// MemoryPack 构造函数
-        /// 注意：必须包含基类的所有参数 + 派生类的参数
         /// </summary>
         [MemoryPackConstructor]
-        public SkillActionInfo(
-            // 基类ActionInfo的参数（按顺序）
-            int id, string catalog, List<CancelTag> cancelTags, List<BeCancelledTag> beCancelledTags,
-            List<TempBeCancelledTag> tempBeCancelledTags, List<ActionCommand> commands, int autoNextActionId,
-            bool keepPlayingAnim, bool autoTerminate, int priority, int duration,
-            // 派生类SkillActionInfo的参数
-            int actualCost, int actualCooldown, 
-            string triggerFrames, List<TriggerFrameInfo> triggerEffects, AnimationRootMotionData rootMotionData)
-            : base(id, catalog, cancelTags, beCancelledTags, tempBeCancelledTags, commands,
-                   autoNextActionId, keepPlayingAnim, autoTerminate, priority, duration)
+        public SkillActionExtension(int actualCost, int actualCooldown, string triggerFrames, 
+            List<TriggerFrameInfo> triggerEffects, AnimationRootMotionData rootMotionData)
         {
             ActualCost = actualCost;
             ActualCooldown = actualCooldown;

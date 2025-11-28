@@ -4,6 +4,7 @@ using System.Linq;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.SkillSystem;
+using Astrum.LogicCore.ActionSystem;
 using Newtonsoft.Json;
 using TrueSync;
 
@@ -95,7 +96,7 @@ namespace Astrum.LogicCore.Managers
         /// <summary>
         /// 构造技能动作信息（根据技能等级）
         /// </summary>
-        private SkillActionInfo? BuildSkillActionInfo(int actionId, int skillLevel)
+        private ActionInfo? BuildSkillActionInfo(int actionId, int skillLevel)
         {
             var configManager = TableConfig.Instance;
             if (!configManager.IsInitialized) return null;
@@ -116,30 +117,36 @@ namespace Astrum.LogicCore.Managers
                 return null;
             }
             
-            // 3. 创建 SkillActionInfo 实例
-            var skillActionInfo = new SkillActionInfo();
+            // 3. 创建 ActionInfo 实例
+            var actionInfo = new ActionInfo();
             
-            // 4. 填充基类字段（复用 ActionConfigManager 的逻辑）
-            ActionConfig.Instance.PopulateBaseActionFields(skillActionInfo, actionTable);
+            // 4. 填充基类字段（复用 ActionConfig 的逻辑）
+            ActionConfig.Instance.PopulateBaseActionFields(actionInfo, actionTable);
             
-            // 5. 填充技能专属字段
-            ActionConfig.Instance.PopulateSkillActionFields(skillActionInfo, skillActionTable);
+            // 5. 创建并填充技能扩展数据
+            var skillExtension = new SkillActionExtension
+            {
+                ActualCost = skillActionTable.ActualCost,
+                ActualCooldown = skillActionTable.ActualCooldown,
+                TriggerFrames = skillActionTable.TriggerFrames ?? string.Empty,
+                RootMotionData = ActionConfig.Instance.LoadSkillRootMotionData(skillActionTable, actionId)
+            };
             
             // 6. 解析触发帧（关键：应用技能等级，同时解析碰撞形状）
-            skillActionInfo.TriggerEffects = ParseTriggerFrames(
-                skillActionInfo.TriggerFrames,
+            skillExtension.TriggerEffects = ParseTriggerFrames(
+                skillExtension.TriggerFrames,
                 skillLevel
             );
             
+            actionInfo.SkillExtension = skillExtension;
             
-            
-            return skillActionInfo;
+            return actionInfo;
         }
 
         /// <summary>
-        /// 对外公开：根据动作ID与技能等级构造新的 SkillActionInfo 实例
+        /// 对外公开：根据动作ID与技能等级构造新的 ActionInfo 实例（包含 SkillExtension）
         /// </summary>
-        public SkillActionInfo? CreateSkillActionInstance(int actionId, int skillLevel)
+        public ActionInfo? CreateSkillActionInstance(int actionId, int skillLevel)
         {
             return BuildSkillActionInfo(actionId, skillLevel);
         }

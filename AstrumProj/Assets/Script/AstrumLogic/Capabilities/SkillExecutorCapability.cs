@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.SkillSystem;
+using Astrum.LogicCore.ActionSystem;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Core;
@@ -63,14 +64,15 @@ namespace Astrum.LogicCore.Capabilities
             if (actionComponent == null) return;
             
             // 2. 检查当前动作是否是技能动作
-            if (!(actionComponent.CurrentAction is SkillActionInfo skillAction))
+            var actionInfo = actionComponent.CurrentAction;
+            if (actionInfo?.SkillExtension == null)
                 return;
             
             // 3. 获取当前帧
             int currentFrame = actionComponent.CurrentFrame;
             
             // 4. 处理当前帧的触发事件
-            ProcessFrame(entity, skillAction, currentFrame);
+            ProcessFrame(entity, actionInfo, currentFrame);
         }
         
         // ====== 辅助方法 ======
@@ -78,13 +80,14 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 处理技能动作的当前帧
         /// </summary>
-        private void ProcessFrame(Entity caster, SkillActionInfo skillAction, int currentFrame)
+        private void ProcessFrame(Entity caster, ActionInfo actionInfo, int currentFrame)
         {
-            if (skillAction.TriggerEffects == null || skillAction.TriggerEffects.Count == 0)
+            var triggerEffects = actionInfo.GetTriggerEffects();
+            if (triggerEffects == null || triggerEffects.Count == 0)
                 return;
             
             // 过滤出当前帧的触发事件（支持单帧和多帧范围）
-            var triggersAtFrame = skillAction.TriggerEffects
+            var triggersAtFrame = triggerEffects
                 .Where(t => t.IsFrameInRange(currentFrame))
                 .ToList();
             
@@ -96,14 +99,14 @@ namespace Astrum.LogicCore.Capabilities
             // 处理每个触发事件
             foreach (var trigger in triggersAtFrame)
             {
-                ProcessTrigger(caster, skillAction, trigger);
+                ProcessTrigger(caster, actionInfo, trigger);
             }
         }
         
         /// <summary>
         /// 处理单个触发事件
         /// </summary>
-        private void ProcessTrigger(Entity caster, SkillActionInfo skillAction, TriggerFrameInfo trigger)
+        private void ProcessTrigger(Entity caster, ActionInfo actionInfo, TriggerFrameInfo trigger)
         {
             // 根据顶层类型分发
             string type = trigger.Type ?? "SkillEffect";
@@ -111,7 +114,7 @@ namespace Astrum.LogicCore.Capabilities
             switch (type)
             {
                 case TriggerFrameJsonKeys.TypeSkillEffect:
-                    ProcessSkillEffectTrigger(caster, skillAction, trigger);
+                    ProcessSkillEffectTrigger(caster, actionInfo, trigger);
                     break;
                     
                 case TriggerFrameJsonKeys.TypeVFX:
@@ -132,14 +135,14 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 处理 SkillEffect 类型触发（内部根据 triggerType 进一步分发）
         /// </summary>
-        private void ProcessSkillEffectTrigger(Entity caster, SkillActionInfo skillAction, TriggerFrameInfo trigger)
+        private void ProcessSkillEffectTrigger(Entity caster, ActionInfo actionInfo, TriggerFrameInfo trigger)
         {
             string triggerType = trigger.TriggerType ?? "";
             
             switch (triggerType)
             {
                 case TriggerFrameJsonKeys.TriggerTypeCollision:
-                    HandleCollisionTrigger(caster, skillAction, trigger);
+                    HandleCollisionTrigger(caster, actionInfo, trigger);
                     break;
                     
                 case TriggerFrameJsonKeys.TriggerTypeDirect:
@@ -148,7 +151,7 @@ namespace Astrum.LogicCore.Capabilities
                     break;
 
                 case TriggerFrameJsonKeys.TriggerTypeCondition:
-                    HandleConditionTrigger(caster, skillAction, trigger);
+                    HandleConditionTrigger(caster, actionInfo, trigger);
                     break;
                     
                 default:
@@ -224,7 +227,7 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 处理碰撞触发（使用预解析的 CollisionShape）
         /// </summary>
-        private void HandleCollisionTrigger(Entity caster, SkillActionInfo skillAction, TriggerFrameInfo trigger)
+        private void HandleCollisionTrigger(Entity caster, ActionInfo actionInfo, TriggerFrameInfo trigger)
         {
             // 1. 直接使用预解析的 CollisionShape
             if (trigger.CollisionShape == null)
@@ -293,7 +296,7 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 处理条件触发
         /// </summary>
-        private void HandleConditionTrigger(Entity caster, SkillActionInfo skillAction, TriggerFrameInfo trigger)
+        private void HandleConditionTrigger(Entity caster, ActionInfo actionInfo, TriggerFrameInfo trigger)
         {
             // 检查条件（简化实现）
             if (trigger.Condition != null)
