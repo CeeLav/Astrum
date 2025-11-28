@@ -14,7 +14,7 @@
 - `EntityDestroyedEventData`: 实体销毁事件
 - `EntityUpdatedEventData`: 实体更新事件
 - `EntityActiveStateChangedEventData`: 实体激活状态变化事件
-- `EntityComponentChangedEventData`: 实体组件变化事件
+- `EntitySubArchetypeChangedEventData`: 实体子原型变化事件
 
 ### 2. 逻辑层事件发布
 
@@ -25,7 +25,7 @@
 
 #### Entity 类
 - 在 `SetActive()` 方法中发布激活状态变化事件
-- 在 `AddComponent()` 和 `RemoveComponent()` 方法中发布组件变化事件
+- 在 `AttachSubArchetype()` 和 `DetachSubArchetype()` 方法中发布子原型变化事件
 
 ### 3. 视图层事件监听
 
@@ -37,7 +37,7 @@
   - `OnEntityDestroyed()`: 销毁对应的 EntityView
   - `OnEntityUpdated()`: 同步 EntityView 数据
   - `OnEntityActiveStateChanged()`: 更新 EntityView 激活状态
-  - `OnEntityComponentChanged()`: 处理组件变化
+  - `OnEntitySubArchetypeChanged()`: 处理子原型变化
 
 ### 4. EntityView 工厂
 

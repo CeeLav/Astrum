@@ -547,8 +547,6 @@ namespace Astrum.Client.Managers.GameModes
                 throw new Exception("SceneManager不存在");
             }
             
-            // 设置当前Stage
-            StageManager.Instance.SetCurrentStage(stage);
             ChangeState(GameModeState.Loading);
             // 异步加载游戏场景
             sceneManager.LoadSceneAsync(sceneId, () => { OnGameSceneLoaded(stage); });

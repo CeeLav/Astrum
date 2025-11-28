@@ -234,7 +234,7 @@ namespace Astrum.LogicCore.Core
             ActiveSubArchetypes.Add(subArchetype);
             
             // 发布子原型变化事件
-            PublishSubArchetypeChangedEvent(subArchetype, "Attach");
+            PublishSubArchetypeChangedEvent(subArchetype, SubArchetypeChangeType.Attach);
             
             return true;
         }
@@ -304,7 +304,6 @@ namespace Astrum.LogicCore.Core
                     if (comp != null)
                     {
                         Components.Remove(comp);
-                        PublishComponentChangedEvent(comp, "Remove");
                     }
                 }
             }
@@ -312,7 +311,7 @@ namespace Astrum.LogicCore.Core
             ActiveSubArchetypes.Remove(subArchetype);
             
             // 发布子原型变化事件
-            PublishSubArchetypeChangedEvent(subArchetype, "Detach");
+            PublishSubArchetypeChangedEvent(subArchetype, SubArchetypeChangeType.Detach);
             
             return true;
         }
@@ -329,7 +328,6 @@ namespace Astrum.LogicCore.Core
                 if (comp != null)
                 {
                     Components.Remove(comp);
-                    PublishComponentChangedEvent(comp, "Remove");
                 }
             }
         }
@@ -356,9 +354,6 @@ namespace Astrum.LogicCore.Core
             Components.Add(component);
             
             // 更新组件掩码
-
-            // 发布组件添加事件
-            PublishComponentChangedEvent(component, "Add");
         }
 
         /// <summary>
@@ -374,9 +369,6 @@ namespace Astrum.LogicCore.Core
                 _dirtyComponentIds.Remove(component.GetComponentTypeId());
                 
                 Components.Remove(component);
-
-                // 发布组件移除事件
-                PublishComponentChangedEvent(component, "Remove");
             }
         }
 
@@ -484,24 +476,11 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
-        /// 发布组件变化事件
-        /// </summary>
-        /// <param name="component">组件</param>
-        /// <param name="changeType">变化类型</param>
-        private void PublishComponentChangedEvent(BaseComponent component, string changeType)
-        {
-            // 注意：这里需要获取World和Room信息，暂时通过静态方法获取
-            // 在实际使用中，可能需要通过其他方式获取这些信息
-            var eventData = new EntityComponentChangedEventData(this, 0, 0, component.GetType().Name, changeType, component);
-            EventSystem.Instance.Publish(eventData);
-        }
-        
-        /// <summary>
         /// 发布子原型变化事件
         /// </summary>
         /// <param name="subArchetype">子原型类型</param>
-        /// <param name="changeType">变化类型（Attach/Detach）</param>
-        private void PublishSubArchetypeChangedEvent(EArchetype subArchetype, string changeType)
+        /// <param name="changeType">变化类型</param>
+        private void PublishSubArchetypeChangedEvent(EArchetype subArchetype, SubArchetypeChangeType changeType)
         {
             if (World == null) return;
             

@@ -25,7 +25,7 @@ namespace Astrum.View.Core
         
         // Stage状态
         protected bool _isActive;
-        protected bool _isLoaded;
+        protected bool _isInited;
         
         // 视图组件
         protected Dictionary<long, EntityView> _entityViews;
@@ -41,7 +41,7 @@ namespace Astrum.View.Core
         public long RoomId => _roomId;
         public Room Room => _room;
         public bool IsActive => _isActive;
-        public bool IsLoaded => _isLoaded;
+        public bool IsInited => _isInited;
         public Dictionary<long, EntityView> EntityViews => _entityViews;
         
         /// <summary>
@@ -67,7 +67,7 @@ namespace Astrum.View.Core
             _stageName = stageName ?? stageId;
             _roomId = 0;
             _isActive = false;
-            _isLoaded = false;
+            _isInited = false;
             _entityViews = new Dictionary<long, EntityView>();
         }
         
@@ -76,7 +76,7 @@ namespace Astrum.View.Core
         /// </summary>
         public void Initialize()
         {
-            if (_isLoaded) return;
+            if (_isInited) return;
             
             // 创建Stage根对象
             CreateStageRoot();
@@ -84,7 +84,7 @@ namespace Astrum.View.Core
             // 订阅实体事件
             SubscribeToEntityEvents();
             
-            _isLoaded = true;
+            _isInited = true;
         }
         
         /// <summary>
@@ -94,7 +94,6 @@ namespace Astrum.View.Core
         {
             EventSystem.Instance.Subscribe<EntityCreatedEventData>(OnEntityCreated);
             EventSystem.Instance.Subscribe<EntityDestroyedEventData>(OnEntityDestroyed);
-            EventSystem.Instance.Subscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
             EventSystem.Instance.Subscribe<EntitySubArchetypeChangedEventData>(OnEntitySubArchetypeChanged);
             EventSystem.Instance.Subscribe<WorldRollbackEventData>(OnWorldRollback);
             
@@ -108,7 +107,6 @@ namespace Astrum.View.Core
         {
             EventSystem.Instance.Unsubscribe<EntityCreatedEventData>(OnEntityCreated);
             EventSystem.Instance.Unsubscribe<EntityDestroyedEventData>(OnEntityDestroyed);
-            EventSystem.Instance.Unsubscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
             EventSystem.Instance.Unsubscribe<EntitySubArchetypeChangedEventData>(OnEntitySubArchetypeChanged);
             EventSystem.Instance.Unsubscribe<WorldRollbackEventData>(OnWorldRollback);
             
@@ -326,22 +324,6 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 实体组件变化事件处理
-        /// </summary>
-        /// <param name="eventData">事件数据</param>
-        private void OnEntityComponentChanged(EntityComponentChangedEventData eventData)
-        {
-            // 检查是否属于当前Stage的Room
-            if (eventData.RoomId != _roomId)
-            {
-                return;
-            }
-            
-            // 注意：子原型变化不再触发组件变化事件，这里只处理直接组件操作
-            // 子原型变化由 OnEntitySubArchetypeChanged 处理
-        }
-        
-        /// <summary>
         /// 实体子原型变化事件处理
         /// </summary>
         /// <param name="eventData">事件数据</param>
@@ -357,13 +339,13 @@ namespace Astrum.View.Core
             if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
             {
                 // 根据变化类型调用 EntityView 的 Attach/Detach 方法
-                switch (eventData.ChangeType.ToLower())
+                switch (eventData.ChangeType)
                 {
-                    case "attach":
+                    case SubArchetypeChangeType.Attach:
                         entityView.AttachSubArchetype(eventData.SubArchetype);
                         ASLogger.Instance.Info($"Stage: 处理子原型 Attach 事件 - EntityId: {eventData.EntityId}, SubArchetype: {eventData.SubArchetype}");
                         break;
-                    case "detach":
+                    case SubArchetypeChangeType.Detach:
                         entityView.DetachSubArchetype(eventData.SubArchetype);
                         ASLogger.Instance.Info($"Stage: 处理子原型 Detach 事件 - EntityId: {eventData.EntityId}, SubArchetype: {eventData.SubArchetype}");
                         break;
@@ -419,14 +401,6 @@ namespace Astrum.View.Core
         {
             ASLogger.Instance.Info($"Stage: 进入 {_stageName}");
             
-            // 激活所有实体视图
-            foreach (var entityView in _entityViews.Values)
-            {
-                if (entityView != null)
-                {
-                    entityView.SetActive(true);
-                }
-            }
         }
         
         /// <summary>
@@ -526,7 +500,7 @@ namespace Astrum.View.Core
                 _stageRoot = null;
             }
             
-            _isLoaded = false;
+            _isInited = false;
             _isActive = false;
         }
     }

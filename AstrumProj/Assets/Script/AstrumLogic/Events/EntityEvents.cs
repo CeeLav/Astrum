@@ -6,6 +6,22 @@ using cfg;
 namespace Astrum.CommonBase
 {
     /// <summary>
+    /// 子原型变化类型
+    /// </summary>
+    public enum SubArchetypeChangeType
+    {
+        /// <summary>
+        /// 挂载子原型
+        /// </summary>
+        Attach,
+        
+        /// <summary>
+        /// 卸载子原型
+        /// </summary>
+        Detach
+    }
+    
+    /// <summary>
     /// 实体创建事件数据
     /// </summary>
     public class EntityCreatedEventData : EventData
@@ -174,75 +190,6 @@ namespace Astrum.CommonBase
             UpdateTime = DateTime.Now;
         }
     }
-    
-    /// <summary>
-    /// 实体组件变化事件数据
-    /// </summary>
-    public class EntityComponentChangedEventData : EventData
-    {
-        /// <summary>
-        /// 实体ID
-        /// </summary>
-        public long EntityId { get; set; }
-        
-        /// <summary>
-        /// 实体名称
-        /// </summary>
-        public string EntityName { get; set; }
-        
-        /// <summary>
-        /// 实体类型
-        /// </summary>
-        public string EntityType { get; set; }
-        
-        /// <summary>
-        /// 世界ID
-        /// </summary>
-        public int WorldId { get; set; }
-        
-        /// <summary>
-        /// 房间ID
-        /// </summary>
-        public long RoomId { get; set; }
-        
-        /// <summary>
-        /// 组件类型
-        /// </summary>
-        public string ComponentType { get; set; }
-        
-        /// <summary>
-        /// 变化类型（添加、移除、更新）
-        /// </summary>
-        public string ChangeType { get; set; }
-        
-        /// <summary>
-        /// 组件数据
-        /// </summary>
-        public object ComponentData { get; set; }
-        
-        /// <summary>
-        /// 变化时间
-        /// </summary>
-        public DateTime ChangeTime { get; set; }
-        
-        public EntityComponentChangedEventData()
-        {
-            ChangeTime = DateTime.Now;
-        }
-        
-        public EntityComponentChangedEventData(Entity entity, int worldId, long roomId, string componentType, string changeType, object componentData)
-        {
-            EntityId = entity.UniqueId;
-            EntityName = entity.Name;
-            EntityType = entity.GetType().Name;
-            WorldId = worldId;
-            RoomId = roomId;
-            ComponentType = componentType;
-            ChangeType = changeType;
-            ComponentData = componentData;
-            ChangeTime = DateTime.Now;
-        }
-    }
 
     /// <summary>
     /// 帧输入上传事件数据
@@ -338,9 +285,9 @@ namespace Astrum.CommonBase
         public EArchetype SubArchetype { get; set; }
         
         /// <summary>
-        /// 变化类型（Attach/Detach）
+        /// 变化类型
         /// </summary>
-        public string ChangeType { get; set; }
+        public SubArchetypeChangeType ChangeType { get; set; }
         
         /// <summary>
         /// 变化时间
@@ -352,7 +299,7 @@ namespace Astrum.CommonBase
             ChangeTime = DateTime.Now;
         }
         
-        public EntitySubArchetypeChangedEventData(Entity entity, int worldId, long roomId, EArchetype subArchetype, string changeType)
+        public EntitySubArchetypeChangedEventData(Entity entity, int worldId, long roomId, EArchetype subArchetype, SubArchetypeChangeType changeType)
         {
             EntityId = entity.UniqueId;
             EntityName = entity.Name;

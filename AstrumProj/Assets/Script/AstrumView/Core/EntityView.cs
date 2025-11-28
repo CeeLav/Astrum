@@ -22,13 +22,10 @@ namespace Astrum.View.Core
         protected long _entityId = 0;
         protected Entity _ownerEntity = null;
         protected Stage _stage = null;
-        protected bool _isVisible = true;
-        protected bool _isActive = true;
         
         // 组件管理
         protected List<ViewComponent> _viewComponents = new List<ViewComponent>();
-        protected DateTime _lastSyncTime = DateTime.MinValue;
-        
+
         // ComponentTypeId 到 ViewComponent 列表的映射
         private Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap = new Dictionary<int, List<ViewComponent>>();
         
@@ -58,19 +55,12 @@ namespace Astrum.View.Core
                 return _ownerEntity;
             }
         }
-        public bool IsVisible => _isVisible;
-        public bool IsActive => _isActive;
         public GameObject GameObject => _gameObject;
         public Transform Transform => _transform;
         public List<ViewComponent> ViewComponents => _viewComponents;
-        public DateTime LastSyncTime => _lastSyncTime;
         public IReadOnlyList<EArchetype> ActiveSubArchetypes => _activeSubArchetypes;
         
         // 事件
-        public event Action<EntityView> OnEntityViewInitialized;
-        public event Action<EntityView> OnEntityViewDestroyed;
-        public event Action<EntityView, bool> OnVisibilityChanged;
-        public event Action<EntityView, bool> OnActiveStateChanged;
         
         public EntityView()
         {
@@ -97,10 +87,6 @@ namespace Astrum.View.Core
             {
                 // 创建Unity GameObject
                 CreateGameObject();
-                // 子类特定的初始化
-                OnInitialize();
-                
-                OnEntityViewInitialized?.Invoke(this);
                 
                 ASLogger.Instance.Info($"EntityView: 实体视图初始化完成，ID: {entityId}");
             }
@@ -117,8 +103,6 @@ namespace Astrum.View.Core
         /// <param name="deltaTime">帧时间</param>
         public virtual void UpdateView(float deltaTime)
         {
-            if (!_isActive) return;
-            
             // 更新所有视图组件
             foreach (var component in _viewComponents)
             {
@@ -127,17 +111,7 @@ namespace Astrum.View.Core
                     component.Update(deltaTime);
                 }
             }
-            
-            // 子类特定的更新逻辑
-            OnUpdateView(deltaTime);
-        }
-        
-        /// <summary>
-        /// Unity Update 方法包装
-        /// </summary>
-        public virtual void Update()
-        {
-            UpdateView(Time.deltaTime);
+
         }
 
         /// <summary>
@@ -155,69 +129,6 @@ namespace Astrum.View.Core
                     component.Reset();
                 }
             }
-            
-
-            // 子类特定的重置逻辑
-            OnReset();
-        }
-        
-        protected virtual void SyncTransformFromLogic(long entityId)
-        {
-            // ASLogger.Instance.Debug($"EntityView: 同步Transform数据，ID: {entityId}");
-        }
-        
-        protected virtual void SyncComponentsFromLogic(long entityId)
-        {
-            // ASLogger.Instance.Debug($"EntityView: 同步Component数据，ID: {entityId}");
-        }
-        
-        /// <summary>
-        /// 设置可见�?
-        /// </summary>
-        /// <param name="visible">是否可见</param>
-        public virtual void SetVisible(bool visible)
-        {
-            if (_isVisible == visible) return;
-            
-            _isVisible = visible;
-            
-            if (_gameObject != null)
-            {
-                // 设置所有渲染器的可见�?
-                var renderers = _gameObject.GetComponentsInChildren<Renderer>();
-                foreach (var renderer in renderers)
-                {
-                    renderer.enabled = visible;
-                }
-                
-                // 设置所有Canvas的可见�?
-                var canvases = _gameObject.GetComponentsInChildren<Canvas>();
-                foreach (var canvas in canvases)
-                {
-                    canvas.enabled = visible;
-                }
-            }
-            
-            OnVisibilityChanged?.Invoke(this, visible);
-            ASLogger.Instance.Info($"EntityView: 设置可见性，ID: {_entityId}，可�? {visible}");
-        }
-        
-        /// <summary>
-        /// 设置激活状�?
-        /// </summary>
-        /// <param name="active">是否激�?/param>
-        public virtual void SetActive(bool active)
-        {
-            if (_isActive == active) return;
-            
-            _isActive = active;
-            if (_gameObject != null)
-            {
-                _gameObject.SetActive(active);
-            }
-            
-            OnActiveStateChanged?.Invoke(this, active);
-            ASLogger.Instance.Info($"EntityView: 设置激活状态，ID: {_entityId}，激�? {active}");
         }
         
         /// <summary>
@@ -311,17 +222,6 @@ namespace Astrum.View.Core
                 _gameObject = null;
                 _transform = null;
             }
-            
-            OnEntityViewDestroyed?.Invoke(this);
-        }
-
-        /// <summary>
-        /// 获取实体视图的根变换
-        /// </summary>
-        /// <returns>根变�?/returns>
-        public virtual Transform GetRootTransform()
-        {
-            return _transform;
         }
         
         /// <summary>
@@ -367,57 +267,12 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 获取实体视图的本地缩�?
-        /// </summary>
-        /// <returns>本地缩放</returns>
-        public virtual Vector3 GetLocalScale()
-        {
-            return _transform != null ? _transform.localScale : Vector3.one;
-        }
-        
-        /// <summary>
-        /// 设置实体视图的本地缩�?
-        /// </summary>
-        /// <param name="scale">本地缩放</param>
-        public virtual void SetLocalScale(Vector3 scale)
-        {
-            if (_transform != null)
-            {
-                _transform.localScale = scale;
-            }
-        }
-        
-        /// <summary>
         /// 创建Unity GameObject
         /// </summary>
         protected virtual void CreateGameObject()
         {
             _gameObject = new GameObject($"EntityView_{_entityId}");
             _transform = _gameObject.transform;
-        }
-        
-
-        protected virtual void OnInitialize()
-        {
-            
-        }
-
-        protected virtual void OnUpdateView(float deltaTime)
-        {
-            
-        }
-
-        protected virtual void OnSyncWithEntity(long entityId)
-        {
-            
-        }
-        
-        /// <summary>
-        /// 子类特定的重置逻辑
-        /// </summary>
-        protected virtual void OnReset()
-        {
-            
         }
         
         /// <summary>
@@ -645,25 +500,6 @@ namespace Astrum.View.Core
             _activeSubArchetypes.Remove(subArchetype);
             ASLogger.Instance.Info($"EntityView: 卸载子原型 {subArchetype}，ID: {_entityId}");
             return true;
-        }
-        
-        /// <summary>
-        /// 检查子原型是否已激活
-        /// </summary>
-        /// <param name="subArchetype">子原型类型</param>
-        /// <returns>是否已激活</returns>
-        public virtual bool IsSubArchetypeActive(EArchetype subArchetype)
-        {
-            return _activeSubArchetypes.Contains(subArchetype);
-        }
-        
-        /// <summary>
-        /// 列出所有活跃的子原型
-        /// </summary>
-        /// <returns>活跃子原型列表</returns>
-        public virtual IReadOnlyList<EArchetype> ListActiveSubArchetypes()
-        {
-            return _activeSubArchetypes;
         }
         
         /// <summary>
