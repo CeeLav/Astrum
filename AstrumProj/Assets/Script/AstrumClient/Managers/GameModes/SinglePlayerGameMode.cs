@@ -224,7 +224,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 创建Player");
             
-            var playerID = MainRoom.CreateEntity(1003);
+            var playerID = MainRoom.CreateEntity(1001);
             PlayerId = playerID;
             
             // 设置 MainPlayerId（LSController 需要检查这个值）

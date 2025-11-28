@@ -1,16 +1,16 @@
 ##var,actionId,displayName,primaryKey,alternativeKey,mouseButton,inputType,category
 ##type,string,string,string,string,int,string,string
 ##group,,,,,,,
-##desc,åŠ¨ä½œID,æ˜¾ç¤ºåç§°,ä¸»æŒ‰é”®(KeyCodeåç§°),å¤‡ç”¨æŒ‰é”®,é¼ æ ‡æŒ‰é”®(-1=ä¸ä½¿ç”¨ 0=å·¦é”® 1=å³é”® 2=ä¸­é”®),è¾“å…¥ç±»å‹(Button/Axis),åˆ†ç±»(Movement/Combat/UI)
-,Attack,æ”»å‡»,,,0,Button,Combat
-,Skill1,æŠ€èƒ½1,Q,,-1,Button,Combat
-,Skill2,æŠ€èƒ½2,E,,-1,Button,Combat
-,MoveForward,å‘å‰ç§»åŠ¨,W,UpArrow,-1,Axis,Movement
-,MoveBackward,å‘åç§»åŠ¨,S,DownArrow,-1,Axis,Movement
-,MoveLeft,å‘å·¦ç§»åŠ¨,A,LeftArrow,-1,Axis,Movement
-,MoveRight,å‘å³ç§»åŠ¨,D,RightArrow,-1,Axis,Movement
-,Roll,ç¿»æ»š,Space,,-1,Button,Movement
-,Dash,å†²åˆº,LeftShift,,-1,Button,Movement
-,Interact,äº¤äº’,F,,-1,Button,UI
-,OpenMenu,æ‰“å¼€èœå•,Escape,,-1,Button,UI
-,MousePosition,é¼ æ ‡ä½ç½®,,,-1,Axis,Combat
+##desc,¶¯×÷ID,ÏÔÊ¾Ãû³Æ,Ö÷°´¼ü(KeyCodeÃû³Æ),±¸ÓÃ°´¼ü,Êó±ê°´¼ü(-1=²»Ê¹ÓÃ 0=×ó¼ü 1=ÓÒ¼ü 2=ÖĞ¼ü),ÊäÈëÀàĞÍ(Button/Axis),·ÖÀà(Movement/Combat/UI)
+,Attack,¹¥»÷,,,0,Button,Combat
+,Skill1,¼¼ÄÜ1,E,,-1,Button,Combat
+,Skill2,¼¼ÄÜ2,Q,,-1,Button,Combat
+,MoveForward,ÏòÇ°ÒÆ¶¯,W,UpArrow,-1,Axis,Movement
+,MoveBackward,ÏòºóÒÆ¶¯,S,DownArrow,-1,Axis,Movement
+,MoveLeft,Ïò×óÒÆ¶¯,A,LeftArrow,-1,Axis,Movement
+,MoveRight,ÏòÓÒÒÆ¶¯,D,RightArrow,-1,Axis,Movement
+,Roll,·­¹ö,Space,,-1,Button,Movement
+,Dash,³å´Ì,LeftShift,,-1,Button,Movement
+,Interact,½»»¥,F,,-1,Button,UI
+,OpenMenu,´ò¿ª²Ëµ¥,Escape,,-1,Button,UI
+,MousePosition,Êó±êÎ»ÖÃ,,,-1,Axis,Combat

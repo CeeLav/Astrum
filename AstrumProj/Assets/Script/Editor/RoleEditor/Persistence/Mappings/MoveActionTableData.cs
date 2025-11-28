@@ -22,7 +22,7 @@ namespace Astrum.Editor.RoleEditor.Persistence.Mappings
         {
             return new LubanTableConfig
             {
-                FilePath = "AstrumConfig/Tables/Datas/Entity/#MoveActionTable.csv",
+                FilePath = "AstrumConfig/Tables/Datas/BaseUnit/#MoveActionTable.csv",
                 HeaderLines = 4,
                 HasEmptyFirstColumn = true,
                 Header = new TableHeader
