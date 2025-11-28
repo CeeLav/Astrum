@@ -53,18 +53,26 @@ namespace Astrum.View.Core
                 var entity = stage.Room.MainWorld.GetEntity(entityView.EntityId);
                 if (entity == null) return;
                 
+                // 1. 装配主原型的 ViewComponents
                 var viewComponentTypes = GetRequiredViewComponentTypes(entity);
-                if (viewComponentTypes.Length == 0)
+                if (viewComponentTypes.Length > 0)
                 {
+                    entityView.BuildViewComponents(viewComponentTypes);
                     if (enableLogging)
-                        ASLogger.Instance.Info($"EntityViewFactory: 实体 {entityView.EntityId} 没有ViewComponents");
-                    return;
+                        ASLogger.Instance.Info($"EntityViewFactory: 装配了 {viewComponentTypes.Length} 个主原型ViewComponents - ID:{entityView.EntityId}");
                 }
                 
-                entityView.BuildViewComponents(viewComponentTypes);
-                
-                if (enableLogging)
-                    ASLogger.Instance.Info($"EntityViewFactory: 装配了 {viewComponentTypes.Length} 个ViewComponents - ID:{entityView.EntityId}");
+                // 2. 同步 Entity 的活跃子原型
+                var activeSubArchetypes = entity.ListActiveSubArchetypes();
+                if (activeSubArchetypes != null && activeSubArchetypes.Count > 0)
+                {
+                    foreach (var subArchetype in activeSubArchetypes)
+                    {
+                        entityView.AttachSubArchetype(subArchetype);
+                    }
+                    if (enableLogging)
+                        ASLogger.Instance.Info($"EntityViewFactory: 同步了 {activeSubArchetypes.Count} 个活跃子原型 - ID:{entityView.EntityId}");
+                }
             }
             catch (Exception ex)
             {

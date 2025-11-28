@@ -1,9 +1,12 @@
 ﻿using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.View.Components;
+using Astrum.View.Archetypes;
+using cfg;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
 
@@ -28,6 +31,10 @@ namespace Astrum.View.Core
         
         // ComponentTypeId 到 ViewComponent 列表的映射
         private Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap = new Dictionary<int, List<ViewComponent>>();
+        
+        // 子原型管理
+        protected List<EArchetype> _activeSubArchetypes = new List<EArchetype>();
+        protected Dictionary<Type, int> _viewComponentRefCounts = new Dictionary<Type, int>();
         
         // Unity GameObject引用
         protected GameObject _gameObject;
@@ -57,6 +64,7 @@ namespace Astrum.View.Core
         public Transform Transform => _transform;
         public List<ViewComponent> ViewComponents => _viewComponents;
         public DateTime LastSyncTime => _lastSyncTime;
+        public IReadOnlyList<EArchetype> ActiveSubArchetypes => _activeSubArchetypes;
         
         // 事件
         public event Action<EntityView> OnEntityViewInitialized;
@@ -524,6 +532,165 @@ namespace Astrum.View.Core
                     }
                 }
             }
+        }
+        
+        /// <summary>
+        /// 挂载子原型
+        /// </summary>
+        /// <param name="subArchetype">子原型类型</param>
+        /// <returns>是否成功</returns>
+        public virtual bool AttachSubArchetype(EArchetype subArchetype)
+        {
+            if (_activeSubArchetypes.Contains(subArchetype))
+            {
+                return true; // 已经激活
+            }
+            
+            // 查询子原型对应的 ViewComponents
+            if (!ViewArchetypeManager.Instance.TryGetComponents(subArchetype, out var viewComponentTypes))
+            {
+                ASLogger.Instance.Warning($"EntityView: 子原型 {subArchetype} 没有对应的 ViewComponents，ID: {_entityId}");
+                return false;
+            }
+            
+            // 使用引用计数装配 ViewComponents
+            foreach (var componentType in viewComponentTypes)
+            {
+                if (componentType == null || !componentType.IsSubclassOf(typeof(ViewComponent))) continue;
+                
+                if (!_viewComponentRefCounts.TryGetValue(componentType, out var count))
+                {
+                    count = 0;
+                }
+                
+                if (count == 0)
+                {
+                    // 需要创建新的 ViewComponent
+                    try
+                    {
+                        var component = Activator.CreateInstance(componentType) as ViewComponent;
+                        if (component != null)
+                        {
+                            AddViewComponent(component);
+                        }
+                        else
+                        {
+                            ASLogger.Instance.Error($"EntityView: 创建 ViewComponent {componentType.Name} 失败，ID: {_entityId}");
+                            continue;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ASLogger.Instance.Error($"EntityView: 创建 ViewComponent {componentType.Name} 失败，ID: {_entityId} - {ex.Message}");
+                        continue;
+                    }
+                }
+                
+                _viewComponentRefCounts[componentType] = count + 1;
+            }
+            
+            _activeSubArchetypes.Add(subArchetype);
+            ASLogger.Instance.Info($"EntityView: 挂载子原型 {subArchetype}，ID: {_entityId}");
+            return true;
+        }
+        
+        /// <summary>
+        /// 卸载子原型
+        /// </summary>
+        /// <param name="subArchetype">子原型类型</param>
+        /// <returns>是否成功</returns>
+        public virtual bool DetachSubArchetype(EArchetype subArchetype)
+        {
+            if (!_activeSubArchetypes.Contains(subArchetype))
+            {
+                return true; // 已经卸载
+            }
+            
+            // 查询子原型对应的 ViewComponents
+            if (!ViewArchetypeManager.Instance.TryGetComponents(subArchetype, out var viewComponentTypes))
+            {
+                // 即使查询失败，也要从列表中移除
+                _activeSubArchetypes.Remove(subArchetype);
+                return true;
+            }
+            
+            // 使用引用计数卸载 ViewComponents
+            foreach (var componentType in viewComponentTypes)
+            {
+                if (componentType == null) continue;
+                
+                if (!_viewComponentRefCounts.TryGetValue(componentType, out var count))
+                {
+                    count = 0;
+                }
+                
+                if (count > 0)
+                {
+                    count--;
+                    _viewComponentRefCounts[componentType] = count;
+                    
+                    if (count == 0)
+                    {
+                        // 引用计数归零，移除 ViewComponent
+                        var component = GetViewComponentByType(componentType);
+                        if (component != null)
+                        {
+                            RemoveViewComponent(component);
+                        }
+                        _viewComponentRefCounts.Remove(componentType);
+                    }
+                }
+            }
+            
+            _activeSubArchetypes.Remove(subArchetype);
+            ASLogger.Instance.Info($"EntityView: 卸载子原型 {subArchetype}，ID: {_entityId}");
+            return true;
+        }
+        
+        /// <summary>
+        /// 检查子原型是否已激活
+        /// </summary>
+        /// <param name="subArchetype">子原型类型</param>
+        /// <returns>是否已激活</returns>
+        public virtual bool IsSubArchetypeActive(EArchetype subArchetype)
+        {
+            return _activeSubArchetypes.Contains(subArchetype);
+        }
+        
+        /// <summary>
+        /// 列出所有活跃的子原型
+        /// </summary>
+        /// <returns>活跃子原型列表</returns>
+        public virtual IReadOnlyList<EArchetype> ListActiveSubArchetypes()
+        {
+            return _activeSubArchetypes;
+        }
+        
+        /// <summary>
+        /// 根据类型获取 ViewComponent
+        /// </summary>
+        /// <param name="componentType">组件类型</param>
+        /// <returns>ViewComponent 实例，如果不存在返回 null</returns>
+        private ViewComponent GetViewComponentByType(Type componentType)
+        {
+            return _viewComponents.FirstOrDefault(c => c.GetType() == componentType);
+        }
+        
+        /// <summary>
+        /// 移除视图组件（内部方法，用于子原型卸载）
+        /// </summary>
+        /// <param name="component">要移除的组件</param>
+        private void RemoveViewComponent(ViewComponent component)
+        {
+            if (component == null) return;
+            
+            // 清理映射关系
+            UnregisterViewComponentWatchedIds(component);
+            
+            _viewComponents.Remove(component);
+            component.Destroy();
+            
+            ASLogger.Instance.Info($"EntityView: 移除视图组件，ID: {_entityId}，组件: {component.GetType().Name}");
         }
     }
 }

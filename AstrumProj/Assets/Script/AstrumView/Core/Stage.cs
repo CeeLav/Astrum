@@ -95,6 +95,7 @@ namespace Astrum.View.Core
             EventSystem.Instance.Subscribe<EntityCreatedEventData>(OnEntityCreated);
             EventSystem.Instance.Subscribe<EntityDestroyedEventData>(OnEntityDestroyed);
             EventSystem.Instance.Subscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
+            EventSystem.Instance.Subscribe<EntitySubArchetypeChangedEventData>(OnEntitySubArchetypeChanged);
             EventSystem.Instance.Subscribe<WorldRollbackEventData>(OnWorldRollback);
             
             ASLogger.Instance.Info($"Stage: 订阅实体事件 - {_stageName}");
@@ -108,6 +109,7 @@ namespace Astrum.View.Core
             EventSystem.Instance.Unsubscribe<EntityCreatedEventData>(OnEntityCreated);
             EventSystem.Instance.Unsubscribe<EntityDestroyedEventData>(OnEntityDestroyed);
             EventSystem.Instance.Unsubscribe<EntityComponentChangedEventData>(OnEntityComponentChanged);
+            EventSystem.Instance.Unsubscribe<EntitySubArchetypeChangedEventData>(OnEntitySubArchetypeChanged);
             EventSystem.Instance.Unsubscribe<WorldRollbackEventData>(OnWorldRollback);
             
             ASLogger.Instance.Info($"Stage: 取消订阅实体事件 - {_stageName}");
@@ -335,22 +337,44 @@ namespace Astrum.View.Core
                 return;
             }
             
-            // 获取对应的EntityView并处理组件变化
+            // 注意：子原型变化不再触发组件变化事件，这里只处理直接组件操作
+            // 子原型变化由 OnEntitySubArchetypeChanged 处理
+        }
+        
+        /// <summary>
+        /// 实体子原型变化事件处理
+        /// </summary>
+        /// <param name="eventData">事件数据</param>
+        private void OnEntitySubArchetypeChanged(EntitySubArchetypeChangedEventData eventData)
+        {
+            // 检查是否属于当前Stage的Room
+            if (eventData.RoomId != _roomId)
+            {
+                return;
+            }
+            
+            // 获取对应的EntityView
             if (_entityViews.TryGetValue(eventData.EntityId, out var entityView))
             {
-                // 可以根据组件类型和变化类型进行特殊处理
+                // 根据变化类型调用 EntityView 的 Attach/Detach 方法
                 switch (eventData.ChangeType.ToLower())
                 {
-                    case "add":
-                        // 处理组件添加
+                    case "attach":
+                        entityView.AttachSubArchetype(eventData.SubArchetype);
+                        ASLogger.Instance.Info($"Stage: 处理子原型 Attach 事件 - EntityId: {eventData.EntityId}, SubArchetype: {eventData.SubArchetype}");
                         break;
-                    case "remove":
-                        // 处理组件移除
+                    case "detach":
+                        entityView.DetachSubArchetype(eventData.SubArchetype);
+                        ASLogger.Instance.Info($"Stage: 处理子原型 Detach 事件 - EntityId: {eventData.EntityId}, SubArchetype: {eventData.SubArchetype}");
                         break;
-                    case "update":
-                        // 处理组件更新
+                    default:
+                        ASLogger.Instance.Warning($"Stage: 未知的子原型变化类型 - {eventData.ChangeType}");
                         break;
                 }
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"Stage: 找不到对应的 EntityView - EntityId: {eventData.EntityId}");
             }
         }
         

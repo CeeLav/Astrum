@@ -1,6 +1,7 @@
 using System;
 using Astrum.Generated;
 using Astrum.LogicCore.Core;
+using cfg;
 
 namespace Astrum.CommonBase
 {
@@ -298,6 +299,69 @@ namespace Astrum.CommonBase
             RoomId = roomId;
             RollbackFrame = rollbackFrame;
             RollbackTime = DateTime.Now;
+        }
+    }
+    
+    /// <summary>
+    /// 实体子原型变化事件数据
+    /// </summary>
+    public class EntitySubArchetypeChangedEventData : EventData
+    {
+        /// <summary>
+        /// 实体ID
+        /// </summary>
+        public long EntityId { get; set; }
+        
+        /// <summary>
+        /// 实体名称
+        /// </summary>
+        public string EntityName { get; set; }
+        
+        /// <summary>
+        /// 实体类型
+        /// </summary>
+        public string EntityType { get; set; }
+        
+        /// <summary>
+        /// 世界ID
+        /// </summary>
+        public int WorldId { get; set; }
+        
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        public long RoomId { get; set; }
+        
+        /// <summary>
+        /// 子原型类型
+        /// </summary>
+        public EArchetype SubArchetype { get; set; }
+        
+        /// <summary>
+        /// 变化类型（Attach/Detach）
+        /// </summary>
+        public string ChangeType { get; set; }
+        
+        /// <summary>
+        /// 变化时间
+        /// </summary>
+        public DateTime ChangeTime { get; set; }
+        
+        public EntitySubArchetypeChangedEventData()
+        {
+            ChangeTime = DateTime.Now;
+        }
+        
+        public EntitySubArchetypeChangedEventData(Entity entity, int worldId, long roomId, EArchetype subArchetype, string changeType)
+        {
+            EntityId = entity.UniqueId;
+            EntityName = entity.Name;
+            EntityType = entity.GetType().Name;
+            WorldId = worldId;
+            RoomId = roomId;
+            SubArchetype = subArchetype;
+            ChangeType = changeType;
+            ChangeTime = DateTime.Now;
         }
     }
 }
