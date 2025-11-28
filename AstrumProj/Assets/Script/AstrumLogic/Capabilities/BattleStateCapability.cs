@@ -86,7 +86,8 @@ namespace Astrum.LogicCore.Capabilities
 			if (curFrame >= fsm.NextAttackFrame)
 			{
 				// 仅这一帧置 Attack=true，并推进冷却帧
-				var atk = CreateInput(entity, 0, 0, attack: true);
+				// 攻击方向使用目标位置（MouseWorldX/Z 表示目标世界坐标）
+				var atk = CreateInput(entity, 0, 0, attack: true, attackTargetPos: targetPos);
 				inputComp.SetInput(atk);
 				fsm.NextAttackFrame = curFrame + TSMath.Max(1, (FP)fsm.AttackIntervalFrames).AsInt();
 			}
@@ -120,7 +121,7 @@ namespace Astrum.LogicCore.Capabilities
             return nearest;
         }
 
-        private Astrum.Generated.LSInput CreateInput(Entity entity, float moveX, float moveY, bool attack = false, bool skill1 = false, bool skill2 = false)
+        private Astrum.Generated.LSInput CreateInput(Entity entity, float moveX, float moveY, bool attack = false, bool skill1 = false, bool skill2 = false, TSVector? attackTargetPos = null)
         {
             var input = Astrum.Generated.LSInput.Create();
             input.PlayerId = entity.UniqueId;
@@ -131,6 +132,20 @@ namespace Astrum.LogicCore.Capabilities
             input.Skill1 = skill1;
             input.Skill2 = skill2;
             input.Timestamp = 0;
+            
+            // 设置攻击方向（使用目标位置作为鼠标世界坐标）
+            if (attackTargetPos.HasValue)
+            {
+                input.MouseWorldX = (long)(attackTargetPos.Value.x.AsFloat() * (1L << 32));
+                input.MouseWorldZ = (long)(attackTargetPos.Value.z.AsFloat() * (1L << 32));
+            }
+            else
+            {
+                // 如果没有指定目标位置，使用默认值（0, 0）
+                input.MouseWorldX = 0;
+                input.MouseWorldZ = 0;
+            }
+            
             return input;
         }
     }
