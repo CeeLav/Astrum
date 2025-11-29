@@ -61,13 +61,18 @@ git submodule update --remote
 - [快速联机系统](Docs/01-GameDesign%20游戏设计/Quick-Match-System%20快速联机系统.md) - 快速匹配系统 ✨NEW
 
 ### ⚔️ 战斗系统
-- [技能系统](Docs/02-CombatSystem%20战斗系统/Skill-System%20技能系统.md) - 技能设计架构
-- [技能效果运行时](Docs/02-CombatSystem%20战斗系统/Skill-Effect-Runtime%20技能效果运行时.md) - 效果执行系统
-- [动作系统](Docs/02-CombatSystem%20战斗系统/Action-System%20动作系统.md) - 动作帧和取消系统
+- [战斗系统总览](Docs/02-CombatSystem%20战斗系统/Combat-System%20战斗系统总览.md) - 战斗系统整体架构
+- [技能系统](Docs/02-CombatSystem%20战斗系统/技能系统/Skill-System%20技能系统.md) - 技能设计架构
+- [技能效果运行时](Docs/02-CombatSystem%20战斗系统/技能系统/Skill-Effect-Runtime%20技能效果运行时.md) - 效果执行系统
+- [动作系统](Docs/02-CombatSystem%20战斗系统/技能系统/Action-System%20动作系统.md) - 动作帧和取消系统
+- [输入系统](Docs/02-CombatSystem%20战斗系统/输入系统/Input-System%20输入系统架构设计.md) - 输入系统架构
+- [射击系统](Docs/02-CombatSystem%20战斗系统/射击系统/Projectile-Shooting-System%20射击系统技术设计.md) - 弹道系统设计
+- [数值系统](Docs/02-CombatSystem%20战斗系统/数值系统/Stats-System%20数值系统.md) - 属性与伤害计算
+- [AI系统](Docs/02-CombatSystem%20战斗系统/AI系统/AI-StateMachine-Design%20AI状态机设计.md) - AI状态机架构
 
 ### 🎯 物理系统
-- [物理碰撞检测](Docs/03-PhysicsSystem%20物理系统/Physics-Design%20物理碰撞检测设计.md) - BEPU Physics 集成
-- [开发进展](Docs/03-PhysicsSystem%20物理系统/Physics-Progress%20物理系统开发进展.md) - v0.3.0
+- [物理碰撞检测](Docs/02-CombatSystem%20战斗系统/PhysicsSystem%20物理系统/Physics-Design%20物理碰撞检测设计.md) - BEPU Physics 集成
+- [开发进展](Docs/02-CombatSystem%20战斗系统/PhysicsSystem%20物理系统/Physics-Progress%20物理系统开发进展.md) - v0.3.0
 
 ### 🛠️ 编辑器工具
 - [CSV框架](Docs/04-EditorTools%20编辑器工具/CSV-Framework%20CSV框架.md) - 配置表快速参考
@@ -84,10 +89,16 @@ git submodule update --remote
 | 系统 | 状态 | 完成度 | 文档 |
 |------|------|--------|------|
 | **技能效果运行时** | ✅ 完成 | 90% | [查看](Docs/02-CombatSystem%20战斗系统/_status%20开发进展/Skill-Effect-Progress%20技能效果开发进展.md) |
-| **物理系统** | ✅ 完成 | 80% | [查看](Docs/03-PhysicsSystem%20物理系统/Physics-Progress%20物理系统开发进展.md) |
+| **物理系统** | ✅ 完成 | 80% | [查看](Docs/02-CombatSystem%20战斗系统/PhysicsSystem%20物理系统/Physics-Progress%20物理系统开发进展.md) |
 | **房间系统** | ✅ 完成 | 100% | [查看](Docs/01-GameDesign%20游戏设计/Room-System%20房间系统.md) |
 | **快速联机系统** | ✅ 完成 | 90% | [查看](Docs/01-GameDesign%20游戏设计/Quick-Match-Progress%20快速联机开发进展.md) |
-| **动作系统** | ✅ 完成 | 80% | - |
+| **动作系统** | ✅ 完成 | 80% | [查看](Docs/02-CombatSystem%20战斗系统/技能系统/Action-System%20动作系统.md) |
+| **输入系统** | ✅ 完成 | 80% | [查看](Docs/02-CombatSystem%20战斗系统/输入系统/Input-System%20输入系统架构设计.md) |
+| **射击系统** | ✅ 完成 | 80% | [查看](Docs/02-CombatSystem%20战斗系统/_status%20开发进展/Projectile-System-Progress%20射击系统开发进展.md) |
+| **AI系统** | ✅ 完成 | 70% | [查看](Docs/02-CombatSystem%20战斗系统/AI系统/AI-StateMachine-Design%20AI状态机设计.md) |
+| **Capability优化重构** | 🚧 进行中 | 80% | [查看](Docs/05-CoreArchitecture%20核心架构/开发进展/Capability-Optimization-Progress%20Capability优化重构开发进展.md) |
+| **数值系统** | 📝 设计完成 | 10% | [查看](Docs/02-CombatSystem%20战斗系统/数值系统/Stats-System%20数值系统.md) |
+| **受击与击退** | 📝 设计完成 | 10% | [查看](Docs/02-CombatSystem%20战斗系统/技能效果/Hit-Reaction-And-Knockback%20受击与击退.md) |
 | **测试工程（单机）** | ⏳ 计划中 | 0% | - |
 | **技能动作编辑器** | 📝 策划完成 | 0% | - |
 
@@ -131,12 +142,15 @@ Astrum/
 
 ## 🎮 核心特性
 
-- ✅ **ECC 架构** - 数据与逻辑分离，高度模块化
+- ✅ **ECC 架构** - 数据与逻辑分离，高度模块化（Capability 系统优化中）
 - ✅ **回滚网络同步** - 确定性物理 + 状态回滚
 - ✅ **技能系统** - Skill → Action → Effect 三层架构
-- ✅ **物理碰撞检测** - BEPU Physics 集成
+- ✅ **物理碰撞检测** - BEPU Physics v1 集成
+- ✅ **输入系统** - 统一输入处理，支持鼠标位置转换
+- ✅ **射击系统** - 事件驱动弹道生成，射线碰撞判定
+- ✅ **AI系统** - 基于状态机的AI决策系统
 - ✅ **配置驱动** - Luban 配置表生成
-- ✅ **编辑器工具链** - 角色编辑器、动作编辑器
+- ✅ **编辑器工具链** - UI生成器、角色编辑器、动作编辑器、日志管理器
 
 ---
 
@@ -152,5 +166,5 @@ MIT License
 
 ---
 
-**最后更新**: 2025-10-10  
+**最后更新**: 2025-11-12  
 **项目状态**: 🚧 开发中
