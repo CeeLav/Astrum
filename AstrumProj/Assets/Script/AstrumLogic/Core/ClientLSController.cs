@@ -35,7 +35,7 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 帧率（如60FPS）
         /// </summary>
-        public int TickRate { get; set; } = 60;
+        public int TickRate { get; set; } = 20;
         
         public long CreationTime { get; set; }
 
@@ -53,11 +53,6 @@ namespace Astrum.LogicCore.Core
         /// 输入系统
         /// </summary>
         private LSInputSystem _inputSystem;
-
-        /// <summary>
-        /// 最大状态历史数量
-        /// </summary>
-        public int MaxStateHistory { get; set; } = 30;
 
         /// <summary>
         /// 是否正在运行

@@ -199,7 +199,7 @@ namespace Astrum.LogicCore.Core
                 world.Update();
             }
             
-            // 更新所有世界的 SkillEffectSystem
+            // 更新所有世界的 System
             TickSystems();
         }
         
