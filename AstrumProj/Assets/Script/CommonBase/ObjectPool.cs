@@ -6,6 +6,23 @@ using System.Threading;
 
 namespace Astrum.CommonBase
 {
+    /// <summary>
+    /// 全局对象池管理器，提供线程安全的对象复用功能。
+    /// 通过复用对象减少 GC 压力，提升性能。每个类型维护独立的对象池，默认最大容量为 1000。
+    /// </summary>
+    /// <remarks>
+    /// <para>使用方式：</para>
+    /// <list type="bullet">
+    /// <item><description>获取对象：<c>var obj = ObjectPool.Instance.Fetch&lt;MyClass&gt;();</c></description></item>
+    /// <item><description>回收对象：<c>ObjectPool.Instance.Recycle(obj);</c></description></item>
+    /// </list>
+    /// <para>注意事项：</para>
+    /// <list type="bullet">
+    /// <item><description>实现了 <see cref="IPool"/> 接口的对象会被自动标记，防止重复入池</description></item>
+    /// <item><description>池为空时会自动创建新实例，无需手动初始化</description></item>
+    /// <item><description>每个类型的对象池容量达到上限后，多余的回收对象会被丢弃</description></item>
+    /// </list>
+    /// </remarks>
     public class ObjectPool: Singleton<ObjectPool>
     {
         private ConcurrentDictionary<Type, Pool> objPool;
