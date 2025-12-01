@@ -129,6 +129,15 @@ namespace Astrum.LogicCore.Components
             Set(DynamicResourceType.SHIELD, FP.Zero);
             Set(DynamicResourceType.COMBO, FP.Zero);
         }
+        
+        /// <summary>
+        /// 重置 DynamicStatsComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            Resources.Clear();
+        }
     }
 }
 

@@ -27,7 +27,27 @@ namespace Astrum.CommonBase
     {
         private ConcurrentDictionary<Type, Pool> objPool;
 
-        private readonly Func<Type, Pool> AddPoolFunc = type => new Pool(type, 1000);
+        /// <summary>
+        /// 根据类型获取对象池容量
+        /// </summary>
+        private int GetPoolCapacity(Type type)
+        {
+            // 检查是否是 World 类型（通过命名空间和类型名判断，避免循环依赖）
+            if (type.Namespace == "Astrum.LogicCore.Core" && type.Name == "World")
+                return 10; // World 池容量（World 数量较少）
+            
+            // 检查是否是 Entity 类型
+            if (type.Namespace == "Astrum.LogicCore.Core" && type.Name == "Entity")
+                return 500; // Entity 池容量
+            
+            // 检查是否是 Component 类型（通过命名空间判断）
+            if (type.Namespace == "Astrum.LogicCore.Components")
+                return 1000; // Component 池容量
+            
+            return 1000; // 默认容量
+        }
+
+        private Func<Type, Pool> AddPoolFunc => type => new Pool(type, GetPoolCapacity(type));
 
         public void Awake()
         {

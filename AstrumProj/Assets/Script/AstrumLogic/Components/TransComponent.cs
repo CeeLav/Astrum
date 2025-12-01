@@ -144,5 +144,15 @@ namespace Astrum.LogicCore.Components
         {
             Rotation = TSQuaternion.Euler(FP.Zero, degrees, FP.Zero) * Rotation;
         }
+        
+        /// <summary>
+        /// 重置 TransComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            Position = TSVector.zero;
+            Rotation = TSQuaternion.identity;
+        }
     }
 }

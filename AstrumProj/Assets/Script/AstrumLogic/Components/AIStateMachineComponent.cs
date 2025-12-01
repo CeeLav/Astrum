@@ -40,6 +40,23 @@ namespace Astrum.LogicCore.Components
         {
             // 默认状态置空，由调度能力决定首次状态
         }
+        
+        /// <summary>
+        /// 重置 AIStateMachineComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            CurrentState = string.Empty;
+            NextState = string.Empty;
+            LastState = string.Empty;
+            LastSwitchFrame = 0;
+            CurrentTargetId = -1;
+            WanderTarget = TSVector.zero;
+            NextWanderFrame = 0;
+            NextAttackFrame = 0;
+            AttackIntervalFrames = 20;
+        }
     }
 }
 

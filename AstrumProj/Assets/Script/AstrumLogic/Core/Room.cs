@@ -235,7 +235,8 @@ namespace Astrum.LogicCore.Core
             }
             else
             {
-                MainWorld = new World();
+                MainWorld = ObjectPool.Instance.Fetch<World>();
+                MainWorld.Reset(); // 重置状态，确保从对象池获取的对象是干净的
                 MainWorld.Initialize(0);
                 MainWorld.RoomId = RoomId;
             }
@@ -362,10 +363,20 @@ namespace Astrum.LogicCore.Core
         {
             ASLogger.Instance.Info($"Room: 销毁房间 {Name} (ID: {RoomId})");
             
-            // 清理所有世界资源
+            // 清理并回收所有世界资源
             foreach (var world in Worlds)
             {
-                world?.Cleanup();
+                if (world != null && world.IsFromPool)
+                {
+                    world.Recycle(); // 调用 Recycle 方法（包含 Cleanup + Reset + 回收）
+                }
+            }
+            
+            // 清理 MainWorld
+            if (MainWorld != null && MainWorld.IsFromPool)
+            {
+                MainWorld.Recycle(); // 调用 Recycle 方法（包含 Cleanup + Reset + 回收）
+                MainWorld = null;
             }
             
             // 清理帧同步控制器

@@ -89,6 +89,22 @@ namespace Astrum.LogicCore.Components
             Type = type;
             CasterId = casterId;
         }
+        
+        /// <summary>
+        /// 重置 KnockbackComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            IsKnockingBack = false;
+            Direction = TSVector.zero;
+            Speed = FP.Zero;
+            RemainingTime = FP.Zero;
+            TotalDistance = FP.Zero;
+            MovedDistance = FP.Zero;
+            Type = KnockbackType.Linear;
+            CasterId = 0;
+        }
     }
     
     /// <summary>

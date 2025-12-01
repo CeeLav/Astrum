@@ -101,5 +101,14 @@ namespace Astrum.LogicCore.Components
             }
             return true;
         }
+        
+        /// <summary>
+        /// 重置 InventoryComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            Items.Clear();
+        }
     }
 }

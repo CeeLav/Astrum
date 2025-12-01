@@ -206,6 +206,15 @@ namespace Astrum.LogicCore.Components
                 _ => 0
             };
         }
+        
+        /// <summary>
+        /// 重置 BuffComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            Buffs.Clear();
+        }
     }
 }
 

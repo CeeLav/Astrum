@@ -82,5 +82,19 @@ namespace Astrum.LogicCore.Components
         
         /// <summary>动作是否已结束（需要外部提供动作持续时间）</summary>
         public bool IsActionFinished(int actionDuration) => CurrentAction != null && CurrentFrame >= actionDuration;
+        
+        /// <summary>
+        /// 重置 ActionComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            CurrentActionId = 0;
+            CurrentFrame = 0;
+            InputCommands.Clear();
+            PreorderActions.Clear();
+            ExternalPreorders.Clear();
+            AvailableActions.Clear();
+        }
     }
 }

@@ -62,5 +62,14 @@ namespace Astrum.LogicCore.Components
             Balances[type] = current - cost;
             return true;
         }
+        
+        /// <summary>
+        /// 重置 CurrencyComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            Balances.Clear();
+        }
     }
 }

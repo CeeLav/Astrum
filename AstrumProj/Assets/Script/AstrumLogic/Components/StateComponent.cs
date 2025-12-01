@@ -90,6 +90,15 @@ namespace Astrum.LogicCore.Components
         {
             return !Get(StateType.INVINCIBLE) && !Get(StateType.DEAD);
         }
+        
+        /// <summary>
+        /// 重置 StateComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            States.Clear();
+        }
     }
 }
 

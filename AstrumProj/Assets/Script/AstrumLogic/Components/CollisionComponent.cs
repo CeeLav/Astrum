@@ -114,6 +114,19 @@ namespace Astrum.LogicCore.Components
                 ASLogger.Instance.Info($"[CollisionComponent] Registered entity {entity.UniqueId} to HitSystem at Pos=({(float)pos.x:F2},{(float)pos.y:F2},{(float)pos.z:F2})");
             }
         }
+        
+        /// <summary>
+        /// 重置 CollisionComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            Shapes.Clear();
+            CollisionLayer = 1;
+            CollisionMask = 255;
+            IsTrigger = false;
+            BodyHandle = null;
+        }
     }
 }
 

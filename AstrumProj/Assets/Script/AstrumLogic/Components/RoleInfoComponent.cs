@@ -62,6 +62,15 @@ namespace Astrum.LogicCore.Components
             base.OnAttachToEntity(entity);
             RoleId = (int)entity.EntityConfigId;
         }
+        
+        /// <summary>
+        /// 重置 RoleInfoComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            RoleId = 0;
+        }
     }
 }
 

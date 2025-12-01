@@ -79,6 +79,17 @@ namespace Astrum.LogicCore.Components
             // 从配置表读取怪物等级（如果配置表有这个字段的话）
             // Level = MonsterConfig?.Level ?? 1;
         }
+        
+        /// <summary>
+        /// 重置 MonsterInfoComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            MonsterId = 0;
+            AIType = 0;
+            Level = 1;
+        }
     }
 }
 

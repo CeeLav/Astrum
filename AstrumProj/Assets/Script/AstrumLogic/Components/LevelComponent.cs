@@ -110,6 +110,18 @@ namespace Astrum.LogicCore.Components
             
             ASLogger.Instance.Info($"[Level] Entity {owner.UniqueId} leveled up to {CurrentLevel}!");
         }
+        
+        /// <summary>
+        /// 重置 LevelComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            CurrentLevel = 1;
+            CurrentExp = 0;
+            ExpToNextLevel = 1000;
+            MaxLevel = 100;
+        }
     }
 }
 

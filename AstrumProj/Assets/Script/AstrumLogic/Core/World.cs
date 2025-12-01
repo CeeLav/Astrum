@@ -16,8 +16,14 @@ namespace Astrum.LogicCore.Core
     /// 游戏世界类，管理所有实体和世界级别的逻辑
     /// </summary>
     [MemoryPackable]
-    public partial class World
+    public partial class World : IPool
     {
+        /// <summary>
+        /// 对象是否来自对象池（IPool 接口实现）
+        /// </summary>
+        [MemoryPackIgnore]
+        public bool IsFromPool { get; set; }
+        
         private struct PendingSubChange
         {
             public long EntityId;
@@ -90,7 +96,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public World()
         {
-            Entities = new Dictionary<long, Entity>();
+            Entities = new Dictionary<long, Entity>(100); // 预分配容量 100
             HitSystem = new HitSystem();
             SkillEffectSystem = new SkillEffectSystem();
             CapabilitySystem = new CapabilitySystem();
@@ -109,7 +115,7 @@ namespace Astrum.LogicCore.Core
             WorldId = worldId;
             Name = name;
             CreationTime = creationTime;
-            Entities = entities ?? new Dictionary<long, Entity>();
+            Entities = entities ?? new Dictionary<long, Entity>(100); // 预分配容量 100
             TotalTime = totalTime;
             Updater = updater;
             RoomId = roomId;
@@ -384,15 +390,35 @@ namespace Astrum.LogicCore.Core
                 entity?.ClearEventQueue();
             }
             
-            foreach (var entity in Entities.Values)
+            // 回收所有 Entity 至对象池（通过 EntityFactory 统一处理）
+            var entitiesToDestroy = new List<Entity>(Entities.Values);
+            foreach (var entity in entitiesToDestroy)
             {
-                entity.Destroy();
+                if (entity != null)
+                {
+                    EntityFactory.Instance.DestroyEntity(entity, this);
+                }
             }
             Entities.Clear();
             
             // 清理系统资源
             HitSystem?.Dispose();
             SkillEffectSystem?.ClearQueue();
+        }
+        
+        /// <summary>
+        /// 回收 World 至对象池（在 Cleanup 后调用）
+        /// </summary>
+        public void Recycle()
+        {
+            Cleanup();
+            Reset();
+            
+            // 回收 World 至对象池
+            if (IsFromPool)
+            {
+                ObjectPool.Instance.Recycle(this);
+            }
         }
         
         /// <summary>
@@ -423,6 +449,36 @@ namespace Astrum.LogicCore.Core
             var entity = EntityFactory.Instance.CreateEntity(entityConfigId, this);
             PublishEntityCreatedEvent(entity);
             return entity;
+        }
+        
+        /// <summary>
+        /// 重置 World 状态（用于对象池回收）
+        /// </summary>
+        public virtual void Reset()
+        {
+            // 重置基础字段
+            WorldId = 0;
+            Name = string.Empty;
+            CreationTime = default(DateTime);
+            TotalTime = 0f;
+            CurFrame = 0;
+            RoomId = 0;
+            
+            // 清空所有集合
+            Entities.Clear();
+            _pendingSubArchetypeChanges.Clear();
+            
+            // 清理系统资源（需要在重置前清理）
+            if (GlobalEventQueue != null)
+            {
+                GlobalEventQueue.ClearAll();
+            }
+            
+            // 重置系统（将在 Initialize 时重新创建）
+            HitSystem = null;
+            SkillEffectSystem = null;
+            CapabilitySystem = null;
+            Updater = null;
         }
     }
 }

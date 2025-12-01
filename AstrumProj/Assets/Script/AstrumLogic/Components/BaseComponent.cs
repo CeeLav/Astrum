@@ -1,16 +1,22 @@
 using Astrum.LogicCore.Core;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.Components
 {
     /// <summary>
     /// 组件基类，所有组件都继承自此类
     /// </summary>
-    public abstract partial class BaseComponent
+    public abstract partial class BaseComponent : IPool
     {
         /// <summary>
         /// 所属实体的ID
         /// </summary>
         public long EntityId { get; set; }
+        
+        /// <summary>
+        /// 对象是否来自对象池（IPool 接口实现）
+        /// </summary>
+        public bool IsFromPool { get; set; }
 
         protected BaseComponent()
         {
@@ -34,6 +40,16 @@ namespace Astrum.LogicCore.Components
         public virtual void OnAttachToEntity(Entity entity)
         {
             
+        }
+
+        /// <summary>
+        /// 重置 Component 状态（用于对象池回收）
+        /// </summary>
+        public virtual void Reset()
+        {
+            // 重置基础字段
+            EntityId = 0;
+            // 子类需要重写此方法以重置自己的字段
         }
 
         /// <summary>

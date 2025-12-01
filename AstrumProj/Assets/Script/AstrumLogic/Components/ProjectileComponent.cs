@@ -111,5 +111,31 @@ namespace Astrum.LogicCore.Components
         /// Projectile 配置 ID，供表现层查询特效资源路径
         /// </summary>
         public int ProjectileId { get; set; } = 0;
+        
+        /// <summary>
+        /// 重置 ProjectileComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            SkillEffectIds.Clear();
+            CasterId = 0;
+            LifeTime = 300;
+            ElapsedFrames = 0;
+            TrajectoryType = TrajectoryType.Linear;
+            TrajectoryData = string.Empty;
+            LaunchDirection = TSVector.forward;
+            CurrentVelocity = TSVector.zero;
+            LastPosition = TSVector.zero;
+            InitialPosition = TSVector.zero;
+            PierceCount = 0;
+            BaseSpeed = FP.Zero;
+            PiercedCount = 0;
+            HitEntities.Clear();
+            SocketName = string.Empty;
+            SocketOffset = TSVector.zero;
+            IsMarkedForDestroy = false;
+            ProjectileId = 0;
+        }
     }
 }

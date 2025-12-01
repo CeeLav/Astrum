@@ -140,6 +140,17 @@ namespace Astrum.LogicCore.Components
         
         /// <summary>获取指定属性的最终值（转为float）</summary>
         public float GetFloat(StatType type) => (float)FinalStats.Get(type);
+        
+        /// <summary>
+        /// 重置 DerivedStatsComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            FinalStats.Clear();
+            _modifiers.Clear();
+            _isDirty = false;
+        }
     }
 }
 

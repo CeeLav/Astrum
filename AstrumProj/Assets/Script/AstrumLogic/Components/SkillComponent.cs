@@ -63,6 +63,15 @@ namespace Astrum.LogicCore.Components
 		{
 			return LearnedSkills.Remove(skillId);
 		}
+		
+		/// <summary>
+		/// 重置 SkillComponent 状态（用于对象池回收）
+		/// </summary>
+		public override void Reset()
+		{
+			base.Reset();
+			LearnedSkills.Clear();
+		}
 	}
 }
 

@@ -10,18 +10,20 @@ namespace Astrum.LogicCore.Factories
     public class ComponentFactory : Singleton<ComponentFactory>
     {
         /// <summary>
-        /// 创建指定类型的组件
+        /// 创建指定类型的组件（从对象池获取）
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         /// <returns>创建的组件实例</returns>
         public T CreateComponent<T>() where T : BaseComponent, new()
         {
-            return new T();
+            var component = ObjectPool.Instance.Fetch<T>();
+            component.Reset(); // 重置状态，确保从对象池获取的对象是干净的
+            return component;
         }
         
 
         /// <summary>
-        /// 根据类型创建组件
+        /// 根据类型创建组件（从对象池获取）
         /// </summary>
         /// <param name="type">组件类型</param>
         /// <returns>创建的组件实例</returns>
@@ -32,7 +34,12 @@ namespace Astrum.LogicCore.Factories
 
             try
             {
-                return Activator.CreateInstance(type) as BaseComponent;
+                var component = ObjectPool.Instance.Fetch(type) as BaseComponent;
+                if (component != null)
+                {
+                    component.Reset(); // 重置状态，确保从对象池获取的对象是干净的
+                }
+                return component;
             }
             catch (Exception ex)
             {

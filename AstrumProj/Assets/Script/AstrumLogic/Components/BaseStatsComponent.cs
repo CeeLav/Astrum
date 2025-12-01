@@ -148,6 +148,15 @@ namespace Astrum.LogicCore.Components
             BaseStats.Add(StatType.HP, (FP)growthComp.AllocatedHealthPoints * HEALTH_PER_POINT);
             BaseStats.Add(StatType.SPD, (FP)growthComp.AllocatedSpeedPoints * SPEED_PER_POINT);
         }
+        
+        /// <summary>
+        /// 重置 BaseStatsComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            BaseStats.Clear();
+        }
     }
 }
 

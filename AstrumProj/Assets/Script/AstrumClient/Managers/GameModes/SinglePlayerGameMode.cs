@@ -150,7 +150,8 @@ namespace Astrum.Client.Managers.GameModes
         private void CreateRoom()
         {
             var room = new Room(1, "SinglePlayerRoom");
-            var world = new World();
+            var world = ObjectPool.Instance.Fetch<World>();
+            world.Reset(); // 重置状态，确保从对象池获取的对象是干净的
             room.MainWorld = world;
             room.Initialize(); // 初始化 Room，但不启动帧同步（本地模式）
             

@@ -100,6 +100,20 @@ namespace Astrum.LogicCore.Components
             
             return true;
         }
+        
+        /// <summary>
+        /// 重置 GrowthComponent 状态（用于对象池回收）
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            RoleId = 0;
+            AvailableStatPoints = 0;
+            AllocatedAttackPoints = 0;
+            AllocatedDefensePoints = 0;
+            AllocatedHealthPoints = 0;
+            AllocatedSpeedPoints = 0;
+        }
     }
 }
 

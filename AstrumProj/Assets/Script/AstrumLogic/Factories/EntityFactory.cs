@@ -58,14 +58,18 @@ namespace Astrum.LogicCore.Factories
             creationParams ??= new EntityCreationParams();
             var entityConfigId = creationParams.EntityConfigId ?? 0;
 
-            var entity = new T
-            {
-                Name = entityConfigId > 0 ? GetEntityNameFromConfig(entityConfigId) : archetype.ToString(),
-                Archetype = archetype,
-                EntityConfigId = entityConfigId,
-                CreationTime = DateTime.Now,
-                IsDestroyed = false
-            };
+            // 从对象池获取 Entity
+            var entity = ObjectPool.Instance.Fetch<T>();
+            entity.Reset(); // 重置状态，确保从对象池获取的对象是干净的
+            
+            // 设置基本属性
+            entity.Name = entityConfigId > 0 ? GetEntityNameFromConfig(entityConfigId) : archetype.ToString();
+            entity.Archetype = archetype;
+            entity.EntityConfigId = entityConfigId;
+            entity.CreationTime = DateTime.Now;
+            entity.IsDestroyed = false;
+            entity.UniqueId = Entity.GetNextId(); // 设置新的唯一ID
+            
             // 确保组件 OnAttachToEntity 内可访问 World
             entity.World = world;
             
@@ -257,8 +261,21 @@ namespace Astrum.LogicCore.Factories
                 }
             }
 
-            // 销毁实体
-            entity.Destroy();
+            // 回收所有 Component 至对象池
+            foreach (var component in entity.Components)
+            {
+                if (component != null && component.IsFromPool)
+                {
+                    component.Reset();
+                    ObjectPool.Instance.Recycle(component);
+                }
+            }
+            
+            // 重置 Entity 状态
+            entity.Reset();
+            
+            // 回收 Entity 至对象池
+            ObjectPool.Instance.Recycle(entity);
         }
 
         /// <summary>

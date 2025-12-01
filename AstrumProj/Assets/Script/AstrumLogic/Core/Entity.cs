@@ -18,14 +18,20 @@ namespace Astrum.LogicCore.Core
     /// 实体类，游戏中所有对象的基础类
     /// </summary>
     [MemoryPackable]
-    public partial class Entity
+    public partial class Entity : IPool
     {
         private static long _nextId = 1;
+        
+        /// <summary>
+        /// 对象是否来自对象池（IPool 接口实现）
+        /// </summary>
+        [MemoryPackIgnore]
+        public bool IsFromPool { get; set; }
 
         /// <summary>
         /// 实体的全局唯一标识符
         /// </summary>
-        public long UniqueId { get; private set; }
+        public long UniqueId { get; set; }
 
         /// <summary>
         /// 实体名称，便于调试和识别
@@ -60,9 +66,9 @@ namespace Astrum.LogicCore.Core
         public DateTime CreationTime { get; set; }
 
         /// <summary>
-        /// 挂载的组件列表
+        /// 挂载的组件列表（预分配容量 8）
         /// </summary>
-        public List<BaseComponent> Components { get; private set; } = new List<BaseComponent>();
+        public List<BaseComponent> Components { get; private set; } = new List<BaseComponent>(8);
 
         /// <summary>
         /// 父实体ID，-1表示无父实体
@@ -70,23 +76,25 @@ namespace Astrum.LogicCore.Core
         public long ParentId { get; set; } = -1;
 
         /// <summary>
-        /// 子实体ID列表
+        /// 子实体ID列表（预分配容量 4）
         /// </summary>
-        public List<long> ChildrenIds { get; private set; } = new List<long>();
+        public List<long> ChildrenIds { get; private set; } = new List<long>(4);
 
         /// <summary>
         /// Capability 状态字典（TypeId -> 状态）
         /// 使用 int 类型的 TypeId 作为 Key，基于 TypeHash 生成，性能更高
+        /// 预分配容量 4
         /// </summary>
         public Dictionary<int, CapabilityState> CapabilityStates { get; private set; } 
-            = new Dictionary<int, CapabilityState>();
+            = new Dictionary<int, CapabilityState>(4);
         
         /// <summary>
         /// 被禁用的 Tag 集合（Tag -> 禁用发起者实体ID集合）
         /// 用于支持基于 Tag 的 Capability 批量禁用
+        /// 预分配容量 2
         /// </summary>
         public Dictionary<CapabilityTag, HashSet<long>> DisabledTags { get; private set; } 
-            = new Dictionary<CapabilityTag, HashSet<long>>();
+            = new Dictionary<CapabilityTag, HashSet<long>>(2);
 
         /// <summary>
         /// 实体所属的 World（不序列化，由 World 设置）
@@ -95,10 +103,12 @@ namespace Astrum.LogicCore.Core
         public World World { get; set; }
 
         // 运行时子原型：激活列表与引入映射（用于安全卸载）
-        public List<EArchetype> ActiveSubArchetypes { get; private set; } = new List<EArchetype>();
+        // 预分配容量 2
+        public List<EArchetype> ActiveSubArchetypes { get; private set; } = new List<EArchetype>(2);
         // 引用计数字典（类型名 -> 引用次数），用于决定组件/能力的装配与卸载
-        public Dictionary<string, int> ComponentRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
-        public Dictionary<string, int> CapabilityRefCounts { get; private set; } = new Dictionary<string, int>(StringComparer.Ordinal);
+        // 预分配容量 8 和 4
+        public Dictionary<string, int> ComponentRefCounts { get; private set; } = new Dictionary<string, int>(8, StringComparer.Ordinal);
+        public Dictionary<string, int> CapabilityRefCounts { get; private set; } = new Dictionary<string, int>(4, StringComparer.Ordinal);
         
         /// <summary>
         /// 脏组件类型 ID 集合（使用 ComponentTypeId 作为唯一标识）
@@ -111,6 +121,14 @@ namespace Astrum.LogicCore.Core
         {
             UniqueId = _nextId++;
             CreationTime = DateTime.Now;
+        }
+        
+        /// <summary>
+        /// 获取下一个实体ID（静态方法，供外部使用）
+        /// </summary>
+        public static long GetNextId()
+        {
+            return _nextId++;
         }
 
         /// <summary>
@@ -357,7 +375,7 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 移除组件
+        /// 移除组件（并回收到对象池）
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         public void RemoveComponent<T>() where T : BaseComponent
@@ -369,6 +387,13 @@ namespace Astrum.LogicCore.Core
                 _dirtyComponentIds.Remove(component.GetComponentTypeId());
                 
                 Components.Remove(component);
+                
+                // 回收 Component 至对象池
+                if (component.IsFromPool)
+                {
+                    component.Reset();
+                    ObjectPool.Instance.Recycle(component);
+                }
             }
         }
 
@@ -547,6 +572,34 @@ namespace Astrum.LogicCore.Core
         public void ClearDirtyComponents()
         {
             _dirtyComponentIds.Clear();
+        }
+        
+        /// <summary>
+        /// 重置 Entity 状态（用于对象池回收）
+        /// </summary>
+        public virtual void Reset()
+        {
+            // 重置基础字段
+            UniqueId = 0;
+            Name = string.Empty;
+            Archetype = default(EArchetype);
+            EntityConfigId = 0;
+            IsDestroyed = false;
+            CreationTime = default(DateTime);
+            
+            // 清空所有集合（保留对象引用，只清空内容）
+            Components.Clear();
+            ChildrenIds.Clear();
+            CapabilityStates.Clear();
+            DisabledTags.Clear();
+            ActiveSubArchetypes.Clear();
+            ComponentRefCounts.Clear();
+            CapabilityRefCounts.Clear();
+            _dirtyComponentIds.Clear();
+            
+            // 重置引用字段
+            ParentId = -1;
+            World = null;
         }
         
         /// <summary>
