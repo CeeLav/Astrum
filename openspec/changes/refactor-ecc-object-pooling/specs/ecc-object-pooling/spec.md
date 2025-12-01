@@ -22,11 +22,17 @@ Entity SHALL 实现 `IPool` 接口，支持通过 ObjectPool 进行对象池管�
 - **AND** 所有集合（Components、ChildrenIds、CapabilityStates 等）被清空
 - **AND** 所有引用类型字段被重置为默认值或空集合
 
-#### Scenario: 序列化时创建新 Entity
-- **WHEN** MemoryPack 序列化或反序列化 Entity
-- **THEN** 使用 `ObjectPool.Instance.Fetch<Entity>(isFromPool: false)` 创建新对象
-- **AND** 创建的 Entity 不来自对象池，IsFromPool 为 false
-- **AND** 序列化后的对象不会影响对象池状态
+#### Scenario: 反序列化时从对象池获取 Entity
+- **WHEN** MemoryPack 反序列化 Entity
+- **THEN** 使用 `ObjectPool.Instance.Fetch<Entity>()` 从对象池获取对象
+- **AND** 获取的 Entity 的 IsFromPool 属性为 true
+- **AND** Entity 的状态由序列化数据恢复，不是重置后的干净状态
+
+#### Scenario: 反序列化对象回收时重置状态
+- **WHEN** 从反序列化恢复的 Entity 被回收至对象池时
+- **THEN** Entity 调用 Reset 方法重置所有状态
+- **AND** 所有字段和集合被重置为初始状态
+- **AND** 确保下次从对象池获取时可以安全使用
 
 ### Requirement: Component 对象池支持
 
@@ -50,10 +56,51 @@ BaseComponent 及其所有子类 SHALL 实现 `IPool` 接口，支持通过 Obje
 - **AND** Component 子类的所有自定义字段被重置
 - **AND** 所有集合类型字段被清空或重置为默认值
 
-#### Scenario: 序列化时创建新 Component
-- **WHEN** MemoryPack 序列化或反序列化 Component
-- **THEN** 使用 `ObjectPool.Instance.Fetch<BaseComponent>(componentType, isFromPool: false)` 创建新对象
-- **AND** 创建的 Component 不来自对象池，IsFromPool 为 false
+#### Scenario: 反序列化时从对象池获取 Component
+- **WHEN** MemoryPack 反序列化 Component
+- **THEN** 使用 `ObjectPool.Instance.Fetch<BaseComponent>(componentType)` 从对象池获取对象
+- **AND** 获取的 Component 的 IsFromPool 属性为 true
+- **AND** Component 的状态由序列化数据恢复，不是重置后的干净状态
+
+#### Scenario: 反序列化 Component 回收时重置状态
+- **WHEN** 从反序列化恢复的 Component 被回收至对象池时
+- **THEN** Component 调用 Reset 方法重置所有状态
+- **AND** 所有字段被重置为初始状态
+- **AND** 确保下次从对象池获取时可以安全使用
+
+### Requirement: World 对象池支持
+
+World SHALL 实现 `IPool` 接口，支持通过 ObjectPool 进行对象池管理。World 的创建和销毁应通过对象池进行，以减少 GC 分配。
+
+#### Scenario: 从对象池获取 World
+- **WHEN** Room.Initialize 或其他 World 创建场景被调用
+- **THEN** 通过 `ObjectPool.Instance.Fetch<World>()` 获取 World 实例
+- **AND** World 的 IsFromPool 属性为 true
+- **AND** World 的所有字段和集合处于初始化状态
+
+#### Scenario: World 回收至对象池
+- **WHEN** World.Cleanup 被调用或 Room 销毁时
+- **THEN** World 调用 Reset 方法重置所有状态
+- **AND** World 通过 `ObjectPool.Instance.Recycle(world)` 回收至对象池
+- **AND** World 的 IsFromPool 属性在回收时被设置为 false
+
+#### Scenario: World Reset 重置状态
+- **WHEN** World 从对象池回收时
+- **THEN** Reset 方法被调用，重置所有字段（WorldId、Name、TotalTime、CurFrame 等）
+- **AND** 所有集合（Entities 字典等）被清空
+- **AND** 所有系统（HitSystem、SkillEffectSystem、CapabilitySystem）被重置或清理
+
+#### Scenario: 反序列化时从对象池获取 World
+- **WHEN** MemoryPack 反序列化 World
+- **THEN** 使用 `ObjectPool.Instance.Fetch<World>()` 从对象池获取对象
+- **AND** 获取的 World 的 IsFromPool 属性为 true
+- **AND** World 的状态由序列化数据恢复，不是重置后的干净状态
+
+#### Scenario: 反序列化 World 回收时重置状态
+- **WHEN** 从反序列化恢复的 World 被回收至对象池时
+- **THEN** World 调用 Reset 方法重置所有状态
+- **AND** 所有字段和集合被重置为初始状态
+- **AND** 确保下次从对象池获取时可以安全使用
 
 ### Requirement: 对象池容量配置
 

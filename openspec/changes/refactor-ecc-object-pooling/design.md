@@ -10,14 +10,14 @@ Astrum 项目的战斗逻辑系统采用 ECC（Entity-Component-Capability）架
 - 高频场景（技能特效、弹道、临时实体）产生大量临时对象
 
 **约束条件**：
-- 必须保持 MemoryPack 序列化的兼容性（序列化后的对象不能来自对象池）
+- 必须保持 MemoryPack 序列化的兼容性（反序列化创建的对象来自对象池，回收时需要重置状态）
 - 必须支持确定性回滚（对象池不能影响帧同步）
 - 必须保持现有 API 的兼容性，尽量降低迁移成本
 
 ## Goals / Non-Goals
 
 ### Goals
-1. **零 GC 分配**：Entity 和 Component 的创建/销毁不产生托管堆分配
+1. **零 GC 分配**：Entity、Component 和 World 的创建/销毁不产生托管堆分配
 2. **生命周期清晰**：通过对象池统一管理对象的创建、使用、回收流程
 3. **状态重置完整**：确保对象池回收后再次使用时状态干净
 4. **性能提升显著**：战斗场景 GC 分配减少 80% 以上
@@ -42,23 +42,33 @@ Astrum 项目的战斗逻辑系统采用 ECC（Entity-Component-Capability）架
 - 为 Entity 和 Component 创建专用对象池 → 增加代码复杂度，重复实现
 - 使用第三方对象池库 → 增加外部依赖，迁移成本高
 
-### Decision 2: 实现 IPool 接口但不影响序列化
+### Decision 2: 反序列化也使用对象池创建对象
 
-**选择**：Entity 和 Component 实现 `IPool` 接口，但在序列化时确保对象不来自对象池。
+**选择**：Entity 和 Component 实现 `IPool` 接口，反序列化时也从对象池获取对象。反序列化后的对象状态由序列化数据恢复，回收时需要重置状态。
 
 **理由**：
-- MemoryPack 序列化需要创建新对象，如果对象来自对象池会导致状态污染
-- 序列化时的对象创建路径：`ObjectPool.Instance.Fetch<T>(isFromPool: false)`
-- 运行时创建路径：`ObjectPool.Instance.Fetch<T>()`（默认 from pool）
+- 反序列化创建的对象也应该使用对象池，实现完全无 GC 的目标
+- 反序列化后的对象状态是从序列化数据恢复的，不是重置后的干净状态
+- 当这些对象被回收时，需要调用 Reset 方法重置状态，确保下次使用时的状态正确
 
 **实现方式**：
 ```csharp
-// 序列化时创建新对象
-var entity = ObjectPool.Instance.Fetch<Entity>(isFromPool: false);
+// MemoryPack 代码生成器已支持对象池
+// 反序列化时会自动调用 ObjectPool.Instance.Fetch(typeof(T)) 从对象池获取对象
+// 生成的代码类似：value = (Entity)global::Astrum.CommonBase.ObjectPool.Instance.Fetch(typeof(Entity));
 
 // 运行时创建使用对象池
 var entity = ObjectPool.Instance.Fetch<Entity>();
+
+// 回收时需要重置状态（无论是运行时创建还是反序列化恢复的对象）
+entity.Reset(); // 重置所有字段和集合
+ObjectPool.Instance.Recycle(entity);
 ```
+
+**注意事项**：
+- MemoryPack 代码生成器已经修改，反序列化时会自动使用对象池创建对象，无需额外配置
+- 反序列化后的对象在回收时必须调用 Reset，因为其状态是反序列化恢复的，不是干净的初始状态
+- 序列化（Serialize）操作不需要创建新对象，只是读取现有对象的状态，不受影响
 
 ### Decision 3: Reset 方法的设计
 
@@ -127,6 +137,8 @@ private readonly Func<Type, Pool> AddPoolFunc = type =>
 
 private int GetPoolCapacity(Type type)
 {
+    if (typeof(World).IsAssignableFrom(type))
+        return 10; // World 池容量（World 数量较少）
     if (typeof(Entity).IsAssignableFrom(type))
         return 500; // Entity 池容量
     if (typeof(BaseComponent).IsAssignableFrom(type))
@@ -137,14 +149,15 @@ private int GetPoolCapacity(Type type)
 
 ## Risks / Trade-offs
 
-### Risk 1: 序列化兼容性问题
+### Risk 1: 反序列化对象状态污染
 
-**风险**：如果序列化时使用了对象池中的对象，可能导致状态污染或引用错误。
+**风险**：反序列化的对象来自对象池，如果对象在上次使用后没有正确重置，可能导致状态污染。
 
 **缓解措施**：
-- 明确区分序列化创建路径和运行时创建路径
-- 在 MemoryPack 序列化代码中使用 `isFromPool: false`
-- 添加单元测试验证序列化后对象状态正确
+- 回收时强制调用 Reset 方法，确保对象状态完全重置
+- 反序列化后的对象状态由序列化数据正确恢复，不影响后续使用
+- 添加单元测试验证反序列化后对象状态正确
+- 添加单元测试验证对象池回收后再次获取的状态正确
 
 ### Risk 2: Reset 方法遗漏字段
 
@@ -204,9 +217,10 @@ private int GetPoolCapacity(Type type)
 3. 性能测试和调优
 
 ### 阶段 6: 序列化兼容性
-1. 验证 MemoryPack 序列化使用 `isFromPool: false`
-2. 测试序列化/反序列化后对象状态
-3. 添加集成测试验证完整流程
+1. 验证 MemoryPack 代码生成器已配置为使用对象池（已确认完成）
+2. 验证反序列化后的对象来自对象池，IsFromPool 为 true，状态正确恢复
+3. 测试反序列化对象回收时 Reset 方法正确调用
+4. 添加集成测试验证完整序列化/反序列化/回收流程
 
 ## Open Questions
 

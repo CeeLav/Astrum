@@ -15,10 +15,12 @@
 
 - **ADDED**: Entity 实现 `IPool` 接口，支持对象池管理
 - **ADDED**: BaseComponent 实现 `IPool` 接口，支持对象池管理
+- **ADDED**: World 实现 `IPool` 接口，支持对象池管理
 - **MODIFIED**: EntityFactory 使用 ObjectPool 获取和回收 Entity 实例
 - **MODIFIED**: ComponentFactory 使用 ObjectPool 获取和回收 Component 实例
 - **ADDED**: Entity 和 Component 添加 `Reset()` 方法用于对象池回收时的状态重置
 - **MODIFIED**: World.DestroyEntity 和 EntityFactory.DestroyEntity 改为回收对象而非直接销毁
+- **MODIFIED**: World.Cleanup 改为回收 World 对象而非直接销毁
 - **MODIFIED**: Entity 内部集合（List、Dictionary）使用对象池管理或预分配容量
 - **ADDED**: 对象池配置和预热机制，支持游戏启动时预分配常用对象
 
@@ -30,9 +32,11 @@
   - `AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs` - 实现 IPool，添加 Reset 方法
   - `AstrumProj/Assets/Script/AstrumLogic/Factories/EntityFactory.cs` - 改用 ObjectPool 创建/回收 Entity
   - `AstrumProj/Assets/Script/AstrumLogic/Factories/ComponentFactory.cs` - 改用 ObjectPool 创建/回收 Component
-  - `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` - 销毁逻辑改为回收
+  - `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` - 实现 IPool，添加 Reset 方法，销毁逻辑改为回收
+  - `AstrumProj/Assets/Script/AstrumLogic/Core/Room.cs` - World 创建改为使用对象池
+  - `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/SinglePlayerGameMode.cs` - World 创建改为使用对象池
   - `AstrumProj/Assets/Script/CommonBase/ObjectPool.cs` - 可能需要扩展容量配置
   - 所有 Component 子类 - 需要实现 Reset 方法重置状态
   - 所有 Entity 子类 - 需要实现 Reset 方法重置状态（如果有）
 - 性能影响：预期在战斗场景中 GC 分配减少 80% 以上，GC 暂停时间减少 70% 以上
-- 兼容性：需要确保 MemoryPack 序列化与对象池兼容（序列化后的对象不来自对象池）
+- 兼容性：需要确保 MemoryPack 反序列化使用对象池创建对象，反序列化的对象在回收时需要调用 Reset 方法重置状态

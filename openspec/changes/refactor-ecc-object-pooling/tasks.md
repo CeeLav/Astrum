@@ -6,9 +6,13 @@
 - [ ] 1.2 在 BaseComponent 类中实现 IPool 接口
   - [ ] 添加 `IsFromPool` 属性实现
   - [ ] 添加空的 `Reset()` 方法占位
-- [ ] 1.3 扩展 ObjectPool 支持容量配置
+- [ ] 1.3 在 World 类中实现 IPool 接口
+  - [ ] 添加 `IsFromPool` 属性实现
+  - [ ] 添加空的 `Reset()` 方法占位
+- [ ] 1.4 扩展 ObjectPool 支持容量配置
   - [ ] 添加 `GetPoolCapacity(Type type)` 方法根据类型返回容量
   - [ ] 修改 `AddPoolFunc` 使用动态容量
+  - [ ] World 类型默认容量设置为 10
   - [ ] Entity 类型默认容量设置为 500
   - [ ] Component 类型默认容量设置为 1000
 
@@ -40,9 +44,18 @@
   - [ ] GrowthComponent.Reset
   - [ ] BuffComponent.Reset
   - [ ] 其他 Component 子类
-- [ ] 2.4 添加 Reset 方法单元测试
+- [ ] 2.4 实现 World.Reset 方法
+  - [ ] 重置基础字段（WorldId、Name、CreationTime、TotalTime、CurFrame、RoomId 等）
+  - [ ] 清空 Entities 字典
+  - [ ] 重置或清理 HitSystem
+  - [ ] 重置或清理 SkillEffectSystem
+  - [ ] 重置或清理 CapabilitySystem
+  - [ ] 清空 GlobalEventQueue
+  - [ ] 重置 Updater
+- [ ] 2.5 添加 Reset 方法单元测试
   - [ ] 测试 Entity.Reset 重置所有字段
   - [ ] 测试 Component.Reset 重置所有字段
+  - [ ] 测试 World.Reset 重置所有字段
   - [ ] 测试 Reset 后对象状态正确
 
 ## 3. 集合预分配优化
@@ -71,9 +84,15 @@
   - [ ] 移除 `Activator.CreateInstance` 直接创建
   - [ ] 移除 `new T()` 直接创建
   - [ ] 确保 Component 获取后已重置状态
-- [ ] 4.3 添加 Factory 单元测试
+- [ ] 4.3 World 创建改为使用 ObjectPool
+  - [ ] Room.Initialize 中使用 `ObjectPool.Instance.Fetch<World>()` 获取 World
+  - [ ] SinglePlayerGameMode 中 World 创建改为使用对象池
+  - [ ] 移除所有 `new World()` 直接创建
+  - [ ] 确保 World 获取后调用 Initialize 方法
+- [ ] 4.4 添加 Factory 单元测试
   - [ ] 测试 EntityFactory 创建 Entity 来自对象池
   - [ ] 测试 ComponentFactory 创建 Component 来自对象池
+  - [ ] 测试 World 创建来自对象池
   - [ ] 测试多次创建和回收流程
 
 ## 5. 销毁逻辑改造
@@ -90,22 +109,29 @@
 - [ ] 5.3 Entity.RemoveComponent 改为回收 Component
   - [ ] Component 移除时调用 Reset
   - [ ] 使用 `ObjectPool.Instance.Recycle(component)` 回收
-- [ ] 5.4 添加销毁和回收单元测试
+- [ ] 5.4 World.Cleanup 改为回收 World
+  - [ ] 调用 World.Reset 重置状态（在 Cleanup 内部或外部）
+  - [ ] 使用 `ObjectPool.Instance.Recycle(world)` 回收 World
+  - [ ] Room.Shutdown 中回收 MainWorld 和所有 Worlds
+  - [ ] 确保所有 Entity 和系统资源已清理
+- [ ] 5.5 添加销毁和回收单元测试
   - [ ] 测试 Entity 销毁后回收至对象池
   - [ ] 测试 Component 回收后状态已重置
+  - [ ] 测试 World 清理后回收至对象池
   - [ ] 测试多次创建和销毁流程
 
 ## 6. 序列化兼容性
 
-- [ ] 6.1 检查 MemoryPack 序列化代码
-  - [ ] 查找所有 Entity 序列化/反序列化代码
-  - [ ] 查找所有 Component 序列化/反序列化代码
-  - [ ] 确保使用 `ObjectPool.Instance.Fetch<T>(isFromPool: false)` 创建新对象
+- [ ] 6.1 验证 MemoryPack 反序列化使用对象池
+  - [ ] 确认 MemoryPack 代码生成器已配置为使用对象池（已确认完成）
+  - [ ] 验证生成的代码包含 `ObjectPool.Instance.Fetch(typeof(T))` 调用
+  - [ ] 确认反序列化后的对象 IsFromPool 为 true
 - [ ] 6.2 添加序列化兼容性测试
-  - [ ] 测试 Entity 序列化/反序列化后状态正确
-  - [ ] 测试 Component 序列化/反序列化后状态正确
-  - [ ] 测试序列化后的对象不来自对象池
-  - [ ] 测试反序列化后可以正常使用对象池
+  - [ ] 测试 Entity 反序列化后对象来自对象池，状态正确恢复
+  - [ ] 测试 Component 反序列化后对象来自对象池，状态正确恢复
+  - [ ] 测试反序列化后的对象可以正常使用和回收
+  - [ ] 测试反序列化对象回收时 Reset 方法正确调用
+  - [ ] 测试序列化/反序列化/回收完整流程
 
 ## 7. 性能测试和验证
 

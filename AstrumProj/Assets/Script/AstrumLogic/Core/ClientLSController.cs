@@ -143,6 +143,7 @@ namespace Astrum.LogicCore.Core
 
         public void Rollback(int frame)
         {
+            Room.MainWorld.Cleanup();
             var loadedWorld = LoadState(frame);
             if (loadedWorld == null)
             {
@@ -150,7 +151,6 @@ namespace Astrum.LogicCore.Core
                 return;
             }
             
-            Room.MainWorld.Cleanup();
             Room.MainWorld = loadedWorld;
             var aInput = FrameBuffer.FrameInputs(frame);
             Room.FrameTick(aInput);
