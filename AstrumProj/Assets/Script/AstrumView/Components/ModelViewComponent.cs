@@ -53,7 +53,6 @@ namespace Astrum.View.Components
             _modelObject = UnityEngine.GameObject.Instantiate(modelPrefab);
             if (_ownerEntityView.GameObject != null)
                 _modelObject.transform.SetParent(_ownerEntityView.GameObject.transform, false);
-            _transform = _modelObject.transform;
             _isEnabled = true;
         }
 

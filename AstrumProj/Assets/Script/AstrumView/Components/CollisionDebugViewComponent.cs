@@ -34,9 +34,9 @@ namespace Astrum.View.Components
             ASLogger.Instance.Debug($"CollisionDebugViewComponent.OnInitialize: EntityId={OwnerEntity?.UniqueId}");
             
             // 添加MonoBehaviour用于Gizmos绘制
-            if (_gameObject != null)
+            if (_ownerEntityView?.GameObject != null)
             {
-                _monoBehaviour = _gameObject.AddComponent<CollisionGizmosDrawer>();
+                _monoBehaviour = _ownerEntityView.GameObject.AddComponent<CollisionGizmosDrawer>();
                 var drawer = _monoBehaviour as CollisionGizmosDrawer;
                 if (drawer != null)
                 {

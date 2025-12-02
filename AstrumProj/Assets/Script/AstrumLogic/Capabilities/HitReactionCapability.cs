@@ -74,15 +74,24 @@ namespace Astrum.LogicCore.Capabilities
                                     $"effectId {evt.EffectId}, effectType {evt.EffectType}, caster {evt.CasterId}, " +
                                     $"vfxPath {(string.IsNullOrEmpty(evt.VisualEffectPath) ? "<none>" : evt.VisualEffectPath)}, " +
                                     $"sfxPath {(string.IsNullOrEmpty(evt.SoundEffectPath) ? "<none>" : evt.SoundEffectPath)}");
-            
             // 1. 播放受击动作
-            PlayHitAction(entity, evt);
+            
+            using (new ProfileScope("HitReactionCapability.PlayHitAction"))
+            {
+                PlayHitAction(entity, evt);
+            }
             
             // 2. 播放受击特效
-            PlayHitVFX(entity, evt);
+            using (new ProfileScope("HitReactionCapability.PlayHitVFX"))
+            {
+                PlayHitVFX(entity, evt);
+            }
 
             // 3. 处理音效（当前仅占位）
-            HandleHitSound(entity, evt);
+            using (new ProfileScope("HitReactionCapability.HandleHitSound"))
+            {
+                HandleHitSound(entity, evt);
+            }
         }
         
         // ====== 受击表现方法 ======

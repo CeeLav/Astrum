@@ -18,10 +18,6 @@ namespace Astrum.View.Components
         // 所属实体视图
         protected EntityView _ownerEntityView;
         
-        // Unity组件引用
-        protected GameObject _gameObject;
-        protected Transform _transform;
-        
         // 公共属性
         public int ComponentId => _componentId;
         public bool IsEnabled => _isEnabled;
@@ -35,9 +31,6 @@ namespace Astrum.View.Components
         {
             get => _ownerEntityView.OwnerEntity;
         }
-        
-        public GameObject GameObject => _gameObject;
-        public Transform Transform => _transform;
         
         // 事件
         public event Action<ViewComponent> OnComponentInitialized;
@@ -66,13 +59,6 @@ namespace Astrum.View.Components
             
             try
             {
-                // 设置Unity引用
-                if (_ownerEntityView != null)
-                {
-                    _gameObject = _ownerEntityView.GameObject;
-                    _transform = _ownerEntityView.Transform;
-                }
-                
                 // 子类特定的初始化
                 OnInitialize();
                 

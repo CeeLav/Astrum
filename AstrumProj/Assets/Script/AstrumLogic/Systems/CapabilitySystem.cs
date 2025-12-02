@@ -367,48 +367,52 @@ namespace Astrum.LogicCore.Systems
                 if (!TypeIdToEntityIds.TryGetValue(typeId, out var entityIds))
                     continue;
                 
-                // 遍历拥有此 Capability 的实体 ID 集合
-                foreach (var entityId in entityIds.ToList()) // ToList() 避免迭代时修改集合
+                // 为每个 Capability 类型的更新添加监控
+                using (new Astrum.CommonBase.ProfileScope($"Cap.{capability.GetType().Name}.Update"))
                 {
-                    // 获取实体（可能已被销毁）
-                    if (!world.Entities.TryGetValue(entityId, out var entity))
+                    // 遍历拥有此 Capability 的实体 ID 集合
+                    foreach (var entityId in entityIds.ToList()) // ToList() 避免迭代时修改集合
                     {
-                        // 实体已被销毁，清理注册
-                        UnregisterEntityCapability(entityId, typeId);
-                        continue;
-                    }
-                    
-                    if (entity == null || entity.IsDestroyed)
-                    {
-                        // 实体已销毁，清理注册
-                        UnregisterEntityCapability(entityId, typeId);
-                        continue;
-                    }
-                    
-                    // 检查此 Capability 是否仍然存在于实体上（双重检查，防止状态不一致）
-                    if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
-                    {
-                        // 状态不一致，清理注册
-                        UnregisterEntityCapability(entityId, typeId);
-                        continue;
-                    }
-                    
-                    // 1. 更新激活状态
-                    UpdateActivationState(capability, entity, ref state);
-                    
-                    // 2. 更新持续时间
-                    UpdateDuration(capability, entity, ref state);
-                    
-                    // 3. 执行激活的 Capability 的 Tick
-                    if (state.IsActive)
-                    {
-                        try
+                        // 获取实体（可能已被销毁）
+                        if (!world.Entities.TryGetValue(entityId, out var entity))
                         {
-                            capability.Tick(entity);
+                            // 实体已被销毁，清理注册
+                            UnregisterEntityCapability(entityId, typeId);
+                            continue;
                         }
-                        catch (Exception ex)
+                        
+                        if (entity == null || entity.IsDestroyed)
                         {
-                            ASLogger.Instance.Error($"Error executing Capability {capability.GetType().Name} on entity {entity.UniqueId}: {ex.Message}");
+                            // 实体已销毁，清理注册
+                            UnregisterEntityCapability(entityId, typeId);
+                            continue;
+                        }
+                        
+                        // 检查此 Capability 是否仍然存在于实体上（双重检查，防止状态不一致）
+                        if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
+                        {
+                            // 状态不一致，清理注册
+                            UnregisterEntityCapability(entityId, typeId);
+                            continue;
+                        }
+                        
+                        // 1. 更新激活状态
+                        UpdateActivationState(capability, entity, ref state);
+                        
+                        // 2. 更新持续时间
+                        UpdateDuration(capability, entity, ref state);
+                        
+                        // 3. 执行激活的 Capability 的 Tick
+                        if (state.IsActive)
+                        {
+                            try
+                            {
+                                capability.Tick(entity);
+                            }
+                            catch (Exception ex)
+                            {
+                                ASLogger.Instance.Error($"Error executing Capability {capability.GetType().Name} on entity {entity.UniqueId}: {ex.Message}");
+                            }
                         }
                     }
                 }
@@ -541,10 +545,16 @@ namespace Astrum.LogicCore.Systems
                 return;
             
             // 1. 处理个体事件（Entity-Targeted Events）
-            ProcessTargetedEvents();
+            using (new Astrum.CommonBase.ProfileScope("CapSys.ProcessTargetedEvents"))
+            {
+                ProcessTargetedEvents();
+            }
             
             // 2. 处理全体事件（Broadcast Events）
-            ProcessBroadcastEvents();
+            using (new Astrum.CommonBase.ProfileScope("CapSys.ProcessBroadcastEvents"))
+            {
+                ProcessBroadcastEvents();
+            }
         }
         
         /// <summary>
@@ -668,7 +678,11 @@ namespace Astrum.LogicCore.Systems
                 }
                 
                 // 调用处理函数（第一个参数是 Entity）
-                InvokeHandler(handler, entity, evt.EventData);
+                // 为每个 Capability 的事件处理添加监控
+                using (new Astrum.CommonBase.ProfileScope($"Cap.{capabilityType.Name}.OnEvent"))
+                {
+                    InvokeHandler(handler, entity, evt.EventData);
+                }
             }
         }
         
