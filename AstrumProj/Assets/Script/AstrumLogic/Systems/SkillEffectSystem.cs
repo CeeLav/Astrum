@@ -85,7 +85,7 @@ namespace Astrum.LogicCore.Systems
             RegisterHandler("Heal", new HealEffectHandler());
             RegisterHandler("Knockback", new KnockbackEffectHandler());
 
-            ASLogger.Instance.Info("SkillEffectSystem: All handlers registered successfully");
+            ASLogger.Instance.Debug("SkillEffectSystem: All handlers registered successfully");
         }
         
         /// <summary>
@@ -108,7 +108,7 @@ namespace Astrum.LogicCore.Systems
             }
 
             _handlers[effectType] = handler;
-            ASLogger.Instance.Info($"SkillEffectSystem: Registered handler for effect type {effectType}");
+            ASLogger.Instance.Debug($"SkillEffectSystem: Registered handler for effect type {effectType}");
         }
         
         /// <summary>

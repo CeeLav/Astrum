@@ -22,6 +22,9 @@ namespace Astrum.Client.Core
         [SerializeField] private int targetFrameRate = 60;
         [SerializeField] private bool isRunning = true;
         
+        [Header("日志设置")]
+        [SerializeField] private bool enableDebugLog = false;
+        
         [Header("配置管理器引用")]
         [SerializeField] private TableConfig _tableConfig;
         
@@ -97,6 +100,9 @@ namespace Astrum.Client.Core
                 // 初始化性能监控系统
                 InitializeProfiler();
                 
+                // 配置日志级别（必须在 GameDirector 初始化之前）
+                ConfigureLogLevel();
+                
                 // 初始化 GameDirector（新的核心控制器）
                 GameDirector.Instance.Initialize();
                 
@@ -119,6 +125,24 @@ namespace Astrum.Client.Core
             ASProfiler.Instance.RegisterHandler(unityHandler);
             ASLogger.Instance.Info("[Profiler] Unity Profiler Handler 已注册");
 #endif
+        }
+        
+        /// <summary>
+        /// 配置日志级别
+        /// </summary>
+        private void ConfigureLogLevel()
+        {
+            // 根据 Debug 开关设置日志级别
+            if (enableDebugLog)
+            {
+                ASLogger.Instance.MinLevel = Astrum.CommonBase.LogLevel.Debug;
+                Debug.Log("GameApplication: 日志级别设置为 Debug，将输出所有级别的日志");
+            }
+            else
+            {
+                ASLogger.Instance.MinLevel = Astrum.CommonBase.LogLevel.Info;
+                Debug.Log("GameApplication: 日志级别设置为 Info，只输出 Info 及以上级别的日志");
+            }
         }
         
         /// <summary>

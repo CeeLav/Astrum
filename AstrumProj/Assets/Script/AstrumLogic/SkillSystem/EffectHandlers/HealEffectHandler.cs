@@ -15,7 +15,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
     {
         public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
         {
-            ASLogger.Instance.Info($"[HealEffect] START - Caster: {caster.UniqueId}, Target: {target.UniqueId}, EffectId: {effectConfig.SkillEffectId}");
+            ASLogger.Instance.Debug($"[HealEffect] START - Caster: {caster.UniqueId}, Target: {target.UniqueId}, EffectId: {effectConfig.SkillEffectId}");
             
             // 1. 获取目标组件
             var dynamicStats = target.GetComponent<DynamicStatsComponent>();
@@ -31,7 +31,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             // 2. 检查是否已死亡（死亡不可治疗）
             if (stateComp != null && stateComp.Get(StateType.DEAD))
             {
-                ASLogger.Instance.Info($"[HealEffect] Target {target.UniqueId} is dead, cannot heal");
+                ASLogger.Instance.Debug($"[HealEffect] Target {target.UniqueId} is dead, cannot heal");
                 return;
             }
             
@@ -53,7 +53,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             // 标记 DynamicStatsComponent 为脏
             target.MarkComponentDirty(dynamicStats.GetComponentTypeId());
             
-            ASLogger.Instance.Info($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
+            ASLogger.Instance.Debug($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
             
             // 5. TODO: 播放视觉效果/音效（使用 effectConfig.GetVisualEffectPath() / GetSoundEffectPath()）
         }

@@ -26,7 +26,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             int durationMs = effectConfig.GetIntParam(2, 0);
             int directionMode = effectConfig.GetIntParam(3, 2);
 
-            ASLogger.Instance.Info($"[KnockbackEffectHandler] Processing knockback: effectId={effectConfig.SkillEffectId}, " +
+            ASLogger.Instance.Debug($"[KnockbackEffectHandler] Processing knockback: effectId={effectConfig.SkillEffectId}, " +
                 $"distanceMm={distanceMm}, durationMs={durationMs}, directionMode={directionMode}");
 
             // 1. 计算击退方向（只读组件数据）
@@ -36,7 +36,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             FP distance = FP.FromFloat(distanceMm / 1000f);
             FP duration = FP.FromFloat(durationMs / 1000f);
             
-            ASLogger.Instance.Info($"[KnockbackEffectHandler] Calculated: distance={distance}m, duration={duration}s, directionMode={directionMode}, direction={direction}");
+            ASLogger.Instance.Debug($"[KnockbackEffectHandler] Calculated: distance={distance}m, duration={duration}s, directionMode={directionMode}, direction={direction}");
             
             // 3. 发送击退事件给目标（由 KnockbackCapability 接收并写入组件）
             var knockbackEvent = new KnockbackEvent
@@ -51,7 +51,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             };
             
             target.QueueEvent(knockbackEvent);
-            ASLogger.Instance.Info($"[KnockbackEffectHandler] Sent KnockbackEvent to target {target.UniqueId}");
+            ASLogger.Instance.Debug($"[KnockbackEffectHandler] Sent KnockbackEvent to target {target.UniqueId}");
             
             // 4. 发送受击反馈事件（用于播放受击动作和特效）
             var hitReactionEvent = new HitReactionEvent
@@ -69,7 +69,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             };
             
             target.QueueEvent(hitReactionEvent);
-            ASLogger.Instance.Info($"[KnockbackEffectHandler] Sent HitReactionEvent to target {target.UniqueId}");
+            ASLogger.Instance.Debug($"[KnockbackEffectHandler] Sent HitReactionEvent to target {target.UniqueId}");
         }
         
         /// <summary>

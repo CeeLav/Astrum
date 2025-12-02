@@ -54,7 +54,7 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void OnDamage(Entity entity, DamageEvent evt)
         {
-            ASLogger.Instance.Info($"[DamageCapability] OnDamage called for entity {entity.UniqueId}, " +
+            ASLogger.Instance.Debug($"[DamageCapability] OnDamage called for entity {entity.UniqueId}, " +
                 $"damage={evt.Damage}, critical={evt.IsCritical}");
             
             // 1. 获取组件（自身实体）
@@ -71,7 +71,7 @@ namespace Astrum.LogicCore.Capabilities
             // 2. 检查是否可以受到伤害
             if (stateComp != null && !stateComp.CanTakeDamage())
             {
-                ASLogger.Instance.Info($"[DamageCapability] Entity {entity.UniqueId} cannot take damage (invincible or dead)");
+                ASLogger.Instance.Debug($"[DamageCapability] Entity {entity.UniqueId} cannot take damage (invincible or dead)");
                 return;
             }
             
@@ -83,12 +83,12 @@ namespace Astrum.LogicCore.Capabilities
             // 标记 DynamicStatsComponent 为脏
             entity.MarkComponentDirty(dynamicStats.GetComponentTypeId());
             
-            ASLogger.Instance.Info($"[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
+            ASLogger.Instance.Debug($"[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
             
             // 4. 死亡判定由 DeadCapability 自动检测血量处理
             if (afterHP <= FP.Zero)
             {
-                ASLogger.Instance.Info($"[DamageCapability] Entity {entity.UniqueId} HP reached 0 - Death will be handled by DeadCapability");
+                ASLogger.Instance.Debug($"[DamageCapability] Entity {entity.UniqueId} HP reached 0 - Death will be handled by DeadCapability");
             }
         }
     }

@@ -968,6 +968,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: AstrumClient::Astrum.Client.Core.GameApplication
   targetFrameRate: 60
   isRunning: 1
+  enableDebugLog: 0
   uiRoot: {fileID: 4014524}
   hudCanvas: {fileID: 276783922}
   stageRoot: {fileID: 847945312}

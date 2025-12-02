@@ -66,11 +66,12 @@ namespace Astrum.Client.Core
         /// </summary>
         private void Initialize()
         {
-            // 设置最小日志级别
-            SetMinLogLevel(GetMinLogLevelFromSettings());
-            
             // 注册到ASLogger
             ASLogger.Instance.AddHandler(this);
+            
+            // 使用 ASLogger 的日志级别，而不是从 PlayerPrefs 读取
+            // 这样可以确保与 GameApplication 中设置的日志级别一致
+            _minLogLevel = ASLogger.Instance.MinLevel;
             
             // 记录初始化日志
             Info("UnityLogHandler: 初始化完成");

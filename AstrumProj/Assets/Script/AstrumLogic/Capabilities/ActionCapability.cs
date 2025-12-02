@@ -753,7 +753,7 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             direction = TSVector.Normalize(direction);
-            ASLogger.Instance.Info(
+            ASLogger.Instance.Debug(
                 $"ActionCapability: Entity={entity.UniqueId} Command={consumedCommand.CommandName} Target=({targetX.AsFloat():F2}, {targetZ.AsFloat():F2}) FacingDir=({direction.x.AsFloat():F2}, {direction.z.AsFloat():F2})",
                 "Action.MouseFacing");
             var rotation = TSQuaternion.LookRotation(direction, TSVector.up);

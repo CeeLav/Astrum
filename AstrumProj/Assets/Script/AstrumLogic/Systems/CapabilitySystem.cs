@@ -271,14 +271,14 @@ namespace Astrum.LogicCore.Systems
                 }
             }
             
-            ASLogger.Instance.Info($"[CapabilitySystem] Built event handler mapping: {_eventHandlerCache.Count} handlers for {_eventToHandlers.Count} event types");
+            ASLogger.Instance.Debug($"[CapabilitySystem] Built event handler mapping: {_eventHandlerCache.Count} handlers for {_eventToHandlers.Count} event types");
             
             // 详细输出注册的事件映射
             foreach (var kvp in _eventToHandlers)
             {
                 var eventType = kvp.Key;
                 var capabilityHandlers = kvp.Value;
-                ASLogger.Instance.Info($"  Event {eventType.Name} -> {capabilityHandlers.Count} handlers: {string.Join(", ", capabilityHandlers.ConvertAll(h => h.Item1.Name))}");
+                ASLogger.Instance.Debug($"  Event {eventType.Name} -> {capabilityHandlers.Count} handlers: {string.Join(", ", capabilityHandlers.ConvertAll(h => h.Item1.Name))}");
             }
         }
         
@@ -569,7 +569,7 @@ namespace Astrum.LogicCore.Systems
                     continue;
                 
                 int eventCount = eventQueue.Count;
-                ASLogger.Instance.Info($"[ProcessTargetedEvents] Entity {entity.UniqueId} has {eventCount} pending events");
+                ASLogger.Instance.Debug($"[ProcessTargetedEvents] Entity {entity.UniqueId} has {eventCount} pending events");
                 
                 while (eventQueue.Count > 0)
                 {
@@ -583,7 +583,7 @@ namespace Astrum.LogicCore.Systems
             // 只在有事件处理时才输出总结
             if (totalEventsProcessed > 0)
             {
-                ASLogger.Instance.Info($"[ProcessTargetedEvents] Processed {totalEventsProcessed} events this frame");
+                ASLogger.Instance.Debug($"[ProcessTargetedEvents] Processed {totalEventsProcessed} events this frame");
             }
         }
         
@@ -629,7 +629,7 @@ namespace Astrum.LogicCore.Systems
                 return; // 没有 Capability 处理此事件
             }
             
-            ASLogger.Instance.Info($"[DispatchEventToEntity] Event {evt.EventType.Name} -> {handlers.Count} handlers");
+            ASLogger.Instance.Debug($"[DispatchEventToEntity] Event {evt.EventType.Name} -> {handlers.Count} handlers");
             
             foreach (var (capabilityType, handler) in handlers)
             {
@@ -659,12 +659,12 @@ namespace Astrum.LogicCore.Systems
                 
                 if (!state.IsActive && evt.EventData.TriggerWhenInactive)
                 {
-                    ASLogger.Instance.Info($"[DispatchEventToEntity] {capabilityType.Name} on entity {entity.UniqueId} is not active, " +
-                        $"but event triggers when inactive (will be activated)");
+                    ASLogger.Instance.Debug($"[DispatchEventToEntity] {capabilityType.Name} on entity {entity.UniqueId} is not active, " +
+                                            $"but event triggers when inactive (will be activated)");
                 }
                 else
                 {
-                    ASLogger.Instance.Info($"[DispatchEventToEntity] Invoking {capabilityType.Name} for entity {entity.UniqueId}");
+                    ASLogger.Instance.Debug($"[DispatchEventToEntity] Invoking {capabilityType.Name} for entity {entity.UniqueId}");
                 }
                 
                 // 调用处理函数（第一个参数是 Entity）

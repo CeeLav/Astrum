@@ -70,10 +70,10 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void OnHitReaction(Entity entity, HitReactionEvent evt)
         {
-            ASLogger.Instance.Info($"[HitReactionCapability] OnHitReaction called for entity {entity.UniqueId}, " +
-                $"effectId {evt.EffectId}, effectType {evt.EffectType}, caster {evt.CasterId}, " +
-                $"vfxPath {(string.IsNullOrEmpty(evt.VisualEffectPath) ? "<none>" : evt.VisualEffectPath)}, " +
-                $"sfxPath {(string.IsNullOrEmpty(evt.SoundEffectPath) ? "<none>" : evt.SoundEffectPath)}");
+            ASLogger.Instance.Debug($"[HitReactionCapability] OnHitReaction called for entity {entity.UniqueId}, " +
+                                    $"effectId {evt.EffectId}, effectType {evt.EffectType}, caster {evt.CasterId}, " +
+                                    $"vfxPath {(string.IsNullOrEmpty(evt.VisualEffectPath) ? "<none>" : evt.VisualEffectPath)}, " +
+                                    $"sfxPath {(string.IsNullOrEmpty(evt.SoundEffectPath) ? "<none>" : evt.SoundEffectPath)}");
             
             // 1. 播放受击动作
             PlayHitAction(entity, evt);
@@ -165,7 +165,7 @@ namespace Astrum.LogicCore.Capabilities
 
             EventSystem.Instance.Publish(triggerData);
 
-            ASLogger.Instance.Info($"[HitReactionCapability] 发布受击特效事件: entity={entity.UniqueId}, path={evt.VisualEffectPath}");
+            ASLogger.Instance.Debug($"[HitReactionCapability] 发布受击特效事件: entity={entity.UniqueId}, path={evt.VisualEffectPath}");
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             // TODO: 接入运行时音频播放（目前仅记录日志）
-            ASLogger.Instance.Info($"[HitReactionCapability] 受击音效占位: {evt.SoundEffectPath}");
+            ASLogger.Instance.Debug($"[HitReactionCapability] 受击音效占位: {evt.SoundEffectPath}");
         }
 
         private void UpdateFacingDirection(Entity entity, HitReactionEvent evt)

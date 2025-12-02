@@ -282,8 +282,8 @@ namespace Astrum.Client.Core
         /// </summary>
         private void InitializeLogManager()
         {
-            // 设置日志级别为Debug，确保所有日志都能输出
-            ASLogger.Instance.MinLevel = LogLevel.Debug;
+            // 注意：日志级别已在 GameApplication 中根据 Debug 开关配置
+            // 这里不再设置日志级别，避免覆盖 GameApplication 的配置
             
             ASLogger.Instance.Info("GameDirector: 初始化日志管理器");
             

@@ -72,7 +72,7 @@ namespace Astrum.LogicCore.SkillSystem
             ASLogger.Instance.Debug($"[DamageCalc] Hit seed: {seed1}");
             if (!CheckHit(casterAccuracy, targetEvasion, seed1))
             {
-                ASLogger.Instance.Info($"[DamageCalc] ❌ MISS! (Accuracy={casterAccuracy}, Evasion={targetEvasion})");
+                ASLogger.Instance.Debug($"[DamageCalc] ❌ MISS! (Accuracy={casterAccuracy}, Evasion={targetEvasion})");
                 return new DamageResult { FinalDamage = FP.Zero, IsCritical = false, IsMiss = true };
             }
             
@@ -84,7 +84,7 @@ namespace Astrum.LogicCore.SkillSystem
             {
                 FP beforeBlock = baseDamage;
                 baseDamage = TSMath.Max(FP.Zero, baseDamage - targetBlockValue);
-                ASLogger.Instance.Info($"[DamageCalc] 🛡️ BLOCKED! {(float)beforeBlock:F2} - {(float)targetBlockValue:F2} = {(float)baseDamage:F2}");
+                ASLogger.Instance.Debug($"[DamageCalc] 🛡️ BLOCKED! {(float)beforeBlock:F2} - {(float)targetBlockValue:F2} = {(float)baseDamage:F2}");
             }
             
             // 7. 暴击判定
@@ -95,7 +95,7 @@ namespace Astrum.LogicCore.SkillSystem
             {
                 FP beforeCrit = baseDamage;
                 baseDamage *= casterCritDamage;
-                ASLogger.Instance.Info($"[DamageCalc] 💥 CRITICAL HIT! {(float)beforeCrit:F2} × {(float)casterCritDamage:F2} = {(float)baseDamage:F2}");
+                ASLogger.Instance.Debug($"[DamageCalc] 💥 CRITICAL HIT! {(float)beforeCrit:F2} × {(float)casterCritDamage:F2} = {(float)baseDamage:F2}");
             }*/
             
             // 8. 应用防御减免
@@ -114,7 +114,7 @@ namespace Astrum.LogicCore.SkillSystem
             // 11. 确保非负
             finalDamage = TSMath.Max(FP.Zero, finalDamage);
             
-            //ASLogger.Instance.Info($"[DamageCalc] RESULT - Final damage: {(float)finalDamage:F2} (Crit: {isCritical}, Block: {isBlocked})");
+            //ASLogger.Instance.Debug($"[DamageCalc] RESULT - Final damage: {(float)finalDamage:F2} (Crit: {isCritical}, Block: {isBlocked})");
             
             return new DamageResult
             {

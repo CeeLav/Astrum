@@ -168,7 +168,7 @@ namespace Astrum.LogicCore.SkillSystem
                 _definitions[definition.ProjectileId] = definition;
             }
 
-            ASLogger.Instance.Info($"ProjectileConfigManager: Loaded {_definitions.Count} projectile definitions");
+            ASLogger.Instance.Debug($"ProjectileConfigManager: Loaded {_definitions.Count} projectile definitions");
         }
 
         private static readonly FP PositionUnit = FP.FromFloat(0.01f);

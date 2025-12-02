@@ -104,7 +104,7 @@ namespace Astrum.LogicCore.Physics
                 }
             }
             
-            ASLogger.Instance.Info($"HitSystem synced {entities.Count} entities to physics world");
+            ASLogger.Instance.Debug($"HitSystem synced {entities.Count} entities to physics world");
         }
 
         /// <summary>

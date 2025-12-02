@@ -173,7 +173,7 @@ namespace Astrum.LogicCore.Capabilities
                     state.CustomData.TryGetValue(KEY_LOGGED_BLOCKED_MOVE, out var loggedObj2) &&
                     loggedObj2 is bool loggedBlocked == false)
                 {
-                    ASLogger.Instance.Info(
+                    ASLogger.Instance.Debug(
                         $"MovementCapability: 实体 {entity.UniqueId} 有移动输入但 CanMove=false。Frame={input.Frame}, MoveX={input.MoveX}, MoveY={input.MoveY}, Dash={input.Dash}");
                     state.CustomData[KEY_LOGGED_BLOCKED_MOVE] = true;
                     SetCapabilityState(entity, state);

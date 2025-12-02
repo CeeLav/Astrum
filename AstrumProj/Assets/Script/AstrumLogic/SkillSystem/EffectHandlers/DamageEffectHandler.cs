@@ -16,7 +16,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
     {
         public void Handle(Entity caster, Entity target, SkillEffectTable effectConfig)
         {
-            ASLogger.Instance.Info($"[DamageEffectHandler] Processing damage: Caster={caster.UniqueId}, Target={target.UniqueId}, EffectId={effectConfig.SkillEffectId}");
+            ASLogger.Instance.Debug($"[DamageEffectHandler] Processing damage: Caster={caster.UniqueId}, Target={target.UniqueId}, EffectId={effectConfig.SkillEffectId}");
 
             if (effectConfig.IntParams == null || effectConfig.IntParams.Length < 3)
             {
@@ -42,7 +42,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             // 2. 计算伤害（纯计算，不修改状态）
             int currentFrame = GetCurrentFrame(caster);
             var damageResult = DamageCalculator.Calculate(caster, target, effectConfig, currentFrame);
-            ASLogger.Instance.Info($"[DamageEffectHandler] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
+            ASLogger.Instance.Debug($"[DamageEffectHandler] Calculated damage: {(float)damageResult.FinalDamage:F2} (Critical: {damageResult.IsCritical})");
             
             // 3. 发送伤害事件给目标（由 DamageCapability 接收并扣血）
             var damageEvent = new DamageEvent
@@ -56,7 +56,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             };
             
             target.QueueEvent(damageEvent);
-            ASLogger.Instance.Info($"[DamageEffectHandler] Sent DamageEvent to target {target.UniqueId}");
+            ASLogger.Instance.Debug($"[DamageEffectHandler] Sent DamageEvent to target {target.UniqueId}");
             
             // 4. 发送受击反馈事件（用于播放受击动作和特效）
             var hitDirection = CalculateHitDirection(caster, target);
@@ -75,7 +75,7 @@ namespace Astrum.LogicCore.SkillSystem.EffectHandlers
             };
             
             target.QueueEvent(hitReactionEvent);
-            ASLogger.Instance.Info($"[DamageEffectHandler] Sent HitReactionEvent to target {target.UniqueId}");
+            ASLogger.Instance.Debug($"[DamageEffectHandler] Sent HitReactionEvent to target {target.UniqueId}");
         }
         
         /// <summary>

@@ -38,7 +38,7 @@ namespace Astrum.LogicCore.Capabilities
         public override void OnAttached(Entity entity)
         {
             base.OnAttached(entity);
-            ASLogger.Instance.Info($"SkillExecutorCapability attached to entity {entity.UniqueId}");
+            ASLogger.Instance.Debug($"SkillExecutorCapability attached to entity {entity.UniqueId}");
         }
         
         public override bool ShouldActivate(Entity entity)
@@ -263,7 +263,7 @@ namespace Astrum.LogicCore.Capabilities
             // 移除冗余日志，只在没有命中时记录
             if (hits.Count == 0)
             {
-                ASLogger.Instance.Info($"[SkillExecutorCapability] Collision trigger hit 0 targets");
+                ASLogger.Instance.Debug($"[SkillExecutorCapability] Collision trigger hit 0 targets");
             }
 
             // 4. 对每个命中目标触发所有效果
@@ -408,7 +408,7 @@ namespace Astrum.LogicCore.Capabilities
             if (skillEffectSystem != null)
             {
                 skillEffectSystem.QueueSkillEffect(effectData);
-                ASLogger.Instance.Info($"[SkillExecutorCapability] Queued SkillEffect: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
+                ASLogger.Instance.Debug($"[SkillExecutorCapability] Queued SkillEffect: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
             }
             else
             {

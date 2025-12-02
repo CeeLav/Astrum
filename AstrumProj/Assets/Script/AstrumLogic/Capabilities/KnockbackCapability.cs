@@ -47,7 +47,7 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void OnKnockback(Entity entity, KnockbackEvent evt)
         {
-            ASLogger.Instance.Info($"[KnockbackCapability] OnKnockback called for entity {entity.UniqueId}, " +
+            ASLogger.Instance.Debug($"[KnockbackCapability] OnKnockback called for entity {entity.UniqueId}, " +
                 $"distance={evt.Distance}m, duration={evt.Duration}s");
             
             // 获取或添加击退组件
@@ -56,7 +56,7 @@ namespace Astrum.LogicCore.Capabilities
             {
                 knockback = new KnockbackComponent();
                 entity.AddComponent(knockback);
-                ASLogger.Instance.Info($"[KnockbackCapability] Created KnockbackComponent for entity {entity.UniqueId}");
+                ASLogger.Instance.Debug($"[KnockbackCapability] Created KnockbackComponent for entity {entity.UniqueId}");
             }
             
             // 写入击退数据（修改自身组件）
@@ -69,7 +69,7 @@ namespace Astrum.LogicCore.Capabilities
             knockback.Type = evt.Type;
             knockback.CasterId = evt.CasterId;
             
-            ASLogger.Instance.Info($"[KnockbackCapability] Knockback data written: speed={knockback.Speed}m/s, direction={evt.Direction}");
+            ASLogger.Instance.Debug($"[KnockbackCapability] Knockback data written: speed={knockback.Speed}m/s, direction={evt.Direction}");
         }
         
         // ====== 生命周期 ======

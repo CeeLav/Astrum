@@ -99,7 +99,7 @@ namespace Astrum.LogicCore.Capabilities
 			skillComponent.AddSkill(skillInfo);
 			RegisterSkillActions(entity, skillInfo);
 
-			ASLogger.Instance.Info($"SkillCapability.LearnSkill: Entity {entity.UniqueId} learned skill {skillId} (Lv{level})");
+			ASLogger.Instance.Debug($"SkillCapability.LearnSkill: Entity {entity.UniqueId} learned skill {skillId} (Lv{level})");
 			return true;
 		}
 
@@ -115,7 +115,7 @@ namespace Astrum.LogicCore.Capabilities
 			bool removed = skillComponent.RemoveSkill(skillId);
 			if (removed)
 			{
-				ASLogger.Instance.Info($"SkillCapability.ForgetSkill: Entity {entity.UniqueId} forgot skill {skillId}");
+				ASLogger.Instance.Debug($"SkillCapability.ForgetSkill: Entity {entity.UniqueId} forgot skill {skillId}");
 			}
 			return removed;
 		}
