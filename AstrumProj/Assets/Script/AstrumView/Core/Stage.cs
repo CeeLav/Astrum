@@ -418,13 +418,22 @@ namespace Astrum.View.Core
         {
             if (!_isActive) return;
             
-            // 处理脏组件同步
-            SyncDirtyComponents();
-            
-            // 更新所有EntityView
-            foreach (var entityView in _entityViews.Values)
+            using (new ProfileScope("Stage.Update"))
             {
-                entityView?.UpdateView(deltaTime);
+                // 处理脏组件同步
+                using (new ProfileScope("Stage.SyncDirtyComponents"))
+                {
+                    SyncDirtyComponents();
+                }
+                
+                // 更新所有EntityView
+                using (new ProfileScope("Stage.UpdateEntityViews"))
+                {
+                    foreach (var entityView in _entityViews.Values)
+                    {
+                        entityView?.UpdateView(deltaTime);
+                    }
+                }
             }
         }
         

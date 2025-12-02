@@ -9,6 +9,7 @@ using Astrum.Network;
 using Astrum.LogicCore.Managers;
 using Astrum.LogicCore.Archetypes;
 using Astrum.View.Archetypes;
+using Astrum.Client.Profiling;
 
 namespace Astrum.Client.Core
 {
@@ -93,6 +94,9 @@ namespace Astrum.Client.Core
             {
                 Application.runInBackground = true;
                 
+                // 初始化性能监控系统
+                InitializeProfiler();
+                
                 // 初始化 GameDirector（新的核心控制器）
                 GameDirector.Instance.Initialize();
                 
@@ -103,6 +107,18 @@ namespace Astrum.Client.Core
                 Debug.LogError($"GameApplication: 初始化失败 - {ex.Message}");
                 Shutdown();
             }
+        }
+        
+        /// <summary>
+        /// 初始化性能监控系统
+        /// </summary>
+        private void InitializeProfiler()
+        {
+#if ENABLE_PROFILER
+            var unityHandler = new UnityProfilerHandler();
+            ASProfiler.Instance.RegisterHandler(unityHandler);
+            ASLogger.Instance.Info("[Profiler] Unity Profiler Handler 已注册");
+#endif
         }
         
         /// <summary>

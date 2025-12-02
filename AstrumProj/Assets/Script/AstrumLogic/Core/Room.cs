@@ -173,34 +173,43 @@ namespace Astrum.LogicCore.Core
         
         public void FrameTick(OneFrameInputs oneFrameInputs)
         {
-            // 保存状态（SaveState 内部会处理 FrameBuffer 的准备和帧号选择）
-            foreach (var pairs in oneFrameInputs.Inputs)
+            using (new ProfileScope("Room.FrameTick"))
             {
-                var input = pairs.Value;
-                var entity = MainWorld.GetEntity(pairs.Key);
-                if (entity != null)
+                // 保存状态（SaveState 内部会处理 FrameBuffer 的准备和帧号选择）
+                foreach (var pairs in oneFrameInputs.Inputs)
                 {
-                    // 更新实体输入组件
-                    var inputComponent = entity.GetComponent<LSInputComponent>();
-                    if (inputComponent != null)
+                    var input = pairs.Value;
+                    var entity = MainWorld.GetEntity(pairs.Key);
+                    if (entity != null)
                     {
-                        inputComponent.SetInput(input);
+                        // 更新实体输入组件
+                        var inputComponent = entity.GetComponent<LSInputComponent>();
+                        if (inputComponent != null)
+                        {
+                            inputComponent.SetInput(input);
+                        }
+                    }
+                    else 
+                    {
+                        ASLogger.Instance.Info($"Room.FrameTick: 未找到实体，EntityId={pairs.Key}");
                     }
                 }
-                else 
+                
+                // 更新所有世界
+                using (new ProfileScope("Room.UpdateWorlds"))
                 {
-                    ASLogger.Instance.Info($"Room.FrameTick: 未找到实体，EntityId={pairs.Key}");
+                    foreach (var world in Worlds)
+                    {
+                        world.Update();
+                    }
+                }
+                
+                // 更新所有世界的 System
+                using (new ProfileScope("Room.TickSystems"))
+                {
+                    TickSystems();
                 }
             }
-            
-            // 更新所有世界
-            foreach (var world in Worlds)
-            {
-                world.Update();
-            }
-            
-            // 更新所有世界的 System
-            TickSystems();
         }
         
         /// <summary>

@@ -26,15 +26,18 @@ namespace Astrum.LogicCore.Core
         {
             if (world == null) return;
 
-            // 使用 CapabilitySystem 统一调度（按 Capability 遍历，每个 Capability 更新所有拥有它的实体）
-            if (world.CapabilitySystem != null)
+            using (new Astrum.CommonBase.ProfileScope("LSUpdater.UpdateWorld"))
             {
-                world.CapabilitySystem.Update(world);
-            }
+                // 使用 CapabilitySystem 统一调度（按 Capability 遍历，每个 Capability 更新所有拥有它的实体）
+                if (world.CapabilitySystem != null)
+                {
+                    world.CapabilitySystem.Update(world);
+                }
 
-            // 更新世界状态（不调用world.Update避免递归）
-            //world.DeltaTime = deltaTime;
-            //world.TotalTime += deltaTime;
+                // 更新世界状态（不调用world.Update避免递归）
+                //world.DeltaTime = deltaTime;
+                //world.TotalTime += deltaTime;
+            }
         }
 
 

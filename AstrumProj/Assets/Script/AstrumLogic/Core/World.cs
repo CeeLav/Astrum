@@ -245,21 +245,33 @@ namespace Astrum.LogicCore.Core
         /// <param name="deltaTime">时间差</param>
         public void Update()
         {
-            // 1. 更新所有 Capability（可能会产生新事件）
-            Updater?.UpdateWorld(this);
-            
-            // 2. 处理本帧产生的所有事件（个体+全体）
-            CapabilitySystem?.ProcessEntityEvents();
+            using (new ProfileScope("World.Update"))
+            {
+                // 1. 更新所有 Capability（可能会产生新事件）
+                using (new ProfileScope("World.UpdateWorld"))
+                {
+                    Updater?.UpdateWorld(this);
+                }
+                
+                // 2. 处理本帧产生的所有事件（个体+全体）
+                using (new ProfileScope("World.ProcessEntityEvents"))
+                {
+                    CapabilitySystem?.ProcessEntityEvents();
+                }
 
-            ProcessQueuedEntityCreates();
-            ProcessQueuedEntityDestroys();
-            
-            // 3. 帧计数和后处理
-            var physicsDeltaTime = Updater != null ? Updater.FixedDeltaTime : (1f / 60f);
-            HitSystem?.StepPhysics(physicsDeltaTime);
+                ProcessQueuedEntityCreates();
+                ProcessQueuedEntityDestroys();
+                
+                // 3. 帧计数和后处理
+                using (new ProfileScope("World.StepPhysics"))
+                {
+                    var physicsDeltaTime = Updater != null ? Updater.FixedDeltaTime : (1f / 60f);
+                    HitSystem?.StepPhysics(physicsDeltaTime);
+                }
 
-            CurFrame++;
-            ApplyQueuedSubArchetypeChangesAtFrameEnd();
+                CurFrame++;
+                ApplyQueuedSubArchetypeChangesAtFrameEnd();
+            }
         }
 
         /// <summary>
