@@ -218,10 +218,26 @@ namespace Astrum.LogicCore.Capabilities
                 );
             }
             
-            // 发布事件
-            EventSystem.Instance.Publish(eventData);
+            // 转换为 VFXTriggerEvent 并通过 ViewEvent 队列发送
+            var vfxEvent = new VFXTriggerEvent
+            {
+                ResourcePath = eventData.ResourcePath,
+                PositionOffset = eventData.PositionOffset,
+                Rotation = eventData.Rotation,
+                Scale = eventData.Scale,
+                PlaybackSpeed = eventData.PlaybackSpeed,
+                FollowCharacter = eventData.FollowCharacter,
+                Loop = eventData.Loop
+            };
             
-            ASLogger.Instance.Debug($"Published VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
+            // 通过 ViewEvent 队列传递到视图层（异步，不阻塞逻辑层）
+            caster.QueueViewEvent(new ViewEvent(
+                ViewEventType.CustomViewEvent,
+                vfxEvent,
+                caster.World.CurFrame
+            ));
+            
+            ASLogger.Instance.Debug($"Queued VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
         }
         
         /// <summary>
