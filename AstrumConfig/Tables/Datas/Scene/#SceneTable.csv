@@ -4,3 +4,4 @@
 ##desc,场景ID,场景名称,场景描述,触发器ID列表,备注
 ,1,Hub,主场景,100|101,
 ,2,DungeonsGame,野外,,
+,3,TestScene,测试用场景,,

@@ -24,7 +24,7 @@ namespace Astrum.Client.Managers.GameModes
         
         // Hub 特定场景名称
         private const int HubSceneId = 1;
-        private const int DungeonsGameSceneId = 2;
+        private const int DungeonsGameSceneId = 3;
         
         /// <summary>
         /// 初始化 Hub 游戏模式

@@ -9,7 +9,7 @@
     "BuildPipeline": "EditorSimulateBuildPipeline",
     "PackageName": "DefaultPackage",
     "PackageVersion": "Simulate",
-    "PackageNote": "2025/11/24 23:00:18",
+    "PackageNote": "2025/12/3 18:37:44",
     "AssetList": [
         {
             "Address": "",
@@ -1461,7 +1461,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Scenes/DungeonsGame.unity",
+            "AssetPath": "Assets/ArtRes/Unit/Role/Test/Capsule.prefab",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 25,
@@ -1469,7 +1469,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
+            "AssetPath": "Assets/Scenes/DungeonsGame.unity",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 26,
@@ -1477,10 +1477,10 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Scenes/Game.unity",
+            "AssetPath": "Assets/Scenes/DungeonsGame/ReflectionProbe-0.exr",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 25,
+            "BundleID": 27,
             "DependBundleIDs": []
         },
         {
@@ -1488,7 +1488,7 @@
             "AssetPath": "Assets/Scenes/Hub.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 25,
+            "BundleID": 26,
             "DependBundleIDs": []
         },
         {
@@ -1496,7 +1496,15 @@
             "AssetPath": "Assets/Scenes/Start.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 25,
+            "BundleID": 26,
+            "DependBundleIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Scenes/TestScene.unity",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 26,
             "DependBundleIDs": []
         },
         {
@@ -1504,7 +1512,7 @@
             "AssetPath": "Assets/Scenes/UIScene.unity",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 25,
+            "BundleID": 26,
             "DependBundleIDs": []
         }
     ],
@@ -1684,7 +1692,7 @@
             "UnityCRC": 0,
             "FileHash": "b03dbb18903d153a49309a0018f6fdf6",
             "FileCRC": 0,
-            "FileSize": 32768,
+            "FileSize": 34950,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []
@@ -1760,11 +1768,21 @@
             "DependBundleIDs": []
         },
         {
+            "BundleName": "assets_artres_unit_role_test.bundle",
+            "UnityCRC": 0,
+            "FileHash": "ffa85709d67d31fb73fe4b51e335b629",
+            "FileCRC": 0,
+            "FileSize": 3035,
+            "Encrypted": false,
+            "Tags": [],
+            "DependBundleIDs": []
+        },
+        {
             "BundleName": "assets_scenes.bundle",
             "UnityCRC": 0,
             "FileHash": "cea67fae521d4ef419fedc4a328320b1",
             "FileCRC": 0,
-            "FileSize": 8735216,
+            "FileSize": 8735236,
             "Encrypted": false,
             "Tags": [],
             "DependBundleIDs": []

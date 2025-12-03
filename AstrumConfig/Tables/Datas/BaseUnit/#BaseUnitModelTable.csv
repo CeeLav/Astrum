@@ -2,6 +2,7 @@
 ##type,int,string,string
 ##group,,,
 ##desc,模型ID,模型路径,碰撞盒数据
+,2000,Assets/ArtRes/Unit/Role/Test/Capsule.prefab,"Capsule:0.00,0.99,0.00:0.00,0.00,0.00,1.00:0.38:1.89"
 ,2001,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,"Capsule:0.00,0.99,0.00:0.00,0.00,0.00,1.00:0.38:1.89"
 ,2002,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,"Capsule:0.00,0.99,0.00:0.00,0.00,0.00,1.00:0.38:1.89"
 ,2003,Assets/ArtRes/Unit/Role/Knight/Knight.prefab,"Capsule:0.00,0.99,0.00:0.00,0.00,0.00,1.00:0.36:1.89"
