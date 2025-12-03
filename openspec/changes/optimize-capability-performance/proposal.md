@@ -43,23 +43,22 @@ Unity Profiler 显示多个 Capability 在每帧产生显著的性能开销和 G
 
 ## What Changes
 
-### Phase 1: 空间索引系统（优先级最高）
+### Phase 1: 优化 BattleStateCapability 目标查询（优先级最高）
 
-- **ADDED**: `SpatialIndexSystem` - 空间哈希索引，用于快速查询附近实体
-- **MODIFIED**: `BattleStateCapability` - 使用空间索引替代全量遍历
-- **MODIFIED**: `World` - 维护空间索引，在实体位置变化时更新
+- **MODIFIED**: `BattleStateCapability` - 添加目标缓存，避免每帧查询
+- **MODIFIED**: `BattleStateCapability` - 使用 BEPU 物理引擎的空间索引替代全量遍历
+- **MODIFIED**: `BepuPhysicsWorld` - 添加 AABB 范围查询方法（如需）
 
-### Phase 2: 对象池优化
+### Phase 2: 启用 LSInput 对象池
 
-- **ADDED**: `LSInput` 对象池，复用输入对象
-- **MODIFIED**: `BattleStateCapability.CreateInput()` - 从对象池获取而非新建
-- **MODIFIED**: 相关 Capability - 使用对象池复用临时对象
+- **MODIFIED**: 所有 `LSInput.Create()` 调用 - 启用 `isFromPool: true` 参数
+- **MODIFIED**: `LSInputComponent.SetInput()` - 使用完后归还对象池
+- **ADDED**: `LSInput.Reset()` 方法（如未实现） - 清空字段用于对象池复用
 
-### Phase 3: 查询缓存
+### Phase 3: 监控 GetComponent 性能
 
-- **ADDED**: 组件查询缓存机制
-- **MODIFIED**: `Capability<T>` 基类 - 缓存常用组件引用
-- **MODIFIED**: 各 Capability - 减少重复的 `GetComponent` 调用
+- **MODIFIED**: `Capability<T>.GetComponent()` - 添加 ProfileScope 监控查询性能
+- **ADDED**: 性能监控数据收集 - 验证 GetComponent 是否足够快
 
 ### Phase 4: LINQ 优化
 
@@ -94,10 +93,10 @@ Unity Profiler 显示多个 Capability 在每帧产生显著的性能开销和 G
 
 | Capability | 优化前 | 预期优化后 | 提升 |
 |-----------|--------|-----------|------|
-| BattleStateCapability | 7.08ms / 0.7MB | <1ms / <10KB | **~85%** |
+| BattleStateCapability | 7.08ms / 0.7MB | <0.5ms / <10KB | **~93%** |
 | ActionCapability | 2.40ms / 88.4KB | <1ms / <20KB | **~60%** |
 | 其他 | 1.83ms / ~100KB | <1ms / <30KB | **~50%** |
-| **总计** | 11.31ms / 0.9MB | **<3ms / <60KB** | **~73%** |
+| **总计** | 11.31ms / 0.9MB | **<2.5ms / <60KB** | **~78%** |
 
 ### 兼容性
 

@@ -1,12 +1,12 @@
-# Spec Delta: World Management - Spatial Indexing
+# Spec Delta: World Management - Physics Query Support
 
-## ADDED Requirements
+## MODIFIED Requirements
 
-### Requirement: World 应提供空间索引系统用于快速查询附近实体
+### Requirement: BepuPhysicsWorld 应提供空间范围查询方法
 
-World SHALL 维护空间索引系统，支持快速查询指定位置附近的实体。查询复杂度 MUST 与总实体数无关，仅与范围内实体数相关。
+BepuPhysicsWorld SHALL 提供 AABB 或球形范围查询方法，用于快速查询指定区域内的实体。查询应利用 BEPU 内部的空间索引结构（BroadPhase）。
 
-**Rationale**: 当前通过遍历所有实体查找附近目标的复杂度为 O(N)，在大量实体时性能极差。空间索引可将复杂度降至 O(k)，k << N。
+**Rationale**: 项目已使用 BEPU 物理引擎，其内部已有高效的空间索引（DynamicHierarchy）。复用该索引比创建新的空间索引系统更简单高效。
 
 **Priority**: P0
 

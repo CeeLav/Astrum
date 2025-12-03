@@ -2,51 +2,95 @@
 
 ## MODIFIED Requirements
 
-### Requirement: Capability 组件查询应支持缓存机制
+### Requirement: AIStateMachineComponent 应存储当前攻击目标用于缓存
 
-Capability SHALL 提供组件查询缓存机制，避免每帧重复查询相同组件。缓存 MUST 在组件变化时自动失效，确保数据一致性。
+AIStateMachineComponent SHALL 存储当前攻击目标 ID，BattleStateCapability 应优先使用该缓存目标，仅在目标无效或超出范围时重新查询。
 
-**Rationale**: 当前每帧重复查询相同组件导致不必要的性能开销。通过缓存频繁访问的组件可显著减少查询时间。
-
-**Priority**: P0
-
-#### Scenario: Capability 缓存组件查询结果
-
-**Given** 一个 Capability 需要频繁访问实体的组件  
-**When** Capability 多次调用 `GetComponent<T>()`  
-**Then** 第一次查询后应缓存结果，后续调用直接返回缓存  
-**And** 组件添加/移除时应自动失效相关缓存  
-**And** 实体销毁时应清理该实体的所有缓存
-
-#### Scenario: 缓存正确性验证
-
-**Given** 一个实体的组件被修改或移除  
-**When** Capability 通过缓存访问该组件  
-**Then** 应返回最新的组件引用或 null  
-**And** 不应返回过期的缓存数据
-
-### Requirement: Capability 应支持对象池复用临时对象
-
-Capability SHALL 使用对象池复用频繁创建的临时对象，避免每帧分配新对象。对象池 MUST 有大小限制，防止内存泄漏。
-
-**Rationale**: 频繁创建临时对象（如 LSInput）导致大量 GC 分配。使用对象池可显著减少分配。
+**Rationale**: 战斗目标不会频繁变化，数据应存储在 Component 中（符合 ECC 架构）。缓存目标可消除 90% 的查询开销。
 
 **Priority**: P0
 
-#### Scenario: 使用对象池减少临时对象分配
+#### Scenario: 使用 Component 中缓存的攻击目标
 
-**Given** 一个 Capability 需要创建临时数据对象  
-**When** Capability 创建对象时  
-**Then** 应从对象池获取而非直接 new  
-**And** 使用完成后应归还到对象池  
-**And** 归还前应重置对象状态
+**Given** 一个 AI 实体的 AIStateMachineComponent.CurrentTargetId > 0  
+**When** BattleStateCapability.Tick() 执行  
+**Then** 应先从 World 获取缓存的目标实体  
+**And** 目标存在、未死亡且距离 < RetargetDistance 时，直接使用该目标  
+**And** 不应重新遍历所有实体查找目标  
+**And** 应更新 AIStateMachineComponent.LastTargetValidationFrame 记录验证帧号
 
-#### Scenario: 对象池大小限制
+#### Scenario: 目标超出范围时重新查找并更新 Component
 
-**Given** 对象池已达到最大容量  
-**When** 尝试归还新对象时  
-**Then** 应丢弃该对象而非无限增长  
-**And** 池大小应有合理的上限（如 128 个对象）
+**Given** 一个 AI 实体的缓存目标距离 > RetargetDistance  
+**When** BattleStateCapability 检测到目标超出范围  
+**Then** 应调用 FindNearestEnemy() 重新查找  
+**And** 将新目标 ID 存储到 AIStateMachineComponent.CurrentTargetId  
+**And** 更新 LastTargetValidationFrame  
+**And** 新目标查找应使用物理引擎的空间查询
+
+#### Scenario: 目标死亡或销毁时清除缓存
+
+**Given** AIStateMachineComponent.CurrentTargetId 指向的实体已死亡或销毁  
+**When** BattleStateCapability.Tick() 检查缓存目标  
+**Then** 应检测到目标无效（实体为 null 或 IsDead）  
+**And** 将 CurrentTargetId 设为 -1（清除缓存）  
+**And** 重新查找新目标或切换到 Idle 状态
+
+### Requirement: Capability.GetComponent 应添加性能监控
+
+Capability 基类的 GetComponent() 方法 SHALL 添加 ProfileScope 监控，用于验证组件查询性能是否足够快。
+
+**Rationale**: 在实施缓存优化前，应先验证 GetComponent 是否真的是性能瓶颈。如果查询本身很快（< 0.01ms），则无需缓存。
+
+**Priority**: P1
+
+#### Scenario: 监控 GetComponent 调用性能
+
+**Given** Capability 调用 GetComponent<T>()  
+**When** 启用 ENABLE_PROFILER 编译标志  
+**Then** GetComponent 调用 SHALL 被 ProfileScope 包裹  
+**And** Unity Profiler 应显示每个组件类型的查询耗时  
+**And** 应能统计总调用次数和总耗时
+
+#### Scenario: 根据监控数据决定是否需要缓存
+
+**Given** GetComponent 的性能监控数据  
+**When** 单次调用 < 0.01ms 且总耗时 < 0.5ms  
+**Then** 无需实施缓存优化  
+**When** 单次调用 > 0.05ms 或总耗时 > 1ms  
+**Then** 应考虑实施组件缓存方案
+
+### Requirement: LSInput 创建应使用已有对象池
+
+所有创建 LSInput 的代码 MUST 调用 `LSInput.Create(isFromPool: true)` 使用 ObjectPool.Instance 复用对象。使用完后 SHALL 调用 `ObjectPool.Instance.Recycle()` 归还。
+
+**Rationale**: 项目已有全局对象池 ObjectPool.Instance，LSInput.Create() 已支持对象池参数。启用该参数可消除临时对象分配。
+
+**Priority**: P0
+
+#### Scenario: 创建 LSInput 时启用对象池
+
+**Given** Capability 需要创建 LSInput 对象  
+**When** 调用 LSInput.Create()  
+**Then** MUST 传入 `isFromPool: true` 参数  
+**And** 返回的对象应从 ObjectPool.Instance 获取  
+**And** 对象的 IsFromPool 属性应为 true
+
+#### Scenario: 使用完 LSInput 后归还对象池
+
+**Given** LSInput 对象已使用完毕（数据已复制到 Component）  
+**When** LSInputComponent.SetInput() 执行完毕  
+**Then** SHALL 调用 `ObjectPool.Instance.Recycle(input)` 归还对象  
+**And** 归还前 MUST 确保数据已完全复制，无悬空引用  
+**And** ObjectPool 会自动检查 IsFromPool 标记，避免重复归还
+
+#### Scenario: ObjectPool 自动管理容量
+
+**Given** ObjectPool.Instance 管理 LSInput 类型的池  
+**When** 池中对象数量达到上限（默认 1000）  
+**Then** 多余的归还对象会被自动丢弃  
+**And** 不会造成内存无限增长  
+**And** 池容量可通过 ObjectPool.GetPoolCapacity() 配置
 
 ### Requirement: Capability 应避免热路径中的 LINQ 操作
 

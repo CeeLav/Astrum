@@ -39,21 +39,32 @@ optimize-capability-performance/
 
 ## 🔧 优化方案（4 个阶段）
 
-### Phase 1: 空间索引系统 ⭐ (优先级最高)
+### Phase 1: BattleStateCapability 目标缓存 ⭐ (优先级最高)
 
-**问题**: `BattleStateCapability` 每帧遍历所有实体 (O(N))
+**问题**: `BattleStateCapability` 每帧遍历所有实体查找目标 (O(N))
 
-**解决**: 2D 空间哈希索引
+**解决**: 目标缓存 + BEPU 物理查询
 
 ```csharp
-// 优化前: O(N) - 遍历 100 个实体
-foreach (var e in world.Entities) { ... }
+// 优化前: 每帧都遍历所有实体
+foreach (var e in world.Entities) { ... }  // ← 100 个实体，每帧执行
 
-// 优化后: O(k) - 仅查询附近 3-5 个实体
-foreach (var e in world.SpatialIndex.QueryNearby(pos, radius)) { ... }
+// 优化后: 90% 的帧使用缓存目标
+if (_cachedTargets.TryGetValue(entityId, out var targetId))
+{
+    var target = world.GetEntity(targetId);
+    if (target != null && distance < RetargetDistance)
+    {
+        // 直接使用缓存，无需查询！
+        return target;
+    }
+}
+
+// 仅 10% 的帧需要查询，且使用 BEPU 物理索引
+var nearby = world.PhysicsWorld.QueryAABB(aabb);  // ← 仅查询附近实体
 ```
 
-**预期效果**: BattleStateCapability 从 7.08ms → **<1ms** (85% 提升)
+**预期效果**: BattleStateCapability 从 7.08ms → **<0.5ms** (93% 提升)
 
 ### Phase 2: 对象池优化
 
@@ -73,21 +84,28 @@ LSInputPool.Return(input);
 
 **预期效果**: 减少 ~600KB/s 的 GC 分配
 
-### Phase 3: 查询缓存
+### Phase 3: 监控 GetComponent 性能
 
-**问题**: 每帧重复查询相同组件
+**假设**: GetComponent 本身应该很快（Dictionary 查询）
 
-**解决**: Capability 基类提供缓存机制
+**验证**: 添加 ProfileScope 监控
 
 ```csharp
-// 优化前: 每次都查询
-var trans = entity.GetComponent<TransComponent>();
-
-// 优化后: 使用缓存
-var trans = GetComponentCached<TransComponent>(entity);
+// Capability 基类
+protected TComponent GetComponent<TComponent>(Entity entity)
+{
+    #if ENABLE_PROFILER
+    using (new ProfileScope($"GetComponent<{typeof(TComponent).Name}>"))
+    #endif
+    {
+        return entity.GetComponent<TComponent>();
+    }
+}
 ```
 
-**预期效果**: 减少 30-50% 的组件查询开销
+**决策**: 
+- ✅ 如果 < 0.5ms/帧：无需优化
+- ⚠️ 如果 > 1ms/帧：考虑缓存方案
 
 ### Phase 4: LINQ 优化
 

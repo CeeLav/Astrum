@@ -11,14 +11,14 @@
 3. **空间换时间** - 使用索引结构加速查询
 4. **渐进优化** - 分阶段实施，每阶段可独立验证
 
-## Phase 1: 空间索引系统
+## Phase 1: 优化目标查询策略
 
 ### 问题分析
 
 当前 `BattleStateCapability.FindNearestEnemy()` 每帧遍历所有实体：
 
 ```csharp
-// 当前实现：O(n) 复杂度
+// 当前实现：O(n) 复杂度，每帧都执行
 foreach (var kv in world.Entities)  // ← 每帧遍历所有实体
 {
     var e = kv.Value;
@@ -36,159 +36,177 @@ foreach (var kv in world.Entities)  // ← 每帧遍历所有实体
 
 **性能瓶颈**:
 - 有 N 个实体时，复杂度 O(N)
-- 每帧每个 AI 实体都执行一次，总复杂度 O(M*N)，M 为 AI 数量
-- 100 个实体 × 50 个 AI = 5000 次迭代/帧
+- **每帧**每个 AI 实体都执行一次，总复杂度 O(M*N)，M 为 AI 数量
+- 100 个实体 × 50 个 AI = **5000 次迭代/帧**
+- **根本问题**: 目标不会频繁变化，没必要每帧查询
 
-### 解决方案：空间哈希
+### 解决方案：目标缓存 + BEPU 物理查询
 
-使用 2D 空间哈希将世界划分为网格：
+采用两个优化策略：
 
-```
-网格大小：10×10 单位
-查询范围：仅检查相邻网格（最多 9 个格子）
-```
+#### 策略 1: 在 AIStateMachineComponent 中缓存当前目标（主要优化）
 
 ```csharp
-public class SpatialIndexSystem
+// AIStateMachineComponent.cs - Component 存储数据
+public class AIStateMachineComponent : IComponent
 {
-    private const int CELL_SIZE = 10; // 网格大小
-    private Dictionary<(int, int), HashSet<Entity>> _grid;
+    // 已有字段
+    public long CurrentTargetId { get; set; }
     
-    // O(1) 插入
-    public void Insert(Entity entity, TSVector position);
-    
-    // O(1) 移除
-    public void Remove(Entity entity);
-    
-    // O(k) 查询，k << N（仅查询附近网格）
-    public IEnumerable<Entity> QueryNearby(TSVector position, FP radius);
-    
-    // O(1) 更新位置
-    public void UpdatePosition(Entity entity, TSVector oldPos, TSVector newPos);
+    // 新增：上次验证目标时的帧号（用于判断是否需要重新验证）
+    public int LastTargetValidationFrame { get; set; } = -1;
 }
-```
 
-### 集成方式
-
-1. **World 初始化时创建空间索引**
-```csharp
-public class World
+// BattleStateCapability.cs - Capability 处理逻辑
+public override void Tick(Entity entity)
 {
-    public SpatialIndexSystem SpatialIndex { get; private set; }
+    var fsm = GetComponent<AIStateMachineComponent>(entity);
+    var currentFrame = entity.World?.CurFrame ?? 0;
     
-    public void Initialize()
+    // 1. 检查是否有缓存的有效目标
+    if (fsm.CurrentTargetId > 0)
     {
-        SpatialIndex = new SpatialIndexSystem();
-        // ...
-    }
-}
-```
-
-2. **实体位置变化时更新索引**
-```csharp
-public class MovementCapability : Capability<MovementCapability>
-{
-    public override void Tick(Entity entity)
-    {
-        var trans = GetComponent<TransComponent>(entity);
-        var oldPos = trans.Position;
-        
-        // 更新位置...
-        trans.Position = newPos;
-        
-        // 通知空间索引
-        entity.World?.SpatialIndex?.UpdatePosition(entity, oldPos, newPos);
-    }
-}
-```
-
-3. **BattleStateCapability 使用空间索引**
-```csharp
-private Entity? FindNearestEnemy(World world, TSVector selfPos, Entity selfEntity)
-{
-    // 优化后：仅查询附近实体
-    var nearby = world.SpatialIndex.QueryNearby(selfPos, (FP)LoseTargetDistance);
-    
-    Entity? nearest = null;
-    FP best = FP.MaxValue;
-    
-    foreach (var e in nearby)  // ← 数量大幅减少
-    {
-        if (e == null || e.UniqueId == selfEntity.UniqueId) continue;
-        if (e.GetComponent<RoleInfoComponent>() == null) continue;
-        var pos = e.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
-        var d = (pos - selfPos).sqrMagnitude;
-        if (d < best)
+        var cachedTarget = entity.World.GetEntity(fsm.CurrentTargetId);
+        if (cachedTarget != null && !cachedTarget.IsDead)
         {
-            best = d;
-            nearest = e;
+            var dist = GetDistance(entity, cachedTarget);
+            
+            // 目标在合理范围内，继续使用（无需查询！）
+            if (dist < RetargetDistance)
+            {
+                AttackTarget(entity, cachedTarget);
+                fsm.LastTargetValidationFrame = currentFrame;
+                return;  // ← 90% 的帧直接返回，零查询开销
+            }
         }
     }
+    
+    // 2. 只在必要时重新查询（目标丢失或超出范围）
+    var newTarget = FindNearestEnemy(...);
+    fsm.CurrentTargetId = newTarget?.UniqueId ?? -1;  // ← 更新 Component 中的缓存
+    fsm.LastTargetValidationFrame = currentFrame;
+}
+```
+
+**效果**: 
+- 90% 的帧只需检查距离，无需遍历实体
+- 符合 ECC 架构：数据在 Component，逻辑在 Capability
+
+#### 策略 2: 使用 BEPU 物理引擎的空间索引
+
+项目已有 `BepuPhysicsWorld`，其内部使用 BEPU 的 `Space.BroadPhase` 作为空间索引：
+
+```csharp
+// 使用 BEPU 的空间查询（已有功能）
+private Entity? FindNearestEnemy(World world, TSVector selfPos, Entity selfEntity)
+{
+    var physicsWorld = world.PhysicsWorld;
+    if (physicsWorld == null) return null;
+    
+    // 使用 BEPU 的 BoundingBox 查询（O(k) 复杂度）
+    var searchRadius = (FP)RetargetDistance;
+    var aabb = new BoundingBox(
+        min: selfPos - TSVector.one * searchRadius,
+        max: selfPos + TSVector.one * searchRadius
+    );
+    
+    // BEPU 的 BroadPhase 已经是空间索引（通常是 DynamicHierarchy）
+    var nearby = physicsWorld.QueryAABB(aabb);
+    
+    Entity? nearest = null;
+    FP bestDist = FP.MaxValue;
+    
+    foreach (var bepuEntity in nearby)
+    {
+        // 从 Tag 获取 Astrum Entity
+        if (bepuEntity.Tag is Entity e && e.UniqueId != selfEntity.UniqueId)
+        {
+            var dist = (e.Position - selfPos).sqrMagnitude;
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                nearest = e;
+            }
+        }
+    }
+    
     return nearest;
 }
 ```
+
+### 实施步骤
+
+1. **添加目标缓存机制** (主要优化)
+   - 在 `BattleStateCapability` 添加 `_cachedTargets` 字典
+   - 添加 `RetargetDistance` 常量（如 8.0 单位）
+   - 修改 `Tick()` 逻辑：先检查缓存，仅在必要时查询
+
+2. **使用 BEPU 物理查询** (次要优化)
+   - 在 `BepuPhysicsWorld` 添加 `QueryAABB()` 方法
+   - `FindNearestEnemy()` 改用物理查询替代遍历
+   - 确保所有战斗实体已注册到物理世界
+
+3. **清理缓存**
+   - 实体销毁时从 `_cachedTargets` 移除
+   - 切换状态时清理目标缓存
 
 ### 性能分析
 
 | 场景 | 优化前 | 优化后 | 提升 |
 |------|--------|--------|------|
-| 10 实体 | O(10) | O(1-2) | ~5x |
-| 100 实体 | O(100) | O(3-5) | ~20x |
-| 1000 实体 | O(1000) | O(5-10) | ~100x |
+| **缓存命中** (90% 的帧) | 遍历 100 实体 | **仅距离检查** | **~100x** |
+| **缓存未命中** (10% 的帧) | O(100) 遍历 | O(5-10) BEPU 查询 | ~10-20x |
+| **总体** | 7.08ms/帧 | **< 0.5ms/帧** | **~14x** |
 
-**预期效果**: BattleStateCapability 从 7.08ms 降至 < 1ms
+### 关键改进点
 
-## Phase 2: 对象池优化
+✅ **无需创建新的空间索引系统** - 复用 BEPU 现有功能  
+✅ **目标缓存是主要优化** - 90% 帧无需任何查询  
+✅ **实现简单** - 约 50 行代码，无需改动 World  
+✅ **内存开销小** - 仅一个 Dictionary<long, long>  
+
+**预期效果**: BattleStateCapability 从 7.08ms 降至 **< 0.5ms** (14x 提升)
+
+## Phase 2: 使用已有对象池复用 LSInput
 
 ### 问题分析
 
-当前每帧创建新的 `LSInput` 对象：
+当前创建 `LSInput` 时没有使用对象池：
 
 ```csharp
 // BattleStateCapability.cs
 private LSInput CreateInput(Entity entity, ...)
 {
-    var input = LSInput.Create();  // ← 每次分配新对象
+    var input = LSInput.Create();  // ← isFromPool 默认 false，每次分配新对象
     input.PlayerId = entity.UniqueId;
     // ...
     return input;
 }
 ```
 
-### 解决方案：LSInput 对象池
+### 解决方案：使用 ObjectPool.Instance
+
+项目已有全局对象池 `ObjectPool.Instance`，`LSInput.Create()` 已支持对象池参数：
 
 ```csharp
-public class LSInputPool
+// Generated/Message/gamemessages_C_2000.cs
+public partial class LSInput : MessageObject
 {
-    private static readonly Stack<LSInput> _pool = new Stack<LSInput>(64);
-    private const int MAX_POOL_SIZE = 128;
-    
-    public static LSInput Rent()
+    public static LSInput Create(bool isFromPool = false)
     {
-        if (_pool.Count > 0)
-            return _pool.Pop();
-        return LSInput.Create();
-    }
-    
-    public static void Return(LSInput input)
-    {
-        if (_pool.Count < MAX_POOL_SIZE)
-        {
-            // 重置对象状态
-            input.Reset();
-            _pool.Push(input);
-        }
+        return ObjectPool.Instance.Fetch(typeof(LSInput), isFromPool) as LSInput;
     }
 }
 ```
 
 ### 使用方式
 
+**方案 1：修改 Create 调用**（推荐）
 ```csharp
-// 使用对象池
+// 从对象池获取
 private LSInput CreateInput(Entity entity, ...)
 {
-    var input = LSInputPool.Rent();  // ← 从池中获取
+    var input = LSInput.Create(isFromPool: true);  // ← 启用对象池
     input.PlayerId = entity.UniqueId;
     // ...
     return input;
@@ -198,78 +216,105 @@ private LSInput CreateInput(Entity entity, ...)
 public void SetInput(LSInput input)
 {
     // 复制数据...
-    LSInputPool.Return(input);  // ← 归还到池
+    ObjectPool.Instance.Recycle(input);  // ← 归还到池
+}
+```
+
+**方案 2：修改默认参数**（如果适用所有场景）
+```csharp
+// 修改生成的代码模板，让 isFromPool 默认为 true
+public static LSInput Create(bool isFromPool = true)  // ← 改为默认启用
+```
+
+### 需要修改的地方
+
+所有调用 `LSInput.Create()` 的地方：
+- `BattleStateCapability.CreateInput()`
+- `MoveStateCapability.CreateInput()`
+- `IdleStateCapability.CreateInput()`
+- `ServerLSController.CreateDefaultInput()`
+- 其他创建 LSInput 的地方
+
+### 对象池回收
+
+使用完 LSInput 后需要回收：
+```csharp
+// 在 LSInputComponent.SetInput() 中
+public void SetInput(LSInput input)
+{
+    // 复制数据到内部字段
+    this.PlayerId = input.PlayerId;
+    this.Frame = input.Frame;
+    // ...
+    
+    // 归还到对象池
+    if (input is IPool && ((IPool)input).IsFromPool)
+    {
+        ObjectPool.Instance.Recycle(input);
+    }
 }
 ```
 
 **预期效果**: 减少 ~600KB/s 的 GC 分配（60 FPS）
 
-## Phase 3: 查询缓存
+## Phase 3: 监控 GetComponent 性能
 
-### 问题分析
+### 问题验证
 
-当前每帧重复查询相同组件：
+需要验证 `GetComponent()` 是否真的是性能瓶颈：
 
 ```csharp
 public override void Tick(Entity entity)
 {
-    var fsm = GetComponent<AIStateMachineComponent>(entity);  // 第 1 次查询
-    var trans = GetComponent<TransComponent>(entity);         // 第 2 次查询
-    var inputComp = GetComponent<LSInputComponent>(entity);   // 第 3 次查询
-    // ...
+    var fsm = GetComponent<AIStateMachineComponent>(entity);  // 是否慢？
+    var trans = GetComponent<TransComponent>(entity);         // 是否慢？
+    var inputComp = GetComponent<LSInputComponent>(entity);   // 是否慢？
 }
 ```
 
-### 解决方案：组件缓存
+**假设**: GetComponent 本身应该很快（Dictionary 查询，O(1)），可能不是瓶颈。
+
+### 解决方案：添加性能监控验证假设
+
+在 `Capability<T>` 基类的 `GetComponent()` 中添加 ProfileScope：
 
 ```csharp
 public abstract class Capability<T> where T : Capability<T>, new()
 {
-    // 缓存层
-    private Dictionary<long, Dictionary<Type, IComponent>> _componentCache 
-        = new Dictionary<long, Dictionary<Type, IComponent>>();
-    
-    protected TComponent GetComponentCached<TComponent>(Entity entity) 
+    protected TComponent GetComponent<TComponent>(Entity entity) 
         where TComponent : class, IComponent
     {
-        if (!_componentCache.TryGetValue(entity.UniqueId, out var cache))
+        #if ENABLE_PROFILER
+        using (new ProfileScope($"GetComponent<{typeof(TComponent).Name}>"))
+        #endif
         {
-            cache = new Dictionary<Type, IComponent>();
-            _componentCache[entity.UniqueId] = cache;
+            return entity.GetComponent<TComponent>();
         }
-        
-        var type = typeof(TComponent);
-        if (!cache.TryGetValue(type, out var component))
-        {
-            component = entity.GetComponent<TComponent>();
-            cache[type] = component;
-        }
-        
-        return component as TComponent;
-    }
-    
-    // 实体销毁时清除缓存
-    public virtual void OnEntityDestroyed(Entity entity)
-    {
-        _componentCache.Remove(entity.UniqueId);
     }
 }
 ```
 
-### 使用方式
+### 性能监控目标
 
-```csharp
-public override void Tick(Entity entity)
-{
-    // 使用缓存版本
-    var fsm = GetComponentCached<AIStateMachineComponent>(entity);
-    var trans = GetComponentCached<TransComponent>(entity);
-    var inputComp = GetComponentCached<LSInputComponent>(entity);
-    // ...
-}
+通过 Unity Profiler 深度分析验证：
+
+| 指标 | 预期值 | 说明 |
+|------|--------|------|
+| 单次调用 | < 0.01ms | 如果满足，无需缓存 |
+| 总调用次数 | ~100-200/帧 | 统计实际调用频率 |
+| 总耗时 | < 0.5ms | 所有 GetComponent 总计 |
+
+### 决策树
+
+```
+收集性能数据
+├─ GetComponent 总耗时 < 0.5ms
+│  └─ ✅ 无需优化，移除此 Phase
+└─ GetComponent 总耗时 > 1ms
+   └─ ⚠️ 考虑缓存方案（重新评估）
 ```
 
-**预期效果**: 减少 30-50% 的组件查询开销
+**预期结论**: GetComponent 本身很快，无需缓存，此 Phase 可能直接跳过
 
 ## Phase 4: LINQ 优化
 
