@@ -266,7 +266,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 创建Monster");
             
-            int monsterConfigId = 1006;
+            int monsterConfigId = 1000;
             
             // 使用封装的接口创建怪物
             var monsterId = MainRoom.CreateEntity(monsterConfigId);
@@ -300,6 +300,37 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
         
+        
+        public void TestCreateMonster(int configId, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                ASLogger.Instance.Info("SinglePlayerGameMode: 测试创建Monster");
+            
+                // 使用封装的接口创建怪物
+                var monsterId = MainRoom.CreateEntity(configId);
+            
+                if (monsterId > 0)
+                {
+                    // 获取创建的怪物实体
+                    var monsterEntity = MainRoom.MainWorld?.GetEntity(monsterId);
+                    if (monsterEntity != null)
+                    {
+                        monsterEntity.AttachSubArchetype(EArchetype.AI, out string reason);
+                        if (reason != null)
+                        {
+                            ASLogger.Instance.Info($"SinglePlayerGameMode: <UNK>Monster<UNK> - Reason: {reason}");
+                        }
+                        ASLogger.Instance.Info($"SinglePlayerGameMode: Monster创建并初始化完成，ID: {monsterId}");
+                    }
+                }
+                else
+                {
+                    ASLogger.Instance.Error($"SinglePlayerGameMode: Monster创建失败，ConfigId: {configId}");
+                }
+            }
+            
+        }
         /// <summary>
         /// 关闭Login UI
         /// </summary>
