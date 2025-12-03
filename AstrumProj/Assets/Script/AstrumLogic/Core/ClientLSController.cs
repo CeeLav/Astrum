@@ -50,6 +50,11 @@ namespace Astrum.LogicCore.Core
         public bool IsPaused { get; set; } = false;
 
         /// <summary>
+        /// 是否启用状态保存（单机模式可以禁用以提升性能）
+        /// </summary>
+        public bool EnableStateSaving { get; set; } = true;
+
+        /// <summary>
         /// 输入系统
         /// </summary>
         private LSInputSystem _inputSystem;
@@ -316,6 +321,12 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void SaveState()
         {
+            // 如果禁用状态保存（单机模式），直接返回
+            if (!EnableStateSaving)
+            {
+                return;
+            }
+            
             using (new ProfileScope("SaveState"))
             {
                 // 客户端使用 PredictionFrame 保存状态（因为客户端是基于预测帧执行的）
@@ -347,20 +358,6 @@ namespace Astrum.LogicCore.Core
                 // 序列化 World
                 using (new ProfileScope("SaveState.SerializeWorld"))
                 {
-                    if (Room?.MainWorld != null)
-                    {
-                        var world = Room.MainWorld;
-                        // ASLogger.Instance.Debug($"保存帧状态 - 帧: {frame}, World ID: {world.WorldId},World Frame:{world.CurFrame} 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.SaveState");
-                        
-                        if (world.Entities != null)
-                        {
-                            foreach (var entity in world.Entities.Values)
-                            {
-                                // ASLogger.Instance.Debug($"  - 保存实体: {entity.Name} (ID: {entity.UniqueId}), 组件: {entity.Components?.Count ?? 0}, 能力: {entity.CapabilityStates?.Count ?? 0}", "FrameSync.SaveState");
-                            }
-                        }
-                    }
-                    
                     MemoryPackHelper.Serialize(Room.MainWorld, memoryBuffer);
                 }
                 

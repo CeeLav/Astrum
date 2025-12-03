@@ -247,12 +247,15 @@ namespace Astrum.Client.Managers.GameModes
             // 启动本地帧同步控制器
             if (MainRoom?.LSController is ClientLSController clientSync && !clientSync.IsRunning)
             {
+                // 单机模式：禁用状态保存以提升性能（不需要网络回滚）
+                clientSync.EnableStateSaving = false;
+                
                 // 设置本地创建时间
                 clientSync.CreationTime = TimeInfo.Instance.ServerNow();
                 
                 // 启动控制器
                 clientSync.Start();
-                ASLogger.Instance.Info("SinglePlayerGameMode: 本地帧同步控制器已启动");
+                ASLogger.Instance.Info("SinglePlayerGameMode: 本地帧同步控制器已启动（状态保存已禁用）");
             }
             
             // 设置相机跟随主玩家（如果 EntityView 已创建）
@@ -316,6 +319,9 @@ namespace Astrum.Client.Managers.GameModes
         
         public void TestCreateMonster(int configId, int count)
         {
+            // 随机数生成器
+            System.Random random = new System.Random();
+            
             for (int i = 0; i < count; i++)
             {
                 ASLogger.Instance.Info("SinglePlayerGameMode: 测试创建Monster");
@@ -329,6 +335,29 @@ namespace Astrum.Client.Managers.GameModes
                     var monsterEntity = MainRoom.MainWorld?.GetEntity(monsterId);
                     if (monsterEntity != null)
                     {
+                        // 设置随机位置（世界中心附近，半径 10-20 单位）
+                        var transComponent = monsterEntity.GetComponent<TransComponent>();
+                        if (transComponent != null)
+                        {
+                            // 生成随机角度和距离
+                            float angle = (float)(random.NextDouble() * 2 * Math.PI);
+                            float distance = (float)(random.NextDouble() * 10 + 10); // 10-20 单位
+                            
+                            // 计算随机位置（以世界中心 (0, 0, 0) 为基准）
+                            float randomX = distance * (float)Math.Cos(angle);
+                            float randomZ = distance * (float)Math.Sin(angle);
+                            
+                            // 使用 TrueSync 的 FP 和 TSVector
+                            var randomPosition = new TrueSync.TSVector(
+                                (TrueSync.FP)randomX,
+                                TrueSync.FP.Zero,
+                                (TrueSync.FP)randomZ
+                            );
+                            
+                            transComponent.Position = randomPosition;
+                            ASLogger.Instance.Debug($"SinglePlayerGameMode: 怪物位置设置为 ({randomX:F2}, 0, {randomZ:F2})");
+                        }
+                        
                         monsterEntity.AttachSubArchetype(EArchetype.AI, out string reason);
                         if (reason != null)
                         {

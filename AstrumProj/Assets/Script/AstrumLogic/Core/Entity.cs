@@ -120,7 +120,7 @@ namespace Astrum.LogicCore.Core
 
         public Entity()
         {
-            UniqueId = _nextId++;
+            //UniqueId = _nextId++;
             CreationTime = DateTime.Now;
         }
         
