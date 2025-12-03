@@ -79,11 +79,11 @@
 - 如果请求不明确，在创建脚手架前提出1-2个澄清问题
 
 ### 搜索指导
-- 枚举规范：`openspec spec list --long`（或脚本使用`--json`）
-- 枚举变更：`openspec list`（或`openspec change list --json` - 已弃用但可用）
+- 枚举规范：`openspec-chinese spec list --long`（或脚本使用`--json`）
+- 枚举变更：`openspec-chinese list`（或`openspec-chinese change list --json` - 已弃用但可用）
 - 显示详情：
-  - 规范：`openspec show <spec-id> --type spec`（使用`--json`进行过滤）
-  - 变更：`openspec show <change-id> --json --deltas-only`
+  - 规范：`openspec-chinese show <spec-id> --type spec`（使用`--json`进行过滤）
+  - 变更：`openspec-chinese show <change-id> --json --deltas-only`
 - 全文搜索（使用ripgrep）：`rg -n "Requirement:|Scenario:" openspec/specs`
 
 ## 快速开始
@@ -92,19 +92,19 @@
 
 ```bash
 # 基本命令
-openspec list                  # 列出活跃变更
-openspec list --specs          # 列出规范
-openspec show [item]           # 显示变更或规范
-openspec validate [item]       # 验证变更或规范
-openspec archive <change-id> [--yes|-y]   # 部署后归档（非交互运行添加--yes）
+openspec-chinese list                  # 列出活跃变更
+openspec-chinese list --specs          # 列出规范
+openspec-chinese show [item]           # 显示变更或规范
+openspec-chinese validate [item]       # 验证变更或规范
+openspec-chinese archive <change-id> [--yes|-y]   # 部署后归档（非交互运行添加--yes）
 
 # 项目管理
-openspec init [path]           # 初始化OpenSpec
-openspec update [path]         # 更新指令文件
+openspec-chinese init [path]           # 初始化OpenSpec
+openspec-chinese update [path]         # 更新指令文件
 
 # 交互模式
-openspec show                  # 提示选择
-openspec validate              # 批量验证模式
+openspec-chinese show                  # 提示选择
+openspec-chinese validate              # 批量验证模式
 
 # 调试
 openspec show [change] --json --deltas-only
