@@ -126,7 +126,7 @@ namespace Astrum.View.Components
                 // 添加到活跃列表（用于清理）
                 _activeVFXInstanceIds.Add(instanceId);
                 
-                ASLogger.Instance.Info($"VFXViewComponent: 成功播放特效（通过 VFXManager），Path: {evt.ResourcePath}, InstanceId: {instanceId}, Loop: {evt.Loop}, EntityId: {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Debug($"VFXViewComponent: 成功播放特效（通过 VFXManager），Path: {evt.ResourcePath}, InstanceId: {instanceId}, Loop: {evt.Loop}, EntityId: {OwnerEntity?.UniqueId}");
             }
             catch (Exception ex)
             {

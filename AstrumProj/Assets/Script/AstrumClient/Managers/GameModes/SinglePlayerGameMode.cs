@@ -266,7 +266,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 创建Monster");
             
-            int monsterConfigId = 1000;
+            int monsterConfigId = 1006;
             
             // 使用封装的接口创建怪物
             var monsterId = MainRoom.CreateEntity(monsterConfigId);

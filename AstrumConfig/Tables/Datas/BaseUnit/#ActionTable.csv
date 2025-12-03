@@ -59,3 +59,11 @@
     ""Priority"": 0
   }
 ]","[{""tags"":[""move"",""skill""],""rangeFrames"":[21,31],""blendOutFrames"":3,""priority"":0}]"
+,5003,attack_A_01_Noview,skill,43,Assets/ArtRes/Unit/Role/Knight/Animation/OneHand_Base_Attack_A_1.anim,1001,False,False,attack,30,"[
+  {
+    ""Tag"": ""skill"",
+    ""StartFromFrames"": 0,
+    ""BlendInFrames"": 0,
+    ""Priority"": 0
+  }
+]","[{""tags"":[""move"",""skill"",""attack_A_Combo_1""],""rangeFrames"":[16,42],""blendOutFrames"":3,""priority"":0}]"
