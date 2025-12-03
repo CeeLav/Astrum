@@ -24,6 +24,15 @@
         "com.unity.modules.animation": "1.0.0"
       }
     },
+    "com.singularitygroup.hotreload": {
+      "version": "file:com.singularitygroup.hotreload",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0",
+        "com.unity.modules.unitywebrequest": "1.0.0"
+      }
+    },
     "com.tuyoogame.yooasset": {
       "version": "2.3.16",
       "depth": 0,
