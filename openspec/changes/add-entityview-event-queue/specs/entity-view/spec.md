@@ -34,8 +34,8 @@ Entity SHALL 维护一个视图事件队列，用于存储待处理的视图层�
 - **WHEN** Entity 被序列化时
 - **THEN** ViewEventQueue 不被包含在序列化数据中
 
-### Requirement: EntityView 事件处理
-EntityView SHALL 提供事件处理方法，用于处理来自 Entity 的视图事件。
+### Requirement: EntityView 事件处理和分发
+EntityView SHALL 提供事件处理方法，用于处理来自 Entity 的视图事件，并根据事件类型分层处理或分发给 ViewComponent。
 
 #### Scenario: EntityView 处理 EntityCreated 事件
 - **WHEN** EntityView 处理 `ViewEventType.EntityCreated` 事件
@@ -52,9 +52,11 @@ EntityView SHALL 提供事件处理方法，用于处理来自 Entity 的视图�
 - **THEN** EntityView 根据事件数据添加或移除子原型的 ViewComponents
 - **AND** 更新内部状态
 
-#### Scenario: EntityView 处理 ComponentDirty 事件
-- **WHEN** EntityView 处理 `ViewEventType.ComponentDirty` 事件
-- **THEN** EntityView 同步对应组件的数据（调用 `SyncDirtyComponents`）
+#### Scenario: EntityView 分发自定义事件到 ViewComponent
+- **WHEN** EntityView 收到自定义视图事件（非预定义的 Stage/EntityView 级别事件）
+- **THEN** EntityView 查询 `_viewEventToComponents` 映射
+- **AND** 找到注册了该事件类型的所有 ViewComponent
+- **AND** 调用每个 ViewComponent 的事件处理器
 
 ### Requirement: Stage 事件轮询机制
 Stage SHALL 在 Update 时轮询所有 Entity 的视图事件队列，并分发到对应的 EntityView 进行处理。
@@ -105,18 +107,54 @@ Stage SHALL 在 Update 时轮询所有 Entity 的视图事件队列，并分发�
 - **GIVEN** ViewEvent 结构体包含以下字段：
   - `ViewEventType EventType`: 事件类型
   - `object EventData`: 事件数据（类型根据 EventType 确定）
-  - `long TargetEntityId`: 目标实体 ID
   - `int Frame`: 事件发生的帧号
-- **THEN** ViewEvent 可以被正确创建和序列化
+- **THEN** ViewEvent 可以被正确创建
 
 #### Scenario: ViewEventType 枚举定义
 - **GIVEN** ViewEventType 枚举包含以下值：
-  - `EntityCreated`: 实体创建
-  - `EntityDestroyed`: 实体销毁
-  - `SubArchetypeChanged`: 子原型变化
-  - `ComponentDirty`: 组件数据变化
-  - `WorldRollback`: 世界回滚
-- **THEN** 所有视图相关事件都有对应的类型
+  - `EntityCreated`: 实体创建（Stage 级别）
+  - `EntityDestroyed`: 实体销毁（Stage 级别）
+  - `SubArchetypeChanged`: 子原型变化（EntityView 级别）
+  - `WorldRollback`: 世界回滚（Stage 级别）
+- **THEN** 所有预定义的视图事件都有对应的类型
+- **AND** 自定义视图事件通过 EventData 的类型区分
+
+### Requirement: ViewComponent 事件注册机制
+ViewComponent SHALL 提供事件注册机制，允许子类声明需要监听的自定义视图事件。
+
+#### Scenario: ViewComponent 注册事件处理器
+- **WHEN** ViewComponent 初始化时
+- **THEN** 调用 `RegisterViewEventHandlers()` 虚方法
+- **AND** 子类可以调用 `RegisterViewEventHandler<TEvent>(handler)` 注册事件
+
+#### Scenario: EntityView 维护事件映射
+- **WHEN** EntityView 添加 ViewComponent 时
+- **THEN** 调用 `RegisterViewComponentEventHandlers(component)`
+- **AND** 从 ViewComponent 获取事件处理器映射
+- **AND** 建立 `事件类型 -> ViewComponent 列表` 映射
+
+#### Scenario: EntityView 分发事件到 ViewComponent
+- **WHEN** EntityView 收到自定义视图事件
+- **THEN** 查询 `_viewEventToComponents` 映射
+- **AND** 获取注册了该事件类型的 ViewComponent 列表
+- **AND** 调用每个 ViewComponent 的事件处理器（DynamicInvoke）
+
+### Requirement: 脏组件同步独立性
+脏组件同步机制 SHALL 保持独立，不通过视图事件队列处理。
+
+#### Scenario: 脏组件同步机制不变
+- **WHEN** Stage.Update() 执行
+- **THEN** Stage 先调用 `ProcessViewEvents()` 处理视图事件
+- **AND** 然后调用 `SyncDirtyComponents()` 同步脏组件
+- **AND** 两个机制相互独立，不互相干扰
+
+#### Scenario: ViewComponent 同时支持事件和数据同步
+- **GIVEN** ViewComponent 可以通过 `GetWatchedComponentIds()` 监听脏组件
+- **AND** ViewComponent 可以通过 `RegisterViewEventHandlers()` 监听视图事件
+- **WHEN** 数据变化时
+- **THEN** 脏组件机制触发 `SyncDataFromComponent()`
+- **WHEN** 状态变化时
+- **THEN** 事件机制触发注册的事件处理器
 
 ## MODIFIED Requirements
 

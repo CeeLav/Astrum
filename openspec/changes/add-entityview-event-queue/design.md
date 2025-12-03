@@ -4,13 +4,20 @@
 
 当前系统架构：
 - **逻辑层**：Entity、Component、Capability、World（使用 TrueSync FP Math，确定性计算）
+  - Capability 通过 `RegisterEventHandlers()` 注册事件处理器
+  - CapabilitySystem 维护 `_eventToHandlers` 映射，分发事件
 - **视图层**：Stage、EntityView、ViewComponent（使用 Unity，负责渲染和表现）
-- **事件系统**：EventSystem 全局单例，支持订阅/发布模式
+  - 当前使用脏标记机制同步 Component 数据
+- **事件系统**：
+  - EventSystem 全局单例（旧机制，同步调用）
+  - Entity.EventQueue 队列（逻辑层事件）
+  - Entity.ViewEventQueue 队列（视图层事件，新增）
 
 当前问题：
 1. 逻辑层通过 EventSystem 同步触发视图层回调（如 `Stage.OnEntityCreated`）
 2. 回调在逻辑层执行期间立即执行，增加帧耗时
 3. 无法将逻辑层移到独立线程，因为视图层（Unity）必须在主线程
+4. ViewComponent 没有事件注册机制，应该像 Capability 一样声明需要监听的事件
 
 ## Goals / Non-Goals
 
@@ -43,11 +50,13 @@ public struct ViewEvent
 
 public enum ViewEventType
 {
-    EntityCreated,
-    EntityDestroyed,
-    SubArchetypeChanged,
-    ComponentDirty,
-    WorldRollback
+    EntityCreated,        // Stage 级别：创建 EntityView
+    EntityDestroyed,      // Stage 级别：销毁 EntityView
+    SubArchetypeChanged,  // EntityView 级别：添加/移除子原型
+    WorldRollback,        // Stage 级别：回滚所有视图状态
+    
+    // 注意：不包含 ComponentDirty
+    // 脏组件同步是独立机制，通过 Stage.SyncDirtyComponents() 处理
 }
 
 // Entity.ViewEventQueue.cs (新增 partial class)
@@ -79,46 +88,100 @@ public partial class Entity
 3. **简化 Stage**：不需要临时缓存，只负责查询和分发
 4. **职责清晰**：Entity 存储所有事件数据，Stage 协调处理流程
 
-### Decision 2: 事件路由机制
+### Decision 2: 事件分层处理和分发
 
-**问题**：逻辑层如何将事件路由到对应的 EntityView？
+**问题**：如何设计事件的分发机制？
 
-**选择**：事件存储在 Entity 上，Stage 轮询并分发到 EntityView
+**选择**：分层处理 + ViewComponent 事件注册机制（参考 CapabilitySystem）
 
-**流程**：
+**分层**：
 ```
-World.CreateEntity()
-  ↓
-entity.QueueViewEvent(ViewEvent { EventType = EntityCreated, ... })
-  ↓
-Entity._viewEventQueue.Enqueue(event)
-  ↓
-[等待下一帧]
-  ↓
-Stage.Update() → ProcessViewEvents()
-  ↓
-遍历所有 Entity，检查 entity.HasPendingViewEvents
-  ↓
-获取或创建对应的 EntityView
-  ↓
-while (entity.ViewEventQueue.Count > 0)
-  {
-    var evt = entity.ViewEventQueue.Dequeue();
-    entityView.ProcessEvent(evt);
-  }
+┌──────────────────────────────────────────────────────┐
+│ Stage 级别事件（Stage 直接处理）                      │
+│ - EntityCreated: 创建 EntityView                      │
+│ - EntityDestroyed: 销毁 EntityView                    │
+│ - WorldRollback: 回滚所有 EntityView                  │
+└──────────────────────────────────────────────────────┘
+             ↓ 传递给 EntityView
+┌──────────────────────────────────────────────────────┐
+│ EntityView 级别事件（EntityView 处理或分发）          │
+│ - SubArchetypeChanged: EntityView 添加/移除子原型     │
+│ - 自定义视图事件: 查询注册的 ViewComponent 并分发     │
+└──────────────────────────────────────────────────────┘
+             ↓ 分发给 ViewComponent
+┌──────────────────────────────────────────────────────┐
+│ ViewComponent 级别事件（ViewComponent 处理）          │
+│ - ViewComponent 通过 RegisterViewEventHandler<T>()   │
+│   注册需要监听的事件类型                              │
+│ - EntityView 维护事件类型到 ViewComponent 的映射      │
+│ - 类似 CapabilitySystem 的 DispatchEventToEntity     │
+└──────────────────────────────────────────────────────┘
 ```
 
-**替代方案**：
-- A. 逻辑层将事件发送到 Stage，Stage 缓存
-  - ❌ 拒绝：需要处理 EntityView 不存在的情况，增加复杂度
-- B. 逻辑层直接访问 EntityView
-  - ❌ 拒绝：逻辑层需要引用视图层，耦合度高
+**ViewComponent 事件注册机制**（参考 Capability）：
+```csharp
+// ViewComponent.cs
+public abstract class ViewComponent
+{
+    private Dictionary<Type, Delegate> _eventHandlers;
+    
+    protected virtual void RegisterViewEventHandlers()
+    {
+        // 子类重写，注册事件处理器
+        // 例如：RegisterViewEventHandler<AnimationEvent>(OnAnimationEvent);
+    }
+    
+    protected void RegisterViewEventHandler<TEvent>(Action<TEvent> handler)
+        where TEvent : struct
+    {
+        _eventHandlers[typeof(TEvent)] = handler;
+    }
+    
+    public Dictionary<Type, Delegate> GetEventHandlers() => _eventHandlers;
+}
+
+// EntityView.cs
+public class EntityView
+{
+    // 事件类型 -> ViewComponent 列表映射
+    private Dictionary<Type, List<ViewComponent>> _viewEventToComponents 
+        = new Dictionary<Type, List<ViewComponent>>();
+    
+    // 注册 ViewComponent 的事件处理器
+    private void RegisterViewComponentEventHandlers(ViewComponent component)
+    {
+        var handlers = component.GetEventHandlers();
+        foreach (var kvp in handlers)
+        {
+            var eventType = kvp.Key;
+            if (!_viewEventToComponents.ContainsKey(eventType))
+                _viewEventToComponents[eventType] = new List<ViewComponent>();
+            _viewEventToComponents[eventType].Add(component);
+        }
+    }
+    
+    // 分发事件给 ViewComponent（类似 CapabilitySystem.DispatchEventToEntity）
+    private void DispatchViewEventToComponents(Type eventType, object eventData)
+    {
+        if (!_viewEventToComponents.TryGetValue(eventType, out var components))
+            return;
+        
+        foreach (var component in components)
+        {
+            if (!component.IsEnabled) continue;
+            
+            var handler = component.GetEventHandlers()[eventType];
+            handler.DynamicInvoke(eventData);
+        }
+    }
+}
+```
 
 **理由**：
-1. **自然的数据流**：Entity 产生事件 → Entity 存储事件 → Stage 查询处理
-2. **无需额外缓存**：Entity 比 EntityView 先创建，事件天然有存储位置
-3. **与 Entity.EventQueue 一致**：CapabilitySystem 轮询 Entity.EventQueue，Stage 轮询 Entity.ViewEventQueue
-4. **职责单一**：Entity 负责存储，Stage 负责协调，EntityView 负责处理
+1. **设计一致性**：与 CapabilitySystem 保持一致
+2. **灵活性**：ViewComponent 可以自由注册需要的事件
+3. **解耦**：事件和处理器分离
+4. **可扩展**：容易添加新的视图事件类型
 
 ### Decision 3: EntityView 创建时机
 
@@ -182,6 +245,40 @@ private void ProcessViewEvents()
 3. **简化逻辑**：Stage 只需要检查 `entity.HasPendingViewEvents`
 4. **内存友好**：不需要额外的 `_pendingViewEvents` 字典
 
+### Decision 3: 脏组件同步和事件机制分离
+
+**问题**：脏组件同步应该使用事件吗？
+
+**选择**：分离。脏组件同步是独立机制，不通过视图事件队列
+
+**理由**：
+1. **职责不同**：
+   - 脏组件同步：高频、轮询式、数据同步
+   - 视图事件：低频、事件驱动、状态变化通知
+2. **性能考虑**：
+   - 脏组件每帧可能有大量变化，不适合事件机制
+   - 脏组件已有高效的轮询机制（Stage.SyncDirtyComponents）
+3. **已有实现**：
+   - ViewComponent.GetWatchedComponentIds() 声明监听
+   - EntityView 维护 ComponentId 到 ViewComponent 映射
+   - 无需改动，继续使用
+
+**实现**：
+```
+脏组件同步（保持不变）：
+Stage.Update()
+  → SyncDirtyComponents()
+    → 遍历 Entity.GetDirtyComponentIds()
+    → EntityView.SyncDirtyComponents(dirtyIds)
+      → ViewComponent.SyncDataFromComponent(componentId)
+
+视图事件（新机制）：
+Stage.Update()
+  → ProcessViewEvents()
+    → 遍历 Entity.HasPendingViewEvents
+    → 分层处理事件（Stage / EntityView / ViewComponent）
+```
+
 ### Decision 4: 跨层数据结构的权衡
 
 **问题**：ViewEvent 是视图层概念，放在 Entity（逻辑层）是否合理？
@@ -209,7 +306,139 @@ Entity.ViewEventQueue   → 视图层事件（EntityView 处理）
 
 两者都存储在 Entity 上，但处理者不同，职责清晰。
 
-### Decision 6: 兼容性与性能
+### Decision 6: ViewComponent 事件注册机制
+
+**问题**：ViewComponent 如何声明需要监听的事件？
+
+**选择**：参考 Capability 的事件注册机制，使用静态声明 + 动态分发
+
+**实现**：
+```csharp
+// ViewComponent.cs
+public abstract class ViewComponent
+{
+    // 事件处理器映射（EventType -> Handler）
+    private Dictionary<Type, Delegate> _viewEventHandlers = new Dictionary<Type, Delegate>();
+    
+    /// <summary>
+    /// 注册视图事件处理器（子类重写）
+    /// 类似 Capability.RegisterEventHandlers()
+    /// </summary>
+    protected virtual void RegisterViewEventHandlers()
+    {
+        // 子类重写，注册需要监听的事件
+        // 例如：RegisterViewEventHandler<AnimationEvent>(OnAnimationEvent);
+    }
+    
+    /// <summary>
+    /// 注册单个事件处理器
+    /// </summary>
+    protected void RegisterViewEventHandler<TEvent>(Action<TEvent> handler)
+        where TEvent : struct
+    {
+        _viewEventHandlers[typeof(TEvent)] = handler;
+    }
+    
+    /// <summary>
+    /// 获取事件处理器映射（供 EntityView 访问）
+    /// </summary>
+    public Dictionary<Type, Delegate> GetViewEventHandlers() => _viewEventHandlers;
+    
+    // 初始化时调用注册
+    public virtual void Initialize()
+    {
+        // 现有初始化逻辑...
+        
+        // 注册事件处理器
+        RegisterViewEventHandlers();
+    }
+}
+
+// EntityView.cs
+public class EntityView
+{
+    // 事件类型 -> ViewComponent 列表映射
+    private Dictionary<Type, List<ViewComponent>> _viewEventToComponents 
+        = new Dictionary<Type, List<ViewComponent>>();
+    
+    /// <summary>
+    /// 注册 ViewComponent 的事件处理器
+    /// 在 AddViewComponent 时调用
+    /// </summary>
+    private void RegisterViewComponentEventHandlers(ViewComponent component)
+    {
+        var handlers = component.GetViewEventHandlers();
+        if (handlers == null || handlers.Count == 0)
+            return;
+        
+        foreach (var kvp in handlers)
+        {
+            var eventType = kvp.Key;
+            if (!_viewEventToComponents.ContainsKey(eventType))
+                _viewEventToComponents[eventType] = new List<ViewComponent>();
+            
+            if (!_viewEventToComponents[eventType].Contains(component))
+                _viewEventToComponents[eventType].Add(component);
+        }
+    }
+    
+    /// <summary>
+    /// 分发视图事件到 ViewComponent
+    /// 类似 CapabilitySystem.DispatchEventToEntity
+    /// </summary>
+    private void DispatchViewEventToComponents(Type eventType, object eventData)
+    {
+        if (!_viewEventToComponents.TryGetValue(eventType, out var components))
+            return; // 没有 ViewComponent 监听此事件
+        
+        foreach (var component in components)
+        {
+            if (!component.IsEnabled) continue;
+            
+            var handlers = component.GetViewEventHandlers();
+            if (handlers.TryGetValue(eventType, out var handler))
+            {
+                // 调用处理器
+                handler.DynamicInvoke(eventData);
+            }
+        }
+    }
+}
+```
+
+**使用示例**：
+```csharp
+// AnimationViewComponent.cs
+public class AnimationViewComponent : ViewComponent
+{
+    protected override void RegisterViewEventHandlers()
+    {
+        // 注册需要监听的视图事件
+        RegisterViewEventHandler<HitAnimationEvent>(OnHitAnimation);
+        RegisterViewEventHandler<SkillAnimationEvent>(OnSkillAnimation);
+    }
+    
+    private void OnHitAnimation(HitAnimationEvent evt)
+    {
+        // 处理受击动画
+        PlayAnimation(evt.AnimationName);
+    }
+    
+    private void OnSkillAnimation(SkillAnimationEvent evt)
+    {
+        // 处理技能动画
+        PlayAnimation(evt.AnimationName);
+    }
+}
+```
+
+**优势**：
+1. **与 Capability 一致**：设计模式统一
+2. **类型安全**：编译期检查事件类型
+3. **灵活**：ViewComponent 自由声明需要的事件
+4. **解耦**：事件定义和处理分离
+
+### Decision 7: 兼容性与性能
 
 **向后兼容**：
 - EventSystem 保持不变，仅实体相关事件使用队列

@@ -15,25 +15,37 @@
 
 ### 1. 新增 ViewEvent 事件队列系统
 - 添加 `ViewEvent` 结构体，封装视图层事件数据
-- 添加 `ViewEventType` 枚举，定义视图事件类型（Created, Destroyed, ComponentChanged 等）
+- 添加 `ViewEventType` 枚举，定义视图事件类型（EntityCreated, EntityDestroyed, SubArchetypeChanged, WorldRollback）
 - 在 `Entity` 中添加 `ViewEventQueue` 队列，存储待处理的视图事件（与 Entity.EventQueue 并列）
 - 添加 `Entity.HasViewLayer` 静态标记，服务器端拒绝入队避免内存泄漏
+- **注意**：脏组件同步是独立机制，不通过视图事件队列
 
 ### 2. 修改 Stage 事件处理机制
 - Stage 不再通过 EventSystem 同步订阅事件
 - Stage 在 Update() 中轮询所有 Entity 的 ViewEventQueue
-- 获取或创建对应的 EntityView，并分发事件处理
+- 分层处理事件：
+  - **Stage 级别**：EntityCreated, EntityDestroyed, WorldRollback（Stage 直接处理）
+  - **EntityView 级别**：SubArchetypeChanged（传递给 EntityView）
+  - **ViewComponent 级别**：自定义事件（EntityView 分发给 ViewComponent）
 - 批量处理事件，提升性能
 
 ### 3. 修改 World/Entity 事件发布机制
 - World 创建/销毁 Entity 时，调用 `entity.QueueViewEvent()` 将事件入队
-- Entity 组件变化时，将事件入队而非同步发布
+- Entity 子原型变化时，将事件入队而非同步发布
 - 无需额外缓存，Entity 总是先于 EntityView 创建
 
-### 4. 保持兼容性
+### 4. 新增 ViewComponent 事件注册机制（参考 Capability）
+- ViewComponent 提供 `RegisterViewEventHandlers()` 虚方法
+- 子类重写该方法，调用 `RegisterViewEventHandler<TEvent>(handler)` 注册事件
+- EntityView 维护 `事件类型 -> ViewComponent 列表` 映射
+- EntityView 提供 `DispatchViewEventToComponents()` 分发事件给 ViewComponent
+- 类似 CapabilitySystem 的设计模式
+
+### 5. 保持兼容性
 - EventSystem 保持不变，用于其他系统级事件（UI、音效、特效等）
 - 仅实体相关的视图事件使用队列机制
-- 提供配置选项，允许在调试时切换回同步模式
+- 脏组件同步机制保持不变（Stage.SyncDirtyComponents）
+- EventSystem 调用已注释但保留，便于回退
 
 ## Impact
 

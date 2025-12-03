@@ -4,6 +4,7 @@ using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Systems;
+using Astrum.LogicCore.Events;
 using Astrum.CommonBase;
 using MemoryPack;
 using Astrum.LogicCore.Archetypes;
@@ -439,8 +440,13 @@ namespace Astrum.LogicCore.Core
         /// <param name="entity">创建的实体</param>
         private void PublishEntityCreatedEvent(Entity entity)
         {
-            var eventData = new EntityCreatedEventData(entity, WorldId, RoomId);
-            EventSystem.Instance.Publish(eventData);
+            // 使用视图事件队列（新机制）
+            entity.QueueViewEvent(new ViewEvent(ViewEventType.EntityCreated, null, CurFrame));
+            
+            // 保留 EventSystem 发布用于其他系统（如音效、特效等）
+            // 注释掉以避免重复处理，但保留代码便于回退
+            // var eventData = new EntityCreatedEventData(entity, WorldId, RoomId);
+            // EventSystem.Instance.Publish(eventData);
         }
         
         /// <summary>
@@ -449,8 +455,13 @@ namespace Astrum.LogicCore.Core
         /// <param name="entity">销毁的实体</param>
         private void PublishEntityDestroyedEvent(Entity entity)
         {
-            var eventData = new EntityDestroyedEventData(entity, WorldId, RoomId);
-            EventSystem.Instance.Publish(eventData);
+            // 使用视图事件队列（新机制）
+            entity.QueueViewEvent(new ViewEvent(ViewEventType.EntityDestroyed, null, CurFrame));
+            
+            // 保留 EventSystem 发布用于其他系统（如音效、特效等）
+            // 注释掉以避免重复处理，但保留代码便于回退
+            // var eventData = new EntityDestroyedEventData(entity, WorldId, RoomId);
+            // EventSystem.Instance.Publish(eventData);
         }
         
         /// <summary>

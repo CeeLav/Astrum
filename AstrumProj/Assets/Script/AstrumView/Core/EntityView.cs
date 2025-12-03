@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Events;
 using Astrum.View.Components;
 using Astrum.View.Archetypes;
 using cfg;
@@ -528,5 +529,89 @@ namespace Astrum.View.Core
             
             ASLogger.Instance.Info($"EntityView: 移除视图组件，ID: {_entityId}，组件: {component.GetType().Name}");
         }
+        
+        #region 视图事件处理
+        
+        /// <summary>
+        /// 处理视图事件（由 Stage 传递下来）
+        /// EntityView 只处理 EntityView 和 ViewComponent 级别的事件
+        /// Stage 级别的事件（EntityCreated, EntityDestroyed, WorldRollback）由 Stage 直接处理
+        /// </summary>
+        /// <param name="evt">视图事件</param>
+        public void ProcessEvent(ViewEvent evt)
+        {
+            switch (evt.EventType)
+            {
+                case ViewEventType.SubArchetypeChanged:
+                    // EntityView 级别：自己处理
+                    ProcessEntityViewEvent_SubArchetypeChanged(evt);
+                    break;
+                    
+                case ViewEventType.CustomViewEvent:
+                    // ViewComponent 级别：分发给 ViewComponent
+                    if (evt.EventData != null)
+                    {
+                        var eventDataType = evt.EventData.GetType();
+                        DispatchViewEventToComponents(eventDataType, evt.EventData);
+                    }
+                    break;
+                    
+                default:
+                    ASLogger.Instance.Warning($"EntityView: 收到不应由 EntityView 处理的事件类型 {evt.EventType}，EntityId: {_entityId}");
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// 处理 EntityView 级别事件：子原型变化
+        /// </summary>
+        private void ProcessEntityViewEvent_SubArchetypeChanged(ViewEvent evt)
+        {
+            if (evt.EventData is EntitySubArchetypeChangedEventData data)
+            {
+                ASLogger.Instance.Debug($"EntityView: 处理子原型变化事件，EntityId: {_entityId}, Type: {data.SubArchetype}, ChangeType: {data.ChangeType}");
+                
+                if (data.ChangeType == SubArchetypeChangeType.Attach)
+                {
+                    AttachSubArchetype(data.SubArchetype);
+                }
+                else if (data.ChangeType == SubArchetypeChangeType.Detach)
+                {
+                    DetachSubArchetype(data.SubArchetype);
+                }
+            }
+            else
+            {
+                ASLogger.Instance.Warning($"EntityView: 子原型变化事件数据类型错误，EntityId: {_entityId}");
+            }
+        }
+        
+        /// <summary>
+        /// 分发视图事件到 ViewComponent
+        /// 类似 CapabilitySystem.DispatchEventToEntity
+        /// </summary>
+        /// <param name="eventType">事件类型（EventData 的类型）</param>
+        /// <param name="eventData">事件数据</param>
+        private void DispatchViewEventToComponents(Type eventType, object eventData)
+        {
+            // TODO: 实现 ViewComponent 事件注册机制后启用
+            // if (!_viewEventToComponents.TryGetValue(eventType, out var components))
+            //     return; // 没有 ViewComponent 监听此事件
+            // 
+            // foreach (var component in components)
+            // {
+            //     if (!component.IsEnabled) continue;
+            //     
+            //     var handlers = component.GetViewEventHandlers();
+            //     if (handlers.TryGetValue(eventType, out var handler))
+            //     {
+            //         handler.DynamicInvoke(eventData);
+            //     }
+            // }
+            
+            ASLogger.Instance.Debug($"EntityView: 分发视图事件到 ViewComponent（待实现），EventType: {eventType.Name}, EntityId: {_entityId}");
+        }
+        
+        #endregion
     }
 }

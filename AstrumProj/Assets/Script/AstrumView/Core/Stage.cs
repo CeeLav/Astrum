@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Events;
 using Astrum.View.Managers;
 using Astrum.View.Archetypes;
 using Astrum.View.Components;
@@ -78,13 +79,15 @@ namespace Astrum.View.Core
         {
             if (_isInited) return;
             
+            // 启用视图层标记（客户端）
+            Entity.HasViewLayer = true;
+            
             // 创建Stage根对象
             CreateStageRoot();
             
-            // 订阅实体事件
-            SubscribeToEntityEvents();
-            
             _isInited = true;
+            
+            ASLogger.Instance.Info($"Stage: 初始化完成（使用事件队列模式）- {_stageName}");
         }
         
         /// <summary>
@@ -420,6 +423,12 @@ namespace Astrum.View.Core
             
             using (new ProfileScope("Stage.Update"))
             {
+                // 处理视图事件队列
+                using (new ProfileScope("Stage.ProcessViewEvents"))
+                {
+                    ProcessViewEvents();
+                }
+                
                 // 处理脏组件同步
                 using (new ProfileScope("Stage.SyncDirtyComponents"))
                 {
@@ -435,6 +444,130 @@ namespace Astrum.View.Core
                     }
                 }
             }
+        }
+        
+        /// <summary>
+        /// 处理所有 Entity 的视图事件队列
+        /// </summary>
+        private void ProcessViewEvents()
+        {
+            if (_room?.MainWorld == null) return;
+            
+            int totalEventsProcessed = 0;
+            
+            // 遍历所有 Entity，检查是否有待处理的视图事件
+            foreach (var entity in _room.MainWorld.Entities.Values)
+            {
+                if (entity == null || !entity.HasPendingViewEvents)
+                    continue;
+                
+                var entityId = entity.UniqueId;
+                var eventQueue = entity.ViewEventQueue;
+                
+                if (eventQueue == null || eventQueue.Count == 0)
+                    continue;
+                
+                // 处理所有事件
+                int eventCount = eventQueue.Count;
+                while (eventQueue.Count > 0)
+                {
+                    var evt = eventQueue.Dequeue();
+                    
+                    // Stage 级别事件：由 Stage 直接处理
+                    if (evt.EventType == ViewEventType.EntityCreated)
+                    {
+                        ProcessStageEvent_EntityCreated(entityId, evt);
+                        totalEventsProcessed++;
+                    }
+                    else if (evt.EventType == ViewEventType.EntityDestroyed)
+                    {
+                        ProcessStageEvent_EntityDestroyed(entityId, evt);
+                        totalEventsProcessed++;
+                    }
+                    else if (evt.EventType == ViewEventType.WorldRollback)
+                    {
+                        ProcessStageEvent_WorldRollback(entityId, evt);
+                        totalEventsProcessed++;
+                    }
+                    // EntityView/ViewComponent 级别事件：传递给 EntityView 处理
+                    else if (evt.EventType == ViewEventType.SubArchetypeChanged || 
+                             evt.EventType == ViewEventType.CustomViewEvent)
+                    {
+                        // 获取 EntityView
+                        if (_entityViews.TryGetValue(entityId, out var entityView))
+                        {
+                            // 传递给 EntityView 处理
+                            entityView.ProcessEvent(evt);
+                            totalEventsProcessed++;
+                        }
+                        else
+                        {
+                            ASLogger.Instance.Warning($"Stage: EntityView 不存在，无法处理事件 {evt.EventType}，Entity {entityId}", "Stage.ProcessViewEvents");
+                        }
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Warning($"Stage: 未知的视图事件类型 {evt.EventType}，Entity {entityId}", "Stage.ProcessViewEvents");
+                    }
+                }
+                
+                if (eventCount > 0)
+                {
+                    ASLogger.Instance.Debug($"Stage: 处理了 {eventCount} 个视图事件，Entity {entityId}", "Stage.ProcessViewEvents");
+                }
+            }
+            
+            if (totalEventsProcessed > 0)
+            {
+                ASLogger.Instance.Debug($"Stage: 本帧共处理 {totalEventsProcessed} 个视图事件", "Stage.ProcessViewEvents");
+            }
+        }
+        
+        /// <summary>
+        /// 处理 Stage 级别事件：实体创建
+        /// </summary>
+        private void ProcessStageEvent_EntityCreated(long entityId, ViewEvent evt)
+        {
+            // 检查是否已存在
+            if (_entityViews.ContainsKey(entityId))
+            {
+                ASLogger.Instance.Debug($"Stage: EntityView 已存在，跳过创建 - Entity {entityId}", "Stage.ProcessStageEvent_EntityCreated");
+                return;
+            }
+            
+            // 创建 EntityView
+            bool created = CreateEntityViewInternal(entityId);
+            if (!created)
+            {
+                ASLogger.Instance.Error($"Stage: 创建 EntityView 失败 - Entity {entityId}", "Stage.ProcessStageEvent_EntityCreated");
+            }
+        }
+        
+        /// <summary>
+        /// 处理 Stage 级别事件：实体销毁
+        /// </summary>
+        private void ProcessStageEvent_EntityDestroyed(long entityId, ViewEvent evt)
+        {
+            // 销毁 EntityView
+            if (_entityViews.TryGetValue(entityId, out var entityView))
+            {
+                _entityViews.Remove(entityId);
+                entityView.Destroy();
+                ASLogger.Instance.Debug($"Stage: 销毁 EntityView - Entity {entityId}", "Stage.ProcessStageEvent_EntityDestroyed");
+            }
+        }
+        
+        /// <summary>
+        /// 处理 Stage 级别事件：世界回滚
+        /// </summary>
+        private void ProcessStageEvent_WorldRollback(long entityId, ViewEvent evt)
+        {
+            // 回滚所有 EntityView 的状态
+            foreach (var entityView in _entityViews.Values)
+            {
+                entityView.Reset();
+            }
+            ASLogger.Instance.Debug($"Stage: 处理世界回滚事件", "Stage.ProcessStageEvent_WorldRollback");
         }
         
         /// <summary>

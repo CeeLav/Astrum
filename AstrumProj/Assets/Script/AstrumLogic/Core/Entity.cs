@@ -5,6 +5,7 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Capabilities;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Systems;
+using Astrum.LogicCore.Events;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.Managers;
@@ -509,8 +510,13 @@ namespace Astrum.LogicCore.Core
         {
             if (World == null) return;
             
+            // 使用视图事件队列（新机制）
             var eventData = new EntitySubArchetypeChangedEventData(this, World.WorldId, World.RoomId, subArchetype, changeType);
-            EventSystem.Instance.Publish(eventData);
+            this.QueueViewEvent(new ViewEvent(ViewEventType.SubArchetypeChanged, eventData, World.CurFrame));
+            
+            // 保留 EventSystem 发布用于其他系统
+            // 注释掉以避免重复处理，但保留代码便于回退
+            // EventSystem.Instance.Publish(eventData);
         }
 
         /// <summary>
