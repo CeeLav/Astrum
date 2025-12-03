@@ -496,7 +496,10 @@ namespace Astrum.View.Components
 
             // 1. 根据动作ID获取动画名称
             string animationName = GetAnimationNameByActionId(actionId);
-            
+            if (animationName == null)
+            {
+                return;
+            }
             // 2. 检查动画是否已经在播放
             bool isSameAnimationPlaying = _currentAnimationName == animationName && _isPlaying;
             if (isSameAnimationPlaying && !forceRestart)
@@ -543,8 +546,8 @@ namespace Astrum.View.Components
             }
             catch (System.Exception ex)
             {
-                ASLogger.Instance.Error($"AnimationViewComponent.PlayAnimationByActionId: Exception while playing animation '{animationName}' " +
-                    $"(actionId: {actionId}) for entity {OwnerEntity?.UniqueId}: {ex.Message}");
+                /*ASLogger.Instance.Error($"AnimationViewComponent.PlayAnimationByActionId: Exception while playing animation '{animationName}' " +
+                    $"(actionId: {actionId}) for entity {OwnerEntity?.UniqueId}: {ex.Message}");*/
             }
         }
         
@@ -632,14 +635,14 @@ namespace Astrum.View.Components
                 if (actionTable == null)
                 {
                     ASLogger.Instance.Warning($"AnimationViewComponent.GetAnimationNameByActionId: ActionTable not found for actionId {actionId}");
-                    return $"Action_{actionId}"; // 返回默认格式
+                    return null; 
                 }
 
                 // 检查AnimationName是否为空
                 if (string.IsNullOrEmpty(actionTable.AnimationName))
                 {
-                    ASLogger.Instance.Warning($"AnimationViewComponent.GetAnimationNameByActionId: AnimationName is empty for actionId {actionId}, using default format");
-                    return $"Action_{actionId}"; // 返回默认格式
+                    ASLogger.Instance.Debug($"AnimationViewComponent.GetAnimationNameByActionId: AnimationName is empty for actionId {actionId}, using default format");
+                    return null; 
                 }
 
                 ASLogger.Instance.Debug($"AnimationViewComponent.GetAnimationNameByActionId: Found animation path '{actionTable.AnimationName}' for actionId {actionId}");
@@ -648,7 +651,7 @@ namespace Astrum.View.Components
             catch (System.Exception ex)
             {
                 ASLogger.Instance.Error($"AnimationViewComponent.GetAnimationNameByActionId: Exception while getting animation name for actionId {actionId}: {ex.Message}");
-                return $"Action_{actionId}"; // 返回默认格式
+                return null; // 返回默认格式
             }
         }
         

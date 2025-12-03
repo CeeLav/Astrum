@@ -72,11 +72,20 @@ namespace Astrum.Client.Core
         /// </summary>
         public void Update(float deltaTime)
         {
-            // 更新当前游戏模式
-            _currentGameMode?.Update(deltaTime);
-            
-            // 更新各个 Manager
-            UpdateManagers(deltaTime);
+            using (new ProfileScope("GameDirector.Update"))
+            {
+                // 更新当前游戏模式
+                using (new ProfileScope("GameDirector.UpdateGameMode"))
+                {
+                    _currentGameMode?.Update(deltaTime);
+                }
+                
+                // 更新各个 Manager
+                using (new ProfileScope("GameDirector.UpdateManagers"))
+                {
+                    UpdateManagers(deltaTime);
+                }
+            }
         }
         
         /// <summary>
@@ -241,12 +250,30 @@ namespace Astrum.Client.Core
         private void UpdateManagers(float deltaTime)
         {
             // 更新各个 Manager
-            InputManager.Instance?.Update();
-            NetworkManager.Instance?.Update();
-            UIManager.Instance?.Update();
-            AudioManager.Instance?.Update();
-            CameraManager.Instance?.Update();
-            VFXManager.Instance?.Update();
+            using (new ProfileScope("InputManager.Update"))
+            {
+                InputManager.Instance?.Update();
+            }
+            using (new ProfileScope("NetworkManager.Update"))
+            {
+                NetworkManager.Instance?.Update();
+            }
+            using (new ProfileScope("UIManager.Update"))
+            {
+                UIManager.Instance?.Update();
+            }
+            using (new ProfileScope("AudioManager.Update"))
+            {
+                AudioManager.Instance?.Update();
+            }
+            using (new ProfileScope("CameraManager.Update"))
+            {
+                CameraManager.Instance?.Update();
+            }
+            using (new ProfileScope("VFXManager.Update"))
+            {
+                VFXManager.Instance?.Update();
+            }
             // GamePlayManager 已删除，其功能已分散到其他管理器
         }
         

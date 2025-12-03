@@ -154,21 +154,26 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsActive) return;
 
-            // 更新帧同步控制器
-            if (LSController != null)
+            using (new ProfileScope("Room.Update"))
             {
-                // ReplayLSController 需要使用 Tick(float deltaTime) 方法
-                if (LSController is ReplayLSController replayController)
+                // 更新帧同步控制器
+                using (new ProfileScope("Room.LSController.Tick"))
                 {
-                    replayController.Tick(deltaTime);
-                }
-                else
-                {
-                    // 其他控制器使用无参 Tick() 方法
-                    LSController.Tick();
+                    if (LSController != null)
+                    {
+                        // ReplayLSController 需要使用 Tick(float deltaTime) 方法
+                        if (LSController is ReplayLSController replayController)
+                        {
+                            replayController.Tick(deltaTime);
+                        }
+                        else
+                        {
+                            // 其他控制器使用无参 Tick() 方法
+                            LSController.Tick();
+                        }
+                    }
                 }
             }
-            
         }
         
         public void FrameTick(OneFrameInputs oneFrameInputs)

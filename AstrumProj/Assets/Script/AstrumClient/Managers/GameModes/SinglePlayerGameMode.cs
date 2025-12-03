@@ -91,18 +91,31 @@ namespace Astrum.Client.Managers.GameModes
         {
             if (!IsRunning || CurrentState != GameModeState.Playing) return;
             
-            // 单机模式：模拟服务器的权威帧推进
-            // 在联机模式下，AuthorityFrame 由服务器通过 FrameSyncData 更新
-            // 在单机模式下，我们让 AuthorityFrame 跟随 PredictionFrame
-            if (MainRoom?.LSController is ClientLSController clientSync && clientSync.IsRunning)
+            using (new ProfileScope("SinglePlayerGameMode.Update"))
             {
-                // 让权威帧等于预测帧（本地模式下无延迟，它们应该相等）
-                clientSync.AuthorityFrame = clientSync.PredictionFrame;
+                // 单机模式：模拟服务器的权威帧推进
+                // 在联机模式下，AuthorityFrame 由服务器通过 FrameSyncData 更新
+                // 在单机模式下，我们让 AuthorityFrame 跟随 PredictionFrame
+                using (new ProfileScope("SinglePlayerGameMode.SyncAuthFrame"))
+                {
+                    if (MainRoom?.LSController is ClientLSController clientSync && clientSync.IsRunning)
+                    {
+                        // 让权威帧等于预测帧（本地模式下无延迟，它们应该相等）
+                        clientSync.AuthorityFrame = clientSync.PredictionFrame;
+                    }
+                }
+                
+                // 更新 Room 和 Stage
+                using (new ProfileScope("SinglePlayerGameMode.UpdateRoom"))
+                {
+                    MainRoom?.Update(deltaTime);
+                }
+                
+                using (new ProfileScope("SinglePlayerGameMode.UpdateStage"))
+                {
+                    MainStage?.Update(deltaTime);
+                }
             }
-            
-            // 更新 Room 和 Stage
-            MainRoom?.Update(deltaTime);
-            MainStage?.Update(deltaTime);
         }
         
         /// <summary>

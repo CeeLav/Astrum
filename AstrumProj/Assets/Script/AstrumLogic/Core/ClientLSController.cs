@@ -89,23 +89,37 @@ namespace Astrum.LogicCore.Core
                 
                 ++PredictionFrame;
 
-                OneFrameInputs oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
-                SaveState();
-                Room.FrameTick(oneOneFrameInputs);
-                if (Room.MainPlayerId > 0)
+                OneFrameInputs oneOneFrameInputs;
+                using (new ProfileScope("ClientLS.GetOneFrameMessages"))
                 {
-                    // 确保 Input 的 Frame 字段被正确设置
-                    if (_inputSystem.ClientInput != null)
-                    {
-                        _inputSystem.ClientInput.Frame = PredictionFrame;
-                        _inputSystem.ClientInput.PlayerId = Room.MainPlayerId;
-                    }
-                    
-                    var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
-                    // ASLogger.Instance.Log(LogLevel.Debug, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
-                    
-                    EventSystem.Instance.Publish(eventData);
+                    oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
                 }
+                
+                using (new ProfileScope("ClientLS.SaveState"))
+                {
+                    SaveState();
+                }
+                
+                Room.FrameTick(oneOneFrameInputs);
+                
+                using (new ProfileScope("ClientLS.PublishFrameData"))
+                {
+                    if (Room.MainPlayerId > 0)
+                    {
+                        // 确保 Input 的 Frame 字段被正确设置
+                        if (_inputSystem.ClientInput != null)
+                        {
+                            _inputSystem.ClientInput.Frame = PredictionFrame;
+                            _inputSystem.ClientInput.PlayerId = Room.MainPlayerId;
+                        }
+                        
+                        var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
+                        // ASLogger.Instance.Log(LogLevel.Debug, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
+                        
+                        EventSystem.Instance.Publish(eventData);
+                    }
+                }
+                
                 if (TimeInfo.Instance.ServerNow() - currentTime > 5)
                 {
                     return;
@@ -302,48 +316,64 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void SaveState()
         {
-            // 客户端使用 PredictionFrame 保存状态（因为客户端是基于预测帧执行的）
-            int frame = PredictionFrame;
-            
-            // 检查帧号是否有效
-            if (frame < 0)
+            using (new ProfileScope("SaveState"))
             {
-                ASLogger.Instance.Warning($"ClientLSController.SaveState: 帧号无效 (AuthorityFrame: {AuthorityFrame}, PredictionFrame: {PredictionFrame})，跳过保存状态", "FrameSync.SaveState");
-                return;
-            }
-            
-            if (frame > FrameBuffer.MaxFrame)
-            {
-                while (FrameBuffer.MaxFrame < frame)
-                {
-                    FrameBuffer.MoveForward(FrameBuffer.MaxFrame);
-                }
-            }
-            
-            var memoryBuffer = FrameBuffer.Snapshot(frame);
-            memoryBuffer.Seek(0, SeekOrigin.Begin);
-            memoryBuffer.SetLength(0);
-            
-            if (Room?.MainWorld != null)
-            {
-                var world = Room.MainWorld;
-                // ASLogger.Instance.Debug($"保存帧状态 - 帧: {frame}, World ID: {world.WorldId},World Frame:{world.CurFrame} 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.SaveState");
+                // 客户端使用 PredictionFrame 保存状态（因为客户端是基于预测帧执行的）
+                int frame = PredictionFrame;
                 
-                if (world.Entities != null)
+                // 检查帧号是否有效
+                if (frame < 0)
                 {
-                    foreach (var entity in world.Entities.Values)
+                    ASLogger.Instance.Warning($"ClientLSController.SaveState: 帧号无效 (AuthorityFrame: {AuthorityFrame}, PredictionFrame: {PredictionFrame})，跳过保存状态", "FrameSync.SaveState");
+                    return;
+                }
+                
+                if (frame > FrameBuffer.MaxFrame)
+                {
+                    while (FrameBuffer.MaxFrame < frame)
                     {
-                        // ASLogger.Instance.Debug($"  - 保存实体: {entity.Name} (ID: {entity.UniqueId}), 组件: {entity.Components?.Count ?? 0}, 能力: {entity.CapabilityStates?.Count ?? 0}", "FrameSync.SaveState");
+                        FrameBuffer.MoveForward(FrameBuffer.MaxFrame);
                     }
                 }
+                
+                MemoryBuffer memoryBuffer;
+                using (new ProfileScope("SaveState.GetSnapshot"))
+                {
+                    memoryBuffer = FrameBuffer.Snapshot(frame);
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    memoryBuffer.SetLength(0);
+                }
+                
+                // 序列化 World
+                using (new ProfileScope("SaveState.SerializeWorld"))
+                {
+                    if (Room?.MainWorld != null)
+                    {
+                        var world = Room.MainWorld;
+                        // ASLogger.Instance.Debug($"保存帧状态 - 帧: {frame}, World ID: {world.WorldId},World Frame:{world.CurFrame} 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.SaveState");
+                        
+                        if (world.Entities != null)
+                        {
+                            foreach (var entity in world.Entities.Values)
+                            {
+                                // ASLogger.Instance.Debug($"  - 保存实体: {entity.Name} (ID: {entity.UniqueId}), 组件: {entity.Components?.Count ?? 0}, 能力: {entity.CapabilityStates?.Count ?? 0}", "FrameSync.SaveState");
+                            }
+                        }
+                    }
+                    
+                    MemoryPackHelper.Serialize(Room.MainWorld, memoryBuffer);
+                }
+                
+                // 计算哈希
+                using (new ProfileScope("SaveState.CalculateHash"))
+                {
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    long hash = memoryBuffer.GetBuffer().Hash(0, (int)memoryBuffer.Length);
+                    FrameBuffer.SetHash(frame, hash);
+                }
+                
+                // ASLogger.Instance.Debug($"帧状态保存完成 - 帧: {frame}, 数据大小: {memoryBuffer.Length} bytes, 哈希: {hash}", "FrameSync.SaveState");
             }
-            
-            MemoryPackHelper.Serialize(Room.MainWorld, memoryBuffer);
-            memoryBuffer.Seek(0, SeekOrigin.Begin);
-            long hash = memoryBuffer.GetBuffer().Hash(0, (int)memoryBuffer.Length);
-            FrameBuffer.SetHash(frame, hash);
-            
-            // ASLogger.Instance.Debug($"帧状态保存完成 - 帧: {frame}, 数据大小: {memoryBuffer.Length} bytes, 哈希: {hash}", "FrameSync.SaveState");
         }
 
         /// <summary>
