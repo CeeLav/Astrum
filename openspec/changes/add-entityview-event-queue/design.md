@@ -118,60 +118,124 @@ public partial class Entity
 └──────────────────────────────────────────────────────┘
 ```
 
-**ViewComponent 事件注册机制**（参考 Capability）：
+**ViewComponent 事件注册机制**（全局注册，参考 CapabilitySystem）：
 ```csharp
+// ViewComponentEventRegistry.cs（新增，单例）
+public class ViewComponentEventRegistry
+{
+    private static ViewComponentEventRegistry _instance;
+    public static ViewComponentEventRegistry Instance => _instance ??= new ViewComponentEventRegistry();
+    
+    // 全局映射：事件类型 -> ViewComponent 类型列表
+    // 类似 CapabilitySystem._eventToHandlers
+    private Dictionary<Type, List<Type>> _eventTypeToComponentTypes 
+        = new Dictionary<Type, List<Type>>();
+    
+    private bool _initialized = false;
+    
+    /// <summary>
+    /// 注册 ViewComponent 类型监听的事件
+    /// 由 ViewComponent 子类在静态构造函数中调用
+    /// </summary>
+    public void RegisterEventHandler(Type eventType, Type componentType)
+    {
+        if (!_eventTypeToComponentTypes.ContainsKey(eventType))
+            _eventTypeToComponentTypes[eventType] = new List<Type>();
+        
+        if (!_eventTypeToComponentTypes[eventType].Contains(componentType))
+            _eventTypeToComponentTypes[eventType].Add(componentType);
+    }
+    
+    /// <summary>
+    /// 获取监听指定事件的 ViewComponent 类型列表
+    /// </summary>
+    public List<Type> GetComponentTypesForEvent(Type eventType)
+    {
+        return _eventTypeToComponentTypes.TryGetValue(eventType, out var types) ? types : null;
+    }
+}
+
 // ViewComponent.cs
 public abstract class ViewComponent
 {
-    private Dictionary<Type, Delegate> _eventHandlers;
+    // 实例级事件处理器（eventType -> handler）
+    private Dictionary<Type, Delegate> _instanceEventHandlers = new Dictionary<Type, Delegate>();
     
+    /// <summary>
+    /// 注册视图事件处理器（子类重写）
+    /// </summary>
     protected virtual void RegisterViewEventHandlers()
     {
-        // 子类重写，注册事件处理器
+        // 子类重写，注册实例级事件处理器
         // 例如：RegisterViewEventHandler<AnimationEvent>(OnAnimationEvent);
     }
     
     protected void RegisterViewEventHandler<TEvent>(Action<TEvent> handler)
         where TEvent : struct
     {
-        _eventHandlers[typeof(TEvent)] = handler;
+        _instanceEventHandlers[typeof(TEvent)] = handler;
     }
     
-    public Dictionary<Type, Delegate> GetEventHandlers() => _eventHandlers;
+    /// <summary>
+    /// 调用事件处理器
+    /// </summary>
+    internal void InvokeEventHandler(Type eventType, object eventData)
+    {
+        if (_instanceEventHandlers.TryGetValue(eventType, out var handler))
+        {
+            handler.DynamicInvoke(eventData);
+        }
+    }
+}
+
+// AnimationViewComponent.cs（使用示例）
+public class AnimationViewComponent : ViewComponent
+{
+    // 静态注册（类型级别）
+    static AnimationViewComponent()
+    {
+        ViewComponentEventRegistry.Instance.RegisterEventHandler(
+            typeof(HitAnimationEvent), typeof(AnimationViewComponent));
+        ViewComponentEventRegistry.Instance.RegisterEventHandler(
+            typeof(SkillAnimationEvent), typeof(AnimationViewComponent));
+    }
+    
+    // 实例注册（实例级别）
+    protected override void RegisterViewEventHandlers()
+    {
+        RegisterViewEventHandler<HitAnimationEvent>(OnHitAnimation);
+        RegisterViewEventHandler<SkillAnimationEvent>(OnSkillAnimation);
+    }
+    
+    private void OnHitAnimation(HitAnimationEvent evt) { /* ... */ }
+    private void OnSkillAnimation(SkillAnimationEvent evt) { /* ... */ }
 }
 
 // EntityView.cs
 public class EntityView
 {
-    // 事件类型 -> ViewComponent 列表映射
-    private Dictionary<Type, List<ViewComponent>> _viewEventToComponents 
-        = new Dictionary<Type, List<ViewComponent>>();
+    // 不再维护实例级映射！
     
-    // 注册 ViewComponent 的事件处理器
-    private void RegisterViewComponentEventHandlers(ViewComponent component)
-    {
-        var handlers = component.GetEventHandlers();
-        foreach (var kvp in handlers)
-        {
-            var eventType = kvp.Key;
-            if (!_viewEventToComponents.ContainsKey(eventType))
-                _viewEventToComponents[eventType] = new List<ViewComponent>();
-            _viewEventToComponents[eventType].Add(component);
-        }
-    }
-    
-    // 分发事件给 ViewComponent（类似 CapabilitySystem.DispatchEventToEntity）
+    /// <summary>
+    /// 分发视图事件到 ViewComponent
+    /// 类似 CapabilitySystem.DispatchEventToEntity
+    /// </summary>
     private void DispatchViewEventToComponents(Type eventType, object eventData)
     {
-        if (!_viewEventToComponents.TryGetValue(eventType, out var components))
-            return;
+        // 1. 查询全局映射：哪些 ViewComponent 类型监听此事件
+        var componentTypes = ViewComponentEventRegistry.Instance.GetComponentTypesForEvent(eventType);
+        if (componentTypes == null || componentTypes.Count == 0)
+            return; // 没有 ViewComponent 监听此事件
         
-        foreach (var component in components)
+        // 2. 检查当前 EntityView 是否有对应的 ViewComponent 实例
+        foreach (var componentType in componentTypes)
         {
-            if (!component.IsEnabled) continue;
-            
-            var handler = component.GetEventHandlers()[eventType];
-            handler.DynamicInvoke(eventData);
+            var component = _viewComponents.FirstOrDefault(c => c.GetType() == componentType);
+            if (component != null && component.IsEnabled)
+            {
+                // 3. 调用实例的事件处理器
+                component.InvokeEventHandler(eventType, eventData);
+            }
         }
     }
 }
@@ -433,10 +497,27 @@ public class AnimationViewComponent : ViewComponent
 ```
 
 **优势**：
-1. **与 Capability 一致**：设计模式统一
-2. **类型安全**：编译期检查事件类型
-3. **灵活**：ViewComponent 自由声明需要的事件
-4. **解耦**：事件定义和处理分离
+1. **与 CapabilitySystem 完全一致**：全局注册 + 实例分发
+2. **性能优化**：
+   - 全局映射只建立一次（静态初始化）
+   - EntityView 创建时无需建立映射
+   - 分发时直接查询全局表
+3. **内存优化**：不需要每个 EntityView 维护映射副本
+4. **类型安全**：编译期检查事件类型
+5. **灵活扩展**：ViewComponent 自由声明需要的事件
+
+**对比 CapabilitySystem**：
+```
+CapabilitySystem:
+- 静态注册：Capability 类型注册事件处理器
+- 全局映射：_eventToHandlers (EventType -> List<CapabilityType>)
+- 实例分发：检查 entity.CapabilityStates，调用对应 Capability
+
+ViewComponentEventRegistry（新增）:
+- 静态注册：ViewComponent 类型注册事件处理器
+- 全局映射：_eventTypeToComponentTypes (EventType -> List<ComponentType>)
+- 实例分发：检查 entityView._viewComponents，调用对应 ViewComponent
+```
 
 ### Decision 7: 兼容性与性能
 

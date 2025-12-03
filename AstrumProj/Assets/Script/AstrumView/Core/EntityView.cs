@@ -27,8 +27,11 @@ namespace Astrum.View.Core
         // 组件管理
         protected List<ViewComponent> _viewComponents = new List<ViewComponent>();
 
-        // ComponentTypeId 到 ViewComponent 列表的映射
+        // ComponentTypeId 到 ViewComponent 列表的映射（用于脏组件同步）
         private Dictionary<int, List<ViewComponent>> _componentIdToViewComponentsMap = new Dictionary<int, List<ViewComponent>>();
+        
+        // 注意：不再维护实例级的事件映射，改用全局 ViewComponentEventRegistry
+        // 类似 CapabilitySystem 使用全局 _eventToHandlers
         
         // 子原型管理
         protected List<EArchetype> _activeSubArchetypes = new List<EArchetype>();
@@ -154,8 +157,11 @@ namespace Astrum.View.Core
             component.OwnerEntityView = this;
             component.Initialize();
             
-            // 建立映射关系
+            // 建立脏组件映射关系
             RegisterViewComponentWatchedIds(component);
+            
+            // 注意：不再需要建立视图事件映射
+            // ViewComponent 的事件处理器已在全局 ViewComponentEventRegistry 中注册
             
             ASLogger.Instance.Info($"EntityView: 添加视图组件，ID: {_entityId}，组件: {component.GetType().Name}");
         }
@@ -521,8 +527,11 @@ namespace Astrum.View.Core
         {
             if (component == null) return;
             
-            // 清理映射关系
+            // 清理脏组件映射关系
             UnregisterViewComponentWatchedIds(component);
+            
+            // 注意：不再需要清理视图事件映射
+            // ViewComponent 的事件处理器在全局注册表中，不需要清理
             
             _viewComponents.Remove(component);
             component.Destroy();
@@ -588,28 +597,52 @@ namespace Astrum.View.Core
         
         /// <summary>
         /// 分发视图事件到 ViewComponent
-        /// 类似 CapabilitySystem.DispatchEventToEntity
+        /// 使用全局 ViewComponentEventRegistry 查询映射，类似 CapabilitySystem.DispatchEventToEntity
         /// </summary>
-        /// <param name="eventType">事件类型（EventData 的类型）</param>
-        /// <param name="eventData">事件数据</param>
+        /// <param name="eventType">事件数据类型（例如 HitAnimationEvent）</param>
+        /// <param name="eventData">事件数据实例</param>
         private void DispatchViewEventToComponents(Type eventType, object eventData)
         {
-            // TODO: 实现 ViewComponent 事件注册机制后启用
-            // if (!_viewEventToComponents.TryGetValue(eventType, out var components))
-            //     return; // 没有 ViewComponent 监听此事件
-            // 
-            // foreach (var component in components)
-            // {
-            //     if (!component.IsEnabled) continue;
-            //     
-            //     var handlers = component.GetViewEventHandlers();
-            //     if (handlers.TryGetValue(eventType, out var handler))
-            //     {
-            //         handler.DynamicInvoke(eventData);
-            //     }
-            // }
+            // 1. 查询全局映射：哪些 ViewComponent 类型监听此事件
+            var componentTypes = ViewComponentEventRegistry.Instance.GetComponentTypesForEvent(eventType);
+            if (componentTypes == null || componentTypes.Count == 0)
+            {
+                // 没有 ViewComponent 监听此事件（正常情况，不输出警告）
+                // ASLogger.Instance.Debug($"EntityView: 没有 ViewComponent 监听事件 {eventType.Name}，EntityId: {_entityId}");
+                return;
+            }
             
-            ASLogger.Instance.Debug($"EntityView: 分发视图事件到 ViewComponent（待实现），EventType: {eventType.Name}, EntityId: {_entityId}");
+            ASLogger.Instance.Debug($"EntityView: 分发视图事件 {eventType.Name} 到 {componentTypes.Count} 种 ViewComponent，EntityId: {_entityId}");
+            
+            // 2. 检查当前 EntityView 是否有对应的 ViewComponent 实例
+            foreach (var componentType in componentTypes)
+            {
+                // 查找对应类型的 ViewComponent 实例
+                ViewComponent component = null;
+                foreach (var c in _viewComponents)
+                {
+                    if (c.GetType() == componentType)
+                    {
+                        component = c;
+                        break;
+                    }
+                }
+                
+                // 如果找到实例且已启用，则分发事件
+                if (component != null && component.IsEnabled)
+                {
+                    try
+                    {
+                        // 3. 调用实例的事件处理器
+                        component.InvokeEventHandler(eventType, eventData);
+                        ASLogger.Instance.Debug($"EntityView: 成功分发事件到 {component.GetType().Name}，EventType: {eventType.Name}, EntityId: {_entityId}");
+                    }
+                    catch (Exception ex)
+                    {
+                        ASLogger.Instance.Error($"EntityView: 分发事件到 {component.GetType().Name} 时发生异常，EventType: {eventType.Name}, EntityId: {_entityId}, Error: {ex.Message}");
+                    }
+                }
+            }
         }
         
         #endregion

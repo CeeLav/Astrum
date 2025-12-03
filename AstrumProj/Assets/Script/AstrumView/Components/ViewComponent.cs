@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using System.Collections.Generic;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.View.Core;
@@ -17,6 +18,14 @@ namespace Astrum.View.Components
         
         // 所属实体视图
         protected EntityView _ownerEntityView;
+        
+        // 视图事件处理器映射（EventType -> Handler）
+        // 类似 Capability 的事件处理机制
+        private Dictionary<Type, Delegate> _viewEventHandlers = new Dictionary<Type, Delegate>();
+        
+        // 事件处理器是否已注册标志（对象池优化）
+        // 避免每次从对象池取出时重复注册回调
+        private bool _eventHandlersRegistered = false;
         
         // 公共属性
         public int ComponentId => _componentId;
@@ -59,6 +68,14 @@ namespace Astrum.View.Components
             
             try
             {
+                // 注册视图事件处理器（类似 Capability.RegisterEventHandlers）
+                // 对象池优化：只在第一次注册，避免重复注册开销
+                if (!_eventHandlersRegistered)
+                {
+                    RegisterViewEventHandlers();
+                    _eventHandlersRegistered = true;
+                }
+                
                 // 子类特定的初始化
                 OnInitialize();
                 
@@ -192,5 +209,56 @@ namespace Astrum.View.Components
                 // 子类应该重写此方法，从 component 提取数据并调用 OnSyncData
             }
         }
+        
+        #region 视图事件处理机制（类似 Capability，全局注册 + 对象池优化）
+        
+        /// <summary>
+        /// 注册视图事件处理器（子类重写）
+        /// 类似 Capability.RegisterEventHandlers()
+        /// 子类在此方法中调用 RegisterViewEventHandler 注册实例级事件处理器
+        /// 
+        /// 注意：
+        /// 1. 静态注册（类型级）：在静态构造函数中调用 ViewComponentEventRegistry.Instance.RegisterEventHandler
+        /// 2. 实例注册（实例级）：在此方法中调用 RegisterViewEventHandler 注册实例的处理器
+        /// 3. 对象池优化：此方法只在第一次初始化时调用，避免重复注册开销
+        /// </summary>
+        protected virtual void RegisterViewEventHandlers()
+        {
+            // 默认不注册任何事件，子类重写以注册事件
+        }
+        
+        /// <summary>
+        /// 注册单个视图事件处理器（实例级）
+        /// </summary>
+        /// <typeparam name="TEvent">事件类型（必须是 struct）</typeparam>
+        /// <param name="handler">事件处理器</param>
+        protected void RegisterViewEventHandler<TEvent>(Action<TEvent> handler)
+            where TEvent : struct
+        {
+            var eventType = typeof(TEvent);
+            _viewEventHandlers[eventType] = handler;
+        }
+        
+        /// <summary>
+        /// 调用事件处理器（由 EntityView 调用）
+        /// </summary>
+        /// <param name="eventType">事件类型</param>
+        /// <param name="eventData">事件数据</param>
+        internal void InvokeEventHandler(Type eventType, object eventData)
+        {
+            if (_viewEventHandlers.TryGetValue(eventType, out var handler))
+            {
+                try
+                {
+                    handler.DynamicInvoke(eventData);
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Error($"ViewComponent: 调用事件处理器失败，EventType: {eventType.Name}, ComponentType: {GetType().Name}, Error: {ex.Message}");
+                }
+            }
+        }
+        
+        #endregion
     }
 }

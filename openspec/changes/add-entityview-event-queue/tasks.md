@@ -107,6 +107,27 @@
   - [ ] 5.4.1 测试现有功能不受影响（UI、音效、特效）
   - [ ] 5.4.2 测试多 Stage 场景
 
+## 补充实施: ViewComponent 事件注册机制 ✅
+
+- [x] 8.1 修改 ViewComponent.cs
+  - [x] 8.1.1 添加 `_viewEventHandlers` 字段
+  - [x] 8.1.2 在 Initialize() 中调用 RegisterViewEventHandlers()
+  - [x] 8.1.3 实现 RegisterViewEventHandlers() 虚方法
+  - [x] 8.1.4 实现 RegisterViewEventHandler<TEvent>() 方法
+  - [x] 8.1.5 实现 GetViewEventHandlers() 方法
+
+- [x] 8.2 修改 EntityView.cs
+  - [x] 8.2.1 添加 `_viewEventToComponents` 映射
+  - [x] 8.2.2 实现 RegisterViewComponentEventHandlers()
+  - [x] 8.2.3 实现 UnregisterViewComponentEventHandlers()
+  - [x] 8.2.4 完善 DispatchViewEventToComponents()
+  - [x] 8.2.5 在 AddViewComponent 中调用注册
+  - [x] 8.2.6 在 RemoveViewComponent 中调用取消注册
+
+- [x] 8.3 编译验证
+  - [x] 8.3.1 确保编译通过 ✅
+  - [x] 8.3.2 确保事件注册机制正常工作
+
 ## Phase 6: 文档和清理（1-2小时）✅
 
 - [x] 6.1 更新文档
