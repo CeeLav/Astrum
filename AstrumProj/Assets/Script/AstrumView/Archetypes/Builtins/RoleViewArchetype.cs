@@ -8,7 +8,7 @@ namespace Astrum.View.Archetypes
     {
         private static readonly Type[] _comps =
         {
-            typeof(ModelViewComponent)
+            
         };
 
         public override Type[] ViewComponents => _comps;
