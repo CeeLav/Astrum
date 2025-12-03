@@ -139,6 +139,9 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 播放受击特效
         /// </summary>
+        /// <summary>
+        /// 播放受击特效（通过 ViewEvent 传递到视图层）
+        /// </summary>
         private void PlayHitVFX(Entity entity, HitReactionEvent evt)
         {
             if (string.IsNullOrEmpty(evt.VisualEffectPath))
@@ -153,16 +156,15 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            var trans = entity.GetComponent<TransComponent>();
             var positionOffset = TSVector.zero;
             if (evt.HitOffset != TSVector.zero)
             {
                 positionOffset = evt.HitOffset;
             }
 
-            var triggerData = new VFXTriggerEventData
+            // 构造 VFX 触发事件数据
+            var vfxEvent = new VFXTriggerEvent
             {
-                EntityId = entity.UniqueId,
                 ResourcePath = evt.VisualEffectPath,
                 PositionOffset = positionOffset,
                 Rotation = TSVector.zero,
@@ -172,9 +174,14 @@ namespace Astrum.LogicCore.Capabilities
                 Loop = false
             };
 
-            EventSystem.Instance.Publish(triggerData);
+            // 通过 ViewEvent 队列传递到视图层（异步，不阻塞逻辑层）
+            entity.QueueViewEvent(new ViewEvent(
+                ViewEventType.CustomViewEvent, 
+                vfxEvent, 
+                entity.World.CurFrame
+            ));
 
-            ASLogger.Instance.Debug($"[HitReactionCapability] 发布受击特效事件: entity={entity.UniqueId}, path={evt.VisualEffectPath}");
+            ASLogger.Instance.Debug($"[HitReactionCapability] 队列受击特效事件: entity={entity.UniqueId}, path={evt.VisualEffectPath}");
         }
 
         /// <summary>

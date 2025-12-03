@@ -1,4 +1,5 @@
 using System;
+using TrueSync;
 
 namespace Astrum.LogicCore.Events
 {
@@ -43,6 +44,50 @@ namespace Astrum.LogicCore.Events
         
         // 注意：不包含 ComponentDirty
         // 脏组件同步是独立机制，通过 Stage.SyncDirtyComponents() 处理
+    }
+    
+    // ========== ViewComponent 自定义事件数据 ==========
+    
+    /// <summary>
+    /// VFX 触发事件数据
+    /// 用于在视图层播放视觉特效
+    /// </summary>
+    public struct VFXTriggerEvent
+    {
+        /// <summary>
+        /// 特效资源路径
+        /// </summary>
+        public string ResourcePath;
+        
+        /// <summary>
+        /// 位置偏移（相对于实体位置）
+        /// </summary>
+        public TSVector PositionOffset;
+        
+        /// <summary>
+        /// 旋转
+        /// </summary>
+        public TSVector Rotation;
+        
+        /// <summary>
+        /// 缩放
+        /// </summary>
+        public float Scale;
+        
+        /// <summary>
+        /// 播放速度
+        /// </summary>
+        public float PlaybackSpeed;
+        
+        /// <summary>
+        /// 是否跟随角色
+        /// </summary>
+        public bool FollowCharacter;
+        
+        /// <summary>
+        /// 是否循环播放
+        /// </summary>
+        public bool Loop;
     }
     
     /// <summary>
