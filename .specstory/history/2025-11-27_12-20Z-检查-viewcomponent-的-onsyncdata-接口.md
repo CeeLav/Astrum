@@ -871,7 +871,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="generic" data-tool-name="list_dir">
 <details>
-            <summary>Tool use: **list_directory** • Listed directory undefined • **0** results</summary>
+            <summary>Tool use: **list_dir** • Listed directory undefined • **0** results</summary>
         
 No results found
 </details>
@@ -933,7 +933,7 @@ Directory: **d:\Develop\Projects\Astrum** (0 file)
 
 <tool-use data-tool-type="generic" data-tool-name="list_dir">
 <details>
-            <summary>Tool use: **list_directory** • Listed directory undefined • **0** results</summary>
+            <summary>Tool use: **list_dir** • Listed directory undefined • **0** results</summary>
         
 No results found
 </details>
@@ -961,7 +961,7 @@ No results found
 
 <tool-use data-tool-type="write" data-tool-name="write">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **write** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 775, lines removed: 1
@@ -1079,7 +1079,7 @@ Lines added: 775, lines removed: 1
 + **修改内容**:
 + - 在 &#96;AddComponent&#96; 时订阅组件的 &#96;OnDataChanged&#96; 事件
 + - 在 &#96;RemoveComponent&#96; 时取消订阅
-+ - 当组件数据变化时，发布 &#96;EntityComponentChangedEventData&#96;（changeType=&quot;update&quot;）
++ - 当组件数据变化时，发布 &#96;EntityComponentChangedEventData&#96;（changeType="update"）
 + 
 + **设计要点**:
 + - Entity 作为统一的事件转发层，将组件变化转换为实体级别的事件
@@ -1187,7 +1187,7 @@ Lines added: 775, lines removed: 1
 +         component.OnDataChanged += OnComponentDataChanged;
 +         
 +         // 发布组件添加事件
-+         PublishComponentChangedEvent(component, &quot;add&quot;);
++         PublishComponentChangedEvent(component, "add");
 +         
 +         return component;
 +     }
@@ -1202,7 +1202,7 @@ Lines added: 775, lines removed: 1
 +             component.OnDataChanged -= OnComponentDataChanged;
 +             
 +             // 发布组件移除事件
-+             PublishComponentChangedEvent(component, &quot;remove&quot;);
++             PublishComponentChangedEvent(component, "remove");
 +             
 +             // 现有代码...
 +         }
@@ -1216,7 +1216,7 @@ Lines added: 775, lines removed: 1
 +     private void OnComponentDataChanged(BaseComponent component)
 +     {
 +         // 发布组件更新事件
-+         PublishComponentChangedEvent(component, &quot;update&quot;);
++         PublishComponentChangedEvent(component, "update");
 +     }
 + }
 + &#96;&#96;&#96;
@@ -1243,7 +1243,7 @@ Lines added: 775, lines removed: 1
 +     /// 从 BaseComponent 提取数据并同步
 +     /// 子类重写此方法以自定义数据提取逻辑
 +     /// &lt;/summary&gt;
-+     /// &lt;param name=&quot;component&quot;&gt;BaseComponent 实例&lt;/param&gt;
++     /// &lt;param name="component"&gt;BaseComponent 实例&lt;/param&gt;
 +     protected virtual void SyncDataFromComponent(BaseComponent component)
 +     {
 +         // 默认实现：子类可以重写以自定义数据提取逻辑
@@ -1253,7 +1253,7 @@ Lines added: 775, lines removed: 1
 +     /// &lt;summary&gt;
 +     /// 同步数据（公共方法，供外部调用）
 +     /// &lt;/summary&gt;
-+     /// &lt;param name=&quot;data&quot;&gt;数据对象&lt;/param&gt;
++     /// &lt;param name="data"&gt;数据对象&lt;/param&gt;
 +     public void SyncData(object data)
 +     {
 +         if (!_isEnabled) return;
@@ -1363,7 +1363,7 @@ Lines added: 775, lines removed: 1
 +         }
 +         
 +         // 只处理更新事件
-+         if (eventData.ChangeType.ToLower() != &quot;update&quot;)
++         if (eventData.ChangeType.ToLower() != "update")
 +         {
 +             return;
 +         }
@@ -1811,7 +1811,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: 4
@@ -1841,7 +1841,7 @@ Lines added: 5, lines removed: 4
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 2
@@ -1924,7 +1924,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 28, lines removed: 10
@@ -1955,7 +1955,7 @@ Lines added: 28, lines removed: 10
   **修改内容**:
 - - 在 &#96;AddComponent&#96; 时订阅组件的 &#96;OnDataChanged&#96; 事件
 - - 在 &#96;RemoveComponent&#96; 时取消订阅
-- - 当组件数据变化时，发布 &#96;EntityComponentChangedEventData&#96;（changeType=&quot;update&quot;）
+- - 当组件数据变化时，发布 &#96;EntityComponentChangedEventData&#96;（changeType="update"）
 + - 维护脏组件集合：&#96;HashSet&lt;BaseComponent&gt; _dirtyComponents&#96;
 + - 提供 &#96;GetDirtyComponents()&#96; 方法：返回当前所有脏组件
 + - 提供 &#96;ClearDirtyComponents()&#96; 方法：清除所有脏标记
@@ -1993,7 +1993,7 @@ Lines added: 28, lines removed: 10
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -2023,7 +2023,7 @@ Lines added: 3, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -2143,7 +2143,7 @@ Lines added: 10, lines removed: 10
 -         
 -         // 发布组件添加事件
 +         // 发布组件添加事件（保持现有机制）
-          PublishComponentChangedEvent(component, &quot;add&quot;);
+          PublishComponentChangedEvent(component, "add");
           
           return component;
       }
@@ -2162,7 +2162,7 @@ Lines added: 10, lines removed: 10
               
 -             // 发布组件移除事件
 +             // 发布组件移除事件（保持现有机制）
-              PublishComponentChangedEvent(component, &quot;remove&quot;);
+              PublishComponentChangedEvent(component, "remove");
               
 ```
 
@@ -2198,7 +2198,7 @@ Lines added: 52, lines removed: 5
 -     private void OnComponentDataChanged(BaseComponent component)
 -     {
 -         // 发布组件更新事件
--         PublishComponentChangedEvent(component, &quot;update&quot;);
+-         PublishComponentChangedEvent(component, "update");
 +     public void ClearDirtyComponents()
 +     {
 +         foreach (var component in _dirtyComponents)
@@ -2243,7 +2243,7 @@ Lines added: 52, lines removed: 5
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 51, lines removed: 13
@@ -2349,7 +2349,7 @@ Lines added: 28, lines removed: 49
           }
           
 -         // 只处理更新事件
--         if (eventData.ChangeType.ToLower() != &quot;update&quot;)
+-         if (eventData.ChangeType.ToLower() != "update")
 -         {
 -             return;
 -         }
@@ -2444,7 +2444,7 @@ Lines added: undefined, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 6, lines removed: 6
@@ -2495,7 +2495,7 @@ Lines added: 2, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 31, lines removed: 9
@@ -2565,7 +2565,7 @@ Lines added: 31, lines removed: 9
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 3
@@ -2598,7 +2598,7 @@ Lines added: 4, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -2638,7 +2638,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 6, lines removed: 4
@@ -2684,7 +2684,7 @@ Lines added: 6, lines removed: 4
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -2708,7 +2708,7 @@ Lines added: 3, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -2785,7 +2785,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 5
@@ -2819,7 +2819,7 @@ Lines added: 4, lines removed: 5
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 6, lines removed: 4
@@ -2853,7 +2853,7 @@ Lines added: 6, lines removed: 4
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 12, lines removed: 19
@@ -2913,7 +2913,7 @@ Lines added: 12, lines removed: 19
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -2953,7 +2953,7 @@ Lines added: 40, lines removed: 39
       /// 记录组件为脏（由 BaseComponent.MarkDirty() 调用）
       /// &lt;/summary&gt;
 -     public void MarkComponentDirty(BaseComponent component)
-+     /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
++     /// &lt;param name="componentId"&gt;组件的 ComponentId&lt;/param&gt;
 +     public void MarkComponentDirty(int componentId)
       {
 -         if (component != null &amp;&amp; component.EntityId == UniqueId)
@@ -3055,7 +3055,7 @@ Lines added: 40, lines removed: 39
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: 2
@@ -3087,7 +3087,7 @@ Lines added: 5, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 11, lines removed: 9
@@ -3138,7 +3138,7 @@ Lines added: 11, lines removed: 9
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 2
@@ -3170,7 +3170,7 @@ Lines added: 4, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: undefined
@@ -3207,7 +3207,7 @@ Lines added: 2, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 2
@@ -3315,7 +3315,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 5
@@ -3347,7 +3347,7 @@ Lines added: 4, lines removed: 5
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: 5
@@ -3382,7 +3382,7 @@ Lines added: 5, lines removed: 5
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 16, lines removed: 19
@@ -3410,9 +3410,9 @@ Lines added: 16, lines removed: 19
 +     /// 根据 ComponentId 从 OwnerEntity 获取组件并同步数据
       /// 子类重写此方法以自定义数据提取逻辑
       /// &lt;/summary&gt;
--     /// &lt;param name=&quot;component&quot;&gt;BaseComponent 实例&lt;/param&gt;
+-     /// &lt;param name="component"&gt;BaseComponent 实例&lt;/param&gt;
 -     protected virtual void SyncDataFromComponent(BaseComponent component)
-+     /// &lt;param name=&quot;componentId&quot;&gt;BaseComponent 的 ComponentId&lt;/param&gt;
++     /// &lt;param name="componentId"&gt;BaseComponent 的 ComponentId&lt;/param&gt;
 +     protected virtual void SyncDataFromComponent(int componentId)
       {
           // 默认实现：子类可以重写以自定义数据提取逻辑
@@ -3422,7 +3422,7 @@ Lines added: 16, lines removed: 19
 -     /// &lt;summary&gt;
 -     /// 同步数据（公共方法，供外部调用）
 -     /// &lt;/summary&gt;
--     /// &lt;param name=&quot;data&quot;&gt;数据对象&lt;/param&gt;
+-     /// &lt;param name="data"&gt;数据对象&lt;/param&gt;
 -     public void SyncData(object data)
 -     {
 -         if (!_isEnabled) return;
@@ -3447,7 +3447,7 @@ Lines added: 16, lines removed: 19
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 16, lines removed: 16
@@ -3569,7 +3569,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -3594,7 +3594,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -3617,7 +3617,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -3640,7 +3640,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 5
@@ -3668,7 +3668,7 @@ Lines added: 2, lines removed: 5
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -3691,7 +3691,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 43, lines removed: 9
@@ -3791,7 +3791,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -3843,7 +3843,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -3869,7 +3869,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 12, lines removed: 7
@@ -3913,7 +3913,7 @@ Lines added: 12, lines removed: 7
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 45, lines removed: 10
@@ -4008,7 +4008,7 @@ Lines added: 2, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -4031,7 +4031,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 1
@@ -4168,7 +4168,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 29, lines removed: 13
@@ -4284,7 +4284,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 3
@@ -4324,7 +4324,7 @@ Lines added: undefined, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 12, lines removed: 11
@@ -4430,7 +4430,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 8
@@ -4466,7 +4466,7 @@ Lines added: 4, lines removed: 8
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 7, lines removed: 55
@@ -4582,7 +4582,7 @@ Lines added: 13, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: 2
@@ -4612,7 +4612,7 @@ Lines added: 5, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 2
@@ -4638,7 +4638,7 @@ Lines added: 3, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 1
@@ -4666,7 +4666,7 @@ Lines added: 3, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -4739,7 +4739,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -4766,7 +4766,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: undefined
@@ -4792,7 +4792,7 @@ Lines added: 5, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: undefined
@@ -4818,7 +4818,7 @@ Lines added: 5, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -4841,7 +4841,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/逻辑渲染分离/ViewComponent-DataSync-Design ViewComponent数据同步设计.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -4933,7 +4933,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="write">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **write** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 427, lines removed: 1
@@ -5462,7 +5462,7 @@ _No matches found_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 8, lines removed: 1
@@ -5492,7 +5492,7 @@ Lines added: 8, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -5516,7 +5516,7 @@ Lines added: 3, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 61, lines removed: undefined
@@ -5528,7 +5528,7 @@ Lines added: 61, lines removed: undefined
 +         /// &lt;summary&gt;
 +         /// 记录组件为脏（由 BaseComponent 子类调用）
 +         /// &lt;/summary&gt;
-+         /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
++         /// &lt;param name="componentId"&gt;组件的 ComponentId&lt;/param&gt;
 +         public void MarkComponentDirty(int componentId)
 +         {
 +             _dirtyComponentIds.Add(componentId);
@@ -5546,7 +5546,7 @@ Lines added: 61, lines removed: undefined
 +         /// &lt;summary&gt;
 +         /// 根据 ComponentId 获取对应的组件实例
 +         /// &lt;/summary&gt;
-+         /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
++         /// &lt;param name="componentId"&gt;组件的 ComponentId&lt;/param&gt;
 +         /// &lt;returns&gt;组件实例，如果不存在返回 null&lt;/returns&gt;
 +         public BaseComponent GetComponentById(int componentId)
 +         {
@@ -5657,7 +5657,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -5759,7 +5759,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -5838,7 +5838,7 @@ Lines added: 26, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 28, lines removed: undefined
@@ -5862,7 +5862,7 @@ Lines added: 28, lines removed: undefined
 +         /// 根据 ComponentId 从 OwnerEntity 获取组件并同步数据
 +         /// 子类重写此方法以自定义数据提取逻辑
 +         /// &lt;/summary&gt;
-+         /// &lt;param name=&quot;componentId&quot;&gt;BaseComponent 的 ComponentId&lt;/param&gt;
++         /// &lt;param name="componentId"&gt;BaseComponent 的 ComponentId&lt;/param&gt;
 +         protected virtual void SyncDataFromComponent(int componentId)
 +         {
 +             // 默认实现：子类可以重写以自定义数据提取逻辑
@@ -5905,7 +5905,7 @@ Lines added: 28, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -5929,7 +5929,7 @@ Lines added: 3, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -5942,7 +5942,7 @@ Lines added: 3, lines removed: undefined
 +             // 建立映射关系
 +             RegisterViewComponentWatchedIds(component);
               
-              ASLogger.Instance.Info($&quot;EntityView: 添加视图组件，ID: {_entityId}，组件: {component.GetType().Name}&quot;);
+              ASLogger.Instance.Info($"EntityView: 添加视图组件，ID: {_entityId}，组件: {component.GetType().Name}");
 ```
 
 </details>
@@ -5953,7 +5953,7 @@ Lines added: 3, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -5981,7 +5981,7 @@ The string to replace was not found in the file.
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 83, lines removed: undefined
@@ -6042,7 +6042,7 @@ Lines added: 83, lines removed: undefined
 +         /// &lt;summary&gt;
 +         /// 同步脏组件（由 Stage 调用）
 +         /// &lt;/summary&gt;
-+         /// &lt;param name=&quot;dirtyComponentIds&quot;&gt;脏组件的 ComponentId 集合&lt;/param&gt;
++         /// &lt;param name="dirtyComponentIds"&gt;脏组件的 ComponentId 集合&lt;/param&gt;
 +         public void SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)
 +         {
 +             if (dirtyComponentIds == null || dirtyComponentIds.Count == 0)
@@ -6218,7 +6218,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -6259,7 +6259,7 @@ Lines added: 3, lines removed: undefined
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50
@@ -6305,7 +6305,7 @@ cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -6330,7 +6330,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 20, lines removed: 17
@@ -6388,7 +6388,7 @@ Lines added: 20, lines removed: 17
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 28, lines removed: 17
@@ -6471,7 +6471,7 @@ Lines added: 28, lines removed: 17
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 12, lines removed: 11
@@ -6527,7 +6527,7 @@ Lines added: 12, lines removed: 11
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 11, lines removed: 11
@@ -6582,7 +6582,7 @@ Lines added: 11, lines removed: 11
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 19, lines removed: 18
@@ -6657,7 +6657,7 @@ Lines added: 19, lines removed: 18
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 26, lines removed: 25
@@ -6875,7 +6875,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 40, lines removed: 10
@@ -6908,7 +6908,7 @@ Lines added: 40, lines removed: 10
 +                 }
 +             }
 +             
-              // ASLogger.Instance.Debug($&quot;HUDViewComponent 初始化，实体ID: {OwnerEntity?.UniqueId}&quot;);
+              // ASLogger.Instance.Debug($"HUDViewComponent 初始化，实体ID: {OwnerEntity?.UniqueId}");
               RegisterOrUpdateHUD();
 -             
           }
@@ -6939,7 +6939,7 @@ Lines added: 40, lines removed: 10
           {
               if (OwnerEntity == null)
               {
--                 ASLogger.Instance.Warning(&quot;HUDViewComponent: OwnerEntity 为空&quot;);
+-                 ASLogger.Instance.Warning("HUDViewComponent: OwnerEntity 为空");
 +                 return;
 +             }
 +             
@@ -6959,7 +6959,7 @@ Lines added: undefined, lines removed: 2
               var dynamicStats = OwnerEntity.GetComponent&lt;DynamicStatsComponent&gt;();
               var derivedStats = OwnerEntity.GetComponent&lt;DerivedStatsComponent&gt;();
 -             
--             //ASLogger.Instance.Debug($&quot;HUDViewComponent: 获取组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}&quot;);
+-             //ASLogger.Instance.Debug($"HUDViewComponent: 获取组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}");
               
               if (dynamicStats != null &amp;&amp; derivedStats != null)
 ```
@@ -6972,7 +6972,7 @@ Lines added: undefined, lines removed: 2
                   FP newMaxHealth = derivedStats.Get(StatType.HP);
                   FP newCurrentShield = dynamicStats.Get(DynamicResourceType.SHIELD);
 -                 
--                 //ASLogger.Instance.Debug($&quot;HUDViewComponent: 血量数据 - 当前: {newCurrentHealth}, 最大: {newMaxHealth}, 护盾: {newCurrentShield}&quot;);
+-                 //ASLogger.Instance.Debug($"HUDViewComponent: 血量数据 - 当前: {newCurrentHealth}, 最大: {newMaxHealth}, 护盾: {newCurrentShield}");
                   
                   // 检查数据是否有变化
 ```
@@ -6985,7 +6985,7 @@ Lines added: 15, lines removed: 6
                       _maxHealth = newMaxHealth;
                       _currentShield = newCurrentShield;
 -                     
--                     // ASLogger.Instance.Debug($&quot;HUDViewComponent: 血量数据变化，注册/更新HUD&quot;);
+-                     // ASLogger.Instance.Debug($"HUDViewComponent: 血量数据变化，注册/更新HUD");
                       
                       // 注册或更新HUD
                       RegisterOrUpdateHUD();
@@ -6993,7 +6993,7 @@ Lines added: 15, lines removed: 6
               }
 -             else
 -             {
--                 ASLogger.Instance.Warning($&quot;HUDViewComponent: 缺少必要组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}&quot;);
+-                 ASLogger.Instance.Warning($"HUDViewComponent: 缺少必要组件 - DynamicStats: {dynamicStats != null}, DerivedStats: {derivedStats != null}");
 -             }
 +         }
 +         
@@ -7022,7 +7022,7 @@ Lines added: 15, lines removed: 6
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -7069,7 +7069,7 @@ Lint results
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50
@@ -7107,7 +7107,7 @@ cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -7134,7 +7134,7 @@ Lines added: 3, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -7199,7 +7199,7 @@ Lines added: 12, lines removed: 14
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -7223,7 +7223,7 @@ Lines added: 3, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -7610,7 +7610,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/DamageCapability.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/DamageCapability.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -7623,7 +7623,7 @@ Lines added: 3, lines removed: undefined
 +             // 标记 DynamicStatsComponent 为脏
 +             entity.MarkComponentDirty(dynamicStats.GetComponentId());
               
-              ASLogger.Instance.Info($&quot;[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})&quot;);
+              ASLogger.Instance.Info($"[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
 ```
 
 </details>
@@ -7634,7 +7634,7 @@ Lines added: 3, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/SkillSystem/EffectHandlers/HealEffectHandler.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/SkillSystem/EffectHandlers/HealEffectHandler.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: undefined
@@ -7647,7 +7647,7 @@ Lines added: 3, lines removed: undefined
 +             // 标记 DynamicStatsComponent 为脏
 +             target.MarkComponentDirty(dynamicStats.GetComponentId());
               
-              ASLogger.Instance.Info($&quot;[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})&quot;);
+              ASLogger.Instance.Info($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
 ```
 
 </details>
@@ -7848,7 +7848,7 @@ Lint results
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error|warning" | Select-Object -First 50
@@ -7860,7 +7860,7 @@ cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 3
@@ -7888,7 +7888,7 @@ Lines added: 4, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 23, lines removed: 16
@@ -7955,7 +7955,7 @@ Lines added: 23, lines removed: 16
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 2
@@ -7981,7 +7981,7 @@ Lines added: 3, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
+<details><summary>Tool use: **search_replace** • Edit file: Docs/05-CoreArchitecture 核心架构/开发进展/ViewComponent-DataSync-Progress ViewComponent数据同步开发进展.md</summary>
 
 **Chunk 1**
 Lines added: 9, lines removed: 5
@@ -8248,7 +8248,7 @@ Directory: **d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Com
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseComponent.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 5
@@ -8303,8 +8303,8 @@ Lines added: 1, lines removed: 1
 @@ -39,5 +43,5 @@
           public override string ToString()
           {
--             return $&quot;{GetType().Name}[Id={ComponentTypeId}, EntityId={EntityId}]&quot;;
-+             return $&quot;{GetType().Name}[TypeId={GetComponentTypeId()}, EntityId={EntityId}]&quot;;
+-             return $"{GetType().Name}[Id={ComponentTypeId}, EntityId={EntityId}]";
++             return $"{GetType().Name}[TypeId={GetComponentTypeId()}, EntityId={EntityId}]";
           }
       }
 ```
@@ -8317,7 +8317,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/TransComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/TransComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8359,7 +8359,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/DynamicStatsComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/DynamicStatsComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8401,7 +8401,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/DerivedStatsComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/DerivedStatsComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8480,7 +8480,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 4
@@ -8492,8 +8492,8 @@ Lines added: 4, lines removed: 4
 -         /// 根据 ComponentId 获取对应的组件实例
 +         /// 根据 ComponentTypeId 获取对应的组件实例
           /// &lt;/summary&gt;
--         /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
-+         /// &lt;param name=&quot;componentTypeId&quot;&gt;组件的 ComponentTypeId&lt;/param&gt;
+-         /// &lt;param name="componentId"&gt;组件的 ComponentId&lt;/param&gt;
++         /// &lt;param name="componentTypeId"&gt;组件的 ComponentTypeId&lt;/param&gt;
           /// &lt;returns&gt;组件实例，如果不存在返回 null&lt;/returns&gt;
 -         public BaseComponent GetComponentById(int componentId)
 +         public BaseComponent GetComponentById(int componentTypeId)
@@ -8522,7 +8522,7 @@ Lines added: 4, lines removed: 4
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8561,7 +8561,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/DamageCapability.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/DamageCapability.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8573,7 +8573,7 @@ Lines added: 1, lines removed: 1
 -             entity.MarkComponentDirty(dynamicStats.GetComponentId());
 +             entity.MarkComponentDirty(dynamicStats.GetComponentTypeId());
               
-              ASLogger.Instance.Info($&quot;[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})&quot;);
+              ASLogger.Instance.Info($"[DamageCapability] HP: {(float)beforeHP:F2} → {(float)afterHP:F2} (-{(float)actualDamage:F2})");
 ```
 
 </details>
@@ -8584,7 +8584,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/SkillSystem/EffectHandlers/HealEffectHandler.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/SkillSystem/EffectHandlers/HealEffectHandler.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 2
@@ -8593,12 +8593,12 @@ Lines added: 1, lines removed: 2
 @@ -51,7 +51,6 @@
               FP afterHP = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
               
--             ASLogger.Instance.Debug($&quot;{dynamicStats.GetType().Name}.GetComponentId() = {dynamicStats.GetComponentId()}&quot;);
+-             ASLogger.Instance.Debug($"{dynamicStats.GetType().Name}.GetComponentId() = {dynamicStats.GetComponentId()}");
               // 标记 DynamicStatsComponent 为脏
 -             target.MarkComponentDirty(dynamicStats.GetComponentId());
 +             target.MarkComponentDirty(dynamicStats.GetComponentTypeId());
               
-              ASLogger.Instance.Info($&quot;[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})&quot;);
+              ASLogger.Instance.Info($"[HealEffect] HP Change - Target {target.UniqueId}: {(float)beforeHP:F2} → {(float)afterHP:F2} (+{(float)actualHeal:F2})");
 ```
 
 </details>
@@ -8626,7 +8626,7 @@ Lines added: 1, lines removed: 2
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -8717,7 +8717,7 @@ Output mode: files_with_matches
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseStatsComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BaseStatsComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8759,7 +8759,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BuffComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/BuffComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8801,7 +8801,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/StateComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/StateComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8877,7 +8877,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/ActionComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/ActionComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8918,7 +8918,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/SkillComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/SkillComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -8959,7 +8959,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/LevelComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/LevelComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9091,7 +9091,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/GrowthComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/GrowthComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9133,7 +9133,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/KnockbackComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/KnockbackComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9173,7 +9173,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/MovementComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/MovementComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9214,7 +9214,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/CollisionComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/CollisionComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9256,7 +9256,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/ProjectileComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/ProjectileComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9298,7 +9298,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/RoleInfoComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/RoleInfoComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9340,7 +9340,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/MonsterInfoComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/MonsterInfoComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9382,7 +9382,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/InventoryComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/InventoryComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9424,7 +9424,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/CurrencyComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/CurrencyComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9466,7 +9466,7 @@ Lines added: 9, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/AIStateMachineComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Components/AIStateMachineComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9518,7 +9518,7 @@ The string to replace was not found in the file.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -9604,7 +9604,7 @@ Lint results
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9627,7 +9627,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -9639,9 +9639,9 @@ Lines added: 3, lines removed: 3
 -         /// 记录组件为脏（由 BaseComponent 子类调用）
 +         /// 记录组件为脏（由 Capability 调用）
           /// &lt;/summary&gt;
--         /// &lt;param name=&quot;componentId&quot;&gt;组件的 ComponentId&lt;/param&gt;
+-         /// &lt;param name="componentId"&gt;组件的 ComponentId&lt;/param&gt;
 -         public void MarkComponentDirty(int componentId)
-+         /// &lt;param name=&quot;componentTypeId&quot;&gt;组件的 ComponentTypeId&lt;/param&gt;
++         /// &lt;param name="componentTypeId"&gt;组件的 ComponentTypeId&lt;/param&gt;
 +         public void MarkComponentDirty(int componentTypeId)
           {
               _dirtyComponentIds.Add(componentId);
@@ -9655,7 +9655,7 @@ Lines added: 3, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -9681,7 +9681,7 @@ Lines added: 2, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9704,7 +9704,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9727,7 +9727,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9736,8 +9736,8 @@ Lines added: 1, lines removed: 1
 @@ -464,5 +464,5 @@
           /// 同步脏组件（由 Stage 调用）
           /// &lt;/summary&gt;
--         /// &lt;param name=&quot;dirtyComponentIds&quot;&gt;脏组件的 ComponentId 集合&lt;/param&gt;
-+         /// &lt;param name=&quot;dirtyComponentIds&quot;&gt;脏组件的 ComponentTypeId 集合&lt;/param&gt;
+-         /// &lt;param name="dirtyComponentIds"&gt;脏组件的 ComponentId 集合&lt;/param&gt;
++         /// &lt;param name="dirtyComponentIds"&gt;脏组件的 ComponentTypeId 集合&lt;/param&gt;
           public void SyncDirtyComponents(IReadOnlyCollection&lt;int&gt; dirtyComponentIds)
           {
 ```
@@ -9750,7 +9750,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9773,7 +9773,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -9805,7 +9805,7 @@ The string to replace was not found in the file.
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -9831,7 +9831,7 @@ Lines added: 2, lines removed: 2
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -9876,7 +9876,7 @@ The string to replace was not found in the file.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -9914,7 +9914,7 @@ cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/ViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -9927,9 +9927,9 @@ Lines added: 3, lines removed: 3
 +         /// 根据 ComponentTypeId 从 OwnerEntity 获取组件并同步数据
           /// 子类重写此方法以自定义数据提取逻辑
           /// &lt;/summary&gt;
--         /// &lt;param name=&quot;componentId&quot;&gt;BaseComponent 的 ComponentId&lt;/param&gt;
+-         /// &lt;param name="componentId"&gt;BaseComponent 的 ComponentId&lt;/param&gt;
 -         public virtual void SyncDataFromComponent(int componentId)
-+         /// &lt;param name=&quot;componentTypeId&quot;&gt;BaseComponent 的 ComponentTypeId&lt;/param&gt;
++         /// &lt;param name="componentTypeId"&gt;BaseComponent 的 ComponentTypeId&lt;/param&gt;
 +         public virtual void SyncDataFromComponent(int componentTypeId)
           {
               // 默认实现：子类可以重写以自定义数据提取逻辑
@@ -9943,7 +9943,7 @@ Lines added: 3, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9969,7 +9969,7 @@ The string to replace was not found in the file.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -10045,7 +10045,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/HUDViewComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -10074,13 +10074,13 @@ Lines added: undefined, lines removed: 2
 @@ -39,11 +39,9 @@
                   {
                       _dynamicStatsComponentId = DynamicStatsComponent.ComponentTypeId;
--                     ASLogger.Instance.Debug($&quot;HUDViewComponent: DynamicStatsComponent.ComponentId = {_dynamicStatsComponentId}&quot;);
+-                     ASLogger.Instance.Debug($"HUDViewComponent: DynamicStatsComponent.ComponentId = {_dynamicStatsComponentId}");
                   }
                   
                   if (derivedStats != null)
                   {
                       _derivedStatsComponentId = DerivedStatsComponent.ComponentTypeId;
--                     ASLogger.Instance.Debug($&quot;HUDViewComponent: DerivedStatsComponent.ComponentId = {_derivedStatsComponentId}&quot;);
+-                     ASLogger.Instance.Debug($"HUDViewComponent: DerivedStatsComponent.ComponentId = {_derivedStatsComponentId}");
                   }
               }
 ```
@@ -10092,7 +10092,7 @@ Lines added: undefined, lines removed: 2
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -10177,7 +10177,7 @@ Directory: **d:\Develop\Projects\Astrum\AstrumProj\Assets\Script** (1 file)
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/FrameSync/LSInputComponent.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/FrameSync/LSInputComponent.cs</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -10218,7 +10218,7 @@ Lines added: 9, lines removed: undefined
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -10288,7 +10288,6 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
-
 查找 `SyncEntityViews` 方法，修改为将所有组件视为脏并全量触发更新：
 
 
@@ -10327,7 +10326,6 @@ Output mode: content
 
 ---
 
-
 查看完整的 `SyncEntityViews` 方法，并在最后添加全量同步逻辑：
 
 
@@ -10352,7 +10350,6 @@ Output mode: content
 
 
 ---
-
 
 在 `SyncEntityViews` 方法末尾添加全量同步逻辑：
 
@@ -10395,7 +10392,6 @@ Output mode: content
 
 ---
 
-
 在 `SyncEntityViews` 方法末尾添加全量同步逻辑：
 
 
@@ -10403,14 +10399,14 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: 39, lines removed: undefined
 
 ```diff
 @@ -349,4 +349,43 @@
-                  ASLogger.Instance.Info($&quot;Stage: EntityView 同步完成 - 创建: {createdCount}, 销毁: {destroyedCount}&quot;, &quot;Stage.Sync&quot;);
+                  ASLogger.Instance.Info($"Stage: EntityView 同步完成 - 创建: {createdCount}, 销毁: {destroyedCount}", "Stage.Sync");
               }
 +             
 +             // 3. 全量同步：将所有组件视为脏，触发全量更新
@@ -10462,7 +10458,7 @@ Lines added: 39, lines removed: undefined
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -10475,7 +10471,6 @@ cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>
 
 
 ---
-
 
 已在 `SyncEntityViews` 方法中添加全量同步逻辑。编译通过。
 
@@ -10507,7 +10502,6 @@ _**Agent (model default, mode Agent)**_
 
 
 ---
-
 
 修改 `SyncAllComponents`，直接触发所有 ViewComponent 的 `SyncDataFromComponent`：
 
@@ -10555,7 +10549,6 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
-
 修改 `SyncAllComponents`，直接触发所有 ViewComponent 的 `SyncDataFromComponent`：
 
 
@@ -10563,7 +10556,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: 17, lines removed: 22
@@ -10630,7 +10623,7 @@ Lines added: 17, lines removed: 22
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -10643,7 +10636,6 @@ cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>
 
 
 ---
-
 
 已修改 `SyncAllComponents` 方法，现在会直接触发所有 ViewComponent 的 `SyncDataFromComponent`。编译通过。
 
@@ -10730,7 +10722,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: undefined
@@ -10743,7 +10735,7 @@ Lines added: 4, lines removed: undefined
 +                 // 触发新实体的全量同步
 +                 SyncEntityViewComponents(entityView);
 +                 
-                  ASLogger.Instance.Info($&quot;Stage: 创建实体视图成功 - {entityName ?? entityId.ToString()} (ID: {entityId})&quot;, &quot;Stage.CreateEntityView&quot;);
+                  ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
                   return true;
 ```
 
@@ -10755,7 +10747,7 @@ Lines added: 4, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: 34, lines removed: 25
@@ -10769,7 +10761,7 @@ Lines added: 34, lines removed: 25
 +         /// 同步指定 EntityView 的所有 ViewComponent（触发全量更新）
           /// &lt;/summary&gt;
 -         private void SyncAllComponents()
-+         /// &lt;param name=&quot;entityView&quot;&gt;要同步的 EntityView&lt;/param&gt;
++         /// &lt;param name="entityView"&gt;要同步的 EntityView&lt;/param&gt;
 +         private void SyncEntityViewComponents(EntityView entityView)
           {
 -             if (_room?.MainWorld == null) return;
@@ -10836,7 +10828,7 @@ Lines added: 34, lines removed: 25
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -11120,7 +11112,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 3
@@ -11144,7 +11136,7 @@ Lines added: undefined, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 80
@@ -11219,7 +11211,7 @@ Lines added: undefined, lines removed: 80
 -         /// &lt;summary&gt;
 -         /// 子类可重写的房间同步方法
 -         /// &lt;/summary&gt;
--         /// &lt;param name=&quot;roomData&quot;&gt;房间数据&lt;/param&gt;
+-         /// &lt;param name="roomData"&gt;房间数据&lt;/param&gt;
 -         protected virtual void OnSyncWithRoom(RoomData roomData)
 -         {
 -         }
@@ -11227,7 +11219,7 @@ Lines added: undefined, lines removed: 80
 -         /// &lt;summary&gt;
 -         /// 子类可重写的实体视图创建方法
 -         /// &lt;/summary&gt;
--         /// &lt;param name=&quot;entityId&quot;&gt;实体UniqueId&lt;/param&gt;
+-         /// &lt;param name="entityId"&gt;实体UniqueId&lt;/param&gt;
 -         /// &lt;returns&gt;创建的实体视图&lt;/returns&gt;
 -         protected virtual EntityView CreateEntityView(long entityId)
 -         {
@@ -11245,7 +11237,7 @@ Lines added: undefined, lines removed: 80
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 2
@@ -11256,13 +11248,13 @@ Lines added: undefined, lines removed: 2
               {
 -                 OnActivate();
                   OnStageActivated?.Invoke();
-                  ASLogger.Instance.Info($&quot;Stage: 激活 {_stageName}&quot;);
+                  ASLogger.Instance.Info($"Stage: 激活 {_stageName}");
               }
               else
               {
 -                 OnDeactivate();
                   OnStageDeactivated?.Invoke();
-                  ASLogger.Instance.Info($&quot;Stage: 停用 {_stageName}&quot;);
+                  ASLogger.Instance.Info($"Stage: 停用 {_stageName}");
 ```
 
 </details>
@@ -11273,7 +11265,7 @@ Lines added: undefined, lines removed: 2
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 3
@@ -11281,7 +11273,7 @@ Lines added: undefined, lines removed: 3
 ```diff
 @@ -488,7 +488,4 @@
           {
-              ASLogger.Instance.Info($&quot;Stage: 进入 {_stageName}&quot;);
+              ASLogger.Instance.Info($"Stage: 进入 {_stageName}");
 -             
 -             // 调用子类的进入方法
 -             OnStageEnter();
@@ -11297,7 +11289,7 @@ Lines added: undefined, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 5
@@ -11305,7 +11297,7 @@ Lines added: undefined, lines removed: 5
 ```diff
 @@ -505,9 +505,4 @@
           {
-              ASLogger.Instance.Info($&quot;Stage: 退出 {_stageName}&quot;);
+              ASLogger.Instance.Info($"Stage: 退出 {_stageName}");
 -             
 -             // 调用子类的退出方法
 -             OnStageExit();
@@ -11323,7 +11315,7 @@ Lines added: undefined, lines removed: 5
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 3
@@ -11346,7 +11338,7 @@ Lines added: undefined, lines removed: 3
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -11377,7 +11369,7 @@ cd D:\Develop\Projects\Astrum && dotnet build AstrumProj.sln --no-incremental 2>
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd D:\Develop\Projects\Astrum; dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum; dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30</summary>
 
 ```bash
 cd D:\Develop\Projects\Astrum; dotnet build AstrumProj.sln --no-incremental 2>&1 | Select-String -Pattern "error" | Select-Object -First 30
@@ -11478,7 +11470,7 @@ _No matches found_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -11500,7 +11492,7 @@ Lines added: undefined, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -11600,7 +11592,7 @@ _**Agent (model default, mode Agent)**_
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git status</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git status</summary>
 
 ```bash
 git status
@@ -11608,11 +11600,11 @@ git status
 
 ```
 On branch master
-Your branch is up to date with &#39;origin/master&#39;.
+Your branch is up to date with 'origin/master'.
 
 Changes not staged for commit:
-  (use &quot;git add &lt;file&gt;...&quot; to update what will be committed)
-  (use &quot;git restore &lt;file&gt;...&quot; to discard changes in working directory)
+  (use "git add &lt;file&gt;..." to update what will be committed)
+  (use "git restore &lt;file&gt;..." to discard changes in working directory)
         modified:   .specstory/history/2025-11-27_12-20Z-检查-viewcomponent-的-onsyncdata-接口.md                                                               
         modified:   AstrumProj/Assets/Script/AstrumLogic/Components/AIStateMachineComponent.cs                                                                  
         modified:   AstrumProj/Assets/Script/AstrumLogic/Components/ActionComponent.cs                                                                          
@@ -11633,7 +11625,7 @@ Changes not staged for commit:
         modified:   AstrumProj/Assets/Script/AstrumView/Core/Stage.cs
         modified:   Docs/05-CoreArchitecture 核心架构/总架构/Project-Architecture-Graphviz.dot                                                                  
 
-no changes added to commit (use &quot;git add&quot; and/or &quot;git commit -a&quot;)
+no changes added to commit (use "git add" and/or "git commit -a")
 ```
 </details>
 </tool-use>

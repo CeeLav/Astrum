@@ -333,7 +333,7 @@ _**Agent (model default, mode Agent)**_
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 **Chunk 1**
 Lines added: 6, lines removed: undefined
@@ -422,7 +422,7 @@ Directory: **d:\Develop\Projects\Astrum** (2 files)
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd AstrumProj && dotnet build AstrumProj.sln</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd AstrumProj && dotnet build AstrumProj.sln</summary>
 
 ```bash
 cd AstrumProj && dotnet build AstrumProj.sln
@@ -454,7 +454,7 @@ cd AstrumProj && dotnet build AstrumProj.sln
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd AstrumProj; dotnet build AstrumProj.sln</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd AstrumProj; dotnet build AstrumProj.sln</summary>
 
 ```bash
 cd AstrumProj; dotnet build AstrumProj.sln
@@ -473,65 +473,65 @@ cd AstrumProj; dotnet build AstrumProj.sln
   CommonBase -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\CommonBase\CommonBase.dll
   Kybernetik.Animancer.Editor -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Kybernetik.Animancer.Editor\Kybernetik.Animancer.Editor.dll
   Generated -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Generated\Generated.dll
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\MonsterInfoComponent.cs(35,29): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\RoleInfoComponent.cs(25,29): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\EntityCreationParams.cs(28,22): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ActionCapability.cs(338,27): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(100,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\Projectile\ProjectileDefinitions.cs(107,36): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(157,75): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(245,75): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\EffectValueResult.cs(19,42): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(385,17): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(28,29): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(50,17): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ActionComponent.cs(18,26): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs(71,33): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(34,78): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,70): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,103): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(19,42): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(51,32): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(26,75): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(84,78): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(192,112): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(230,22): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(105,30): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(303,85): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(136,30): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(149,22): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(163,33): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(182,31): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileCapability.cs(251,18): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(300,34): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\LSInputSystem.cs(92,33): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(31,25): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(56,26): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(98,32): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(142,31): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(225,42): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\LSInputComponent.cs(154,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ServerLSController.cs(207,24): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(26,26): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(103,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(91,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(74,32): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(103,31): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(415,28): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(416,25): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(427,28): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileSpawnCapability.cs(95,37): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(102,19): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(112,27): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(93,19): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(105,19): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(443,41): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\MonsterInfoComponent.cs(35,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\RoleInfoComponent.cs(25,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\EntityCreationParams.cs(28,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ActionCapability.cs(338,27): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(100,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\Projectile\ProjectileDefinitions.cs(107,36): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(157,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(245,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\EffectValueResult.cs(19,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(385,17): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(28,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(50,17): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ActionComponent.cs(18,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs(71,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(34,78): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,70): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,103): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(19,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(51,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(26,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(84,78): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(192,112): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(230,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(105,30): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(303,85): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(136,30): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(149,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(163,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(182,31): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileCapability.cs(251,18): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(300,34): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\LSInputSystem.cs(92,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(31,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(56,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(98,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(142,31): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(225,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\LSInputComponent.cs(154,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ServerLSController.cs(207,24): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(26,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(103,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(91,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(74,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(103,31): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(415,28): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(416,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(427,28): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileSpawnCapability.cs(95,37): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(102,19): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(112,27): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(93,19): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(105,19): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(443,41): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
   AstrumLogic -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\AstrumLogic\AstrumLogic.dll
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\NetServices.cs(20,21): warning CS0114: “NetServices.Awake()”隐藏继承的成员“Singleton&lt;NetServices&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。 [D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\OpcodeType.cs(14,21): warning CS0114: “OpcodeType.Awake()”隐藏继承的成员“Singleton&lt;OpcodeType&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。 [D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\MessageDispatcher.cs(26,21): warning CS0114: “MessageDispatcher.Awake()”隐藏继承的成员“Singleton&lt;MessageDispatcher&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。 [D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
   Network -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Network\Network.dll
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\SocketRefs.cs(104,25): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\SocketRefs.cs(104,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\ViewManager.cs(33,36): warning CS0067: 从不使用事件“ViewManager.OnStageLoaded” [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\ViewManager.cs(34,36): warning CS0067: 从不使用事件“ViewManager.OnStageUnloaded” [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\HealthViewComponent.cs(17,40): warning CS0414: 字段“HealthViewComponent.lowHealthThreshold”已被赋值，但从未使用过它的值 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
@@ -539,17 +539,17 @@ D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\TransV
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Managers\HUDManager.cs(30,23): warning CS0414: 字段“HUDManager.healthBarFadeTime”已被赋值，但从未使用过它的值 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
   AstrumView -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\AstrumView\AstrumView.dll
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\MessageHandlers\ConnectMessageHandler.cs(8,7): warning CS0105: “Astrum.CommonBase”的 using 指令以前在此命名空间中出现过 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(541,55): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(543,61): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(48,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(541,55): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(543,61): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(48,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Core\GameDirector.cs(224,13): warning CS0618: “PlayerDataManager.Initialize()”已过时:“使用 Initialize(SaveSystem.SaveType, string) 替代” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(89,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\UserManager.cs(41,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(150,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(210,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(270,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Data\PlayerDataManager.cs(298,43): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(471,60): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(89,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\UserManager.cs(41,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(150,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(210,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(270,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Data\PlayerDataManager.cs(298,43): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(471,60): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\UI\Generated\RoomListView.cs(33,29): warning CS0067: 从不使用事件“RoomListView.OnRefreshRequested” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\UI\Generated\RoomListView.cs(31,37): warning CS0067: 从不使用事件“RoomListView.OnJoinRoomRequested” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\UI\Generated\RoomListView.cs(32,29): warning CS0067: 从不使用事件“RoomListView.OnCreateRoomRequested” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
@@ -597,80 +597,80 @@ D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Editor\RoleEditor\Services\C
 
 已成功生成。
 
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\MonsterInfoComponent.cs(35,29): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\RoleInfoComponent.cs(25,29): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\EntityCreationParams.cs(28,22): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ActionCapability.cs(338,27): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(100,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\Projectile\ProjectileDefinitions.cs(107,36): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(157,75): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(245,75): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\EffectValueResult.cs(19,42): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(385,17): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(28,29): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(50,17): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ActionComponent.cs(18,26): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs(71,33): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(34,78): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,70): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,103): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(19,42): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(51,32): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(26,75): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(84,78): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(192,112): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(230,22): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(105,30): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(303,85): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(136,30): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(149,22): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(163,33): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(182,31): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileCapability.cs(251,18): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(300,34): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\LSInputSystem.cs(92,33): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(31,25): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(56,26): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(98,32): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(142,31): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(225,42): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\LSInputComponent.cs(154,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ServerLSController.cs(207,24): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(26,26): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(103,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(91,23): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(74,32): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(103,31): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(415,28): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(416,25): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(427,28): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileSpawnCapability.cs(95,37): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(102,19): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(112,27): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(93,19): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(105,19): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(443,41): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\MonsterInfoComponent.cs(35,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\RoleInfoComponent.cs(25,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\EntityCreationParams.cs(28,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ActionCapability.cs(338,27): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(100,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\Projectile\ProjectileDefinitions.cs(107,36): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(157,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(245,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\EffectValueResult.cs(19,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(385,17): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(28,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(50,17): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ActionComponent.cs(18,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs(71,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(34,78): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,70): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(80,103): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(19,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(51,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(26,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(84,78): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(192,112): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(230,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(105,30): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(303,85): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(136,30): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(149,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(163,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(182,31): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileCapability.cs(251,18): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(300,34): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\LSInputSystem.cs(92,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(31,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(56,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(98,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(142,31): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(225,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\LSInputComponent.cs(154,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ServerLSController.cs(207,24): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(26,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(103,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(91,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(74,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(103,31): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(415,28): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(416,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(427,28): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileSpawnCapability.cs(95,37): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(102,19): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(112,27): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(93,19): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(105,19): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(443,41): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\NetServices.cs(20,21): warning CS0114: “NetServices.Awake()”隐藏继承的成员“Singleton&lt;NetServices&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。 [D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\OpcodeType.cs(14,21): warning CS0114: “OpcodeType.Awake()”隐藏继承的成员“Singleton&lt;OpcodeType&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。 [D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\MessageDispatcher.cs(26,21): warning CS0114: “MessageDispatcher.Awake()”隐藏继承的成员“Singleton&lt;MessageDispatcher&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。 [D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\SocketRefs.cs(104,25): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\SocketRefs.cs(104,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\ViewManager.cs(33,36): warning CS0067: 从不使用事件“ViewManager.OnStageLoaded” [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\ViewManager.cs(34,36): warning CS0067: 从不使用事件“ViewManager.OnStageUnloaded” [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\HealthViewComponent.cs(17,40): warning CS0414: 字段“HealthViewComponent.lowHealthThreshold”已被赋值，但从未使用过它的值 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\TransViewComponent.cs(31,40): warning CS0414: 字段“TransViewComponent.maxVisualOffset”已被赋值，但从未使用过它的值 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Managers\HUDManager.cs(30,23): warning CS0414: 字段“HUDManager.healthBarFadeTime”已被赋值，但从未使用过它的值 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\MessageHandlers\ConnectMessageHandler.cs(8,7): warning CS0105: “Astrum.CommonBase”的 using 指令以前在此命名空间中出现过 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(541,55): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(543,61): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(48,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(541,55): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(543,61): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(48,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Core\GameDirector.cs(224,13): warning CS0618: “PlayerDataManager.Initialize()”已过时:“使用 Initialize(SaveSystem.SaveType, string) 替代” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(89,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\UserManager.cs(41,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(150,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(210,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(270,33): warning CS1998: 此异步方法缺少 &quot;await&quot; 运算符，将以同步方式运行。请考虑使用 &quot;await&quot; 运算符等待非阻止的 API 调用，或者使用 &quot;await Task.Run(...)&quot; 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Data\PlayerDataManager.cs(298,43): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
-D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(471,60): warning CS8632: 只能在 &quot;#nullable&quot; 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(89,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\UserManager.cs(41,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(150,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(210,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\RoomSystemManager.cs(270,33): warning CS1998: 此异步方法缺少 "await" 运算符，将以同步方式运行。请考虑使用 "await" 运算符等待非阻止的 API 调用，或者使用 "await Task.Run(...)" 在后台线程上执行占用大量 CPU 的工作。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Data\PlayerDataManager.cs(298,43): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\NetworkManager.cs(471,60): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\UI\Generated\RoomListView.cs(33,29): warning CS0067: 从不使用事件“RoomListView.OnRefreshRequested” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\UI\Generated\RoomListView.cs(31,37): warning CS0067: 从不使用事件“RoomListView.OnJoinRoomRequested” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
 D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\UI\Generated\RoomListView.cs(32,29): warning CS0067: 从不使用事件“RoomListView.OnCreateRoomRequested” [D:\Develop\Projects\Astrum\AstrumProj\AstrumClient.csproj]
@@ -773,14 +773,13 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
-
 查看 git 状态，确认需要提交的修改：
 
 
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git status</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git status</summary>
 
 ```bash
 git status
@@ -788,20 +787,20 @@ git status
 
 ```
 On branch master
-Your branch is up to date with &#39;origin/master&#39;.
+Your branch is up to date with 'origin/master'.
 
 Changes not staged for commit:
-  (use &quot;git add &lt;file&gt;...&quot; to update what will be committed)
-  (use &quot;git restore &lt;file&gt;...&quot; to discard changes in working directory)
+  (use "git add &lt;file&gt;..." to update what will be committed)
+  (use "git restore &lt;file&gt;..." to discard changes in working directory)
 	modified:   Assets/Script/AstrumLogic/Core/Entity.cs
 
 Untracked files:
-  (use &quot;git add &lt;file&gt;...&quot; to include in what will be committed)
+  (use "git add &lt;file&gt;..." to include in what will be committed)
 	../.specstory/history/2025-11-27_06-09Z-确认-entity的-nextid自增问题.md
 	../AstrumConfig/Record/room_1764221998990_9904_39941127_053959.replay
 	../AstrumConfig/Record/room_1764224175837_1396_39941127_061615.replay
 
-no changes added to commit (use &quot;git add&quot; and/or &quot;git commit -a&quot;)
+no changes added to commit (use "git add" and/or "git commit -a")
 
 ```
 </details>
@@ -813,14 +812,13 @@ no changes added to commit (use &quot;git add&quot; and/or &quot;git commit -a&q
 
 ---
 
-
 查看 Entity.cs 的具体修改：
 
 
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git diff Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git diff Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 ```bash
 git diff Assets/Script/AstrumLogic/Core/Entity.cs
@@ -855,14 +853,13 @@ index 9fc48df..92e4d58 100644
 
 ---
 
-
 修改无误。提交该修改：
 
 
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git add Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git add Assets/Script/AstrumLogic/Core/Entity.cs</summary>
 
 ```bash
 git add Assets/Script/AstrumLogic/Core/Entity.cs
@@ -876,14 +873,13 @@ git add Assets/Script/AstrumLogic/Core/Entity.cs
 
 ---
 
-
 编写提交信息并提交：
 
 
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重复的问题
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重复的问题
 
 在Entity的MemoryPack构造函数中添加_nextId同步逻辑，确保反序列化后创建的新实体不会与已反序列化的实体ID冲突。当反序列化的实体ID大于等于当前_nextId时，自动更新_nextId为uniqueId+1。"</summary>
 
@@ -895,9 +891,9 @@ git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重�
 
 ```
 ����λ�� C:\Users\Lavender\AppData\Local\Temp\ps-script-a58ecf6a-198e-4e4b-a81b-749da259c385.ps1:143 �ַ�: 125
-+ ... ata\Local\Temp\ps-state-out-0516e436-c930-42b7-9dc8-26c7101ba2ae.txt&quot;
++ ... ata\Local\Temp\ps-state-out-0516e436-c930-42b7-9dc8-26c7101ba2ae.txt"
 +                                                                         ~
-�ַ���ȱ����ֹ��: &quot;��
+�ַ���ȱ����ֹ��: "��
     + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
     + FullyQualifiedErrorId : TerminatorExpectedAtEndOfString
  
@@ -912,14 +908,13 @@ git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重�
 
 ---
 
-
 改用单行提交信息：
 
 
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重复的问题 - 在MemoryPack构造函数中添加_nextId同步逻辑"</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重复的问题 - 在MemoryPack构造函数中添加_nextId同步逻辑"</summary>
 
 ```bash
 git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重复的问题 - 在MemoryPack构造函数中添加_nextId同步逻辑"
@@ -939,14 +934,13 @@ git commit -m "修复: World反序列化时Entity._nextId不同步导致UID重�
 
 ---
 
-
 验证提交是否成功：
 
 
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git log -1 --stat</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git log -1 --stat</summary>
 
 ```bash
 git log -1 --stat
@@ -969,6 +963,21 @@ Date:   Thu Nov 27 14:20:42 2025 +0800
 ---
 
 
+
+---
+
+提交成功。
+
+**提交信息：**
+- 修复: World反序列化时Entity._nextId不同步导致UID重复的问题 - 在MemoryPack构造函数中添加_nextId同步逻辑
+
+**修改内容：**
+- 文件：`AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs`
+- 变更：新增 6 行代码（在 MemoryPack 构造函数中添加 `_nextId` 同步逻辑）
+
+**提交哈希：** `e2921ac`
+
+注意：终端显示的中文乱码是 PowerShell 编码问题，Git 内部使用 UTF-8，提交信息已正确保存。
 
 ---
 

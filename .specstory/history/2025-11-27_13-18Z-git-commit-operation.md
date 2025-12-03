@@ -28,7 +28,7 @@ _**Agent (model default, mode Agent)**_
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git status</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git status</summary>
 
 ```bash
 git status
@@ -49,7 +49,7 @@ git status
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git status --short</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git status --short</summary>
 
 ```bash
 git status --short
@@ -70,7 +70,7 @@ git status --short
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git diff --cached</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git diff --cached</summary>
 
 ```bash
 git diff --cached
@@ -81,7 +81,7 @@ git diff --cached
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git diff</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git diff</summary>
 
 ```bash
 git diff
@@ -92,7 +92,7 @@ git diff
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: git ls-files --others --exclude-standard</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git ls-files --others --exclude-standard</summary>
 
 ```bash
 git ls-files --others --exclude-standard

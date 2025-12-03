@@ -993,7 +993,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="write">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/序列化/Entity-Parent-Child-Serialization Entity父子关系序列化分析.md</summary>
+<details><summary>Tool use: **write** • Edit file: Docs/05-CoreArchitecture 核心架构/序列化/Entity-Parent-Child-Serialization Entity父子关系序列化分析.md</summary>
 
 **Chunk 1**
 Lines added: 372, lines removed: 1
@@ -1154,7 +1154,7 @@ Lines added: 372, lines removed: 1
 +     }
 +     else
 +     {
-+         ASLogger.Instance.Warning($&quot;World 反序列化：Entity {entity.UniqueId} 的 CapabilityStates 为空&quot;, &quot;World.Deserialize&quot;);
++         ASLogger.Instance.Warning($"World 反序列化：Entity {entity.UniqueId} 的 CapabilityStates 为空", "World.Deserialize");
 +     }
 + }
 + &#96;&#96;&#96;
@@ -1246,7 +1246,7 @@ Lines added: 372, lines removed: 1
 +     {
 +         if (!Entities.ContainsKey(entity.ParentId))
 +         {
-+             ASLogger.Instance.Warning($&quot;Entity {entity.UniqueId} 的父实体 {entity.ParentId} 不存在，清除父实体引用&quot;, &quot;World.Deserialize&quot;);
++             ASLogger.Instance.Warning($"Entity {entity.UniqueId} 的父实体 {entity.ParentId} 不存在，清除父实体引用", "World.Deserialize");
 +             entity.ParentId = -1;
 +         }
 +         else
@@ -1271,13 +1271,13 @@ Lines added: 372, lines removed: 1
 +             var child = Entities[childId];
 +             if (child.ParentId != entity.UniqueId)
 +             {
-+                 ASLogger.Instance.Warning($&quot;Entity {childId} 的 ParentId ({child.ParentId}) 与父实体 {entity.UniqueId} 的 ChildrenIds 不一致，修复关系&quot;, &quot;World.Deserialize&quot;);
++                 ASLogger.Instance.Warning($"Entity {childId} 的 ParentId ({child.ParentId}) 与父实体 {entity.UniqueId} 的 ChildrenIds 不一致，修复关系", "World.Deserialize");
 +                 child.ParentId = entity.UniqueId;
 +             }
 +         }
 +         else
 +         {
-+             ASLogger.Instance.Warning($&quot;Entity {entity.UniqueId} 的子实体 {childId} 不存在，从 ChildrenIds 中移除&quot;, &quot;World.Deserialize&quot;);
++             ASLogger.Instance.Warning($"Entity {entity.UniqueId} 的子实体 {childId} 不存在，从 ChildrenIds 中移除", "World.Deserialize");
 +         }
 +     }
 +     entity.ChildrenIds = validChildren;
@@ -1333,12 +1333,12 @@ Lines added: 372, lines removed: 1
 +         var parent = world.GetEntity(ParentId);
 +         if (parent == null)
 +         {
-+             errors.Add($&quot;父实体 {ParentId} 不存在&quot;);
++             errors.Add($"父实体 {ParentId} 不存在");
 +             isValid = false;
 +         }
 +         else if (!parent.ChildrenIds.Contains(UniqueId))
 +         {
-+             errors.Add($&quot;父实体 {ParentId} 的 ChildrenIds 中不包含当前实体 {UniqueId}&quot;);
++             errors.Add($"父实体 {ParentId} 的 ChildrenIds 中不包含当前实体 {UniqueId}");
 +             isValid = false;
 +         }
 +     }
@@ -1349,12 +1349,12 @@ Lines added: 372, lines removed: 1
 +         var child = world.GetEntity(childId);
 +         if (child == null)
 +         {
-+             errors.Add($&quot;子实体 {childId} 不存在&quot;);
++             errors.Add($"子实体 {childId} 不存在");
 +             isValid = false;
 +         }
 +         else if (child.ParentId != UniqueId)
 +         {
-+             errors.Add($&quot;子实体 {childId} 的 ParentId ({child.ParentId}) 与当前实体 {UniqueId} 不一致&quot;);
++             errors.Add($"子实体 {childId} 的 ParentId ({child.ParentId}) 与当前实体 {UniqueId} 不一致");
 +             isValid = false;
 +         }
 +     }
@@ -1640,7 +1640,6 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
-
 分析 ET 框架回滚机制中对象池的使用情况，检查是否存在 GC 问题：
 
 
@@ -1818,7 +1817,6 @@ Output mode: content
 
 ---
 
-
 分析 ET 框架回滚机制中的 GC 问题，并编写分析文档：
 
 
@@ -1842,7 +1840,7 @@ Output mode: content
 
 <tool-use data-tool-type="write" data-tool-name="write">
 
-<details><summary>Tool use: **code_edit** • Edit file: Docs/05-CoreArchitecture 核心架构/序列化/ET-Rollback-GC-Analysis ET回滚GC问题分析.md</summary>
+<details><summary>Tool use: **write** • Edit file: Docs/05-CoreArchitecture 核心架构/序列化/ET-Rollback-GC-Analysis ET回滚GC问题分析.md</summary>
 
 **Chunk 1**
 Lines added: 340, lines removed: 1
@@ -2202,7 +2200,6 @@ Lines added: 340, lines removed: 1
 
 ---
 
-
 是的，会产生大量 GC。分析如下：
 
 ## 问题确认
@@ -2272,7 +2269,11 @@ public void Recycle(object obj)
 
 ## 总结
 
-- 问题：反序列化创建的对象 `isFromPool
+- 问题：反序列化创建的对象 `isFromPool == false`，不会被回收
+- 影响：频繁回滚会产生大量临时对象，导致 GC 压力
+- 解决：反序列化时使用对象池 + 清理时强制回收
+
+需要我实现这些解决方案吗？
 
 ---
 
