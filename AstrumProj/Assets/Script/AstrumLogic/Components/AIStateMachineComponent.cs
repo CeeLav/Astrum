@@ -26,6 +26,9 @@ namespace Astrum.LogicCore.Components
         // 当前追逐目标（实体ID，-1 表示无目标）
         public long CurrentTargetId { get; set; } = -1;
 
+        // 上次验证目标的帧号（用于优化：避免每帧重新查找目标）
+        public int LastTargetValidationFrame { get; set; } = -1;
+
         // 随机漫游目标点（世界坐标）
         public TSVector WanderTarget { get; set; } = TSVector.zero;
 
@@ -52,6 +55,7 @@ namespace Astrum.LogicCore.Components
             LastState = string.Empty;
             LastSwitchFrame = 0;
             CurrentTargetId = -1;
+            LastTargetValidationFrame = -1;
             WanderTarget = TSVector.zero;
             NextWanderFrame = 0;
             NextAttackFrame = 0;

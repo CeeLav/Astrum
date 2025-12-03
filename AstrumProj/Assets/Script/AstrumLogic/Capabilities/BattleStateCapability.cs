@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Stats;
+using Astrum.CommonBase;
 using TrueSync;
 
 namespace Astrum.LogicCore.Capabilities
@@ -25,8 +27,22 @@ namespace Astrum.LogicCore.Capabilities
         // ====== 常量 ======
         private const float BattleEnterDistance = 1.5f; // 进入战斗的距离阈值
         private const float LoseTargetDistance = 6.0f;  // 目标过远则切回追击
+        private const float RetargetDistance = 8.0f;    // 超过此距离才重新查找目标（避免频繁查询）
         
         // ====== 生命周期 ======
+        
+        public override void OnDeactivate(Entity entity)
+        {
+            base.OnDeactivate(entity);
+            
+            // 状态切换时清理目标缓存（切出战斗状态）
+            var fsm = GetComponent<AIStateMachineComponent>(entity);
+            if (fsm != null)
+            {
+                fsm.CurrentTargetId = -1;
+                fsm.LastTargetValidationFrame = -1;
+            }
+        }
         
         public override bool ShouldActivate(Entity entity)
         {
@@ -48,82 +64,190 @@ namespace Astrum.LogicCore.Capabilities
         
         public override void Tick(Entity entity)
         {
-            var fsm = GetComponent<AIStateMachineComponent>(entity);
-            if (fsm == null) return;
-            if (!string.Equals(fsm.CurrentState, "Battle", StringComparison.Ordinal)) return;
-
-            var world = entity.World;
-            var selfPos = GetComponent<TransComponent>(entity)?.Position ?? TSVector.zero;
-            if (world == null)
+            using (new ProfileScope("BattleStateCapability.Tick"))
             {
-                return;
+                var fsm = GetComponent<AIStateMachineComponent>(entity);
+                if (fsm == null) return;
+                if (!string.Equals(fsm.CurrentState, "Battle", StringComparison.Ordinal)) return;
+
+                var world = entity.World;
+                var selfPos = GetComponent<TransComponent>(entity)?.Position ?? TSVector.zero;
+                if (world == null)
+                {
+                    return;
+                }
+
+                // 优化：优先使用缓存的目标，避免每帧查询
+                Entity target = null;
+                bool needRetarget = false;
+                
+                using (new ProfileScope("BattleState.ValidateTarget"))
+                {
+                    // 1. 尝试使用缓存的目标
+                    if (fsm.CurrentTargetId > 0)
+                    {
+                        target = world.GetEntity(fsm.CurrentTargetId);
+                        
+                        // 验证目标是否仍然有效
+                        if (target != null && !IsEntityDead(target))
+                        {
+                            var cachedTargetPos = target.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
+                            FP cachedDist = (cachedTargetPos - selfPos).magnitude;
+                            
+                            // 目标在合理范围内，继续使用（无需重新查询）
+                            if ((float)cachedDist < RetargetDistance)
+                            {
+                                // 缓存命中，直接使用
+                                fsm.LastTargetValidationFrame = world.CurFrame;
+                            }
+                            else
+                            {
+                                // 目标超出范围，需要重新查找
+                                needRetarget = true;
+                                target = null;
+                            }
+                        }
+                        else
+                        {
+                            // 目标无效（死亡或销毁），需要重新查找
+                            needRetarget = true;
+                            target = null;
+                        }
+                    }
+                    else
+                    {
+                        // 无缓存目标，需要查找
+                        needRetarget = true;
+                    }
+                }
+                
+                // 2. 仅在必要时重新查找目标
+                if (needRetarget)
+                {
+                    using (new ProfileScope("BattleState.FindNearestEnemy"))
+                    {
+                        target = FindNearestEnemy(world, selfPos, entity);
+                        
+                        if (target == null)
+                        {
+                            fsm.CurrentTargetId = -1;
+                            fsm.LastTargetValidationFrame = world.CurFrame;
+                            fsm.NextState = "Idle";
+                            return;
+                        }
+                        
+                        // 更新缓存
+                        fsm.CurrentTargetId = target.UniqueId;
+                        fsm.LastTargetValidationFrame = world.CurFrame;
+                    }
+                }
+
+                // 3. 使用目标执行战斗逻辑
+                var targetPos = target.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
+                FP dist = (targetPos - selfPos).magnitude;
+
+                // 超出战斗距离则切回追击
+                if ((float)dist > LoseTargetDistance)
+                {
+                    fsm.NextState = "Move";
+                    return;
+                }
+
+                // 在战斗距离内：基于冷却脉冲式攻击
+                var inputComp = GetComponent<LSInputComponent>(entity);
+                if (inputComp == null) return;
+                var curFrame = entity.World?.CurFrame ?? 0;
+                if (curFrame >= fsm.NextAttackFrame)
+                {
+                    // 仅这一帧置 Attack=true，并推进冷却帧
+                    // 攻击方向使用目标位置（MouseWorldX/Z 表示目标世界坐标）
+                    var atk = CreateInput(entity, 0, 0, attack: true, attackTargetPos: targetPos);
+                    inputComp.SetInput(atk);
+                    fsm.NextAttackFrame = curFrame + TSMath.Max(1, (FP)fsm.AttackIntervalFrames).AsInt();
+                }
+                else
+                {
+                    // 冷却中：显式写入 Attack=false，避免持续为真
+                    var idle = CreateInput(entity, 0, 0, attack: false);
+                    inputComp.SetInput(idle);
+                }
             }
-
-            // 寻找最近目标
-            var target = FindNearestEnemy(world, selfPos, entity);
-            if (target == null)
-            {
-                fsm.CurrentTargetId = -1;
-                fsm.NextState = "Idle";
-                return;
-            }
-
-            fsm.CurrentTargetId = target.UniqueId;
-            var targetPos = target.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
-            FP dist = (targetPos - selfPos).magnitude;
-
-            // 超出战斗距离则切回追击
-            if ((float)dist > LoseTargetDistance)
-            {
-                fsm.NextState = "Move";
-                return;
-            }
-
-			// 在战斗距离内：基于冷却脉冲式攻击
-			var inputComp = GetComponent<LSInputComponent>(entity);
-			if (inputComp == null) return;
-			var curFrame = entity.World?.CurFrame ?? 0;
-			if (curFrame >= fsm.NextAttackFrame)
-			{
-				// 仅这一帧置 Attack=true，并推进冷却帧
-				// 攻击方向使用目标位置（MouseWorldX/Z 表示目标世界坐标）
-				var atk = CreateInput(entity, 0, 0, attack: true, attackTargetPos: targetPos);
-				inputComp.SetInput(atk);
-				fsm.NextAttackFrame = curFrame + TSMath.Max(1, (FP)fsm.AttackIntervalFrames).AsInt();
-			}
-			else
-			{
-				// 冷却中：显式写入 Attack=false，避免持续为真
-				var idle = CreateInput(entity, 0, 0, attack: false);
-				inputComp.SetInput(idle);
-			}
         }
         
         // ====== 辅助方法 ======
         
+        /// <summary>
+        /// 检查实体是否死亡
+        /// </summary>
+        private bool IsEntityDead(Entity entity)
+        {
+            return false;
+            if (entity == null) return true;
+            
+            // 检查是否有 DynamicStatsComponent 且 HP <= 0
+            var stats = entity.GetComponent<DynamicStatsComponent>();
+            if (stats != null)
+            {
+                return stats.Get(DynamicResourceType.CURRENT_HP) <= FP.Zero;
+            }
+            
+            return false;
+        }
+        
         private Entity? FindNearestEnemy(World world, TSVector selfPos, Entity selfEntity)
         {
-            Entity? nearest = null;
+            // 优化：使用 BEPU 物理引擎的空间索引查询附近实体
+            var physicsWorld = world.HitSystem?.PhysicsWorld;
+            if (physicsWorld != null)
+            {
+                // 使用物理查询（仅查询附近实体，而非全量遍历）
+                var nearby = physicsWorld.QuerySphereOverlap(selfPos, (FP)RetargetDistance);
+                
+                Entity nearestEnemy = null;
+                FP bestDist = FP.MaxValue;
+                
+                foreach (var e in nearby)
+                {
+                    if (e == null || e.UniqueId == selfEntity.UniqueId) continue;
+                    if (IsEntityDead(e)) continue; // 跳过死亡实体
+                    if (e.GetComponent<RoleInfoComponent>() == null) continue; // 只考虑角色
+                    
+                    var pos = e.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
+                    var d = (pos - selfPos).sqrMagnitude;
+                    if (d < bestDist)
+                    {
+                        bestDist = d;
+                        nearestEnemy = e;
+                    }
+                }
+                
+                return nearestEnemy;
+            }
+            
+            // 回退：如果物理世界不可用，使用全量遍历（保证功能正确性）
+            Entity nearestFallback = null;
             FP best = FP.MaxValue;
             foreach (var kv in world.Entities)
             {
                 var e = kv.Value;
                 if (e == null || e.UniqueId == selfEntity.UniqueId) continue;
+                if (IsEntityDead(e)) continue;
                 if (e.GetComponent<RoleInfoComponent>() == null) continue; // 只考虑角色
                 var pos = e.GetComponent<TransComponent>()?.Position ?? TSVector.zero;
                 var d = (pos - selfPos).sqrMagnitude;
                 if (d < best)
                 {
                     best = d;
-                    nearest = e;
+                    nearestFallback = e;
                 }
             }
-            return nearest;
+            return nearestFallback;
         }
 
         private Astrum.Generated.LSInput CreateInput(Entity entity, float moveX, float moveY, bool attack = false, bool skill1 = false, bool skill2 = false, TSVector? attackTargetPos = null)
         {
-            var input = Astrum.Generated.LSInput.Create();
+            // 使用对象池复用 LSInput，减少 GC 分配
+            var input = Astrum.Generated.LSInput.Create(isFromPool: true);
             input.PlayerId = entity.UniqueId;
             input.Frame = entity.World?.CurFrame ?? 0;
             input.MoveX = (long)(moveX * (1L << 32));

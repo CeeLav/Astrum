@@ -224,7 +224,8 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         private LSInput CreateDefaultInput(long playerId, int frame)
         {
-            var defaultInput = LSInput.Create();
+            // 使用对象池复用 LSInput，减少 GC 分配
+            var defaultInput = LSInput.Create(isFromPool: true);
             defaultInput.PlayerId = playerId;
             defaultInput.Frame = frame;
             return defaultInput;

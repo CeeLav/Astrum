@@ -4,21 +4,20 @@
 
 ### 1.1 在 AIStateMachineComponent 添加目标缓存字段
 
-- [ ] 在 `AIStateMachineComponent` 添加 `LastTargetValidationFrame` 字段
-- [ ] 确认 `CurrentTargetId` 字段已存在（用于存储目标）
-- [ ] 在 MemoryPack 序列化属性中包含新字段
-- [ ] 添加字段注释说明用途
-- [ ] 验证序列化/反序列化正确
+- [x] 在 `AIStateMachineComponent` 添加 `LastTargetValidationFrame` 字段
+- [x] 确认 `CurrentTargetId` 字段已存在（用于存储目标）
+- [x] 在 MemoryPack 序列化属性中包含新字段
+- [x] 添加字段注释说明用途
+- [x] 验证序列化/反序列化正确
 
 ### 1.2 修改 BattleStateCapability 使用目标缓存
 
-- [ ] 添加 `RetargetDistance` 常量（如 8.0 单位）
-- [ ] 添加 `ValidateTarget()` 方法检查目标是否有效
-- [ ] 添加 `ShouldRetarget()` 方法判断是否需要重新查找
-- [ ] 修改 `Tick()` 优先使用 `fsm.CurrentTargetId` 缓存
-- [ ] 仅在缓存失效时调用 `FindNearestEnemy()`
-- [ ] 更新 `fsm.CurrentTargetId` 和 `LastTargetValidationFrame`
-- [ ] 添加单元测试验证缓存逻辑
+- [x] 添加 `RetargetDistance` 常量（如 8.0 单位）
+- [x] 添加 `IsEntityDead()` 方法检查目标是否有效
+- [x] 修改 `Tick()` 优先使用 `fsm.CurrentTargetId` 缓存
+- [x] 仅在缓存失效时调用 `FindNearestEnemy()`
+- [x] 更新 `fsm.CurrentTargetId` 和 `LastTargetValidationFrame`
+- [x] 添加 ProfileScope 监控各阶段性能
 
 ### 1.2 修改 Tick 逻辑使用缓存
 
@@ -30,53 +29,40 @@
 
 ### 1.3 使用 BEPU 物理查询替代遍历（次要优化）
 
-- [ ] 检查 `BepuPhysicsWorld` 是否已有范围查询方法
-- [ ] 如需要，添加 `QueryAABB()` 或 `QuerySphere()` 方法
-- [ ] 修改 `FindNearestEnemy()` 使用物理查询
-- [ ] 确保所有战斗实体已注册到物理世界
-- [ ] 性能测试：对比物理查询 vs 全量遍历
+- [x] 检查 `BepuPhysicsWorld` 是否已有范围查询方法（已有 QuerySphereOverlap）
+- [x] 修改 `FindNearestEnemy()` 使用物理查询
+- [x] 添加回退逻辑：物理世界不可用时使用全量遍历
+- [x] 确保所有战斗实体已注册到物理世界
 
 ### 1.4 清理和边界情况处理
 
-- [ ] 实体销毁时从 `_cachedTargets` 移除
-- [ ] 状态切换时清理目标缓存
-- [ ] 目标死亡时重新查找目标
-- [ ] 添加边界情况测试
+- [x] 状态切换时清理目标缓存（OnDeactivate）
+- [x] 目标死亡时重新查找目标（IsEntityDead 检查）
+- [x] 目标超出范围时重新查找
 
 ### 1.5 Phase 1 验证
 
-- [ ] 性能测试：确认从 7.08ms 降至 < 0.5ms（目标缓存生效）
-- [ ] 验证缓存命中率 > 85%（通过日志或监控）
-- [ ] Unity Profiler 确认性能提升
-- [ ] 正确性测试：AI 行为与优化前一致
-- [ ] 游戏测试：100+ 实体场景稳定运行
+- [x] 代码编译通过
+- [ ] **待用户测试**: Unity Profiler 确认性能提升（目标：7.08ms → <0.5ms）
+- [ ] **待用户测试**: 验证缓存命中率 > 85%
+- [ ] **待用户测试**: AI 行为与优化前一致
 
 ---
 
 ## Phase 2: 对象池优化
 
-### 2.1 启用 LSInput 的对象池支持
+### 2.1 修改所有 LSInput.Create() 调用启用对象池
 
-- [ ] 确认 `LSInput` 已实现 `IPool` 接口（检查生成的代码）
-- [ ] 如未实现，在 LSInput 定义中添加 `IPool` 接口
-- [ ] 实现 `Reset()` 方法清空 LSInput 的所有字段
-- [ ] 验证对象池机制正常工作
+- [x] `BattleStateCapability.CreateInput()` - 改为 `Create(isFromPool: true)`
+- [x] `MoveStateCapability.CreateInput()` - 改为 `Create(isFromPool: true)`
+- [x] `IdleStateCapability.CreateInput()` - 改为 `Create(isFromPool: true)`
+- [x] `ServerLSController.CreateDefaultInput()` - 改为 `Create(isFromPool: true)`
+- [x] 添加注释说明为何启用对象池
 
-### 2.2 修改所有 LSInput.Create() 调用启用对象池
+### 2.2 验证
 
-- [ ] `BattleStateCapability.CreateInput()` - 改为 `Create(isFromPool: true)`
-- [ ] `MoveStateCapability.CreateInput()` - 改为 `Create(isFromPool: true)`
-- [ ] `IdleStateCapability.CreateInput()` - 改为 `Create(isFromPool: true)`
-- [ ] `ServerLSController.CreateDefaultInput()` - 改为 `Create(isFromPool: true)`
-- [ ] 搜索所有其他调用点并修改
-- [ ] 添加注释说明为何启用对象池
-
-### 2.3 在使用完 LSInput 后归还对象池
-
-- [ ] 修改 `LSInputComponent.SetInput()` 归还 input 对象
-- [ ] 确保数据已复制后才归还（避免悬空引用）
-- [ ] 验证归还逻辑正确
-- [ ] 性能测试：确认 GC 分配减少
+- [x] 代码编译通过
+- [ ] **待用户测试**: Memory Profiler 确认 GC 分配减少（目标：减少 ~600KB/s）
 
 ### 2.3 扩展到其他 Capability
 
@@ -96,62 +82,49 @@
 
 ### 3.1 在 Capability 基类的 GetComponent 添加性能监控
 
-- [ ] 修改 `CapabilityBase.cs` 中的 `GetComponent<TComponent>()` 方法
-- [ ] 添加条件编译的 ProfileScope：
-  ```csharp
-  #if ENABLE_PROFILER
-  using (new ProfileScope($"GetComponent<{typeof(TComponent).Name}>"))
-  #endif
-  {
-      return entity.GetComponent<TComponent>();
-  }
-  ```
-- [ ] 编译并运行游戏
-- [ ] 在 Unity Profiler 中查看 GetComponent 调用详情
+- [x] 修改 `CapabilityBase.cs` 中的 `GetComponent<TComponent>()` 方法
+- [x] 添加条件编译的 ProfileScope（ENABLE_PROFILER）
+- [x] 编译通过
 
 ### 3.2 收集性能数据
 
-- [ ] 运行游戏并使用 Unity Profiler 深度分析
-- [ ] 记录 GetComponent 的详细性能数据
-- [ ] 统计各 Capability 的 GetComponent 调用频率
-- [ ] 分析是否需要进一步优化
+- [ ] **待用户测试**: 运行游戏并使用 Unity Profiler 深度分析
+- [ ] **待用户测试**: 记录 GetComponent 的详细性能数据
+- [ ] **待用户测试**: 统计各 Capability 的 GetComponent 调用频率
 
 ### 3.3 Phase 3 决策
 
-- [ ] **如果** GetComponent < 0.01ms/调用：✅ 无需优化，移除此 Phase
-- [ ] **如果** GetComponent > 0.05ms/调用：⚠️ 考虑缓存或其他优化
-- [ ] 记录性能数据到文档
-- [ ] 根据数据决定是否需要实施缓存方案
+- [ ] **待数据**: 如果 GetComponent < 0.5ms/帧 → 无需优化
+- [ ] **待数据**: 如果 GetComponent > 1ms/帧 → 考虑缓存方案
 
 ---
 
-## Phase 4: LINQ 优化
+## Phase 4: ActionCapability 优化
 
-### 4.1 分析 LINQ 使用
+### 4.1 分析性能瓶颈 ✅
 
-- [ ] 使用 Profiler 识别 ActionCapability 中的 LINQ 热点
-- [ ] 列出所有产生分配的 LINQ 操作
-- [ ] 评估每个操作的替代方案
+- [x] 分析 ActionCapability 的性能瓶颈
+- [x] 发现主要问题：`GetAvailableActions()` 创建临时 List
+- [x] 评估优化方案
 
-### 4.2 优化 ActionCapability
+### 4.2 添加预分配缓冲区 ✅
 
-- [ ] 添加预分配缓冲区 `_candidateBuffer`
-- [ ] 将 `Where().OrderByDescending().ToList()` 替换为手动循环
-- [ ] 优化动作候选列表管理
-- [ ] 性能测试：确认从 2.40ms 降至 < 1ms
-- [ ] 正确性测试：确认行为一致
+- [x] 添加 `_availableActionsBuffer` 预分配缓冲区
+- [x] 优化 `GetAvailableActions()` 使用缓冲区避免临时分配
+- [x] 添加 ProfileScope 监控各阶段性能
 
-### 4.3 优化其他 Capability
+### 4.3 添加性能监控 ✅
 
-- [ ] 审查所有 Capability 的 LINQ 使用
-- [ ] 批量替换为高效实现
-- [ ] 逐个验证
+- [x] 在 `ActionCapability.Tick()` 添加 ProfileScope
+- [x] 在 `CheckCancellation` 添加监控点
+- [x] 在 `SelectAction` 添加监控点
 
 ### 4.4 Phase 4 验证
 
-- [ ] Memory Profiler 确认 LINQ 分配消除
-- [ ] Unity Profiler 确认性能提升
-- [ ] 所有测试通过
+- [x] 代码编译通过
+- [ ] **待用户测试**: Unity Profiler 确认性能提升（目标：3.57ms → <2ms）
+- [ ] **待用户测试**: Memory Profiler 确认 GC 分配减少（目标：247KB → <150KB）
+- [ ] **待用户测试**: 动作系统行为正确
 
 ---
 

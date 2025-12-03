@@ -242,11 +242,16 @@ namespace Astrum.LogicCore.Capabilities
         }
         
         /// <summary>
-        /// 获取实体的组件
+        /// 获取实体的组件（带性能监控）
         /// </summary>
         protected TComponent GetComponent<TComponent>(Entity entity) where TComponent : BaseComponent
         {
-            return entity.GetComponent<TComponent>();
+#if ENABLE_PROFILER
+            using (new CommonBase.ProfileScope($"GetComponent<{typeof(TComponent).Name}>"))
+#endif
+            {
+                return entity.GetComponent<TComponent>();
+            }
         }
     }
 }

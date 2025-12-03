@@ -33,6 +33,10 @@ namespace Astrum.LogicCore.Capabilities
 
         private const string DefaultExternalSourceTagPrefix = "ExternalAction";
         
+        // ====== 性能优化：预分配缓冲区 ======
+        // 用于 GetAvailableActions 避免每次创建新 List
+        private readonly List<ActionInfo> _availableActionsBuffer = new List<ActionInfo>(16);
+        
         // ====== 生命周期 & 事件 ======
 
         protected override void RegisterEventHandlers()
@@ -74,24 +78,33 @@ namespace Astrum.LogicCore.Capabilities
         
         public override void Tick(Entity entity)
         {
-            // 1. 更新当前动作
-            UpdateCurrentAction(entity);
-            
-            // 同步输入命令缓存
-            var actionComponent = GetComponent<ActionComponent>(entity);
-
-            if (actionComponent?.CurrentAction != null)
+            using (new ProfileScope("ActionCapability.Tick"))
             {
-                UpdateMovementAndAnimationSpeed(entity, actionComponent);
-            }
+                // 1. 更新当前动作
+                UpdateCurrentAction(entity);
+                
+                // 同步输入命令缓存
+                var actionComponent = GetComponent<ActionComponent>(entity);
 
-            SyncInputCommands(entity, actionComponent);
-            
-            // 2. 检查所有动作的取消条件
-            CheckActionCancellation(entity);
-            
-            // 3. 从候选列表选择动作
-            SelectActionFromCandidates(entity);
+                if (actionComponent?.CurrentAction != null)
+                {
+                    UpdateMovementAndAnimationSpeed(entity, actionComponent);
+                }
+
+                SyncInputCommands(entity, actionComponent);
+                
+                // 2. 检查所有动作的取消条件
+                using (new ProfileScope("ActionCap.CheckCancellation"))
+                {
+                    CheckActionCancellation(entity);
+                }
+                
+                // 3. 从候选列表选择动作
+                using (new ProfileScope("ActionCap.SelectAction"))
+                {
+                    SelectActionFromCandidates(entity);
+                }
+            }
         }
         
         // ====== 辅助方法 ======
@@ -341,12 +354,22 @@ namespace Astrum.LogicCore.Capabilities
         }
         
         /// <summary>
-        /// 获取可用动作列表
+        /// 获取可用动作列表（优化：使用预分配缓冲区，避免每次创建新 List）
         /// </summary>
-        private IEnumerable<ActionInfo> GetAvailableActions(ActionComponent actionComponent)
+        private List<ActionInfo> GetAvailableActions(ActionComponent actionComponent)
         {
-            if (actionComponent == null) return new List<ActionInfo>();
-            return actionComponent.AvailableActions?.Values ?? (IEnumerable<ActionInfo>)new List<ActionInfo>();
+            _availableActionsBuffer.Clear(); // 清空但保留容量
+            
+            if (actionComponent?.AvailableActions != null)
+            {
+                // 手动复制到缓冲区（避免 LINQ）
+                foreach (var action in actionComponent.AvailableActions.Values)
+                {
+                    _availableActionsBuffer.Add(action);
+                }
+            }
+            
+            return _availableActionsBuffer;
         }
         
         /// <summary>

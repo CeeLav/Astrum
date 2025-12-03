@@ -120,7 +120,8 @@ namespace Astrum.LogicCore.Capabilities
 
         private void PushMoveInput(Entity entity, float nx, float nz)
         {
-            var input = Astrum.Generated.LSInput.Create();
+            // 使用对象池复用 LSInput，减少 GC 分配
+            var input = Astrum.Generated.LSInput.Create(isFromPool: true);
             input.PlayerId = entity.UniqueId;
             input.Frame = entity.World?.CurFrame ?? 0;
             input.MoveX = (long)(nx * (1L << 32));
