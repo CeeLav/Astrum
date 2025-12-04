@@ -137,7 +137,7 @@ namespace Astrum.LogicCore.Core
                 entity.World = this;
                 
                 // 重建组件的 EntityId 关系
-                foreach (var component in entity.Components)
+                foreach (var component in entity.GetAllComponents())
                 {
                     component.EntityId = entity.UniqueId;
                 }

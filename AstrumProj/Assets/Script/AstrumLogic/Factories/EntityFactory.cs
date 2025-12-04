@@ -143,7 +143,7 @@ namespace Astrum.LogicCore.Factories
             foreach (var t in info.Components ?? Array.Empty<Type>())
             {
                 var key = t.AssemblyQualifiedName ?? t.FullName;
-                if (entity.Components.Any(c => c.GetType() == t))
+                if (entity.HasComponentOfType(t))
                 {
                     entity.ComponentRefCounts[key] = 1;
                 }
@@ -262,7 +262,7 @@ namespace Astrum.LogicCore.Factories
             }
 
             // 回收所有 Component 至对象池
-            foreach (var component in entity.Components)
+            foreach (var component in entity.GetAllComponents())
             {
                 if (component != null && component.IsFromPool)
                 {

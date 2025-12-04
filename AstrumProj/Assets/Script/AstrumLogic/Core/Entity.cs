@@ -67,9 +67,10 @@ namespace Astrum.LogicCore.Core
         public DateTime CreationTime { get; set; }
 
         /// <summary>
-        /// 挂载的组件列表（预分配容量 8）
+        /// 挂载的组件字典（ComponentTypeId -> Component Instance）
+        /// 预分配容量 8，优化查询性能从 O(N) 到 O(1)
         /// </summary>
-        public List<BaseComponent> Components { get; private set; } = new List<BaseComponent>(8);
+        public Dictionary<int, BaseComponent> Components { get; private set; } = new Dictionary<int, BaseComponent>(8);
 
         /// <summary>
         /// 父实体ID，-1表示无父实体
@@ -133,10 +134,11 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// MemoryPack 构造函数
+        /// MemoryPack 构造函数（已更新：组件使用 Dictionary 存储）
+        /// ⚠️ 序列化格式变更：不兼容旧版本存档
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId, bool isDestroyed, DateTime creationTime, List<BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
+        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId, bool isDestroyed, DateTime creationTime, Dictionary<int, BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
@@ -144,7 +146,7 @@ namespace Astrum.LogicCore.Core
             EntityConfigId = entityConfigId;
             IsDestroyed = isDestroyed;
             CreationTime = creationTime;
-            Components = components;
+            Components = components ?? new Dictionary<int, BaseComponent>(8);
             ParentId = parentId;
             ChildrenIds = childrenIds;
             CapabilityStates = capabilityStates ?? new Dictionary<int, CapabilityState>();
@@ -156,7 +158,8 @@ namespace Astrum.LogicCore.Core
                 _nextId = uniqueId + 1;
             }
 
-            foreach (var component in Components)
+            // 重建所有组件的 EntityId 关系
+            foreach (var component in Components.Values)
             {
                 component.EntityId = UniqueId;
             }
@@ -319,10 +322,11 @@ namespace Astrum.LogicCore.Core
                 ComponentRefCounts[key] = n;
                 if (n == 0)
                 {
-                    var comp = Components.FirstOrDefault(c => c.GetType() == t);
-                    if (comp != null)
+                    // 使用 TypeHash 查找组件（优化：避免遍历）
+                    int typeId = t.AssemblyQualifiedName?.GetHashCode() ?? t.FullName?.GetHashCode() ?? 0;
+                    if (Components.TryGetValue(typeId, out var comp))
                     {
-                        Components.Remove(comp);
+                        Components.Remove(typeId);
                     }
                 }
             }
@@ -335,22 +339,6 @@ namespace Astrum.LogicCore.Core
             return true;
         }
 
-        private void RollbackAdded(EArchetype subArchetype, List<string> addedCompTypes, List<string> addedCapTypes)
-        {
-            // 旧 Capability 已废弃，不需要回滚
-            // 移除刚添加的组件
-            foreach (var tName in addedCompTypes)
-            {
-                var t = Type.GetType(tName);
-                if (t == null) continue;
-                var comp = Components.FirstOrDefault(c => c.GetType() == t);
-                if (comp != null)
-                {
-                    Components.Remove(comp);
-                }
-            }
-        }
-
         private static string GetTypeKey(Type t) => t.AssemblyQualifiedName ?? t.FullName;
 
         public bool IsSubArchetypeActive(EArchetype subArchetype)
@@ -361,7 +349,7 @@ namespace Astrum.LogicCore.Core
         public IReadOnlyList<EArchetype> ListActiveSubArchetypes() => ActiveSubArchetypes;
 
         /// <summary>
-        /// 添加组件
+        /// 添加组件（优化：使用字典存储）
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         /// <param name="component">组件实例</param>
@@ -370,24 +358,24 @@ namespace Astrum.LogicCore.Core
             if (component == null) return;
 
             component.EntityId = UniqueId;
-            Components.Add(component);
-            
-            // 更新组件掩码
+            int typeId = component.GetComponentTypeId();
+            Components[typeId] = component; // Dictionary 直接添加或覆盖
         }
 
         /// <summary>
-        /// 移除组件（并回收到对象池）
+        /// 移除组件（并回收到对象池）（优化：使用字典查询）
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         public void RemoveComponent<T>() where T : BaseComponent
         {
-            var component = Components.FirstOrDefault(c => c is T);
-            if (component != null)
+            int typeId = TypeHash<T>.GetHash();
+            if (Components.TryGetValue(typeId, out var component))
             {
                 // 从脏组件 ID 集合中移除
-                _dirtyComponentIds.Remove(component.GetComponentTypeId());
+                _dirtyComponentIds.Remove(typeId);
                 
-                Components.Remove(component);
+                // 从字典移除
+                Components.Remove(typeId);
                 
                 // 回收 Component 至对象池
                 if (component.IsFromPool)
@@ -399,23 +387,58 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 获取组件
+        /// 获取组件（优化：O(1) 字典查询）
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         /// <returns>组件实例，如果不存在返回null</returns>
-        public T? GetComponent<T>() where T : class
+        public T? GetComponent<T>() where T : BaseComponent
         {
-            return Components.FirstOrDefault(c => c is T) as T;
+            int typeId = TypeHash<T>.GetHash();
+            if (Components.TryGetValue(typeId, out var component))
+            {
+                return component as T;
+            }
+            return null;
         }
 
         /// <summary>
-        /// 检查是否有指定组件
+        /// 检查是否有指定组件（优化：O(1) 字典查询）
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         /// <returns>是否拥有该组件</returns>
         public bool HasComponent<T>() where T : BaseComponent
         {
-            return Components.Any(c => c is T);
+            int typeId = TypeHash<T>.GetHash();
+            return Components.ContainsKey(typeId);
+        }
+
+        /// <summary>
+        /// 获取所有组件（用于遍历，兼容性方法）
+        /// </summary>
+        /// <returns>所有组件的集合</returns>
+        public IEnumerable<BaseComponent> GetAllComponents()
+        {
+            return Components.Values;
+        }
+        
+        /// <summary>
+        /// 按类型查找组件（非泛型版本，用于反射场景）
+        /// </summary>
+        public BaseComponent GetComponentByType(Type type)
+        {
+            // 使用类型完整名称的哈希作为 TypeId
+            int typeId = type.AssemblyQualifiedName?.GetHashCode() ?? type.FullName?.GetHashCode() ?? 0;
+            Components.TryGetValue(typeId, out var component);
+            return component;
+        }
+        
+        /// <summary>
+        /// 检查是否有指定类型的组件（非泛型版本）
+        /// </summary>
+        public bool HasComponentOfType(Type type)
+        {
+            int typeId = type.AssemblyQualifiedName?.GetHashCode() ?? type.FullName?.GetHashCode() ?? 0;
+            return Components.ContainsKey(typeId);
         }
 
         /// <summary>
@@ -538,33 +561,26 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
-        /// 根据 ComponentTypeId 获取对应的组件实例
+        /// 根据 ComponentTypeId 获取对应的组件实例（优化：直接字典查询）
         /// </summary>
         /// <param name="componentTypeId">组件的 ComponentTypeId</param>
         /// <returns>组件实例，如果不存在返回 null</returns>
         public BaseComponent GetComponentById(int componentTypeId)
         {
-            foreach (var component in Components)
-            {
-                if (component.GetComponentTypeId() == componentTypeId)
-                {
-                    return component;
-                }
-            }
-            return null;
+            Components.TryGetValue(componentTypeId, out var component);
+            return component;
         }
         
         /// <summary>
-        /// 获取所有脏组件实例
+        /// 获取所有脏组件实例（优化：直接字典查询）
         /// </summary>
         /// <returns>脏组件实例列表</returns>
         public List<BaseComponent> GetDirtyComponents()
         {
-            var dirtyComponents = new List<BaseComponent>();
+            var dirtyComponents = new List<BaseComponent>(_dirtyComponentIds.Count);
             foreach (var componentId in _dirtyComponentIds)
             {
-                var component = GetComponentById(componentId);
-                if (component != null)
+                if (Components.TryGetValue(componentId, out var component))
                 {
                     dirtyComponents.Add(component);
                 }

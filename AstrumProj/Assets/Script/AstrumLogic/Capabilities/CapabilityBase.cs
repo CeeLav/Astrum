@@ -247,7 +247,7 @@ namespace Astrum.LogicCore.Capabilities
         protected TComponent GetComponent<TComponent>(Entity entity) where TComponent : BaseComponent
         {
 #if ENABLE_PROFILER
-            using (new CommonBase.ProfileScope($"GetComponent<{typeof(TComponent).Name}>"))
+            using (new CommonBase.ProfileScope($"GetComponent"))
 #endif
             {
                 return entity.GetComponent<TComponent>();
