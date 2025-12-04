@@ -37,6 +37,9 @@ namespace Astrum.LogicCore.Capabilities
         // 用于 GetAvailableActions 避免每次创建新 List
         private readonly List<ActionInfo> _availableActionsBuffer = new List<ActionInfo>(16);
         
+        // 用于 GetAvailableActionIds 避免每次创建新 List
+        private readonly List<int> _availableActionIdsBuffer = new List<int>(8);
+        
         // ====== 生命周期 & 事件 ======
 
         protected override void RegisterEventHandlers()
@@ -122,11 +125,18 @@ namespace Astrum.LogicCore.Capabilities
             }
             
             // 获取所有可用的动作ID
-            var availableActionIds = GetAvailableActionIds(entity);
-            
-            foreach (var actionId in availableActionIds)
+            List<int> availableActionIds;
+            using (new ProfileScope("ActionCap.GetActionIds"))
             {
-                TryCacheAction(actionComponent, actionId, entity);
+                availableActionIds = GetAvailableActionIds(entity);
+            }
+            
+            using (new ProfileScope("ActionCap.LoadActionsLoop"))
+            {
+                foreach (var actionId in availableActionIds)
+                {
+                    TryCacheAction(actionComponent, actionId, entity);
+                }
             }
             
             // 设置初始动作ID
@@ -143,22 +153,22 @@ namespace Astrum.LogicCore.Capabilities
         }
         
         /// <summary>
-        /// 获取可用动作ID列表
+        /// 获取可用动作ID列表（优化：使用预分配缓冲区）
         /// </summary>
         private List<int> GetAvailableActionIds(Entity entity)
         {
+            _availableActionIdsBuffer.Clear();
             var config = entity.EntityConfig;
-            var list = new List<int>();
 
             if (config != null)
             {
-                AddIfValid(list, config.IdleAction);
-                AddIfValid(list, config.WalkAction);
-                AddIfValid(list, config.RunAction);
-                AddIfValid(list, config.HitAction);
+                AddIfValid(_availableActionIdsBuffer, config.IdleAction);
+                AddIfValid(_availableActionIdsBuffer, config.WalkAction);
+                AddIfValid(_availableActionIdsBuffer, config.RunAction);
+                AddIfValid(_availableActionIdsBuffer, config.HitAction);
             }
 
-            return list;
+            return _availableActionIdsBuffer;
 
             static void AddIfValid(List<int> target, int actionId)
             {
@@ -183,8 +193,11 @@ namespace Astrum.LogicCore.Capabilities
             if (actionComponent.CurrentAction == null) return;
             
             // 清空预订单列表（回收到对象池）
-            RecyclePreorderActions(actionComponent.PreorderActions);
-            actionComponent.PreorderActions.Clear();
+            using (new ProfileScope("ActionCap.RecyclePreorders"))
+            {
+                RecyclePreorderActions(actionComponent.PreorderActions);
+                actionComponent.PreorderActions.Clear();
+            }
             
             // 检查当前动作是否已结束
             var actionDuration = GetActionDuration(actionComponent.CurrentAction);
@@ -215,17 +228,24 @@ namespace Astrum.LogicCore.Capabilities
                     }
                 }
             }
-            // 检查其他动作的取消条件
-            var availableActions = GetAvailableActions(actionComponent);
             
-            foreach (var action in availableActions)
+            // 检查其他动作的取消条件
+            List<ActionInfo> availableActions;
+            using (new ProfileScope("ActionCap.GetAvailableActions"))
             {
-                if (!HasValidCommand(entity, action))
+                availableActions = GetAvailableActions(actionComponent);
+            }
+            
+            using (new ProfileScope("ActionCap.CheckCancelLoop"))
+            {
+                foreach (var action in availableActions)
                 {
-                    continue;
-                }
+                    if (!HasValidCommand(entity, action))
+                    {
+                        continue;
+                    }
 
-                if (TryGetMatchingCancelContext(actionComponent, action, out var cancelTag, out var beCancelledTag))
+                    if (TryGetMatchingCancelContext(actionComponent, action, out var cancelTag, out var beCancelledTag))
                 {
                     // 使用对象池创建 PreorderActionInfo，减少 GC 分配
                     var preorder = PreorderActionInfo.Create(
@@ -250,6 +270,7 @@ namespace Astrum.LogicCore.Capabilities
                     actionComponent.PreorderActions.Add(preorder);
                 }
             }
+            }
         }
         
         /// <summary>
@@ -263,7 +284,11 @@ namespace Astrum.LogicCore.Capabilities
                 ASLogger.Instance.Error($"ActionCapability.SelectActionFromCandidates: ActionComponent not found on entity {entity.UniqueId}");
                 return;
             }
-            MergeExternalPreorders(actionComponent, entity);
+            
+            using (new ProfileScope("ActionCap.MergeExternal"))
+            {
+                MergeExternalPreorders(actionComponent, entity);
+            }
 
             if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0)
             {
@@ -274,14 +299,37 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            // 按优先级排序
-            actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+            PreorderActionInfo selectedAction;
+            ActionInfo actionInfo;
             
-            // 选择优先级最高的动作
-            var selectedAction = actionComponent.PreorderActions[0];
+            using (new ProfileScope("ActionCap.SortAndSelect"))
+            {
+                // 按优先级排序
+                actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+                
+                // 选择优先级最高的动作
+                selectedAction = actionComponent.PreorderActions[0];
+            }
             
-            // 从 AvailableActions 字典中查找
-            if (actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out var actionInfo))
+            using (new ProfileScope("ActionCap.LookupAction"))
+            {
+                // 从 AvailableActions 字典中查找
+                if (!actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out actionInfo))
+                {
+                    ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
+                        $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
+                    
+                    // 清空候选列表（回收到对象池）
+                    using (new ProfileScope("ActionCap.RecycleAfterSelect"))
+                    {
+                        RecyclePreorderActions(actionComponent.PreorderActions);
+                        actionComponent.PreorderActions.Clear();
+                    }
+                    return;
+                }
+            }
+            
+            using (new ProfileScope("ActionCap.SwitchAction"))
             {
                 // ASLogger.Instance.Debug($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
                 //     $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {entity.UniqueId}");
@@ -289,15 +337,13 @@ namespace Astrum.LogicCore.Capabilities
                 // 切换到新动作
                 SwitchToAction(actionComponent, actionInfo, selectedAction, entity);
             }
-            else
-            {
-                ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
-                    $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
-            }
             
             // 清空候选列表（回收到对象池）
-            RecyclePreorderActions(actionComponent.PreorderActions);
-            actionComponent.PreorderActions.Clear();
+            using (new ProfileScope("ActionCap.RecycleAfterSelect"))
+            {
+                RecyclePreorderActions(actionComponent.PreorderActions);
+                actionComponent.PreorderActions.Clear();
+            }
         }
         
         /// <summary>

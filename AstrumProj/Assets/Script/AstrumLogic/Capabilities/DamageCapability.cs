@@ -16,7 +16,8 @@ namespace Astrum.LogicCore.Capabilities
     {
         public override int Priority => 200;
   
-        public override IReadOnlyCollection<CapabilityTag> Tags => new[] 
+        public override IReadOnlyCollection<CapabilityTag> Tags => _tags;
+        private static readonly HashSet<CapabilityTag> _tags = new HashSet<CapabilityTag> 
         { 
             CapabilityTag.Combat
         };

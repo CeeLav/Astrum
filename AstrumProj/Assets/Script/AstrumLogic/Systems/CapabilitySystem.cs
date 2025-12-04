@@ -424,8 +424,11 @@ namespace Astrum.LogicCore.Systems
                             continue;
                         }
                         
-                        // 1. 更新激活状态
-                        UpdateActivationState(capability, entity, ref state);
+                        // 1. 更新激活状态（保留 ProfileScope 用于侦测 GC）
+                        using (new Astrum.CommonBase.ProfileScope("CapSys.UpdateActivation"))
+                        {
+                            UpdateActivationState(capability, entity, ref state);
+                        }
                         
                         // 2. 更新持续时间
                         UpdateDuration(capability, entity, ref state);
