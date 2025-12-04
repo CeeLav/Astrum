@@ -40,6 +40,9 @@ namespace Astrum.LogicCore.Capabilities
         // 用于 GetAvailableActionIds 避免每次创建新 List
         private readonly List<int> _availableActionIdsBuffer = new List<int>(8);
         
+        // 用于 MergeExternalPreorders 避免 Dictionary 枚举器 GC
+        private readonly List<string> _externalKeysBuffer = new List<string>(8);
+        
         // ====== 生命周期 & 事件 ======
 
         protected override void RegisterEventHandlers()
@@ -278,14 +281,21 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void SelectActionFromCandidates(Entity entity)
         {
-            var actionComponent = GetComponent<ActionComponent>(entity);
-            if (actionComponent == null)
+            ActionComponent actionComponent;
+            using (new ProfileScope("Select.GetComponent"))
             {
-                ASLogger.Instance.Error($"ActionCapability.SelectActionFromCandidates: ActionComponent not found on entity {entity.UniqueId}");
-                return;
+                actionComponent = GetComponent<ActionComponent>(entity);
+                if (actionComponent == null)
+                {
+                    ASLogger.Instance.Error($"ActionCapability.SelectActionFromCandidates: ActionComponent not found on entity {entity.UniqueId}");
+                    return;
+                }
             }
             
-            MergeExternalPreorders(actionComponent, entity);
+            using (new ProfileScope("Select.MergeExternal"))
+            {
+                MergeExternalPreorders(actionComponent, entity);
+            }
 
             if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0)
             {
@@ -296,25 +306,37 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            // 按优先级排序
-            actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-            
-            // 选择优先级最高的动作
-            var selectedAction = actionComponent.PreorderActions[0];
-            
-            // 从 AvailableActions 字典中查找
-            if (!actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out var actionInfo))
+            PreorderActionInfo selectedAction;
+            using (new ProfileScope("Select.Sort"))
             {
-                ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
-                    $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
-                
-                // 清空候选列表（回收到对象池）
-                using (new ProfileScope("ActionCap.RecycleAfterSelect"))
+                using (new ProfileScope("Sort.DoSort"))
                 {
-                    RecyclePreorderActions(actionComponent.PreorderActions);
-                    actionComponent.PreorderActions.Clear();
+                    // 按优先级排序（Sort 可能有 GC）
+                    actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
                 }
-                return;
+                using (new ProfileScope("Sort.GetFirst"))
+                {
+                    selectedAction = actionComponent.PreorderActions[0];
+                }
+            }
+            
+            ActionInfo actionInfo;
+            using (new ProfileScope("Select.Lookup"))
+            {
+                // 从 AvailableActions 字典中查找
+                if (!actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out actionInfo))
+                {
+                    ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
+                        $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
+                    
+                    // 清空候选列表（回收到对象池）
+                    using (new ProfileScope("ActionCap.RecycleAfterSelect"))
+                    {
+                        RecyclePreorderActions(actionComponent.PreorderActions);
+                        actionComponent.PreorderActions.Clear();
+                    }
+                    return;
+                }
             }
             
             using (new ProfileScope("ActionCap.SwitchAction"))
@@ -939,33 +961,55 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            foreach (var kvp in actionComponent.ExternalPreorders)
+            // 优化：先收集 Keys，避免 Dictionary 枚举器可能的 GC
+            _externalKeysBuffer.Clear();
+            
+            using (new ProfileScope("Merge.CollectKeys"))
             {
-                var preorder = kvp.Value;
-                if (preorder == null || preorder.ActionId <= 0)
+                // 手动遍历 Keys（Keys 的枚举器是 struct）
+                foreach (var key in actionComponent.ExternalPreorders.Keys)
                 {
-                    continue;
+                    _externalKeysBuffer.Add(key);
                 }
-
-                if (!actionComponent.AvailableActions.ContainsKey(preorder.ActionId) &&
-                    !TryCacheAction(actionComponent, preorder.ActionId, entity))
+            }
+            
+            using (new ProfileScope("Merge.ProcessPreorders"))
+            {
+                // 遍历预缓存的 Keys
+                for (int i = 0; i < _externalKeysBuffer.Count; i++)
                 {
-                    ASLogger.Instance.Warning($"[ActionCapability] External preorder actionId={preorder.ActionId} unavailable for entity {entity.UniqueId}, source={kvp.Key}");
-                    continue;
-                }
+                    var key = _externalKeysBuffer[i];
+                    if (!actionComponent.ExternalPreorders.TryGetValue(key, out var preorder))
+                        continue;
+                    
+                    if (preorder == null || preorder.ActionId <= 0)
+                    {
+                        continue;
+                    }
 
-                // 使用对象池创建 PreorderActionInfo，减少 GC 分配
-                var merged = PreorderActionInfo.Create(
-                    actionId: preorder.ActionId,
-                    priority: preorder.Priority,
-                    transitionFrames: preorder.TransitionFrames,
-                    fromFrame: preorder.FromFrame,
-                    freezingFrames: preorder.FreezingFrames
-                );
-                actionComponent.PreorderActions.Add(merged);
+                    if (!actionComponent.AvailableActions.ContainsKey(preorder.ActionId) &&
+                        !TryCacheAction(actionComponent, preorder.ActionId, entity))
+                    {
+                        ASLogger.Instance.Warning($"[ActionCapability] External preorder actionId={preorder.ActionId} unavailable for entity {entity.UniqueId}, source={key}");
+                        continue;
+                    }
+
+                    // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+                    var merged = PreorderActionInfo.Create(
+                        actionId: preorder.ActionId,
+                        priority: preorder.Priority,
+                        transitionFrames: preorder.TransitionFrames,
+                        fromFrame: preorder.FromFrame,
+                        freezingFrames: preorder.FreezingFrames
+                    );
+                    actionComponent.PreorderActions.Add(merged);
+                }
             }
 
-            actionComponent.ExternalPreorders.Clear();
+            using (new ProfileScope("Merge.Clear"))
+            {
+                actionComponent.ExternalPreorders.Clear();
+            }
         }
 
         private bool TryCacheAction(ActionComponent actionComponent, int actionId, Entity entity)
