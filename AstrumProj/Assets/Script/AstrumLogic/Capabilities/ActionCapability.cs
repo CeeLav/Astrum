@@ -84,24 +84,14 @@ namespace Astrum.LogicCore.Capabilities
             using (new ProfileScope("ActionCapability.Tick"))
             {
                 // 1. 更新当前动作
-                using (new ProfileScope("ActionCap.UpdateCurrentAction"))
-                {
-                    UpdateCurrentAction(entity);
-                }
+                UpdateCurrentAction(entity);
                 
                 // 获取 ActionComponent
-                ActionComponent actionComponent;
-                using (new ProfileScope("ActionCap.GetActionComponent"))
-                {
-                    actionComponent = GetComponent<ActionComponent>(entity);
-                }
+                var actionComponent = GetComponent<ActionComponent>(entity);
 
                 if (actionComponent?.CurrentAction != null)
                 {
-                    using (new ProfileScope("ActionCap.UpdateMovementSpeed"))
-                    {
-                        UpdateMovementAndAnimationSpeed(entity, actionComponent);
-                    }
+                    UpdateMovementAndAnimationSpeed(entity, actionComponent);
                 }
 
                 using (new ProfileScope("ActionCap.SyncInputCommands"))
@@ -138,18 +128,11 @@ namespace Astrum.LogicCore.Capabilities
             }
             
             // 获取所有可用的动作ID
-            List<int> availableActionIds;
-            using (new ProfileScope("ActionCap.GetActionIds"))
-            {
-                availableActionIds = GetAvailableActionIds(entity);
-            }
+            var availableActionIds = GetAvailableActionIds(entity);
             
-            using (new ProfileScope("ActionCap.LoadActionsLoop"))
+            foreach (var actionId in availableActionIds)
             {
-                foreach (var actionId in availableActionIds)
-                {
-                    TryCacheAction(actionComponent, actionId, entity);
-                }
+                TryCacheAction(actionComponent, actionId, entity);
             }
             
             // 设置初始动作ID
@@ -206,11 +189,8 @@ namespace Astrum.LogicCore.Capabilities
             if (actionComponent.CurrentAction == null) return;
             
             // 清空预订单列表（回收到对象池）
-            using (new ProfileScope("ActionCap.RecyclePreorders"))
-            {
-                RecyclePreorderActions(actionComponent.PreorderActions);
-                actionComponent.PreorderActions.Clear();
-            }
+            RecyclePreorderActions(actionComponent.PreorderActions);
+            actionComponent.PreorderActions.Clear();
             
             // 检查当前动作是否已结束
             var actionDuration = GetActionDuration(actionComponent.CurrentAction);
@@ -243,46 +223,53 @@ namespace Astrum.LogicCore.Capabilities
             }
             
             // 检查其他动作的取消条件
-            List<ActionInfo> availableActions;
-            using (new ProfileScope("ActionCap.GetAvailableActions"))
-            {
-                availableActions = GetAvailableActions(actionComponent);
-            }
+            var availableActions = GetAvailableActions(actionComponent);
             
             using (new ProfileScope("ActionCap.CheckCancelLoop"))
             {
-                foreach (var action in availableActions)
+                using (new ProfileScope("CancelLoop.IterateActions"))
                 {
-                    if (!HasValidCommand(entity, action))
+                    for (int i = 0; i < availableActions.Count; i++)
                     {
-                        continue;
-                    }
+                        var action = availableActions[i];
+                        
+                        using (new ProfileScope("CancelLoop.HasValidCommand"))
+                        {
+                            if (!HasValidCommand(entity, action))
+                            {
+                                continue;
+                            }
+                        }
 
-                    if (TryGetMatchingCancelContext(actionComponent, action, out var cancelTag, out var beCancelledTag))
-                {
-                    // 使用对象池创建 PreorderActionInfo，减少 GC 分配
-                    var preorder = PreorderActionInfo.Create(
-                        actionId: action.Id,
-                        priority: CalculatePriority(action, cancelTag),
-                        transitionFrames: (cancelTag?.BlendInFrames > 0 ? cancelTag.BlendInFrames : 3),
-                        fromFrame: cancelTag?.StartFromFrames ?? 0,
-                        freezingFrames: beCancelledTag?.BlendOutFrames ?? 0
-                    );
-                    actionComponent.PreorderActions.Add(preorder);
+                        using (new ProfileScope("CancelLoop.TryGetContext"))
+                        {
+                                        if (TryGetMatchingCancelContext(actionComponent, action, out var cancelTag, out var beCancelledTag))
+                            {
+                                // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+                                var preorder = PreorderActionInfo.Create(
+                                    actionId: action.Id,
+                                    priority: CalculatePriority(action, cancelTag),
+                                    transitionFrames: (cancelTag?.BlendInFrames > 0 ? cancelTag.BlendInFrames : 3),
+                                    fromFrame: cancelTag?.StartFromFrames ?? 0,
+                                    freezingFrames: beCancelledTag?.BlendOutFrames ?? 0
+                                );
+                                actionComponent.PreorderActions.Add(preorder);
+                            }
+                            else if (CanCancelToAction(actionComponent, action))
+                            {
+                                // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+                                var preorder = PreorderActionInfo.Create(
+                                    actionId: action.Id,
+                                    priority: CalculatePriority(action),
+                                    transitionFrames: 3,
+                                    fromFrame: 0,
+                                    freezingFrames: 0
+                                );
+                                actionComponent.PreorderActions.Add(preorder);
+                            }
+                        }
+                    }
                 }
-                else if (CanCancelToAction(actionComponent, action))
-                {
-                    // 使用对象池创建 PreorderActionInfo，减少 GC 分配
-                    var preorder = PreorderActionInfo.Create(
-                        actionId: action.Id,
-                        priority: CalculatePriority(action),
-                        transitionFrames: 3,
-                        fromFrame: 0,
-                        freezingFrames: 0
-                    );
-                    actionComponent.PreorderActions.Add(preorder);
-                }
-            }
             }
         }
         
@@ -298,10 +285,7 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            using (new ProfileScope("ActionCap.MergeExternal"))
-            {
-                MergeExternalPreorders(actionComponent, entity);
-            }
+            MergeExternalPreorders(actionComponent, entity);
 
             if (actionComponent.PreorderActions == null || actionComponent.PreorderActions.Count == 0)
             {
@@ -312,41 +296,29 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            PreorderActionInfo selectedAction;
-            ActionInfo actionInfo;
+            // 按优先级排序
+            actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
             
-            using (new ProfileScope("ActionCap.SortAndSelect"))
+            // 选择优先级最高的动作
+            var selectedAction = actionComponent.PreorderActions[0];
+            
+            // 从 AvailableActions 字典中查找
+            if (!actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out var actionInfo))
             {
-                // 按优先级排序
-                actionComponent.PreorderActions.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+                ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
+                    $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
                 
-                // 选择优先级最高的动作
-                selectedAction = actionComponent.PreorderActions[0];
-            }
-            
-            using (new ProfileScope("ActionCap.LookupAction"))
-            {
-                // 从 AvailableActions 字典中查找
-                if (!actionComponent.AvailableActions.TryGetValue(selectedAction.ActionId, out actionInfo))
+                // 清空候选列表（回收到对象池）
+                using (new ProfileScope("ActionCap.RecycleAfterSelect"))
                 {
-                    ASLogger.Instance.Warning($"ActionCapability.SelectActionFromCandidates: ActionId={selectedAction.ActionId} " +
-                        $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
-                    
-                    // 清空候选列表（回收到对象池）
-                    using (new ProfileScope("ActionCap.RecycleAfterSelect"))
-                    {
-                        RecyclePreorderActions(actionComponent.PreorderActions);
-                        actionComponent.PreorderActions.Clear();
-                    }
-                    return;
+                    RecyclePreorderActions(actionComponent.PreorderActions);
+                    actionComponent.PreorderActions.Clear();
                 }
+                return;
             }
             
             using (new ProfileScope("ActionCap.SwitchAction"))
             {
-                // ASLogger.Instance.Debug($"ActionCapability.SelectActionFromCandidates: Selected action ActionId={selectedAction.ActionId} " +
-                //     $"with Priority={selectedAction.Priority} from {actionComponent.PreorderActions.Count} candidates on entity {entity.UniqueId}");
-                
                 // 切换到新动作
                 SwitchToAction(actionComponent, actionInfo, selectedAction, entity);
             }
@@ -354,8 +326,14 @@ namespace Astrum.LogicCore.Capabilities
             // 清空候选列表（回收到对象池）
             using (new ProfileScope("ActionCap.RecycleAfterSelect"))
             {
-                RecyclePreorderActions(actionComponent.PreorderActions);
-                actionComponent.PreorderActions.Clear();
+                using (new ProfileScope("Recycle.RecycleLoop"))
+                {
+                    RecyclePreorderActions(actionComponent.PreorderActions);
+                }
+                using (new ProfileScope("Recycle.Clear"))
+                {
+                    actionComponent.PreorderActions.Clear();
+                }
             }
         }
         
@@ -625,11 +603,15 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            var inputComponent = GetComponent<LSInputComponent>(entity);
-            if (inputComponent == null || inputComponent.CurrentInput == null)
+            LSInputComponent inputComponent;
+            using (new ProfileScope("Sync.GetInput"))
             {
-                actionComponent.InputCommands.Clear();
-                return;
+                inputComponent = GetComponent<LSInputComponent>(entity);
+                if (inputComponent == null || inputComponent.CurrentInput == null)
+                {
+                    actionComponent.InputCommands.Clear();
+                    return;
+                }
             }
 
             var currentInput = inputComponent.CurrentInput;
@@ -640,46 +622,60 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             // 递减现有命令的剩余帧数，并移除已过期的命令
-            for (int i = commands.Count - 1; i >= 0; i--)
+            using (new ProfileScope("Sync.DecayCommands"))
             {
-                var cmd = commands[i];
-                if (cmd == null)
+                for (int i = commands.Count - 1; i >= 0; i--)
                 {
-                    commands.RemoveAt(i);
-                    continue;
-                }
+                    var cmd = commands[i];
+                    if (cmd == null)
+                    {
+                        commands.RemoveAt(i);
+                        continue;
+                    }
 
-                if (cmd.ValidFrames > 0)
-                {
-                    cmd.ValidFrames -= 1;
-                }
+                    if (cmd.ValidFrames > 0)
+                    {
+                        cmd.ValidFrames -= 1;
+                    }
 
-                if (cmd.ValidFrames <= 0)
-                {
-                    commands.RemoveAt(i);
+                    if (cmd.ValidFrames <= 0)
+                    {
+                        // 回收到对象池（使用泛型版本）
+                        if (cmd.IsFromPool)
+                        {
+                            ObjectPool.Instance.Recycle<ActionCommand>(cmd);
+                        }
+                        commands.RemoveAt(i);
+                    }
                 }
             }
 
             // 根据配置表同步命令
-            var configManager = TableConfig.Instance;
-            if (configManager?.IsInitialized == true && configManager.Tables?.TbActionCommandMappingTable != null)
+            using (new ProfileScope("Sync.ProcessMappings"))
             {
-                foreach (var mapping in configManager.Tables.TbActionCommandMappingTable.DataList)
+                var configManager = TableConfig.Instance;
+                if (configManager?.IsInitialized == true && configManager.Tables?.TbActionCommandMappingTable != null)
                 {
-                    if (mapping != null && ShouldAddCommand(currentInput, mapping))
+                    var dataList = configManager.Tables.TbActionCommandMappingTable.DataList;
+                    // 使用 for 循环代替 foreach，避免枚举器分配
+                    for (int i = 0; i < dataList.Count; i++)
                     {
-                        AddOrRefreshCommand(commands, mapping.CommandName, mapping.ValidFrames, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                        var mapping = dataList[i];
+                        if (mapping != null && ShouldAddCommand(currentInput, mapping))
+                        {
+                            AddOrRefreshCommand(commands, mapping.CommandName, mapping.ValidFrames, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                        }
                     }
                 }
-            }
-            else
-            {
-                // 配置表未加载，使用硬编码作为后备
-                ASLogger.Instance.Warning("ActionCapability: ActionCommandMappingTable未加载，使用硬编码后备", "Action.Capability");
-                AddOrRefreshCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0, 0, 0);
-                AddOrRefreshCommand(commands, "attack", currentInput.Attack ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
-                AddOrRefreshCommand(commands, "skill1", currentInput.Skill1 ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
-                AddOrRefreshCommand(commands, "skill2", currentInput.Skill2 ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                else
+                {
+                    // 配置表未加载，使用硬编码作为后备
+                    ASLogger.Instance.Warning("ActionCapability: ActionCommandMappingTable未加载，使用硬编码后备", "Action.Capability");
+                    AddOrRefreshCommand(commands, "move", (currentInput.MoveX != 0 || currentInput.MoveY != 0) ? 1 : 0, 0, 0);
+                    AddOrRefreshCommand(commands, "attack", currentInput.Attack ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                    AddOrRefreshCommand(commands, "skill1", currentInput.Skill1 ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                    AddOrRefreshCommand(commands, "skill2", currentInput.Skill2 ? 3 : 0, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                }
             }
         }
         
@@ -689,12 +685,14 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private bool ShouldAddCommand(LSInput input, cfg.Input.ActionCommandMappingTable mapping)
         {
-            // LsInputField 现在是 string[] 数组，直接遍历即可
+            // LsInputField 现在是 string[] 数组，使用 for 循环避免枚举器
             if (mapping.LsInputField == null || mapping.LsInputField.Length == 0)
                 return mapping.TriggerCondition == "Always";
             
-            foreach (var fieldName in mapping.LsInputField)
+            // 使用 for 循环代替 foreach，避免数组枚举器分配
+            for (int i = 0; i < mapping.LsInputField.Length; i++)
             {
+                var fieldName = mapping.LsInputField[i];
                 if (string.IsNullOrEmpty(fieldName))
                     continue;
                 
@@ -756,8 +754,10 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
 
-            foreach (var cmd in commands)
+            // 使用 for 循环代替 foreach，避免枚举器分配
+            for (int i = 0; i < commands.Count; i++)
             {
+                var cmd = commands[i];
                 if (cmd != null && string.Equals(cmd.CommandName, name, StringComparison.OrdinalIgnoreCase))
                 {
                     if (cmd.ValidFrames < validFrames)
@@ -770,7 +770,8 @@ namespace Astrum.LogicCore.Capabilities
                 }
             }
 
-            commands.Add(new ActionCommand(name, validFrames, targetPositionX, targetPositionZ));
+            // 使用对象池创建 ActionCommand，减少 GC 分配
+            commands.Add(ActionCommand.Create(name, validFrames, targetPositionX, targetPositionZ));
         }
 
         private ActionCommand ConsumeCommandForAction(ActionComponent actionComponent, ActionInfo actionInfo)
@@ -791,8 +792,11 @@ namespace Astrum.LogicCore.Capabilities
                 return null;
             }
 
-            foreach (var command in actionInfo.Commands)
+            // 使用 for 循环代替 foreach，避免枚举器分配
+            int commandCount = actionInfo.Commands.Count;
+            for (int cmdIdx = 0; cmdIdx < commandCount; cmdIdx++)
             {
+                var command = actionInfo.Commands[cmdIdx];
                 if (command == null || string.IsNullOrEmpty(command.CommandName))
                 {
                     continue;
@@ -809,6 +813,7 @@ namespace Astrum.LogicCore.Capabilities
                     if (string.Equals(input.CommandName, command.CommandName, StringComparison.OrdinalIgnoreCase))
                     {
                         commands.RemoveAt(i);
+                        // 注意：这里返回的 input 会被使用，不回收到对象池
                         return input;
                     }
                 }
@@ -844,9 +849,12 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             direction = TSVector.Normalize(direction);
-            ASLogger.Instance.Debug(
-                $"ActionCapability: Entity={entity.UniqueId} Command={consumedCommand.CommandName} Target=({targetX.AsFloat():F2}, {targetZ.AsFloat():F2}) FacingDir=({direction.x.AsFloat():F2}, {direction.z.AsFloat():F2})",
-                "Action.MouseFacing");
+            
+            // 注释掉频繁的 Debug 日志，避免字符串格式化产生 GC
+            // ASLogger.Instance.Debug(
+            //     $"ActionCapability: Entity={entity.UniqueId} Command={consumedCommand.CommandName} Target=({targetX.AsFloat():F2}, {targetZ.AsFloat():F2}) FacingDir=({direction.x.AsFloat():F2}, {direction.z.AsFloat():F2})",
+            //     "Action.MouseFacing");
+            
             var rotation = TSQuaternion.LookRotation(direction, TSVector.up);
             trans.SetRotation(rotation);
         }
@@ -960,17 +968,28 @@ namespace Astrum.LogicCore.Capabilities
         }
 
         /// <summary>
-        /// 回收 PreorderActionInfo 列表到对象池
+        /// 回收 PreorderActionInfo 列表到对象池（优化：使用泛型 Recycle 避免 GetType）
         /// </summary>
         private void RecyclePreorderActions(List<PreorderActionInfo> preorders)
         {
             if (preorders == null || preorders.Count == 0) return;
             
-            foreach (var preorder in preorders)
+            // 使用 for 循环而不是 foreach，避免枚举器分配
+            for (int i = 0; i < preorders.Count; i++)
             {
-                if (preorder != null && preorder.IsFromPool)
+                var preorder = preorders[i];
+                if (preorder != null)
                 {
-                    ObjectPool.Instance.Recycle(preorder);
+                    using (new ProfileScope("Recycle.CheckFromPool"))
+                    {
+                        if (!preorder.IsFromPool) continue;
+                    }
+                    
+                    using (new ProfileScope("Recycle.DoRecycle"))
+                    {
+                        // 使用泛型版本，避免 GetType() 和装箱
+                        ObjectPool.Instance.Recycle<PreorderActionInfo>(preorder);
+                    }
                 }
             }
         }

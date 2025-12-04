@@ -78,6 +78,26 @@ namespace Astrum.CommonBase
             return obj;
         }
 
+        /// <summary>
+        /// 泛型回收方法（性能优化：避免 GetType 和装箱）
+        /// </summary>
+        public void Recycle<T>(T obj) where T : class
+        {
+            if (obj is IPool p)
+            {
+                if (!p.IsFromPool)
+                {
+                    return;
+                }
+
+                // 防止多次入池
+                p.IsFromPool = false;
+            }
+
+            Pool pool = GetPool(typeof(T));
+            pool.Return(obj);
+        }
+        
         public void Recycle(object obj)
         {
             if (obj is IPool p)

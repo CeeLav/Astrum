@@ -1,13 +1,21 @@
 using MemoryPack;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.ActionSystem
 {
     /// <summary>
-    /// 动作命令 - 触发动作的输入信息
+    /// 动作命令 - 从输入映射到动作的中间层
+    /// 支持对象池复用，减少 GC 分配
     /// </summary>
     [MemoryPackable]
-    public partial class ActionCommand
+    public partial class ActionCommand : IPool
     {
+        /// <summary>
+        /// 对象是否来自对象池（IPool 接口必需成员）
+        /// </summary>
+        [MemoryPackIgnore]
+        public bool IsFromPool { get; set; }
+        
         /// <summary>命令名称</summary>
         public string CommandName { get; set; } = string.Empty;
         
@@ -45,6 +53,30 @@ namespace Astrum.LogicCore.ActionSystem
             ValidFrames = validFrames;
             TargetPositionX = targetPositionX;
             TargetPositionZ = targetPositionZ;
+        }
+        
+        /// <summary>
+        /// 从对象池创建实例（性能优化）
+        /// </summary>
+        public static ActionCommand Create(string commandName, int validFrames, long targetPositionX = 0, long targetPositionZ = 0)
+        {
+            var instance = ObjectPool.Instance.Fetch<ActionCommand>();
+            instance.CommandName = commandName ?? string.Empty;
+            instance.ValidFrames = validFrames;
+            instance.TargetPositionX = targetPositionX;
+            instance.TargetPositionZ = targetPositionZ;
+            return instance;
+        }
+        
+        /// <summary>
+        /// 重置状态（用于对象池复用）
+        /// </summary>
+        public void Reset()
+        {
+            CommandName = string.Empty;
+            ValidFrames = 0;
+            TargetPositionX = 0;
+            TargetPositionZ = 0;
         }
     }
 }
