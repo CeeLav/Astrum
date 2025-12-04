@@ -47,8 +47,15 @@ namespace Astrum.CommonBase
             return 1000; // 默认容量
         }
 
-        private Func<Type, Pool> AddPoolFunc => type => new Pool(type, GetPoolCapacity(type));
+        // 修复：改为字段，避免每次访问都创建新 lambda（会产生 GC）
+        private readonly Func<Type, Pool> AddPoolFunc;
 
+        public ObjectPool()
+        {
+            // 初始化 AddPoolFunc 为字段，避免重复创建 lambda
+            AddPoolFunc = type => new Pool(type, GetPoolCapacity(type));
+        }
+        
         public void Awake()
         {
             lock (this)

@@ -404,7 +404,7 @@ namespace Astrum.LogicCore.Capabilities
             
             if (actionComponent?.AvailableActions != null)
             {
-                // 手动复制到缓冲区（避免 LINQ）
+                // 手动复制到缓冲区（使用 foreach Values，Values 的枚举器是 struct）
                 foreach (var action in actionComponent.AvailableActions.Values)
                 {
                     _availableActionsBuffer.Add(action);
@@ -455,15 +455,20 @@ namespace Astrum.LogicCore.Capabilities
 
             var bestScore = int.MinValue;
 
-            foreach (var cancelTag in targetAction.CancelTags)
+            // 使用 for 循环代替 foreach，避免枚举器分配
+            int cancelTagCount = targetAction.CancelTags.Count;
+            for (int i = 0; i < cancelTagCount; i++)
             {
+                var cancelTag = targetAction.CancelTags[i];
                 if (cancelTag == null || string.IsNullOrEmpty(cancelTag.Tag))
                 {
                     continue;
                 }
 
-                foreach (var beCancelledTag in currentAction.BeCancelledTags)
+                int beCancelledCount = currentAction.BeCancelledTags.Count;
+                for (int j = 0; j < beCancelledCount; j++)
                 {
+                    var beCancelledTag = currentAction.BeCancelledTags[j];
                     if (beCancelledTag == null || beCancelledTag.Tags == null)
                     {
                         continue;
@@ -532,22 +537,27 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             // AND逻辑：检查actionInfo的每个命令是否都在inputCommands中
-            foreach (var command in actionInfo.Commands)
+            // 使用 for 循环代替 foreach，避免枚举器分配
+            int commandCount = actionInfo.Commands.Count;
+            for (int i = 0; i < commandCount; i++)
             {
+                var command = actionInfo.Commands[i];
                 if (command == null || string.IsNullOrEmpty(command.CommandName))
                 {
                     continue;
                 }
 
                 bool found = false;
-                foreach (var input in inputCommands)
+                for (int j = 0; j < inputCommands.Count; j++)
                 {
+                    var input = inputCommands[j];
                     if (input == null)
                     {
                         continue;
                     }
 
-                    if (string.Equals(input.CommandName, command.CommandName, StringComparison.OrdinalIgnoreCase) &&
+                    // 优化：使用 Ordinal 而不是 OrdinalIgnoreCase，避免字符串分配
+                    if (string.Equals(input.CommandName, command.CommandName, StringComparison.Ordinal) &&
                         input.ValidFrames >= command.ValidFrames)
                     {
                         found = true;
@@ -661,9 +671,21 @@ namespace Astrum.LogicCore.Capabilities
                     for (int i = 0; i < dataList.Count; i++)
                     {
                         var mapping = dataList[i];
-                        if (mapping != null && ShouldAddCommand(currentInput, mapping))
+                        if (mapping != null)
                         {
-                            AddOrRefreshCommand(commands, mapping.CommandName, mapping.ValidFrames, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                            bool shouldAdd;
+                            using (new ProfileScope("Mapping.ShouldAdd"))
+                            {
+                                shouldAdd = ShouldAddCommand(currentInput, mapping);
+                            }
+                            
+                            if (shouldAdd)
+                            {
+                                using (new ProfileScope("Mapping.AddOrRefresh"))
+                                {
+                                    AddOrRefreshCommand(commands, mapping.CommandName, mapping.ValidFrames, currentInput.MouseWorldX, currentInput.MouseWorldZ);
+                                }
+                            }
                         }
                     }
                 }
@@ -758,7 +780,8 @@ namespace Astrum.LogicCore.Capabilities
             for (int i = 0; i < commands.Count; i++)
             {
                 var cmd = commands[i];
-                if (cmd != null && string.Equals(cmd.CommandName, name, StringComparison.OrdinalIgnoreCase))
+                // 优化：使用 Ordinal 而不是 OrdinalIgnoreCase，避免字符串分配
+                if (cmd != null && string.Equals(cmd.CommandName, name, StringComparison.Ordinal))
                 {
                     if (cmd.ValidFrames < validFrames)
                     {
@@ -810,7 +833,8 @@ namespace Astrum.LogicCore.Capabilities
                         continue;
                     }
 
-                    if (string.Equals(input.CommandName, command.CommandName, StringComparison.OrdinalIgnoreCase))
+                    // 优化：使用 Ordinal 而不是 OrdinalIgnoreCase，避免字符串分配
+                    if (string.Equals(input.CommandName, command.CommandName, StringComparison.Ordinal))
                     {
                         commands.RemoveAt(i);
                         // 注意：这里返回的 input 会被使用，不回收到对象池
