@@ -109,7 +109,7 @@ namespace Astrum.LogicCore.Capabilities
         {
             // 默认实现：检查是否存在且未被禁用
             // CapabilityState 存在即表示拥有此 Capability
-            return HasCapabilityState(entity) && !IsCapabilityDisabled(entity);
+            return HasCapabilityState(entity);
         }
         
         /// <summary>
@@ -118,7 +118,7 @@ namespace Astrum.LogicCore.Capabilities
         public virtual bool ShouldDeactivate(Entity entity)
         {
             // 默认实现：检查是否被禁用或不再存在
-            return !HasCapabilityState(entity) || IsCapabilityDisabled(entity);
+            return !HasCapabilityState(entity);
         }
         
         /// <summary>
@@ -226,23 +226,6 @@ namespace Astrum.LogicCore.Capabilities
         protected bool HasCapabilityState(Entity entity)
         {
             return entity.CapabilityStates.ContainsKey(TypeId);
-        }
-        
-        /// <summary>
-        /// 检查此 Capability 是否被禁用
-        /// 通过检查 Entity.DisabledTags 中是否有此 Capability 的 Tag 被禁用
-        /// </summary>
-        protected bool IsCapabilityDisabled(Entity entity)
-        {
-            // 检查此 Capability 的任何一个 Tag 是否在 DisabledTags 中
-            // 直接使用 this.Tags，因为 Capability<T> 本身就有 Tags 属性
-            foreach (var tag in Tags)
-            {
-                if (entity.DisabledTags.ContainsKey(tag) && entity.DisabledTags[tag].Count > 0)
-                    return true;
-            }
-            
-            return false;
         }
         
         /// <summary>

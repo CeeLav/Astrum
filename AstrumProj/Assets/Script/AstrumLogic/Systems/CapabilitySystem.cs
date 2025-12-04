@@ -499,16 +499,46 @@ namespace Astrum.LogicCore.Systems
         }
         
         /// <summary>
-        /// 检查 Capability 是否被 Tag 禁用
+        /// 检查 Capability 是否被 Tag 禁用（优化：零 GC 分配）
         /// </summary>
         private bool IsCapabilityDisabledByTag(ICapability capability, Entity entity)
         {
-            // 检查此 Capability 的任何一个 Tag 是否在 DisabledTags 中
-            foreach (var tag in capability.Tags)
+            // 优化：如果实体没有任何禁用 Tag，直接返回（避免任何遍历）
+            if (entity.DisabledTags == null || entity.DisabledTags.Count == 0)
+                return false;
+            
+            // 优化：不遍历任何集合，直接查找交集
+            // 使用 HashSet 的高效查找，避免枚举器分配
+            var tags = capability.Tags;
+            if (tags == null || tags.Count == 0)
+                return false;
+            using (new ProfileScope("IsCapabilityDisabledByTag"))
             {
-                if (entity.DisabledTags.ContainsKey(tag) && entity.DisabledTags[tag].Count > 0)
-                    return true;
+                // 对于 HashSet，手动遍历避免 foreach 的枚举器
+                if (tags is HashSet<CapabilityTag> hashSet)
+                {
+                    // 使用 HashSet 的 Enumerator（struct，无 GC）
+                    using (var enumerator = hashSet.GetEnumerator())
+                    {
+                        while (enumerator.MoveNext())
+                        {
+                            if (entity.DisabledTags.TryGetValue(enumerator.Current, out var instigators) && instigators.Count > 0)
+                                return true;
+                        }
+                    }
+                }
+                else
+                {
+                    // 回退：遍历 Tags（但大多数 Capability 都使用 HashSet）
+                    foreach (var tag in tags)
+                    {
+                        if (entity.DisabledTags.TryGetValue(tag, out var instigators) && instigators.Count > 0)
+                            return true;
+                    }
+                }
             }
+
+            
             return false;
         }
         
