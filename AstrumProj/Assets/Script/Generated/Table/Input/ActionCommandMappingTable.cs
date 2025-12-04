@@ -17,7 +17,7 @@ public sealed partial class ActionCommandMappingTable : Luban.BeanBase
     public ActionCommandMappingTable(ByteBuf _buf) 
     {
         CommandName = _buf.ReadString();
-        LsInputField = _buf.ReadString();
+        {int __n0 = _buf.ReadSize(); LsInputField = new string[__n0];for(var __index0 = 0 ; __index0 < __n0 ; __index0++) { string __e0;__e0 = _buf.ReadString(); LsInputField[__index0] = __e0;}}
         TriggerCondition = _buf.ReadString();
         ValidFrames = _buf.ReadInt();
         Priority = _buf.ReadInt();
@@ -34,9 +34,9 @@ public sealed partial class ActionCommandMappingTable : Luban.BeanBase
     /// </summary>
     public readonly string CommandName;
     /// <summary>
-    /// LSInput字段名(|分隔表示OR关系)
+    /// LSInput字段名列表
     /// </summary>
-    public readonly string LsInputField;
+    public readonly string[] LsInputField;
     /// <summary>
     /// 触发条件(NonZero/True/Always)
     /// </summary>
@@ -65,7 +65,7 @@ public sealed partial class ActionCommandMappingTable : Luban.BeanBase
     {
         return "{ "
         + "commandName:" + CommandName + ","
-        + "lsInputField:" + LsInputField + ","
+        + "lsInputField:" + Luban.StringUtil.CollectionToString(LsInputField) + ","
         + "triggerCondition:" + TriggerCondition + ","
         + "validFrames:" + ValidFrames + ","
         + "priority:" + Priority + ","

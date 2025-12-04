@@ -84,17 +84,30 @@ namespace Astrum.LogicCore.Capabilities
             using (new ProfileScope("ActionCapability.Tick"))
             {
                 // 1. 更新当前动作
-                UpdateCurrentAction(entity);
+                using (new ProfileScope("ActionCap.UpdateCurrentAction"))
+                {
+                    UpdateCurrentAction(entity);
+                }
                 
-                // 同步输入命令缓存
-                var actionComponent = GetComponent<ActionComponent>(entity);
+                // 获取 ActionComponent
+                ActionComponent actionComponent;
+                using (new ProfileScope("ActionCap.GetActionComponent"))
+                {
+                    actionComponent = GetComponent<ActionComponent>(entity);
+                }
 
                 if (actionComponent?.CurrentAction != null)
                 {
-                    UpdateMovementAndAnimationSpeed(entity, actionComponent);
+                    using (new ProfileScope("ActionCap.UpdateMovementSpeed"))
+                    {
+                        UpdateMovementAndAnimationSpeed(entity, actionComponent);
+                    }
                 }
 
-                SyncInputCommands(entity, actionComponent);
+                using (new ProfileScope("ActionCap.SyncInputCommands"))
+                {
+                    SyncInputCommands(entity, actionComponent);
+                }
                 
                 // 2. 检查所有动作的取消条件
                 using (new ProfileScope("ActionCap.CheckCancellation"))
@@ -672,14 +685,18 @@ namespace Astrum.LogicCore.Capabilities
         
         /// <summary>
         /// 判断是否应该添加命令（根据配置表规则）
+        /// 优化：LsInputField 已改为 string[] 数组，无需 Split
         /// </summary>
         private bool ShouldAddCommand(LSInput input, cfg.Input.ActionCommandMappingTable mapping)
         {
-            var fields = mapping.LsInputField.Split('|');
+            // LsInputField 现在是 string[] 数组，直接遍历即可
+            if (mapping.LsInputField == null || mapping.LsInputField.Length == 0)
+                return mapping.TriggerCondition == "Always";
             
-            foreach (var field in fields)
+            foreach (var fieldName in mapping.LsInputField)
             {
-                string fieldName = field.Trim();
+                if (string.IsNullOrEmpty(fieldName))
+                    continue;
                 
                 switch (mapping.TriggerCondition)
                 {
