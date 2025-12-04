@@ -38,6 +38,11 @@ namespace Astrum.LogicCore.Capabilities
         bool TrackDeactiveDuration { get; }
         
         /// <summary>
+        /// 获取 ProfileScope 名称（性能优化：避免运行时字符串拼接）
+        /// </summary>
+        string GetProfileScopeName();
+        
+        /// <summary>
         /// 判定此 Capability 是否应该激活
         /// 每帧调用，用于检查激活条件（如：所需组件是否存在、外部条件是否满足）
         /// </summary>

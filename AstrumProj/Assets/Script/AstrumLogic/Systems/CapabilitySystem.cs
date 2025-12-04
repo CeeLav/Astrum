@@ -84,6 +84,21 @@ namespace Astrum.LogicCore.Systems
         /// </summary>
         [MemoryPackIgnore]
         public World World { get; set; }
+        
+        // ====== 性能优化：预分配缓冲区（避免 ToList() 产生 GC）======
+        
+        /// <summary>
+        /// 用于收集待注销的实体 ID（Update 方法中使用）
+        /// 避免在遍历 HashSet 时修改集合导致的 ToList() 分配
+        /// </summary>
+        [MemoryPackIgnore]
+        private readonly List<long> _entitiesToUnregisterBuffer = new List<long>(64);
+        
+        /// <summary>
+        /// 用于收集待移除的 TypeId（UnregisterEntity 方法中使用）
+        /// </summary>
+        [MemoryPackIgnore]
+        private readonly List<int> _typeIdsToRemoveBuffer = new List<int>(16);
 
         public CapabilitySystem()
         {
@@ -333,20 +348,29 @@ namespace Astrum.LogicCore.Systems
         }
         
         /// <summary>
-        /// 清理已销毁实体的 Capability 注册
+        /// 清理已销毁实体的 Capability 注册（优化：避免 ToList() 产生 GC）
         /// 在 Entity 销毁时调用
         /// </summary>
         public void UnregisterEntity(long entityId)
         {
-            foreach (var kvp in TypeIdToEntityIds.ToList())
+            // 优化：先收集需要移除的 TypeId，遍历完成后再批量删除
+            _typeIdsToRemoveBuffer.Clear();
+            
+            foreach (var kvp in TypeIdToEntityIds) // ← 不需要 ToList()
             {
                 kvp.Value.Remove(entityId);
                 
-                // 如果集合为空，移除该 TypeId 的映射
+                // 如果集合为空，标记该 TypeId 为待移除
                 if (kvp.Value.Count == 0)
                 {
-                    TypeIdToEntityIds.Remove(kvp.Key);
+                    _typeIdsToRemoveBuffer.Add(kvp.Key);
                 }
+            }
+            
+            // 批量删除空的 TypeId 映射
+            foreach (var typeId in _typeIdsToRemoveBuffer)
+            {
+                TypeIdToEntityIds.Remove(typeId);
             }
         }
         
@@ -368,31 +392,35 @@ namespace Astrum.LogicCore.Systems
                     continue;
                 
                 // 为每个 Capability 类型的更新添加监控
-                using (new Astrum.CommonBase.ProfileScope($"Cap.{capability.GetType().Name}.Update"))
+                // 使用缓存的 ProfileScope 名称，避免运行时字符串拼接
+                using (new Astrum.CommonBase.ProfileScope(capability.GetProfileScopeName()))
                 {
+                    // 优化：先收集需要注销的实体，遍历完成后再批量删除（避免 ToList() 产生 GC）
+                    _entitiesToUnregisterBuffer.Clear();
+                    
                     // 遍历拥有此 Capability 的实体 ID 集合
-                    foreach (var entityId in entityIds.ToList()) // ToList() 避免迭代时修改集合
+                    foreach (var entityId in entityIds) // ← 不需要 ToList()
                     {
                         // 获取实体（可能已被销毁）
                         if (!world.Entities.TryGetValue(entityId, out var entity))
                         {
-                            // 实体已被销毁，清理注册
-                            UnregisterEntityCapability(entityId, typeId);
+                            // 实体已被销毁，标记为需要注销
+                            _entitiesToUnregisterBuffer.Add(entityId);
                             continue;
                         }
                         
                         if (entity == null || entity.IsDestroyed)
                         {
-                            // 实体已销毁，清理注册
-                            UnregisterEntityCapability(entityId, typeId);
+                            // 实体已销毁，标记为需要注销
+                            _entitiesToUnregisterBuffer.Add(entityId);
                             continue;
                         }
                         
                         // 检查此 Capability 是否仍然存在于实体上（双重检查，防止状态不一致）
                         if (!entity.CapabilityStates.TryGetValue(typeId, out var state))
                         {
-                            // 状态不一致，清理注册
-                            UnregisterEntityCapability(entityId, typeId);
+                            // 状态不一致，标记为需要注销
+                            _entitiesToUnregisterBuffer.Add(entityId);
                             continue;
                         }
                         
@@ -414,6 +442,18 @@ namespace Astrum.LogicCore.Systems
                                 ASLogger.Instance.Error($"Error executing Capability {capability.GetType().Name} on entity {entity.UniqueId}: {ex.Message}");
                             }
                         }
+                    }
+                    
+                    // 批量注销收集到的实体（在遍历完成后统一处理，避免修改正在遍历的集合）
+                    foreach (var entityId in _entitiesToUnregisterBuffer)
+                    {
+                        entityIds.Remove(entityId);
+                    }
+                    
+                    // 如果该 Capability 类型的实体集合为空，清理 TypeId 映射
+                    if (entityIds.Count == 0)
+                    {
+                        TypeIdToEntityIds.Remove(typeId);
                     }
                 }
             }

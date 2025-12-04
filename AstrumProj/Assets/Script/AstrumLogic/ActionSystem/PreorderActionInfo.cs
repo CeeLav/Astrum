@@ -1,13 +1,21 @@
 using MemoryPack;
+using Astrum.CommonBase;
 
 namespace Astrum.LogicCore.ActionSystem
 {
     /// <summary>
     /// 预订单动作信息 - 动作切换的预约信息
+    /// 支持对象池复用，减少 GC 分配
     /// </summary>
     [MemoryPackable]
-    public partial class PreorderActionInfo
+    public partial class PreorderActionInfo : IPool
     {
+        /// <summary>
+        /// 对象是否来自对象池（IPool 接口必需成员）
+        /// </summary>
+        [MemoryPackIgnore]
+        public bool IsFromPool { get; set; }
+        
         /// <summary>目标动作ID</summary>
         public int ActionId { get; set; } = 0;
         
@@ -41,6 +49,32 @@ namespace Astrum.LogicCore.ActionSystem
             TransitionFrames = transitionFrames;
             FromFrame = fromFrame;
             FreezingFrames = freezingFrames;
+        }
+        
+        /// <summary>
+        /// 从对象池创建实例（性能优化）
+        /// </summary>
+        public static PreorderActionInfo Create(int actionId, int priority, int transitionFrames = 3, int fromFrame = 0, int freezingFrames = 0)
+        {
+            var instance = ObjectPool.Instance.Fetch<PreorderActionInfo>();
+            instance.ActionId = actionId;
+            instance.Priority = priority;
+            instance.TransitionFrames = transitionFrames;
+            instance.FromFrame = fromFrame;
+            instance.FreezingFrames = freezingFrames;
+            return instance;
+        }
+        
+        /// <summary>
+        /// 重置状态（用于对象池复用）
+        /// </summary>
+        public void Reset()
+        {
+            ActionId = 0;
+            Priority = 0;
+            TransitionFrames = 0;
+            FromFrame = 0;
+            FreezingFrames = 0;
         }
     }
 }

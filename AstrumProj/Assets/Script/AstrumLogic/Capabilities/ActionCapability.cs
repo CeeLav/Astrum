@@ -182,7 +182,8 @@ namespace Astrum.LogicCore.Capabilities
             }
             if (actionComponent.CurrentAction == null) return;
             
-            // 清空预订单列表
+            // 清空预订单列表（回收到对象池）
+            RecyclePreorderActions(actionComponent.PreorderActions);
             actionComponent.PreorderActions.Clear();
             
             // 检查当前动作是否已结束
@@ -202,14 +203,15 @@ namespace Astrum.LogicCore.Capabilities
                     // 从可用动作字典中查找下一个动作的数据
                     if (actionComponent.AvailableActions.TryGetValue(nextActionId, out var nextAction))
                     {
-                        actionComponent.PreorderActions.Add(new PreorderActionInfo
-                        {
-                            ActionId = nextActionId,
-                            Priority = nextAction.Priority,
-                            TransitionFrames = 3,
-                            FromFrame = 0,
-                            FreezingFrames = 0
-                        });
+                        // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+                        var preorder = PreorderActionInfo.Create(
+                            actionId: nextActionId,
+                            priority: nextAction.Priority,
+                            transitionFrames: 3,
+                            fromFrame: 0,
+                            freezingFrames: 0
+                        );
+                        actionComponent.PreorderActions.Add(preorder);
                     }
                 }
             }
@@ -225,25 +227,27 @@ namespace Astrum.LogicCore.Capabilities
 
                 if (TryGetMatchingCancelContext(actionComponent, action, out var cancelTag, out var beCancelledTag))
                 {
-                    actionComponent.PreorderActions.Add(new PreorderActionInfo
-                    {
-                        ActionId = action.Id,
-                        Priority = CalculatePriority(action, cancelTag),
-                        TransitionFrames = (cancelTag?.BlendInFrames > 0 ? cancelTag.BlendInFrames : 3),
-                        FromFrame = cancelTag?.StartFromFrames ?? 0,
-                        FreezingFrames = beCancelledTag?.BlendOutFrames ?? 0
-                    });
+                    // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+                    var preorder = PreorderActionInfo.Create(
+                        actionId: action.Id,
+                        priority: CalculatePriority(action, cancelTag),
+                        transitionFrames: (cancelTag?.BlendInFrames > 0 ? cancelTag.BlendInFrames : 3),
+                        fromFrame: cancelTag?.StartFromFrames ?? 0,
+                        freezingFrames: beCancelledTag?.BlendOutFrames ?? 0
+                    );
+                    actionComponent.PreorderActions.Add(preorder);
                 }
                 else if (CanCancelToAction(actionComponent, action))
                 {
-                    actionComponent.PreorderActions.Add(new PreorderActionInfo
-                    {
-                        ActionId = action.Id,
-                        Priority = CalculatePriority(action),
-                        TransitionFrames = 3,
-                        FromFrame = 0,
-                        FreezingFrames = 0
-                    });
+                    // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+                    var preorder = PreorderActionInfo.Create(
+                        actionId: action.Id,
+                        priority: CalculatePriority(action),
+                        transitionFrames: 3,
+                        fromFrame: 0,
+                        freezingFrames: 0
+                    );
+                    actionComponent.PreorderActions.Add(preorder);
                 }
             }
         }
@@ -291,7 +295,8 @@ namespace Astrum.LogicCore.Capabilities
                     $"not found in AvailableActions dictionary on entity {entity.UniqueId}");
             }
             
-            // 清空候选列表
+            // 清空候选列表（回收到对象池）
+            RecyclePreorderActions(actionComponent.PreorderActions);
             actionComponent.PreorderActions.Clear();
         }
         
@@ -817,14 +822,14 @@ namespace Astrum.LogicCore.Capabilities
                 return false;
             }
 
-            var cloned = new PreorderActionInfo
-            {
-                ActionId = preorderInfo.ActionId,
-                Priority = preorderInfo.Priority,
-                TransitionFrames = preorderInfo.TransitionFrames,
-                FromFrame = preorderInfo.FromFrame,
-                FreezingFrames = preorderInfo.FreezingFrames
-            };
+            // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+            var cloned = PreorderActionInfo.Create(
+                actionId: preorderInfo.ActionId,
+                priority: preorderInfo.Priority,
+                transitionFrames: preorderInfo.TransitionFrames,
+                fromFrame: preorderInfo.FromFrame,
+                freezingFrames: preorderInfo.FreezingFrames
+            );
 
             actionComponent.ExternalPreorders[tag] = cloned;
 
@@ -854,13 +859,15 @@ namespace Astrum.LogicCore.Capabilities
                     continue;
                 }
 
-                actionComponent.PreorderActions.Add(new PreorderActionInfo(
-                    preorder.ActionId,
-                    preorder.Priority,
-                    preorder.TransitionFrames,
-                    preorder.FromFrame,
-                    preorder.FreezingFrames
-                ));
+                // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+                var merged = PreorderActionInfo.Create(
+                    actionId: preorder.ActionId,
+                    priority: preorder.Priority,
+                    transitionFrames: preorder.TransitionFrames,
+                    fromFrame: preorder.FromFrame,
+                    freezingFrames: preorder.FreezingFrames
+                );
+                actionComponent.PreorderActions.Add(merged);
             }
 
             actionComponent.ExternalPreorders.Clear();
@@ -889,16 +896,32 @@ namespace Astrum.LogicCore.Capabilities
             return true;
         }
 
+        /// <summary>
+        /// 回收 PreorderActionInfo 列表到对象池
+        /// </summary>
+        private void RecyclePreorderActions(List<PreorderActionInfo> preorders)
+        {
+            if (preorders == null || preorders.Count == 0) return;
+            
+            foreach (var preorder in preorders)
+            {
+                if (preorder != null && preorder.IsFromPool)
+                {
+                    ObjectPool.Instance.Recycle(preorder);
+                }
+            }
+        }
+        
         private void OnActionPreorder(Entity entity, ActionPreorderEvent evt)
         {
-            var preorder = new PreorderActionInfo
-            {
-                ActionId = evt.ActionId,
-                Priority = evt.Priority,
-                TransitionFrames = evt.TransitionFrames,
-                FromFrame = evt.FromFrame,
-                FreezingFrames = evt.FreezingFrames
-            };
+            // 使用对象池创建 PreorderActionInfo，减少 GC 分配
+            var preorder = PreorderActionInfo.Create(
+                actionId: evt.ActionId,
+                priority: evt.Priority,
+                transitionFrames: evt.TransitionFrames,
+                fromFrame: evt.FromFrame,
+                freezingFrames: evt.FreezingFrames
+            );
 
             EnqueueExternalAction(entity, evt.SourceTag, preorder);
         }

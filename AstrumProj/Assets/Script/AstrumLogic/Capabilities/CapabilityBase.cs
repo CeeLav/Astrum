@@ -12,6 +12,18 @@ namespace Astrum.LogicCore.Capabilities
     /// <typeparam name="T">Capability 自身类型</typeparam>
     public abstract class Capability<T> : ICapability where T : ICapability
     {
+        // ====== 性能优化：缓存 ProfileScope 名称 ======
+        
+        /// <summary>
+        /// 缓存的 ProfileScope 名称（编译期计算，避免运行时字符串拼接）
+        /// </summary>
+        private static readonly string CachedProfileScopeName = $"Cap.{typeof(T).Name}";
+        
+        /// <summary>
+        /// 获取 ProfileScope 名称（供 CapabilitySystem 使用）
+        /// ICapability 接口实现
+        /// </summary>
+        string ICapability.GetProfileScopeName() => CachedProfileScopeName;
         // ====== 事件处理支持 ======
         
         /// <summary>
