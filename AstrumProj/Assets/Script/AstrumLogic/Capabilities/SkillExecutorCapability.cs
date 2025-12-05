@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.SkillSystem;
@@ -31,6 +30,23 @@ namespace Astrum.LogicCore.Capabilities
         { 
             CapabilityTag.Skill, 
             CapabilityTag.Combat 
+        };
+        
+        // ====== 性能优化：预分配缓冲区（避免 GC） ======
+        
+        /// <summary>
+        /// 预分配的触发事件缓冲区，避免每帧创建新 List
+        /// 容量 16 足以覆盖大多数技能的触发事件数量
+        /// </summary>
+        private List<TriggerFrameInfo> _triggerBuffer = new List<TriggerFrameInfo>(16);
+        
+        /// <summary>
+        /// 复用的碰撞过滤器，避免每次碰撞检测时创建新对象
+        /// </summary>
+        private CollisionFilter _collisionFilter = new CollisionFilter
+        {
+            ExcludedEntityIds = new HashSet<long>(),
+            OnlyEnemies = false
         };
         
         // ====== 生命周期 ======
@@ -86,20 +102,30 @@ namespace Astrum.LogicCore.Capabilities
             if (triggerEffects == null || triggerEffects.Count == 0)
                 return;
             
-            // 过滤出当前帧的触发事件（支持单帧和多帧范围）
-            var triggersAtFrame = triggerEffects
-                .Where(t => t.IsFrameInRange(currentFrame))
-                .ToList();
+            // 清空缓冲区（不释放容量，避免 GC）
+            _triggerBuffer.Clear();
             
-            if (triggersAtFrame.Count == 0)
+            // 手动过滤当前帧的触发事件（避免 LINQ ToList 产生 GC）
+            int count = triggerEffects.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var trigger = triggerEffects[i];
+                if (trigger.IsFrameInRange(currentFrame))
+                {
+                    _triggerBuffer.Add(trigger);
+                }
+            }
+            
+            if (_triggerBuffer.Count == 0)
                 return;
             
-            ASLogger.Instance.Debug($"Processing {triggersAtFrame.Count} triggers at frame {currentFrame}");
+            ASLogger.Instance.Debug($"Processing {_triggerBuffer.Count} triggers at frame {currentFrame}");
             
-            // 处理每个触发事件
-            foreach (var trigger in triggersAtFrame)
+            // 使用 for 循环遍历（避免 foreach 枚举器 GC）
+            int triggerCount = _triggerBuffer.Count;
+            for (int i = 0; i < triggerCount; i++)
             {
-                ProcessTrigger(caster, actionInfo, trigger);
+                ProcessTrigger(caster, actionInfo, _triggerBuffer[i]);
             }
         }
         
@@ -254,12 +280,10 @@ namespace Astrum.LogicCore.Capabilities
             
             var shape = trigger.CollisionShape.Value;
             
-            // 2. 构造碰撞过滤器
-            var filter = new CollisionFilter
-            {
-                ExcludedEntityIds = new HashSet<long> { caster.UniqueId },
-                OnlyEnemies = false  // 暂时移除敌对过滤（team系统未实现）
-            };
+            // 2. 复用碰撞过滤器（避免每次创建新对象产生 GC）
+            _collisionFilter.ExcludedEntityIds.Clear();
+            _collisionFilter.ExcludedEntityIds.Add(caster.UniqueId);
+            _collisionFilter.OnlyEnemies = false;  // 暂时移除敌对过滤（team系统未实现）
             
             // 3. 从 World 获取 HitSystem 进行碰撞检测
             var hitSystem = caster.World?.HitSystem;
@@ -272,7 +296,7 @@ namespace Astrum.LogicCore.Capabilities
             var hits = hitSystem.QueryHits(
                 caster, 
                 shape, 
-                filter
+                _collisionFilter
                 //skillInstanceId: skillAction.Id
             );
 
@@ -280,16 +304,20 @@ namespace Astrum.LogicCore.Capabilities
             if (hits.Count == 0)
             {
                 ASLogger.Instance.Debug($"[SkillExecutorCapability] Collision trigger hit 0 targets");
+                return;
             }
 
-            // 4. 对每个命中目标触发所有效果
-            foreach (var target in hits)
+            // 4. 对每个命中目标触发所有效果（使用 for 循环避免枚举器 GC）
+            int hitCount = hits.Count;
+            for (int i = 0; i < hitCount; i++)
             {
+                var target = hits[i];
                 if (trigger.EffectIds != null)
                 {
-                    foreach (var effectId in trigger.EffectIds)
+                    int effectCount = trigger.EffectIds.Length;
+                    for (int j = 0; j < effectCount; j++)
                     {
-                        TriggerSkillEffect(caster, target, effectId, trigger);
+                        TriggerSkillEffect(caster, target, trigger.EffectIds[j], trigger);
                     }
                 }
             }
@@ -302,9 +330,11 @@ namespace Astrum.LogicCore.Capabilities
         {
             if (trigger.EffectIds != null)
             {
-                foreach (var effectId in trigger.EffectIds)
+                // 使用 for 循环避免枚举器 GC
+                int effectCount = trigger.EffectIds.Length;
+                for (int i = 0; i < effectCount; i++)
                 {
-                    TriggerSkillEffect(caster, caster, effectId, trigger);
+                    TriggerSkillEffect(caster, caster, trigger.EffectIds[i], trigger);
                 }
             }
         }
@@ -335,12 +365,13 @@ namespace Astrum.LogicCore.Capabilities
                 // }
             }
             
-            // 触发所有效果
+            // 触发所有效果（使用 for 循环避免枚举器 GC）
             if (trigger.EffectIds != null)
             {
-                foreach (var effectId in trigger.EffectIds)
+                int effectCount = trigger.EffectIds.Length;
+                for (int i = 0; i < effectCount; i++)
                 {
-                    TriggerSkillEffect(caster, caster, effectId, trigger);
+                    TriggerSkillEffect(caster, caster, trigger.EffectIds[i], trigger);
                 }
             }
         }

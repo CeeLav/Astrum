@@ -2233,3 +2233,903 @@ openspec-chinese show optimize-skillexecutor-gc
 
 ---
 
+_**User (2025-12-05 01:27Z)**_
+
+/Astrum/openspec-apply 注意逻辑上的正确性
+
+--- Cursor Command: Astrum/openspec-apply.md ---
+---
+name: /openspec-apply
+id: openspec-apply
+category: OpenSpec
+description: Implement an approved OpenSpec change and keep tasks in sync.
+---
+<!-- OPENSPEC:START -->
+**Guardrails**
+- Favor straightforward, minimal implementations first and add complexity only when it is requested or clearly required.
+- Keep changes tightly scoped to the requested outcome.
+- Refer to `openspec/AGENTS.md` (located inside the `openspec/` directory—run `ls openspec` or `openspec update` if you don't see it) if you need additional OpenSpec conventions or clarifications.
+
+**Steps**
+Track these steps as TODOs and complete them one by one.
+1. Read `changes/<id>/proposal.md`, `design.md` (if present), and `tasks.md` to confirm scope and acceptance criteria.
+2. Work through tasks sequentially, keeping edits minimal and focused on the requested change.
+3. Confirm completion before updating statuses—make sure every item in `tasks.md` is finished.
+4. Update the checklist after all work is done so each task is marked `- [x]` and reflects reality.
+5. Reference `openspec list` or `openspec show <item>` when additional context is required.
+
+**Reference**
+- Use `openspec show <id> --json --deltas-only` if you need additional context from the proposal while implementing.
+<!-- OPENSPEC:END -->
+
+--- End Command ---
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+用户要求我实施 `optimize-skillexecutor-gc` 这个 OpenSpec 提案，并且特别强调要注意逻辑上的正确性。
+
+让我按照步骤来：
+1. 读取 proposal.md, design.md, tasks.md 来确认范围和验收标准
+2. 按顺序完成任务，保持编辑最小化并聚焦于请求的变更
+3. 在更新状态前确认完成 - 确保 tasks.md 中的每个项目都已完成
+4. 在所有工作完成后更新检查清单，将每个任务标记为 `- [x]` 并反映实际情况
+
+我需要创建一个 TODO 列表来跟踪进度，然后开始实施。
+
+首先让我读取这些文件，了解需要做什么。</details></think>
+
+---
+
+我将开始实施 `optimize-skillexecutor-gc` 提案。让我先创建 TODO 列表并逐步完成任务。
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [-] 读取并理解 proposal.md, design.md, tasks.md
+- [ ] Phase 1: 添加 _triggerBuffer 并优化 ProcessFrame()
+- [ ] Phase 2: 将 foreach 改为 for 循环
+- [ ] Phase 3: 添加并复用 _collisionFilter
+- [ ] 编译测试并验证无错误
+- [ ] 更新 tasks.md 标记完成状态
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: openspec/changes/optimize-skillexecutor-gc/proposal.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: openspec/changes/optimize-skillexecutor-gc/design.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我已经理解了提案的内容。现在让我开始实施优化。主要工作是：
+
+Phase 1: 
+- 添加 _triggerBuffer 实例字段
+- 修改 ProcessFrame() 方法，用 for 循环替代 LINQ
+
+Phase 2:
+- 将所有 foreach 改为 for 循环
+
+Phase 3:
+- 添加 _collisionFilter 实例字段
+- 修改 HandleCollisionTrigger() 方法复用 filter
+
+让我开始实施。首先读取当前的 SkillExecutorCapability.cs 文件。</details></think>
+
+---
+
+好的，我理解了提案内容。现在开始实施优化，我会注意逻辑正确性。让我先读取当前的代码：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我现在要开始实施优化。让我按照设计文档中的步骤来：
+
+Phase 1: 添加 _triggerBuffer 并优化 ProcessFrame()
+- 添加实例字段 `private List<TriggerFrameInfo> _triggerBuffer = new List<TriggerFrameInfo>(16);`
+- 修改 ProcessFrame() 方法，将 LINQ ToList() 改为手动 for 循环过滤
+- 将 foreach 改为 for 循环
+
+Phase 2: 优化其他地方的 foreach 循环
+- HandleCollisionTrigger() 中的两个 foreach
+- HandleDirectTrigger() 中的 foreach
+- HandleConditionTrigger() 中的 foreach
+
+Phase 3: 添加 _collisionFilter 并复用
+- 添加实例字段 `private CollisionFilter _collisionFilter`
+- 修改 HandleCollisionTrigger() 复用这个 filter
+
+让我开始实施。</details></think>
+
+---
+
+好的，我现在开始实施优化。让我按照 Phase 1-3 的顺序进行：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 17, lines removed: undefined
+
+```diff
+@@ -33,4 +33,21 @@
+              CapabilityTag.Combat 
+          };
++         
++         // ====== 性能优化：预分配缓冲区（避免 GC） ======
++         
++         /// &lt;summary&gt;
++         /// 预分配的触发事件缓冲区，避免每帧创建新 List
++         /// 容量 16 足以覆盖大多数技能的触发事件数量
++         /// &lt;/summary&gt;
++         private List&lt;TriggerFrameInfo&gt; _triggerBuffer = new List&lt;TriggerFrameInfo&gt;(16);
++         
++         /// &lt;summary&gt;
++         /// 复用的碰撞过滤器，避免每次碰撞检测时创建新对象
++         /// &lt;/summary&gt;
++         private CollisionFilter _collisionFilter = new CollisionFilter
++         {
++             ExcludedEntityIds = new HashSet&lt;long&gt;(),
++             OnlyEnemies = false
++         };
+          
+          // ====== 生命周期 ======
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我已经添加了两个实例字段。现在继续优化 ProcessFrame() 方法。</details></think>
+
+---
+
+好的，实例字段添加完成。现在优化 `ProcessFrame()` 方法：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 19, lines removed: 9
+
+```diff
+@@ -104,18 +104,28 @@
+                  return;
+              
+-             // 过滤出当前帧的触发事件（支持单帧和多帧范围）
+-             var triggersAtFrame = triggerEffects
+-                 .Where(t =&gt; t.IsFrameInRange(currentFrame))
+-                 .ToList();
++             // 清空缓冲区（不释放容量，避免 GC）
++             _triggerBuffer.Clear();
++             
++             // 手动过滤当前帧的触发事件（避免 LINQ ToList 产生 GC）
++             int count = triggerEffects.Count;
++             for (int i = 0; i &lt; count; i++)
++             {
++                 var trigger = triggerEffects[i];
++                 if (trigger.IsFrameInRange(currentFrame))
++                 {
++                     _triggerBuffer.Add(trigger);
++                 }
++             }
+              
+-             if (triggersAtFrame.Count == 0)
++             if (_triggerBuffer.Count == 0)
+                  return;
+              
+-             ASLogger.Instance.Debug($"Processing {triggersAtFrame.Count} triggers at frame {currentFrame}");
++             ASLogger.Instance.Debug($"Processing {_triggerBuffer.Count} triggers at frame {currentFrame}");
+              
+-             // 处理每个触发事件
+-             foreach (var trigger in triggersAtFrame)
++             // 使用 for 循环遍历（避免 foreach 枚举器 GC）
++             int triggerCount = _triggerBuffer.Count;
++             for (int i = 0; i &lt; triggerCount; i++)
+              {
+-                 ProcessTrigger(caster, actionInfo, trigger);
++                 ProcessTrigger(caster, actionInfo, _triggerBuffer[i]);
+              }
+          }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+很好，ProcessFrame() 已经优化完成。现在我需要优化 HandleCollisionTrigger() 中的 foreach 循环。</details></think>
+
+---
+
+现在优化 `HandleCollisionTrigger()` 方法，使用复用的 `_collisionFilter` 并将 foreach 改为 for 循环：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 6
+
+```diff
+@@ -282,10 +282,8 @@
+              var shape = trigger.CollisionShape.Value;
+              
+-             // 2. 构造碰撞过滤器
+-             var filter = new CollisionFilter
+-             {
+-                 ExcludedEntityIds = new HashSet&lt;long&gt; { caster.UniqueId },
+-                 OnlyEnemies = false  // 暂时移除敌对过滤（team系统未实现）
+-             };
++             // 2. 复用碰撞过滤器（避免每次创建新对象产生 GC）
++             _collisionFilter.ExcludedEntityIds.Clear();
++             _collisionFilter.ExcludedEntityIds.Add(caster.UniqueId);
++             _collisionFilter.OnlyEnemies = false;  // 暂时移除敌对过滤（team系统未实现）
+              
+              // 3. 从 World 获取 HitSystem 进行碰撞检测
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -300,5 +298,5 @@
+                  caster, 
+                  shape, 
+-                 filter
++                 _collisionFilter
+                  //skillInstanceId: skillAction.Id
+              );
+```
+
+**Chunk 3**
+Lines added: 8, lines removed: 4
+
+```diff
+@@ -308,14 +306,18 @@
+              {
+                  ASLogger.Instance.Debug($"[SkillExecutorCapability] Collision trigger hit 0 targets");
++                 return;
+              }
+  
+-             // 4. 对每个命中目标触发所有效果
+-             foreach (var target in hits)
++             // 4. 对每个命中目标触发所有效果（使用 for 循环避免枚举器 GC）
++             int hitCount = hits.Count;
++             for (int i = 0; i &lt; hitCount; i++)
+              {
++                 var target = hits[i];
+                  if (trigger.EffectIds != null)
+                  {
+-                     foreach (var effectId in trigger.EffectIds)
++                     int effectCount = trigger.EffectIds.Length;
++                     for (int j = 0; j &lt; effectCount; j++)
+                      {
+-                         TriggerSkillEffect(caster, target, effectId, trigger);
++                         TriggerSkillEffect(caster, target, trigger.EffectIds[j], trigger);
+                      }
+                  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+很好，HandleCollisionTrigger() 已经优化完成。现在需要优化 HandleDirectTrigger() 和 HandleConditionTrigger() 中的 foreach 循环。</details></think>
+
+---
+
+现在优化 `HandleDirectTrigger()` 和 `HandleConditionTrigger()` 方法：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 2
+
+```diff
+@@ -332,7 +332,9 @@
+              if (trigger.EffectIds != null)
+              {
+-                 foreach (var effectId in trigger.EffectIds)
++                 // 使用 for 循环避免枚举器 GC
++                 int effectCount = trigger.EffectIds.Length;
++                 for (int i = 0; i &lt; effectCount; i++)
+                  {
+-                     TriggerSkillEffect(caster, caster, effectId, trigger);
++                     TriggerSkillEffect(caster, caster, trigger.EffectIds[i], trigger);
+                  }
+              }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 3
+
+```diff
+@@ -367,10 +367,11 @@
+              }
+              
+-             // 触发所有效果
++             // 触发所有效果（使用 for 循环避免枚举器 GC）
+              if (trigger.EffectIds != null)
+              {
+-                 foreach (var effectId in trigger.EffectIds)
++                 int effectCount = trigger.EffectIds.Length;
++                 for (int i = 0; i &lt; effectCount; i++)
+                  {
+-                     TriggerSkillEffect(caster, caster, effectId, trigger);
++                     TriggerSkillEffect(caster, caster, trigger.EffectIds[i], trigger);
+                  }
+              }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，所有的优化都已经完成了。现在我需要移除不再需要的 using 语句（System.Linq），并编译测试。让我先移除 using System.Linq。</details></think>
+
+---
+
+优化完成！现在移除不再需要的 `using System.Linq`：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -1,4 +1,3 @@
+  using System;
+- using System.Linq;
+  using System.Collections.Generic;
+  using Astrum.LogicCore.Components;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] 读取并理解 proposal.md, design.md, tasks.md
+- [x] Phase 1: 添加 _triggerBuffer 并优化 ProcessFrame()
+- [x] Phase 2: 将 foreach 改为 for 循环
+- [x] Phase 3: 添加并复用 _collisionFilter
+- [ ] 编译测试并验证无错误
+- [ ] 更新 tasks.md 标记完成状态
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我已经完成了所有的代码优化。现在需要编译测试。让我先检查是否有 linter 错误。</details></think>
+
+---
+
+现在检查 linter 错误并编译测试：
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd AstrumProj; dotnet build AstrumProj.sln --no-incremental</summary>
+
+```bash
+cd AstrumProj; dotnet build AstrumProj.sln --no-incremental
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: c:\Users\Lavender\.cursor\projects\d-Develop-Projects-Astrum-Astrum-code-workspace\agent-tools\fe7e5971-1296-4eec-9824-8c3e95b46c4b.txt</summary>
+
+</details>
+</tool-use>
+
+---
+
+太好了！编译成功，只有一些无关的警告。现在更新 tasks.md 标记完成状态：
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] 读取并理解 proposal.md, design.md, tasks.md
+- [x] Phase 1: 添加 _triggerBuffer 并优化 ProcessFrame()
+- [x] Phase 2: 将 foreach 改为 for 循环
+- [x] Phase 3: 添加并复用 _collisionFilter
+- [-] 编译测试并验证无错误
+- [ ] 更新 tasks.md 标记完成状态
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: openspec/changes/optimize-skillexecutor-gc/tasks.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/optimize-skillexecutor-gc/tasks.md</summary>
+
+**Chunk 1**
+Lines added: 15, lines removed: 15
+
+```diff
+@@ -3,25 +3,25 @@
+  ## 1. Phase 1: 消除 LINQ ToList() 分配
+  
+- - [ ] 1.1 在 SkillExecutorCapability 添加 &#96;_triggerBuffer&#96; 实例字段
+- - [ ] 1.2 修改 ProcessFrame() 方法，使用预分配缓冲区替代 ToList()
+- - [ ] 1.3 将 LINQ Where() 改为手动 for 循环过滤
+- - [ ] 1.4 添加 ProfileScope 监控性能
+- - [ ] 1.5 编译验证无错误
++ - [x] 1.1 在 SkillExecutorCapability 添加 &#96;_triggerBuffer&#96; 实例字段
++ - [x] 1.2 修改 ProcessFrame() 方法，使用预分配缓冲区替代 ToList()
++ - [x] 1.3 将 LINQ Where() 改为手动 for 循环过滤
++ - [ ] 1.4 添加 ProfileScope 监控性能（可选，待 Unity 测试）
++ - [x] 1.5 编译验证无错误
+  
+  ## 2. Phase 2: 优化循环遍历
+  
+- - [ ] 2.1 修改 ProcessFrame() 中的 foreach 为 for 循环
+- - [ ] 2.2 修改 HandleCollisionTrigger() 中的 foreach 为 for 循环
+- - [ ] 2.3 修改 HandleDirectTrigger() 中的 foreach 为 for 循环（如有）
+- - [ ] 2.4 修改 HandleConditionTrigger() 中的 foreach 为 for 循环（如有）
+- - [ ] 2.5 编译验证无错误
++ - [x] 2.1 修改 ProcessFrame() 中的 foreach 为 for 循环
++ - [x] 2.2 修改 HandleCollisionTrigger() 中的 foreach 为 for 循环
++ - [x] 2.3 修改 HandleDirectTrigger() 中的 foreach 为 for 循环
++ - [x] 2.4 修改 HandleConditionTrigger() 中的 foreach 为 for 循环
++ - [x] 2.5 编译验证无错误
+  
+  ## 3. Phase 3: 复用 CollisionFilter 对象
+  
+- - [ ] 3.1 在 SkillExecutorCapability 添加 &#96;_collisionFilter&#96; 实例字段
+- - [ ] 3.2 修改 HandleCollisionTrigger() 方法，复用 filter 对象
+- - [ ] 3.3 确保每次使用前正确清空 ExcludedEntityIds
+- - [ ] 3.4 添加注释说明复用逻辑
+- - [ ] 3.5 编译验证无错误
++ - [x] 3.1 在 SkillExecutorCapability 添加 &#96;_collisionFilter&#96; 实例字段
++ - [x] 3.2 修改 HandleCollisionTrigger() 方法，复用 filter 对象
++ - [x] 3.3 确保每次使用前正确清空 ExcludedEntityIds
++ - [x] 3.4 添加注释说明复用逻辑
++ - [x] 3.5 编译验证无错误
+  
+  ## 4. Phase 4: VFX 事件对象池（可选）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/optimize-skillexecutor-gc/tasks.md</summary>
+
+**Chunk 1**
+Lines added: 10, lines removed: 10
+
+```diff
+@@ -39,14 +39,14 @@
+  ## 5. 测试验证
+  
+- - [ ] 5.1 编译项目（dotnet build AstrumProj.sln）
+- - [ ] 5.2 刷新 Unity（Assets/Refresh）
+- - [ ] 5.3 运行单元测试（如有）
+- - [ ] 5.4 Unity Profiler 验证 GC 分配 &lt; 1 KB/帧
+- - [ ] 5.5 Unity Profiler 验证 GC.Alloc 次数 &lt; 50 次/帧
+- - [ ] 5.6 功能测试：技能释放正常
+- - [ ] 5.7 功能测试：VFX 触发正常
+- - [ ] 5.8 功能测试：碰撞检测正常
+- - [ ] 5.9 功能测试：效果触发正常
+- - [ ] 5.10 内存泄漏测试：运行 30 分钟后内存稳定
++ - [x] 5.1 编译项目（dotnet build AstrumProj.sln）
++ - [ ] 5.2 刷新 Unity（Assets/Refresh）- 需要用户在 Unity 中操作
++ - [ ] 5.3 运行单元测试（如有）- 待 Unity 刷新后测试
++ - [ ] 5.4 Unity Profiler 验证 GC 分配 &lt; 1 KB/帧 - 需要用户测试
++ - [ ] 5.5 Unity Profiler 验证 GC.Alloc 次数 &lt; 50 次/帧 - 需要用户测试
++ - [ ] 5.6 功能测试：技能释放正常 - 需要用户测试
++ - [ ] 5.7 功能测试：VFX 触发正常 - 需要用户测试
++ - [ ] 5.8 功能测试：碰撞检测正常 - 需要用户测试
++ - [ ] 5.9 功能测试：效果触发正常 - 需要用户测试
++ - [ ] 5.10 内存泄漏测试：运行 30 分钟后内存稳定 - 需要用户测试
+  
+  ## 6. 文档更新
+```
+
+</details>
+
+</tool-use>
+
+---
+
+现在更新 proposal.md 的状态并创建实施总结：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/optimize-skillexecutor-gc/proposal.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1,5 +1,5 @@
+  # Change: 优化 SkillExecutorCapability 实现 0 GC
+  
+- **状态**: 🟡 待审批
++ **状态**: 🟢 已实施（Phase 1-3 完成，待 Unity 测试验证）
+  
+  ## Why
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **write** • Edit file: openspec/changes/optimize-skillexecutor-gc/IMPLEMENTATION_SUMMARY.md</summary>
+
+**Chunk 1**
+Lines added: 206, lines removed: 1
+
+```diff
+@@ -1,1 +1,206 @@
+- 
++ # SkillExecutorCapability 0 GC 优化 - 实施总结
++ 
++ **完成日期**: 2025-12-05  
++ **状态**: ✅ Phase 1-3 已完成，待 Unity 测试验证  
++ **目标**: 将 SkillExecutorCapability GC 从 125.4 KB/帧 优化到 &lt; 1 KB/帧
++ 
++ ---
++ 
++ ## 🎯 实施的优化
++ 
++ ### Phase 1: 消除 LINQ ToList() 分配 ✅
++ 
++ **修改内容**:
++ 1. 添加实例字段 &#96;_triggerBuffer&#96;（容量 16）
++ 2. 修改 &#96;ProcessFrame()&#96; 方法：
++    - 使用 &#96;_triggerBuffer.Clear()&#96; 复用缓冲区
++    - 用 for 循环替代 LINQ &#96;Where().ToList()&#96;
++    - 手动过滤触发事件到缓冲区
++ 
++ **代码变更**:
++ &#96;&#96;&#96;csharp
++ // ❌ 优化前
++ var triggersAtFrame = triggerEffects
++     .Where(t =&gt; t.IsFrameInRange(currentFrame))
++     .ToList();  // 每帧创建新 List
++ 
++ // ✅ 优化后
++ _triggerBuffer.Clear();  // 复用缓冲区，不释放容量
++ int count = triggerEffects.Count;
++ for (int i = 0; i &lt; count; i++)
++ {
++     var trigger = triggerEffects[i];
++     if (trigger.IsFrameInRange(currentFrame))
++     {
++         _triggerBuffer.Add(trigger);
++     }
++ }
++ &#96;&#96;&#96;
++ 
++ **预期效果**: ~80 KB/帧 GC 减少
++ 
++ ---
++ 
++ ### Phase 2: 优化循环遍历 ✅
++ 
++ **修改内容**:
++ 1. &#96;ProcessFrame()&#96;: 将 foreach 改为 for 循环遍历 &#96;_triggerBuffer&#96;
++ 2. &#96;HandleCollisionTrigger()&#96;: 将两层 foreach 改为两层 for 循环
++ 3. &#96;HandleDirectTrigger()&#96;: 将 foreach 改为 for 循环
++ 4. &#96;HandleConditionTrigger()&#96;: 将 foreach 改为 for 循环
++ 
++ **代码变更**:
++ &#96;&#96;&#96;csharp
++ // ❌ 优化前
++ foreach (var trigger in triggersAtFrame)
++ {
++     ProcessTrigger(caster, actionInfo, trigger);
++ }
++ 
++ // ✅ 优化后
++ int triggerCount = _triggerBuffer.Count;
++ for (int i = 0; i &lt; triggerCount; i++)
++ {
++     ProcessTrigger(caster, actionInfo, _triggerBuffer[i]);
++ }
++ &#96;&#96;&#96;
++ 
++ **预期效果**: ~5 KB/帧 GC 减少
++ 
++ ---
++ 
++ ### Phase 3: 复用 CollisionFilter 对象 ✅
++ 
++ **修改内容**:
++ 1. 添加实例字段 &#96;_collisionFilter&#96;
++ 2. 修改 &#96;HandleCollisionTrigger()&#96; 方法：
++    - 每次使用前调用 &#96;Clear()&#96; 清空 ExcludedEntityIds
++    - 复用 HashSet，避免重复创建
++ 
++ **代码变更**:
++ &#96;&#96;&#96;csharp
++ // ❌ 优化前
++ var filter = new CollisionFilter
++ {
++     ExcludedEntityIds = new HashSet&lt;long&gt; { caster.UniqueId },
++     OnlyEnemies = false
++ };
++ 
++ // ✅ 优化后
++ _collisionFilter.ExcludedEntityIds.Clear();
++ _collisionFilter.ExcludedEntityIds.Add(caster.UniqueId);
++ _collisionFilter.OnlyEnemies = false;
++ &#96;&#96;&#96;
++ 
++ **预期效果**: ~25 KB/帧 GC 减少
++ 
++ ---
++ 
++ ## 📊 优化总结
++ 
++ ### 代码变更统计
++ 
++ | 类别 | 变更内容 |
++ |------|---------|
++ | **添加** | 2 个实例字段（&#96;_triggerBuffer&#96;, &#96;_collisionFilter&#96;）|
++ | **修改** | 5 个方法（ProcessFrame, HandleCollisionTrigger, HandleDirectTrigger, HandleConditionTrigger）|
++ | **移除** | &#96;using System.Linq;&#96; |
++ | **代码行数** | +30 行（注释 +15，代码 +15）|
++ 
++ ### 优化技术
++ 
++ | 技术 | 应用位置 | 效果 |
++ |------|---------|------|
++ | **预分配缓冲区** | ProcessFrame() | 避免 ToList() GC |
++ | **for 循环替代 foreach** | 所有循环 | 避免枚举器 GC |
++ | **对象复用** | HandleCollisionTrigger() | 避免重复创建 |
++ 
++ ### 预期性能提升
++ 
++ | 指标 | 优化前 | 预期优化后 | 提升 |
++ |------|--------|-----------|------|
++ | **GC 分配** | 125.4 KB/帧 | **&lt; 1 KB/帧** | **~99%** ⬇️ |
++ | **GC.Alloc 次数** | 2052 次/帧 | **&lt; 50 次/帧** | **~98%** ⬇️ |
++ | **耗时** | 3.09ms | **&lt; 2ms** | **~35%** ⬇️ |
++ 
++ ---
++ 
++ ## ✅ 编译验证
++ 
++ - **编译状态**: ✅ 成功
++ - **编译命令**: &#96;dotnet build AstrumProj.sln --no-incremental&#96;
++ - **编译时间**: 11.4 秒
++ - **错误数**: 0
++ - **警告数**: 127（均为无关警告）
++ 
++ ---
++ 
++ ## 📋 待完成任务
++ 
++ ### 需要用户在 Unity 中测试
++ 
++ - [ ] 刷新 Unity（Assets/Refresh）
++ - [ ] Unity Profiler 验证 GC 分配 &lt; 1 KB/帧
++ - [ ] Unity Profiler 验证 GC.Alloc 次数 &lt; 50 次/帧
++ - [ ] 功能测试：技能释放正常
++ - [ ] 功能测试：VFX 触发正常
++ - [ ] 功能测试：碰撞检测正常
++ - [ ] 功能测试：效果触发正常
++ - [ ] 内存泄漏测试：运行 30 分钟后内存稳定
++ 
++ ### Phase 4: VFX 事件对象池（可选）
++ 
++ 根据 Unity Profiler 测试结果决定是否实施：
++ - 如果 VFX 触发频率 &lt; 20 次/帧，可以跳过
++ - 如果 VFX 触发频率 &gt; 20 次/帧，实施对象池优化
++ 
++ ---
++ 
++ ## 🔍 关键改进点
++ 
++ ✅ **逻辑正确性**:
++ - 所有循环边界检查正确（使用 Count 和 Length）
++ - CollisionFilter 每次使用前正确清空
++ - 缓冲区复用逻辑正确（Clear() 不释放容量）
++ 
++ ✅ **性能优化**:
++ - 消除了所有 LINQ 操作
++ - 消除了所有 foreach 枚举器
++ - 复用了所有可复用的对象
++ 
++ ✅ **代码质量**:
++ - 添加了详细注释说明优化原因
++ - 遵循了项目的代码风格
++ - 参考了 ActionCapability 的成功案例
++ 
++ ---
++ 
++ ## 📝 修改文件清单
++ 
++ &#96;&#96;&#96;
++ AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs
++   - 添加 _triggerBuffer 和 _collisionFilter 实例字段
++   - 优化 ProcessFrame() 方法
++   - 优化 HandleCollisionTrigger() 方法
++   - 优化 HandleDirectTrigger() 方法
++   - 优化 HandleConditionTrigger() 方法
++   - 移除 using System.Linq;
++ &#96;&#96;&#96;
++ 
++ ---
++ 
++ ## 🎉 下一步
++ 
++ 1. **激活 Unity** - 等待代码刷新编译
++ 2. **运行游戏** - 测试技能释放功能
++ 3. **查看 Unity Profiler**:
++    - 检查 SkillExecutorCapability GC 分配
++    - 检查 GC.Alloc 次数
++    - 检查耗时变化
++ 4. **功能验证** - 确保所有技能功能正常
++ 5. **性能验证** - 确认达到优化目标
++ 
++ ---
++ 
++ **实施完成！等待 Unity 测试验证！** 🚀
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] 读取并理解 proposal.md, design.md, tasks.md
+- [x] Phase 1: 添加 _triggerBuffer 并优化 ProcessFrame()
+- [x] Phase 2: 将 foreach 改为 for 循环
+- [x] Phase 3: 添加并复用 _collisionFilter
+- [x] 编译测试并验证无错误
+- [x] 更新 tasks.md 标记完成状态
+
+</details>
+</tool-use>
+
+---
+
+完美！让我验证一下最终的代码逻辑正确性：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+完美！让我创建一个最终的代码审查总结：
+
+## ✅ 实施完成总结
+
+我已经成功完成了 **SkillExecutorCapability 0 GC 优化**的 Phase 1-3，所有代码修改都已通过编译验证。以下是详细总
+
+---
+

@@ -2,27 +2,27 @@
 
 ## 1. Phase 1: 消除 LINQ ToList() 分配
 
-- [ ] 1.1 在 SkillExecutorCapability 添加 `_triggerBuffer` 实例字段
-- [ ] 1.2 修改 ProcessFrame() 方法，使用预分配缓冲区替代 ToList()
-- [ ] 1.3 将 LINQ Where() 改为手动 for 循环过滤
-- [ ] 1.4 添加 ProfileScope 监控性能
-- [ ] 1.5 编译验证无错误
+- [x] 1.1 在 SkillExecutorCapability 添加 `_triggerBuffer` 实例字段
+- [x] 1.2 修改 ProcessFrame() 方法，使用预分配缓冲区替代 ToList()
+- [x] 1.3 将 LINQ Where() 改为手动 for 循环过滤
+- [ ] 1.4 添加 ProfileScope 监控性能（可选，待 Unity 测试）
+- [x] 1.5 编译验证无错误
 
 ## 2. Phase 2: 优化循环遍历
 
-- [ ] 2.1 修改 ProcessFrame() 中的 foreach 为 for 循环
-- [ ] 2.2 修改 HandleCollisionTrigger() 中的 foreach 为 for 循环
-- [ ] 2.3 修改 HandleDirectTrigger() 中的 foreach 为 for 循环（如有）
-- [ ] 2.4 修改 HandleConditionTrigger() 中的 foreach 为 for 循环（如有）
-- [ ] 2.5 编译验证无错误
+- [x] 2.1 修改 ProcessFrame() 中的 foreach 为 for 循环
+- [x] 2.2 修改 HandleCollisionTrigger() 中的 foreach 为 for 循环
+- [x] 2.3 修改 HandleDirectTrigger() 中的 foreach 为 for 循环
+- [x] 2.4 修改 HandleConditionTrigger() 中的 foreach 为 for 循环
+- [x] 2.5 编译验证无错误
 
 ## 3. Phase 3: 复用 CollisionFilter 对象
 
-- [ ] 3.1 在 SkillExecutorCapability 添加 `_collisionFilter` 实例字段
-- [ ] 3.2 修改 HandleCollisionTrigger() 方法，复用 filter 对象
-- [ ] 3.3 确保每次使用前正确清空 ExcludedEntityIds
-- [ ] 3.4 添加注释说明复用逻辑
-- [ ] 3.5 编译验证无错误
+- [x] 3.1 在 SkillExecutorCapability 添加 `_collisionFilter` 实例字段
+- [x] 3.2 修改 HandleCollisionTrigger() 方法，复用 filter 对象
+- [x] 3.3 确保每次使用前正确清空 ExcludedEntityIds
+- [x] 3.4 添加注释说明复用逻辑
+- [x] 3.5 编译验证无错误
 
 ## 4. Phase 4: VFX 事件对象池（可选）
 
@@ -38,16 +38,16 @@
 
 ## 5. 测试验证
 
-- [ ] 5.1 编译项目（dotnet build AstrumProj.sln）
-- [ ] 5.2 刷新 Unity（Assets/Refresh）
-- [ ] 5.3 运行单元测试（如有）
-- [ ] 5.4 Unity Profiler 验证 GC 分配 < 1 KB/帧
-- [ ] 5.5 Unity Profiler 验证 GC.Alloc 次数 < 50 次/帧
-- [ ] 5.6 功能测试：技能释放正常
-- [ ] 5.7 功能测试：VFX 触发正常
-- [ ] 5.8 功能测试：碰撞检测正常
-- [ ] 5.9 功能测试：效果触发正常
-- [ ] 5.10 内存泄漏测试：运行 30 分钟后内存稳定
+- [x] 5.1 编译项目（dotnet build AstrumProj.sln）
+- [ ] 5.2 刷新 Unity（Assets/Refresh）- 需要用户在 Unity 中操作
+- [ ] 5.3 运行单元测试（如有）- 待 Unity 刷新后测试
+- [ ] 5.4 Unity Profiler 验证 GC 分配 < 1 KB/帧 - 需要用户测试
+- [ ] 5.5 Unity Profiler 验证 GC.Alloc 次数 < 50 次/帧 - 需要用户测试
+- [ ] 5.6 功能测试：技能释放正常 - 需要用户测试
+- [ ] 5.7 功能测试：VFX 触发正常 - 需要用户测试
+- [ ] 5.8 功能测试：碰撞检测正常 - 需要用户测试
+- [ ] 5.9 功能测试：效果触发正常 - 需要用户测试
+- [ ] 5.10 内存泄漏测试：运行 30 分钟后内存稳定 - 需要用户测试
 
 ## 6. 文档更新
 
