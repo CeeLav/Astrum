@@ -124,8 +124,8 @@ namespace Astrum.LogicCore.Systems
             
             EffectQueue.Enqueue(effectData);
             
-            ASLogger.Instance.Debug($"Queued effect {effectData.EffectId}: " +
-                $"{effectData.CasterId} → {effectData.TargetId}");
+            /*ASLogger.Instance.Debug($"Queued effect {effectData.EffectId}: " +
+                $"{effectData.CasterId} → {effectData.TargetId}");*/
         }
         
         /// <summary>
@@ -138,6 +138,12 @@ namespace Astrum.LogicCore.Systems
             {
                 var effectData = EffectQueue.Dequeue();
                 ProcessEffect(effectData);
+                
+                // 处理完后回收到对象池（避免内存泄漏）
+                if (effectData is IPool poolable && poolable.IsFromPool)
+                {
+                    ObjectPool.Instance.Recycle(effectData);
+                }
             }
         }
         

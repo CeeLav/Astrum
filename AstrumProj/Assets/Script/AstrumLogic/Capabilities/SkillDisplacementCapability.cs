@@ -263,7 +263,7 @@ namespace Astrum.LogicCore.Capabilities
                 "Skill displacement active"
             );
             
-            ASLogger.Instance.Debug($"Disabled user input movement for entity {entity.UniqueId} during skill displacement");
+            //ASLogger.Instance.Debug($"Disabled user input movement for entity {entity.UniqueId} during skill displacement");
         }
         
         /// <summary>
@@ -285,7 +285,7 @@ namespace Astrum.LogicCore.Capabilities
                 SKILL_DISPLACEMENT_DISABLER_ID
             );
             
-            ASLogger.Instance.Debug($"Restored user input movement for entity {entity.UniqueId} after skill displacement");
+            //ASLogger.Instance.Debug($"Restored user input movement for entity {entity.UniqueId} after skill displacement");
         }
     }
 }

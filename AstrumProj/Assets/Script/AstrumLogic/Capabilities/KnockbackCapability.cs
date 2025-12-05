@@ -69,7 +69,7 @@ namespace Astrum.LogicCore.Capabilities
             knockback.Type = evt.Type;
             knockback.CasterId = evt.CasterId;
             
-            ASLogger.Instance.Debug($"[KnockbackCapability] Knockback data written: speed={knockback.Speed}m/s, direction={evt.Direction}");
+            //ASLogger.Instance.Debug($"[KnockbackCapability] Knockback data written: speed={knockback.Speed}m/s, direction={evt.Direction}");
         }
         
         // ====== 生命周期 ======
@@ -110,7 +110,7 @@ namespace Astrum.LogicCore.Capabilities
                 "Knockback active"
             );
             
-            ASLogger.Instance.Debug($"[KnockbackCapability] Activated for entity {entity.UniqueId}");
+            //ASLogger.Instance.Debug($"[KnockbackCapability] Activated for entity {entity.UniqueId}");
         }
         
         public override void OnDeactivate(Entity entity)
@@ -122,7 +122,7 @@ namespace Astrum.LogicCore.Capabilities
                 _knockbackInstigatorId
             );
             
-            ASLogger.Instance.Debug($"[KnockbackCapability] Deactivated for entity {entity.UniqueId}");
+            //ASLogger.Instance.Debug($"[KnockbackCapability] Deactivated for entity {entity.UniqueId}");
             
             base.OnDeactivate(entity);
         }
