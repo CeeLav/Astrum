@@ -174,12 +174,18 @@ namespace Astrum.LogicCore.Physics
             }
 
             // 应用过滤（就地修改 outResults）
-            ApplyFilterInPlace(caster, filter, outResults);
+            using (new ProfileScope("HitSys.ApplyFilter"))
+            {
+                ApplyFilterInPlace(caster, filter, outResults);
+            }
 
             // 应用去重（就地修改 outResults）
             if (skillInstanceId > 0)
             {
-                ApplyDeduplication(skillInstanceId, outResults);
+                using (new ProfileScope("HitSys.ApplyDedup"))
+                {
+                    ApplyDeduplication(skillInstanceId, outResults);
+                }
             }
         }
 
@@ -229,46 +235,52 @@ namespace Astrum.LogicCore.Physics
         {
             if (filter == null)
             {
-                // 默认过滤：排除施法者自己（反向遍历，就地移除）
-                for (int i = inOutResults.Count - 1; i >= 0; i--)
+                using (new ProfileScope("Filter.DefaultFilter"))
                 {
-                    if (inOutResults[i].UniqueId == caster.UniqueId)
+                    // 默认过滤：排除施法者自己（反向遍历，就地移除）
+                    for (int i = inOutResults.Count - 1; i >= 0; i--)
                     {
-                        inOutResults.RemoveAt(i);
+                        if (inOutResults[i].UniqueId == caster.UniqueId)
+                        {
+                            inOutResults.RemoveAt(i);
+                        }
                     }
                 }
                 return;
             }
 
-            // 反向遍历，就地移除不符合条件的实体（避免索引问题）
-            for (int i = inOutResults.Count - 1; i >= 0; i--)
+            using (new ProfileScope("Filter.CustomFilter"))
             {
-                var candidate = inOutResults[i];
-                bool shouldRemove = false;
-                
-                // 排除列表
-                if (filter.ExcludedEntityIds.Contains(candidate.UniqueId))
+                // 反向遍历，就地移除不符合条件的实体（避免索引问题）
+                for (int i = inOutResults.Count - 1; i >= 0; i--)
                 {
-                    shouldRemove = true;
-                }
-                // 阵营过滤（基于Archetype）
-                //else if (filter.ExcludeAllies && IsSameTeam(caster, candidate))
-                //{
-                //    shouldRemove = true;
-                //}
-                //else if (filter.OnlyEnemies && !IsEnemy(caster, candidate))
-                //{
-                //    shouldRemove = true;
-                //}
-                // 自定义过滤
-                else if (filter.CustomFilter != null && !filter.CustomFilter(candidate))
-                {
-                    shouldRemove = true;
-                }
+                    var candidate = inOutResults[i];
+                    bool shouldRemove = false;
+                    
+                    // 排除列表
+                    if (filter.ExcludedEntityIds.Contains(candidate.UniqueId))
+                    {
+                        shouldRemove = true;
+                    }
+                    // 阵营过滤（基于Archetype）
+                    //else if (filter.ExcludeAllies && IsSameTeam(caster, candidate))
+                    //{
+                    //    shouldRemove = true;
+                    //}
+                    //else if (filter.OnlyEnemies && !IsEnemy(caster, candidate))
+                    //{
+                    //    shouldRemove = true;
+                    //}
+                    // 自定义过滤
+                    else if (filter.CustomFilter != null && !filter.CustomFilter(candidate))
+                    {
+                        shouldRemove = true;
+                    }
 
-                if (shouldRemove)
-                {
-                    inOutResults.RemoveAt(i);
+                    if (shouldRemove)
+                    {
+                        inOutResults.RemoveAt(i);
+                    }
                 }
             }
         }
@@ -279,27 +291,35 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         private void ApplyDeduplication(int skillInstanceId, List<AstrumEntity> inOutHits)
         {
-            if (!HitCache.TryGetValue(skillInstanceId, out var hitTargets))
+            Dictionary<long, int> hitTargets;
+            
+            using (new ProfileScope("Dedup.GetCache"))
             {
-                hitTargets = new Dictionary<long, int>();
-                HitCache[skillInstanceId] = hitTargets;
+                if (!HitCache.TryGetValue(skillInstanceId, out hitTargets))
+                {
+                    hitTargets = new Dictionary<long, int>();
+                    HitCache[skillInstanceId] = hitTargets;
+                }
             }
 
             var currentFrame = 0; // TODO: 从 TimeManager 获取当前帧
 
-            // 反向遍历，移除已命中过的目标（避免索引问题）
-            for (int i = inOutHits.Count - 1; i >= 0; i--)
+            using (new ProfileScope("Dedup.RemoveDuplicates"))
             {
-                var hit = inOutHits[i];
-                
-                // 如果这个目标之前已经被命中过
-                if (hitTargets.ContainsKey(hit.UniqueId))
+                // 反向遍历，移除已命中过的目标（避免索引问题）
+                for (int i = inOutHits.Count - 1; i >= 0; i--)
                 {
-                    inOutHits.RemoveAt(i);  // 就地移除
-                }
-                else
-                {
-                    hitTargets[hit.UniqueId] = currentFrame;  // 记录新命中
+                    var hit = inOutHits[i];
+                    
+                    // 如果这个目标之前已经被命中过
+                    if (hitTargets.ContainsKey(hit.UniqueId))
+                    {
+                        inOutHits.RemoveAt(i);  // 就地移除
+                    }
+                    else
+                    {
+                        hitTargets[hit.UniqueId] = currentFrame;  // 记录新命中
+                    }
                 }
             }
         }

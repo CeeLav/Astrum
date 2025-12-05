@@ -33,6 +33,17 @@ namespace Astrum.LogicCore.Physics
         /// 预分配的 BroadPhase 查询候选缓冲区，避免每次查询创建新 RawList
         /// </summary>
         private BEPUutilities.DataStructures.RawList<BroadPhaseEntry> _candidatesBuffer = new BEPUutilities.DataStructures.RawList<BroadPhaseEntry>(32);
+        
+        /// <summary>
+        /// 复用的 Box 查询对象，避免每次 QueryBoxOverlap 创建新 Box
+        /// 注意：Box 是 BEPU 的实体对象，创建开销较大（~3.6 KB）
+        /// </summary>
+        private Box _queryBox = null;
+        
+        /// <summary>
+        /// 复用的 Sphere 查询对象，避免每次 QuerySphereOverlap 创建新 Sphere
+        /// </summary>
+        private Sphere _querySphere = null;
 
         /// <summary>
         /// 获取 BEPU Space 实例
@@ -317,91 +328,145 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         public void QueryBoxOverlap(TSVector center, TSVector halfSize, TSQuaternion rotation, List<AstrumEntity> outResults)
         {
-            outResults.Clear();
-            
-            var bepuCenter = center.ToBepuVector();
-            var bepuHalfSize = halfSize.ToBepuVector();
-            var bepuRotation = rotation.ToBepuQuaternion();
-
-            // 创建临时 Box 用于查询
-            var queryBox = new Box(bepuCenter, bepuHalfSize.X * (Fix64)2, bepuHalfSize.Y * (Fix64)2, bepuHalfSize.Z * (Fix64)2);
-            queryBox.Orientation = bepuRotation;
-
-            // 计算 AABB 包围盒（Box 的 AABB）
-            var boundingBox = new BEPUutilities.BoundingBox();
-            queryBox.CollisionInformation.UpdateBoundingBox();
-            boundingBox = queryBox.CollisionInformation.BoundingBox;
-
-            // 【关键修复】在查询前更新BroadPhase，确保使用最新的AABB
-            // 因为我们的物理世界可能不会自动调用Space.Update()，所以需要手动刷新
-            _space.BroadPhase.Update();
-
-            // 复用预分配的候选缓冲区（避免每次创建新 RawList）
-            _candidatesBuffer.Clear();
-            _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, _candidatesBuffer);
-
-            // 遍历候选者，进行窄相检测（使用 for 循环避免枚举器 GC）
-            int candidateCount = _candidatesBuffer.Count;
-            for (int i = 0; i < candidateCount; i++)
+            using (new ProfileScope("Physics.QueryBoxOverlap"))
             {
-                var candidate = _candidatesBuffer[i];
+                outResults.Clear();
                 
-                // 从 EntityCollidable 中获取 Entity
-                if (candidate is EntityCollidable collidable && collidable.Entity != null)
+                Box queryBox;
+                BEPUutilities.BoundingBox boundingBox;
+                
+                using (new ProfileScope("Box.Setup"))
                 {
-                    var bepuEntity = collidable.Entity;
-                    
-                    // 检查 Tag 是否正确设置
-                    if (!(bepuEntity.Tag is AstrumEntity entity))
+                    var bepuCenter = center.ToBepuVector();
+                    var bepuHalfSize = halfSize.ToBepuVector();
+                    var bepuRotation = rotation.ToBepuQuaternion();
+
+                    // 复用 Box 对象（避免每次创建新 Box，减少 ~3.6 KB GC）
+                    if (_queryBox == null)
                     {
-                        ASLogger.Instance.Warning($"[QueryBoxOverlap] BEPU Entity Tag is not AstrumEntity (Tag type: {bepuEntity.Tag?.GetType().Name ?? "null"}), skipping");
-                        continue;
-                    }
-                    
-                    var candidatePos = bepuEntity.Position.ToTSVector();
-                    
-                    // 【关键修复】进行窄相精确检测（而不是仅仅依赖AABB重叠）
-                    // 支持Box和Capsule形状的精确检测
-                    var queryTransform = new BEPUutilities.RigidTransform(bepuCenter, bepuRotation);
-                    var targetTransform = new BEPUutilities.RigidTransform(bepuEntity.Position, bepuEntity.Orientation);
-                    bool isColliding = false;
-                    
-                    if (bepuEntity is Box targetBox)
-                    {
-                        // Box vs Box：使用专用的BoxBoxCollider（更快）
-                        isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.BoxBoxCollider.AreBoxesColliding(
-                            queryBox.CollisionInformation.Shape, targetBox.CollisionInformation.Shape, 
-                            ref queryTransform, ref targetTransform);
-                    }
-                    else if (bepuEntity is BEPUphysics.Entities.Prefabs.Capsule targetCapsule)
-                    {
-                        // Box vs Capsule：使用通用的GJK算法（因为两者都是凸体）
-                        var queryBoxShape = queryBox.CollisionInformation.Shape;
-                        var targetCapsuleShape = targetCapsule.CollisionInformation.Shape;
-                        isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.GJK.GJKToolbox.AreShapesIntersecting(
-                            queryBoxShape, targetCapsuleShape, 
-                            ref queryTransform, ref targetTransform);
+                        // 首次创建
+                        _queryBox = new Box(bepuCenter, bepuHalfSize.X * (Fix64)2, bepuHalfSize.Y * (Fix64)2, bepuHalfSize.Z * (Fix64)2);
                     }
                     else
                     {
-                        // 其他凸体形状：尝试使用通用GJK算法
-                        if (bepuEntity.CollisionInformation?.Shape is BEPUphysics.CollisionShapes.ConvexShapes.ConvexShape targetConvexShape)
-                        {
-                            var queryBoxShape = queryBox.CollisionInformation.Shape;
-                            isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.GJK.GJKToolbox.AreShapesIntersecting(
-                                queryBoxShape, targetConvexShape, 
-                                ref queryTransform, ref targetTransform);
-                        }
-                        else
-                        {
-                            ASLogger.Instance.Warning($"[QueryBoxOverlap] Candidate Entity={entity.UniqueId} is not a supported convex shape (type: {bepuEntity.GetType().Name}), skipping narrow phase");
-                        }
+                        // 复用：更新位置、大小、旋转
+                        _queryBox.Position = bepuCenter;
+                        _queryBox.Width = bepuHalfSize.X * (Fix64)2;
+                        _queryBox.Height = bepuHalfSize.Y * (Fix64)2;
+                        _queryBox.Length = bepuHalfSize.Z * (Fix64)2;
+                        _queryBox.Orientation = bepuRotation;
                     }
                     
-                    if (isColliding)
+                    queryBox = _queryBox;
+
+                    // 计算 AABB 包围盒（Box 的 AABB）
+                    queryBox.CollisionInformation.UpdateBoundingBox();
+                    boundingBox = queryBox.CollisionInformation.BoundingBox;
+                }
+
+                using (new ProfileScope("Box.BroadPhaseUpdate"))
+                {
+                    // 【关键修复】在查询前更新BroadPhase，确保使用最新的AABB
+                    // 因为我们的物理世界可能不会自动调用Space.Update()，所以需要手动刷新
+                    _space.BroadPhase.Update();
+                }
+
+                using (new ProfileScope("Box.GetEntries"))
+                {
+                    // 复用预分配的候选缓冲区（避免每次创建新 RawList）
+                    _candidatesBuffer.Clear();
+                    _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, _candidatesBuffer);
+                }
+
+                // 遍历候选者，进行窄相检测（使用 for 循环避免枚举器 GC）
+                using (new ProfileScope("Box.NarrowPhase"))
+                {
+                    int candidateCount = _candidatesBuffer.Count;
+                    for (int i = 0; i < candidateCount; i++)
                     {
-                        // 精确检测通过，添加到输出 List
-                        outResults.Add(entity);
+                        var candidate = _candidatesBuffer[i];
+                        
+                        // 从 EntityCollidable 中获取 Entity
+                        if (candidate is EntityCollidable collidable && collidable.Entity != null)
+                        {
+                            var bepuEntity = collidable.Entity;
+                            
+                            AstrumEntity entity;
+                            using (new ProfileScope("Box.ExtractEntity"))
+                            {
+                                // 检查 Tag 是否正确设置
+                                if (!(bepuEntity.Tag is AstrumEntity astEntity))
+                                {
+                                    ASLogger.Instance.Warning($"[QueryBoxOverlap] BEPU Entity Tag is not AstrumEntity (Tag type: {bepuEntity.Tag?.GetType().Name ?? "null"}), skipping");
+                                    continue;
+                                }
+                                entity = astEntity;
+                                
+                                var candidatePos = bepuEntity.Position.ToTSVector();
+                            }
+                            
+                            // 【关键修复】进行窄相精确检测（而不是仅仅依赖AABB重叠）
+                            // 支持Box和Capsule形状的精确检测
+                            bool isColliding = false;
+                            
+                            using (new ProfileScope("Box.CollisionTest"))
+                            {
+                                var bepuCenter = center.ToBepuVector();
+                                var bepuRotation = rotation.ToBepuQuaternion();
+                                var queryTransform = new BEPUutilities.RigidTransform(bepuCenter, bepuRotation);
+                                var targetTransform = new BEPUutilities.RigidTransform(bepuEntity.Position, bepuEntity.Orientation);
+                                
+                                if (bepuEntity is Box targetBox)
+                                {
+                                    using (new ProfileScope("Box.BoxBoxCollider"))
+                                    {
+                                        // Box vs Box：使用专用的BoxBoxCollider（更快）
+                                        isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.BoxBoxCollider.AreBoxesColliding(
+                                            queryBox.CollisionInformation.Shape, targetBox.CollisionInformation.Shape, 
+                                            ref queryTransform, ref targetTransform);
+                                    }
+                                }
+                                else if (bepuEntity is BEPUphysics.Entities.Prefabs.Capsule targetCapsule)
+                                {
+                                    using (new ProfileScope("Box.GJK_Capsule"))
+                                    {
+                                        // Box vs Capsule：使用通用的GJK算法（因为两者都是凸体）
+                                        var queryBoxShape = queryBox.CollisionInformation.Shape;
+                                        var targetCapsuleShape = targetCapsule.CollisionInformation.Shape;
+                                        isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.GJK.GJKToolbox.AreShapesIntersecting(
+                                            queryBoxShape, targetCapsuleShape, 
+                                            ref queryTransform, ref targetTransform);
+                                    }
+                                }
+                                else
+                                {
+                                    using (new ProfileScope("Box.GJK_Convex"))
+                                    {
+                                        // 其他凸体形状：尝试使用通用GJK算法
+                                        if (bepuEntity.CollisionInformation?.Shape is BEPUphysics.CollisionShapes.ConvexShapes.ConvexShape targetConvexShape)
+                                        {
+                                            var queryBoxShape = queryBox.CollisionInformation.Shape;
+                                            isColliding = BEPUphysics.CollisionTests.CollisionAlgorithms.GJK.GJKToolbox.AreShapesIntersecting(
+                                                queryBoxShape, targetConvexShape, 
+                                                ref queryTransform, ref targetTransform);
+                                        }
+                                        else
+                                        {
+                                            ASLogger.Instance.Warning($"[QueryBoxOverlap] Candidate Entity={entity.UniqueId} is not a supported convex shape (type: {bepuEntity.GetType().Name}), skipping narrow phase");
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (isColliding)
+                            {
+                                using (new ProfileScope("Box.AddResult"))
+                                {
+                                    // 精确检测通过，添加到输出 List
+                                    outResults.Add(entity);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -412,37 +477,63 @@ namespace Astrum.LogicCore.Physics
         /// </summary>
         public void QuerySphereOverlap(TSVector center, FP radius, List<AstrumEntity> outResults)
         {
-            outResults.Clear();
-            
-            var bepuCenter = center.ToBepuVector();
-            var bepuRadius = radius.ToFix64();
-
-            // 创建临时 Sphere 用于查询
-            var querySphere = new Sphere(bepuCenter, bepuRadius);
-
-            // 计算 AABB 包围盒（Sphere 的 AABB）
-            var boundingBox = new BEPUutilities.BoundingBox();
-            querySphere.CollisionInformation.UpdateBoundingBox();
-            boundingBox = querySphere.CollisionInformation.BoundingBox;
-
-            // 复用预分配的候选缓冲区（避免每次创建新 RawList）
-            _candidatesBuffer.Clear();
-            _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, _candidatesBuffer);
-
-            // 遍历候选者，提取实体（使用 for 循环避免枚举器 GC）
-            int candidateCount = _candidatesBuffer.Count;
-            for (int i = 0; i < candidateCount; i++)
+            using (new ProfileScope("Physics.QuerySphereOverlap"))
             {
-                var candidate = _candidatesBuffer[i];
+                outResults.Clear();
                 
-                // candidate 是 BroadPhaseEntry (CollisionInformation)
-                // 需要获取所属的 BEPU Entity，然后从其 Tag 获取我们的 Entity
-                if (candidate is EntityCollidable collidable)
+                Sphere querySphere;
+                BEPUutilities.BoundingBox boundingBox;
+                
+                using (new ProfileScope("Sphere.Setup"))
                 {
-                    var bepuEntity = collidable.Entity;
-                    if (bepuEntity != null && bepuEntity.Tag is AstrumEntity entity)
+                    var bepuCenter = center.ToBepuVector();
+                    var bepuRadius = radius.ToFix64();
+
+                    // 复用 Sphere 对象（避免每次创建新 Sphere）
+                    if (_querySphere == null)
                     {
-                        outResults.Add(entity);
+                        // 首次创建
+                        _querySphere = new Sphere(bepuCenter, bepuRadius);
+                    }
+                    else
+                    {
+                        // 复用：更新位置和半径
+                        _querySphere.Position = bepuCenter;
+                        _querySphere.Radius = bepuRadius;
+                    }
+                    
+                    querySphere = _querySphere;
+
+                    // 计算 AABB 包围盒（Sphere 的 AABB）
+                    querySphere.CollisionInformation.UpdateBoundingBox();
+                    boundingBox = querySphere.CollisionInformation.BoundingBox;
+                }
+
+                using (new ProfileScope("Sphere.GetEntries"))
+                {
+                    // 复用预分配的候选缓冲区（避免每次创建新 RawList）
+                    _candidatesBuffer.Clear();
+                    _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, _candidatesBuffer);
+                }
+
+                // 遍历候选者，提取实体（使用 for 循环避免枚举器 GC）
+                using (new ProfileScope("Sphere.ExtractEntities"))
+                {
+                    int candidateCount = _candidatesBuffer.Count;
+                    for (int i = 0; i < candidateCount; i++)
+                    {
+                        var candidate = _candidatesBuffer[i];
+                        
+                        // candidate 是 BroadPhaseEntry (CollisionInformation)
+                        // 需要获取所属的 BEPU Entity，然后从其 Tag 获取我们的 Entity
+                        if (candidate is EntityCollidable collidable)
+                        {
+                            var bepuEntity = collidable.Entity;
+                            if (bepuEntity != null && bepuEntity.Tag is AstrumEntity entity)
+                            {
+                                outResults.Add(entity);
+                            }
+                        }
                     }
                 }
             }
