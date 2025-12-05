@@ -49,6 +49,12 @@ namespace Astrum.LogicCore.Capabilities
             OnlyEnemies = false
         };
         
+        /// <summary>
+        /// 预分配的碰撞命中结果缓冲区，避免 HitSystem.QueryHits() 每次创建新 List
+        /// 容量 32 足以覆盖大多数碰撞检测的命中数量
+        /// </summary>
+        private List<Entity> _hitsBuffer = new List<Entity>(32);
+        
         // ====== 生命周期 ======
         
         public override void OnAttached(Entity entity)
@@ -338,19 +344,20 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            List<Entity> hits;
+            // 使用预分配的 _hitsBuffer，避免每次查询创建新 List
             using (new ProfileScope("Collision.QueryHits"))
             {
-                hits = hitSystem.QueryHits(
+                hitSystem.QueryHits(
                     caster, 
                     shape, 
-                    _collisionFilter
+                    _collisionFilter,
+                    _hitsBuffer  // 输出参数：复用的缓冲区
                     //skillInstanceId: skillAction.Id
                 );
             }
 
             // 移除冗余日志，只在没有命中时记录
-            if (hits.Count == 0)
+            if (_hitsBuffer.Count == 0)
             {
                 ASLogger.Instance.Debug($"[SkillExecutorCapability] Collision trigger hit 0 targets");
                 return;
@@ -359,10 +366,10 @@ namespace Astrum.LogicCore.Capabilities
             // 4. 对每个命中目标触发所有效果（使用 for 循环避免枚举器 GC）
             using (new ProfileScope("Collision.TriggerEffects"))
             {
-                int hitCount = hits.Count;
+                int hitCount = _hitsBuffer.Count;
                 for (int i = 0; i < hitCount; i++)
                 {
-                    var target = hits[i];
+                    var target = _hitsBuffer[i];
                     if (trigger.EffectIds != null)
                     {
                         int effectCount = trigger.EffectIds.Length;

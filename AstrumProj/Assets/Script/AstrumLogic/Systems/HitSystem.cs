@@ -117,18 +117,21 @@ namespace Astrum.LogicCore.Physics
 
         /// <summary>
         /// 即时命中查询（主入口）
+        /// 优化版本：使用输出参数避免创建新 List
         /// </summary>
         /// <param name="caster">施法者实体</param>
         /// <param name="shape">碰撞形状数据</param>
         /// <param name="filter">碰撞过滤器（可选）</param>
+        /// <param name="outResults">输出结果列表（会被清空后填充）</param>
         /// <param name="skillInstanceId">技能实例ID（用于去重，可选）</param>
-        /// <returns>命中的实体列表</returns>
-        public List<AstrumEntity> QueryHits(AstrumEntity caster, CollisionShape shape, CollisionFilter filter = null, int skillInstanceId = 0)
+        public void QueryHits(AstrumEntity caster, CollisionShape shape, CollisionFilter filter, List<AstrumEntity> outResults, int skillInstanceId = 0)
         {
+            outResults.Clear();
+            
             if (caster == null)
             {
                 ASLogger.Instance.Warning("HitManager: Caster is null");
-                return new List<AstrumEntity>();
+                return;
             }
 
             // 获取施法者位置和朝向
@@ -155,37 +158,32 @@ namespace Astrum.LogicCore.Physics
                 case HitBoxShape.Capsule:
                     // TODO: 实现 Capsule 查询
                     ASLogger.Instance.Warning("HitManager: Capsule query not implemented yet");
-                    candidates = new List<AstrumEntity>();
-                    break;
+                    return;
 
                 case HitBoxShape.Cylinder:
                     ASLogger.Instance.Warning("HitManager: Cylinder query not implemented yet");
-                    candidates = new List<AstrumEntity>();
-                    break;
+                    return;
 
                 default:
                     ASLogger.Instance.Warning($"HitManager: Unknown shape type: {shape.ShapeType}");
-                    candidates = new List<AstrumEntity>();
-                    break;
+                    return;
             }
 
             // 防御性检查：确保候选列表不为null
             if (candidates == null)
             {
                 ASLogger.Instance.Warning($"[HitSystem.QueryHits] Candidates list is null for caster {caster.UniqueId}");
-                return new List<AstrumEntity>();
+                return;
             }
 
-            // 应用过滤
-            var filteredHits = ApplyFilter(caster, candidates, filter);
+            // 应用过滤（直接填充到 outResults）
+            ApplyFilter(caster, candidates, filter, outResults);
 
-            // 应用去重
+            // 应用去重（就地修改 outResults）
             if (skillInstanceId > 0)
             {
-                filteredHits = ApplyDeduplication(skillInstanceId, filteredHits);
+                ApplyDeduplication(skillInstanceId, outResults);
             }
-
-            return filteredHits;
         }
 
         /// <summary>
@@ -228,20 +226,31 @@ namespace Astrum.LogicCore.Physics
         }
 
         /// <summary>
-        /// 应用过滤规则
+        /// 应用过滤规则（优化版本：使用输出参数避免创建新 List）
         /// </summary>
-        private List<AstrumEntity> ApplyFilter(AstrumEntity caster, List<AstrumEntity> candidates, CollisionFilter filter)
+        private void ApplyFilter(AstrumEntity caster, List<AstrumEntity> candidates, CollisionFilter filter, List<AstrumEntity> outResults)
         {
             if (filter == null)
             {
-                // 默认过滤：排除施法者自己
-                return candidates.Where(e => e.UniqueId != caster.UniqueId).ToList();
+                // 默认过滤：排除施法者自己（使用 for 循环避免 LINQ GC）
+                int count = candidates.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    var candidate = candidates[i];
+                    if (candidate.UniqueId != caster.UniqueId)
+                    {
+                        outResults.Add(candidate);
+                    }
+                }
+                return;
             }
 
-            var results = new List<AstrumEntity>();
-
-            foreach (var candidate in candidates)
+            // 使用 for 循环避免 foreach 枚举器 GC
+            int candidateCount = candidates.Count;
+            for (int i = 0; i < candidateCount; i++)
             {
+                var candidate = candidates[i];
+                
                 // 排除列表
                 if (filter.ExcludedEntityIds.Contains(candidate.UniqueId))
                     continue;
@@ -257,16 +266,15 @@ namespace Astrum.LogicCore.Physics
                 if (filter.CustomFilter != null && !filter.CustomFilter(candidate))
                     continue;
 
-                results.Add(candidate);
+                outResults.Add(candidate);
             }
-
-            return results;
         }
 
         /// <summary>
         /// 应用去重逻辑（同一技能实例不会重复命中同一目标）
+        /// 优化版本：就地修改 List，避免创建新 List
         /// </summary>
-        private List<AstrumEntity> ApplyDeduplication(int skillInstanceId, List<AstrumEntity> hits)
+        private void ApplyDeduplication(int skillInstanceId, List<AstrumEntity> inOutHits)
         {
             if (!HitCache.TryGetValue(skillInstanceId, out var hitTargets))
             {
@@ -274,20 +282,23 @@ namespace Astrum.LogicCore.Physics
                 HitCache[skillInstanceId] = hitTargets;
             }
 
-            var results = new List<AstrumEntity>();
             var currentFrame = 0; // TODO: 从 TimeManager 获取当前帧
 
-            foreach (var hit in hits)
+            // 反向遍历，移除已命中过的目标（避免索引问题）
+            for (int i = inOutHits.Count - 1; i >= 0; i--)
             {
-                // 如果这个目标之前没有被命中过，或者已经超过冷却时间
-                if (!hitTargets.ContainsKey(hit.UniqueId))
+                var hit = inOutHits[i];
+                
+                // 如果这个目标之前已经被命中过
+                if (hitTargets.ContainsKey(hit.UniqueId))
                 {
-                    hitTargets[hit.UniqueId] = currentFrame;
-                    results.Add(hit);
+                    inOutHits.RemoveAt(i);  // 就地移除
+                }
+                else
+                {
+                    hitTargets[hit.UniqueId] = currentFrame;  // 记录新命中
                 }
             }
-
-            return results;
         }
 
         /// <summary>
