@@ -75,20 +75,26 @@ namespace Astrum.LogicCore.Capabilities
         
         public override void Tick(Entity entity)
         {
-            // 1. 获取 ActionComponent
-            var actionComponent = GetComponent<ActionComponent>(entity);
-            if (actionComponent == null) return;
-            
-            // 2. 检查当前动作是否是技能动作
-            var actionInfo = actionComponent.CurrentAction;
-            if (actionInfo?.SkillExtension == null)
-                return;
-            
-            // 3. 获取当前帧
-            int currentFrame = actionComponent.CurrentFrame;
-            
-            // 4. 处理当前帧的触发事件
-            ProcessFrame(entity, actionInfo, currentFrame);
+            using (new ProfileScope("SkillExecutorCapability.Tick"))
+            {
+                // 1. 获取 ActionComponent
+                var actionComponent = GetComponent<ActionComponent>(entity);
+                if (actionComponent == null) return;
+                
+                // 2. 检查当前动作是否是技能动作
+                var actionInfo = actionComponent.CurrentAction;
+                if (actionInfo?.SkillExtension == null)
+                    return;
+                
+                // 3. 获取当前帧
+                int currentFrame = actionComponent.CurrentFrame;
+                
+                // 4. 处理当前帧的触发事件
+                using (new ProfileScope("SkillExec.ProcessFrame"))
+                {
+                    ProcessFrame(entity, actionInfo, currentFrame);
+                }
+            }
         }
         
         // ====== 辅助方法 ======
@@ -103,16 +109,22 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             
             // 清空缓冲区（不释放容量，避免 GC）
-            _triggerBuffer.Clear();
+            using (new ProfileScope("ProcessFrame.ClearBuffer"))
+            {
+                _triggerBuffer.Clear();
+            }
             
             // 手动过滤当前帧的触发事件（避免 LINQ ToList 产生 GC）
-            int count = triggerEffects.Count;
-            for (int i = 0; i < count; i++)
+            using (new ProfileScope("ProcessFrame.FilterTriggers"))
             {
-                var trigger = triggerEffects[i];
-                if (trigger.IsFrameInRange(currentFrame))
+                int count = triggerEffects.Count;
+                for (int i = 0; i < count; i++)
                 {
-                    _triggerBuffer.Add(trigger);
+                    var trigger = triggerEffects[i];
+                    if (trigger.IsFrameInRange(currentFrame))
+                    {
+                        _triggerBuffer.Add(trigger);
+                    }
                 }
             }
             
@@ -122,10 +134,13 @@ namespace Astrum.LogicCore.Capabilities
             ASLogger.Instance.Debug($"Processing {_triggerBuffer.Count} triggers at frame {currentFrame}");
             
             // 使用 for 循环遍历（避免 foreach 枚举器 GC）
-            int triggerCount = _triggerBuffer.Count;
-            for (int i = 0; i < triggerCount; i++)
+            using (new ProfileScope("ProcessFrame.ProcessTriggers"))
             {
-                ProcessTrigger(caster, actionInfo, _triggerBuffer[i]);
+                int triggerCount = _triggerBuffer.Count;
+                for (int i = 0; i < triggerCount; i++)
+                {
+                    ProcessTrigger(caster, actionInfo, _triggerBuffer[i]);
+                }
             }
         }
         
@@ -134,27 +149,36 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void ProcessTrigger(Entity caster, ActionInfo actionInfo, TriggerFrameInfo trigger)
         {
-            // 根据顶层类型分发
-            string type = trigger.Type ?? "SkillEffect";
-            
-            switch (type)
+            using (new ProfileScope("SkillExec.ProcessTrigger"))
             {
-                case TriggerFrameJsonKeys.TypeSkillEffect:
-                    ProcessSkillEffectTrigger(caster, actionInfo, trigger);
-                    break;
-                    
-                case TriggerFrameJsonKeys.TypeVFX:
-                    ProcessVFXTrigger(caster, trigger);
-                    break;
-                    
-                case TriggerFrameJsonKeys.TypeSFX:
-                    // TODO: 实现 SFX 处理
-                    ASLogger.Instance.Warning("SFX trigger not yet implemented");
-                    break;
-                    
-                default:
-                    ASLogger.Instance.Warning($"Unknown trigger type: {type}");
-                    break;
+                // 根据顶层类型分发
+                string type = trigger.Type ?? "SkillEffect";
+                
+                switch (type)
+                {
+                    case TriggerFrameJsonKeys.TypeSkillEffect:
+                        using (new ProfileScope("Trigger.SkillEffect"))
+                        {
+                            ProcessSkillEffectTrigger(caster, actionInfo, trigger);
+                        }
+                        break;
+                        
+                    case TriggerFrameJsonKeys.TypeVFX:
+                        using (new ProfileScope("Trigger.VFX"))
+                        {
+                            ProcessVFXTrigger(caster, trigger);
+                        }
+                        break;
+                        
+                    case TriggerFrameJsonKeys.TypeSFX:
+                        // TODO: 实现 SFX 处理
+                        ASLogger.Instance.Warning("SFX trigger not yet implemented");
+                        break;
+                        
+                    default:
+                        ASLogger.Instance.Warning($"Unknown trigger type: {type}");
+                        break;
+                }
             }
         }
         
@@ -168,16 +192,25 @@ namespace Astrum.LogicCore.Capabilities
             switch (triggerType)
             {
                 case TriggerFrameJsonKeys.TriggerTypeCollision:
-                    HandleCollisionTrigger(caster, actionInfo, trigger);
+                    using (new ProfileScope("SkillEffect.Collision"))
+                    {
+                        HandleCollisionTrigger(caster, actionInfo, trigger);
+                    }
                     break;
                     
                 case TriggerFrameJsonKeys.TriggerTypeDirect:
                 case TriggerFrameJsonKeys.TriggerTypeProjectile:
-                    HandleDirectTrigger(caster, trigger);
+                    using (new ProfileScope("SkillEffect.Direct"))
+                    {
+                        HandleDirectTrigger(caster, trigger);
+                    }
                     break;
 
                 case TriggerFrameJsonKeys.TriggerTypeCondition:
-                    HandleConditionTrigger(caster, actionInfo, trigger);
+                    using (new ProfileScope("SkillEffect.Condition"))
+                    {
+                        HandleConditionTrigger(caster, actionInfo, trigger);
+                    }
                     break;
                     
                 default:
@@ -213,57 +246,66 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             
             // 构建 VFX 事件数据
-            var eventData = new VFXTriggerEventData
+            using (new ProfileScope("VFX.BuildEventData"))
             {
-                EntityId = caster.UniqueId,
-                ResourcePath = trigger.VFXResourcePath ?? string.Empty,
-                Scale = trigger.VFXScale,
-                PlaybackSpeed = trigger.VFXPlaybackSpeed,
-                FollowCharacter = trigger.VFXFollowCharacter,
-                Loop = trigger.VFXLoop,
-                InstanceId = trigger.GetHashCode() // 使用触发帧的哈希作为实例ID
-            };
-            
-            // 转换位置偏移（从 float[] 转换为 TSVector）
-            if (trigger.VFXPositionOffset != null && trigger.VFXPositionOffset.Length >= 3)
-            {
-                eventData.PositionOffset = new TSVector(
-                    (FP)trigger.VFXPositionOffset[0],
-                    (FP)trigger.VFXPositionOffset[1],
-                    (FP)trigger.VFXPositionOffset[2]
-                );
+                var eventData = new VFXTriggerEventData
+                {
+                    EntityId = caster.UniqueId,
+                    ResourcePath = trigger.VFXResourcePath ?? string.Empty,
+                    Scale = trigger.VFXScale,
+                    PlaybackSpeed = trigger.VFXPlaybackSpeed,
+                    FollowCharacter = trigger.VFXFollowCharacter,
+                    Loop = trigger.VFXLoop,
+                    InstanceId = trigger.GetHashCode() // 使用触发帧的哈希作为实例ID
+                };
+                
+                // 转换位置偏移（从 float[] 转换为 TSVector）
+                if (trigger.VFXPositionOffset != null && trigger.VFXPositionOffset.Length >= 3)
+                {
+                    eventData.PositionOffset = new TSVector(
+                        (FP)trigger.VFXPositionOffset[0],
+                        (FP)trigger.VFXPositionOffset[1],
+                        (FP)trigger.VFXPositionOffset[2]
+                    );
+                }
+                
+                // 转换旋转（从 float[] 转换为 TSVector）
+                if (trigger.VFXRotation != null && trigger.VFXRotation.Length >= 3)
+                {
+                    eventData.Rotation = new TSVector(
+                        (FP)trigger.VFXRotation[0],
+                        (FP)trigger.VFXRotation[1],
+                        (FP)trigger.VFXRotation[2]
+                    );
+                }
+                
+                // 转换为 VFXTriggerEvent 并通过 ViewEvent 队列发送
+                using (new ProfileScope("VFX.CreateEvent"))
+                {
+                    var vfxEvent = new VFXTriggerEvent
+                    {
+                        ResourcePath = eventData.ResourcePath,
+                        PositionOffset = eventData.PositionOffset,
+                        Rotation = eventData.Rotation,
+                        Scale = eventData.Scale,
+                        PlaybackSpeed = eventData.PlaybackSpeed,
+                        FollowCharacter = eventData.FollowCharacter,
+                        Loop = eventData.Loop
+                    };
+                    
+                    // 通过 ViewEvent 队列传递到视图层（异步，不阻塞逻辑层）
+                    using (new ProfileScope("VFX.QueueEvent"))
+                    {
+                        caster.QueueViewEvent(new ViewEvent(
+                            ViewEventType.CustomViewEvent,
+                            vfxEvent,
+                            caster.World.CurFrame
+                        ));
+                    }
+                }
+                
+                ASLogger.Instance.Debug($"Queued VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
             }
-            
-            // 转换旋转（从 float[] 转换为 TSVector）
-            if (trigger.VFXRotation != null && trigger.VFXRotation.Length >= 3)
-            {
-                eventData.Rotation = new TSVector(
-                    (FP)trigger.VFXRotation[0],
-                    (FP)trigger.VFXRotation[1],
-                    (FP)trigger.VFXRotation[2]
-                );
-            }
-            
-            // 转换为 VFXTriggerEvent 并通过 ViewEvent 队列发送
-            var vfxEvent = new VFXTriggerEvent
-            {
-                ResourcePath = eventData.ResourcePath,
-                PositionOffset = eventData.PositionOffset,
-                Rotation = eventData.Rotation,
-                Scale = eventData.Scale,
-                PlaybackSpeed = eventData.PlaybackSpeed,
-                FollowCharacter = eventData.FollowCharacter,
-                Loop = eventData.Loop
-            };
-            
-            // 通过 ViewEvent 队列传递到视图层（异步，不阻塞逻辑层）
-            caster.QueueViewEvent(new ViewEvent(
-                ViewEventType.CustomViewEvent,
-                vfxEvent,
-                caster.World.CurFrame
-            ));
-            
-            ASLogger.Instance.Debug($"Queued VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
         }
         
         /// <summary>
@@ -281,9 +323,12 @@ namespace Astrum.LogicCore.Capabilities
             var shape = trigger.CollisionShape.Value;
             
             // 2. 复用碰撞过滤器（避免每次创建新对象产生 GC）
-            _collisionFilter.ExcludedEntityIds.Clear();
-            _collisionFilter.ExcludedEntityIds.Add(caster.UniqueId);
-            _collisionFilter.OnlyEnemies = false;  // 暂时移除敌对过滤（team系统未实现）
+            using (new ProfileScope("Collision.SetupFilter"))
+            {
+                _collisionFilter.ExcludedEntityIds.Clear();
+                _collisionFilter.ExcludedEntityIds.Add(caster.UniqueId);
+                _collisionFilter.OnlyEnemies = false;  // 暂时移除敌对过滤（team系统未实现）
+            }
             
             // 3. 从 World 获取 HitSystem 进行碰撞检测
             var hitSystem = caster.World?.HitSystem;
@@ -293,12 +338,16 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             }
             
-            var hits = hitSystem.QueryHits(
-                caster, 
-                shape, 
-                _collisionFilter
-                //skillInstanceId: skillAction.Id
-            );
+            List<Entity> hits;
+            using (new ProfileScope("Collision.QueryHits"))
+            {
+                hits = hitSystem.QueryHits(
+                    caster, 
+                    shape, 
+                    _collisionFilter
+                    //skillInstanceId: skillAction.Id
+                );
+            }
 
             // 移除冗余日志，只在没有命中时记录
             if (hits.Count == 0)
@@ -308,16 +357,19 @@ namespace Astrum.LogicCore.Capabilities
             }
 
             // 4. 对每个命中目标触发所有效果（使用 for 循环避免枚举器 GC）
-            int hitCount = hits.Count;
-            for (int i = 0; i < hitCount; i++)
+            using (new ProfileScope("Collision.TriggerEffects"))
             {
-                var target = hits[i];
-                if (trigger.EffectIds != null)
+                int hitCount = hits.Count;
+                for (int i = 0; i < hitCount; i++)
                 {
-                    int effectCount = trigger.EffectIds.Length;
-                    for (int j = 0; j < effectCount; j++)
+                    var target = hits[i];
+                    if (trigger.EffectIds != null)
                     {
-                        TriggerSkillEffect(caster, target, trigger.EffectIds[j], trigger);
+                        int effectCount = trigger.EffectIds.Length;
+                        for (int j = 0; j < effectCount; j++)
+                        {
+                            TriggerSkillEffect(caster, target, trigger.EffectIds[j], trigger);
+                        }
                     }
                 }
             }
@@ -421,45 +473,57 @@ namespace Astrum.LogicCore.Capabilities
         /// </summary>
         private void TriggerSkillEffect(Entity caster, Entity target, int effectId, TriggerFrameInfo trigger)
         {
-            // 构造效果数据
-            var effectConfig = SkillConfig.Instance.GetSkillEffect(effectId);
-            if (effectConfig == null)
+            using (new ProfileScope("SkillExec.TriggerEffect"))
             {
-                ASLogger.Instance.Warning($"[SkillExecutorCapability] Effect config not found: {effectId}");
-                return;
-            }
+                // 构造效果数据
+                var effectConfig = SkillConfig.Instance.GetSkillEffect(effectId);
+                if (effectConfig == null)
+                {
+                    ASLogger.Instance.Warning($"[SkillExecutorCapability] Effect config not found: {effectId}");
+                    return;
+                }
 
-            var effectType = effectConfig.EffectType ?? string.Empty;
+                var effectType = effectConfig.EffectType ?? string.Empty;
 
-            if (string.Equals(effectType, "Projectile", StringComparison.OrdinalIgnoreCase))
-            {
-                HandleProjectileEffect(caster, effectConfig, trigger);
-                return;
-            }
+                if (string.Equals(effectType, "Projectile", StringComparison.OrdinalIgnoreCase))
+                {
+                    using (new ProfileScope("Effect.Projectile"))
+                    {
+                        HandleProjectileEffect(caster, effectConfig, trigger);
+                    }
+                    return;
+                }
 
-            if (target == null)
-            {
-                ASLogger.Instance.Warning($"[SkillExecutorCapability] Target is null for effect {effectId}");
-                return;
-            }
+                if (target == null)
+                {
+                    ASLogger.Instance.Warning($"[SkillExecutorCapability] Target is null for effect {effectId}");
+                    return;
+                }
 
-            var effectData = new SkillSystem.SkillEffectData
-            {
-                CasterId = caster.UniqueId,
-                TargetId = target.UniqueId,
-                EffectId = effectId
-            };
-            
-            // 加入 SkillEffectSystem 队列
-            var skillEffectSystem = caster.World?.SkillEffectSystem;
-            if (skillEffectSystem != null)
-            {
-                skillEffectSystem.QueueSkillEffect(effectData);
-                ASLogger.Instance.Debug($"[SkillExecutorCapability] Queued SkillEffect: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
-            }
-            else
-            {
-                ASLogger.Instance.Error($"[SkillExecutorCapability] SkillEffectSystem not found in World");
+                using (new ProfileScope("Effect.CreateData"))
+                {
+                    var effectData = new SkillSystem.SkillEffectData
+                    {
+                        CasterId = caster.UniqueId,
+                        TargetId = target.UniqueId,
+                        EffectId = effectId
+                    };
+                    
+                    // 加入 SkillEffectSystem 队列
+                    using (new ProfileScope("Effect.QueueEffect"))
+                    {
+                        var skillEffectSystem = caster.World?.SkillEffectSystem;
+                        if (skillEffectSystem != null)
+                        {
+                            skillEffectSystem.QueueSkillEffect(effectData);
+                            ASLogger.Instance.Debug($"[SkillExecutorCapability] Queued SkillEffect: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
+                        }
+                        else
+                        {
+                            ASLogger.Instance.Error($"[SkillExecutorCapability] SkillEffectSystem not found in World");
+                        }
+                    }
+                }
             }
         }
 

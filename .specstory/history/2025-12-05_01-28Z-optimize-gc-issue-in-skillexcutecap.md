@@ -3129,7 +3129,1411 @@ Lines added: 206, lines removed: 1
 
 ## ✅ 实施完成总结
 
-我已经成功完成了 **SkillExecutorCapability 0 GC 优化**的 Phase 1-3，所有代码修改都已通过编译验证。以下是详细总
+我已经成功完成了 **SkillExecutorCapability 0 GC 优化**的 Phase 1-3，所有代码修改都已通过编译验证。以下是详细总结：
+
+### 🎯 完成的优化
+
+#### **Phase 1: 消除 LINQ ToList() 分配** ✅
+- ✅ 添加 `_triggerBuffer` 实例字段（容量 16）
+- ✅ 修改 `ProcessFrame()` 使用预分配缓冲区
+- ✅ 用 for 循环替代 LINQ `Where().ToList()`
+- ✅ 移除 `using System.Linq;`
+
+#### **Phase 2: 优化循环遍历** ✅
+- ✅ `ProcessFrame()`: foreach → for 循环
+- ✅ `HandleCollisionTrigger()`: 双层 foreach → 双层 for 循环
+- ✅ `HandleDirectTrigger()`: foreach → for 循环
+- ✅ `HandleConditionTrigger()`: foreach → for 循环
+
+#### **Phase 3: 复用 CollisionFilter 对象** ✅
+- ✅ 添加 `_collisionFilter` 实例字段
+- ✅ 修改 `HandleCollisionTrigger()` 复用 filter
+- ✅ 每次使用前正确清空 `ExcludedEntityIds`
+
+### 🔍 逻辑正确性验证
+
+✅ **缓冲区管理**:
+- `_triggerBuffer.Clear()` 在每次使用前调用，正确清空
+- 使用 `Count` 获取循环边界，避免越界
+- 缓冲区容量自动扩展，无需手动管理
+
+✅ **循环边界**:
+- 所有 for 循环使用正确的边界（`Count` 或 `Length`）
+- 循环索引从 0 开始，到 count-1 结束
+- 嵌套循环使用不同的索引变量（i, j）
+
+✅ **对象复用**:
+- `_collisionFilter.ExcludedEntityIds.Clear()` 在每次使用前调用
+- HashSet 正确复用，避免重复创建
+- 状态正确重置（`OnlyEnemies = false`）
+
+✅ **数组访问**:
+- `trigger.EffectIds` 使用 `Length` 而非 `Count`（正确）
+- 所有数组访问都有 null 检查
+
+### 📊 预期性能提升
+
+| 指标 | 优化前 | 预期优化后 | 提升 |
+|------|--------|-----------|------|
+| **GC 分配** | 125.4 KB/帧 | **< 1 KB/帧** | **~99%** ⬇️ |
+| **GC.Alloc 次数** | 2052 次/帧 | **< 50 次/帧** | **~98%** ⬇️ |
+| **耗时** | 3.09ms | **< 2ms** | **~35%** ⬇️ |
+
+### ✅ 编译验证
+
+- **编译状态**: ✅ 成功（0 错误，127 无关警告）
+- **编译时间**: 11.4 秒
+- **Linter**: 无错误
+
+### 📋 下一步（需要用户操作）
+
+1. **激活 Unity** - 等待代码刷新编译
+2. **刷新资源** - Assets/Refresh
+3. **运行游戏** - 测试技能释放功能
+4. **Unity Profiler 验证**:
+   - 检查 SkillExecutorCapability GC < 1 KB/帧
+   - 检查 GC.Alloc 次数 < 50 次/帧
+   - 检查耗时 < 2ms/帧
+5. **功能测试**:
+   - 技能释放正常
+   - VFX 触发正常
+   - 碰撞检测正常
+   - 效果触发正常
+
+### 📝 创建的文件
+
+- ✅ `IMPLEMENTATION_SUMMARY.md` - 详细实施总结
+- ✅ 更新 `tasks.md` - 标记完成状态
+- ✅ 更新 `proposal.md` - 状态改为"已实施"
+
+### 🎉 总结
+
+所有代码优化已完成并通过编译验证。优化遵循了以下原则：
+
+1. **逻辑正确性** - 所有边界检查、状态重置都正确
+2. **性能优化** - 消除了所有 LINQ 和 foreach 枚举器
+3. **代码质量** - 添加了详细注释，遵循项目规范
+4. **参考最佳实践** - 遵循 ActionCapability 的成功案例
+
+**等待 Unity 测试验证性能提升！** 🚀
+
+---
+
+_**User (2025-12-05 01:27Z)**_
+
+还有大量的gc，现在先吧 SkillExecutorCapability 的 Tick 用 Scope 监控起来吧，然后再看哪里有问题
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+用户说还有大量的 GC，想要先用 ProfileScope 监控 SkillExecutorCapability 的 Tick 方法，然后再看哪里有问题。
+
+我需要：
+1. 添加 ProfileScope 来监控 Tick 方法和其他关键方法
+2. 帮助用户定位具体的 GC 来源
+
+让我查看一下项目中其他 Capability 是如何使用 ProfileScope 的。</details></think>
+
+---
+
+好的，我来为 `SkillExecutorCapability` 添加 ProfileScope 监控，以便定位具体的 GC 来源。
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "ProfileScope" in "AstrumProj/Assets/Script/AstrumLogic/Capabilities" • 42 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCapability.Tick"))` | L87 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCap.SyncInputCommands"))` | L100 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCap.CheckCancellation"))` | L106 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCap.SelectAction"))` | L112 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCap.CheckCancelLoop"))` | L231 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("CancelLoop.IterateActions"))` | L233 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("CancelLoop.HasValidCommand"))` | L239 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("CancelLoop.TryGetContext"))` | L247 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Select.GetComponent"))` | L285 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Select.MergeExternal"))` | L295 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Select.Sort"))` | L310 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Sort.DoSort"))` | L312 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Sort.GetFirst"))` | L317 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Select.Lookup"))` | L324 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCap.RecycleAfterSelect"))` | L333 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCap.SwitchAction"))` | L342 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("ActionCap.RecycleAfterSelect"))` | L349 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Recycle.RecycleLoop"))` | L351 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Recycle.Clear"))` | L355 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Sync.GetInput"))` | L639 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Sync.DecayCommands"))` | L657 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Sync.ProcessMappings"))` | L686 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Mapping.ShouldAdd"))` | L699 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Mapping.AddOrRefresh"))` | L706 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Merge.CollectKeys"))` | L967 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Merge.ProcessPreorders"))` | L976 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Merge.Clear"))` | L1009 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Recycle.CheckFromPool"))` | L1051 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ActionCapability.cs` | `using (new ProfileScope("Recycle.DoRecycle"))` | L1056 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\CapabilityBase.cs` | `// ====== 性能优化：缓存 ProfileScope 名称 ======` | L15 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\CapabilityBase.cs` | `/// 缓存的 ProfileScope 名称（编译期计算，避免运行时字符串拼接）` | L18 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\CapabilityBase.cs` | `private static readonly string CachedProfileScopeName = $"Cap.\{typeof(T).Name\}";` | L20 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\CapabilityBase.cs` | `/// 获取 ProfileScope 名称（供 CapabilitySystem 使用）` | L23 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\CapabilityBase.cs` | `string ICapability.GetProfileScopeName() => CachedProfileScopeName;` | L26 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ICapability.cs` | `/// 获取 ProfileScope 名称（性能优化：避免运行时字符串拼接）` | L41 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\ICapability.cs` | `string GetProfileScopeName();` | L43 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\BattleStateCapability.cs` | `using (new ProfileScope("BattleStateCapability.Tick"))` | L67 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\BattleStateCapability.cs` | `using (new ProfileScope("BattleState.ValidateTarget"))` | L84 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\BattleStateCapability.cs` | `using (new ProfileScope("BattleState.FindNearestEnemy"))` | L127 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\HitReactionCapability.cs` | `using (new ProfileScope("HitReactionCapability.PlayHitAction"))` | L79 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\HitReactionCapability.cs` | `using (new ProfileScope("HitReactionCapability.PlayHitVFX"))` | L85 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities\HitReactionCapability.cs` | `using (new ProfileScope("HitReactionCapability.HandleHitSound"))` | L91 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我看到了 ActionCapability 和 BattleStateCapability 的使用方式。他们使用 ProfileScope 包裹关键方法和代码块。我需要为 SkillExecutorCapability 添加类似的监控。
+
+主要需要监控的地方：
+1. Tick 方法整体
+2. ProcessFrame 方法
+3. ProcessTrigger 及其各个分支
+4. HandleCollisionTrigger
+5. HandleDirectTrigger
+6. HandleConditionTrigger
+7. ProcessVFXTrigger
+8. TriggerSkillEffect
+
+这样可以帮助用户定位具体哪个方法产生了 GC。</details></think>
+
+---
+
+好的，我看到了其他 Capability 的使用方式。现在为 `SkillExecutorCapability` 添加详细的 ProfileScope 监控：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 20, lines removed: 14
+
+```diff
+@@ -76,18 +76,24 @@
+          public override void Tick(Entity entity)
+          {
+-             // 1. 获取 ActionComponent
+-             var actionComponent = GetComponent&lt;ActionComponent&gt;(entity);
+-             if (actionComponent == null) return;
+-             
+-             // 2. 检查当前动作是否是技能动作
+-             var actionInfo = actionComponent.CurrentAction;
+-             if (actionInfo?.SkillExtension == null)
+-                 return;
+-             
+-             // 3. 获取当前帧
+-             int currentFrame = actionComponent.CurrentFrame;
+-             
+-             // 4. 处理当前帧的触发事件
+-             ProcessFrame(entity, actionInfo, currentFrame);
++             using (new ProfileScope("SkillExecutorCapability.Tick"))
++             {
++                 // 1. 获取 ActionComponent
++                 var actionComponent = GetComponent&lt;ActionComponent&gt;(entity);
++                 if (actionComponent == null) return;
++                 
++                 // 2. 检查当前动作是否是技能动作
++                 var actionInfo = actionComponent.CurrentAction;
++                 if (actionInfo?.SkillExtension == null)
++                     return;
++                 
++                 // 3. 获取当前帧
++                 int currentFrame = actionComponent.CurrentFrame;
++                 
++                 // 4. 处理当前帧的触发事件
++                 using (new ProfileScope("SkillExec.ProcessFrame"))
++                 {
++                     ProcessFrame(entity, actionInfo, currentFrame);
++                 }
++             }
+          }
+          
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 16, lines removed: 10
+
+```diff
+@@ -110,16 +110,22 @@
+              
+              // 清空缓冲区（不释放容量，避免 GC）
+-             _triggerBuffer.Clear();
++             using (new ProfileScope("ProcessFrame.ClearBuffer"))
++             {
++                 _triggerBuffer.Clear();
++             }
+              
+              // 手动过滤当前帧的触发事件（避免 LINQ ToList 产生 GC）
+-             int count = triggerEffects.Count;
+-             for (int i = 0; i &lt; count; i++)
+-             {
+-                 var trigger = triggerEffects[i];
+-                 if (trigger.IsFrameInRange(currentFrame))
+-                 {
+-                     _triggerBuffer.Add(trigger);
+-                 }
+-             }
++             using (new ProfileScope("ProcessFrame.FilterTriggers"))
++             {
++                 int count = triggerEffects.Count;
++                 for (int i = 0; i &lt; count; i++)
++                 {
++                     var trigger = triggerEffects[i];
++                     if (trigger.IsFrameInRange(currentFrame))
++                     {
++                         _triggerBuffer.Add(trigger);
++                     }
++                 }
++             }
+              
+              if (_triggerBuffer.Count == 0)
+```
+
+**Chunk 2**
+Lines added: 7, lines removed: 4
+
+```diff
+@@ -129,8 +135,11 @@
+              
+              // 使用 for 循环遍历（避免 foreach 枚举器 GC）
+-             int triggerCount = _triggerBuffer.Count;
+-             for (int i = 0; i &lt; triggerCount; i++)
+-             {
+-                 ProcessTrigger(caster, actionInfo, _triggerBuffer[i]);
++             using (new ProfileScope("ProcessFrame.ProcessTriggers"))
++             {
++                 int triggerCount = _triggerBuffer.Count;
++                 for (int i = 0; i &lt; triggerCount; i++)
++                 {
++                     ProcessTrigger(caster, actionInfo, _triggerBuffer[i]);
++                 }
+              }
+          }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 30, lines removed: 21
+
+```diff
+@@ -150,25 +150,34 @@
+          private void ProcessTrigger(Entity caster, ActionInfo actionInfo, TriggerFrameInfo trigger)
+          {
+-             // 根据顶层类型分发
+-             string type = trigger.Type ?? "SkillEffect";
+-             
+-             switch (type)
+-             {
+-                 case TriggerFrameJsonKeys.TypeSkillEffect:
+-                     ProcessSkillEffectTrigger(caster, actionInfo, trigger);
+-                     break;
+-                     
+-                 case TriggerFrameJsonKeys.TypeVFX:
+-                     ProcessVFXTrigger(caster, trigger);
+-                     break;
+-                     
+-                 case TriggerFrameJsonKeys.TypeSFX:
+-                     // TODO: 实现 SFX 处理
+-                     ASLogger.Instance.Warning("SFX trigger not yet implemented");
+-                     break;
+-                     
+-                 default:
+-                     ASLogger.Instance.Warning($"Unknown trigger type: {type}");
+-                     break;
++             using (new ProfileScope("SkillExec.ProcessTrigger"))
++             {
++                 // 根据顶层类型分发
++                 string type = trigger.Type ?? "SkillEffect";
++                 
++                 switch (type)
++                 {
++                     case TriggerFrameJsonKeys.TypeSkillEffect:
++                         using (new ProfileScope("Trigger.SkillEffect"))
++                         {
++                             ProcessSkillEffectTrigger(caster, actionInfo, trigger);
++                         }
++                         break;
++                         
++                     case TriggerFrameJsonKeys.TypeVFX:
++                         using (new ProfileScope("Trigger.VFX"))
++                         {
++                             ProcessVFXTrigger(caster, trigger);
++                         }
++                         break;
++                         
++                     case TriggerFrameJsonKeys.TypeSFX:
++                         // TODO: 实现 SFX 处理
++                         ASLogger.Instance.Warning("SFX trigger not yet implemented");
++                         break;
++                         
++                     default:
++                         ASLogger.Instance.Warning($"Unknown trigger type: {type}");
++                         break;
++                 }
+              }
+          }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 12, lines removed: 3
+
+```diff
+@@ -193,14 +193,23 @@
+              {
+                  case TriggerFrameJsonKeys.TriggerTypeCollision:
+-                     HandleCollisionTrigger(caster, actionInfo, trigger);
++                     using (new ProfileScope("SkillEffect.Collision"))
++                     {
++                         HandleCollisionTrigger(caster, actionInfo, trigger);
++                     }
+                      break;
+                      
+                  case TriggerFrameJsonKeys.TriggerTypeDirect:
+                  case TriggerFrameJsonKeys.TriggerTypeProjectile:
+-                     HandleDirectTrigger(caster, trigger);
++                     using (new ProfileScope("SkillEffect.Direct"))
++                     {
++                         HandleDirectTrigger(caster, trigger);
++                     }
+                      break;
+  
+                  case TriggerFrameJsonKeys.TriggerTypeCondition:
+-                     HandleConditionTrigger(caster, actionInfo, trigger);
++                     using (new ProfileScope("SkillEffect.Condition"))
++                     {
++                         HandleConditionTrigger(caster, actionInfo, trigger);
++                     }
+                      break;
+                      
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 60, lines removed: 51
+
+```diff
+@@ -247,55 +247,64 @@
+              
+              // 构建 VFX 事件数据
+-             var eventData = new VFXTriggerEventData
+-             {
+-                 EntityId = caster.UniqueId,
+-                 ResourcePath = trigger.VFXResourcePath ?? string.Empty,
+-                 Scale = trigger.VFXScale,
+-                 PlaybackSpeed = trigger.VFXPlaybackSpeed,
+-                 FollowCharacter = trigger.VFXFollowCharacter,
+-                 Loop = trigger.VFXLoop,
+-                 InstanceId = trigger.GetHashCode() // 使用触发帧的哈希作为实例ID
+-             };
+-             
+-             // 转换位置偏移（从 float[] 转换为 TSVector）
+-             if (trigger.VFXPositionOffset != null &amp;&amp; trigger.VFXPositionOffset.Length &gt;= 3)
+-             {
+-                 eventData.PositionOffset = new TSVector(
+-                     (FP)trigger.VFXPositionOffset[0],
+-                     (FP)trigger.VFXPositionOffset[1],
+-                     (FP)trigger.VFXPositionOffset[2]
+-                 );
+-             }
+-             
+-             // 转换旋转（从 float[] 转换为 TSVector）
+-             if (trigger.VFXRotation != null &amp;&amp; trigger.VFXRotation.Length &gt;= 3)
+-             {
+-                 eventData.Rotation = new TSVector(
+-                     (FP)trigger.VFXRotation[0],
+-                     (FP)trigger.VFXRotation[1],
+-                     (FP)trigger.VFXRotation[2]
+-                 );
+-             }
+-             
+-             // 转换为 VFXTriggerEvent 并通过 ViewEvent 队列发送
+-             var vfxEvent = new VFXTriggerEvent
+-             {
+-                 ResourcePath = eventData.ResourcePath,
+-                 PositionOffset = eventData.PositionOffset,
+-                 Rotation = eventData.Rotation,
+-                 Scale = eventData.Scale,
+-                 PlaybackSpeed = eventData.PlaybackSpeed,
+-                 FollowCharacter = eventData.FollowCharacter,
+-                 Loop = eventData.Loop
+-             };
+-             
+-             // 通过 ViewEvent 队列传递到视图层（异步，不阻塞逻辑层）
+-             caster.QueueViewEvent(new ViewEvent(
+-                 ViewEventType.CustomViewEvent,
+-                 vfxEvent,
+-                 caster.World.CurFrame
+-             ));
+-             
+-             ASLogger.Instance.Debug($"Queued VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
++             using (new ProfileScope("VFX.BuildEventData"))
++             {
++                 var eventData = new VFXTriggerEventData
++                 {
++                     EntityId = caster.UniqueId,
++                     ResourcePath = trigger.VFXResourcePath ?? string.Empty,
++                     Scale = trigger.VFXScale,
++                     PlaybackSpeed = trigger.VFXPlaybackSpeed,
++                     FollowCharacter = trigger.VFXFollowCharacter,
++                     Loop = trigger.VFXLoop,
++                     InstanceId = trigger.GetHashCode() // 使用触发帧的哈希作为实例ID
++                 };
++                 
++                 // 转换位置偏移（从 float[] 转换为 TSVector）
++                 if (trigger.VFXPositionOffset != null &amp;&amp; trigger.VFXPositionOffset.Length &gt;= 3)
++                 {
++                     eventData.PositionOffset = new TSVector(
++                         (FP)trigger.VFXPositionOffset[0],
++                         (FP)trigger.VFXPositionOffset[1],
++                         (FP)trigger.VFXPositionOffset[2]
++                     );
++                 }
++                 
++                 // 转换旋转（从 float[] 转换为 TSVector）
++                 if (trigger.VFXRotation != null &amp;&amp; trigger.VFXRotation.Length &gt;= 3)
++                 {
++                     eventData.Rotation = new TSVector(
++                         (FP)trigger.VFXRotation[0],
++                         (FP)trigger.VFXRotation[1],
++                         (FP)trigger.VFXRotation[2]
++                     );
++                 }
++                 
++                 // 转换为 VFXTriggerEvent 并通过 ViewEvent 队列发送
++                 using (new ProfileScope("VFX.CreateEvent"))
++                 {
++                     var vfxEvent = new VFXTriggerEvent
++                     {
++                         ResourcePath = eventData.ResourcePath,
++                         PositionOffset = eventData.PositionOffset,
++                         Rotation = eventData.Rotation,
++                         Scale = eventData.Scale,
++                         PlaybackSpeed = eventData.PlaybackSpeed,
++                         FollowCharacter = eventData.FollowCharacter,
++                         Loop = eventData.Loop
++                     };
++                     
++                     // 通过 ViewEvent 队列传递到视图层（异步，不阻塞逻辑层）
++                     using (new ProfileScope("VFX.QueueEvent"))
++                     {
++                         caster.QueueViewEvent(new ViewEvent(
++                             ViewEventType.CustomViewEvent,
++                             vfxEvent,
++                             caster.World.CurFrame
++                         ));
++                     }
++                 }
++                 
++                 ASLogger.Instance.Debug($"Queued VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
++             }
+          }
+          
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 3
+
+```diff
+@@ -324,7 +324,10 @@
+              
+              // 2. 复用碰撞过滤器（避免每次创建新对象产生 GC）
+-             _collisionFilter.ExcludedEntityIds.Clear();
+-             _collisionFilter.ExcludedEntityIds.Add(caster.UniqueId);
+-             _collisionFilter.OnlyEnemies = false;  // 暂时移除敌对过滤（team系统未实现）
++             using (new ProfileScope("Collision.SetupFilter"))
++             {
++                 _collisionFilter.ExcludedEntityIds.Clear();
++                 _collisionFilter.ExcludedEntityIds.Add(caster.UniqueId);
++                 _collisionFilter.OnlyEnemies = false;  // 暂时移除敌对过滤（team系统未实现）
++             }
+              
+              // 3. 从 World 获取 HitSystem 进行碰撞检测
+```
+
+**Chunk 2**
+Lines added: 10, lines removed: 6
+
+```diff
+@@ -336,10 +339,14 @@
+              }
+              
+-             var hits = hitSystem.QueryHits(
+-                 caster, 
+-                 shape, 
+-                 _collisionFilter
+-                 //skillInstanceId: skillAction.Id
+-             );
++             List&lt;Entity&gt; hits;
++             using (new ProfileScope("Collision.QueryHits"))
++             {
++                 hits = hitSystem.QueryHits(
++                     caster, 
++                     shape, 
++                     _collisionFilter
++                     //skillInstanceId: skillAction.Id
++                 );
++             }
+  
+              // 移除冗余日志，只在没有命中时记录
+```
+
+**Chunk 3**
+Lines added: 13, lines removed: 10
+
+```diff
+@@ -351,14 +358,17 @@
+  
+              // 4. 对每个命中目标触发所有效果（使用 for 循环避免枚举器 GC）
+-             int hitCount = hits.Count;
+-             for (int i = 0; i &lt; hitCount; i++)
+-             {
+-                 var target = hits[i];
+-                 if (trigger.EffectIds != null)
+-                 {
+-                     int effectCount = trigger.EffectIds.Length;
+-                     for (int j = 0; j &lt; effectCount; j++)
+-                     {
+-                         TriggerSkillEffect(caster, target, trigger.EffectIds[j], trigger);
++             using (new ProfileScope("Collision.TriggerEffects"))
++             {
++                 int hitCount = hits.Count;
++                 for (int i = 0; i &lt; hitCount; i++)
++                 {
++                     var target = hits[i];
++                     if (trigger.EffectIds != null)
++                     {
++                         int effectCount = trigger.EffectIds.Length;
++                         for (int j = 0; j &lt; effectCount; j++)
++                         {
++                             TriggerSkillEffect(caster, target, trigger.EffectIds[j], trigger);
++                         }
+                      }
+                  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 47, lines removed: 35
+
+```diff
+@@ -474,43 +474,55 @@
+          private void TriggerSkillEffect(Entity caster, Entity target, int effectId, TriggerFrameInfo trigger)
+          {
+-             // 构造效果数据
+-             var effectConfig = SkillConfig.Instance.GetSkillEffect(effectId);
+-             if (effectConfig == null)
+-             {
+-                 ASLogger.Instance.Warning($"[SkillExecutorCapability] Effect config not found: {effectId}");
+-                 return;
+-             }
++             using (new ProfileScope("SkillExec.TriggerEffect"))
++             {
++                 // 构造效果数据
++                 var effectConfig = SkillConfig.Instance.GetSkillEffect(effectId);
++                 if (effectConfig == null)
++                 {
++                     ASLogger.Instance.Warning($"[SkillExecutorCapability] Effect config not found: {effectId}");
++                     return;
++                 }
+  
+-             var effectType = effectConfig.EffectType ?? string.Empty;
++                 var effectType = effectConfig.EffectType ?? string.Empty;
+  
+-             if (string.Equals(effectType, "Projectile", StringComparison.OrdinalIgnoreCase))
+-             {
+-                 HandleProjectileEffect(caster, effectConfig, trigger);
+-                 return;
+-             }
++                 if (string.Equals(effectType, "Projectile", StringComparison.OrdinalIgnoreCase))
++                 {
++                     using (new ProfileScope("Effect.Projectile"))
++                     {
++                         HandleProjectileEffect(caster, effectConfig, trigger);
++                     }
++                     return;
++                 }
+  
+-             if (target == null)
+-             {
+-                 ASLogger.Instance.Warning($"[SkillExecutorCapability] Target is null for effect {effectId}");
+-                 return;
+-             }
++                 if (target == null)
++                 {
++                     ASLogger.Instance.Warning($"[SkillExecutorCapability] Target is null for effect {effectId}");
++                     return;
++                 }
+  
+-             var effectData = new SkillSystem.SkillEffectData
+-             {
+-                 CasterId = caster.UniqueId,
+-                 TargetId = target.UniqueId,
+-                 EffectId = effectId
+-             };
+-             
+-             // 加入 SkillEffectSystem 队列
+-             var skillEffectSystem = caster.World?.SkillEffectSystem;
+-             if (skillEffectSystem != null)
+-             {
+-                 skillEffectSystem.QueueSkillEffect(effectData);
+-                 ASLogger.Instance.Debug($"[SkillExecutorCapability] Queued SkillEffect: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
+-             }
+-             else
+-             {
+-                 ASLogger.Instance.Error($"[SkillExecutorCapability] SkillEffectSystem not found in World");
++                 using (new ProfileScope("Effect.CreateData"))
++                 {
++                     var effectData = new SkillSystem.SkillEffectData
++                     {
++                         CasterId = caster.UniqueId,
++                         TargetId = target.UniqueId,
++                         EffectId = effectId
++                     };
++                     
++                     // 加入 SkillEffectSystem 队列
++                     using (new ProfileScope("Effect.QueueEffect"))
++                     {
++                         var skillEffectSystem = caster.World?.SkillEffectSystem;
++                         if (skillEffectSystem != null)
++                         {
++                             skillEffectSystem.QueueSkillEffect(effectData);
++                             ASLogger.Instance.Debug($"[SkillExecutorCapability] Queued SkillEffect: effectId={effectId}, caster={caster.UniqueId}, target={target.UniqueId}");
++                         }
++                         else
++                         {
++                             ASLogger.Instance.Error($"[SkillExecutorCapability] SkillEffectSystem not found in World");
++                         }
++                     }
++                 }
+              }
+          }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我已经添加了所有的 ProfileScope。现在需要：
+1. 检查 linter 错误
+2. 添加 ProfileScope 的 using 引用
+3. 编译验证</details></think>
+
+---
+
+现在添加 ProfileScope 的 using 引用并编译验证：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -9,4 +9,5 @@
+  using Astrum.CommonBase;
+  using Astrum.CommonBase.Events;
++ using Astrum.CommonBase.Profiling;
+  using Astrum.LogicCore.Events;
+  using cfg.Skill;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+很好，没有 linter 错误。现在编译验证一下。</details></think>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd AstrumProj; dotnet build AstrumProj.sln --no-incremental</summary>
+
+```bash
+cd AstrumProj; dotnet build AstrumProj.sln --no-incremental
+```
+
+```
+.sln --no-incremental                                                           
+cd : 找不到路径“D:\Develop\Projects\Astrum\AstrumProj\AstrumProj”，因为该路径
+不存在。
+所在位置 行:1 字符: 1
++ cd AstrumProj; dotnet build AstrumProj.sln --no-incremental
++ ~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (D:\Develop\Proj...Proj\AstrumPr  
+   oj:String) [Set-Location], ItemNotFoundException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.SetLo  
+   cationCommand
+
+还原完成(0.5)
+  Assembly-CSharp-Editor-firstpass 成功，出现 2 警告 (1.7 秒) → Temp\Bin\Debug\Unity.Rider.Editor\Assembly-CSharp-Editor-firstpass.dll                          
+    CSC : warning CS2008: 未指定源文件。
+    CSC : warning CS8021: 找不到 RuntimeMetadataVersion 的值。找不到包含 System.Object 的程序集，或未通过选项为 RuntimeMetadataVersion 指定值。                 
+  External 成功，出现 2 警告 (1.7 秒) → Temp\Bin\Debug\Unity.Rider.Editor\External.dll                                                                          
+    CSC : warning CS2008: 未指定源文件。
+    CSC : warning CS8021: 找不到 RuntimeMetadataVersion 的值。找不到包含 System.Object 的程序集，或未通过选项为 RuntimeMetadataVersion 指定值。                 
+  Assembly-CSharp-firstpass 成功，出现 2 警告 (1.8 秒) → Temp\Bin\Debug\Unity.Rider.Editor\Assembly-CSharp-firstpass.dll                                        
+    CSC : warning CS2008: 未指定源文件。
+    CSC : warning CS8021: 找不到 RuntimeMetadataVersion 的值。找不到包含 System.Object 的程序集，或未通过选项为 RuntimeMetadataVersion 指定值。                 
+  Kybernetik.Animancer.FSM 已成功 (2.8 秒) → Temp\Bin\Debug\Kybernetik.Animancer.FSM\Kybernetik.Animancer.FSM.dll                                               
+  Sirenix.OdinInspector.Modules.UnityMathematics 已成功 (2.8 秒) → Temp\Bin\Debug\Sirenix.OdinInspector.Modules.UnityMathematics\Sirenix.OdinInspector.Modules.UnityMathematics.dll                                                             
+  Kybernetik.Animancer 已成功 (2.9 秒) → Temp\Bin\Debug\Kybernetik.Animancer\Kybernetik.Animancer.dll                                                           
+  Astrum.Editor.Common 已成功 (2.8 秒) → Temp\Bin\Debug\Astrum.Editor.Common\Astrum.Editor.Common.dll                                                           
+  SingularityGroup.HotReload.Runtime.Public 已成功 (2.8 秒) → Temp\Bin\Debug\SingularityGroup.HotReload.Runtime.Public\SingularityGroup.HotReload.Runtime.Public.dll                                                                            
+  SingularityGroup.HotReload.Runtime 已成功 (0.6 秒) → Temp\Bin\Debug\SingularityGroup.HotReload.Runtime\SingularityGroup.HotReload.Runtime.dll                 
+  Kybernetik.Animancer.Editor 已成功 (0.8 秒) → Temp\Bin\Debug\Kybernetik.Animancer.Editor\Kybernetik.Animancer.Editor.dll                                      
+  SingularityGroup.HotReload.Editor 已成功 (1.1 秒) → Temp\Bin\Debug\SingularityGroup.HotReload.Editor\SingularityGroup.HotReload.Editor.dll                    
+  CommonBase 成功，出现 4 警告 (5.2 秒) → Temp\Bin\Debug\CommonBase\CommonBase.dll                                                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\CommonBase\Singleton.cs(12,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的 引用类型的注释。                                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\CommonBase\ObjectPool.cs(59,21): warning CS0114: “ObjectPool.Awake()”隐藏继承的成员“Singleton&lt;ObjectPool&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。                                                                             
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\CommonBase\TimeInfo\TimeInfo.cs(32,21): warning CS0114: “TimeInfo.Awake()”隐藏继承的成员“Singleton&lt;TimeInfo&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。                                                                          
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\CommonBase\CodeTypes.cs(12,21): warning CS0114: “CodeTypes.Awake()”隐藏继承的成员“Singleton&lt;CodeTypes&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键字 new。
+  Generated 已成功 (0.6 秒) → Temp\Bin\Debug\Generated\Generated.dll
+  AstrumLogic 失败，出现 1 错误和 51 警告 (0.3 秒)
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\SkillExecutorCapability.cs(11,25): error CS0234: 命名空间“Astrum.CommonBase”中 不存在类型或命名空间名“Profiling”(是否缺少程序集引用?)                          
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\MonsterInfoComponent.cs(45,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                          
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ActionCapability.cs(415,27): warning CS8632: 只能在 "#nullable" 注释上下文内的 代码中使用可为 null 的引用类型的注释。                                          
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(100,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                        
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\EntityCreationParams.cs(28,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(57,35): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(63,36): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(121,39): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中 使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs(71,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(84,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(84,69): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileCapability.cs(251,18): warning CS8632: 只能在 "#nullable" 注释上下文 内的代码中使用可为 null 的引用类型的注释。                                      
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(175,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                             
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(267,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                             
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\RoleInfoComponent.cs(35,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代 码中使用可为 null 的引用类型的注释。                                            
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(394,17): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                             
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(197,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                      
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(91,23): warning CS8632: 只能在 "#nullable" 注释上下文内 的代码中使用可为 null 的引用类型的注释。                                        
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(199,112): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                             
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(237,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(322,85): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\Projectile\ProjectileDefinitions.cs(107,36): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                            
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\EffectValueResult.cs(19,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                            
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(319,34): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileSpawnCapability.cs(95,37): warning CS8632: 只能在 "#nullable" 注释上 下文内的代码中使用可为 null 的引用类型的注释。                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ActionComponent.cs(28,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码 中使用可为 null 的引用类型的注释。                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(30,29): warning CS8632: 只能在 "#nullable" 注释上下文内的代码 中使用可为 null 的引用类型的注释。                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(57,17): warning CS8632: 只能在 "#nullable" 注释上下文内的代码 中使用可为 null 的引用类型的注释。                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(44,78): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                            
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(90,70): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                            
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(90,103): warning CS8632: 只能在 "#nullable" 注释上下文内的 代码中使用可为 null 的引用类型的注释。                                          
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\LSInputSystem.cs(92,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可 为 null 的引用类型的注释。                                                      
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(19,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                      
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(26,75): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                      
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(32,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用 可为 null 的引用类型的注释。                                                    
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(57,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用 可为 null 的引用类型的注释。                                                    
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ServerLSController.cs(207,24): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中 使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(99,27): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用 可为 null 的引用类型的注释。                                                    
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(149,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                    
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(232,42): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                    
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(26,26): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                    
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(357,28): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使 用可为 null 的引用类型的注释。                                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(358,25): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使 用可为 null 的引用类型的注释。                                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(369,28): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使 用可为 null 的引用类型的注释。                                                  
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(105,30): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(136,30): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(149,22): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(163,33): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(182,31): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                                
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(51,32): warning CS8632: 只能在 "#nullable" 注释上下文内的代 码中使用可为 null 的引用类型的注释。                                            
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\LSInputComponent.cs(164,23): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。                                              
+    D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(84,78): warning CS8632: 只能在 "#nullable" 注释上下文内的代 码中使用可为 null 的引用类型的注释。                                            
+
+在 6.8 秒内生成 失败，出现 1 错误和 61 警告
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+编译失败了，错误是：
+```
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\SkillExecutorCapability.cs(11,25): error CS0234: 命名空间"Astrum.CommonBase"中不存在类型或命名空间名"Profiling"(是否缺少程序集引用?)
+```
+
+看来 ProfileScope 不在 `Astrum.CommonBase.Profiling` 命名空间中。让我查找 ProfileScope 的正确命名空间。</details></think>
+
+---
+
+编译失败了，`Profiling` 命名空间不存在。让我查找 `ProfileScope` 的正确位置：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "class ProfileScope" • 0 matches</summary>
+
+Output mode: files_with_matches
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "^namespace.*Profil" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\AstrumServer\AstrumServer\Profiling\ServerProfilerHandler.cs` | `namespace Astrum.Server.Profiling` | L6 |
+| `.\AstrumProj\Assets\Script\AstrumClient\Profiling\UnityProfilerHandler.cs` | `namespace Astrum.Client.Profiling` | L4 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+看起来 ProfileScope 不在这些文件中。让我搜索 ProfileScope 的定义。</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "struct ProfileScope" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\AstrumProj\Assets\Script\CommonBase\ProfileScope.cs` | `public readonly struct ProfileScope : IDisposable` | L18 |
+| `.\openspec\changes\archive\2025-12-03-add-asprofiler-system\design.md` | `public readonly struct ProfileScope : IDisposable` | L97 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "using.*ProfileScope" in "AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs" • 29 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCapability.Tick"))` | L87 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCap.SyncInputCommands"))` | L100 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCap.CheckCancellation"))` | L106 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCap.SelectAction"))` | L112 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCap.CheckCancelLoop"))` | L231 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("CancelLoop.IterateActions"))` | L233 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("CancelLoop.HasValidCommand"))` | L239 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("CancelLoop.TryGetContext"))` | L247 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Select.GetComponent"))` | L285 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Select.MergeExternal"))` | L295 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Select.Sort"))` | L310 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Sort.DoSort"))` | L312 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Sort.GetFirst"))` | L317 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Select.Lookup"))` | L324 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCap.RecycleAfterSelect"))` | L333 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCap.SwitchAction"))` | L342 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("ActionCap.RecycleAfterSelect"))` | L349 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Recycle.RecycleLoop"))` | L351 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Recycle.Clear"))` | L355 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Sync.GetInput"))` | L639 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Sync.DecayCommands"))` | L657 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Sync.ProcessMappings"))` | L686 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Mapping.ShouldAdd"))` | L699 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Mapping.AddOrRefresh"))` | L706 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Merge.CollectKeys"))` | L967 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Merge.ProcessPreorders"))` | L976 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Merge.Clear"))` | L1009 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Recycle.CheckFromPool"))` | L1051 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/ActionCapability.cs` | `using (new ProfileScope("Recycle.DoRecycle"))` | L1056 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我看到 ActionCapability 并没有 using 语句来导入 ProfileScope，这说明 ProfileScope 在 CommonBase 命名空间中。让我读取 ProfileScope.cs 文件来确认命名空间。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/CommonBase/ProfileScope.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，ProfileScope 在 `Astrum.CommonBase` 命名空间中，不需要 Profiling 子命名空间。我需要移除错误的 using 语句。ActionCapability 已经有 `using Astrum.CommonBase;`，所以不需要额外的 using。</details></think>
+
+---
+
+好的，`ProfileScope` 就在 `Astrum.CommonBase` 命名空间中，不需要额外的 `Profiling` 命名空间。让我移除错误的 using：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs</summary>
+
+**Chunk 1**
+Lines added: undefined, lines removed: 1
+
+```diff
+@@ -9,5 +9,4 @@
+  using Astrum.CommonBase;
+  using Astrum.CommonBase.Events;
+- using Astrum.CommonBase.Profiling;
+  using Astrum.LogicCore.Events;
+  using cfg.Skill;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: dotnet build AstrumProj.sln --no-incremental</summary>
+
+```bash
+dotnet build AstrumProj.sln --no-incremental
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+太好了！编译成功。让我检查一下编译结果。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: c:\Users\Lavender\.cursor\projects\d-Develop-Projects-Astrum-Astrum-code-workspace\agent-tools\ab45e254-2a3f-4598-a21e-e5a068662bce.txt</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+太好了！编译成功，只有一些无关的警告。现在我应该总结一下已经完成的工作。</details></think>
+
+---
+
+完美！编译成功。让我创建一个总结文档：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **write** • Edit file: openspec/changes/optimize-skillexecutor-gc/PROFILING_ADDED.md</summary>
+
+**Chunk 1**
+Lines added: 182, lines removed: 1
+
+```diff
+@@ -1,1 +1,182 @@
+- 
++ # SkillExecutorCapability ProfileScope 监控已添加
++ 
++ **日期**: 2025-12-05  
++ **状态**: ✅ 已完成并通过编译  
++ 
++ ---
++ 
++ ## 📊 添加的 ProfileScope 监控
++ 
++ 为了帮助定位 GC 来源，已为 &#96;SkillExecutorCapability&#96; 的所有关键方法添加详细的 ProfileScope 监控。
++ 
++ ### 监控层级结构
++ 
++ &#96;&#96;&#96;
++ SkillExecutorCapability.Tick
++ ├─ SkillExec.ProcessFrame
++ │  ├─ ProcessFrame.ClearBuffer
++ │  ├─ ProcessFrame.FilterTriggers
++ │  └─ ProcessFrame.ProcessTriggers
++ │     └─ SkillExec.ProcessTrigger
++ │        ├─ Trigger.SkillEffect
++ │        │  ├─ SkillEffect.Collision
++ │        │  │  ├─ Collision.SetupFilter
++ │        │  │  ├─ Collision.QueryHits
++ │        │  │  └─ Collision.TriggerEffects
++ │        │  │     └─ SkillExec.TriggerEffect
++ │        │  │        ├─ Effect.Projectile
++ │        │  │        └─ Effect.CreateData
++ │        │  │           └─ Effect.QueueEffect
++ │        │  ├─ SkillEffect.Direct
++ │        │  │  └─ SkillExec.TriggerEffect (同上)
++ │        │  └─ SkillEffect.Condition
++ │        │     └─ SkillExec.TriggerEffect (同上)
++ │        └─ Trigger.VFX
++ │           └─ VFX.BuildEventData
++ │              ├─ VFX.CreateEvent
++ │              └─ VFX.QueueEvent
++ &#96;&#96;&#96;
++ 
++ ### 详细监控点
++ 
++ | 作用域名称 | 监控内容 | 说明 |
++ |-----------|---------|------|
++ | **SkillExecutorCapability.Tick** | 整个 Tick 方法 | 顶层监控 |
++ | **SkillExec.ProcessFrame** | ProcessFrame 方法 | 处理当前帧触发事件 |
++ | **ProcessFrame.ClearBuffer** | 清空缓冲区 | 监控 List.Clear() |
++ | **ProcessFrame.FilterTriggers** | 过滤触发事件 | 监控 for 循环过滤 |
++ | **ProcessFrame.ProcessTriggers** | 遍历触发事件 | 监控 for 循环处理 |
++ | **SkillExec.ProcessTrigger** | 单个触发事件分发 | 监控类型分发 |
++ | **Trigger.SkillEffect** | 技能效果触发 | 监控技能效果处理 |
++ | **Trigger.VFX** | VFX 触发 | 监控 VFX 处理 |
++ | **SkillEffect.Collision** | 碰撞触发 | 监控碰撞检测 |
++ | **Collision.SetupFilter** | 设置碰撞过滤器 | 监控 filter 复用 |
++ | **Collision.QueryHits** | 查询碰撞命中 | 监控物理查询 |
++ | **Collision.TriggerEffects** | 触发碰撞效果 | 监控 for 循环 |
++ | **SkillEffect.Direct** | 直接触发 | 监控直接效果 |
++ | **SkillEffect.Condition** | 条件触发 | 监控条件效果 |
++ | **SkillExec.TriggerEffect** | 触发技能效果 | 监控效果入队 |
++ | **Effect.Projectile** | 处理投射物效果 | 监控投射物创建 |
++ | **Effect.CreateData** | 创建效果数据 | 监控数据构建 |
++ | **Effect.QueueEffect** | 入队效果 | 监控效果队列 |
++ | **VFX.BuildEventData** | 构建 VFX 事件数据 | 监控 VFX 数据创建 |
++ | **VFX.CreateEvent** | 创建 VFX 事件 | 监控事件对象创建 |
++ | **VFX.QueueEvent** | 入队 VFX 事件 | 监控事件队列 |
++ 
++ ---
++ 
++ ## 🔍 如何使用 Unity Profiler 定位 GC
++ 
++ ### 1. 激活 Unity 并运行游戏
++ 
++ &#96;&#96;&#96;bash
++ # 刷新 Unity 项目
++ Assets/Refresh
++ &#96;&#96;&#96;
++ 
++ ### 2. 打开 Unity Profiler
++ 
++ - 菜单：Window → Analysis → Profiler
++ - 或快捷键：Ctrl+7
++ 
++ ### 3. 启用 Deep Profile
++ 
++ - 在 Profiler 窗口点击 "Deep Profile"
++ - 这样可以看到所有 ProfileScope 的详细信息
++ 
++ ### 4. 查看 GC Alloc 列
++ 
++ 在 Profiler 中找到 &#96;SkillExecutorCapability.Tick&#96;，展开查看子节点：
++ 
++ &#96;&#96;&#96;
++ SkillExecutorCapability.Tick  [3.09ms, 125.4 KB]  ← 总耗时和 GC
++ ├─ SkillExec.ProcessFrame  [2.5ms, 100 KB]
++ │  ├─ ProcessFrame.ClearBuffer  [0.01ms, 0 B]      ← 这个没有 GC ✅
++ │  ├─ ProcessFrame.FilterTriggers  [0.5ms, 80 KB]  ← 这里有 GC ❌
++ │  └─ ProcessFrame.ProcessTriggers  [2ms, 20 KB]
++ │     └─ SkillExec.ProcessTrigger  [1.5ms, 15 KB]
++ │        └─ Trigger.VFX  [1ms, 10 KB]              ← VFX 有 GC ❌
++ │           └─ VFX.BuildEventData  [0.8ms, 10 KB]  ← 找到问题！
++ &#96;&#96;&#96;
++ 
++ ### 5. 重点关注的指标
++ 
++ | 指标 | 说明 |
++ |------|------|
++ | **GC Alloc** | 每帧分配的内存（应该 &lt; 1 KB） |
++ | **GC.Alloc 次数** | 每帧分配的对象数量（应该 &lt; 50） |
++ | **Time ms** | 耗时（应该 &lt; 2ms） |
++ 
++ ---
++ 
++ ## 🎯 预期发现
++ 
++ 根据优化前的分析，预期会在以下地方发现 GC：
++ 
++ ### ❌ 已优化但仍可能有 GC 的地方
++ 
++ 1. **ProcessFrame.FilterTriggers** (~80 KB)
++    - 虽然使用了 for 循环和预分配缓冲区
++    - 但 &#96;trigger.IsFrameInRange()&#96; 内部可能有 GC
++    - 需要进一步检查 &#96;TriggerFrameInfo.IsFrameInRange()&#96; 实现
++ 
++ 2. **VFX.BuildEventData** (~10 KB)
++    - &#96;new VFXTriggerEventData { ... }&#96; 创建新对象
++    - &#96;new VFXTriggerEvent { ... }&#96; 创建新对象
++    - 这是 Phase 4 的优化目标（VFX 对象池）
++ 
++ 3. **Collision.QueryHits** (~20 KB)
++    - &#96;hitSystem.QueryHits()&#96; 可能返回新的 List
++    - 需要检查 HitSystem 的实现
++ 
++ 4. **Effect.CreateData** (~5 KB)
++    - &#96;new SkillEffectData { ... }&#96; 创建新对象
++    - 可能需要对象池
++ 
++ ### ✅ 应该没有 GC 的地方
++ 
++ 1. **ProcessFrame.ClearBuffer** - List.Clear() 不产生 GC
++ 2. **Collision.SetupFilter** - 复用现有对象
++ 3. **Collision.TriggerEffects** - for 循环无枚举器 GC
++ 
++ ---
++ 
++ ## 📝 下一步行动
++ 
++ 1. **运行游戏并查看 Profiler**
++    - 激活 Unity
++    - 运行游戏
++    - 打开 Profiler 并启用 Deep Profile
++    - 查看 SkillExecutorCapability.Tick 的详细信息
++ 
++ 2. **定位主要 GC 来源**
++    - 找到 GC Alloc 最大的子节点
++    - 记录具体数值
++ 
++ 3. **根据 Profiler 结果决定进一步优化**
++    - 如果 VFX.BuildEventData 有显著 GC → 实施 Phase 4（VFX 对象池）
++    - 如果其他地方有 GC → 分析具体原因并优化
++ 
++ ---
++ 
++ ## ✅ 编译验证
++ 
++ - **编译状态**: ✅ 成功
++ - **编译时间**: 7.6 秒
++ - **错误数**: 0
++ - **警告数**: 128（均为无关警告）
++ 
++ ---
++ 
++ ## 📋 修改文件
++ 
++ &#96;&#96;&#96;
++ AstrumProj/Assets/Script/AstrumLogic/Capabilities/SkillExecutorCapability.cs
++   - 添加 21 个 ProfileScope 监控点
++   - 覆盖所有关键方法和代码块
++ &#96;&#96;&#96;
++ 
++ ---
++ 
++ **所有 ProfileScope 已添加完成！等待 Unity Profiler 测试！** 🔍
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+很好，文档已创建。现在我应该总结一下完成的工作。</details></think>
+
+---
+
+完美！我已经为 `SkillExecutorCapability` 添加了详细的 ProfileScope 监控。以下是完成的工作总结：
+
+## ✅ 完成总结
+
+### 🎯 添加的监控
+
+为 `SkillExecutorCapability` 添加了 **21 个 ProfileScope 监控点**，覆盖所有关键方法：
+
+1. **顶层监控**:
+   - `SkillExecutorCapability.Tick` - 整体监控
+   - `SkillExec.ProcessFrame` - 帧处理监控
+
+2. **ProcessFrame 细粒度监控**:
+   - `ProcessFrame.ClearBuffer` - 缓冲区清空
+   - `ProcessFrame.FilterTriggers` - 触发事件过滤
+   - `ProcessFrame.ProcessTriggers` - 触发事件处理
+
+3. **触发类型监控**:
+   - `Trigger.SkillEffect` - 技能效果
+   - `Trigger.VFX` - VFX 效果
+   - `SkillEffect.Collision` - 碰撞触发
+   - `SkillEffect.Direct` - 直接触发
+   - `SkillEffect.Condition` - 条件触发
+
+4. **碰撞检测监控**:
+   - `Collision.SetupFilter` - 过滤器设置
+   - `Collision.QueryHits` - 碰撞查询
+   - `Collision.TriggerEffects` - 效果触发
+
+5. **VFX 监控**:
+   - `VFX.BuildEventData` - 事件数据构建
+   - `VFX.CreateEvent` - 事件创建
+   - `VFX.QueueEvent` - 事件入队
+
+6. **效果系统监控**:
+   - `SkillExec.TriggerEffect` - 效果触发
+   - `Effect.Projectile` - 投射物
+   - `Effect.CreateData` - 数据创建
+   - `Effect.QueueEffect` - 效果入队
+
+### 📊 监控层级
+
+```
+SkillExecutorCapability.Tick (顶层)
+  └─ SkillExec.ProcessFrame
+      ├─ ProcessFrame.ClearBuffer
+      ├─ ProcessFrame.FilterTriggers
+      └─ ProcessFrame.ProcessTriggers
+          └─ SkillExec.ProcessTrigger
+              ├─ Trigger.SkillEffect
+              │   ├─ SkillEffect.Collision
+              │   │   ├─ Collision.SetupFilter
+              │   │   ├─ Collision.QueryHits
+              │   │   └─ Collision.TriggerEffects
+              │   ├─ SkillEffect.Direct
+              │   └─ SkillEffect.Condition
+              └─ Trigger.VFX
+                  └─ VFX.BuildEventData
+                      ├─ VFX.CreateEvent
+                      └─ VFX.QueueEvent
+```
+
+### ✅ 编译验证
+
+- **状态**: ✅ 成功（0 错误，128 无关警告）
+- **编译时间**: 7.6 秒
+
+### 📝 下一步
+
+现在你可以：
+
+1. **激活 Unity** 并刷新项目（Assets/Refresh）
+2. **运行游戏**
+3. **打开 Unity Profiler**（Window → Analysis → Profiler）
+4. **启用 Deep Profile** 查看详细信息
+5. **展开 SkillExecutorCapability.Tick** 查看每个子节点的 GC 分配
+
+通过 Profiler，你将能够精确定位哪些具体操作产生了 GC，然后我们可以针对性地进一步优化。
+
+**所有监控已添加完成，等待 Unity Profiler 测试结果！** 🔍
 
 ---
 
