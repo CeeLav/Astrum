@@ -26,6 +26,13 @@ namespace Astrum.LogicCore.Physics
         private Space _space;
         // 修复：存储 BEPU Entity 而不是 BroadPhaseEntry
         private readonly Dictionary<long, BepuEntity> _entityBodies = new Dictionary<long, BepuEntity>();
+        
+        // ====== 性能优化：预分配缓冲区（避免 GC） ======
+        
+        /// <summary>
+        /// 预分配的 BroadPhase 查询候选缓冲区，避免每次查询创建新 RawList
+        /// </summary>
+        private BEPUutilities.DataStructures.RawList<BroadPhaseEntry> _candidatesBuffer = new BEPUutilities.DataStructures.RawList<BroadPhaseEntry>(32);
 
         /// <summary>
         /// 获取 BEPU Space 实例
@@ -306,11 +313,12 @@ namespace Astrum.LogicCore.Physics
         }
 
         /// <summary>
-        /// Box 重叠查询
+        /// Box 重叠查询（优化版本：使用输出参数避免创建新 List）
         /// </summary>
-        public List<AstrumEntity> QueryBoxOverlap(TSVector center, TSVector halfSize, TSQuaternion rotation)
+        public void QueryBoxOverlap(TSVector center, TSVector halfSize, TSQuaternion rotation, List<AstrumEntity> outResults)
         {
-            var results = new List<AstrumEntity>();
+            outResults.Clear();
+            
             var bepuCenter = center.ToBepuVector();
             var bepuHalfSize = halfSize.ToBepuVector();
             var bepuRotation = rotation.ToBepuQuaternion();
@@ -328,13 +336,16 @@ namespace Astrum.LogicCore.Physics
             // 因为我们的物理世界可能不会自动调用Space.Update()，所以需要手动刷新
             _space.BroadPhase.Update();
 
-            // 使用 BroadPhase 进行 AABB 查询
-            var candidates = new BEPUutilities.DataStructures.RawList<BroadPhaseEntry>();
-            _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, candidates);
+            // 复用预分配的候选缓冲区（避免每次创建新 RawList）
+            _candidatesBuffer.Clear();
+            _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, _candidatesBuffer);
 
-            // 遍历候选者，进行窄相检测
-            foreach (var candidate in candidates)
+            // 遍历候选者，进行窄相检测（使用 for 循环避免枚举器 GC）
+            int candidateCount = _candidatesBuffer.Count;
+            for (int i = 0; i < candidateCount; i++)
             {
+                var candidate = _candidatesBuffer[i];
+                
                 // 从 EntityCollidable 中获取 Entity
                 if (candidate is EntityCollidable collidable && collidable.Entity != null)
                 {
@@ -389,21 +400,20 @@ namespace Astrum.LogicCore.Physics
                     
                     if (isColliding)
                     {
-                        // 精确检测通过，添加到结果
-                        results.Add(entity);
+                        // 精确检测通过，添加到输出 List
+                        outResults.Add(entity);
                     }
                 }
             }
-
-            return results;
         }
 
         /// <summary>
-        /// Sphere 重叠查询
+        /// Sphere 重叠查询（优化版本：使用输出参数避免创建新 List）
         /// </summary>
-        public List<AstrumEntity> QuerySphereOverlap(TSVector center, FP radius)
+        public void QuerySphereOverlap(TSVector center, FP radius, List<AstrumEntity> outResults)
         {
-            var results = new List<AstrumEntity>();
+            outResults.Clear();
+            
             var bepuCenter = center.ToBepuVector();
             var bepuRadius = radius.ToFix64();
 
@@ -415,13 +425,16 @@ namespace Astrum.LogicCore.Physics
             querySphere.CollisionInformation.UpdateBoundingBox();
             boundingBox = querySphere.CollisionInformation.BoundingBox;
 
-            // 使用 BroadPhase 进行 AABB 查询
-            var candidates = new BEPUutilities.DataStructures.RawList<BroadPhaseEntry>();
-            _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, candidates);
+            // 复用预分配的候选缓冲区（避免每次创建新 RawList）
+            _candidatesBuffer.Clear();
+            _space.BroadPhase.QueryAccelerator.GetEntries(boundingBox, _candidatesBuffer);
 
-            // 遍历候选者，提取实体
-            foreach (var candidate in candidates)
+            // 遍历候选者，提取实体（使用 for 循环避免枚举器 GC）
+            int candidateCount = _candidatesBuffer.Count;
+            for (int i = 0; i < candidateCount; i++)
             {
+                var candidate = _candidatesBuffer[i];
+                
                 // candidate 是 BroadPhaseEntry (CollisionInformation)
                 // 需要获取所属的 BEPU Entity，然后从其 Tag 获取我们的 Entity
                 if (candidate is EntityCollidable collidable)
@@ -429,12 +442,10 @@ namespace Astrum.LogicCore.Physics
                     var bepuEntity = collidable.Entity;
                     if (bepuEntity != null && bepuEntity.Tag is AstrumEntity entity)
                     {
-                        results.Add(entity);
+                        outResults.Add(entity);
                     }
                 }
             }
-
-            return results;
         }
 
         /// <summary>

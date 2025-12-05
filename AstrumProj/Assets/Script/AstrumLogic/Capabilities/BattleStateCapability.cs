@@ -24,6 +24,13 @@ namespace Astrum.LogicCore.Capabilities
             CapabilityTag.Combat 
         };
         
+        // ====== 性能优化：预分配缓冲区（避免 GC） ======
+        
+        /// <summary>
+        /// 预分配的附近实体查询缓冲区，避免 QuerySphereOverlap 每次创建新 List
+        /// </summary>
+        private List<Entity> _nearbyEntitiesBuffer = new List<Entity>(32);
+        
         // ====== 常量 ======
         private const float BattleEnterDistance = 1.5f; // 进入战斗的距离阈值
         private const float LoseTargetDistance = 6.0f;  // 目标过远则切回追击
@@ -201,13 +208,17 @@ namespace Astrum.LogicCore.Capabilities
             if (physicsWorld != null)
             {
                 // 使用物理查询（仅查询附近实体，而非全量遍历）
-                var nearby = physicsWorld.QuerySphereOverlap(selfPos, (FP)RetargetDistance);
+                // 使用预分配的缓冲区，避免每次创建新 List
+                physicsWorld.QuerySphereOverlap(selfPos, (FP)RetargetDistance, _nearbyEntitiesBuffer);
                 
                 Entity nearestEnemy = null;
                 FP bestDist = FP.MaxValue;
                 
-                foreach (var e in nearby)
+                // 使用 for 循环避免枚举器 GC
+                int nearbyCount = _nearbyEntitiesBuffer.Count;
+                for (int i = 0; i < nearbyCount; i++)
                 {
+                    var e = _nearbyEntitiesBuffer[i];
                     if (e == null || e.UniqueId == selfEntity.UniqueId) continue;
                     if (IsEntityDead(e)) continue; // 跳过死亡实体
                     if (e.GetComponent<RoleInfoComponent>() == null) continue; // 只考虑角色

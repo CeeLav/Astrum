@@ -142,17 +142,15 @@ namespace Astrum.LogicCore.Physics
             // 【统一坐标转换】使用 CollisionShape.ToWorldTransform
             var worldTransform = shape.ToWorldTransform(casterPos, casterRot);
 
-            // 根据形状类型进行查询
-            List<AstrumEntity> candidates = null;
-
+            // 根据形状类型进行查询（直接填充到 outResults，避免创建临时 List）
             switch (shape.ShapeType)
             {
                 case HitBoxShape.Box:
-                    candidates = _physicsWorld.QueryBoxOverlap(worldTransform.WorldCenter, shape.HalfSize, worldTransform.WorldRotation);
+                    _physicsWorld.QueryBoxOverlap(worldTransform.WorldCenter, shape.HalfSize, worldTransform.WorldRotation, outResults);
                     break;
 
                 case HitBoxShape.Sphere:
-                    candidates = _physicsWorld.QuerySphereOverlap(worldTransform.WorldCenter, shape.Radius);
+                    _physicsWorld.QuerySphereOverlap(worldTransform.WorldCenter, shape.Radius, outResults);
                     break;
 
                 case HitBoxShape.Capsule:
@@ -169,15 +167,14 @@ namespace Astrum.LogicCore.Physics
                     return;
             }
 
-            // 防御性检查：确保候选列表不为null
-            if (candidates == null)
+            // 如果没有候选者，直接返回
+            if (outResults.Count == 0)
             {
-                ASLogger.Instance.Warning($"[HitSystem.QueryHits] Candidates list is null for caster {caster.UniqueId}");
                 return;
             }
 
-            // 应用过滤（直接填充到 outResults）
-            ApplyFilter(caster, candidates, filter, outResults);
+            // 应用过滤（就地修改 outResults）
+            ApplyFilterInPlace(caster, filter, outResults);
 
             // 应用去重（就地修改 outResults）
             if (skillInstanceId > 0)
@@ -226,47 +223,53 @@ namespace Astrum.LogicCore.Physics
         }
 
         /// <summary>
-        /// 应用过滤规则（优化版本：使用输出参数避免创建新 List）
+        /// 应用过滤规则（优化版本：就地修改 List，避免创建新 List）
         /// </summary>
-        private void ApplyFilter(AstrumEntity caster, List<AstrumEntity> candidates, CollisionFilter filter, List<AstrumEntity> outResults)
+        private void ApplyFilterInPlace(AstrumEntity caster, CollisionFilter filter, List<AstrumEntity> inOutResults)
         {
             if (filter == null)
             {
-                // 默认过滤：排除施法者自己（使用 for 循环避免 LINQ GC）
-                int count = candidates.Count;
-                for (int i = 0; i < count; i++)
+                // 默认过滤：排除施法者自己（反向遍历，就地移除）
+                for (int i = inOutResults.Count - 1; i >= 0; i--)
                 {
-                    var candidate = candidates[i];
-                    if (candidate.UniqueId != caster.UniqueId)
+                    if (inOutResults[i].UniqueId == caster.UniqueId)
                     {
-                        outResults.Add(candidate);
+                        inOutResults.RemoveAt(i);
                     }
                 }
                 return;
             }
 
-            // 使用 for 循环避免 foreach 枚举器 GC
-            int candidateCount = candidates.Count;
-            for (int i = 0; i < candidateCount; i++)
+            // 反向遍历，就地移除不符合条件的实体（避免索引问题）
+            for (int i = inOutResults.Count - 1; i >= 0; i--)
             {
-                var candidate = candidates[i];
+                var candidate = inOutResults[i];
+                bool shouldRemove = false;
                 
                 // 排除列表
                 if (filter.ExcludedEntityIds.Contains(candidate.UniqueId))
-                    continue;
-
+                {
+                    shouldRemove = true;
+                }
                 // 阵营过滤（基于Archetype）
-                //if (filter.ExcludeAllies && IsSameTeam(caster, candidate))
-                //    continue;
-                
-                //if (filter.OnlyEnemies && !IsEnemy(caster, candidate))
-                //    continue;
-
+                //else if (filter.ExcludeAllies && IsSameTeam(caster, candidate))
+                //{
+                //    shouldRemove = true;
+                //}
+                //else if (filter.OnlyEnemies && !IsEnemy(caster, candidate))
+                //{
+                //    shouldRemove = true;
+                //}
                 // 自定义过滤
-                if (filter.CustomFilter != null && !filter.CustomFilter(candidate))
-                    continue;
+                else if (filter.CustomFilter != null && !filter.CustomFilter(candidate))
+                {
+                    shouldRemove = true;
+                }
 
-                outResults.Add(candidate);
+                if (shouldRemove)
+                {
+                    inOutResults.RemoveAt(i);
+                }
             }
         }
 
