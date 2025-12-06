@@ -22,9 +22,9 @@ namespace Astrum.Client.Managers.GameModes
         public override string ModeName => "Hub";
         public override bool IsRunning { get; set; }
         
-        // Hub 特定场景名称
+        // Hub 特定场景
         private const int HubSceneId = 1;
-        private const int DungeonsGameSceneId = 3;
+        private const int DungeonsGameSceneId = 2;
         
         /// <summary>
         /// 初始化 Hub 游戏模式

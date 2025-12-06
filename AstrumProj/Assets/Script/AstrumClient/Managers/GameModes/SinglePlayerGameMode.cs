@@ -226,7 +226,7 @@ namespace Astrum.Client.Managers.GameModes
             CreatePlayer();
             
             // 创建怪物
-            //CreateMonster();
+            CreateMonster();
             
             ASLogger.Instance.Info("SinglePlayerGameMode: 游戏准备完成");
         }

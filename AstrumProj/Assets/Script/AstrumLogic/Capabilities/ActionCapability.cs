@@ -16,7 +16,7 @@ using TrueSync;
 namespace Astrum.LogicCore.Capabilities
 {
     /// <summary>
-    /// 动作能力（新架构，基于 Capability&lt;T&gt;）
+    /// 动作能力（新架构，基于 Capability）
     /// 管理单个实体的动作系统
     /// </summary>
     public class ActionCapability : Capability<ActionCapability>
