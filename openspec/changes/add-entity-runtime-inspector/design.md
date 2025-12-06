@@ -5,7 +5,9 @@
 在 ECC 架构中，实体（Entity）是游戏对象的核心，包含：
 - **组件（Component）** - 存储数据，通过 `Entity.Components` 字典访问
 - **Capability** - 包含逻辑，通过 `Entity.CapabilityStates` 字典和 `CapabilitySystem` 管理
-- **消息队列** - 通过 `Entity.ViewEventQueue` 存储待处理的视图事件
+- **禁用 Tag** - 通过 `Entity.DisabledTags` 字典管理被禁用的 Capability Tag 及其禁用发起者
+- **逻辑层消息队列** - 通过 `Entity.EventQueue` 存储待处理的逻辑事件（EntityEvent）
+- **视图层消息队列** - 通过 `Entity.ViewEventQueue` 存储待处理的视图事件（ViewEvent）
 
 开发人员需要在运行时查看这些信息以进行调试和开发。
 
@@ -38,14 +40,20 @@ EntityRuntimeInspectorWindow (EditorWindow)
 │   └── 组件列表（可折叠）
 │       └── 每个组件的字段展示
 ├── CapabilityViewModule      # Capability 展示模块
-│   └── Capability 列表（可折叠）
-│       ├── 激活状态
-│       ├── 优先级
-│       ├── 标签
-│       └── 持续时间
+│   ├── Capability 列表（可折叠）
+│   │   ├── 激活状态
+│   │   ├── 优先级
+│   │   ├── 标签
+│   │   └── 持续时间
+│   └── 禁用 Tag 列表
+│       └── Tag -> 禁用发起者实体ID集合
 └── MessageLogModule          # 消息日志模块
-    └── 消息列表（滚动视图）
-        └── 时间戳 + 消息类型 + 消息内容
+    ├── 逻辑层消息队列（EntityEvent）
+    │   └── 消息列表（滚动视图）
+    │       └── 帧号 + 消息类型 + 消息内容
+    └── 视图层消息队列（ViewEvent）
+        └── 消息列表（滚动视图）
+            └── 时间戳 + 消息类型 + 消息内容
 ```
 
 ### 数据访问流程
@@ -60,7 +68,9 @@ World.GetEntity(entityId)
 Entity
     ├── Components (Dictionary<int, BaseComponent>)
     ├── CapabilityStates (Dictionary<int, CapabilityState>)
-    └── ViewEventQueue (Queue<ViewEvent>)
+    ├── DisabledTags (Dictionary<CapabilityTag, HashSet<long>>)
+    ├── EventQueue (Queue<EntityEvent>) - 逻辑层消息队列
+    └── ViewEventQueue (Queue<ViewEvent>) - 视图层消息队列
 ```
 
 ### 刷新机制
@@ -104,13 +114,24 @@ Entity
 │ │   激活持续时间: 120 帧                                   │  │
 │ │ ▶ SkillCapability [禁用] [优先级: 80] [标签: Skill]  │  │
 │ │   禁用持续时间: 5 帧                                     │  │
+│ │                                                         │  │
+│ │ 被禁用的 Tag:                                           │  │
+│ │   • UserInputMovement (禁用者: 1001, 1002)            │  │
+│ │   • Attack (禁用者: 2001)                              │  │
 │ └────────────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────┤
 │ ┌─ 消息日志 ─────────────────────────────────────────────┐  │
+│ │ [逻辑层消息队列]                                         │  │
+│ │ [滚动区域]                                              │  │
+│ │ [Frame: 100] HitEvent: TargetId=2001, Damage=100     │  │
+│ │ [Frame: 101] SkillTriggerEvent: SkillId=3001         │  │
+│ │ [Frame: 102] BuffApplyEvent: BuffId=4001             │  │
+│ │ ...                                                     │  │
+│ │ [视图层消息队列]                                         │  │
 │ │ [滚动区域]                                              │  │
 │ │ [20:00:05.123] VFXTriggerEvent: ActionId=1001         │  │
-│ │ [20:00:05.125] AnimationEvent: ClipName=Attack       │  │
-│ │ [20:00:05.130] HitEvent: TargetId=2001, Damage=100    │  │
+│ │ [20:00:05.125] AnimationEvent: ClipName=Attack         │  │
+│ │ [20:00:05.130] ViewUpdateEvent: Position=(10,0,5)    │  │
 │ │ ...                                                     │  │
 │ │ [清空日志]                                               │  │
 │ └────────────────────────────────────────────────────────┘  │
@@ -142,7 +163,9 @@ package "Runtime Logic" {
   component "Entity" as Entity {
     component "Components" as Components
     component "CapabilityStates" as CapStates
-    component "ViewEventQueue" as EventQueue
+    component "DisabledTags" as DisabledTags
+    component "EventQueue" as LogicEventQueue
+    component "ViewEventQueue" as ViewEventQueue
   }
 }
 
@@ -151,14 +174,18 @@ World --> Entities : Lookup
 Entities --> Entity : Return
 Entity --> Components : Read
 Entity --> CapStates : Read
-Entity --> EventQueue : Read
+Entity --> DisabledTags : Read
+Entity --> LogicEventQueue : Read
+Entity --> ViewEventQueue : Read
 CapSys --> CapStates : Query State
 
 Selector --> World : Query Entity
 ComponentView --> Components : Display Fields
 CapabilityView --> CapStates : Display State
+CapabilityView --> DisabledTags : Display Tags
 CapabilityView --> CapSys : Query Capability Info
-MessageLog --> EventQueue : Display Messages
+MessageLog --> LogicEventQueue : Display Logic Messages
+MessageLog --> ViewEventQueue : Display View Messages
 
 @enduml
 ```
@@ -198,12 +225,13 @@ MessageLog --> EventQueue : Display Messages
 
 ### Decision 3: 消息日志使用队列快照
 
-**选择**: 每次刷新时复制 `ViewEventQueue` 的内容进行显示
+**选择**: 每次刷新时复制 `EventQueue` 和 `ViewEventQueue` 的内容进行显示
 
 **理由**:
-- `ViewEventQueue` 是运行时队列，会被 Stage 消费
+- `EventQueue`（逻辑层）和 `ViewEventQueue`（视图层）都是运行时队列，会被系统消费
 - 需要保留消息历史用于查看
 - 快照机制简单可靠
+- 两个队列分开显示，便于区分逻辑层和视图层消息
 
 **替代方案**: 订阅消息事件
 - ❌ 需要修改消息系统
@@ -213,6 +241,7 @@ MessageLog --> EventQueue : Display Messages
 - 限制日志条数（如最多 100 条）
 - 提供清空日志功能
 - 使用滚动视图优化显示
+- 逻辑层消息显示帧号，视图层消息显示时间戳
 
 ### Decision 4: 自动刷新使用 EditorApplication.update
 
@@ -340,20 +369,33 @@ private void DrawCapabilityView(Entity entity)
 
 ```csharp
 // 伪代码
-private List<ViewEvent> _messageLog = new List<ViewEvent>();
+private List<EntityEvent> _logicMessageLog = new List<EntityEvent>();
+private List<ViewEvent> _viewMessageLog = new List<ViewEvent>();
 
 private void UpdateMessageLog(Entity entity)
 {
-    if (entity?.ViewEventQueue == null) return;
+    if (entity == null) return;
     
-    // 复制队列内容（不修改原队列）
-    var snapshot = entity.ViewEventQueue.ToArray();
-    
-    // 添加到日志（限制条数）
-    _messageLog.AddRange(snapshot);
-    if (_messageLog.Count > 100)
+    // 更新逻辑层消息队列
+    if (entity.EventQueue != null)
     {
-        _messageLog.RemoveRange(0, _messageLog.Count - 100);
+        var logicSnapshot = entity.EventQueue.ToArray();
+        _logicMessageLog.AddRange(logicSnapshot);
+        if (_logicMessageLog.Count > 100)
+        {
+            _logicMessageLog.RemoveRange(0, _logicMessageLog.Count - 100);
+        }
+    }
+    
+    // 更新视图层消息队列
+    if (entity.ViewEventQueue != null)
+    {
+        var viewSnapshot = entity.ViewEventQueue.ToArray();
+        _viewMessageLog.AddRange(viewSnapshot);
+        if (_viewMessageLog.Count > 100)
+        {
+            _viewMessageLog.RemoveRange(0, _viewMessageLog.Count - 100);
+        }
     }
 }
 
@@ -361,17 +403,56 @@ private void DrawMessageLog()
 {
     EditorGUILayout.LabelField("消息日志", EditorStyles.boldLabel);
     
-    _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
-    foreach (var msg in _messageLog)
+    // 逻辑层消息队列
+    EditorGUILayout.LabelField("逻辑层消息队列", EditorStyles.miniLabel);
+    _logicScrollPosition = EditorGUILayout.BeginScrollView(_logicScrollPosition, GUILayout.Height(150));
+    foreach (var msg in _logicMessageLog)
     {
-        EditorGUILayout.LabelField($"[{msg.Timestamp}] {msg.GetType().Name}: {msg}");
+        EditorGUILayout.LabelField($"[Frame: {msg.Frame}] {msg.EventType.Name}: {msg.EventData}");
+    }
+    EditorGUILayout.EndScrollView();
+    
+    EditorGUILayout.Space(5);
+    
+    // 视图层消息队列
+    EditorGUILayout.LabelField("视图层消息队列", EditorStyles.miniLabel);
+    _viewScrollPosition = EditorGUILayout.BeginScrollView(_viewScrollPosition, GUILayout.Height(150));
+    foreach (var msg in _viewMessageLog)
+    {
+        EditorGUILayout.LabelField($"[{DateTime.Now:HH:mm:ss.fff}] {msg.GetType().Name}: {msg}");
     }
     EditorGUILayout.EndScrollView();
     
     if (GUILayout.Button("清空日志"))
     {
-        _messageLog.Clear();
+        _logicMessageLog.Clear();
+        _viewMessageLog.Clear();
     }
+}
+```
+
+### 禁用 Tag 展示
+
+```csharp
+// 伪代码
+private void DrawDisabledTags(Entity entity)
+{
+    if (entity?.DisabledTags == null || entity.DisabledTags.Count == 0)
+    {
+        EditorGUILayout.LabelField("被禁用的 Tag: 无", EditorStyles.miniLabel);
+        return;
+    }
+    
+    EditorGUILayout.LabelField("被禁用的 Tag:", EditorStyles.miniLabel);
+    EditorGUI.indentLevel++;
+    foreach (var kvp in entity.DisabledTags)
+    {
+        var tag = kvp.Key;
+        var disabledBy = kvp.Value; // HashSet<long>
+        var disabledByStr = string.Join(", ", disabledBy);
+        EditorGUILayout.LabelField($"• {tag} (禁用者: {disabledByStr})", EditorStyles.miniLabel);
+    }
+    EditorGUI.indentLevel--;
 }
 ```
 
@@ -386,9 +467,10 @@ private void DrawMessageLog()
 2. **组件字段过滤** - 是否显示所有字段，还是过滤掉某些字段（如 `EntityId`、`IsFromPool`）？
    - **建议**: 默认显示所有字段，但提供过滤选项
 
-3. **Capability 详细信息** - 是否显示 Capability 的内部状态（如 `CustomData`）？
-   - **建议**: 显示 `CustomData` 的序列化版本（如果存在）
+3. **Capability 详细信息** - 已确定显示的信息项（激活状态、优先级、标签、持续时间），无需额外状态
 
 4. **消息时间戳** - ViewEvent 是否有时间戳字段？如果没有，如何显示时间？
    - **建议**: 使用 Editor 的当前时间作为显示时间戳
+   - **逻辑层消息**: 使用 EntityEvent.Frame 字段显示帧号
+   - **视图层消息**: 使用 Editor 的当前时间作为显示时间戳
 

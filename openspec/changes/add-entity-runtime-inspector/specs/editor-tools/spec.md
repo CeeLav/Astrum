@@ -87,7 +87,19 @@
   - 标签列表（Tags）
   - 激活持续时间（ActiveDuration，如果 TrackActiveDuration 为 true）
   - 禁用持续时间（DeactiveDuration，如果 TrackDeactiveDuration 为 true）
-  - 自定义数据（CustomData，如果存在）
+
+#### Scenario: 显示被禁用的 Tag
+
+- **WHEN** 用户选择了有效的实体
+- **AND** 该实体的 DisabledTags 字典不为空
+- **THEN** 在 Capability 状态区域下方显示"被禁用的 Tag"部分
+- **AND** 列出所有被禁用的 Tag
+- **AND** 对于每个被禁用的 Tag，显示禁用发起者的实体ID列表（如 "UserInputMovement (禁用者: 1001, 1002)"）
+
+#### Scenario: 无禁用 Tag 时的显示
+
+- **WHEN** 实体的 DisabledTags 字典为空或不存在
+- **THEN** 显示提示："被禁用的 Tag: 无"
 
 #### Scenario: Capability 未激活
 
@@ -102,19 +114,37 @@
 
 ### Requirement: 消息日志展示
 
-系统 SHALL 实时显示发送给该实体的 ViewEvent 消息。
+系统 SHALL 实时显示发送给该实体的逻辑层消息（EntityEvent）和视图层消息（ViewEvent）。
 
-#### Scenario: 显示消息列表
+#### Scenario: 显示逻辑层消息列表
+
+- **WHEN** 用户选择了有效的实体
+- **AND** 该实体的 EventQueue 中有消息
+- **THEN** 消息日志区域显示"逻辑层消息队列"部分
+- **AND** 列出所有逻辑层消息
+- **AND** 每条消息显示帧号（Frame）、消息类型和消息内容
+- **AND** 消息按帧号顺序排列（最新的在底部）
+
+#### Scenario: 显示视图层消息列表
 
 - **WHEN** 用户选择了有效的实体
 - **AND** 该实体的 ViewEventQueue 中有消息
-- **THEN** 消息日志区域显示所有消息
+- **THEN** 消息日志区域显示"视图层消息队列"部分
+- **AND** 列出所有视图层消息
 - **AND** 每条消息显示时间戳、消息类型和消息内容
 - **AND** 消息按时间顺序排列（最新的在底部）
 
-#### Scenario: 消息格式
+#### Scenario: 逻辑层消息格式
 
-- **WHEN** 显示消息
+- **WHEN** 显示逻辑层消息
+- **THEN** 每条消息显示为以下格式：
+  - 帧号（如 "[Frame: 100]"）
+  - 消息类型名称（如 "HitEvent"）
+  - 消息内容摘要（如 "TargetId=2001, Damage=100"）
+
+#### Scenario: 视图层消息格式
+
+- **WHEN** 显示视图层消息
 - **THEN** 每条消息显示为以下格式：
   - 时间戳（如 "[20:00:05.123]"）
   - 消息类型名称（如 "VFXTriggerEvent"）
@@ -134,8 +164,9 @@
 
 #### Scenario: 无消息时的显示
 
-- **WHEN** 实体的 ViewEventQueue 为空或不存在
-- **THEN** 消息日志区域显示提示："暂无消息"
+- **WHEN** 实体的 EventQueue 和 ViewEventQueue 都为空或不存在
+- **THEN** 逻辑层消息队列区域显示提示："暂无消息"
+- **AND** 视图层消息队列区域显示提示："暂无消息"
 
 ### Requirement: 自动刷新功能
 
