@@ -39,9 +39,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
         // === Capability 折叠状态 ===
         private Dictionary<int, bool> _capabilityFoldouts = new Dictionary<int, bool>();
 
-        // === 反射缓存 ===
-        private static Dictionary<Type, FieldInfo[]> _fieldCache = new Dictionary<Type, FieldInfo[]>();
-        private static Dictionary<Type, PropertyInfo[]> _propertyCache = new Dictionary<Type, PropertyInfo[]>();
+        // === 反射缓存（已废弃，改用组件显示器系统）===
+        // private static Dictionary<Type, FieldInfo[]> _fieldCache = new Dictionary<Type, FieldInfo[]>();
+        // private static Dictionary<Type, PropertyInfo[]> _propertyCache = new Dictionary<Type, PropertyInfo[]>();
 
         // === 消息日志 ===
         private List<EntityEvent> _logicMessageLog = new List<EntityEvent>();
@@ -81,12 +81,19 @@ namespace Astrum.Editor.EntityRuntimeInspector
 
         private void OnEditorUpdate()
         {
-            if (_autoRefresh && EditorApplication.isPlaying)
+            // 如果游戏正在运行，每帧都重绘窗口
+            if (EditorApplication.isPlaying)
             {
-                if (Time.realtimeSinceStartup - _lastRefreshTime >= _refreshInterval)
+                Repaint();
+                
+                // 如果启用了自动刷新，按间隔刷新数据
+                if (_autoRefresh)
                 {
-                    _lastRefreshTime = Time.realtimeSinceStartup;
-                    RefreshAll();
+                    if (Time.realtimeSinceStartup - _lastRefreshTime >= _refreshInterval)
+                    {
+                        _lastRefreshTime = Time.realtimeSinceStartup;
+                        RefreshAll();
+                    }
                 }
             }
         }
@@ -196,6 +203,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
         private void RefreshEntity()
         {
             _entitySearchError = "";
+            
+            // 如果切换了实体，清理折叠状态和消息日志
+            var previousEntityId = _selectedEntity?.UniqueId ?? 0;
             _selectedEntity = null;
 
             try
@@ -219,6 +229,15 @@ namespace Astrum.Editor.EntityRuntimeInspector
                     _entitySearchError = $"实体 {_selectedEntityId} 已被销毁";
                     _selectedEntity = null;
                     return;
+                }
+
+                // 如果切换了实体，清理折叠状态和消息日志
+                if (previousEntityId != _selectedEntityId)
+                {
+                    _componentFoldouts.Clear();
+                    _capabilityFoldouts.Clear();
+                    _logicMessageLog.Clear();
+                    _viewMessageLog.Clear();
                 }
             }
             catch (Exception ex)
@@ -274,7 +293,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
 
             _componentScrollPosition = EditorGUILayout.BeginScrollView(_componentScrollPosition, GUILayout.Height(200));
 
-            foreach (var component in _selectedEntity.Components.Values)
+            // 使用 ToList() 确保迭代顺序稳定
+            var components = _selectedEntity.Components.Values.ToList();
+            foreach (var component in components)
             {
                 var componentType = component.GetType();
                 var componentKey = componentType.Name;
@@ -306,33 +327,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
         {
             try
             {
-                var fields = GetCachedFields(componentType);
-                var properties = GetCachedProperties(componentType);
-
-                foreach (var field in fields)
-                {
-                    if (field.IsStatic) continue;
-
-                    var value = field.GetValue(component);
-                    var valueStr = FormatValue(value);
-                    EditorGUILayout.LabelField($"{field.Name}: {valueStr}", EditorStyles.miniLabel);
-                }
-
-                foreach (var prop in properties)
-                {
-                    if (!prop.CanRead) continue;
-
-                    try
-                    {
-                        var value = prop.GetValue(component);
-                        var valueStr = FormatValue(value);
-                        EditorGUILayout.LabelField($"{prop.Name}: {valueStr}", EditorStyles.miniLabel);
-                    }
-                    catch
-                    {
-                        // 忽略无法读取的属性
-                    }
-                }
+                // 使用组件显示器系统
+                var viewer = ComponentViewerRegistry.GetViewer(componentType);
+                viewer.DrawComponent(component);
             }
             catch (Exception ex)
             {
@@ -340,60 +337,10 @@ namespace Astrum.Editor.EntityRuntimeInspector
             }
         }
 
-        private FieldInfo[] GetCachedFields(Type type)
-        {
-            if (!_fieldCache.ContainsKey(type))
-            {
-                _fieldCache[type] = type.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)
-                    .Where(f => !f.IsDefined(typeof(System.Runtime.Serialization.IgnoreDataMemberAttribute), false))
-                    .ToArray();
-            }
-            return _fieldCache[type];
-        }
-
-        private PropertyInfo[] GetCachedProperties(Type type)
-        {
-            if (!_propertyCache.ContainsKey(type))
-            {
-                _propertyCache[type] = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(p => p.CanRead && !p.IsDefined(typeof(System.Runtime.Serialization.IgnoreDataMemberAttribute), false))
-                    .ToArray();
-            }
-            return _propertyCache[type];
-        }
-
-        private string FormatValue(object value)
-        {
-            if (value == null) return "null";
-
-            var type = value.GetType();
-
-            // 处理集合类型
-            if (value is System.Collections.ICollection collection)
-            {
-                return $"[{collection.Count} items]";
-            }
-
-            // 处理字典类型
-            if (value is System.Collections.IDictionary dict)
-            {
-                return $"[{dict.Count} entries]";
-            }
-
-            // 处理 Unity 类型
-            if (value is UnityEngine.Vector3 vec3)
-            {
-                return $"({vec3.x:F2}, {vec3.y:F2}, {vec3.z:F2})";
-            }
-
-            if (value is UnityEngine.Vector2 vec2)
-            {
-                return $"({vec2.x:F2}, {vec2.y:F2})";
-            }
-
-            // 默认 ToString
-            return value.ToString();
-        }
+        // 已废弃：使用组件显示器系统替代
+        // private FieldInfo[] GetCachedFields(Type type) { ... }
+        // private PropertyInfo[] GetCachedProperties(Type type) { ... }
+        // private string FormatValue(object value) { ... }
 
         #endregion
 
@@ -422,7 +369,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
             _capabilityScrollPosition = EditorGUILayout.BeginScrollView(_capabilityScrollPosition, GUILayout.Height(200));
 
             var capSystem = _selectedEntity.World.CapabilitySystem;
-            foreach (var kvp in _selectedEntity.CapabilityStates)
+            // 使用 ToList() 确保迭代顺序稳定
+            var capabilityStates = _selectedEntity.CapabilityStates.ToList();
+            foreach (var kvp in capabilityStates)
             {
                 var typeId = kvp.Key;
                 var state = kvp.Value;
@@ -534,7 +483,11 @@ namespace Astrum.Editor.EntityRuntimeInspector
             EditorGUILayout.LabelField("消息日志", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
 
-            UpdateMessageLog();
+            // 只在 Layout 阶段更新消息日志，避免在 Repaint 阶段改变控件数量
+            if (Event.current.type == EventType.Layout)
+            {
+                UpdateMessageLog();
+            }
 
             // 逻辑层消息队列
             EditorGUILayout.LabelField("逻辑层消息队列", EditorStyles.miniLabel);
@@ -546,7 +499,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
             }
             else
             {
-                foreach (var msg in _logicMessageLog)
+                // 使用固定数量的消息，避免在 repaint 时改变
+                var messagesToShow = _logicMessageLog;
+                foreach (var msg in messagesToShow)
                 {
                     var msgTypeName = msg.EventType?.Name ?? "Unknown";
                     var msgDataStr = msg.EventData?.ToString() ?? "null";
@@ -568,7 +523,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
             }
             else
             {
-                foreach (var msg in _viewMessageLog)
+                // 使用固定数量的消息，避免在 repaint 时改变
+                var messagesToShow = _viewMessageLog;
+                foreach (var msg in messagesToShow)
                 {
                     var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
                     var msgTypeName = msg.GetType().Name;
