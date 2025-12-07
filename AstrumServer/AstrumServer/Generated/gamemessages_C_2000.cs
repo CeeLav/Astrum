@@ -652,15 +652,9 @@ namespace Astrum.Generated
         public List<string> playerIds { get; set; } = new();
 
         /// <summary>
-        /// 世界快照数据（第0帧）
-        /// </summary>
-        [MemoryPackOrder(5)]
-        public byte[] worldSnapshot { get; set; }
-
-        /// <summary>
         /// UserId -> PlayerId 映射
         /// </summary>
-        [MemoryPackOrder(6)]
+        [MemoryPackOrder(5)]
         public Dictionary<string, long> playerIdMapping { get; set; } = new();
         public override void Dispose()
         {
@@ -674,8 +668,51 @@ namespace Astrum.Generated
             this.frameInterval = default;
             this.startTime = default;
             this.playerIds.Clear();
-            this.worldSnapshot = default;
             this.playerIdMapping.Clear();
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
+    // 世界快照开始消息 - 用于标识世界数据传输的开始
+    // 发送顺序：先发送 WorldSnapshotStart，然后发送 WorldSnapshotChunk 分片，最后发送 FrameSyncStartNotification
+    [MemoryPackable]
+    [MessageAttribute(2013)]
+    public partial class WorldSnapshotStart : MessageObject
+    {
+        public static WorldSnapshotStart Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(WorldSnapshotStart), isFromPool) as WorldSnapshotStart;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 总分片数
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public int totalChunks { get; set; }
+
+        /// <summary>
+        /// 完整快照的总大小（字节）
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public int totalSize { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.totalChunks = default;
+            this.totalSize = default;
 
             ObjectPool.Instance.Recycle(this);
         }
@@ -683,7 +720,7 @@ namespace Astrum.Generated
 
     // 帧同步结束通知
     [MemoryPackable]
-    [MessageAttribute(2013)]
+    [MessageAttribute(2014)]
     public partial class FrameSyncEndNotification : MessageObject
     {
         public static FrameSyncEndNotification Create(bool isFromPool = false)
@@ -733,7 +770,7 @@ namespace Astrum.Generated
 
     // 帧同步数据消息
     [MemoryPackable]
-    [MessageAttribute(2014)]
+    [MessageAttribute(2015)]
     public partial class FrameSyncData : MessageObject
     {
         public static FrameSyncData Create(bool isFromPool = false)
@@ -783,7 +820,7 @@ namespace Astrum.Generated
 
     // 帧同步上传数据
     [MemoryPackable]
-    [MessageAttribute(2015)]
+    [MessageAttribute(2016)]
     public partial class SingleInput : MessageObject
     {
         public static SingleInput Create(bool isFromPool = false)
@@ -824,6 +861,50 @@ namespace Astrum.Generated
         }
     }
 
+    // 世界快照分片消息 - 用于分片发送世界快照数据
+    // 发送顺序：先发送 WorldSnapshotStart，然后发送 WorldSnapshotChunk 分片，最后发送 FrameSyncStartNotification
+    [MemoryPackable]
+    [MessageAttribute(2017)]
+    public partial class WorldSnapshotChunk : MessageObject
+    {
+        public static WorldSnapshotChunk Create(bool isFromPool = false)
+        {
+            return ObjectPool.Instance.Fetch(typeof(WorldSnapshotChunk), isFromPool) as WorldSnapshotChunk;
+        }
+
+        /// <summary>
+        /// 房间ID
+        /// </summary>
+        [MemoryPackOrder(0)]
+        public string roomId { get; set; }
+
+        /// <summary>
+        /// 分片索引（从0开始）
+        /// </summary>
+        [MemoryPackOrder(1)]
+        public int chunkIndex { get; set; }
+
+        /// <summary>
+        /// 分片数据
+        /// </summary>
+        [MemoryPackOrder(2)]
+        public byte[] chunkData { get; set; }
+
+        public override void Dispose()
+        {
+            if (!this.IsFromPool)
+            {
+                return;
+            }
+
+            this.roomId = default;
+            this.chunkIndex = default;
+            this.chunkData = default;
+
+            ObjectPool.Instance.Recycle(this);
+        }
+    }
+
     public static class gamemessages
     {
         public const ushort GameNetworkMessage = 2001;
@@ -838,8 +919,10 @@ namespace Astrum.Generated
         public const ushort GameEndNotification = 2010;
         public const ushort GameStateUpdate = 2011;
         public const ushort FrameSyncStartNotification = 2012;
-        public const ushort FrameSyncEndNotification = 2013;
-        public const ushort FrameSyncData = 2014;
-        public const ushort SingleInput = 2015;
+        public const ushort WorldSnapshotStart = 2013;
+        public const ushort FrameSyncEndNotification = 2014;
+        public const ushort FrameSyncData = 2015;
+        public const ushort SingleInput = 2016;
+        public const ushort WorldSnapshotChunk = 2017;
     }
 }

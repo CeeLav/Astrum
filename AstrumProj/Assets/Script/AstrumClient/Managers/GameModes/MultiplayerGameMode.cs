@@ -29,7 +29,7 @@ namespace Astrum.Client.Managers.GameModes
         public override bool IsRunning { get; set; }
         
         // 辅助处理器
-        private FrameSyncHandler _frameSyncHandler;
+        public FrameSyncHandler FrameSyncHandler { get; private set; }
         
         /// <summary>
         /// 初始化联机游戏模式
@@ -40,7 +40,7 @@ namespace Astrum.Client.Managers.GameModes
             ChangeState(GameModeState.Initializing);
             
             // 创建辅助处理器
-            _frameSyncHandler = new FrameSyncHandler(this);
+            FrameSyncHandler = new FrameSyncHandler(this);
             
             // 注册网络消息处理器
             RegisterNetworkHandlers();
@@ -479,7 +479,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public void OnFrameSyncStartNotification(FrameSyncStartNotification notification)
         {
-            _frameSyncHandler?.OnFrameSyncStartNotification(notification);
+            FrameSyncHandler?.OnFrameSyncStartNotification(notification);
         }
         
         /// <summary>
@@ -487,7 +487,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public void OnFrameSyncEndNotification(FrameSyncEndNotification notification)
         {
-            _frameSyncHandler?.OnFrameSyncEndNotification(notification);
+            FrameSyncHandler?.OnFrameSyncEndNotification(notification);
         }
         
         /// <summary>
@@ -495,7 +495,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public void OnFrameSyncData(FrameSyncData frameData)
         {
-            _frameSyncHandler?.OnFrameSyncData(frameData);
+            FrameSyncHandler?.OnFrameSyncData(frameData);
         }
         
         /// <summary>
@@ -503,7 +503,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public void OnFrameInputs(OneFrameInputs frameInputs)
         {
-            _frameSyncHandler?.OnFrameInputs(frameInputs);
+            FrameSyncHandler?.OnFrameInputs(frameInputs);
         }
         
         #region 私有辅助方法

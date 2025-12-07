@@ -196,166 +196,6 @@ namespace AstrumServer.Managers
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
-        
-        /// <summary>
-        /// 为房间开始帧同步（已废弃，现在由 ServerRoom.StartGame() 自动处理）
-        /// </summary>
-        [Obsolete("此方法已废弃，现在由 ServerRoom.StartGame() 自动处理帧同步")]
-        public void StartRoomFrameSync(string roomId)
-        {
-            try
-            {
-                var room = _roomManager.GetRoom(roomId);
-                if (room == null)
-                {
-                    ASLogger.Instance.Warning($"房间不存在，无法开始帧同步: {roomId}", "FrameSync.Room");
-                    return;
-                }
-                
-                if (room.Info.Status != 1) // 1=游戏中
-                {
-                    ASLogger.Instance.Warning($"房间不在游戏中，无法开始帧同步: {roomId} (Status: {room.Info.Status})", "FrameSync.Room");
-                    return;
-                }
-                
-                // 检查是否已有房间状态（重连情况）
-                if (_roomFrameStates.TryGetValue(roomId, out var existingState))
-                {
-                    // 重连：先发送 GameStartNotification，再发送 FrameSyncStartNotification
-                    ASLogger.Instance.Info($"房间 {roomId} 检测到重连，开始处理重连流程", "FrameSync.Room");
-                    
-                    // 1. 先发送 GameStartNotification，确保客户端切换到 MultiplayerGameMode
-                    SendGameStartNotification(roomId, room.Info);
-                    
-                    // 2. 然后发送 FrameSyncStartNotification，恢复游戏状态
-                    var currentFrame = existingState.AuthorityFrame;
-                    
-                    // 确保 FrameBuffer 已经准备好当前帧
-                    if (existingState.LogicRoom?.LSController is ServerLSController existingServerSync)
-                    {
-                        existingServerSync.FrameBuffer.MoveForward(currentFrame);
-                        existingServerSync.SaveState();
-                    }
-                    else
-                    {
-                        ASLogger.Instance.Error($"房间 {roomId} LSController 不是 ServerLSController，无法保存快照", "FrameSync.Room");
-                    }
-                    
-                    var snapshotBuffer = existingState.LogicRoom?.LSController?.FrameBuffer?.Snapshot(currentFrame);
-                    if (snapshotBuffer != null && snapshotBuffer.Length > 0)
-                    {
-                        byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
-                        snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
-                        
-                        // 发送包含当前帧快照的通知
-                        SendFrameSyncStartNotification(roomId, existingState, worldSnapshotData);
-                        ASLogger.Instance.Info($"房间 {roomId} 重连，发送当前帧快照（帧: {currentFrame}）", "FrameSync.Room");
-                    }
-                    else
-                    {
-                        ASLogger.Instance.Warning($"房间 {roomId} 重连，但快照数据为空", "FrameSync.Room");
-                    }
-                    return;
-                }
-                
-                // 新游戏：创建房间帧同步状态
-                var frameState = new RoomFrameSyncState
-                {
-                    RoomId = roomId,
-                    AuthorityFrame = 0,
-                    IsActive = true,
-                    StartTime = TimeInfo.Instance.ClientNow(),
-                    PlayerIds = new List<string>(room.Info.PlayerNames),
-                    UserIdToPlayerId = new Dictionary<string, long>()
-                };
-
-                // 初始化逻辑环境与房间
-                EnsureLogicEnvironmentInitialized();
-
-                frameState.LogicRoom = CreateLogicRoom(roomId, room.Info, frameState.StartTime);
-                
-                // 创建所有玩家实体（按 UserId 顺序，确保 UniqueId 一致）
-                foreach (var userId in room.Info.PlayerNames.OrderBy(x => x))
-                {
-                    var playerId = frameState.LogicRoom.CreateEntity(1003); // 创建玩家实体，返回 UniqueId
-                    if (playerId > 0)
-                    {
-                        // 记录 PlayerId 映射
-                        frameState.UserIdToPlayerId[userId] = playerId;
-                        ASLogger.Instance.Info($"服务器：创建玩家实体 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Room");
-                    }
-                    else
-                    {
-                        ASLogger.Instance.Warning($"服务器：创建玩家实体失败 - UserId: {userId}", "FrameSync.Room");
-                    }
-                }
-                
-                // 启动帧同步控制器
-                frameState.LogicRoom?.LSController?.Start();
-                
-                // 保存第0帧快照
-                if (frameState.LogicRoom?.LSController is ServerLSController serverSync)
-                {
-                    serverSync.AuthorityFrame = 0;
-                    serverSync.FrameBuffer.MoveForward(0);
-                    serverSync.SaveState();
-                    
-                    // 获取快照数据
-                    var snapshotBuffer = serverSync.FrameBuffer.Snapshot(0);
-                    byte[] worldSnapshotData = new byte[snapshotBuffer.Length];
-                    snapshotBuffer.Read(worldSnapshotData, 0, (int)snapshotBuffer.Length);
-                    
-                    // 检查快照大小
-                    if (worldSnapshotData.Length > 1024 * 1024) // 1MB
-                    {
-                        ASLogger.Instance.Warning($"房间 {roomId} 快照数据过大: {worldSnapshotData.Length} bytes", "FrameSync.Room");
-                    }
-                    
-                    // 创建战斗回放录制器
-                    var players = new List<ReplayPlayerInfo>();
-                    foreach (var kvp in frameState.UserIdToPlayerId)
-                    {
-                        // 使用 UserId 作为显示名称（简化处理，后续可以从 UserManager 获取）
-                        players.Add(new ReplayPlayerInfo
-                        {
-                            UserId = kvp.Key,
-                            PlayerId = kvp.Value,
-                            DisplayName = kvp.Key // 暂时使用 UserId 作为显示名称
-                        });
-                    }
-                    
-                    var random = new Random();
-                    var randomSeed = random.Next(int.MinValue, int.MaxValue); // 使用 System.Random 生成随机种子
-                    frameState.ReplayRecorder = new BattleReplayRecorder(
-                        roomId,
-                        FRAME_RATE,
-                        frameState.StartTime,
-                        randomSeed,
-                        players
-                    );
-                    
-                    // 记录第0帧快照
-                    frameState.ReplayRecorder.OnWorldSnapshot(0, worldSnapshotData);
-                    
-                    _roomFrameStates[roomId] = frameState;
-                    
-                    // 发送帧同步开始通知（包含世界快照和 PlayerId 映射）
-                    SendFrameSyncStartNotification(roomId, frameState, worldSnapshotData);
-                    
-                    ASLogger.Instance.Info($"房间 {roomId} 开始帧同步，玩家数: {frameState.PlayerIds.Count}，快照大小: {worldSnapshotData.Length} bytes，回放录制已启动", "FrameSync.Room");
-                }
-                else
-                {
-                    ASLogger.Instance.Error($"房间 {roomId} LSController 不是 ServerLSController 或为空，无法保存快照", "FrameSync.Room");
-                }
-            }
-            catch (Exception ex)
-            {
-                ASLogger.Instance.Error($"开始房间帧同步时出错: {ex.Message}", "FrameSync.Room");
-                ASLogger.Instance.LogException(ex, LogLevel.Error);
-            }
-        }
-        
         /// <summary>
         /// 停止房间帧同步
         /// </summary>
@@ -576,34 +416,57 @@ namespace AstrumServer.Managers
         {
             try
             {
-                var notification = FrameSyncStartNotification.Create();
-                notification.roomId = roomId;
-                notification.frameRate = FRAME_RATE;
-                notification.frameInterval = FRAME_INTERVAL_MS;
-                notification.startTime = frameState.StartTime;
-                // 客户端将据此设置 Room.CreationTime/LSController.CreationTime
-                
-                notification.playerIds = new List<string>(frameState.PlayerIds);
-                notification.worldSnapshot = worldSnapshotData; // 世界快照数据
-                notification.playerIdMapping = new Dictionary<string, long>(frameState.UserIdToPlayerId); // PlayerId 映射
-                
-                ASLogger.Instance.Info($"准备发送帧同步开始通知，包含 {notification.playerIdMapping.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Room");
-                
-                // 发送给房间内所有玩家
-                foreach (var userId in frameState.PlayerIds)
-                {
-                    var sessionId = _userManager.GetSessionIdByUserId(userId);
-                    if (!string.IsNullOrEmpty(sessionId))
+                // 使用辅助类发送，按照新流程：先发送世界数据，再发送帧同步通知
+                FrameSyncStartNotificationHelper.SendFrameSyncStartNotification(
+                    roomId: roomId,
+                    frameRate: FRAME_RATE,
+                    frameInterval: FRAME_INTERVAL_MS,
+                    startTime: frameState.StartTime,
+                    playerIds: new List<string>(frameState.PlayerIds),
+                    worldSnapshot: worldSnapshotData,
+                    playerIdMapping: new Dictionary<string, long>(frameState.UserIdToPlayerId),
+                    sendSnapshotStartAction: (start) =>
                     {
-                        _networkManager.SendMessage(sessionId, notification);
-                        if (frameState.UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                        // 发送 WorldSnapshotStart 给所有玩家
+                        foreach (var userId in frameState.PlayerIds)
                         {
-                            ASLogger.Instance.Debug($"已发送帧同步开始通知给玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Room");
+                            var sessionId = _userManager.GetSessionIdByUserId(userId);
+                            if (!string.IsNullOrEmpty(sessionId))
+                            {
+                                _networkManager.SendMessage(sessionId, start);
+                            }
                         }
-                    }
-                }
+                    },
+                    sendChunkAction: (chunk) =>
+                    {
+                        // 发送 WorldSnapshotChunk 给所有玩家
+                        foreach (var userId in frameState.PlayerIds)
+                        {
+                            var sessionId = _userManager.GetSessionIdByUserId(userId);
+                            if (!string.IsNullOrEmpty(sessionId))
+                            {
+                                _networkManager.SendMessage(sessionId, chunk);
+                            }
+                        }
+                    },
+                    sendNotificationAction: (notification) =>
+                    {
+                        // 发送 FrameSyncStartNotification 给所有玩家
+                        foreach (var userId in frameState.PlayerIds)
+                        {
+                            var sessionId = _userManager.GetSessionIdByUserId(userId);
+                            if (!string.IsNullOrEmpty(sessionId))
+                            {
+                                _networkManager.SendMessage(sessionId, notification);
+                                if (frameState.UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                                {
+                                    ASLogger.Instance.Debug($"已发送帧同步开始通知给玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Room");
+                                }
+                            }
+                        }
+                    });
                 
-                ASLogger.Instance.Info($"已发送帧同步开始通知给房间 {roomId} 的所有玩家（共 {frameState.PlayerIds.Count} 个）", "FrameSync.Room");
+                ASLogger.Instance.Info($"已发送帧同步开始通知给房间 {roomId} 的所有玩家（共 {frameState.PlayerIds.Count} 个），快照大小: {worldSnapshotData?.Length ?? 0} bytes", "FrameSync.Room");
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Astrum.CommonBase;
@@ -33,21 +34,73 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     $"FrameSyncHandler: 收到帧同步开始通知 - 房间: {notification.roomId}，帧率: {notification.frameRate}FPS", 
                     "FrameSync.Client");
                 
-                // 检查世界快照数据
-                if (notification.worldSnapshot == null || notification.worldSnapshot.Length == 0)
+                // 新的流程：世界数据已经从 WorldSnapshotStart + WorldSnapshotChunk 接收完成
+                // FrameSyncStartNotification 不包含 worldSnapshot，只包含配置信息
+                // 检查是否已经接收到世界数据
+                if (_receivedWorldSnapshot != null && _receivedWorldSnapshot.TryGetValue(notification.roomId, out var worldSnapshot))
                 {
-                    ASLogger.Instance.Error("世界快照数据为空，无法恢复世界状态", "FrameSync.Client");
-                    return;
+                    // 世界数据已接收，立即处理
+                    ProcessFrameSyncStartWithWorldData(notification, worldSnapshot);
+                    // 清理已使用的世界数据
+                    _receivedWorldSnapshot.Remove(notification.roomId);
                 }
-                
-                // 如果 MainRoom 为空，创建 Room（Stage 应该在 GameStartNotification 中已创建）
+                else
+                {
+                    // 世界数据尚未接收完成，检查是否有接收器正在接收
+                    bool isReceiving = Astrum.Client.MessageHandlers.WorldSnapshotChunkHandler.HasReceiver(notification.roomId);
+                    
+                    if (isReceiving)
+                    {
+                        // 正在接收但尚未完成，这是协议顺序错误
+                        ASLogger.Instance.Error(
+                            $"FrameSyncHandler: 协议顺序错误！收到帧同步开始通知时，世界数据尚未接收完成 - 房间: {notification.roomId}。正确的顺序应该是：先发送 WorldSnapshotStart，然后发送 WorldSnapshotChunk 分片，最后发送 FrameSyncStartNotification",
+                            "FrameSync.Client");
+                        
+                        // 清理错误的接收器
+                        Astrum.Client.MessageHandlers.WorldSnapshotChunkHandler.ClearReceiver(notification.roomId);
+                        
+                        // 抛出异常，不允许继续
+                        throw new System.InvalidOperationException(
+                            $"协议顺序错误：收到帧同步开始通知时，房间 {notification.roomId} 的世界数据尚未接收完成");
+                    }
+                    else
+                    {
+                        // 没有接收器，说明 WorldSnapshotStart 都没收到，这是更严重的协议顺序错误
+                        ASLogger.Instance.Error(
+                            $"FrameSyncHandler: 协议顺序错误！收到帧同步开始通知时，未找到世界数据接收器（WorldSnapshotStart 可能未发送或已超时） - 房间: {notification.roomId}。正确的顺序应该是：先发送 WorldSnapshotStart，然后发送 WorldSnapshotChunk 分片，最后发送 FrameSyncStartNotification",
+                            "FrameSync.Client");
+                        
+                        // 抛出异常，不允许继续
+                        throw new System.InvalidOperationException(
+                            $"协议顺序错误：收到帧同步开始通知时，房间 {notification.roomId} 的世界数据接收器不存在（WorldSnapshotStart 未发送或已超时）");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理帧同步开始通知时出错: {ex.Message}", "FrameSync.Client");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+        // 存储已接收的世界快照数据（房间ID -> 快照数据）
+        private Dictionary<string, byte[]> _receivedWorldSnapshot = new Dictionary<string, byte[]>();
+
+        /// <summary>
+        /// 使用世界数据和帧同步通知初始化游戏
+        /// </summary>
+        private void ProcessFrameSyncStartWithWorldData(FrameSyncStartNotification notification, byte[] worldSnapshot)
+        {
+            try
+            {
+                // 如果 MainRoom 为空，创建 Room
                 if (_gameMode.MainRoom == null)
                 {
-                    ASLogger.Instance.Info($"创建 Room（FrameSyncStartNotification 到达）", "FrameSync.Client");
+                    ASLogger.Instance.Info($"创建 Room（帧同步开始）", "FrameSync.Client");
                     
                     // 创建 Room 并初始化（传入 World 快照）
                     var room = new Room(1, notification.roomId);
-                    room.Initialize("client", notification.worldSnapshot);
+                    room.Initialize("client", worldSnapshot);
                     _gameMode.MainRoom = room;
                     
                     // 如果 Stage 已存在，设置 Room 到 Stage
@@ -58,15 +111,13 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     }
                     else
                     {
-                        // Stage 不存在（消息顺序问题：FrameSyncStartNotification 先于 GameStartNotification 到达）
-                        // 只创建 Room，不创建 Stage，等待 GameStartNotification 到达
                         ASLogger.Instance.Warning($"收到 FrameSyncStartNotification 但 Stage 为空，等待 GameStartNotification 创建 Stage", "FrameSync.Client");
                     }
                 }
                 else
                 {
                     // Room 已存在，使用 Room.LoadWorldFromSnapshot 加载 World 快照
-                    var loadedWorld = _gameMode.MainRoom.LoadWorldFromSnapshot(notification.worldSnapshot);
+                    var loadedWorld = _gameMode.MainRoom.LoadWorldFromSnapshot(worldSnapshot);
                     if (loadedWorld == null)
                     {
                         ASLogger.Instance.Error("World 快照加载失败", "FrameSync.Client");
@@ -122,9 +173,9 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     var snapshotBuffer = _gameMode.MainRoom.LSController.FrameBuffer.Snapshot(0);
                     snapshotBuffer.Seek(0, SeekOrigin.Begin);
                     snapshotBuffer.SetLength(0);
-                    snapshotBuffer.Write(notification.worldSnapshot, 0, notification.worldSnapshot.Length);
+                    snapshotBuffer.Write(worldSnapshot, 0, worldSnapshot.Length);
                     
-                    // 仅在帧同步开始通知时启动控制器，避免重复 Start
+                    // 启动控制器
                     if (!_gameMode.MainRoom.LSController.IsRunning)
                     {
                         _gameMode.MainRoom.LSController.Start();
@@ -139,13 +190,10 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     return;
                 }
                 
-                // 使用 Stage 的同步方法创建 EntityView（创建少的，销毁多的）
+                // 使用 Stage 的同步方法创建 EntityView
                 if (_gameMode.MainStage != null)
                 {
                     _gameMode.MainStage.SyncEntityViews();
-                    
-                    // 断线重连时，EntityView 可能已经创建，需要手动设置摄像机绑定
-                    // 如果 OnEntityViewAdded 事件已订阅，它会自动处理；但为了确保，这里也调用一次
                     _gameMode.FindAndSetupPlayer();
                 }
                 else
@@ -158,6 +206,42 @@ namespace Astrum.Client.Managers.GameModes.Handlers
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"处理帧同步开始通知时出错: {ex.Message}", "FrameSync.Client");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
+            }
+        }
+
+
+        /// <summary>
+        /// 处理完整的世界快照数据（由分片接收完成后调用）
+        /// </summary>
+        public void OnWorldSnapshotComplete(string roomId, byte[] worldSnapshot)
+        {
+            try
+            {
+                ASLogger.Instance.Info(
+                    $"FrameSyncHandler: 收到完整的世界快照 - 房间: {roomId}，大小: {worldSnapshot?.Length ?? 0} bytes", 
+                    "FrameSync.Client");
+
+                if (worldSnapshot == null || worldSnapshot.Length == 0)
+                {
+                    ASLogger.Instance.Error("世界快照数据为空，无法恢复世界状态", "FrameSync.Client");
+                    return;
+                }
+
+                // 保存世界快照数据，等待 FrameSyncStartNotification
+                if (_receivedWorldSnapshot == null)
+                {
+                    _receivedWorldSnapshot = new Dictionary<string, byte[]>();
+                }
+                _receivedWorldSnapshot[roomId] = worldSnapshot;
+
+                ASLogger.Instance.Info(
+                    $"FrameSyncHandler: 世界数据已保存，等待帧同步开始通知 - 房间: {roomId}",
+                    "FrameSync.Client");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"处理完整世界快照时出错: {ex.Message}", "FrameSync.Client");
                 ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }

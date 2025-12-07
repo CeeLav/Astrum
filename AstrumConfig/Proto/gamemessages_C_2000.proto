@@ -118,8 +118,16 @@ message FrameSyncStartNotification
     int32 frameInterval = 3;   // 帧间隔 (50ms)
     int64 startTime = 4;       // 开始时间
     repeated string playerIds = 5;           // 玩家ID列表（UserId）
-    bytes worldSnapshot = 6;                // 世界快照数据（第0帧）
-    map<string, int64> playerIdMapping = 7; // UserId -> PlayerId 映射
+    map<string, int64> playerIdMapping = 6; // UserId -> PlayerId 映射
+}
+
+// 世界快照开始消息 - 用于标识世界数据传输的开始
+// 发送顺序：先发送 WorldSnapshotStart，然后发送 WorldSnapshotChunk 分片，最后发送 FrameSyncStartNotification
+message WorldSnapshotStart
+{
+    string roomId = 1;         // 房间ID
+    int32 totalChunks = 2;     // 总分片数
+    int32 totalSize = 3;       // 完整快照的总大小（字节）
 }
 
 // 帧同步结束通知
@@ -146,4 +154,13 @@ message SingleInput
     int32 FrameID = 1;         //帧号
     int64 PlayerID = 2;        //玩家ID
     LSInput Input = 3;         //输入数据 
+}
+
+// 世界快照分片消息 - 用于分片发送世界快照数据
+// 发送顺序：先发送 WorldSnapshotStart，然后发送 WorldSnapshotChunk 分片，最后发送 FrameSyncStartNotification
+message WorldSnapshotChunk
+{
+    string roomId = 1;         // 房间ID
+    int32 chunkIndex = 2;      // 分片索引（从0开始）
+    bytes chunkData = 3;       // 分片数据
 }

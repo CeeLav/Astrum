@@ -86,7 +86,7 @@ namespace AstrumServer.Managers
                 // 创建所有玩家实体（按 UserId 顺序，确保 UniqueId 一致）
                 foreach (var userId in roomInfo.PlayerNames.OrderBy(x => x))
                 {
-                    var playerId = LogicRoom.CreateEntity(1003); // 创建玩家实体，返回 UniqueId
+                    var playerId = LogicRoom.CreateEntity(1001); // 创建玩家实体，返回 UniqueId
                     if (playerId > 0)
                     {
                         // 记录 PlayerId 映射
@@ -592,32 +592,43 @@ namespace AstrumServer.Managers
         {
             try
             {
-                var notification = FrameSyncStartNotification.Create();
-                notification.roomId = _room.Info.Id;
-                notification.frameRate = LSConstValue.FrameCountPerSecond;
-                notification.frameInterval = LSConstValue.UpdateInterval;
-                notification.startTime = StartTime;
-                notification.playerIds = new List<string>(PlayerIds);
-                notification.worldSnapshot = worldSnapshotData;
-                notification.playerIdMapping = new Dictionary<string, long>(UserIdToPlayerId);
-                
-                ASLogger.Instance.Info($"准备发送帧同步开始通知给玩家 {userId}，包含 {notification.playerIdMapping.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
-                
-                // 只发送给重连的玩家
                 var sessionId = _userManager.GetSessionIdByUserId(userId);
-                if (!string.IsNullOrEmpty(sessionId))
+                if (string.IsNullOrEmpty(sessionId))
                 {
-                    _networkManager.SendMessage(sessionId, notification);
-                    if (UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                    ASLogger.Instance.Warning($"无法发送帧同步开始通知：找不到玩家 {userId} 的会话ID", "FrameSync.Controller");
+                    return;
+                }
+                
+                // 使用辅助类发送，按照新流程：先发送世界数据，再发送帧同步通知
+                FrameSyncStartNotificationHelper.SendFrameSyncStartNotification(
+                    roomId: _room.Info.Id,
+                    frameRate: LSConstValue.FrameCountPerSecond,
+                    frameInterval: LSConstValue.UpdateInterval,
+                    startTime: StartTime,
+                    playerIds: new List<string>(PlayerIds),
+                    worldSnapshot: worldSnapshotData,
+                    playerIdMapping: new Dictionary<string, long>(UserIdToPlayerId),
+                    sendSnapshotStartAction: (start) =>
                     {
-                        ASLogger.Instance.Debug($"已发送帧同步开始通知给玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Controller");
-                    }
-                    ASLogger.Instance.Info($"已发送帧同步开始通知给玩家 {userId}（断线重连）", "FrameSync.Controller");
-                }
-                else
-                {
-                    ASLogger.Instance.Warning($"无法找到玩家 {userId} 的会话ID，无法发送帧同步开始通知", "FrameSync.Controller");
-                }
+                        // 只发送给重连的玩家
+                        _networkManager.SendMessage(sessionId, start);
+                    },
+                    sendChunkAction: (chunk) =>
+                    {
+                        // 只发送给重连的玩家
+                        _networkManager.SendMessage(sessionId, chunk);
+                    },
+                    sendNotificationAction: (notification) =>
+                    {
+                        // 只发送给重连的玩家
+                        _networkManager.SendMessage(sessionId, notification);
+                        if (UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                        {
+                            ASLogger.Instance.Debug($"已发送帧同步开始通知给重连玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Controller");
+                        }
+                    });
+                
+                ASLogger.Instance.Info($"已发送帧同步开始通知给玩家 {userId}，包含 {UserIdToPlayerId.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData?.Length ?? 0} bytes", "FrameSync.Controller");
             }
             catch (Exception ex)
             {
@@ -633,32 +644,57 @@ namespace AstrumServer.Managers
         {
             try
             {
-                var notification = FrameSyncStartNotification.Create();
-                notification.roomId = _room.Info.Id;
-                notification.frameRate = LSConstValue.FrameCountPerSecond;
-                notification.frameInterval = LSConstValue.UpdateInterval;
-                notification.startTime = StartTime;
-                notification.playerIds = new List<string>(PlayerIds);
-                notification.worldSnapshot = worldSnapshotData;
-                notification.playerIdMapping = new Dictionary<string, long>(UserIdToPlayerId);
-                
-                ASLogger.Instance.Info($"准备发送帧同步开始通知，包含 {notification.playerIdMapping.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData.Length} bytes", "FrameSync.Controller");
-                
-                // 发送给房间内所有玩家
-                foreach (var userId in PlayerIds)
-                {
-                    var sessionId = _userManager.GetSessionIdByUserId(userId);
-                    if (!string.IsNullOrEmpty(sessionId))
+                // 使用辅助类发送，按照新流程：先发送世界数据，再发送帧同步通知
+                FrameSyncStartNotificationHelper.SendFrameSyncStartNotification(
+                    roomId: _room.Info.Id,
+                    frameRate: LSConstValue.FrameCountPerSecond,
+                    frameInterval: LSConstValue.UpdateInterval,
+                    startTime: StartTime,
+                    playerIds: new List<string>(PlayerIds),
+                    worldSnapshot: worldSnapshotData,
+                    playerIdMapping: new Dictionary<string, long>(UserIdToPlayerId),
+                    sendSnapshotStartAction: (start) =>
                     {
-                        _networkManager.SendMessage(sessionId, notification);
-                        if (UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                        // 发送 WorldSnapshotStart 给所有玩家
+                        foreach (var userId in PlayerIds)
                         {
-                            ASLogger.Instance.Debug($"已发送帧同步开始通知给玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Controller");
+                            var sessionId = _userManager.GetSessionIdByUserId(userId);
+                            if (!string.IsNullOrEmpty(sessionId))
+                            {
+                                _networkManager.SendMessage(sessionId, start);
+                            }
                         }
-                    }
-                }
+                    },
+                    sendChunkAction: (chunk) =>
+                    {
+                        // 发送 WorldSnapshotChunk 给所有玩家
+                        foreach (var userId in PlayerIds)
+                        {
+                            var sessionId = _userManager.GetSessionIdByUserId(userId);
+                            if (!string.IsNullOrEmpty(sessionId))
+                            {
+                                _networkManager.SendMessage(sessionId, chunk);
+                            }
+                        }
+                    },
+                    sendNotificationAction: (notification) =>
+                    {
+                        // 发送 FrameSyncStartNotification 给所有玩家
+                        foreach (var userId in PlayerIds)
+                        {
+                            var sessionId = _userManager.GetSessionIdByUserId(userId);
+                            if (!string.IsNullOrEmpty(sessionId))
+                            {
+                                _networkManager.SendMessage(sessionId, notification);
+                                if (UserIdToPlayerId.TryGetValue(userId, out var playerId))
+                                {
+                                    ASLogger.Instance.Debug($"已发送帧同步开始通知给玩家 - UserId: {userId}, PlayerId: {playerId}", "FrameSync.Controller");
+                                }
+                            }
+                        }
+                    });
                 
-                ASLogger.Instance.Info($"已发送帧同步开始通知给房间 {_room.Info.Id} 的所有玩家（共 {PlayerIds.Count} 个）", "FrameSync.Controller");
+                ASLogger.Instance.Info($"已发送帧同步开始通知，包含 {UserIdToPlayerId.Count} 个玩家的 PlayerId 映射，快照大小: {worldSnapshotData?.Length ?? 0} bytes", "FrameSync.Controller");
             }
             catch (Exception ex)
             {

@@ -35,6 +35,9 @@ namespace Astrum.Editor.EntityRuntimeInspector
 
         // === 组件折叠状态 ===
         private Dictionary<string, bool> _componentFoldouts = new Dictionary<string, bool>();
+        
+        // === 组件选择状态 ===
+        private string _selectedComponentKey = null;
 
         // === Capability 折叠状态 ===
         private Dictionary<int, bool> _capabilityFoldouts = new Dictionary<int, bool>();
@@ -238,6 +241,7 @@ namespace Astrum.Editor.EntityRuntimeInspector
                     _capabilityFoldouts.Clear();
                     _logicMessageLog.Clear();
                     _viewMessageLog.Clear();
+                    _selectedComponentKey = null; // 重置组件选择
                 }
             }
             catch (Exception ex)
@@ -282,45 +286,87 @@ namespace Astrum.Editor.EntityRuntimeInspector
         private void DrawComponentView()
         {
             EditorGUILayout.LabelField("组件数据", EditorStyles.boldLabel);
-            EditorGUI.indentLevel++;
 
             if (_selectedEntity == null || _selectedEntity.Components == null || _selectedEntity.Components.Count == 0)
             {
                 EditorGUILayout.LabelField("该实体没有挂载任何组件", EditorStyles.miniLabel);
-                EditorGUI.indentLevel--;
                 return;
             }
 
-            _componentScrollPosition = EditorGUILayout.BeginScrollView(_componentScrollPosition, GUILayout.Height(200));
-
             // 使用 ToList() 确保迭代顺序稳定
             var components = _selectedEntity.Components.Values.ToList();
-            foreach (var component in components)
+            
+            // === 组件选择标签栏（横向排列，自动换行）===
+            // 初始化选中状态（默认选中第一个）
+            if (_selectedComponentKey == null && components.Count > 0)
             {
-                var componentType = component.GetType();
-                var componentKey = componentType.Name;
-
-                if (!_componentFoldouts.ContainsKey(componentKey))
+                _selectedComponentKey = components[0].GetType().Name;
+            }
+            
+            // 组件选择按钮区域（使用简单的垂直布局，每行一个水平布局）
+            const float minButtonWidth = 100f;
+            const float buttonPadding = 5f;
+            float availableWidth = position.width - 50f; // 可用宽度（减去边距和滚动条）
+            
+            // 计算每行可以放置的按钮数量
+            int buttonsPerRow = Mathf.Max(1, Mathf.FloorToInt(availableWidth / (minButtonWidth + buttonPadding)));
+            
+            // 确保每行正确结束，避免重叠
+            for (int i = 0; i < components.Count; i += buttonsPerRow)
+            {
+                EditorGUILayout.BeginHorizontal();
                 {
-                    _componentFoldouts[componentKey] = false;
+                    int endIndex = Mathf.Min(i + buttonsPerRow, components.Count);
+                    for (int j = i; j < endIndex; j++)
+                    {
+                        var component = components[j];
+                        var componentType = component.GetType();
+                        var componentKey = componentType.Name;
+                        
+                        // 判断是否选中
+                        var isSelected = _selectedComponentKey == componentKey;
+                        
+                        // 使用按钮样式，选中时使用不同的样式
+                        var style = EditorStyles.toolbarButton;
+                        var originalColor = GUI.backgroundColor;
+                        if (isSelected)
+                        {
+                            GUI.backgroundColor = new Color(0.3f, 0.5f, 0.8f, 1f); // 选中时蓝色背景
+                        }
+                        
+                        if (GUILayout.Button(componentType.Name, style, GUILayout.MinWidth(minButtonWidth), GUILayout.Height(20f)))
+                        {
+                            _selectedComponentKey = componentKey;
+                        }
+                        
+                        GUI.backgroundColor = originalColor;
+                    }
+                    
+                    GUILayout.FlexibleSpace();
                 }
-
-                _componentFoldouts[componentKey] = EditorGUILayout.Foldout(
-                    _componentFoldouts[componentKey],
-                    componentType.Name,
-                    true
-                );
-
-                if (_componentFoldouts[componentKey])
-                {
-                    EditorGUI.indentLevel++;
-                    DrawComponentFields(component, componentType);
-                    EditorGUI.indentLevel--;
-                }
+                EditorGUILayout.EndHorizontal();
             }
 
-            EditorGUILayout.EndScrollView();
-            EditorGUI.indentLevel--;
+            EditorGUILayout.Space(5);
+
+            // === 组件内容展示区域 ===
+            if (!string.IsNullOrEmpty(_selectedComponentKey))
+            {
+                var selectedComponent = components.FirstOrDefault(c => c.GetType().Name == _selectedComponentKey);
+                if (selectedComponent != null)
+                {
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Height(200));
+                    {
+                        EditorGUILayout.LabelField($"组件类型: {selectedComponent.GetType().Name}", EditorStyles.boldLabel);
+                        EditorGUILayout.Space(3);
+                        
+                        EditorGUI.indentLevel++;
+                        DrawComponentFields(selectedComponent, selectedComponent.GetType());
+                        EditorGUI.indentLevel--;
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+            }
         }
 
         private void DrawComponentFields(BaseComponent component, Type componentType)

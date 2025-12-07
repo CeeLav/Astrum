@@ -28,6 +28,7 @@ namespace Astrum.Editor.EntityRuntimeInspector
             Register<MovementComponent, ComponentViewers.MovementComponentViewer>();
             Register<LevelComponent, ComponentViewers.LevelComponentViewer>();
             Register<BaseStatsComponent, ComponentViewers.BaseStatsComponentViewer>();
+            Register<Astrum.LogicCore.FrameSync.LSInputComponent, Astrum.Editor.EntityRuntimeInspector.ComponentViewers.LSInputComponentViewer>();
             // 可以继续添加其他组件的显示器
 
             _initialized = true;
