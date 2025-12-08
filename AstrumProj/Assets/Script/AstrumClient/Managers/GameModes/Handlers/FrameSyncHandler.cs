@@ -366,23 +366,6 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     // 更新权威帧
                     clientSync.AuthorityFrame = targetAuthorityFrame;
                     
-                    // 断线重连时，如果 AuthorityFrame 远大于 PredictionFrame，需要同步设置 PredictionFrame
-                    // 避免触发不必要的回滚逻辑，并确保预测帧从权威帧开始
-                    if (targetAuthorityFrame > clientSync.PredictionFrame)
-                    {
-                        ASLogger.Instance.Info(
-                            $"FrameSyncHandler: 检测到断线重连，同步 PredictionFrame - AuthorityFrame: {targetAuthorityFrame}, 旧 PredictionFrame: {clientSync.PredictionFrame}", 
-                            "FrameSync.Client");
-                        
-                        // 将 PredictionFrame 设置为 AuthorityFrame - 1，这样下次 Tick 时会变成 AuthorityFrame
-                        // 确保预测帧从权威帧开始，不会小于权威帧
-                        clientSync.PredictionFrame = targetAuthorityFrame - 1;
-                        
-                        ASLogger.Instance.Info(
-                            $"FrameSyncHandler: PredictionFrame 已同步 - 新 PredictionFrame: {clientSync.PredictionFrame} (下次 Tick 后会变成 {targetAuthorityFrame})", 
-                            "FrameSync.Client");
-                    }
-                    
                     clientSync.SetOneFrameInputs(frameInputs);
                     
                     // 只在有实际输入时输出日志

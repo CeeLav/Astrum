@@ -19,9 +19,14 @@ namespace Astrum.LogicCore.Core
         public Room Room { get; set; }
 
         /// <summary>
-        /// 当前帧
+        /// 服务器下发的权威帧号（由服务器输入更新）
         /// </summary>
         public int AuthorityFrame { get; set; } = -1;
+        
+        /// <summary>
+        /// 已处理完的权威帧号（实际更新完毕的位置）
+        /// </summary>
+        public int ProcessedAuthorityFrame { get; set; } = -1;
         
         public int PredictionFrame { get; set; } = -1;
         
@@ -80,6 +85,25 @@ namespace Astrum.LogicCore.Core
 
             long currentTime = TimeInfo.Instance.ServerNow() + TimeInfo.Instance.RTT / 2;
 
+            // 第一步：处理权威帧插值（从 ProcessedAuthorityFrame 推进到 AuthorityFrame）
+            while (ProcessedAuthorityFrame < AuthorityFrame)
+            {
+                ++ProcessedAuthorityFrame;
+                
+                // 获取该权威帧的输入
+                var authorityInputs = FrameBuffer.FrameInputs(ProcessedAuthorityFrame);
+                
+                // 执行权威帧（仅权威实体，不涉及预测）
+                Room.FrameTick(authorityInputs);
+                
+                // 保存权威帧状态（用于后续影子回滚）
+                using (new ProfileScope("ClientLS.SaveState"))
+                {
+                    //SaveState();
+                }
+            }
+
+            // 第二步：处理预测帧（基于已处理完的权威帧进行预测）
             while (true)
             {
                 if (currentTime < CreationTime + (PredictionFrame + 1) * LSConstValue.UpdateInterval)
@@ -87,7 +111,8 @@ namespace Astrum.LogicCore.Core
                     return;
                 }
 
-                if (PredictionFrame - AuthorityFrame > MaxPredictionFrames)
+                // 预测帧不能超过已处理权威帧太多
+                if (PredictionFrame - ProcessedAuthorityFrame > MaxPredictionFrames)
                 {
                     return;
                 }
@@ -100,12 +125,10 @@ namespace Astrum.LogicCore.Core
                     oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
                 }
                 
-                using (new ProfileScope("ClientLS.SaveState"))
-                {
-                    SaveState();
-                }
+                // 预测帧不需要保存状态（只有权威帧需要保存，用于回滚）
+                // SaveState() 已在权威帧处理时完成
                 
-                Room.FrameTick(oneOneFrameInputs);
+                //Room.FrameTick(oneOneFrameInputs);
                 
                 using (new ProfileScope("ClientLS.PublishFrameData"))
                 {
@@ -119,7 +142,7 @@ namespace Astrum.LogicCore.Core
                         }
                         
                         var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
-                        // ASLogger.Instance.Log(LogLevel.Debug, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
+                        ASLogger.Instance.Log(LogLevel.Debug, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
                         
                         EventSystem.Instance.Publish(eventData);
                     }
@@ -160,31 +183,21 @@ namespace Astrum.LogicCore.Core
             return CreationTime + ((PredictionFrame + 1) * LSConstValue.UpdateInterval);
         }
 
+        /// <summary>
+        /// 回滚（已移除全局世界回滚逻辑，后续将改为影子实体回滚）
+        /// </summary>
         public void Rollback(int frame)
         {
-            Room.MainWorld.Cleanup();
-            var loadedWorld = LoadState(frame);
-            if (loadedWorld == null)
-            {
-                ASLogger.Instance.Warning($"无法回滚到帧 {frame}，快照数据不存在或为空，跳过回滚", "FrameSync.Rollback");
-                return;
-            }
+            // TODO: 全局世界回滚逻辑已移除，后续将实现基于影子实体的单实体回滚
+            // 保留方法框架，避免编译错误
+            ASLogger.Instance.Info($"Rollback 调用到帧 {frame}，全局回滚逻辑已移除，等待影子回滚实现", "FrameSync.Rollback");
             
-            Room.MainWorld = loadedWorld;
-            var aInput = FrameBuffer.FrameInputs(frame);
-            Room.FrameTick(aInput);
-            for(int i = AuthorityFrame +1; i <= PredictionFrame; ++i)
+            // 发布回滚事件，通知 View 层（暂时保留，后续可能需要调整）
+            if (Room?.MainWorld != null)
             {
-                var pInput = FrameBuffer.FrameInputs(i);
-                CopyOtherInputsTo(aInput, pInput);
-                SaveState();
-                Room.FrameTick(pInput);
+                var rollbackEvent = new WorldRollbackEventData(Room.MainWorld.WorldId, Room.MainWorld.RoomId, frame);
+                EventSystem.Instance.Publish(rollbackEvent);
             }
-            
-            // 发布回滚事件，通知 View 层同步 EntityView
-            var rollbackEvent = new WorldRollbackEventData(loadedWorld.WorldId, loadedWorld.RoomId, frame);
-            EventSystem.Instance.Publish(rollbackEvent);
-            // ASLogger.Instance.Debug($"发布世界回滚事件 - 帧: {frame}, WorldId: {loadedWorld.WorldId}, RoomId: {loadedWorld.RoomId}", "FrameSync.Rollback");
         }
         
         private void CopyOtherInputsTo(OneFrameInputs from, OneFrameInputs to)
@@ -317,7 +330,7 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
-        /// 保存状态
+        /// 保存状态（使用已处理权威帧）
         /// </summary>
         public void SaveState()
         {
@@ -329,13 +342,13 @@ namespace Astrum.LogicCore.Core
             
             using (new ProfileScope("SaveState"))
             {
-                // 客户端使用 PredictionFrame 保存状态（因为客户端是基于预测帧执行的）
-                int frame = PredictionFrame;
+                // 使用 ProcessedAuthorityFrame 保存状态（只有权威帧需要保存，用于后续影子回滚）
+                int frame = ProcessedAuthorityFrame;
                 
                 // 检查帧号是否有效
                 if (frame < 0)
                 {
-                    ASLogger.Instance.Warning($"ClientLSController.SaveState: 帧号无效 (AuthorityFrame: {AuthorityFrame}, PredictionFrame: {PredictionFrame})，跳过保存状态", "FrameSync.SaveState");
+                    ASLogger.Instance.Warning($"ClientLSController.SaveState: 帧号无效 (AuthorityFrame: {AuthorityFrame}, ProcessedAuthorityFrame: {ProcessedAuthorityFrame})，跳过保存状态", "FrameSync.SaveState");
                     return;
                 }
                 
@@ -430,6 +443,7 @@ namespace Astrum.LogicCore.Core
             IsRunning = true;
             IsPaused = false;
             AuthorityFrame = 0;
+            ProcessedAuthorityFrame = -1; // 初始化为 -1，第一次 Tick 时会变成 0
             PredictionFrame = -1; // 初始化为 -1，第一次 Tick 时会变成 0
             LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
@@ -464,36 +478,10 @@ namespace Astrum.LogicCore.Core
         public void SetOneFrameInputs(OneFrameInputs inputs)
         {
             _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
-            if (AuthorityFrame > PredictionFrame)
-            {
-                var aFrame = FrameBuffer.FrameInputs(AuthorityFrame);
-                inputs.CopyTo(aFrame);
-            }
-            else
-            {
-                var pFrame = FrameBuffer.FrameInputs(AuthorityFrame);
-                if (!inputs.Equal(pFrame))
-                {
-                    var differences = CompareInputs(inputs, pFrame);
-                    ASLogger.Instance.Log(LogLevel.Warning, $"Input Mismatch at Frame {AuthorityFrame}. Rolling back from PredictionFrame {PredictionFrame} to AuthorityFrame {AuthorityFrame}.");
-                    ASLogger.Instance.Log(LogLevel.Warning, $"Input Differences: {differences}");
-                    
-                    inputs.CopyTo(pFrame);
-                    
-                    var snapshotBuffer = FrameBuffer.Snapshot(AuthorityFrame);
-                    if (snapshotBuffer.Length > 0)
-                    {
-                        ASLogger.Instance.Log(LogLevel.Warning, $"roll back start {AuthorityFrame}");
-                        Rollback(AuthorityFrame);
-                    }
-                    else
-                    {
-                        ASLogger.Instance.Warning($"无法回滚到帧 {AuthorityFrame}，快照数据不存在（可能是首次同步），跳过回滚", "FrameSync.SetOneFrameInputs");
-                    }
-                }
-            }
-            var af = _inputSystem.FrameBuffer.FrameInputs(AuthorityFrame);
-            inputs.CopyTo(af);
+            
+            // 更新权威帧输入
+            var aFrame = FrameBuffer.FrameInputs(AuthorityFrame);
+            inputs.CopyTo(aFrame);
         }
     }
 }

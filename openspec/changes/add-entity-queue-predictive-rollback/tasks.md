@@ -1,5 +1,9 @@
 ## 0. 预备
-- [ ] 0.1 清理现有“全局世界预测回滚”路径（代码/配置/开关），确保不会与按实体队列方案并存；保留权威回放与快照校正。
+- [x] 0.1 清理现有"全局世界预测回滚"路径（代码/配置/开关），确保不会与按实体队列方案并存；保留权威回放与快照校正。
+  - 已移除 `ClientLSController.Rollback` 中的全局世界回滚逻辑（清理整个 World、替换 MainWorld、重放所有输入）
+  - 已移除 `SetOneFrameInputs` 中的全局回滚触发逻辑（输入不匹配时的 Rollback 调用）
+  - 已保留 `SaveState`/`LoadState` 方法（后续影子回滚需要快照功能）
+  - 已保留 `FrameBuffer` 快照功能
 
 ## 1. 方案落地
 - [ ] 1.1 复盘现有帧同步/回滚与消息处理流程（FrameSyncHandler、WorldSnapshot* 相关 Handler），梳理可挂接的队列与回滚点。
