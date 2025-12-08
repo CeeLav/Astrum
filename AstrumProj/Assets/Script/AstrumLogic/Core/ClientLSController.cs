@@ -19,6 +19,11 @@ namespace Astrum.LogicCore.Core
         public Room Room { get; set; }
 
         /// <summary>
+        /// 当前玩家对应的 PlayerId（由 GameMode 注入）
+        /// </summary>
+        public long PlayerId { get; set; } = -1;
+
+        /// <summary>
         /// 服务器下发的权威帧号（由服务器输入更新）
         /// </summary>
         public int AuthorityFrame { get; set; } = -1;
@@ -64,6 +69,9 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         private LSInputSystem _inputSystem;
 
+        // 影子输入备份：frameId -> OneFrameInputs（用于影子回滚重放）
+        private readonly Dictionary<int, OneFrameInputs> _shadowInputBackups = new Dictionary<int, OneFrameInputs>();
+
         /// <summary>
         /// 是否正在运行
         /// </summary>
@@ -96,10 +104,10 @@ namespace Astrum.LogicCore.Core
                 // 执行权威帧（仅权威实体，不涉及预测）
                 Room.FrameTick(authorityInputs);
                 
-                // 保存权威帧状态（用于后续影子回滚）
-                using (new ProfileScope("ClientLS.SaveState"))
+                // 权威帧处理完成后，比对影子实体与权威实体的哈希
+                if (PlayerId > 0 && PredictionFrame >= ProcessedAuthorityFrame)
                 {
-                    //SaveState();
+                    CheckAndRollbackShadow(ProcessedAuthorityFrame);
                 }
             }
 
@@ -125,10 +133,14 @@ namespace Astrum.LogicCore.Core
                     oneOneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame);
                 }
                 
+                // 记录影子输入备份（用于影子回滚快速重放）
+                BackupShadowInput(PredictionFrame, oneOneFrameInputs);
+
+                // 驱动 Room 内的影子实体进行本地预测模拟
+                SimulateShadow(PredictionFrame, oneOneFrameInputs);
+
                 // 预测帧不需要保存状态（只有权威帧需要保存，用于回滚）
-                // SaveState() 已在权威帧处理时完成
-                
-                //Room.FrameTick(oneOneFrameInputs);
+                Room.FrameTick(oneOneFrameInputs);
                 
                 using (new ProfileScope("ClientLS.PublishFrameData"))
                 {
@@ -184,149 +196,35 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 回滚（已移除全局世界回滚逻辑，后续将改为影子实体回滚）
+        /// 检查并回滚影子实体（如果哈希不一致）
         /// </summary>
-        public void Rollback(int frame)
+        private void CheckAndRollbackShadow(int authorityFrame)
         {
-            // TODO: 全局世界回滚逻辑已移除，后续将实现基于影子实体的单实体回滚
-            // 保留方法框架，避免编译错误
-            ASLogger.Instance.Info($"Rollback 调用到帧 {frame}，全局回滚逻辑已移除，等待影子回滚实现", "FrameSync.Rollback");
-            
-            // 发布回滚事件，通知 View 层（暂时保留，后续可能需要调整）
-            if (Room?.MainWorld != null)
+            if (Room?.MainWorld == null || PlayerId <= 0) return;
+
+            var original = Room.MainWorld.GetEntity(PlayerId);
+            long shadowId = -Math.Abs(PlayerId);
+            var shadow = Room.MainWorld.GetEntity(shadowId);
+
+            if (original == null || shadow == null) return;
+
+            // 比对哈希
+            int originalHash = Astrum.LogicCore.FrameSync.FrameHashUtility.Compute(original, authorityFrame);
+            int shadowHash = Astrum.LogicCore.FrameSync.FrameHashUtility.Compute(shadow, authorityFrame);
+
+            if (originalHash != shadowHash)
             {
-                var rollbackEvent = new WorldRollbackEventData(Room.MainWorld.WorldId, Room.MainWorld.RoomId, frame);
-                EventSystem.Instance.Publish(rollbackEvent);
-            }
-        }
-        
-        private void CopyOtherInputsTo(OneFrameInputs from, OneFrameInputs to)
-        {
-            long myId = Room.MainPlayerId;
-            foreach (var kv in from.Inputs)
-            {
-                if (kv.Key == myId)
+                ASLogger.Instance.Info($"影子实体哈希不一致，帧={authorityFrame}，权威哈希={originalHash}，影子哈希={shadowHash}，执行回滚", "FrameSync.ShadowRollback");
+
+                // 回滚影子：从权威实体复制状态
+                Room.CopyEntityStateToShadow(PlayerId, shadowId);
+
+                // 重放影子输入从权威帧+1到当前预测帧
+                if (PredictionFrame > authorityFrame)
                 {
-                    continue;
-                }
-                to.Inputs[kv.Key] = kv.Value;
-            }
-        }
-        
-        /// <summary>
-        /// 详细比较两个 OneFrameInputs 的差异
-        /// </summary>
-        private string CompareInputs(OneFrameInputs inputs1, OneFrameInputs inputs2)
-        {
-            var differences = new List<string>();
-            
-            if (inputs1.Inputs.Count != inputs2.Inputs.Count)
-            {
-                differences.Add($"PlayerCount: {inputs1.Inputs.Count} vs {inputs2.Inputs.Count}");
-            }
-            
-            var allPlayerIds = inputs1.Inputs.Keys.Union(inputs2.Inputs.Keys).OrderBy(x => x);
-            
-            foreach (var playerId in allPlayerIds)
-            {
-                bool hasInput1 = inputs1.Inputs.TryGetValue(playerId, out var input1);
-                bool hasInput2 = inputs2.Inputs.TryGetValue(playerId, out var input2);
-                
-                if (!hasInput1)
-                {
-                    differences.Add($"Player {playerId}: Missing in inputs1");
-                    continue;
-                }
-                
-                if (!hasInput2)
-                {
-                    differences.Add($"Player {playerId}: Missing in inputs2");
-                    continue;
-                }
-                
-                var playerDifferences = CompareSingleInput(input1, input2, playerId);
-                if (!string.IsNullOrEmpty(playerDifferences))
-                {
-                    differences.Add($"Player {playerId}: {playerDifferences}");
+                    ReplayShadowToFrame(authorityFrame, PredictionFrame);
                 }
             }
-            
-            return differences.Count > 0 ? string.Join("; ", differences) : "No differences found";
-        }
-        
-        /// <summary>
-        /// 比较单个 LSInput 的差异
-        /// </summary>
-        private string CompareSingleInput(LSInput input1, LSInput input2, long playerId)
-        {
-            var differences = new List<string>();
-            
-            if (input1.PlayerId != input2.PlayerId)
-            {
-                differences.Add($"PlayerId: {input1.PlayerId} vs {input2.PlayerId}");
-            }
-            
-            if (input1.Frame != input2.Frame)
-            {
-                differences.Add($"Frame: {input1.Frame} vs {input2.Frame}");
-            }
-            
-            if (input1.MoveX != input2.MoveX)
-            {
-                differences.Add($"MoveX: {input1.MoveX} vs {input2.MoveX}");
-            }
-            
-            if (input1.MoveY != input2.MoveY)
-            {
-                differences.Add($"MoveY: {input1.MoveY} vs {input2.MoveY}");
-            }
-            
-            if (input1.Attack != input2.Attack)
-            {
-                differences.Add($"Attack: {input1.Attack} vs {input2.Attack}");
-            }
-            
-            if (input1.Skill1 != input2.Skill1)
-            {
-                differences.Add($"Skill1: {input1.Skill1} vs {input2.Skill1}");
-            }
-            
-            if (input1.Skill2 != input2.Skill2)
-            {
-                differences.Add($"Skill2: {input1.Skill2} vs {input2.Skill2}");
-            }
-            
-            if (input1.Timestamp != input2.Timestamp)
-            {
-                differences.Add($"Timestamp: {input1.Timestamp} vs {input2.Timestamp}");
-            }
-            
-            if (input1.BornInfo != input2.BornInfo)
-            {
-                differences.Add($"BornInfo: {input1.BornInfo} vs {input2.BornInfo}");
-            }
-            
-            if (input1.Roll != input2.Roll)
-            {
-                differences.Add($"Roll: {input1.Roll} vs {input2.Roll}");
-            }
-            
-            if (input1.Dash != input2.Dash)
-            {
-                differences.Add($"Dash: {input1.Dash} vs {input2.Dash}");
-            }
-            
-            if (input1.MouseWorldX != input2.MouseWorldX)
-            {
-                differences.Add($"MouseWorldX: {input1.MouseWorldX} vs {input2.MouseWorldX}");
-            }
-            
-            if (input1.MouseWorldZ != input2.MouseWorldZ)
-            {
-                differences.Add($"MouseWorldZ: {input1.MouseWorldZ} vs {input2.MouseWorldZ}");
-            }
-            
-            return differences.Count > 0 ? string.Join(", ", differences) : "";
         }
         
         /// <summary>
@@ -466,6 +364,7 @@ namespace Astrum.LogicCore.Core
             {
                 // 确保 PlayerId 和 Frame 字段被正确设置
                 input.PlayerId = playerId;
+                PlayerId = playerId;
                 // Frame 字段会在发送时由 PredictionFrame 设置，这里不需要设置
                 
                 _inputSystem.ClientInput = input;
@@ -473,6 +372,55 @@ namespace Astrum.LogicCore.Core
                 // ASLogger.Instance.Log(LogLevel.Debug, $"Input Details - Frame: {input.Frame}, Move: ({input.MoveX:F2}, {input.MoveY:F2}), " +
                 //     $"Attack: {input.Attack}, Skill1: {input.Skill1}, Skill2: {input.Skill2}, Timestamp: {input.Timestamp}");
             }
+        }
+
+        /// <summary>
+        /// 备份影子输入（滑动窗口）TODO 性能优化
+        /// </summary>
+        private void BackupShadowInput(int frame, OneFrameInputs inputs)
+        {
+            if (inputs == null) return;
+            var clone = new OneFrameInputs();
+            inputs.CopyTo(clone);
+            _shadowInputBackups[frame] = clone;
+
+            // 窗口裁剪：保留近 MaxPredictionFrames 范围
+            int minFrameToKeep = frame - MaxPredictionFrames - 1;
+            var removeKeys = _shadowInputBackups.Keys.Where(f => f < minFrameToKeep).ToList();
+            foreach (var key in removeKeys)
+            {
+                _shadowInputBackups.Remove(key);
+            }
+        }
+
+        /// <summary>
+        /// 影子实体模拟入口：直接通知 Room 进行影子实体更新
+        /// </summary>
+        private void SimulateShadow(int frame, OneFrameInputs inputs)
+        {
+            if (Room == null || inputs == null) return;
+            Room.FrameTickShadow(PlayerId, frame, inputs);
+        }
+
+        /// <summary>
+        /// 回滚后快速重放影子输入到目标预测帧
+        /// </summary>
+        public void ReplayShadowToFrame(int fromFrame, int toFrame)
+        {
+            if (toFrame <= fromFrame) return;
+            for (int f = fromFrame + 1; f <= toFrame; ++f)
+            {
+                if (_shadowInputBackups.TryGetValue(f, out var inputs))
+                {
+                    SimulateShadow(f, inputs);
+                }
+            }
+        }
+
+        private int GetMaxBackupFrame()
+        {
+            if (_shadowInputBackups.Count == 0) return -1;
+            return _shadowInputBackups.Keys.Max();
         }
         
         public void SetOneFrameInputs(OneFrameInputs inputs)

@@ -366,6 +366,12 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     // 更新权威帧
                     clientSync.AuthorityFrame = targetAuthorityFrame;
                     
+                    // 同步 PlayerId 到 LSController
+                    if (_gameMode.PlayerId > 0)
+                    {
+                        clientSync.PlayerId = _gameMode.PlayerId;
+                    }
+
                     clientSync.SetOneFrameInputs(frameInputs);
                     
                     // 只在有实际输入时输出日志

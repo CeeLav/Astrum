@@ -216,6 +216,146 @@ namespace Astrum.LogicCore.Core
                 }
             }
         }
+
+        /// <summary>
+        /// 影子实体帧更新（本地预测用）
+        /// </summary>
+        /// <param name="playerId">本地玩家Id</param>
+        /// <param name="frame">预测帧号</param>
+        /// <param name="inputs">本地预测输入</param>
+        public void FrameTickShadow(long playerId, int frame, OneFrameInputs inputs)
+        {
+            if (MainWorld == null || inputs == null) return;
+
+            using (new ProfileScope("Room.FrameTickShadow"))
+            {
+                // 确保影子实体存在
+                var shadow = EnsureShadowEntity(playerId);
+                if (shadow != null && playerId > 0 && inputs.Inputs.TryGetValue(playerId, out var input))
+                {
+                    var inputComponent = shadow.GetComponent<LSInputComponent>();
+                    inputComponent?.SetInput(input);
+                }
+
+                // 更新世界与系统，执行影子实体的真实模拟
+                foreach (var world in Worlds)
+                {
+                    world.Update();
+                }
+                TickSystems();
+            }
+        }
+
+        /// <summary>
+        /// 确保影子实体存在，约定影子ID = -playerId
+        /// </summary>
+        private Entity EnsureShadowEntity(long playerId)
+        {
+            if (playerId <= 0 || MainWorld == null) return null;
+
+            long shadowId = -Math.Abs(playerId);
+            var shadow = MainWorld.GetEntity(shadowId);
+            if (shadow != null)
+            {
+                shadow.IsShadow = true;
+                return shadow;
+            }
+
+            // 尝试基于原实体创建影子
+            var original = MainWorld.GetEntity(playerId);
+            if (original == null)
+            {
+                ASLogger.Instance.Warning($"FrameTickShadow: 未找到原实体，无法创建影子，playerId={playerId}");
+                return null;
+            }
+
+            if (original.EntityConfigId == 0)
+            {
+                ASLogger.Instance.Warning($"FrameTickShadow: 原实体缺少 EntityConfigId，无法创建影子，playerId={playerId}");
+                return null;
+            }
+
+            var newShadow = MainWorld.CreateEntity(original.EntityConfigId);
+            if (newShadow == null)
+            {
+                ASLogger.Instance.Warning($"FrameTickShadow: 创建影子失败，playerId={playerId}");
+                return null;
+            }
+
+            // 重设ID为约定的影子ID
+            MainWorld.Entities.Remove(newShadow.UniqueId);
+            newShadow.UniqueId = shadowId;
+            newShadow.IsShadow = true;
+            MainWorld.Entities[shadowId] = newShadow;
+
+            // 初始化时从原实体复制状态
+            CopyEntityStateToShadow(playerId, shadowId);
+
+            return newShadow;
+        }
+
+        /// <summary>
+        /// 从权威实体复制状态到影子实体（用于回滚）
+        /// </summary>
+        public void CopyEntityStateToShadow(long originalId, long shadowId)
+        {
+            if (MainWorld == null) return;
+
+            var original = MainWorld.GetEntity(originalId);
+            var shadow = MainWorld.GetEntity(shadowId);
+
+            if (original == null || shadow == null) return;
+
+            // 复制所有组件状态
+            foreach (var kv in original.Components)
+            {
+                var originalComp = kv.Value;
+                var shadowComp = shadow.GetComponentById(originalComp.GetComponentTypeId());
+
+                if (shadowComp != null)
+                {
+                    // 使用 MemoryPack 序列化/反序列化进行深拷贝
+                    CopyComponentState(originalComp, shadowComp);
+                }
+            }
+
+            // 复制 Capability 状态
+            if (original.CapabilityStates != null && shadow.CapabilityStates != null)
+            {
+                shadow.CapabilityStates.Clear();
+                foreach (var kv in original.CapabilityStates)
+                {
+                    // 深拷贝 CapabilityState（根据实际实现调整）
+                    shadow.CapabilityStates[kv.Key] = kv.Value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 复制组件状态（使用 MemoryPack 序列化/反序列化）
+        /// </summary>
+        private void CopyComponentState(Components.BaseComponent source, Components.BaseComponent target)
+        {
+            try
+            {
+                // 使用 MemoryPack 进行深拷贝
+                var buffer = new MemoryBuffer();
+                MemoryPackHelper.Serialize(source, buffer);
+                buffer.Seek(0, System.IO.SeekOrigin.Begin);
+                var cloned = MemoryPackHelper.Deserialize(source.GetType(), buffer) as Components.BaseComponent;
+                
+                if (cloned != null)
+                {
+                    // 复制关键字段
+                    target.EntityId = cloned.EntityId;
+
+                }
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Warning($"复制组件状态失败: {ex.Message}", "Room.CopyComponentState");
+            }
+        }
         
         /// <summary>
         /// 已同步的实体ID集合（用于跟踪哪些实体已经发布过创建事件）
