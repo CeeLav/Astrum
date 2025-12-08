@@ -618,12 +618,12 @@ namespace Astrum.View.Components
                 _visualSync.previousLogicPos = previousLogicPos;
                 _visualSync.lastLogicPos = currentLogicPos;
                 _visualSync.lastLogicFrame = currentLogicFrame;
-              /*  
+              
             if(previousLogicPos != currentLogicPos)
                 ASLogger.Instance.Debug(
                     $"[TransViewComponent] [Interpolation] Logic frame advanced: prevFrame={previousLogicFrame}, currentFrame={currentLogicFrame}, " +
                     $"prevPos={previousLogicPos}, currentPos={currentLogicPos}, logicDelta={logicDelta}, t={t:F3}, visualOffset={_visualSync.visualOffset}",
-                    "View.VisualFollow");*/
+                    "View.VisualFollow");
             }
             else
             {

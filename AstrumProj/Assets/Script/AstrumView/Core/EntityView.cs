@@ -49,42 +49,49 @@ namespace Astrum.View.Core
         {
             get
             {
-                if (_ownerEntity == null || _ownerEntity.IsDestroyed || _ownerEntity.UniqueId != _entityId)
+                // 如果当前实体无效，需要重新获取
+                if (_ownerEntity == null || _ownerEntity.IsDestroyed || _ownerEntity.UniqueId != EntityId)
                 {
-                    // 检查权威实体是否有影子实体标记
-                    var authorityEntity = _stage?.Room?.MainWorld?.GetEntity(EntityId);
-                    bool hasShadow = authorityEntity != null && authorityEntity.HasShadow;
-                    
-                    if (hasShadow && _stage?.Room?.ShadowWorld != null)
+                    _ownerEntity = TryGetShadowEntity() ?? GetAuthorityEntity();
+                }
+                // 如果当前实体有效，检查是否需要切换到影子实体（性能优化：只在实体存在时检查）
+                else if (ShouldSwitchToShadow())
+                {
+                    var shadowEntity = TryGetShadowEntity();
+                    if (shadowEntity != null)
                     {
-                        // 有影子实体标记：优先从 ShadowWorld 获取影子实体
-                        var shadowEntity = _stage.Room.ShadowWorld.GetEntity(EntityId);
-                        if (shadowEntity != null && !shadowEntity.IsDestroyed)
-                        {
-                            _ownerEntity = shadowEntity;
-                            return _ownerEntity;
-                        }
-                    }
-                    
-                    // 没有影子实体标记或影子实体不存在：使用权威实体
-                    if (_stage?.Room?.MainWorld != null)
-                    {
-                        _ownerEntity = _stage.Room.MainWorld.GetEntity(EntityId);
+                        _ownerEntity = shadowEntity;
                     }
                 }
-
-                if(_ownerEntity != null){
-                    if(_ownerEntity.HasShadow){
-                        var shadowEntity = _stage.Room.ShadowWorld.GetEntity(EntityId);
-                        if (shadowEntity != null && !shadowEntity.IsDestroyed)
-                        {
-                            _ownerEntity = shadowEntity;
-                            return _ownerEntity;
-                        }
-                    }
-                }
+                
                 return _ownerEntity;
             }
+        }
+
+        /// <summary>
+        /// 尝试获取影子实体（如果存在且有效）
+        /// </summary>
+        private Entity TryGetShadowEntity()
+        {
+            if (_stage?.Room?.ShadowWorld == null) return null;
+            var shadowEntity = _stage.Room.ShadowWorld.GetEntity(EntityId);
+            return shadowEntity != null && !shadowEntity.IsDestroyed ? shadowEntity : null;
+        }
+
+        /// <summary>
+        /// 获取权威实体
+        /// </summary>
+        private Entity GetAuthorityEntity()
+        {
+            return _stage?.Room?.MainWorld?.GetEntity(EntityId);
+        }
+
+        /// <summary>
+        /// 检查是否需要切换到影子实体（仅在当前实体有效时调用，性能优化）
+        /// </summary>
+        private bool ShouldSwitchToShadow()
+        {
+            return _ownerEntity != null && _ownerEntity.HasShadow;
         }
         public GameObject GameObject => _gameObject;
         public Transform Transform => _transform;

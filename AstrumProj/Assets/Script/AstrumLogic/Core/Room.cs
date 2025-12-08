@@ -254,6 +254,8 @@ namespace Astrum.LogicCore.Core
                     ShadowWorld.CapabilitySystem.Update(ShadowWorld);
                     ShadowWorld.CapabilitySystem.ProcessEntityEvents();
                 }
+
+                ShadowWorld.CurFrame++;
             }
         }
 
@@ -266,7 +268,7 @@ namespace Astrum.LogicCore.Core
 
             ShadowWorld = ObjectPool.Instance.Fetch<World>();
             ShadowWorld.Reset();
-            ShadowWorld.Initialize(0);
+            ShadowWorld.Initialize(MainWorld.CurFrame);
             ShadowWorld.RoomId = RoomId;
             ShadowWorld.Name = "ShadowWorld";
         }
