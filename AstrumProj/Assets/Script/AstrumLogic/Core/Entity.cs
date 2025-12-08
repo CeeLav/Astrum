@@ -105,10 +105,10 @@ namespace Astrum.LogicCore.Core
         public World World { get; set; }
 
         /// <summary>
-        /// 是否为影子实体（运行时标记，不序列化）
+        /// 是否有影子实体（权威实体标记，表示该实体有对应的影子实体，不序列化）
         /// </summary>
         [MemoryPackIgnore]
-        public bool IsShadow { get; set; } = false;
+        public bool HasShadow { get; set; } = false;
 
         // 运行时子原型：激活列表与引入映射（用于安全卸载）
         // 预分配容量 2

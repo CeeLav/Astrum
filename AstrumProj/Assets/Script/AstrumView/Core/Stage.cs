@@ -159,6 +159,15 @@ namespace Astrum.View.Core
             
             ASLogger.Instance.Info($"Stage: 收到实体创建事件 - {eventData.EntityName} (ID: {eventData.EntityId})", "Stage.Event");
             
+            // 检查权威实体是否有影子实体标记
+            var entity = Room?.MainWorld?.GetEntity(eventData.EntityId);
+            if (entity != null && entity.HasShadow)
+            {
+                // 有影子实体，等待影子实体创建后再创建 View
+                ASLogger.Instance.Info($"Stage: 实体有影子实体标记，跳过创建 View，等待影子实体创建 - {eventData.EntityName} (ID: {eventData.EntityId})", "Stage.Event");
+                return;
+            }
+            
             // 调用公共方法创建 EntityView
             CreateEntityViewInternal(eventData.EntityId, eventData.EntityName);
         }
@@ -201,6 +210,9 @@ namespace Astrum.View.Core
                 {
                     if (entity == null || entity.IsDestroyed) continue;
                     
+                    // 如果实体有影子实体标记，跳过（等待影子实体创建后再创建 View）
+                    if (entity.HasShadow) continue;
+                    
                     if (!_entityViews.ContainsKey(entity.UniqueId))
                     {
                         // 调用公共方法创建 EntityView（与事件处理使用相同的逻辑）
@@ -208,6 +220,29 @@ namespace Astrum.View.Core
                         {
                             createdCount++;
                             // ASLogger.Instance.Debug($"Stage: 同步创建 EntityView - {entity.Name} (ID: {entity.UniqueId})", "Stage.Sync");
+                        }
+                    }
+                }
+            }
+            
+            // 1.5. 检查 ShadowWorld 中的影子实体，如果是玩家实体且 View 不存在，则创建 View
+            if (_room?.ShadowWorld != null && _room.ShadowWorld.Entities != null)
+            {
+                foreach (var entity in _room.ShadowWorld.Entities.Values)
+                {
+                    if (entity == null || entity.IsDestroyed) continue;
+                    
+                    // 只处理玩家实体的影子
+                    if (_room.MainPlayerId > 0 && entity.UniqueId == _room.MainPlayerId)
+                    {
+                        if (!_entityViews.ContainsKey(entity.UniqueId))
+                        {
+                            // 调用公共方法创建 EntityView（绑定到影子实体）
+                            if (CreateEntityViewInternal(entity.UniqueId, entity.Name))
+                            {
+                                createdCount++;
+                                ASLogger.Instance.Info($"Stage: 同步创建影子实体 View - {entity.Name} (ID: {entity.UniqueId})", "Stage.Sync");
+                            }
                         }
                     }
                 }

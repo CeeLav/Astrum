@@ -285,7 +285,12 @@ namespace Astrum.LogicCore.Core
             var shadow = ShadowWorld.GetEntity(shadowId);
             if (shadow != null)
             {
-                shadow.IsShadow = true;
+                // 确保权威实体已标记
+                var original1 = MainWorld.GetEntity(playerId);
+                if (original1 != null)
+                {
+                    original1.HasShadow = true;
+                }
                 return shadow;
             }
 
@@ -314,11 +319,13 @@ namespace Astrum.LogicCore.Core
             // 重设ID为与源实体相同的 ID
             ShadowWorld.Entities.Remove(newShadow.UniqueId);
             newShadow.UniqueId = shadowId;
-            newShadow.IsShadow = true;
             ShadowWorld.Entities[shadowId] = newShadow;
 
             // 初始化时从原实体完全复制状态
             CopyEntityStateToShadow(playerId, shadowId);
+
+            // 标记权威实体有影子实体
+            original.HasShadow = true;
 
             return newShadow;
         }
