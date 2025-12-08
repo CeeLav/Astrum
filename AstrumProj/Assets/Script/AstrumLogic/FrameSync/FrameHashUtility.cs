@@ -20,7 +20,8 @@ namespace Astrum.LogicCore.FrameSync
             var hash = new HashCode();
             
             // 位置/朝向（TransComponent）
-            if (entity.TryGetComponent<TransComponent>(out var trans))
+            var trans = entity.GetComponent<TransComponent>();
+            if (trans != null)
             {
                 hash.Add(trans.Position.x.RawValue);
                 hash.Add(trans.Position.y.RawValue);
@@ -32,21 +33,24 @@ namespace Astrum.LogicCore.FrameSync
             }
             
             // 移动速度（MovementComponent）
-            if (entity.TryGetComponent<MovementComponent>(out var movement))
+            var movement = entity.GetComponent<MovementComponent>();
+            if (movement != null)
             {
                 hash.Add(movement.Speed.RawValue);
                 hash.Add(movement.CanMove);
             }
             
             // 动作状态（ActionComponent）
-            if (entity.TryGetComponent<ActionComponent>(out var action))
+            var action = entity.GetComponent<ActionComponent>();
+            if (action != null)
             {
                 hash.Add(action.CurrentActionId);
                 hash.Add(action.CurrentFrame);
             }
             
             // 状态标志（StateComponent）
-            if (entity.TryGetComponent<StateComponent>(out var state))
+            var state = entity.GetComponent<StateComponent>();
+            if (state != null)
             {
                 foreach (var kv in state.States)
                 {
@@ -56,7 +60,8 @@ namespace Astrum.LogicCore.FrameSync
             }
             
             // 动态属性（DynamicStatsComponent - HP等）
-            if (entity.TryGetComponent<DynamicStatsComponent>(out var dynamicStats))
+            var dynamicStats = entity.GetComponent<DynamicStatsComponent>();
+            if (dynamicStats != null)
             {
                 // 计算关键资源，如 HP、MP
                 if (dynamicStats.Resources != null)

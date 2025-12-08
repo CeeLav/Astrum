@@ -51,7 +51,22 @@ namespace Astrum.View.Core
             {
                 if (_ownerEntity == null || _ownerEntity.IsDestroyed || _ownerEntity.UniqueId != _entityId)
                 {
-                    if (_stage?.Room?.MainWorld != null)
+                    // 只有玩家控制的实体才需要查找影子实体
+                    bool isPlayer = _stage?.Room != null && _stage.Room.MainPlayerId > 0 && EntityId == _stage.Room.MainPlayerId;
+                    
+                    if (isPlayer && _stage?.Room?.ShadowWorld != null)
+                    {
+                        // 玩家实体：优先从 ShadowWorld 获取影子实体
+                        var shadowEntity = _stage.Room.ShadowWorld.GetEntity(EntityId);
+                        if (shadowEntity != null && !shadowEntity.IsDestroyed)
+                        {
+                            _ownerEntity = shadowEntity;
+                            return _ownerEntity;
+                        }
+                    }
+                    
+                    // 非玩家实体或影子实体不存在：使用权威实体
+                    if (!isPlayer && _stage?.Room?.MainWorld != null)
                     {
                         _ownerEntity = _stage.Room.MainWorld.GetEntity(EntityId);
                     }
@@ -84,8 +99,40 @@ namespace Astrum.View.Core
             
             _entityId = entityId;
             _stage = stage;
-            _ownerEntity = stage.Room.MainWorld.GetEntity(entityId);
-            ASLogger.Instance.Info($"EntityView: 初始化实体视图，ID: {entityId}");
+            
+            // 判断是否是玩家控制的实体
+            bool isPlayer = stage?.Room != null && stage.Room.MainPlayerId > 0 && entityId == stage.Room.MainPlayerId;
+            
+            if (isPlayer)
+            {
+                // 玩家实体：优先从 ShadowWorld 获取影子实体
+                if (stage?.Room?.ShadowWorld != null)
+                {
+                    var shadowEntity = stage.Room.ShadowWorld.GetEntity(entityId);
+                    if (shadowEntity != null && !shadowEntity.IsDestroyed)
+                    {
+                        _ownerEntity = shadowEntity;
+                        ASLogger.Instance.Info($"EntityView: 初始化实体视图（玩家实体，绑定影子实体），ID: {entityId}");
+                    }
+                    else
+                    {
+                        // 如果没有影子实体，不设置 _ownerEntity，让 getter 每次重新检查
+                        // 这样当影子实体创建后，会自动切换到影子实体
+                        ASLogger.Instance.Info($"EntityView: 初始化实体视图（玩家实体，影子不存在，等待影子创建），ID: {entityId}");
+                    }
+                }
+                else
+                {
+                    // ShadowWorld 不存在，不设置 _ownerEntity
+                    ASLogger.Instance.Info($"EntityView: 初始化实体视图（玩家实体，ShadowWorld 不存在，等待创建），ID: {entityId}");
+                }
+            }
+            else
+            {
+                // 非玩家实体：直接使用权威实体
+                _ownerEntity = stage.Room.MainWorld?.GetEntity(entityId);
+                ASLogger.Instance.Info($"EntityView: 初始化实体视图（非玩家实体，绑定权威实体），ID: {entityId}");
+            }
             
             try
             {

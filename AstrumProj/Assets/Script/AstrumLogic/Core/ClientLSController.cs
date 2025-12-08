@@ -71,6 +71,9 @@ namespace Astrum.LogicCore.Core
 
         // 影子输入备份：frameId -> OneFrameInputs（用于影子回滚重放）
         private readonly Dictionary<int, OneFrameInputs> _shadowInputBackups = new Dictionary<int, OneFrameInputs>();
+        
+        // 影子实体每帧哈希记录：frameId -> hash（用于哈希比对）
+        private readonly Dictionary<int, int> _shadowFrameHashes = new Dictionary<int, int>();
 
         /// <summary>
         /// 是否正在运行
@@ -138,9 +141,10 @@ namespace Astrum.LogicCore.Core
 
                 // 驱动 Room 内的影子实体进行本地预测模拟
                 SimulateShadow(PredictionFrame, oneOneFrameInputs);
+                
+                // 记录影子实体当前帧的哈希（用于后续比对）
+                RecordShadowFrameHash(PredictionFrame);
 
-                // 预测帧不需要保存状态（只有权威帧需要保存，用于回滚）
-                Room.FrameTick(oneOneFrameInputs);
                 
                 using (new ProfileScope("ClientLS.PublishFrameData"))
                 {
@@ -196,21 +200,53 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
+        /// 记录影子实体当前帧的哈希
+        /// </summary>
+        private void RecordShadowFrameHash(int frame)
+        {
+            if (Room?.ShadowWorld == null || PlayerId <= 0) return;
+
+            // 影子实体使用与源实体相同的 ID（在 ShadowWorld 中）
+            long shadowId = PlayerId;
+            var shadow = Room.ShadowWorld.GetEntity(shadowId);
+            if (shadow == null) return;
+
+            int hash = Astrum.LogicCore.FrameSync.FrameHashUtility.Compute(shadow, frame);
+            _shadowFrameHashes[frame] = hash;
+
+            // 滑动窗口裁剪：保留近 MaxPredictionFrames 范围
+            int minFrameToKeep = frame - MaxPredictionFrames - 1;
+            var removeKeys = _shadowFrameHashes.Keys.Where(f => f < minFrameToKeep).ToList();
+            foreach (var key in removeKeys)
+            {
+                _shadowFrameHashes.Remove(key);
+            }
+        }
+
+        /// <summary>
         /// 检查并回滚影子实体（如果哈希不一致）
         /// </summary>
         private void CheckAndRollbackShadow(int authorityFrame)
         {
-            if (Room?.MainWorld == null || PlayerId <= 0) return;
+            if (Room?.MainWorld == null || Room?.ShadowWorld == null || PlayerId <= 0) return;
 
             var original = Room.MainWorld.GetEntity(PlayerId);
-            long shadowId = -Math.Abs(PlayerId);
-            var shadow = Room.MainWorld.GetEntity(shadowId);
+            // 影子实体使用与源实体相同的 ID（在 ShadowWorld 中）
+            long shadowId = PlayerId;
+            var shadow = Room.ShadowWorld.GetEntity(shadowId);
 
             if (original == null || shadow == null) return;
 
-            // 比对哈希
+            // 比对哈希：使用记录的影子帧哈希
             int originalHash = Astrum.LogicCore.FrameSync.FrameHashUtility.Compute(original, authorityFrame);
-            int shadowHash = Astrum.LogicCore.FrameSync.FrameHashUtility.Compute(shadow, authorityFrame);
+            
+            // 获取影子实体在该权威帧记录的哈希
+            if (!_shadowFrameHashes.TryGetValue(authorityFrame, out int shadowHash))
+            {
+                // 如果没有记录，回滚
+                ASLogger.Instance.Warning($"影子实体哈希不存在，帧={authorityFrame}，执行回滚", "FrameSync.ShadowRollback");
+                return;
+            }
 
             if (originalHash != shadowHash)
             {
@@ -219,7 +255,7 @@ namespace Astrum.LogicCore.Core
                 // 回滚影子：从权威实体复制状态
                 Room.CopyEntityStateToShadow(PlayerId, shadowId);
 
-                // 重放影子输入从权威帧+1到当前预测帧
+                // 重放影子输入从权威帧+1到当前预测帧，并重新记录哈希
                 if (PredictionFrame > authorityFrame)
                 {
                     ReplayShadowToFrame(authorityFrame, PredictionFrame);
@@ -375,14 +411,20 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 备份影子输入（滑动窗口）TODO 性能优化
+        /// 备份影子输入（滑动窗口）- 只备份本地玩家输入
         /// </summary>
         private void BackupShadowInput(int frame, OneFrameInputs inputs)
         {
-            if (inputs == null) return;
-            var clone = new OneFrameInputs();
-            inputs.CopyTo(clone);
-            _shadowInputBackups[frame] = clone;
+            if (inputs == null || PlayerId <= 0) return;
+            
+            // 只备份本地玩家的输入
+            if (!inputs.Inputs.TryGetValue(PlayerId, out var playerInput))
+                return;
+            
+            // 创建只包含本地玩家输入的 OneFrameInputs
+            var backup = new OneFrameInputs();
+            backup.Inputs[PlayerId] = playerInput;
+            _shadowInputBackups[frame] = backup;
 
             // 窗口裁剪：保留近 MaxPredictionFrames 范围
             int minFrameToKeep = frame - MaxPredictionFrames - 1;
@@ -413,6 +455,8 @@ namespace Astrum.LogicCore.Core
                 if (_shadowInputBackups.TryGetValue(f, out var inputs))
                 {
                     SimulateShadow(f, inputs);
+                    // 重新记录每帧的哈希
+                    RecordShadowFrameHash(f);
                 }
             }
         }

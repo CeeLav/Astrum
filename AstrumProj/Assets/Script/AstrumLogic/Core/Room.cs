@@ -61,6 +61,11 @@ namespace Astrum.LogicCore.Core
         } // 默认返回第一个世界，如果没有则返回空
 
         /// <summary>
+        /// 影子世界（用于影子实体预测）
+        /// </summary>
+        public World ShadowWorld { get; private set; }
+
+        /// <summary>
         /// 最大玩家数
         /// </summary>
         public int MaxPlayers { get; set; } = 8;
@@ -229,32 +234,55 @@ namespace Astrum.LogicCore.Core
 
             using (new ProfileScope("Room.FrameTickShadow"))
             {
+                // 确保 ShadowWorld 存在
+                EnsureShadowWorld();
+
                 // 确保影子实体存在
                 var shadow = EnsureShadowEntity(playerId);
-                if (shadow != null && playerId > 0 && inputs.Inputs.TryGetValue(playerId, out var input))
+                if (shadow == null) return;
+
+                // 设置输入
+                if (playerId > 0 && inputs.Inputs.TryGetValue(playerId, out var input))
                 {
                     var inputComponent = shadow.GetComponent<LSInputComponent>();
                     inputComponent?.SetInput(input);
                 }
 
-                // 更新世界与系统，执行影子实体的真实模拟
-                foreach (var world in Worlds)
+                // 更新 ShadowWorld 的 CapabilitySystem（只更新影子实体）
+                if (ShadowWorld.CapabilitySystem != null)
                 {
-                    world.Update();
+                    ShadowWorld.CapabilitySystem.Update(ShadowWorld);
+                    ShadowWorld.CapabilitySystem.ProcessEntityEvents();
                 }
-                TickSystems();
             }
         }
 
         /// <summary>
-        /// 确保影子实体存在，约定影子ID = -playerId
+        /// 确保 ShadowWorld 存在
+        /// </summary>
+        private void EnsureShadowWorld()
+        {
+            if (ShadowWorld != null) return;
+
+            ShadowWorld = ObjectPool.Instance.Fetch<World>();
+            ShadowWorld.Reset();
+            ShadowWorld.Initialize(0);
+            ShadowWorld.RoomId = RoomId;
+            ShadowWorld.Name = "ShadowWorld";
+        }
+
+        /// <summary>
+        /// 确保影子实体存在（在 ShadowWorld 中，使用与源实体相同的 ID）
         /// </summary>
         private Entity EnsureShadowEntity(long playerId)
         {
             if (playerId <= 0 || MainWorld == null) return null;
 
-            long shadowId = -Math.Abs(playerId);
-            var shadow = MainWorld.GetEntity(shadowId);
+            EnsureShadowWorld();
+
+            // 影子实体使用与源实体相同的 ID（因为在不同 World 中）
+            long shadowId = playerId;
+            var shadow = ShadowWorld.GetEntity(shadowId);
             if (shadow != null)
             {
                 shadow.IsShadow = true;
@@ -275,20 +303,21 @@ namespace Astrum.LogicCore.Core
                 return null;
             }
 
-            var newShadow = MainWorld.CreateEntity(original.EntityConfigId);
+            // 在 ShadowWorld 中创建影子实体
+            var newShadow = ShadowWorld.CreateEntity(original.EntityConfigId);
             if (newShadow == null)
             {
                 ASLogger.Instance.Warning($"FrameTickShadow: 创建影子失败，playerId={playerId}");
                 return null;
             }
 
-            // 重设ID为约定的影子ID
-            MainWorld.Entities.Remove(newShadow.UniqueId);
+            // 重设ID为与源实体相同的 ID
+            ShadowWorld.Entities.Remove(newShadow.UniqueId);
             newShadow.UniqueId = shadowId;
             newShadow.IsShadow = true;
-            MainWorld.Entities[shadowId] = newShadow;
+            ShadowWorld.Entities[shadowId] = newShadow;
 
-            // 初始化时从原实体复制状态
+            // 初始化时从原实体完全复制状态
             CopyEntityStateToShadow(playerId, shadowId);
 
             return newShadow;
@@ -296,13 +325,14 @@ namespace Astrum.LogicCore.Core
 
         /// <summary>
         /// 从权威实体复制状态到影子实体（用于回滚）
+        /// 注意：originalId 和 shadowId 相同，但 original 在 MainWorld，shadow 在 ShadowWorld
         /// </summary>
         public void CopyEntityStateToShadow(long originalId, long shadowId)
         {
-            if (MainWorld == null) return;
+            if (MainWorld == null || ShadowWorld == null) return;
 
             var original = MainWorld.GetEntity(originalId);
-            var shadow = MainWorld.GetEntity(shadowId);
+            var shadow = ShadowWorld.GetEntity(shadowId);
 
             if (original == null || shadow == null) return;
 
@@ -319,20 +349,20 @@ namespace Astrum.LogicCore.Core
                 }
             }
 
-            // 复制 Capability 状态
+            // 复制 Capability 状态并注册到 ShadowWorld 的 CapabilitySystem
             if (original.CapabilityStates != null && shadow.CapabilityStates != null)
             {
                 shadow.CapabilityStates.Clear();
                 foreach (var kv in original.CapabilityStates)
                 {
-                    // 深拷贝 CapabilityState（根据实际实现调整）
                     shadow.CapabilityStates[kv.Key] = kv.Value;
+                    ShadowWorld.CapabilitySystem?.RegisterEntityCapability(shadowId, kv.Key);
                 }
             }
         }
 
         /// <summary>
-        /// 复制组件状态（使用 MemoryPack 序列化/反序列化）
+        /// 复制组件状态（使用 MemoryPack 序列化/反序列化进行深拷贝）
         /// </summary>
         private void CopyComponentState(Components.BaseComponent source, Components.BaseComponent target)
         {
@@ -346,9 +376,24 @@ namespace Astrum.LogicCore.Core
                 
                 if (cloned != null)
                 {
-                    // 复制关键字段
-                    target.EntityId = cloned.EntityId;
+                    // cloned 已经通过反序列化获取了完整状态，直接将 cloned 的所有属性复制到 target
+                    var clonedType = cloned.GetType();
+                    foreach (var prop in clonedType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                    {
+                        if (!prop.CanRead || !prop.CanWrite) continue;
+                        // 跳过 MemoryPackIgnore 的属性
+                        if (prop.GetCustomAttributes(typeof(MemoryPack.MemoryPackIgnoreAttribute), false).Length > 0) continue;
 
+                        try
+                        {
+                            var value = prop.GetValue(cloned);
+                            prop.SetValue(target, value);
+                        }
+                        catch
+                        {
+                            // 忽略无法复制的字段
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -373,6 +418,7 @@ namespace Astrum.LogicCore.Core
             {
                 world.SkillEffectSystem?.Update();
             }
+            // ShadowWorld 的系统在 FrameTickShadow 中单独更新，这里不需要
         }
 
         /// <summary>
@@ -471,6 +517,13 @@ namespace Astrum.LogicCore.Core
                 
                 ASLogger.Instance.Info($"World 快照反序列化成功，实体数量: {world.Entities?.Count ?? 0}", "Room.LoadWorld");
                 
+                // 清理 ShadowWorld（重连/重载时重建影子世界）
+                if (ShadowWorld != null && ShadowWorld.IsFromPool)
+                {
+                    ShadowWorld.Recycle();
+                }
+                ShadowWorld = null;
+
                 // 参考 Rollback 逻辑：清理旧世界，设置新世界
                 MainWorld?.Cleanup();
                 MainWorld = world;
@@ -531,6 +584,13 @@ namespace Astrum.LogicCore.Core
             {
                 MainWorld.Recycle(); // 调用 Recycle 方法（包含 Cleanup + Reset + 回收）
                 MainWorld = null;
+            }
+            
+            // 清理 ShadowWorld
+            if (ShadowWorld != null && ShadowWorld.IsFromPool)
+            {
+                ShadowWorld.Recycle(); // 调用 Recycle 方法（包含 Cleanup + Reset + 回收）
+                ShadowWorld = null;
             }
             
             // 清理帧同步控制器
