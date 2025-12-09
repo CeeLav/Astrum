@@ -60,6 +60,12 @@ namespace Astrum.LogicCore.Core
         /// 帧输入缓存（帧号 -> 玩家ID -> 输入）
         /// </summary>
         private readonly Dictionary<int, Dictionary<long, LSInput>> _frameInputs = new();
+        
+        /// <summary>
+        /// 原始请求帧号缓存（帧号 -> 玩家ID -> 原始请求帧号）
+        /// 用于记录客户端上报时的原始帧号，即使输入被延迟到其他帧
+        /// </summary>
+        private readonly Dictionary<int, Dictionary<long, int>> _requestFrameCache = new();
 
 
         /// <summary>
@@ -128,7 +134,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void AddPlayerInput(int frame, long playerId, LSInput input)
         {
-            int originalFrame = frame;
+            int originalFrame = frame; // 保存原始请求帧号
             
             // 如果输入帧号已经过了，使用服务器的当前帧号
             if (frame < AuthorityFrame + 1)
@@ -152,6 +158,13 @@ namespace Astrum.LogicCore.Core
             
             _frameInputs[frame][playerId] = input;
             
+            // 保存原始请求帧号（即使输入被延迟到其他帧，也要记录原始请求帧号）
+            if (!_requestFrameCache.ContainsKey(frame))
+            {
+                _requestFrameCache[frame] = new Dictionary<long, int>();
+            }
+            _requestFrameCache[frame][playerId] = originalFrame;
+            
             // 定期清理过期缓存
             CleanupExpiredCache();
         }
@@ -173,6 +186,7 @@ namespace Astrum.LogicCore.Core
             
             // 获取当前帧的输入缓存
             var currentFrameInputs = _frameInputs.TryGetValue(frame, out var inputsThisFrame) ? inputsThisFrame : null;
+            var currentRequestFrames = _requestFrameCache.TryGetValue(frame, out var requestFramesThisFrame) ? requestFramesThisFrame : null;
             
             // 遍历房间内所有玩家，确保每个玩家都有输入
             foreach (var player in players)
@@ -181,24 +195,63 @@ namespace Astrum.LogicCore.Core
                 if (playerId <= 0) continue; // 过滤无效ID
                 
                 LSInput input = null;
+                bool isMissing = false; // 是否为占位空输入
+                int requestFrame = frame; // 原始请求帧号，默认为当前帧
                 
                 // 1. 优先使用当前帧的输入
                 if (currentFrameInputs != null && currentFrameInputs.TryGetValue(playerId, out input))
                 {
-                    frameInputs.Inputs[playerId] = input;
+                    // 获取原始请求帧号
+                    if (currentRequestFrames != null && currentRequestFrames.TryGetValue(playerId, out var reqFrame))
+                    {
+                        requestFrame = reqFrame;
+                    }
+                    // 如果请求帧号与下发帧号不同，说明是延迟输入，不是占位空输入
+                    isMissing = false;
                 }
-                // 2. 如果没有当前帧输入，使用上一帧的输入
+                // 2. 如果没有当前帧输入，使用上一帧的输入（占位空输入）
                 else if ((input = GetPreviousFrameInput(playerId, frame)) != null)
                 {
-                    frameInputs.Inputs[playerId] = input;
-                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，使用上一帧输入");
+                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，使用上一帧输入（占位）");
+                    // 使用上一帧输入作为占位时，请求帧号等于当前帧（因为客户端没有上报当前帧的输入）
+                    requestFrame = frame;
+                    isMissing = true; // 使用上一帧输入作为占位，标记为占位空输入
+                    // 注意：需要创建一个新的输入对象，而不是直接使用上一帧的输入对象
+                    // 因为需要设置新的 Frame、RequestFrame 和 IsMissing 字段
+                    var placeholderInput = LSInput.Create(isFromPool: true);
+                    placeholderInput.PlayerId = playerId;
+                    placeholderInput.Frame = frame; // 下发帧号
+                    placeholderInput.RequestFrame = requestFrame; // 原始请求帧号（等于当前帧）
+                    placeholderInput.IsMissing = isMissing; // 标记为占位空输入
+                    // 复制上一帧的输入值（作为占位）
+                    placeholderInput.MoveX = input.MoveX;
+                    placeholderInput.MoveY = input.MoveY;
+                    placeholderInput.Attack = input.Attack;
+                    placeholderInput.Skill1 = input.Skill1;
+                    placeholderInput.Skill2 = input.Skill2;
+                    placeholderInput.Roll = input.Roll;
+                    placeholderInput.Dash = input.Dash;
+                    placeholderInput.MouseWorldX = input.MouseWorldX;
+                    placeholderInput.MouseWorldZ = input.MouseWorldZ;
+                    placeholderInput.Timestamp = input.Timestamp;
+                    placeholderInput.BornInfo = input.BornInfo;
+                    input = placeholderInput;
                 }
-                // 3. 如果都没有，使用默认输入
+                // 3. 如果都没有，使用默认输入（占位空输入）
                 else
                 {
-                    frameInputs.Inputs[playerId] = CreateDefaultInput(playerId, frame);
-                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报且无历史输入，使用默认输入");
+                    input = CreateDefaultInput(playerId, frame);
+                    ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报且无历史输入，使用默认输入（占位）");
+                    requestFrame = frame; // 占位空输入，请求帧号等于下发帧号
+                    isMissing = true; // 这是占位空输入
                 }
+                
+                // 设置 RequestFrame 和 IsMissing 字段
+                input.RequestFrame = requestFrame;
+                input.IsMissing = isMissing;
+                input.Frame = frame; // 确保下发帧号正确
+                
+                frameInputs.Inputs[playerId] = input;
             }
             
             return frameInputs;
@@ -223,14 +276,16 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 创建默认的空输入
+        /// 创建默认的空输入（占位空输入）
         /// </summary>
         private LSInput CreateDefaultInput(long playerId, int frame)
         {
             // 使用对象池复用 LSInput，减少 GC 分配
             var defaultInput = LSInput.Create(isFromPool: true);
             defaultInput.PlayerId = playerId;
-            defaultInput.Frame = frame;
+            defaultInput.Frame = frame; // 下发帧号
+            defaultInput.RequestFrame = frame; // 占位空输入，请求帧号等于下发帧号
+            defaultInput.IsMissing = true; // 标记为占位空输入
             return defaultInput;
         }
 
@@ -244,6 +299,7 @@ namespace Astrum.LogicCore.Core
             foreach (var frame in framesToRemove)
             {
                 _frameInputs.Remove(frame);
+                _requestFrameCache.Remove(frame); // 同时清理原始请求帧号缓存
             }
         }
 
