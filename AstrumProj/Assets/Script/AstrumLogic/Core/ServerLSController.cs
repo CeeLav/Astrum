@@ -128,36 +128,34 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void AddPlayerInput(int frame, long playerId, LSInput input)
         {
-            // 如果客户端上报的帧号小于服务器当前的 AuthorityFrame，直接丢弃
-            if (frame < AuthorityFrame)
+            // 从输入中获取原始请求帧号（客户端上报时设置的 RequestFrame）
+            //int originalRequestFrame = input?.RequestFrame ?? frame;
+            
+            // 如果输入帧号已经过了，使用服务器的当前帧号
+            if (frame < AuthorityFrame + 1)
             {
-                long clientTimestamp = input.Timestamp;
-                long serverTimestamp = TimeInfo.Instance.ClientNow();
-                long timeDiff = serverTimestamp - clientTimestamp;
-                ASLogger.Instance.Info($"丢弃过期输入 | 玩家: {playerId} | 上报帧号: {frame} | 服务器当前帧: {AuthorityFrame} | 客户端时间戳: {clientTimestamp} | 服务器时间戳: {serverTimestamp} | 时间差: {timeDiff}ms", "FrameSync.Input");
-                return;
+                // 客户端上报的帧输入对应的帧号已经下发，延迟到下一帧下发
+                ASLogger.Instance.Info($"客户端上报的帧输入对应的帧号已经下发，延迟到下一帧下发 | 玩家: {playerId} | 服务器当前帧: {AuthorityFrame} | 延迟到帧: {AuthorityFrame + 1}", "FrameSync.InputDelay");
+                frame = AuthorityFrame + 1;
             }
             
-            // 如果客户端上报的帧号大于服务器当前的 AuthorityFrame + 10，直接丢弃
-            if (frame > AuthorityFrame + 10)
+            // 如果输入帧号比服务器当前帧晚太多，限制在合理范围内
+            if (frame > AuthorityFrame + MAX_CACHE_FRAMES)
             {
-                long clientTimestamp = input.Timestamp;
-                long serverTimestamp = TimeInfo.Instance.ClientNow();
-                long timeDiff = serverTimestamp - clientTimestamp;
-                ASLogger.Instance.Info($"丢弃超前进输入 | 玩家: {playerId} | 上报帧号: {frame} | 服务器当前帧: {AuthorityFrame} | 最大允许帧: {AuthorityFrame + 10} | 客户端时间戳: {clientTimestamp} | 服务器时间戳: {serverTimestamp} | 时间差: {timeDiff}ms", "FrameSync.Input");
-                return;
+                ASLogger.Instance.Warning($"输入帧号 {frame} 过于超前，限制为 {AuthorityFrame + MAX_CACHE_FRAMES}，玩家: {playerId}");
+                frame = AuthorityFrame + MAX_CACHE_FRAMES;
             }
             
-            // 只有当客户端上报的帧号在 [AuthorityFrame, AuthorityFrame + 10] 范围内时，才处理该帧数据
             if (!_frameInputs.ContainsKey(frame))
             {
                 _frameInputs[frame] = new Dictionary<long, LSInput>();
             }
             
-            // 设置输入的下发帧号
+            // 修改输入的下发帧号，但保持原始请求帧号不变
             if (input != null)
             {
-                input.Frame = frame;
+                input.Frame = frame; // 修改为下发帧号
+                // RequestFrame 保持不变，使用客户端上报的原始值
             }
             
             _frameInputs[frame][playerId] = input;
@@ -198,7 +196,7 @@ namespace Astrum.LogicCore.Core
                     // 确保 Frame 字段是下发帧号
                     if (input != null)
                     {
-                        input.Frame = frame;
+                        input.Frame = frame; // 确保下发帧号正确
                     }
                 }
                 // 2. 如果没有当前帧输入，使用上一帧的输入（占位）
