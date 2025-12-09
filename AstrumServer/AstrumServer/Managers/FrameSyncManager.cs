@@ -269,8 +269,6 @@ namespace AstrumServer.Managers
                 
                 // 存储输入数据（内部会处理帧号验证和缓存）
                 frameState.StoreFrameInput(lsInput);
-                
-                ASLogger.Instance.Debug($"收到玩家 {lsInput.PlayerId} 的单帧输入，房间: {roomId}，客户端帧: {singleInput.FrameID}，服务器帧: {frameState.AuthorityFrame}，最终存储帧: {lsInput.Frame}");
             }
             catch (Exception ex)
             {
@@ -317,10 +315,6 @@ namespace AstrumServer.Managers
                     frameState.LogicRoom.FrameTick(frameInputs);
                 }
                 
-                // 记录实际收集到的玩家数量
-                var actualPlayerCount = frameInputs.Inputs.Count;
-                ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，实际收到输入玩家数: {actualPlayerCount}");
-                
                 // 记录帧输入到回放录制器
                 frameState.ReplayRecorder?.OnFrameInputs(frameState.AuthorityFrame, frameInputs);
                 
@@ -346,8 +340,6 @@ namespace AstrumServer.Managers
                 
                 // 发送帧同步数据给房间内所有玩家
                 SendFrameSyncData(roomId, frameState.AuthorityFrame, frameInputs);
-                
-                ASLogger.Instance.Debug($"处理房间 {roomId} 帧 {frameState.AuthorityFrame}，输入数: {frameInputs.Inputs.Count}，缓存总帧数: {frameState.GetCacheFrameCount()}", "FrameSync.Processing");
             }
             catch (Exception ex)
             {
@@ -522,7 +514,6 @@ namespace AstrumServer.Managers
                 frameData.authorityFrame = authorityFrame;
                 frameData.frameInputs = frameInputs;
                 frameData.timestamp = TimeInfo.Instance.ClientNow();
-                ASLogger.Instance.Debug($"发送帧同步数据 - 房间: {roomId}, 帧: {authorityFrame}, 输入数: {frameInputs.Inputs.Count}, 时间戳: {frameData.timestamp}", "FrameSync.Send");
                 if (frameData.frameInputs.Inputs.Count > 0)
                 {
                     ASLogger.Instance.Debug($"input frame: {frameData.frameInputs.Inputs.Values.First().Frame}", "FrameSync.Send");
@@ -632,10 +623,7 @@ namespace AstrumServer.Managers
                     
                     ASLogger.Instance.Info($"房间 {roomId} 收到玩家 {playerId} 有效输入 (帧:{input.Frame}): {string.Join(", ", inputDetails)}", "FrameSync.Input");
                 }
-                else
-                {
-                    ASLogger.Instance.Debug($"房间 {roomId} 收到玩家 {playerId} 空输入 (帧:{input.Frame})", "FrameSync.Input");
-                }
+                // 空输入不记录日志
             }
             catch (Exception ex)
             {

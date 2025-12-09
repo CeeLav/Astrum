@@ -165,7 +165,6 @@ namespace AstrumServer.Managers
                         
                         // 避免在日志中直接使用 frameInputs，防止触发 ToString() 导致序列化错误
                         var inputCount = frameInputs?.Inputs?.Count ?? 0;
-                        ASLogger.Instance.Debug($"处理房间 {roomInfo.Id} 帧 {frame}，输入数: {inputCount}", "FrameSync.Processing");
                     };
                     
                     ASLogger.Instance.Info($"房间 {roomInfo.Id} 帧同步已初始化，玩家数: {PlayerIds.Count}，回放录制已启动，等待发送 FrameSyncStartNotification", "FrameSync.Controller");
@@ -302,8 +301,6 @@ namespace AstrumServer.Managers
                 {
                     ASLogger.Instance.Error($"房间 {_room.Info.Id} LSController 不是 ServerLSController，无法处理输入", "FrameSync.Input");
                 }
-                
-                ASLogger.Instance.Debug($"收到玩家 {lsInput.PlayerId} 的单帧输入，房间: {_room.Info.Id}，客户端帧: {singleInput.FrameID}，服务器帧: {AuthorityFrame}，最终存储帧: {lsInput.Frame}");
             }
             catch (Exception ex)
             {
@@ -750,7 +747,6 @@ namespace AstrumServer.Managers
                 
                 // 避免在日志中直接使用 frameInputs，防止触发 ToString() 导致序列化错误
                 var inputCount = frameInputs?.Inputs?.Count ?? 0;
-                ASLogger.Instance.Debug($"发送帧同步数据 - 房间: {_room.Info.Id}, 帧: {authorityFrame}, 输入数: {inputCount}, 时间戳: {frameData.timestamp}", "FrameSync.Send");
                 
                 // 发送给房间内所有玩家
                 int successCount = 0;
@@ -834,10 +830,7 @@ namespace AstrumServer.Managers
                     
                     ASLogger.Instance.Info($"房间 {roomId} 收到玩家 {playerId} 有效输入 (帧:{input.Frame}): {string.Join(", ", inputDetails)}", "FrameSync.Input");
                 }
-                else
-                {
-                    ASLogger.Instance.Debug($"房间 {roomId} 收到玩家 {playerId} 空输入 (帧:{input.Frame})", "FrameSync.Input");
-                }
+                // 空输入不记录日志
             }
             catch (Exception ex)
             {

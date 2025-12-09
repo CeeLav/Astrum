@@ -92,7 +92,6 @@ namespace AstrumServer.Network
                     {
                         // 直接发送具体消息对象，不包装在 NetworkMessage 中
                         session.Send(message);
-                        ASLogger.Instance.Debug($"发送消息到会话 {sessionId}: {message.GetType().Name}");
                     }
                     else
                     {

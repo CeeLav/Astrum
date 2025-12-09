@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.FrameSync;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Core
@@ -31,6 +33,29 @@ namespace Astrum.LogicCore.Core
                 // 使用 CapabilitySystem 统一调度（按 Capability 遍历，每个 Capability 更新所有拥有它的实体）
                 if (world.CapabilitySystem != null)
                 {
+                    // 记录 CapabilitySystem.Update 调用（仅当有实体有非空输入时）
+                    bool hasNonEmptyInput = false;
+                    if (world.Entities != null)
+                    {
+                        foreach (var entity in world.Entities.Values)
+                        {
+                            if (entity != null && !entity.IsDestroyed)
+                            {
+                                var inputComp = entity.GetComponent<LSInputComponent>();
+                                if (inputComp?.CurrentInput != null && (inputComp.CurrentInput.MoveX != 0 || inputComp.CurrentInput.MoveY != 0))
+                                {
+                                    hasNonEmptyInput = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (hasNonEmptyInput)
+                    {
+                        ASLogger.Instance.Info($"[LSUpdater.UpdateWorld] 调用 CapabilitySystem.Update | World.CurFrame={world.CurFrame}", "LSUpdater.UpdateWorld");
+                    }
+                    
                     world.CapabilitySystem.Update(world);
                 }
 

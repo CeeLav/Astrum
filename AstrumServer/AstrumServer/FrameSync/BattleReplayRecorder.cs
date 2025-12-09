@@ -73,8 +73,6 @@ namespace AstrumServer.FrameSync
                 };
                 
                 _snapshots.Add(snapshot);
-                
-                ASLogger.Instance.Debug($"BattleReplayRecorder: 记录快照 - 房间: {_roomId}, 帧: {frame}, 原始大小: {worldSnapshotData.Length} bytes, 压缩后: {compressedData.Length} bytes", "Replay.Recorder");
             }
             catch (Exception ex)
             {
@@ -115,8 +113,6 @@ namespace AstrumServer.FrameSync
                     SaveReplayFilePeriodically();
                     _lastSaveTime = currentTime;
                 }
-                
-                ASLogger.Instance.Debug($"BattleReplayRecorder: 记录帧输入 - 房间: {_roomId}, 帧: {frame}, 输入数: {inputs.Inputs.Count}, 数据大小: {inputsData.Length} bytes", "Replay.Recorder");
             }
             catch (Exception ex)
             {

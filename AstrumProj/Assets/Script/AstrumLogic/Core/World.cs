@@ -248,6 +248,8 @@ namespace Astrum.LogicCore.Core
         {
             using (new ProfileScope("World.Update"))
             {
+                //CurFrame++;
+                
                 // 1. 更新所有 Capability（可能会产生新事件）
                 using (new ProfileScope("World.UpdateWorld"))
                 {
@@ -270,7 +272,6 @@ namespace Astrum.LogicCore.Core
                     HitSystem?.StepPhysics(physicsDeltaTime);
                 }
 
-                CurFrame++;
                 ApplyQueuedSubArchetypeChangesAtFrameEnd();
             }
         }

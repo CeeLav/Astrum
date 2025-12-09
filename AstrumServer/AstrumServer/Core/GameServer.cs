@@ -254,8 +254,6 @@ namespace AstrumServer.Core
         {
             try
             {
-                ASLogger.Instance.Debug($"收到来自客户端 {client.Id} 的消息: {message.GetType().Name}");
-                
                 // 根据消息类型处理
                 switch (message)
                 {
@@ -1046,8 +1044,6 @@ namespace AstrumServer.Core
                 {
                     ASLogger.Instance.Warning($"用户 {userInfo.Id} 发送单帧输入但房间不存在: {userInfo.CurrentRoomId}");
                 }
-                
-                ASLogger.Instance.Debug($"处理用户 {userInfo.Id} 的单帧输入，房间: {userInfo.CurrentRoomId}，帧: {singleInput.FrameID}");
             }
             catch (Exception ex)
             {

@@ -128,10 +128,13 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void AddPlayerInput(int frame, long playerId, LSInput input)
         {
+            int originalFrame = frame;
+            
             // 如果输入帧号已经过了，使用服务器的当前帧号
             if (frame < AuthorityFrame + 1)
             {
-                ASLogger.Instance.Debug($"输入帧号 {frame} 已过期，使用服务器当前帧号 {AuthorityFrame + 1}，玩家: {playerId}");
+                // 客户端上报的帧输入对应的帧号已经下发，延迟到下一帧下发
+                ASLogger.Instance.Info($"客户端上报的帧输入对应的帧号已经下发，延迟到下一帧下发 | 玩家: {playerId} | 上报帧号: {originalFrame} | 服务器当前帧: {AuthorityFrame} | 延迟到帧: {AuthorityFrame + 1}", "FrameSync.InputDelay");
                 frame = AuthorityFrame + 1;
             }
             
@@ -271,18 +274,10 @@ namespace Astrum.LogicCore.Core
             memoryBuffer.Seek(0, SeekOrigin.Begin);
             memoryBuffer.SetLength(0);
             
-            if (Room?.MainWorld != null)
-            {
-                var world = Room.MainWorld;
-                ASLogger.Instance.Debug($"保存帧状态 - 帧: {frame}, World ID: {world.WorldId}, World Frame:{world.CurFrame} 实体数量: {world.Entities?.Count ?? 0}", "FrameSync.SaveState");
-            }
-            
             MemoryPackHelper.Serialize(Room.MainWorld, memoryBuffer);
             memoryBuffer.Seek(0, SeekOrigin.Begin);
             long hash = memoryBuffer.GetBuffer().Hash(0, (int)memoryBuffer.Length);
             FrameBuffer.SetHash(frame, hash);
-            
-            ASLogger.Instance.Debug($"帧状态保存完成 - 帧: {frame}, 数据大小: {memoryBuffer.Length} bytes, 哈希: {hash}", "FrameSync.SaveState");
         }
 
         /// <summary>
