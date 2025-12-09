@@ -7,7 +7,7 @@ using cfg;
 
 namespace Astrum.LogicCore.Archetypes
 {
-    [Archetype(EArchetype.Role, "BaseUnit", "Combat", "Controllable")]
+    [Archetype(EArchetype.Role, EArchetype.BaseUnit, EArchetype.Combat, EArchetype.Controllable)]
     public class RoleArchetype : Archetype
     {
         private static readonly Type[] _comps = 

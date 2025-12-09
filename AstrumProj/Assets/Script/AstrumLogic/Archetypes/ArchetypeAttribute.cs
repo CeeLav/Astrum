@@ -7,12 +7,12 @@ namespace Astrum.LogicCore.Archetypes
     public sealed class ArchetypeAttribute : Attribute
     {
         public EArchetype Archetype { get; }
-        public string[] Merge { get; }
+        public EArchetype[] Merge { get; }
 
-        public ArchetypeAttribute(EArchetype archetype, params string[] merge)
+        public ArchetypeAttribute(EArchetype archetype, params EArchetype[] merge)
         {
             Archetype = archetype;
-            Merge = merge ?? Array.Empty<string>();
+            Merge = merge ?? Array.Empty<EArchetype>();
         }
     }
 }
