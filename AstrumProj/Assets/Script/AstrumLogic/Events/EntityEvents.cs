@@ -50,12 +50,7 @@ namespace Astrum.CommonBase
         /// 房间ID
         /// </summary>
         public long RoomId { get; set; }
-        
-        /// <summary>
-        /// 实体创建时间
-        /// </summary>
-        public DateTime CreationTime { get; set; }
-        
+
         /// <summary>
         /// 实体数据（可选，用于传递额外的实体信息）
         /// </summary>
@@ -63,7 +58,6 @@ namespace Astrum.CommonBase
         
         public EntityCreatedEventData()
         {
-            CreationTime = DateTime.Now;
         }
         
         public EntityCreatedEventData(Entity entity, int worldId, long roomId)
@@ -73,7 +67,6 @@ namespace Astrum.CommonBase
             EntityType = entity.GetType().Name;
             WorldId = worldId;
             RoomId = roomId;
-            CreationTime = entity.CreationTime;
         }
     }
     

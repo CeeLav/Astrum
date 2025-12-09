@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Astrum.CommonBase;
 using Astrum.Generated;
@@ -322,21 +323,14 @@ namespace Astrum.LogicCore.Core
                 return null;
             }
 
-            // 在 ShadowWorld 中创建影子实体
+            // 在 ShadowWorld 中创建影子实体（使用 CreateEntity 创建基础实体）
             var newShadow = ShadowWorld.CreateEntity(original.EntityConfigId);
             if (newShadow == null)
             {
                 ASLogger.Instance.Warning($"FrameTickShadow: 创建影子失败，playerId={playerId}");
                 return null;
             }
-
-            // 重设ID为与源实体相同的 ID
-            ShadowWorld.Entities.Remove(newShadow.UniqueId);
-            newShadow.UniqueId = shadowId;
-            ShadowWorld.Entities[shadowId] = newShadow;
-
-            // 初始化时从原实体完全复制状态
-            CopyEntityStateToShadow(playerId, shadowId);
+            CopyEntityStateToShadow(playerId,shadowId);
 
             // 标记权威实体有影子实体
             original.HasShadow = true;
@@ -347,6 +341,7 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 从权威实体复制状态到影子实体（用于回滚）
         /// 注意：originalId 和 shadowId 相同，但 original 在 MainWorld，shadow 在 ShadowWorld
+        /// 使用 MemoryPack 序列化/反序列化直接覆盖现有 shadow 实体
         /// </summary>
         public void CopyEntityStateToShadow(long originalId, long shadowId)
         {
@@ -357,102 +352,65 @@ namespace Astrum.LogicCore.Core
 
             if (original == null || shadow == null) return;
 
-            // 复制所有组件状态（直接通过反射复制，不使用 MemoryPack）
-            foreach (var kv in original.Components)
-            {
-                var originalComp = kv.Value;
-                var shadowComp = shadow.GetComponentById(originalComp.GetComponentTypeId());
-
-                if (shadowComp != null)
-                {
-                    // 直接通过反射复制组件属性，不使用 MemoryPack
-                    CopyComponentState(originalComp, shadowComp);
-                }
-            }
-
-            // 复制 Capability 状态并注册到 ShadowWorld 的 CapabilitySystem
-            if (original.CapabilityStates != null && shadow.CapabilityStates != null)
-            {
-                shadow.CapabilityStates.Clear();
-                foreach (var kv in original.CapabilityStates)
-                {
-                    shadow.CapabilityStates[kv.Key] = kv.Value;
-                    ShadowWorld.CapabilitySystem?.RegisterEntityCapability(shadowId, kv.Key);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 复制组件状态（直接通过反射复制属性，不使用 MemoryPack）
-        /// </summary>
-        private void CopyComponentState(Components.BaseComponent source, Components.BaseComponent target)
-        {
-            if (source == null || target == null) return;
-            
             try
             {
-                var sourceType = source.GetType();
-                var targetType = target.GetType();
-                
-                // 确保类型匹配
-                if (sourceType != targetType)
+                // 使用 MemoryPack 序列化 original Entity
+                var memoryBuffer = ObjectPool.Instance.Fetch<MemoryBuffer>();
+                try
                 {
-                    ASLogger.Instance.Warning($"复制组件状态失败: 类型不匹配，源类型={sourceType.Name}，目标类型={targetType.Name}", "Room.CopyComponentState");
-                    return;
-                }
-                
-                // 直接复制所有可读写的属性
-                foreach (var prop in sourceType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
-                {
-                    if (!prop.CanRead || !prop.CanWrite) continue;
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    memoryBuffer.SetLength(0);
+                    MemoryPackHelper.Serialize(original, memoryBuffer);
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
                     
-                    // 跳过 MemoryPackIgnore 的属性（这些通常是运行时状态，不需要复制）
-                    if (prop.GetCustomAttributes(typeof(MemoryPack.MemoryPackIgnoreAttribute), false).Length > 0) continue;
+                    // 保存 shadow 的 World 和 UniqueId（反序列化会覆盖这些字段）
+                    var shadowWorld = shadow.World;
+                    var shadowUniqueId = shadow.UniqueId;
                     
-                    // 跳过 EntityId（影子实体的 EntityId 应该保持自己的值）
-                    if (prop.Name == "EntityId") continue;
+                    // 直接反序列化覆盖现有 shadow 实体
+                    object shadowObj = shadow;
+                    MemoryPackHelper.Deserialize(typeof(Entity), memoryBuffer, ref shadowObj);
+                    shadow = shadowObj as Entity;
+                    
+                    if (shadow == null)
+                    {
+                        ASLogger.Instance.Warning($"CopyEntityStateToShadow: 反序列化失败，originalId={originalId}, shadowId={shadowId}", "Room.CopyEntityStateToShadow");
+                        return;
+                    }
+                    
+                    // 恢复 shadow 的 World 和 UniqueId
+                    shadow.World = shadowWorld;
+                    shadow.UniqueId = shadowUniqueId;
+                    
+                    // 确保所有组件的 EntityId 正确
+                    foreach (var component in shadow.Components.Values)
+                    {
+                        component.EntityId = shadowUniqueId;
+                    }
+                    
+                    // 重新注册所有 Capability 到 ShadowWorld 的 CapabilitySystem
+                    if (shadow.CapabilityStates != null && ShadowWorld.CapabilitySystem != null)
+                    {
+                        foreach (var kv in shadow.CapabilityStates)
+                        {
+                            ShadowWorld.CapabilitySystem.RegisterEntityCapability(shadowUniqueId, kv.Key);
+                        }
+                    }
 
-                    try
-                    {
-                        var value = prop.GetValue(source);
-                        prop.SetValue(target, value);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 忽略无法复制的字段（可能是只读或特殊类型）
-                        ASLogger.Instance.Debug($"复制组件属性失败: {prop.Name}, 错误: {ex.Message}", "Room.CopyComponentState");
-                    }
+                    shadow.HasShadow = false;
                 }
-                
-                // 复制所有字段（包括私有字段，用于完整状态复制）
-                foreach (var field in sourceType.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                finally
                 {
-                    // 跳过 MemoryPackIgnore 的字段
-                    if (field.GetCustomAttributes(typeof(MemoryPack.MemoryPackIgnoreAttribute), false).Length > 0) continue;
-                    
-                    // 跳过 EntityId
-                    if (field.Name == "EntityId" || field.Name.Contains("EntityId")) continue;
-                    
-                    // 跳过只读字段（如 const 或 readonly）
-                    if (field.IsInitOnly || field.IsLiteral) continue;
-
-                    try
-                    {
-                        var value = field.GetValue(source);
-                        field.SetValue(target, value);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 忽略无法复制的字段
-                        ASLogger.Instance.Debug($"复制组件字段失败: {field.Name}, 错误: {ex.Message}", "Room.CopyComponentState");
-                    }
+                    ObjectPool.Instance.Recycle(memoryBuffer);
                 }
             }
             catch (Exception ex)
             {
-                ASLogger.Instance.Warning($"复制组件状态失败: {ex.Message}", "Room.CopyComponentState");
+                ASLogger.Instance.Error($"CopyEntityStateToShadow 失败: {ex.Message}", "Room.CopyEntityStateToShadow");
+                ASLogger.Instance.LogException(ex, LogLevel.Error);
             }
         }
+
         
         /// <summary>
         /// 已同步的实体ID集合（用于跟踪哪些实体已经发布过创建事件）

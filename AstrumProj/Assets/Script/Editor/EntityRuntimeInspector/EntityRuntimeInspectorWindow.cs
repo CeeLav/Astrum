@@ -175,7 +175,7 @@ namespace Astrum.Editor.EntityRuntimeInspector
             if (_selectedEntity != null)
             {
                 EditorGUILayout.LabelField($"实体名称: {_selectedEntity.Name}");
-                EditorGUILayout.LabelField($"配置ID: {_selectedEntity.EntityConfigId} | 创建时间: {_selectedEntity.CreationTime:yyyy-MM-dd HH:mm:ss}");
+                EditorGUILayout.LabelField($"配置ID: {_selectedEntity.EntityConfigId} ");
             }
 
             EditorGUI.indentLevel--;

@@ -66,7 +66,6 @@ namespace Astrum.LogicCore.Factories
             entity.Name = entityConfigId > 0 ? GetEntityNameFromConfig(entityConfigId) : archetype.ToString();
             entity.Archetype = archetype;
             entity.EntityConfigId = entityConfigId;
-            entity.CreationTime = DateTime.Now;
             entity.IsDestroyed = false;
             entity.UniqueId = Entity.GetNextId(); // 设置新的唯一ID
             

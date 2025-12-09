@@ -62,11 +62,6 @@ namespace Astrum.LogicCore.Core
         public bool IsDestroyed { get; set; } = false;
 
         /// <summary>
-        /// 实体创建时间
-        /// </summary>
-        public DateTime CreationTime { get; set; }
-
-        /// <summary>
         /// 挂载的组件字典（ComponentTypeId -> Component Instance）
         /// 预分配容量 8，优化查询性能从 O(N) 到 O(1)
         /// </summary>
@@ -128,7 +123,6 @@ namespace Astrum.LogicCore.Core
         public Entity()
         {
             //UniqueId = _nextId++;
-            CreationTime = DateTime.Now;
         }
         
         /// <summary>
@@ -144,14 +138,13 @@ namespace Astrum.LogicCore.Core
         /// ⚠️ 序列化格式变更：不兼容旧版本存档
         /// </summary>
         [MemoryPackConstructor]
-        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId, bool isDestroyed, DateTime creationTime, Dictionary<int, BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
+        public Entity(long uniqueId, string name, EArchetype archetype, int entityConfigId, bool isDestroyed, Dictionary<int, BaseComponent> components, long parentId, List<long> childrenIds, Dictionary<int, CapabilityState> capabilityStates, Dictionary<CapabilityTag, HashSet<long>> disabledTags, List<EArchetype> activeSubArchetypes, Dictionary<string,int> componentRefCounts, Dictionary<string,int> capabilityRefCounts)
         {
             UniqueId = uniqueId;
             Name = name;
             Archetype = archetype;
             EntityConfigId = entityConfigId;
             IsDestroyed = isDestroyed;
-            CreationTime = creationTime;
             Components = components ?? new Dictionary<int, BaseComponent>(8);
             ParentId = parentId;
             ChildrenIds = childrenIds;
@@ -613,8 +606,7 @@ namespace Astrum.LogicCore.Core
             Archetype = default(EArchetype);
             EntityConfigId = 0;
             IsDestroyed = false;
-            CreationTime = default(DateTime);
-            
+
             // 清空所有集合（保留对象引用，只清空内容）
             Components.Clear();
             ChildrenIds.Clear();

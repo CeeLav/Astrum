@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
+using Astrum.CommonBase;
 using TrueSync;
 
 namespace Astrum.LogicCore.FrameSync
@@ -11,25 +13,46 @@ namespace Astrum.LogicCore.FrameSync
     public static class FrameHashUtility
     {
         /// <summary>
-        /// 计算实体在指定帧的哈希值（关键字段）
-        /// 临时改为只比较位置
+        /// 计算实体在指定帧的哈希值（通过 MemoryPack 序列化后计算 bytes 的哈希）
         /// </summary>
         public static int Compute(Entity entity, int frameId)
         {
             if (entity == null) return 0;
             
-            var hash = new HashCode();
-            
-            // 位置/朝向（TransComponent）- 临时只比较位置
-            var trans = entity.GetComponent<TransComponent>();
-            if (trans != null)
+            try
             {
-                hash.Add(trans.Position.x.RawValue);
-                hash.Add(trans.Position.y.RawValue);
-                hash.Add(trans.Position.z.RawValue);
+                // 使用 MemoryPack 序列化实体
+                var memoryBuffer = ObjectPool.Instance.Fetch<MemoryBuffer>();
+                try
+                {
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    memoryBuffer.SetLength(0);
+                    MemoryPackHelper.Serialize(entity, memoryBuffer);
+                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    
+                    // 计算序列化后的 bytes 的哈希
+                    byte[] buffer = memoryBuffer.GetBuffer();
+                    int length = (int)memoryBuffer.Length;
+                    
+                    if (buffer == null || length == 0)
+                    {
+                        return 0;
+                    }
+                    
+                    // 使用与 FrameBuffer 相同的哈希计算方法
+                    long hash = buffer.Hash(0, length);
+                    return (int)hash;
+                }
+                finally
+                {
+                    ObjectPool.Instance.Recycle(memoryBuffer);
+                }
             }
-            
-            return hash.ToHashCode();
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Warning($"计算实体哈希失败: {ex.Message}", "FrameHashUtility.Compute");
+                return 0;
+            }
         }
 
         /// <summary>
