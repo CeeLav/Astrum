@@ -115,17 +115,13 @@ namespace Astrum.LogicCore.Core
                 var authorityInputs = FrameBuffer.FrameInputs(ProcessedAuthorityFrame);
                 Room.MainWorld.CurFrame = ProcessedAuthorityFrame;
                 
-                // 检查是否为占位空输入（服务器未收到数据导致的占位）
-                // TODO: 后续通过协议字段 missing 标记来识别，目前先通过判断输入是否为空且有本地备份来判断
-                bool isPlaceholderEmpty = CheckIfPlaceholderEmptyInput(ProcessedAuthorityFrame, authorityInputs);
-                
                 // 执行权威帧（仅权威实体，不涉及预测）
                 Room.FrameTick(authorityInputs);
                 
                 // 权威帧处理完成后，比对影子实体与权威实体的哈希
                 if (PlayerId > 0 && PredictionFrame >= ProcessedAuthorityFrame)
                 {
-                    CheckAndRollbackShadow(ProcessedAuthorityFrame, isPlaceholderEmpty);
+                    CheckAndRollbackShadow(ProcessedAuthorityFrame);
                 }
             }
 
@@ -169,10 +165,11 @@ namespace Astrum.LogicCore.Core
                 {
                     if (Room.MainPlayerId > 0)
                     {
-                        // 确保 Input 的 Frame 字段被正确设置
+                        // 确保 Input 的 Frame 和 RequestFrame 字段被正确设置
                         if (_inputSystem.ClientInput != null)
                         {
                             _inputSystem.ClientInput.Frame = PredictionFrame;
+                            _inputSystem.ClientInput.RequestFrame = PredictionFrame; // 原始请求帧号与帧号一致
                             _inputSystem.ClientInput.PlayerId = Room.MainPlayerId;
                         }
                         
@@ -246,39 +243,11 @@ namespace Astrum.LogicCore.Core
             }
         }
 
-        /// <summary>
-        /// 检查是否为占位空输入（服务器未收到数据导致的占位）
-        /// </summary>
-        private bool CheckIfPlaceholderEmptyInput(int authorityFrame, OneFrameInputs authorityInputs)
-        {
-            if (authorityInputs == null || PlayerId <= 0) return false;
-            
-            // 优先使用协议字段 IsMissing 来识别
-            if (authorityInputs.Inputs.TryGetValue(PlayerId, out var input) && input != null)
-            {
-                // 使用协议字段 IsMissing 标记
-                if (input.IsMissing)
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                // 输入为空，检查是否有本地备份（说明客户端之前上报过输入）
-                int requestFrame = authorityFrame - _inputOffset; // 计算对应的请求帧号
-                if (_shadowInputBackups.ContainsKey(requestFrame))
-                {
-                    return true; // 有本地备份但服务器下发为空，说明是占位空输入
-                }
-            }
-            
-            return false;
-        }
 
         /// <summary>
         /// 检查并回滚影子实体（如果哈希不一致）
         /// </summary>
-        private void CheckAndRollbackShadow(int authorityFrame, bool isPlaceholderEmpty = false)
+        private void CheckAndRollbackShadow(int authorityFrame)
         {
             if (Room?.MainWorld == null || Room?.ShadowWorld == null || PlayerId <= 0) return;
 
@@ -300,51 +269,7 @@ namespace Astrum.LogicCore.Core
                 return;
             }
 
-            // 处理占位空输入：更新偏移量
-            if (isPlaceholderEmpty)
-            {
-                // 获取占位空输入的原始请求帧号
-                int requestFrame = authorityFrame; // 默认等于下发帧号
-                bool hasOriginalRequestFrame = false;
-                
-                // 从权威输入中获取原始请求帧号
-                var authorityInputs = FrameBuffer.FrameInputs(authorityFrame);
-                if (authorityInputs != null && authorityInputs.Inputs.TryGetValue(PlayerId, out var input) && input != null)
-                {
-                    if (input.RequestFrame > 0 && input.RequestFrame != authorityFrame)
-                    {
-                        // 有原始请求帧号，且不等于下发帧号，说明客户端上报过输入
-                        requestFrame = input.RequestFrame;
-                        hasOriginalRequestFrame = true;
-                    }
-                }
-                
-                // 根据是否有原始请求帧来更新偏移量
-                if (hasOriginalRequestFrame)
-                {
-                    // 占位空输入但有原始请求帧：偏移量 = 下发帧号 - 原始请求帧号
-                    int oldOffset = _inputOffset;
-                    _inputOffset = authorityFrame - requestFrame;
-                    ASLogger.Instance.Info($"[占位空输入][PlayerId={PlayerId}] 帧={authorityFrame}，有原始请求帧={requestFrame}，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
-                }
-                else
-                {
-                    // 占位空输入且没有原始请求帧：偏移量+1
-                    _inputOffset++;
-                    ASLogger.Instance.Info($"[占位空输入][PlayerId={PlayerId}] 帧={authorityFrame}，无原始请求帧，偏移量更新为={_inputOffset}", "FrameSync.InputOffset");
-                }
-                
-                // 回滚影子到该权威帧（空输入的结果）
-                Room.CopyEntityStateToShadow(PlayerId, shadowId);
-                
-                // 重放影子输入从权威帧+1到当前预测帧，使用偏移量计算请求帧号
-                if (PredictionFrame > authorityFrame)
-                {
-                    ReplayShadowToFrame(authorityFrame, PredictionFrame);
-                }
-                return; // 占位空输入不需要进行哈希比对
-            }
-
+            // 哈希不一致，执行回滚
             if (originalHash != shadowHash)
             {
                 // 获取双方当前位置
@@ -631,45 +556,68 @@ namespace Astrum.LogicCore.Core
         {
             _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
             
-            // 处理输入覆盖：通过原始请求帧号识别并更新偏移量
+            // 统一处理偏移量更新：通过原始请求帧号识别并更新偏移量
+            // 适用于：正常输入、占位空输入（有/无原始请求帧）、输入覆盖
             if (PlayerId > 0 && inputs != null && inputs.Inputs.TryGetValue(PlayerId, out var input) && input != null)
             {
                 int deliveryFrame = AuthorityFrame; // 下发帧号
+                bool offsetChanged = false;
+                int oldOffset = _inputOffset;
                 
-                // 使用协议字段 RequestFrame 获取原始请求帧号
-                if (input.RequestFrame > 0)
+                // 情况1：有原始请求帧号（RequestFrame > 0 且不等于下发帧号）
+                if (input.RequestFrame > 0 && input.RequestFrame != deliveryFrame)
                 {
                     int requestFrame = input.RequestFrame; // 原始请求帧号
                     
                     // 计算实际偏移量：实际偏移量 = 下发帧号 - 请求帧号
                     int actualOffset = deliveryFrame - requestFrame;
                     
-                    // 如果实际偏移量 < 当前偏移量，说明服务器收到了原始输入并覆盖了推迟后的输入
-                    // 需要更新偏移量
-                    if (actualOffset < _inputOffset)
+                    // 更新偏移量（无论增加还是减少，都根据实际偏移量更新）
+                    // 这样可以处理：
+                    // 1. 占位空输入但有原始请求帧：根据实际延迟更新偏移量
+                    // 2. 输入覆盖：偏移量减少（服务器收到原始输入）
+                    // 3. 正常输入延迟：偏移量增加（服务器延迟处理）
+                    if (actualOffset != _inputOffset)
                     {
-                        int oldOffset = _inputOffset;
                         _inputOffset = actualOffset;
-                        ASLogger.Instance.Info($"[输入覆盖][PlayerId={PlayerId}] 下发帧={deliveryFrame}，请求帧={requestFrame}，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
+                        offsetChanged = true;
                         
-                        // 偏移量变化后，需要重新回滚影子并重放
-                        if (Room?.MainWorld != null && Room?.ShadowWorld != null)
+                        string logType = input.IsMissing ? "占位空输入" : (actualOffset < oldOffset ? "输入覆盖" : "输入延迟");
+                        ASLogger.Instance.Info($"[{logType}][PlayerId={PlayerId}] 下发帧={deliveryFrame}，请求帧={requestFrame}，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
+                    }
+                }
+                // 情况2：占位空输入但没有原始请求帧号（客户端完全没上报）
+                else if (input.IsMissing && (input.RequestFrame == 0 || input.RequestFrame == deliveryFrame))
+                {
+                    // 占位空输入且没有原始请求帧：偏移量+1
+                    _inputOffset++;
+                    offsetChanged = true;
+                    ASLogger.Instance.Info($"[占位空输入][PlayerId={PlayerId}] 帧={deliveryFrame}，无原始请求帧，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
+                }
+                else
+                {
+                    _inputOffset = 0;
+                    offsetChanged = true;
+                    //ASLogger.Instance.Info($"[占位空输入][PlayerId={PlayerId}] 帧={deliveryFrame}, 帧号匹配，偏移量归零", "FrameSync.InputOffset");
+                    
+                }
+                
+                // 偏移量变化后，需要重新回滚影子并重放
+                if (offsetChanged && Room?.MainWorld != null && Room?.ShadowWorld != null)
+                {
+                    var original = Room.MainWorld.GetEntity(PlayerId);
+                    long shadowId = PlayerId;
+                    var shadow = Room.ShadowWorld.GetEntity(shadowId);
+                    
+                    if (original != null && shadow != null)
+                    {
+                        // 回滚影子到当前权威帧
+                        Room.CopyEntityStateToShadow(PlayerId, shadowId);
+                        
+                        // 重放影子输入从权威帧+1到当前预测帧
+                        if (PredictionFrame > deliveryFrame)
                         {
-                            var original = Room.MainWorld.GetEntity(PlayerId);
-                            long shadowId = PlayerId;
-                            var shadow = Room.ShadowWorld.GetEntity(shadowId);
-                            
-                            if (original != null && shadow != null)
-                            {
-                                // 回滚影子到当前权威帧
-                                Room.CopyEntityStateToShadow(PlayerId, shadowId);
-                                
-                                // 重放影子输入从权威帧+1到当前预测帧
-                                if (PredictionFrame > deliveryFrame)
-                                {
-                                    ReplayShadowToFrame(deliveryFrame, PredictionFrame);
-                                }
-                            }
+                            ReplayShadowToFrame(deliveryFrame, PredictionFrame);
                         }
                     }
                 }
