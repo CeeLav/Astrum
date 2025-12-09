@@ -330,7 +330,14 @@ namespace Astrum.LogicCore.Core
                 ASLogger.Instance.Warning($"FrameTickShadow: 创建影子失败，playerId={playerId}");
                 return null;
             }
-            CopyEntityStateToShadow(playerId,shadowId);
+
+            // 重设ID为与源实体相同的 ID，并更新字典
+            ShadowWorld.Entities.Remove(newShadow.UniqueId);
+            newShadow.UniqueId = shadowId;
+            ShadowWorld.Entities[shadowId] = newShadow;
+
+            // 使用统一的复制方法覆盖影子实体状态
+            CopyEntityStateToShadow(playerId, shadowId);
 
             // 标记权威实体有影子实体
             original.HasShadow = true;

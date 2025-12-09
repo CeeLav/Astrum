@@ -87,8 +87,10 @@ namespace Astrum.LogicCore.Capabilities
             // 记录 Tick 调用（排除输入为空的情况）
             if (input != null && (input.MoveX != 0 || input.MoveY != 0))
             {
+                // 使用 World.CurFrame 作为实际执行的帧号，而不是 input.Frame（预测帧号）
+                int actualFrame = entity.World?.CurFrame ?? input.Frame;
                 string posInfo = transComponent != null ? $"pos=({transComponent.Position.x.AsFloat():F2}, {transComponent.Position.y.AsFloat():F2}, {transComponent.Position.z.AsFloat():F2})" : "pos=N/A";
-                ASLogger.Instance.Info($"[MovementCapability.Tick] 实体 {entity.UniqueId} | 帧={input.Frame} | HasShadow={entity.HasShadow} | {posInfo} | MoveX={input.MoveX} | MoveY={input.MoveY}", "MovementCapability.Tick");
+                //ASLogger.Instance.Info($"[MovementCapability.Tick] 实体 {entity.UniqueId} | 帧={actualFrame} | HasShadow={entity.HasShadow} | {posInfo} | MoveX={input.MoveX} | MoveY={input.MoveY}", "MovementCapability.Tick");
             }
             
             // 获取移动阈值
@@ -108,9 +110,11 @@ namespace Astrum.LogicCore.Capabilities
             FP inputMagnitude = FP.Sqrt(moveX * moveX + moveY * moveY);
             if (entity.HasShadow && (input.MoveX != 0|| input.MoveY != 0))
             {
+                // 使用 World.CurFrame 作为实际执行的帧号，而不是 input.Frame（预测帧号）
+                int actualFrame = entity.World?.CurFrame ?? input.Frame;
                 var trans = GetComponent<TransComponent>(entity);
                 string posInfo = trans != null ? $"pos=({trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2})" : "pos=N/A";
-                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 有影子且输入非零 | 帧={input.Frame} | HasShadow={entity.HasShadow} | {posInfo} | MoveX={input.MoveX} | MoveY={input.MoveY}", "MovementCapability.Debug");
+                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 有影子且输入非零 | 帧={actualFrame} | HasShadow={entity.HasShadow} | {posInfo} | MoveX={input.MoveX} | MoveY={input.MoveY}", "MovementCapability.Debug");
             }
             if (inputMagnitude > FP.One)
             {
@@ -177,10 +181,12 @@ namespace Astrum.LogicCore.Capabilities
                 var pos = transComponent.Position;
                 transComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
                 var trans = transComponent;
-                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 移动，frame:{input.Frame}位置：{trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2}");
+                // 使用 World.CurFrame 作为实际执行的帧号，而不是 input.Frame（预测帧号）
+                int actualFrame = entity.World?.CurFrame ?? input.Frame;
+                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 移动，frame:{actualFrame}位置：{trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2}");
                 
                 // 记录位置历史（用于影子回滚调试）
-                movementComponent.RecordPosition(input.Frame, transComponent.Position);
+                movementComponent.RecordPosition(actualFrame, transComponent.Position);
                 
                 entity.World?.HitSystem?.UpdateEntityPosition(entity);
             }

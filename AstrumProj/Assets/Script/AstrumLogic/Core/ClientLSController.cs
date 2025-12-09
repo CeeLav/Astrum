@@ -264,21 +264,69 @@ namespace Astrum.LogicCore.Core
             // 获取影子实体在该权威帧记录的哈希
             if (!_shadowFrameHashes.TryGetValue(authorityFrame, out int shadowHash))
             {
-                // 如果没有记录，回滚
-                ASLogger.Instance.Warning($"影子实体哈希不存在，帧={authorityFrame}，执行回滚", "FrameSync.ShadowRollback");
-                return;
+                // 如果没有记录，输出详细信息
+                var shadowHashesInfo = _shadowFrameHashes.Count > 0
+                    ? string.Join(", ", _shadowFrameHashes.OrderBy(kv => kv.Key).Select(kv => $"帧{kv.Key}:哈希{kv.Value}"))
+                    : "无记录";
+                var minFrame = _shadowFrameHashes.Count > 0 ? _shadowFrameHashes.Keys.Min() : -1;
+                var maxFrame = _shadowFrameHashes.Count > 0 ? _shadowFrameHashes.Keys.Max() : -1;
+                ASLogger.Instance.Warning(
+                    $"影子实体哈希不存在 | 请求帧={authorityFrame} | 预测帧={PredictionFrame} | 偏移量={_inputOffset} | " +
+                    $"哈希记录范围=[{minFrame}~{maxFrame}] | 记录数={_shadowFrameHashes.Count} | " +
+                    $"哈希记录详情=[{shadowHashesInfo}]", 
+                    "FrameSync.ShadowRollback");
+                //return;
             }
 
             // 哈希不一致，执行回滚
             if (originalHash != shadowHash)
             {
-                // 获取双方当前位置
-                string originalPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetPositionInfo(original);
-                string shadowPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetPositionInfo(shadow);
-                
                 // 获取 MovementComponent 的位置历史
                 var originalMovement = original.GetComponent<Components.MovementComponent>();
                 var shadowMovement = shadow.GetComponent<Components.MovementComponent>();
+                
+                // 优先从位置历史中获取对应帧的位置
+                string originalPos = "未知位置";
+                string shadowPos = "未知位置";
+                
+                if (originalMovement != null)
+                {
+                    var originalHistory = originalMovement.GetPositionHistory();
+                    var origHist = originalHistory.FirstOrDefault(h => h.Frame == authorityFrame);
+                    if (origHist.Frame == authorityFrame)
+                    {
+                        originalPos = $"({origHist.Position.x.AsFloat():F2}, {origHist.Position.y.AsFloat():F2}, {origHist.Position.z.AsFloat():F2})";
+                    }
+                }
+                
+                if (shadowMovement != null)
+                {
+                    var shadowHistory = shadowMovement.GetPositionHistory();
+                    var shadowHist = shadowHistory.FirstOrDefault(h => h.Frame == authorityFrame);
+                    if (shadowHist.Frame == authorityFrame)
+                    {
+                        shadowPos = $"({shadowHist.Position.x.AsFloat():F2}, {shadowHist.Position.y.AsFloat():F2}, {shadowHist.Position.z.AsFloat():F2})";
+                    }
+                }
+                
+                // 如果位置历史中没有，尝试从缓存中获取
+                if (originalPos == "未知位置")
+                {
+                    originalPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetCachedPositionInfo(originalHash);
+                    if (originalPos == "未知位置")
+                    {
+                        originalPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetPositionInfo(original);
+                    }
+                }
+                
+                if (shadowPos == "未知位置")
+                {
+                    shadowPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetCachedPositionInfo(shadowHash);
+                    if (shadowPos == "未知位置")
+                    {
+                        shadowPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetPositionInfo(shadow);
+                    }
+                }
                 
                 // 构建合并的日志信息
                 var logParts = new List<string>
@@ -286,8 +334,8 @@ namespace Astrum.LogicCore.Core
                     $"帧={authorityFrame}",
                     $"权威哈希={originalHash}",
                     $"影子哈希={shadowHash}",
-                    $"当前权威位置={originalPos}",
-                    $"当前影子位置={shadowPos}",
+                    $"权威位置={originalPos}",
+                    $"影子位置={shadowPos}",
                     $"偏移量={_inputOffset}"
                 };
                 
@@ -333,6 +381,7 @@ namespace Astrum.LogicCore.Core
 
                 // 回滚影子：从权威实体复制状态
                 Room.CopyEntityStateToShadow(PlayerId, shadowId);
+                RecordShadowFrameHash(authorityFrame - _inputOffset);
 
                 // 重放影子输入从权威帧+1到当前预测帧，使用偏移量计算请求帧号
                 if (PredictionFrame > authorityFrame)
@@ -561,7 +610,7 @@ namespace Astrum.LogicCore.Core
             if (PlayerId > 0 && inputs != null && inputs.Inputs.TryGetValue(PlayerId, out var input) && input != null)
             {
                 int deliveryFrame = AuthorityFrame; // 下发帧号
-                bool offsetChanged = false;
+                //bool offsetChanged = false;
                 int oldOffset = _inputOffset;
                 
                 // 情况1：有原始请求帧号（RequestFrame > 0 且不等于下发帧号）
@@ -580,10 +629,10 @@ namespace Astrum.LogicCore.Core
                     if (actualOffset != _inputOffset)
                     {
                         _inputOffset = actualOffset;
-                        offsetChanged = true;
+                        //offsetChanged = true;
                         
                         string logType = input.IsMissing ? "占位空输入" : (actualOffset < oldOffset ? "输入覆盖" : "输入延迟");
-                        ASLogger.Instance.Info($"[{logType}][PlayerId={PlayerId}] 下发帧={deliveryFrame}，请求帧={requestFrame}，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
+                        //ASLogger.Instance.Info($"[{logType}][PlayerId={PlayerId}] 下发帧={deliveryFrame}，请求帧={requestFrame}，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
                     }
                 }
                 // 情况2：占位空输入但没有原始请求帧号（客户端完全没上报）
@@ -591,17 +640,18 @@ namespace Astrum.LogicCore.Core
                 {
                     // 占位空输入且没有原始请求帧：偏移量+1
                     _inputOffset++;
-                    offsetChanged = true;
-                    ASLogger.Instance.Info($"[占位空输入][PlayerId={PlayerId}] 帧={deliveryFrame}，无原始请求帧，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
+                    //offsetChanged = true;
+                    //ASLogger.Instance.Info($"[占位空输入][PlayerId={PlayerId}] 帧={deliveryFrame}，无原始请求帧，偏移量更新：{oldOffset} -> {_inputOffset}", "FrameSync.InputOffset");
                 }
                 else
                 {
                     _inputOffset = 0;
-                    offsetChanged = true;
+                    //offsetChanged = true;
                     //ASLogger.Instance.Info($"[占位空输入][PlayerId={PlayerId}] 帧={deliveryFrame}, 帧号匹配，偏移量归零", "FrameSync.InputOffset");
                     
                 }
                 
+                bool offsetChanged = oldOffset != _inputOffset;
                 // 偏移量变化后，需要重新回滚影子并重放
                 if (offsetChanged && Room?.MainWorld != null && Room?.ShadowWorld != null)
                 {
@@ -612,7 +662,10 @@ namespace Astrum.LogicCore.Core
                     if (original != null && shadow != null)
                     {
                         // 回滚影子到当前权威帧
+                        //ASLogger.Instance.Info($"偏移值变动，进行回滚", "FrameSync.InputOffset");
+                        
                         Room.CopyEntityStateToShadow(PlayerId, shadowId);
+                        RecordShadowFrameHash(deliveryFrame- _inputOffset);
                         
                         // 重放影子输入从权威帧+1到当前预测帧
                         if (PredictionFrame > deliveryFrame)

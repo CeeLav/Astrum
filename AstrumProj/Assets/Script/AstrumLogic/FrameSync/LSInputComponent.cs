@@ -79,8 +79,8 @@ namespace Astrum.LogicCore.FrameSync
                 if (hasMove || hasButton)
                 {
                     _hasLoggedFirstNonZeroInput = true;
-                    ASLogger.Instance.Info(
-                        $"LSInputComponent: PlayerId={PlayerId} 首次收到输入 Frame={input.Frame}, MoveX={input.MoveX}, MoveY={input.MoveY}, Dash={input.Dash}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}");
+                    //ASLogger.Instance.Info(
+                    //    $"LSInputComponent: PlayerId={PlayerId} 首次收到输入 Frame={input.Frame}, MoveX={input.MoveX}, MoveY={input.MoveY}, Dash={input.Dash}, Attack={input.Attack}, Skill1={input.Skill1}, Skill2={input.Skill2}");
                 }
             }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Components;
@@ -13,7 +14,40 @@ namespace Astrum.LogicCore.FrameSync
     public static class FrameHashUtility
     {
         /// <summary>
-        /// 计算实体在指定帧的哈希值（通过 MemoryPack 序列化后计算 bytes 的哈希）
+        /// 位置数据缓存（Hash -> Position数据），用于不匹配时输出原数据
+        /// </summary>
+        private static readonly Dictionary<int, PositionData> _positionCache = new Dictionary<int, PositionData>();
+        
+        /// <summary>
+        /// 位置数据结构
+        /// </summary>
+        private struct PositionData
+        {
+            public long X;
+            public long Y;
+            public long Z;
+            
+            public PositionData(long x, long y, long z)
+            {
+                X = x;
+                Y = y;
+                Z = z;
+            }
+            
+            public override string ToString()
+            {
+                // 直接使用 FP 类型转换 RawValue 为 float
+                // TSVector 的 x, y, z 是 FP 类型，FP 有 AsFloat() 方法
+                // 但这里存储的是 RawValue (long)，需要先转换为 FP
+                FP fpX = FP.FromRaw(X);
+                FP fpY = FP.FromRaw(Y);
+                FP fpZ = FP.FromRaw(Z);
+                return $"({fpX.AsFloat():F2}, {fpY.AsFloat():F2}, {fpZ.AsFloat():F2})";
+            }
+        }
+
+        /// <summary>
+        /// 计算实体在指定帧的哈希值（临时使用位置值相加的简单算法）
         /// </summary>
         public static int Compute(Entity entity, int frameId)
         {
@@ -21,37 +55,69 @@ namespace Astrum.LogicCore.FrameSync
             
             try
             {
-                // 使用 MemoryPack 序列化实体
-                var memoryBuffer = ObjectPool.Instance.Fetch<MemoryBuffer>();
-                try
+                // 最简单的 Hash 算法：使用位置值相加
+                var trans = entity.GetComponent<TransComponent>();
+                if (trans != null)
                 {
-                    memoryBuffer.Seek(0, SeekOrigin.Begin);
-                    memoryBuffer.SetLength(0);
-                    MemoryPackHelper.Serialize(entity, memoryBuffer);
-                    memoryBuffer.Seek(0, SeekOrigin.Begin);
+                    // 直接使用位置的 RawValue 相加作为 Hash
+                    long x = trans.Position.x.RawValue;
+                    long y = trans.Position.y.RawValue;
+                    long z = trans.Position.z.RawValue;
                     
-                    // 计算序列化后的 bytes 的哈希
-                    byte[] buffer = memoryBuffer.GetBuffer();
-                    int length = (int)memoryBuffer.Length;
+                    // 简单的相加，然后转换为 int
+                    long sum = x + y + z;
+                    int hash = (int)(sum ^ (sum >> 32)); // 简单的混合高位和低位
                     
-                    if (buffer == null || length == 0)
-                    {
-                        return 0;
-                    }
+                    // 缓存位置数据，使用 Hash 作为 key
+                    _positionCache[hash] = new PositionData(x, y, z);
                     
-                    // 使用与 FrameBuffer 相同的哈希计算方法
-                    long hash = buffer.Hash(0, length);
-                    return (int)hash;
+                    return hash;
                 }
-                finally
-                {
-                    ObjectPool.Instance.Recycle(memoryBuffer);
-                }
+                
+                return 0;
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Warning($"计算实体哈希失败: {ex.Message}", "FrameHashUtility.Compute");
                 return 0;
+            }
+        }
+        
+        /// <summary>
+        /// 根据哈希值获取缓存的位置数据（用于不匹配时输出原数据）
+        /// </summary>
+        public static string GetCachedPositionInfo(int hash)
+        {
+            if (_positionCache.TryGetValue(hash, out var positionData))
+            {
+                return positionData.ToString();
+            }
+            return "未知位置";
+        }
+        
+        /// <summary>
+        /// 清理过期的位置缓存（保留最近一定数量的缓存）
+        /// </summary>
+        public static void CleanupPositionCache(int keepCount = 100)
+        {
+            if (_positionCache.Count > keepCount)
+            {
+                // 简单清理：移除一半的缓存（保留最新的）
+                var keysToRemove = new List<int>();
+                int removeCount = _positionCache.Count - keepCount / 2;
+                int index = 0;
+                foreach (var key in _positionCache.Keys)
+                {
+                    if (index < removeCount)
+                    {
+                        keysToRemove.Add(key);
+                    }
+                    index++;
+                }
+                foreach (var key in keysToRemove)
+                {
+                    _positionCache.Remove(key);
+                }
             }
         }
 
