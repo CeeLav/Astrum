@@ -79,6 +79,9 @@ namespace Astrum.Client.Input
             // 处理鼠标位置输入
             AssembleMousePosition(input, provider, camera, characterTransform);
             
+            // 设置客户端时间戳
+            input.Timestamp = TimeInfo.Instance.ClientNow();
+            
             return input;
         }
         

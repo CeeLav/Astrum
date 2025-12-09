@@ -79,7 +79,7 @@ namespace Astrum.LogicCore.Core
 
         public ServerLSController()
         {
-            LastUpdateTime = TimeInfo.Instance.ServerNow();
+            LastUpdateTime = TimeInfo.Instance.ClientNow();
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsRunning || IsPaused || Room == null) return;
             
-            var now = TimeInfo.Instance.ServerNow();
+            var now = TimeInfo.Instance.ClientNow();
             
             // 目标应到达的帧 = floor((now - CreationTime) / interval)
             var elapsed = now - CreationTime;
@@ -128,34 +128,36 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void AddPlayerInput(int frame, long playerId, LSInput input)
         {
-            // 从输入中获取原始请求帧号（客户端上报时设置的 RequestFrame）
-            int originalRequestFrame = input?.RequestFrame ?? frame;
-            
-            // 如果输入帧号已经过了，使用服务器的当前帧号
-            if (frame < AuthorityFrame + 1)
+            // 如果客户端上报的帧号小于服务器当前的 AuthorityFrame，直接丢弃
+            if (frame < AuthorityFrame)
             {
-                // 客户端上报的帧输入对应的帧号已经下发，延迟到下一帧下发
-                ASLogger.Instance.Info($"客户端上报的帧输入对应的帧号已经下发，延迟到下一帧下发 | 玩家: {playerId} | 上报帧号: {originalRequestFrame} | 服务器当前帧: {AuthorityFrame} | 延迟到帧: {AuthorityFrame + 1}", "FrameSync.InputDelay");
-                frame = AuthorityFrame + 1;
+                long clientTimestamp = input.Timestamp;
+                long serverTimestamp = TimeInfo.Instance.ClientNow();
+                long timeDiff = serverTimestamp - clientTimestamp;
+                ASLogger.Instance.Info($"丢弃过期输入 | 玩家: {playerId} | 上报帧号: {frame} | 服务器当前帧: {AuthorityFrame} | 客户端时间戳: {clientTimestamp} | 服务器时间戳: {serverTimestamp} | 时间差: {timeDiff}ms", "FrameSync.Input");
+                return;
             }
             
-            // 如果输入帧号比服务器当前帧晚太多，限制在合理范围内
-            if (frame > AuthorityFrame + MAX_CACHE_FRAMES)
+            // 如果客户端上报的帧号大于服务器当前的 AuthorityFrame + 10，直接丢弃
+            if (frame > AuthorityFrame + 10)
             {
-                ASLogger.Instance.Warning($"输入帧号 {frame} 过于超前，限制为 {AuthorityFrame + MAX_CACHE_FRAMES}，玩家: {playerId}");
-                frame = AuthorityFrame + MAX_CACHE_FRAMES;
+                long clientTimestamp = input.Timestamp;
+                long serverTimestamp = TimeInfo.Instance.ClientNow();
+                long timeDiff = serverTimestamp - clientTimestamp;
+                ASLogger.Instance.Info($"丢弃超前进输入 | 玩家: {playerId} | 上报帧号: {frame} | 服务器当前帧: {AuthorityFrame} | 最大允许帧: {AuthorityFrame + 10} | 客户端时间戳: {clientTimestamp} | 服务器时间戳: {serverTimestamp} | 时间差: {timeDiff}ms", "FrameSync.Input");
+                return;
             }
             
+            // 只有当客户端上报的帧号在 [AuthorityFrame, AuthorityFrame + 10] 范围内时，才处理该帧数据
             if (!_frameInputs.ContainsKey(frame))
             {
                 _frameInputs[frame] = new Dictionary<long, LSInput>();
             }
             
-            // 修改输入的下发帧号，但保持原始请求帧号不变
+            // 设置输入的下发帧号
             if (input != null)
             {
-                input.Frame = frame; // 修改为下发帧号
-                // RequestFrame 保持不变，使用客户端上报的原始值
+                input.Frame = frame;
             }
             
             _frameInputs[frame][playerId] = input;
@@ -189,30 +191,24 @@ namespace Astrum.LogicCore.Core
                 if (playerId <= 0) continue; // 过滤无效ID
                 
                 LSInput input = null;
-                bool isMissing = false; // 是否为占位空输入
                 
                 // 1. 优先使用当前帧的输入
                 if (currentFrameInputs != null && currentFrameInputs.TryGetValue(playerId, out input))
                 {
-                    // 输入已存在，RequestFrame 已在 AddPlayerInput 中设置（保持客户端上报的原始值）
-                    // 只需要确保 Frame 字段是下发帧号
+                    // 确保 Frame 字段是下发帧号
                     if (input != null)
                     {
-                        input.Frame = frame; // 确保下发帧号正确
+                        input.Frame = frame;
                     }
-                    isMissing = false;
                 }
-                // 2. 如果没有当前帧输入，使用上一帧的输入（占位空输入）
+                // 2. 如果没有当前帧输入，使用上一帧的输入（占位）
                 else if ((input = GetPreviousFrameInput(playerId, frame)) != null)
                 {
                     ASLogger.Instance.Debug($"玩家 {playerId} 在帧 {frame} 未上报，使用上一帧输入（占位）");
                     // 使用上一帧输入作为占位时，需要创建一个新的输入对象
-                    // 因为需要设置新的 Frame、RequestFrame 和 IsMissing 字段
                     var placeholderInput = LSInput.Create(isFromPool: true);
                     placeholderInput.PlayerId = playerId;
-                    placeholderInput.Frame = frame; // 下发帧号
-                    placeholderInput.RequestFrame = frame; // 占位空输入，请求帧号等于下发帧号（客户端没有上报）
-                    placeholderInput.IsMissing = true; // 标记为占位空输入
+                    placeholderInput.Frame = frame;
                     // 复制上一帧的输入值（作为占位）
                     placeholderInput.MoveX = input.MoveX;
                     placeholderInput.MoveY = input.MoveY;
@@ -227,7 +223,7 @@ namespace Astrum.LogicCore.Core
                     placeholderInput.BornInfo = input.BornInfo;
                     input = placeholderInput;
                 }
-                // 3. 如果都没有，使用默认输入（占位空输入）
+                // 3. 如果都没有，使用默认输入（占位）
                 else
                 {
                     input = CreateDefaultInput(playerId, frame);
@@ -259,16 +255,14 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 创建默认的空输入（占位空输入）
+        /// 创建默认的空输入（占位）
         /// </summary>
         private LSInput CreateDefaultInput(long playerId, int frame)
         {
             // 使用对象池复用 LSInput，减少 GC 分配
             var defaultInput = LSInput.Create(isFromPool: true);
             defaultInput.PlayerId = playerId;
-            defaultInput.Frame = frame; // 下发帧号
-            defaultInput.RequestFrame = frame; // 占位空输入，请求帧号等于下发帧号
-            defaultInput.IsMissing = true; // 标记为占位空输入
+            defaultInput.Frame = frame;
             return defaultInput;
         }
 
@@ -416,7 +410,7 @@ namespace Astrum.LogicCore.Core
             IsRunning = true;
             IsPaused = false;
             AuthorityFrame = 0;
-            LastUpdateTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            LastUpdateTime = TimeInfo.Instance.ClientNow();
         }
 
         /// <summary>

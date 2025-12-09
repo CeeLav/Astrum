@@ -252,18 +252,6 @@ namespace Astrum.Generated
         [MemoryPackOrder(12)]
         public long MouseWorldZ { get; set; }
 
-        /// <summary>
-        /// 原始请求帧号（客户端上报时使用的帧号，用于匹配本地备份）
-        /// </summary>
-        [MemoryPackOrder(13)]
-        public int RequestFrame { get; set; }
-
-        /// <summary>
-        /// 是否为占位空输入（服务器未收到数据导致的占位）
-        /// </summary>
-        [MemoryPackOrder(14)]
-        public bool IsMissing { get; set; }
-
         public override void Dispose()
         {
             if (!this.IsFromPool)
@@ -284,8 +272,6 @@ namespace Astrum.Generated
             this.Dash = default;
             this.MouseWorldX = default;
             this.MouseWorldZ = default;
-            this.RequestFrame = default;
-            this.IsMissing = default;
 
             ObjectPool.Instance.Recycle(this);
         }

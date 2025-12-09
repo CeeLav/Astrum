@@ -79,7 +79,6 @@ namespace Astrum.Client.UI
             
             // 获取延迟信息
             long rtt = TimeInfo.Instance.RTT;
-            int inputOffset = GetInputOffset();
             int authorityFrame = _clientLSController.AuthorityFrame;
             int processedAuthorityFrame = _clientLSController.ProcessedAuthorityFrame;
             int predictionFrame = _clientLSController.PredictionFrame;
@@ -95,9 +94,6 @@ namespace Astrum.Client.UI
             GUI.Label(new Rect(10, yPos, 400, lineHeight), $"网络延迟 (RTT): {rtt}ms");
             yPos += lineHeight;
             
-            GUI.color = inputOffset > 0 ? Color.yellow : Color.white;
-            GUI.Label(new Rect(10, yPos, 400, lineHeight), $"输入偏移 (Offset): {inputOffset} 帧");
-            yPos += lineHeight;
             
             GUI.color = Color.white;
             GUI.Label(new Rect(10, yPos, 400, lineHeight), $"权威帧: {authorityFrame}");
@@ -117,29 +113,6 @@ namespace Astrum.Client.UI
             GUI.Label(new Rect(10, yPos, 400, lineHeight), "按 L 键切换显示");
         }
         
-        /// <summary>
-        /// 获取输入偏移（通过反射访问私有字段）
-        /// </summary>
-        private int GetInputOffset()
-        {
-            if (_clientLSController == null) return 0;
-            
-            try
-            {
-                var field = typeof(ClientLSController).GetField("_inputOffset", 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (field != null)
-                {
-                    return (int)field.GetValue(_clientLSController);
-                }
-            }
-            catch
-            {
-                // 如果反射失败，返回0
-            }
-            
-            return 0;
-        }
     }
 }
 
