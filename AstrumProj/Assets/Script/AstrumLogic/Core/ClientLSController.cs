@@ -5,6 +5,7 @@ using System.Linq;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
+using Astrum.LogicCore.Components;
 
 namespace Astrum.LogicCore.Core
 {
@@ -103,7 +104,7 @@ namespace Astrum.LogicCore.Core
                 
                 // 获取该权威帧的输入
                 var authorityInputs = FrameBuffer.FrameInputs(ProcessedAuthorityFrame);
-                
+                Room.MainWorld.CurFrame = ProcessedAuthorityFrame;
                 // 执行权威帧（仅权威实体，不涉及预测）
                 Room.FrameTick(authorityInputs);
                 
@@ -250,7 +251,63 @@ namespace Astrum.LogicCore.Core
 
             if (originalHash != shadowHash)
             {
-                ASLogger.Instance.Info($"影子实体哈希不一致，帧={authorityFrame}，权威哈希={originalHash}，影子哈希={shadowHash}，执行回滚", "FrameSync.ShadowRollback");
+                // 获取双方当前位置
+                string originalPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetPositionInfo(original);
+                string shadowPos = Astrum.LogicCore.FrameSync.FrameHashUtility.GetPositionInfo(shadow);
+                
+                // 获取 MovementComponent 的位置历史
+                var originalMovement = original.GetComponent<Components.MovementComponent>();
+                var shadowMovement = shadow.GetComponent<Components.MovementComponent>();
+                
+                // 构建合并的日志信息
+                var logParts = new List<string>
+                {
+                    $"帧={authorityFrame}",
+                    $"权威哈希={originalHash}",
+                    $"影子哈希={shadowHash}",
+                    $"当前权威位置={originalPos}",
+                    $"当前影子位置={shadowPos}"
+                };
+                
+                // 如果双方都有 MovementComponent，对比位置历史
+                if (originalMovement != null && shadowMovement != null)
+                {
+                    var originalHistory = originalMovement.GetPositionHistory();
+                    var shadowHistory = shadowMovement.GetPositionHistory();
+                    
+                    // 找到共同的帧号（交集）
+                    var commonFrames = originalHistory.Select(h => h.Frame)
+                        .Intersect(shadowHistory.Select(h => h.Frame))
+                        .OrderBy(f => f)
+                        .ToList();
+                    
+                    if (commonFrames.Count > 0)
+                    {
+                        // 对比共同帧的位置
+                        var comparisonLines = new List<string>();
+                        foreach (var frame in commonFrames)
+                        {
+                            var origHist = originalHistory.FirstOrDefault(h => h.Frame == frame);
+                            var shadowHist = shadowHistory.FirstOrDefault(h => h.Frame == frame);
+                            
+                            if (origHist.Frame != 0 && shadowHist.Frame != 0)
+                            {
+                                var origPosStr = $"({origHist.Position.x.AsFloat():F2}, {origHist.Position.y.AsFloat():F2}, {origHist.Position.z.AsFloat():F2})";
+                                var shadowPosStr = $"({shadowHist.Position.x.AsFloat():F2}, {shadowHist.Position.y.AsFloat():F2}, {shadowHist.Position.z.AsFloat():F2})";
+                                var match = origHist.Position == shadowHist.Position ? "✓" : "✗";
+                                comparisonLines.Add($"帧{frame}: 权威={origPosStr}, 影子={shadowPosStr} {match}");
+                            }
+                        }
+                        
+                        if (comparisonLines.Count > 0)
+                        {
+                            logParts.Add($"位置对比: {string.Join(" | ", comparisonLines)}");
+                        }
+                    }
+                }
+                
+                // 合并输出一条日志
+                ASLogger.Instance.Info($"[影子回滚][PlayerId={PlayerId}] {string.Join(" | ", logParts)}", "FrameSync.ShadowRollback");
 
                 // 回滚影子：从权威实体复制状态
                 Room.CopyEntityStateToShadow(PlayerId, shadowId);

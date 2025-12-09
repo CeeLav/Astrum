@@ -371,7 +371,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     {
                         clientSync.PlayerId = _gameMode.PlayerId;
                     }
-
+                    
                     clientSync.SetOneFrameInputs(frameInputs);
                     
                     // 只在有实际输入时输出日志

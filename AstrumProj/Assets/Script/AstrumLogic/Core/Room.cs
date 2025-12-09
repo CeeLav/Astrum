@@ -197,6 +197,12 @@ namespace Astrum.LogicCore.Core
                         if (inputComponent != null)
                         {
                             inputComponent.SetInput(input);
+                            
+                            // 记录输入设置日志（排除输入为空的情况）
+                            if (input != null && (input.MoveX != 0 || input.MoveY != 0))
+                            {
+                                ASLogger.Instance.Info($"[Room.FrameTick] 实体 {pairs.Key} 设置输入 | 帧={input.Frame} | MoveX={input.MoveX} | MoveY={input.MoveY}", "Room.FrameTick");
+                            }
                         }
                     }
                     else 
@@ -210,6 +216,11 @@ namespace Astrum.LogicCore.Core
                 {
                     foreach (var world in Worlds)
                     {
+                        // 记录 World.Update 调用（仅当有非空输入时）
+                        if (oneFrameInputs?.Inputs != null && oneFrameInputs.Inputs.Any(kv => kv.Value != null && (kv.Value.MoveX != 0 || kv.Value.MoveY != 0)))
+                        {
+                            ASLogger.Instance.Info($"[Room.FrameTick] 调用 World.Update | World.CurFrame={world.CurFrame}", "Room.FrameTick");
+                        }
                         world.Update();
                     }
                 }
@@ -248,14 +259,15 @@ namespace Astrum.LogicCore.Core
                     inputComponent?.SetInput(input);
                 }
 
+                // 更新 ShadowWorld 的 CurFrame（设置为预测帧号）
+                ShadowWorld.CurFrame = frame;
+
                 // 更新 ShadowWorld 的 CapabilitySystem（只更新影子实体）
                 if (ShadowWorld.CapabilitySystem != null)
                 {
                     ShadowWorld.CapabilitySystem.Update(ShadowWorld);
                     ShadowWorld.CapabilitySystem.ProcessEntityEvents();
                 }
-
-                ShadowWorld.CurFrame++;
             }
         }
 
@@ -345,7 +357,7 @@ namespace Astrum.LogicCore.Core
 
             if (original == null || shadow == null) return;
 
-            // 复制所有组件状态
+            // 复制所有组件状态（直接通过反射复制，不使用 MemoryPack）
             foreach (var kv in original.Components)
             {
                 var originalComp = kv.Value;
@@ -353,7 +365,7 @@ namespace Astrum.LogicCore.Core
 
                 if (shadowComp != null)
                 {
-                    // 使用 MemoryPack 序列化/反序列化进行深拷贝
+                    // 直接通过反射复制组件属性，不使用 MemoryPack
                     CopyComponentState(originalComp, shadowComp);
                 }
             }
@@ -371,37 +383,68 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 复制组件状态（使用 MemoryPack 序列化/反序列化进行深拷贝）
+        /// 复制组件状态（直接通过反射复制属性，不使用 MemoryPack）
         /// </summary>
         private void CopyComponentState(Components.BaseComponent source, Components.BaseComponent target)
         {
+            if (source == null || target == null) return;
+            
             try
             {
-                // 使用 MemoryPack 进行深拷贝
-                var buffer = new MemoryBuffer();
-                MemoryPackHelper.Serialize(source, buffer);
-                buffer.Seek(0, System.IO.SeekOrigin.Begin);
-                var cloned = MemoryPackHelper.Deserialize(source.GetType(), buffer) as Components.BaseComponent;
+                var sourceType = source.GetType();
+                var targetType = target.GetType();
                 
-                if (cloned != null)
+                // 确保类型匹配
+                if (sourceType != targetType)
                 {
-                    // cloned 已经通过反序列化获取了完整状态，直接将 cloned 的所有属性复制到 target
-                    var clonedType = cloned.GetType();
-                    foreach (var prop in clonedType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
-                    {
-                        if (!prop.CanRead || !prop.CanWrite) continue;
-                        // 跳过 MemoryPackIgnore 的属性
-                        if (prop.GetCustomAttributes(typeof(MemoryPack.MemoryPackIgnoreAttribute), false).Length > 0) continue;
+                    ASLogger.Instance.Warning($"复制组件状态失败: 类型不匹配，源类型={sourceType.Name}，目标类型={targetType.Name}", "Room.CopyComponentState");
+                    return;
+                }
+                
+                // 直接复制所有可读写的属性
+                foreach (var prop in sourceType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                {
+                    if (!prop.CanRead || !prop.CanWrite) continue;
+                    
+                    // 跳过 MemoryPackIgnore 的属性（这些通常是运行时状态，不需要复制）
+                    if (prop.GetCustomAttributes(typeof(MemoryPack.MemoryPackIgnoreAttribute), false).Length > 0) continue;
+                    
+                    // 跳过 EntityId（影子实体的 EntityId 应该保持自己的值）
+                    if (prop.Name == "EntityId") continue;
 
-                        try
-                        {
-                            var value = prop.GetValue(cloned);
-                            prop.SetValue(target, value);
-                        }
-                        catch
-                        {
-                            // 忽略无法复制的字段
-                        }
+                    try
+                    {
+                        var value = prop.GetValue(source);
+                        prop.SetValue(target, value);
+                    }
+                    catch (Exception ex)
+                    {
+                        // 忽略无法复制的字段（可能是只读或特殊类型）
+                        ASLogger.Instance.Debug($"复制组件属性失败: {prop.Name}, 错误: {ex.Message}", "Room.CopyComponentState");
+                    }
+                }
+                
+                // 复制所有字段（包括私有字段，用于完整状态复制）
+                foreach (var field in sourceType.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                {
+                    // 跳过 MemoryPackIgnore 的字段
+                    if (field.GetCustomAttributes(typeof(MemoryPack.MemoryPackIgnoreAttribute), false).Length > 0) continue;
+                    
+                    // 跳过 EntityId
+                    if (field.Name == "EntityId" || field.Name.Contains("EntityId")) continue;
+                    
+                    // 跳过只读字段（如 const 或 readonly）
+                    if (field.IsInitOnly || field.IsLiteral) continue;
+
+                    try
+                    {
+                        var value = field.GetValue(source);
+                        field.SetValue(target, value);
+                    }
+                    catch (Exception ex)
+                    {
+                        // 忽略无法复制的字段
+                        ASLogger.Instance.Debug($"复制组件字段失败: {field.Name}, 错误: {ex.Message}", "Room.CopyComponentState");
                     }
                 }
             }
@@ -532,7 +575,7 @@ namespace Astrum.LogicCore.Core
                     ShadowWorld.Recycle();
                 }
                 ShadowWorld = null;
-
+                
                 // 参考 Rollback 逻辑：清理旧世界，设置新世界
                 MainWorld?.Cleanup();
                 MainWorld = world;

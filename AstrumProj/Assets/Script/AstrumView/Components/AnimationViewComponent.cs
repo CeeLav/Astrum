@@ -535,8 +535,8 @@ namespace Astrum.View.Components
                     _currentAnimationName = animationName;
                     _isPlaying = true;
                     
-                    ASLogger.Instance.Debug($"AnimationViewComponent.PlayAnimationByActionId: { (restartRequired ? "Restarted" : "Started") } animation '{animationName}' " +
-                        $"(actionId: {actionId}, fadeTime: {fadeTime:F2}s, forceRestart: {forceRestart}) for entity {OwnerEntity?.UniqueId}");
+                    /*ASLogger.Instance.Debug($"AnimationViewComponent.PlayAnimationByActionId: { (restartRequired ? "Restarted" : "Started") } animation '{animationName}' " +
+                        $"(actionId: {actionId}, fadeTime: {fadeTime:F2}s, forceRestart: {forceRestart}) for entity {OwnerEntity?.UniqueId}");*/
                 }
                 else
                 {
@@ -645,7 +645,7 @@ namespace Astrum.View.Components
                     return null; 
                 }
 
-                ASLogger.Instance.Debug($"AnimationViewComponent.GetAnimationNameByActionId: Found animation path '{actionTable.AnimationName}' for actionId {actionId}");
+                //ASLogger.Instance.Debug($"AnimationViewComponent.GetAnimationNameByActionId: Found animation path '{actionTable.AnimationName}' for actionId {actionId}");
                 return actionTable.AnimationName;
             }
             catch (System.Exception ex)

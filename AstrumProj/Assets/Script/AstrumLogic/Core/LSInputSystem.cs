@@ -114,34 +114,18 @@ namespace Astrum.LogicCore.Core
         
         public OneFrameInputs GetOneFrameMessages( int frame)
         {
-            
-            if (frame <= AuthorityFrame)
-            {
-                return FrameBuffer.FrameInputs(frame);
-            }
-            
             // predict
             OneFrameInputs predictionFrame = FrameBuffer.FrameInputs(frame);
-            
-            FrameBuffer.MoveForward(frame);
-            if (FrameBuffer.CheckFrame(AuthorityFrame))
-            {
-                OneFrameInputs authorityFrame = FrameBuffer.FrameInputs(AuthorityFrame);
-                foreach (var authorityFrameInput in authorityFrame.Inputs)
-                {
-                    predictionFrame.Inputs[authorityFrameInput.Key] = authorityFrameInput.Value;
-                }
-            }
-
             if (MainPlayerId > 0)//客户端主玩家生成了才进行输入
             {
                 predictionFrame.Inputs[MainPlayerId] = ClientInput;
+                ClientInput.Frame = frame;
             }
             
             // 只在有实际输入时输出日志
             if (ClientInput != null && HasActualInput(ClientInput))
             {
-                ASLogger.Instance.Debug($"Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}", "FrameSync.Prediction");
+                //ASLogger.Instance.Info($"Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}", "FrameSync.Prediction");
             }
             
             return predictionFrame;

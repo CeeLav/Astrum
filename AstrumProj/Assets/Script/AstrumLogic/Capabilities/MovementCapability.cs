@@ -82,6 +82,15 @@ namespace Astrum.LogicCore.Capabilities
             if (inputComponent?.CurrentInput == null || movementComponent == null || transComponent == null)
                 return;
             
+            var input = inputComponent.CurrentInput;
+            
+            // 记录 Tick 调用（排除输入为空的情况）
+            if (input != null && (input.MoveX != 0 || input.MoveY != 0))
+            {
+                string posInfo = transComponent != null ? $"pos=({transComponent.Position.x.AsFloat():F2}, {transComponent.Position.y.AsFloat():F2}, {transComponent.Position.z.AsFloat():F2})" : "pos=N/A";
+                ASLogger.Instance.Info($"[MovementCapability.Tick] 实体 {entity.UniqueId} | 帧={input.Frame} | HasShadow={entity.HasShadow} | {posInfo} | MoveX={input.MoveX} | MoveY={input.MoveY}", "MovementCapability.Tick");
+            }
+            
             // 获取移动阈值
             var state = GetCapabilityState(entity);
             FP threshold = DEFAULT_MOVEMENT_THRESHOLD;
@@ -93,12 +102,16 @@ namespace Astrum.LogicCore.Capabilities
             }
             
             // 原有移动逻辑（不变）
-            var input = inputComponent.CurrentInput;
             FP moveX = (FP)(input.MoveX / (double)(1L << 32));
             FP moveY = (FP)(input.MoveY / (double)(1L << 32));
             
             FP inputMagnitude = FP.Sqrt(moveX * moveX + moveY * moveY);
-            
+            if (entity.HasShadow && (input.MoveX != 0|| input.MoveY != 0))
+            {
+                var trans = GetComponent<TransComponent>(entity);
+                string posInfo = trans != null ? $"pos=({trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2})" : "pos=N/A";
+                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 有影子且输入非零 | 帧={input.Frame} | HasShadow={entity.HasShadow} | {posInfo} | MoveX={input.MoveX} | MoveY={input.MoveY}", "MovementCapability.Debug");
+            }
             if (inputMagnitude > FP.One)
             {
                 moveX /= inputMagnitude;
@@ -163,6 +176,11 @@ namespace Astrum.LogicCore.Capabilities
                 
                 var pos = transComponent.Position;
                 transComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
+                var trans = transComponent;
+                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 移动，frame:{input.Frame}位置：{trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2}");
+                
+                // 记录位置历史（用于影子回滚调试）
+                movementComponent.RecordPosition(input.Frame, transComponent.Position);
                 
                 entity.World?.HitSystem?.UpdateEntityPosition(entity);
             }

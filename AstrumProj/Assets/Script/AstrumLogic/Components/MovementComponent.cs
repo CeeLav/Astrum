@@ -1,10 +1,27 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Astrum.LogicCore.Capabilities;
 using TrueSync;
 using MemoryPack;
 
 namespace Astrum.LogicCore.Components
 {
+    /// <summary>
+    /// 位置历史记录（帧号 + 位置）
+    /// </summary>
+    public struct PositionHistory
+    {
+        public int Frame;
+        public TSVector Position;
+        
+        public PositionHistory(int frame, TSVector position)
+        {
+            Frame = frame;
+            Position = position;
+        }
+    }
+
     /// <summary>
     /// 移动组件，存储移动相关的数据
     /// </summary>
@@ -35,6 +52,18 @@ namespace Astrum.LogicCore.Components
         /// 是否可以移动
         /// </summary>
         public bool CanMove { get; set; } = true;
+
+        /// <summary>
+        /// 位置历史缓存（过去10帧的位置信息）
+        /// 运行时数据，不序列化
+        /// </summary>
+        [MemoryPackIgnore]
+        private Queue<PositionHistory> _positionHistory = new Queue<PositionHistory>();
+
+        /// <summary>
+        /// 位置历史缓存的最大数量
+        /// </summary>
+        private const int MAX_POSITION_HISTORY = 10;
 
         [MemoryPackConstructor]
         public MovementComponent() : base() { }
@@ -96,6 +125,48 @@ namespace Astrum.LogicCore.Components
         }
         
         /// <summary>
+        /// 记录当前位置到历史缓存
+        /// </summary>
+        /// <param name="frame">当前帧号</param>
+        /// <param name="position">当前位置</param>
+        public void RecordPosition(int frame, TSVector position)
+        {
+            _positionHistory.Enqueue(new PositionHistory(frame, position));
+            
+            // 保持最多 MAX_POSITION_HISTORY 条记录
+            while (_positionHistory.Count > MAX_POSITION_HISTORY)
+            {
+                _positionHistory.Dequeue();
+            }
+        }
+
+        /// <summary>
+        /// 获取位置历史（按帧号排序）
+        /// </summary>
+        /// <returns>位置历史列表</returns>
+        public List<PositionHistory> GetPositionHistory()
+        {
+            return _positionHistory.OrderBy(h => h.Frame).ToList();
+        }
+
+        /// <summary>
+        /// 获取位置历史的字符串表示（用于日志输出）
+        /// </summary>
+        /// <returns>格式化的位置历史字符串</returns>
+        public string GetPositionHistoryString()
+        {
+            var history = GetPositionHistory();
+            if (history.Count == 0)
+            {
+                return "无历史记录";
+            }
+
+            var lines = history.Select(h => 
+                $"frame={h.Frame}, pos=({h.Position.x.AsFloat():F2}, {h.Position.y.AsFloat():F2}, {h.Position.z.AsFloat():F2})");
+            return string.Join(" | ", lines);
+        }
+
+        /// <summary>
         /// 重置 MovementComponent 状态（用于对象池回收）
         /// </summary>
         public override void Reset()
@@ -104,6 +175,7 @@ namespace Astrum.LogicCore.Components
             Speed = FP.One;
             BaseSpeed = FP.One;
             CanMove = true;
+            _positionHistory?.Clear();
         }
     }
 }

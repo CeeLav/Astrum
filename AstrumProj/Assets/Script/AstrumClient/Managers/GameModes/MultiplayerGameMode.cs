@@ -152,7 +152,7 @@ namespace Astrum.Client.Managers.GameModes
             // 只在有实际输入时输出日志
             if (eventData.Input != null && HasActualInput(eventData.Input))
             {
-                ASLogger.Instance.Debug($"MultiplayerGameMode: 发送单帧输入，帧: {eventData.FrameID}，输入: {JsonConvert.SerializeObject(eventData.Input)}");
+                ASLogger.Instance.Info($"MultiplayerGameMode: 发送单帧输入，帧: {eventData.FrameID}，输入: {JsonConvert.SerializeObject(eventData.Input)}");
             }
         }
         
