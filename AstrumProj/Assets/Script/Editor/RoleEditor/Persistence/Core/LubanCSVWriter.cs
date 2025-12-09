@@ -158,6 +158,11 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
                 // List<int>类型：使用自定义转换器，序列化为竖线分隔的字符串
                 memberMap.TypeConverter(new IntListTypeConverter());
             }
+            else if (memberType == typeof(List<float>))
+            {
+                // List<float>类型：使用自定义转换器，序列化为竖线分隔的字符串
+                memberMap.TypeConverter(new FloatListTypeConverter());
+            }
             else if (memberType == typeof(List<string>))
             {
                 // 根据字段名决定使用哪个转换器
@@ -226,6 +231,50 @@ namespace Astrum.Editor.RoleEditor.Persistence.Core
         }
     }
     
+    /// <summary>
+    /// List<float> 类型转换器：序列化为竖线分隔的字符串
+    /// </summary>
+    public class FloatListTypeConverter : CsvHelper.TypeConversion.ITypeConverter
+    {
+        public object ConvertFromString(string text, CsvHelper.IReaderRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<float>();
+            
+            text = text.Trim().Trim('"');
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<float>();
+            
+            var separators = text.Contains("|") ? new[] { '|' } : new[] { ',' };
+            var result = new List<float>();
+            var parts = text.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                if (float.TryParse(part.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value))
+                {
+                    result.Add(value);
+                }
+            }
+            return result;
+        }
+        
+        public string ConvertToString(object value, CsvHelper.IWriterRow row, CsvHelper.Configuration.MemberMapData memberMapData)
+        {
+            if (value == null)
+                return "";
+            
+            if (value is List<float> list)
+            {
+                if (list.Count == 0)
+                    return "";
+                
+                return string.Join("|", list);
+            }
+            
+            return "";
+        }
+    }
+
     /// <summary>
     /// List<int> 类型转换器：序列化为逗号分隔的字符串（用于CSV写入）
     /// </summary>
