@@ -36,7 +36,7 @@ namespace Astrum.LogicCore.Core
         
         public int PredictionFrame { get; set; } = -1;
         
-        public int MaxPredictionFrames { get; set; } = 5;
+        public int MaxPredictionFrames { get; set; } = 10;
 
         public FrameBuffer FrameBuffer
         {
@@ -47,6 +47,22 @@ namespace Astrum.LogicCore.Core
         /// 帧率（如60FPS）
         /// </summary>
         public int TickRate { get; set; } = 20;
+        
+        /// <summary>
+        /// 服务器时间与客户端时间的差值（服务器时间 - 客户端时间）
+        /// </summary>
+        public long _serverTimeDiff; 
+        
+        /// <summary>
+        /// 更新服务器时间戳，计算时间差
+        /// </summary>
+        /// <param name="serverTimestamp">服务器时间戳（毫秒）</param>
+        public void UpdateServerTime(long serverTimestamp)
+        {
+            // 计算服务器时间与客户端时间的差值
+            _serverTimeDiff = TimeInfo.Instance.ClientNow() - serverTimestamp;
+            //ASLogger.Instance.Info($"{_serverTimeDiff}");
+        }
         
         public long CreationTime { get; set; }
 
@@ -98,7 +114,7 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsRunning || IsPaused || Room == null) return;
 
-            long currentTime = TimeInfo.Instance.ClientNow() + TimeInfo.Instance.RTT / 2;
+            long currentTime = TimeInfo.Instance.ClientNow() + _serverTimeDiff + 66;
 
             // 第一步：处理权威帧插值（从 ProcessedAuthorityFrame 推进到 AuthorityFrame）
             while (ProcessedAuthorityFrame < AuthorityFrame)
@@ -128,8 +144,9 @@ namespace Astrum.LogicCore.Core
                 }
 
                 // 预测帧不能超过已处理权威帧太多
-                if (PredictionFrame - ProcessedAuthorityFrame > MaxPredictionFrames)
+                if (PredictionFrame - ProcessedAuthorityFrame > 10)
                 {
+                    ASLogger.Instance.Info($"超了：{PredictionFrame - ProcessedAuthorityFrame}");
                     return;
                 }
                 
@@ -221,7 +238,7 @@ namespace Astrum.LogicCore.Core
             _shadowFrameHashes[frame] = hash;
 
             // 滑动窗口裁剪：保留近 MaxPredictionFrames 范围
-            int minFrameToKeep = frame - MaxPredictionFrames - 1;
+            int minFrameToKeep = frame - 10 - 1;
             var removeKeys = _shadowFrameHashes.Keys.Where(f => f < minFrameToKeep).ToList();
             foreach (var key in removeKeys)
             {

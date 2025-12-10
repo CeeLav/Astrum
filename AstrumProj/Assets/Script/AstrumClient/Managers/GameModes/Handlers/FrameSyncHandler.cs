@@ -285,12 +285,12 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 if (hasActualInput)
                 {
                     ASLogger.Instance.Debug(
-                        $"FrameSyncHandler: 收到帧同步数据 - 房间: {frameData.roomId}，权威帧: {frameData.authorityFrame}，输入数: {frameData.frameInputs.Inputs.Count}", 
+                        $"FrameSyncHandler: 收到帧同步数据 - 房间: {frameData.roomId}，权威帧: {frameData.authorityFrame}，输入数: {frameData.frameInputs.Inputs.Count}，服务器时间戳: {frameData.timestamp}", 
                         "FrameSync.Client");
                 }
                 
                 // 处理帧同步数据
-                DealNetFrameInputs(frameData.frameInputs, frameData.authorityFrame);
+                DealNetFrameInputs(frameData.frameInputs, frameData.authorityFrame, frameData.timestamp);
             }
             catch (Exception ex)
             {
@@ -326,7 +326,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
         /// <summary>
         /// 处理网络帧输入
         /// </summary>
-        private void DealNetFrameInputs(OneFrameInputs frameInputs, int frame = -1)
+        private void DealNetFrameInputs(OneFrameInputs frameInputs, int frame = -1, long serverTimestamp = 0)
         {
             if (_gameMode.MainRoom == null)
             {
@@ -370,6 +370,12 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     if (_gameMode.PlayerId > 0)
                     {
                         clientSync.PlayerId = _gameMode.PlayerId;
+                    }
+                    
+                    // 更新服务器时间戳
+                    if (serverTimestamp > 0)
+                    {
+                        clientSync.UpdateServerTime(serverTimestamp);
                     }
                     
                     clientSync.SetOneFrameInputs(frameInputs);
