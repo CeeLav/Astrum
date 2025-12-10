@@ -266,7 +266,7 @@ namespace Astrum.LogicCore.Core
             _shadowFrameHashes[frame] = hash;
 
             // 滑动窗口裁剪：保留近 MaxPredictionFrames 范围
-            int minFrameToKeep = frame - (int)(_serverTimeDiff/50)*1.5 - 10;
+            int minFrameToKeep = frame - (int)( _serverTimeDiff / 50 *1.5) - 10;
             
             var removeKeys = _shadowFrameHashes.Keys.Where(f => f < minFrameToKeep).ToList();
             foreach (var key in removeKeys)
