@@ -36,7 +36,7 @@ namespace Astrum.LogicCore.Core
         
         public int PredictionFrame { get; set; } = -1;
         
-        public int MaxPredictionFrames { get; set; } = 10;
+        public int MaxPredictionFrames { get; set; } = 5;
 
         public FrameBuffer FrameBuffer
         {
@@ -51,17 +51,45 @@ namespace Astrum.LogicCore.Core
         /// <summary>
         /// 服务器时间与客户端时间的差值（服务器时间 - 客户端时间）
         /// </summary>
-        public long _serverTimeDiff; 
+        public long _serverTimeDiff;
         
         /// <summary>
-        /// 更新服务器时间戳，计算时间差
+        /// 时间差的平滑因子（0 < _timeDiffSmoothFactor < 1）
+        /// 值越大，新值对当前值的影响越大，收敛越快，但可能不够平滑
+        /// 值越小，新值对当前值的影响越小，变动越平滑，但收敛较慢
+        /// 推荐值：0.2-0.5
+        /// </summary>
+        private const float _timeDiffSmoothFactor = 0.3f;
+        
+        /// <summary>
+        /// 是否已初始化时间差
+        /// </summary>
+        private bool _timeDiffInitialized = false;
+        
+        /// <summary>
+        /// 更新服务器时间戳，计算时间差（平滑过渡）
         /// </summary>
         /// <param name="serverTimestamp">服务器时间戳（毫秒）</param>
         public void UpdateServerTime(long serverTimestamp)
         {
-            // 计算服务器时间与客户端时间的差值
-            _serverTimeDiff = TimeInfo.Instance.ClientNow() - serverTimestamp;
-            //ASLogger.Instance.Info($"{_serverTimeDiff}");
+            // 计算新的时间差（目标值）
+            long newTimeDiff =  TimeInfo.Instance.ClientNow() - serverTimestamp;
+            
+            if (!_timeDiffInitialized)
+            {
+                // 第一次初始化时，直接设置时间差
+                _serverTimeDiff = newTimeDiff;
+                _timeDiffInitialized = true;
+            }
+            else
+            {
+                // 使用指数平滑算法平滑时间差的变化
+                // 公式：current_diff = alpha * new_diff + (1 - alpha) * current_diff
+                long smoothedDiff = (long)(_timeDiffSmoothFactor * newTimeDiff + (1 - _timeDiffSmoothFactor) * _serverTimeDiff);
+                _serverTimeDiff = smoothedDiff;
+            }
+            
+            //ASLogger.Instance.Info($"服务器时间差：{_serverTimeDiff}, 原始差值：{newTimeDiff}");
         }
         
         public long CreationTime { get; set; }
@@ -144,11 +172,11 @@ namespace Astrum.LogicCore.Core
                 }
 
                 // 预测帧不能超过已处理权威帧太多
-                if (PredictionFrame - ProcessedAuthorityFrame > 10)
+                /*if (PredictionFrame - ProcessedAuthorityFrame > 10)
                 {
                     ASLogger.Instance.Info($"超了：{PredictionFrame - ProcessedAuthorityFrame}");
                     return;
-                }
+                }*/
                 
                 ++PredictionFrame;
 
@@ -238,7 +266,8 @@ namespace Astrum.LogicCore.Core
             _shadowFrameHashes[frame] = hash;
 
             // 滑动窗口裁剪：保留近 MaxPredictionFrames 范围
-            int minFrameToKeep = frame - 10 - 1;
+            int minFrameToKeep = frame - (int)(_serverTimeDiff/50)*1.5 - 10;
+            
             var removeKeys = _shadowFrameHashes.Keys.Where(f => f < minFrameToKeep).ToList();
             foreach (var key in removeKeys)
             {
