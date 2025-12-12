@@ -170,6 +170,12 @@ namespace Astrum.LogicCore.Core
                 {
                     return;
                 }
+                
+                // 在预测新帧之前，确保MaxFrame足够大
+                if (PredictionFrame + 1 > FrameBuffer.MaxFrame)
+                {
+                    FrameBuffer.MoveForward(FrameBuffer.MaxFrame);
+                }
 
                 // 预测帧不能超过已处理权威帧太多
                 /*if (PredictionFrame - ProcessedAuthorityFrame > 10)
