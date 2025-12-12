@@ -47,7 +47,6 @@ namespace Astrum.View.Components
 
         // 由脏组件同步驱动的权威移动状态
         private bool _isMovingLogicCached;
-        private bool _hasReceivedMovingState;
 
         public override int[] GetWatchedComponentIds()
         {
@@ -67,7 +66,6 @@ namespace Astrum.View.Components
                 return;
 
             _isMovingLogicCached = move.IsMoving;
-            _hasReceivedMovingState = true;
         }
 
         protected override void OnInitialize()
@@ -106,7 +104,6 @@ namespace Astrum.View.Components
                 _cachedSpeedLogic = moveComp.Speed.AsFloat();
                 _speedVisual = _cachedSpeedLogic;
                 _isMovingLogicCached = moveComp.IsMoving;
-                _hasReceivedMovingState = true; // 初始化时允许直接读一次
             }
         }
 
@@ -117,10 +114,6 @@ namespace Astrum.View.Components
 
             var entity = OwnerEntity;
             if (entity == null)
-                return;
-
-            // Projectile 由 ProjectileViewComponent 自己驱动位置/朝向，这里完全不介入
-            if (entity.GetComponent<ProjectileComponent>() != null)
                 return;
 
             var trans = entity.GetComponent<TransComponent>();
@@ -139,11 +132,7 @@ namespace Astrum.View.Components
             if (moveComp != null)
             {
                 _cachedSpeedLogic = moveComp.Speed.AsFloat();
-                if (!_hasReceivedMovingState)
-                {
-                    _isMovingLogicCached = moveComp.IsMoving;
-                    _hasReceivedMovingState = true;
-                }
+                //ASLogger.Instance.Info($"speed: {_cachedSpeedLogic}");
             }
 
             // 旋转始终按逻辑层权威同步（不参与“静止不拉回”的限制）
@@ -179,7 +168,7 @@ namespace Astrum.View.Components
                 _lastPosLogicSeen = posLogic;
                 _lastLogicFrameSeen = logicFrame;
 
-                _speedVisual = Mathf.MoveTowards(_speedVisual, _cachedSpeedLogic, accel * deltaTime);
+                _speedVisual = _cachedSpeedLogic;//Mathf.MoveTowards(_speedVisual, _cachedSpeedLogic, accel * deltaTime);
 
                 var correction = posLogic - _posVisual;
                 var dirMove = _cachedDirLogic * wLogicDirection;
