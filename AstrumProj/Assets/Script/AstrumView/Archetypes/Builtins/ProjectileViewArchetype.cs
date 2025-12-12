@@ -11,7 +11,7 @@ namespace Astrum.View.Archetypes
     {
         private static readonly Type[] _comps =
         {
-            typeof(TransViewComponent),
+            typeof(PredictedMovementViewComponent),
             typeof(ProjectileViewComponent),
 #if UNITY_EDITOR
             typeof(CollisionDebugViewComponent)

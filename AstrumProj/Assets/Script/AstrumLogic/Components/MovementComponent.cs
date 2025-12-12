@@ -54,6 +54,18 @@ namespace Astrum.LogicCore.Components
         public bool CanMove { get; set; } = true;
 
         /// <summary>
+        /// 逻辑层权威：当前是否处于“移动状态”（本逻辑帧实际发生位移）。
+        /// 注意：由逻辑侧能力维护，并通过组件置脏通知 View 层。
+        /// </summary>
+        public bool IsMoving { get; set; } = false;
+
+        /// <summary>
+        /// 记录最近一次发生位移的逻辑帧号（World.CurFrame）。
+        /// 用于在不新增“每帧重置能力”的前提下，由 MovementCapability 在本帧末尾结算 IsMoving。
+        /// </summary>
+        public int LastMoveFrame { get; set; } = -1;
+
+        /// <summary>
         /// 位置历史缓存（过去10帧的位置信息）
         /// 运行时数据，不序列化
         /// </summary>
@@ -175,6 +187,8 @@ namespace Astrum.LogicCore.Components
             Speed = FP.One;
             BaseSpeed = FP.One;
             CanMove = true;
+            IsMoving = false;
+            LastMoveFrame = -1;
             _positionHistory?.Clear();
         }
     }

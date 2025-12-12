@@ -9,7 +9,7 @@ namespace Astrum.View.Archetypes
         private static readonly Type[] _comps =
         {
             typeof(ModelViewComponent),
-            typeof(TransViewComponent),
+            typeof(PredictedMovementViewComponent),
             typeof(HUDViewComponent),
             typeof(VFXViewComponent),
 #if UNITY_EDITOR

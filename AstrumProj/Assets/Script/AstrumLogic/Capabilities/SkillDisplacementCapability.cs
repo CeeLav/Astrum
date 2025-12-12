@@ -177,6 +177,19 @@ namespace Astrum.LogicCore.Capabilities
             worldDeltaPosition = new TSVector(worldDeltaPosition.x, FP.Zero, worldDeltaPosition.z);
             
             transComponent.Position = transComponent.Position + worldDeltaPosition;
+
+            // 本逻辑帧实际发生位移：设置 IsMoving=true（仅在变化时置脏）
+            var movementComponent = GetComponent<MovementComponent>(entity);
+            if (movementComponent != null && worldDeltaPosition.sqrMagnitude > FP.EN4)
+            {
+                int worldFrame = entity.World?.CurFrame ?? 0;
+                movementComponent.LastMoveFrame = worldFrame;
+                if (!movementComponent.IsMoving)
+                {
+                    movementComponent.IsMoving = true;
+                    entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+                }
+            }
             
             // 5. 应用增量旋转（暂时禁用，不进行旋转逻辑）
             // TODO: 未来需要旋转时再启用

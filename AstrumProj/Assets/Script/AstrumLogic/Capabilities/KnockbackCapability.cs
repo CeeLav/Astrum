@@ -148,6 +148,19 @@ namespace Astrum.LogicCore.Capabilities
             transComponent.Position += movement;
             knockback.MovedDistance += moveDistance;
             knockback.RemainingTime -= deltaTime;
+
+            // 本逻辑帧实际发生位移：设置 IsMoving=true（仅在变化时置脏）
+            var movementComponent = GetComponent<MovementComponent>(entity);
+            if (movementComponent != null && movement.sqrMagnitude > FP.EN4)
+            {
+                int currentFrame = entity.World?.CurFrame ?? 0;
+                movementComponent.LastMoveFrame = currentFrame;
+                if (!movementComponent.IsMoving)
+                {
+                    movementComponent.IsMoving = true;
+                    entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+                }
+            }
             
             // 更新物理世界位置
             entity.World?.HitSystem?.UpdateEntityPosition(entity);

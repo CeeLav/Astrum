@@ -83,12 +83,22 @@ namespace Astrum.LogicCore.Capabilities
                 return;
             
             var input = inputComponent.CurrentInput;
+            int currentFrame = entity.World?.CurFrame ?? input.Frame;
+
+            void MarkMovedThisFrame()
+            {
+                movementComponent.LastMoveFrame = currentFrame;
+                if (!movementComponent.IsMoving)
+                {
+                    movementComponent.IsMoving = true;
+                    entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+                }
+            }
             
             // 记录 Tick 调用（排除输入为空的情况）
             if (input != null && (input.MoveX != 0 || input.MoveY != 0))
             {
                 // 使用 World.CurFrame 作为实际执行的帧号，而不是 input.Frame（预测帧号）
-                int actualFrame = entity.World?.CurFrame ?? input.Frame;
                 string posInfo = transComponent != null ? $"pos=({transComponent.Position.x.AsFloat():F2}, {transComponent.Position.y.AsFloat():F2}, {transComponent.Position.z.AsFloat():F2})" : "pos=N/A";
                 //ASLogger.Instance.Info($"[MovementCapability.Tick] 实体 {entity.UniqueId} | 帧={actualFrame} | HasShadow={entity.HasShadow} | {posInfo} | MoveX={input.MoveX} | MoveY={input.MoveY}", "MovementCapability.Tick");
             }
@@ -180,13 +190,19 @@ namespace Astrum.LogicCore.Capabilities
                 
                 var pos = transComponent.Position;
                 transComponent.Position = new TSVector(pos.x + deltaX, pos.y, pos.z + deltaY);
+
+                // 本逻辑帧实际发生位移：标记移动
+                if ((deltaX * deltaX + deltaY * deltaY) > FP.EN4)
+                {
+                    MarkMovedThisFrame();
+                }
+
                 var trans = transComponent;
                 // 使用 World.CurFrame 作为实际执行的帧号，而不是 input.Frame（预测帧号）
-                int actualFrame = entity.World?.CurFrame ?? input.Frame;
-                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 移动，frame:{actualFrame}位置：{trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2}");
+                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 移动，frame:{currentFrame}位置：{trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2}");
                 
                 // 记录位置历史（用于影子回滚调试）
-                movementComponent.RecordPosition(actualFrame, transComponent.Position);
+                movementComponent.RecordPosition(currentFrame, transComponent.Position);
                 
                 entity.World?.HitSystem?.UpdateEntityPosition(entity);
             }
@@ -202,6 +218,13 @@ namespace Astrum.LogicCore.Capabilities
                     state.CustomData[KEY_LOGGED_BLOCKED_MOVE] = true;
                     SetCapabilityState(entity, state);
                 }
+            }
+
+            // 本帧末尾结算：如果本帧没有任何位移来源写入 LastMoveFrame，则清掉上一帧残留的 IsMoving=true
+            if (movementComponent.IsMoving && movementComponent.LastMoveFrame != currentFrame)
+            {
+                movementComponent.IsMoving = false;
+                entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
             }
         }
         
