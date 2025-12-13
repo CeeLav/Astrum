@@ -178,15 +178,15 @@ namespace Astrum.LogicCore.Capabilities
             
             transComponent.Position = transComponent.Position + worldDeltaPosition;
 
-            // 本逻辑帧实际发生位移：设置 IsMoving=true（仅在变化时置脏）
+            // 本逻辑帧实际发生位移：设置移动类型为技能位移（仅在变化时置脏）
             var movementComponent = GetComponent<MovementComponent>(entity);
             if (movementComponent != null && worldDeltaPosition.sqrMagnitude > FP.EN4)
             {
                 int worldFrame = entity.World?.CurFrame ?? 0;
                 movementComponent.LastMoveFrame = worldFrame;
-                if (!movementComponent.IsMoving)
+                if (movementComponent.CurrentMovementType != MovementType.SkillDisplacement)
                 {
-                    movementComponent.IsMoving = true;
+                    movementComponent.CurrentMovementType = MovementType.SkillDisplacement;
                     entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
                 }
             }

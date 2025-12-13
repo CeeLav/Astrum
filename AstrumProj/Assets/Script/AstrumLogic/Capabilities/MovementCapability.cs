@@ -88,9 +88,9 @@ namespace Astrum.LogicCore.Capabilities
             void MarkMovedThisFrame()
             {
                 movementComponent.LastMoveFrame = currentFrame;
-                if (!movementComponent.IsMoving)
+                if (movementComponent.CurrentMovementType != MovementType.PlayerInput)
                 {
-                    movementComponent.IsMoving = true;
+                    movementComponent.CurrentMovementType = MovementType.PlayerInput;
                     entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
                 }
             }
@@ -222,10 +222,10 @@ namespace Astrum.LogicCore.Capabilities
                 }
             }
 
-            // 本帧末尾结算：如果本帧没有任何位移来源写入 LastMoveFrame，则清掉上一帧残留的 IsMoving=true
-            if (movementComponent.IsMoving && movementComponent.LastMoveFrame != currentFrame)
+            // 本帧末尾结算：如果本帧没有任何位移来源写入 LastMoveFrame，则重置移动类型为None
+            if (movementComponent.CurrentMovementType != MovementType.None && movementComponent.LastMoveFrame != currentFrame)
             {
-                movementComponent.IsMoving = false;
+                movementComponent.CurrentMovementType = MovementType.None;
                 entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
             }
         }

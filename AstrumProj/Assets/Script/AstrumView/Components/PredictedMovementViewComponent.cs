@@ -75,7 +75,7 @@ namespace Astrum.View.Components
                 if (move == null)
                     return;
 
-                _isMovingLogicCached = move.IsMoving;
+                _isMovingLogicCached = move.CurrentMovementType != MovementType.None;
             }
             else if (componentTypeId == ActionComponent.ComponentTypeId)
             {
@@ -233,7 +233,7 @@ namespace Astrum.View.Components
             {
                 _cachedSpeedLogic = moveComp.Speed.AsFloat();
                 _speedVisual = _cachedSpeedLogic;
-                _isMovingLogicCached = moveComp.IsMoving;
+                _isMovingLogicCached = moveComp.CurrentMovementType != MovementType.None;
             }
         }
 

@@ -65,7 +65,7 @@ namespace Astrum.LogicCore.Core
         /// 值越小，时间差下降越慢，变动越平滑
         /// 推荐值：0.05-0.2
         /// </summary>
-        private const float _timeDiffFallFactor = 0.01f;
+        private const float _timeDiffFallFactor = 0.005f;
         
         /// <summary>
         /// 是否已初始化时间差

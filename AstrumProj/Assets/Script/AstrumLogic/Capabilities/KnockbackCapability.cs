@@ -149,15 +149,15 @@ namespace Astrum.LogicCore.Capabilities
             knockback.MovedDistance += moveDistance;
             knockback.RemainingTime -= deltaTime;
 
-            // 本逻辑帧实际发生位移：设置 IsMoving=true（仅在变化时置脏）
+            // 本逻辑帧实际发生位移：设置移动类型为被动位移（仅在变化时置脏）
             var movementComponent = GetComponent<MovementComponent>(entity);
             if (movementComponent != null && movement.sqrMagnitude > FP.EN4)
             {
                 int currentFrame = entity.World?.CurFrame ?? 0;
                 movementComponent.LastMoveFrame = currentFrame;
-                if (!movementComponent.IsMoving)
+                if (movementComponent.CurrentMovementType != MovementType.PassiveDisplacement)
                 {
-                    movementComponent.IsMoving = true;
+                    movementComponent.CurrentMovementType = MovementType.PassiveDisplacement;
                     entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
                 }
             }

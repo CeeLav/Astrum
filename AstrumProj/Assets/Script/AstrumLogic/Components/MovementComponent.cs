@@ -8,6 +8,29 @@ using MemoryPack;
 namespace Astrum.LogicCore.Components
 {
     /// <summary>
+    /// 移动类型枚举
+    /// </summary>
+    public enum MovementType
+    {
+        /// <summary>
+        /// 无移动
+        /// </summary>
+        None,
+        /// <summary>
+        /// 玩家输入的主动移动
+        /// </summary>
+        PlayerInput,
+        /// <summary>
+        /// 技能位移
+        /// </summary>
+        SkillDisplacement,
+        /// <summary>
+        /// 被动位移（如Knockback）
+        /// </summary>
+        PassiveDisplacement
+    }
+
+    /// <summary>
     /// 位置历史记录（帧号 + 位置）
     /// </summary>
     public struct PositionHistory
@@ -54,14 +77,13 @@ namespace Astrum.LogicCore.Components
         public bool CanMove { get; set; } = true;
 
         /// <summary>
-        /// 逻辑层权威：当前是否处于“移动状态”（本逻辑帧实际发生位移）。
-        /// 注意：由逻辑侧能力维护，并通过组件置脏通知 View 层。
+        /// 当前移动类型
         /// </summary>
-        public bool IsMoving { get; set; } = false;
+        public MovementType CurrentMovementType { get; set; } = MovementType.None;
 
         /// <summary>
         /// 记录最近一次发生位移的逻辑帧号（World.CurFrame）。
-        /// 用于在不新增“每帧重置能力”的前提下，由 MovementCapability 在本帧末尾结算 IsMoving。
+        /// 用于在不新增“每帧重置能力”的前提下，由 MovementCapability 在本帧末尾结算 CurrentMovementType。
         /// </summary>
         public int LastMoveFrame { get; set; } = -1;
 
@@ -187,7 +209,7 @@ namespace Astrum.LogicCore.Components
             Speed = FP.One;
             BaseSpeed = FP.One;
             CanMove = true;
-            IsMoving = false;
+            CurrentMovementType = MovementType.None;
             LastMoveFrame = -1;
             _positionHistory?.Clear();
         }
