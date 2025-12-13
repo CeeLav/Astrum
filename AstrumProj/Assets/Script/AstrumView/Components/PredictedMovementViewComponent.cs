@@ -20,7 +20,7 @@ namespace Astrum.View.Components
         // ===== 可调参数（非 MonoBehaviour，主要用于运行时调试/配置）=====
 
         public float wLogicDirection = 1.0f;
-        public float wCorrectionDirection = 0.3f;
+        public float wCorrectionDirection = 0.1f;
         public float accel = 10f;
         public float posFixLerp = 0.5f;
 
@@ -34,6 +34,11 @@ namespace Astrum.View.Components
         /// 计算逻辑方向的最小位移阈值（避免噪声导致方向抖动）
         /// </summary>
         public float minLogicDeltaForDir = 0.001f;
+        
+        /// <summary>
+        /// 预测未来位置的帧数（用于平滑纠偏）
+        /// </summary>
+        public int predictionFrames = 10;
 
         // ===== 表现层内部状态 =====
         private Vector3 _posVisual;
@@ -378,8 +383,13 @@ namespace Astrum.View.Components
             // 更新视觉速度
             _speedVisual = _cachedSpeedLogic; //Mathf.MoveTowards(_speedVisual, _cachedSpeedLogic, accel * deltaTime);
 
-            // 计算移动方向（逻辑方向 + 纠偏方向）
-            var correction = posLogic - _posVisual;
+            // 计算移动方向（逻辑方向 + 预计未来位置的纠偏方向）
+            // 预计未来几帧的逻辑位置（基于当前逻辑方向和速度）
+            float predictionTime = predictionFrames * deltaTime;
+            Vector3 predictedFuturePos = posLogic + _cachedDirLogic * _cachedSpeedLogic * predictionTime;
+            
+            // 使用预计未来位置作为纠偏目标，而不是直接使用当前逻辑位置
+            var correction = predictedFuturePos - _posVisual;
             var baseDir = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : _dirVisual;
             var dirMove = baseDir * wLogicDirection;
             if (correction.sqrMagnitude > 1e-8f)
@@ -393,7 +403,8 @@ namespace Astrum.View.Components
 
             // 更新视觉位置
             _posVisual += _dirVisual * _speedVisual * deltaTime;
-            _posVisual = Vector3.Lerp(_posVisual, posLogic, posFixLerp * deltaTime);
+            // 使用预计未来位置进行平滑纠偏，而不是直接拉回当前逻辑位置
+            _posVisual = Vector3.Lerp(_posVisual, predictedFuturePos, posFixLerp * deltaTime);
         }
 
         /// <summary>
@@ -404,8 +415,13 @@ namespace Astrum.View.Components
             // 惯性前进
             _posVisual += _dirVisual * _speedVisual * deltaTime;
 
+            // 预计未来几帧的逻辑位置（基于当前逻辑方向和速度）
+            float predictionTime = predictionFrames * deltaTime;
+            Vector3 predictedFuturePos = posLogic + _cachedDirLogic * _cachedSpeedLogic * predictionTime;
+            
             // 横向纠偏：仅在垂直于移动方向上进行纠偏，不后拉
-            var error = posLogic - _posVisual;
+            // 使用预计未来位置作为纠偏目标
+            var error = predictedFuturePos - _posVisual;
             var errorPerp = error - _dirVisual * Vector3.Dot(error, _dirVisual);
 
             var steer = _dirVisual * wLogicDirection;
