@@ -142,6 +142,10 @@ namespace Astrum.LogicCore.Capabilities
             if (actionComponent.AvailableActions.Count > 0 && availableActionIds.Count > 0)
             {
                 actionComponent.CurrentActionId = availableActionIds[0];
+                
+                // 标记ActionComponent为脏，以便视图层同步
+                entity.MarkComponentDirty(ActionComponent.ComponentTypeId);
+                
                 ASLogger.Instance.Debug($"ActionCapability.LoadAvailableActions: Set initial action ActionId={actionComponent.CurrentActionId} " +
                     $"on entity {entity.UniqueId}");
             }
@@ -373,6 +377,9 @@ namespace Astrum.LogicCore.Capabilities
             actionComponent.CurrentAction = actionInfo;
             actionComponent.CurrentFrame = preorderInfo.FromFrame;
 
+            // 标记ActionComponent为脏，以便视图层同步
+            entity.MarkComponentDirty(ActionComponent.ComponentTypeId);
+
             TryUpdateFacingByCommand(entity, consumedCommand);
             
             // 记录切换成功的日志（注释掉频繁日志）
@@ -398,6 +405,9 @@ namespace Astrum.LogicCore.Capabilities
             
             // 按帧更新动作进度
             actionComponent.CurrentFrame += 1;
+
+            // 标记ActionComponent为脏，以便视图层同步
+            entity.MarkComponentDirty(ActionComponent.ComponentTypeId);
         }
         
         /// <summary>

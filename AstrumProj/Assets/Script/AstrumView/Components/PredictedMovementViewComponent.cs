@@ -2,6 +2,7 @@ using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.ActionSystem;
 using TrueSync;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
@@ -39,7 +40,7 @@ namespace Astrum.View.Components
         private Vector3 _dirVisual = Vector3.forward;
         private float _speedVisual;
 
-        // ===== 逻辑输入缓存（避免在逻辑帧停更时使用旧 posLogic 方向纠偏后拉）=====
+        // 逻辑输入缓存（避免在逻辑帧停更时使用旧 posLogic 方向纠偏后拉）=====
         private int _lastLogicFrameSeen = int.MinValue;
         private Vector3 _lastPosLogicSeen;
         private Vector3 _cachedDirLogic = Vector3.forward;
@@ -48,9 +49,19 @@ namespace Astrum.View.Components
         // 由脏组件同步驱动的权威移动状态
         private bool _isMovingLogicCached;
 
+        // RootMotion 相关状态 =====
+        private Vector3 _visualOffset;
+        private bool _isInSkillMotion;
+
+        // 动画相关
+        private Animator _cachedAnimator;
+
+        // RootMotion 参数（可在 Inspector 中调整）
+        public float motionBlendWeight = 1.0f;  // 动画 RootMotion 权重
+
         public override int[] GetWatchedComponentIds()
         {
-            return new[] { MovementComponent.ComponentTypeId };
+            return new[] { MovementComponent.ComponentTypeId, ActionComponent.ComponentTypeId };
         }
 
         public override void SyncDataFromComponent(int componentTypeId)
@@ -58,14 +69,129 @@ namespace Astrum.View.Components
             if (OwnerEntity == null)
                 return;
 
-            if (componentTypeId != MovementComponent.ComponentTypeId)
-                return;
+            if (componentTypeId == MovementComponent.ComponentTypeId)
+            {
+                var move = OwnerEntity.GetComponent<MovementComponent>();
+                if (move == null)
+                    return;
 
-            var move = OwnerEntity.GetComponent<MovementComponent>();
-            if (move == null)
-                return;
+                _isMovingLogicCached = move.IsMoving;
+            }
+            else if (componentTypeId == ActionComponent.ComponentTypeId)
+            {
+                var action = OwnerEntity.GetComponent<ActionComponent>();
+                if (action == null)
+                    return;
 
-            _isMovingLogicCached = move.IsMoving;
+                // 检查当前动作是否为技能
+                _isInSkillMotion = IsSkillMotionActive(action);
+            }
+        }
+
+        /// <summary>
+        /// 判定当前是否处于技能动作模式
+        /// </summary>
+        private bool IsSkillMotionActive(ActionComponent actionComponent)
+        {
+            if (actionComponent == null || actionComponent.CurrentAction == null)
+            {
+                return false;
+            }
+            
+            return (actionComponent.CurrentAction.SkillExtension != null);
+        }
+        
+        /// <summary>
+        /// 获取 Animator 引用
+        /// </summary>
+        /// <returns>Animator 组件引用，如果不存在则返回 null</returns>
+        private Animator GetAnimator()
+        {
+            // 如果已经缓存了 Animator，直接返回
+            if (_cachedAnimator != null)
+            {
+                return _cachedAnimator;
+            }
+            
+            // 方式1：从 AnimationViewComponent 获取（推荐）
+            if (_ownerEntityView != null)
+            {
+                var animViewComponent = _ownerEntityView.GetViewComponent<AnimationViewComponent>();
+                if (animViewComponent != null)
+                {
+                    _cachedAnimator = animViewComponent.GetAnimator();
+                    if (_cachedAnimator != null)
+                    {
+                        return _cachedAnimator;
+                    }
+                }
+                
+                // 方式2：直接从 GameObject 获取（fallback）
+                var modelComp = _ownerEntityView.GetViewComponent<ModelViewComponent>();
+                var model = modelComp?.ModelObject;
+                if (model != null)
+                {
+                    _cachedAnimator = model.GetComponent<Animator>();
+                    if (_cachedAnimator != null)
+                    {
+                        return _cachedAnimator;
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        /// <summary>
+        /// 逻辑帧推进时的 RootMotion 处理
+        /// </summary>
+        private void UpdateRootMotionWhenLogicAdvanced(Vector3 posLogic, float deltaTime)
+        {
+            var animator = GetAnimator();
+            if (animator == null)
+            {
+                return;
+            }
+            
+            // 更新视觉偏移：插值到当前逻辑点并转换为 offset
+            Vector3 interpolatedPos = Vector3.Lerp(_lastPosLogicSeen, posLogic, posFixLerp);
+            _visualOffset = interpolatedPos - posLogic;
+            
+            // 应用动画 RootMotion 位移
+            Vector3 animDelta = animator.deltaPosition * motionBlendWeight;
+            _visualOffset += animDelta;
+            
+            // 计算最终视觉位置 = 逻辑位置 + 视觉偏移
+            _posVisual = posLogic + _visualOffset;
+        }
+        
+        /// <summary>
+        /// 逻辑帧停更时的 RootMotion 处理（惯性前进 + 横向纠偏）
+        /// </summary>
+        private void UpdateRootMotionWhenLogicFrozen(Vector3 posLogic, float deltaTime)
+        {
+            var animator = GetAnimator();
+            if (animator == null)
+            {
+                return;
+            }
+            
+            // 应用动画 RootMotion 位移
+            Vector3 animDelta = animator.deltaPosition * motionBlendWeight;
+            _visualOffset += animDelta;
+            
+            // 惯性前进：保持当前移动方向和速度
+            _posVisual += _dirVisual * _speedVisual * deltaTime;
+            
+            // 横向纠偏：仅在垂直于移动方向上进行纠偏，不后拉
+            var error = posLogic - _posVisual;
+            var errorPerp = error - _dirVisual * Vector3.Dot(error, _dirVisual);
+            
+            // 将横向偏差加入视觉偏移
+            _visualOffset += errorPerp * posFixLerp * deltaTime;
+            
+            // 重新计算视觉位置
+            _posVisual = posLogic + _visualOffset;
         }
 
         protected override void OnInitialize()
@@ -74,6 +200,10 @@ namespace Astrum.View.Components
                 return;
 
             _posVisual = _ownerEntityView.GetWorldPosition();
+            
+            // 初始化 RootMotion 状态
+            _visualOffset = Vector3.zero;
+            _isInSkillMotion = false;
 
             var entity = OwnerEntity;
             if (entity == null)
@@ -120,25 +250,67 @@ namespace Astrum.View.Components
             if (trans == null)
                 return;
 
+            // 1. 状态同步和初始化
+            Vector3 posLogic;
+            int logicFrame;
+            bool logicFrameAdvanced;
+            UpdateStateSync(out posLogic, out logicFrame, out logicFrameAdvanced, trans);
+
+            // 2. 速度轮询
+            UpdateSpeedPolling(entity);
+
+            // 3. 旋转同步
+            ApplyRotationFromLogic(trans);
+
+            // 4. 静止状态处理
+            if (HandleStaticState(posLogic))
+                return;
+
+            // 5. 根据移动模式处理不同逻辑
+            if (_isInSkillMotion)
+            {
+                HandleSkillMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+            }
+            else
+            {
+                HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+            }
+
+            // 6. 应用最终位置
+            _ownerEntityView.SetWorldPosition(_posVisual);
+        }
+
+        /// <summary>
+        /// 更新状态同步：获取逻辑位置、逻辑帧等基本信息
+        /// </summary>
+        private void UpdateStateSync(out Vector3 posLogic, out int logicFrame, out bool logicFrameAdvanced, TransComponent trans)
+        {
             // 内部状态同步：不修改 transform，仅同步缓存
             _posVisual = _ownerEntityView.GetWorldPosition();
 
-            var posLogic = ToVector3(trans.Position);
-            var logicFrame = entity.World?.CurFrame ?? _lastLogicFrameSeen;
-            var logicFrameAdvanced = logicFrame != _lastLogicFrameSeen;
+            posLogic = ToVector3(trans.Position);
+            logicFrame = OwnerEntity.World?.CurFrame ?? _lastLogicFrameSeen;
+            logicFrameAdvanced = logicFrame != _lastLogicFrameSeen;
+        }
 
-            // speed 允许轻量轮询（不依赖输入），避免 dash/属性变化时长期不更新
+        /// <summary>
+        /// 速度轮询：允许轻量轮询速度，避免 dash/属性变化时长期不更新
+        /// </summary>
+        private void UpdateSpeedPolling(Entity entity)
+        {
             var moveComp = entity.GetComponent<MovementComponent>();
             if (moveComp != null)
             {
                 _cachedSpeedLogic = moveComp.Speed.AsFloat();
                 //ASLogger.Instance.Info($"speed: {_cachedSpeedLogic}");
             }
+        }
 
-            // 旋转始终按逻辑层权威同步（不参与“静止不拉回”的限制）
-            ApplyRotationFromLogic(trans);
-
-            // 静止：不更新位置（避免拉回），仅允许偏差过大时硬对齐
+        /// <summary>
+        /// 处理静止状态：不更新位置（避免拉回），仅允许偏差过大时硬对齐
+        /// </summary>
+        private bool HandleStaticState(Vector3 posLogic)
+        {
             if (!_isMovingLogicCached)
             {
                 if ((_posVisual - posLogic).magnitude > hardSnapDistance)
@@ -146,69 +318,125 @@ namespace Astrum.View.Components
                     _posVisual = posLogic;
                     _ownerEntityView.SetWorldPosition(_posVisual);
                 }
-                return;
+                return true; // 静止状态，不需要进一步处理
             }
+            return false; // 非静止状态，继续处理
+        }
 
-            // 逻辑帧推进：更新缓存逻辑方向（差分），并进行常规纠偏合成
+        /// <summary>
+        /// 处理技能动作模式
+        /// </summary>
+        private void HandleSkillMotion(Vector3 posLogic, int logicFrame, bool logicFrameAdvanced, float deltaTime)
+        {
             if (logicFrameAdvanced)
             {
-                var deltaLogic = posLogic - _lastPosLogicSeen;
-                if (deltaLogic.sqrMagnitude > (minLogicDeltaForDir * minLogicDeltaForDir))
-                {
-                    _cachedDirLogic = deltaLogic.normalized;
-                }
-                else
-                {
-                    // 兜底：使用逻辑朝向 forward
-                    var fwd = ToVector3(trans.Forward);
-                    if (fwd.sqrMagnitude > 1e-8f)
-                        _cachedDirLogic = fwd.normalized;
-                }
-
+                UpdateRootMotionWhenLogicAdvanced(posLogic, deltaTime);
                 _lastPosLogicSeen = posLogic;
                 _lastLogicFrameSeen = logicFrame;
-
-                _speedVisual = _cachedSpeedLogic;//Mathf.MoveTowards(_speedVisual, _cachedSpeedLogic, accel * deltaTime);
-
-                var correction = posLogic - _posVisual;
-                var dirMove = _cachedDirLogic * wLogicDirection;
-                if (correction.sqrMagnitude > 1e-8f)
-                    dirMove += correction.normalized * wCorrectionDirection;
-
-                if (dirMove.sqrMagnitude < 1e-8f)
-                    dirMove = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : _dirVisual;
-
-                dirMove.Normalize();
-                _dirVisual = dirMove;
-
-                _posVisual += _dirVisual * _speedVisual * deltaTime;
-                _posVisual = Vector3.Lerp(_posVisual, posLogic, posFixLerp * deltaTime);
-
-                _ownerEntityView.SetWorldPosition(_posVisual);
-                return;
+            }
+            else
+            {
+                UpdateRootMotionWhenLogicFrozen(posLogic, deltaTime);
             }
 
-            // 逻辑帧停更：保持惯性前进，纠偏仅做横向回轨（剔除沿运动方向的误差分量，避免后拉）
+            // 极端保护：当视觉与逻辑偏差过大时，强制对齐并重置偏移
+            ApplyExtremeProtectionForSkillMotion(posLogic);
+        }
+
+        /// <summary>
+        /// 处理普通移动模式
+        /// </summary>
+        private void HandleNormalMotion(Vector3 posLogic, int logicFrame, bool logicFrameAdvanced, float deltaTime)
+        {
+            if (logicFrameAdvanced)
+            {
+                HandleNormalMovementWhenLogicAdvanced(posLogic, logicFrame, deltaTime);
+            }
+            else
+            {
+                HandleNormalMovementWhenLogicFrozen(posLogic, deltaTime);
+            }
+        }
+
+        /// <summary>
+        /// 普通移动模式下逻辑帧推进的处理
+        /// </summary>
+        private void HandleNormalMovementWhenLogicAdvanced(Vector3 posLogic, int logicFrame, float deltaTime)
+        {
+            // 更新缓存逻辑方向（差分）
+            var deltaLogic = posLogic - _lastPosLogicSeen;
+            if (deltaLogic.sqrMagnitude > (minLogicDeltaForDir * minLogicDeltaForDir))
+            {
+                _cachedDirLogic = deltaLogic.normalized;
+            }
+            else
+            {
+                // 兜底：使用逻辑朝向 forward
+                var fwd = ToVector3(OwnerEntity.GetComponent<TransComponent>().Forward);
+                if (fwd.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = fwd.normalized;
+            }
+
+            // 更新逻辑帧和位置缓存
+            _lastPosLogicSeen = posLogic;
+            _lastLogicFrameSeen = logicFrame;
+
+            // 更新视觉速度
+            _speedVisual = _cachedSpeedLogic; //Mathf.MoveTowards(_speedVisual, _cachedSpeedLogic, accel * deltaTime);
+
+            // 计算移动方向（逻辑方向 + 纠偏方向）
+            var correction = posLogic - _posVisual;
+            var dirMove = _cachedDirLogic * wLogicDirection;
+            if (correction.sqrMagnitude > 1e-8f)
+                dirMove += correction.normalized * wCorrectionDirection;
+
+            if (dirMove.sqrMagnitude < 1e-8f)
+                dirMove = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : _dirVisual;
+
+            dirMove.Normalize();
+            _dirVisual = dirMove;
+
+            // 更新视觉位置
+            _posVisual += _dirVisual * _speedVisual * deltaTime;
+            _posVisual = Vector3.Lerp(_posVisual, posLogic, posFixLerp * deltaTime);
+        }
+
+        /// <summary>
+        /// 普通移动模式下逻辑帧停更的处理：保持惯性前进，仅做横向回轨
+        /// </summary>
+        private void HandleNormalMovementWhenLogicFrozen(Vector3 posLogic, float deltaTime)
+        {
+            // 惯性前进
             _posVisual += _dirVisual * _speedVisual * deltaTime;
 
-            {
-                var error = posLogic - _posVisual;
-                var errorPerp = error - _dirVisual * Vector3.Dot(error, _dirVisual);
+            // 横向纠偏：仅在垂直于移动方向上进行纠偏，不后拉
+            var error = posLogic - _posVisual;
+            var errorPerp = error - _dirVisual * Vector3.Dot(error, _dirVisual);
 
-                var steer = _dirVisual * wLogicDirection;
-                if (errorPerp.sqrMagnitude > 1e-8f)
-                    steer += errorPerp.normalized * wCorrectionDirection;
+            var steer = _dirVisual * wLogicDirection;
+            if (errorPerp.sqrMagnitude > 1e-8f)
+                steer += errorPerp.normalized * wCorrectionDirection;
 
-                if (steer.sqrMagnitude > 1e-8f)
-                    _dirVisual = steer.normalized;
-            }
+            if (steer.sqrMagnitude > 1e-8f)
+                _dirVisual = steer.normalized;
 
+            // 极端保护
             if ((_posVisual - posLogic).magnitude > hardSnapDistance)
             {
                 _posVisual = posLogic;
             }
+        }
 
-            _ownerEntityView.SetWorldPosition(_posVisual);
+        /// <summary>
+        /// 技能动作模式下的极端保护：当视觉与逻辑偏差过大时，强制对齐并重置偏移
+        /// </summary>
+        private void ApplyExtremeProtectionForSkillMotion(Vector3 posLogic)
+        {
+            if ((_posVisual - posLogic).magnitude > hardSnapDistance)
+            {
+                _posVisual = posLogic;
+                _visualOffset = Vector3.zero;
+            }
         }
 
         protected override void OnDestroy()
@@ -260,6 +488,10 @@ namespace Astrum.View.Components
             // 方向保持为当前视觉方向；如果无效则用缓存逻辑方向兜底
             if (_dirVisual.sqrMagnitude < 1e-8f)
                 _dirVisual = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : Vector3.forward;
+
+            // 重置 RootMotion 相关状态
+            _visualOffset = Vector3.zero;
+            _isInSkillMotion = false;
         }
 
         private static Vector3 ToVector3(TSVector v)
