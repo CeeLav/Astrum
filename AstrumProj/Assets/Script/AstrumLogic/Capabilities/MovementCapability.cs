@@ -199,7 +199,9 @@ namespace Astrum.LogicCore.Capabilities
 
                 var trans = transComponent;
                 // 使用 World.CurFrame 作为实际执行的帧号，而不是 input.Frame（预测帧号）
-                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 移动，frame:{currentFrame}位置：{trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2}");
+                string worldType = (entity.World?.Name == "ShadowWorld") ? "影子世界" : "权威世界";
+                ASLogger.Instance.Info($"MovementCapability: 实体 {entity.UniqueId} 移动，frame:{currentFrame}位置：{trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2}，世界类型：{worldType}");
+
                 
                 // 记录位置历史（用于影子回滚调试）
                 movementComponent.RecordPosition(currentFrame, transComponent.Position);

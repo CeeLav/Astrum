@@ -610,23 +610,49 @@ namespace Astrum.View.Core
         /// </summary>
         private void SyncDirtyComponents()
         {
-            if (_room?.MainWorld == null) return;
-            
-            // 遍历所有 Entity
-            foreach (var entity in _room.MainWorld.Entities.Values)
+            // 同步 MainWorld 中的实体（只处理没有影子的实体）
+            if (_room?.MainWorld != null)
             {
-                var dirtyComponentIds = entity.GetDirtyComponentIds();
-                if (dirtyComponentIds.Count > 0)
+                foreach (var entity in _room.MainWorld.Entities.Values)
                 {
-                    // 获取对应的 EntityView
-                    if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
+                    var dirtyComponentIds = entity.GetDirtyComponentIds();
+                    if (dirtyComponentIds.Count > 0)
                     {
-                        // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
-                        entityView.SyncDirtyComponents(dirtyComponentIds);
+                        // 只有当实体没有影子时，才通知对应的 EntityView
+                        if (!entity.HasShadow)
+                        {
+                            // 获取对应的 EntityView
+                            if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
+                            {
+                                // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
+                                entityView.SyncDirtyComponents(dirtyComponentIds);
+                            }
+                        }
+                        
+                        // 清除脏标记
+                        entity.ClearDirtyComponents();
                     }
-                    
-                    // 清除脏标记
-                    entity.ClearDirtyComponents();
+                }
+            }
+            
+            // 同步 ShadowWorld 中的实体（处理所有实体）
+            if (_room?.ShadowWorld != null)
+            {
+                foreach (var entity in _room.ShadowWorld.Entities.Values)
+                {
+                    var dirtyComponentIds = entity.GetDirtyComponentIds();
+                    if (dirtyComponentIds.Count > 0)
+                    {
+                        // 获取对应的 EntityView
+                        if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
+                        {
+                            // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
+                            entityView.SyncDirtyComponents(dirtyComponentIds);
+                        }
+                        
+                        // 清除脏标记
+                        entity.ClearDirtyComponents();
+                    }
                 }
             }
         }
