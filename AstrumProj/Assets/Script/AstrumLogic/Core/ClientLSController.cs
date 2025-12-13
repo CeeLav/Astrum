@@ -54,12 +54,18 @@ namespace Astrum.LogicCore.Core
         public long _serverTimeDiff;
         
         /// <summary>
-        /// 时间差的平滑因子（0 < _timeDiffSmoothFactor < 1）
-        /// 值越大，新值对当前值的影响越大，收敛越快，但可能不够平滑
-        /// 值越小，新值对当前值的影响越小，变动越平滑，但收敛较慢
-        /// 推荐值：0.2-0.5
+        /// 时间差上升时的平滑因子（0 < _timeDiffRiseFactor < 1）
+        /// 值越大，时间差上升越快，收敛越快
+        /// 推荐值：0.4-0.8
         /// </summary>
-        private const float _timeDiffSmoothFactor = 0.3f;
+        private const float _timeDiffRiseFactor = 0.6f;
+        
+        /// <summary>
+        /// 时间差下降时的平滑因子（0 < _timeDiffFallFactor < 1）
+        /// 值越小，时间差下降越慢，变动越平滑
+        /// 推荐值：0.05-0.2
+        /// </summary>
+        private const float _timeDiffFallFactor = 0.01f;
         
         /// <summary>
         /// 是否已初始化时间差
@@ -68,6 +74,7 @@ namespace Astrum.LogicCore.Core
         
         /// <summary>
         /// 更新服务器时间戳，计算时间差（平滑过渡）
+        /// 采用上升容易、下降缓慢的平滑策略
         /// </summary>
         /// <param name="serverTimestamp">服务器时间戳（毫秒）</param>
         public void UpdateServerTime(long serverTimestamp)
@@ -83,9 +90,22 @@ namespace Astrum.LogicCore.Core
             }
             else
             {
+                // 动态选择平滑因子：上升时使用较大因子，下降时使用较小因子
+                float smoothFactor;
+                if (newTimeDiff > _serverTimeDiff)
+                {
+                    // 时间差上升：使用较大的平滑因子，让时间差快速跟上
+                    smoothFactor = _timeDiffRiseFactor;
+                }
+                else
+                {
+                    // 时间差下降：使用较小的平滑因子，让时间差缓慢下降
+                    smoothFactor = _timeDiffFallFactor;
+                }
+                
                 // 使用指数平滑算法平滑时间差的变化
                 // 公式：current_diff = alpha * new_diff + (1 - alpha) * current_diff
-                long smoothedDiff = (long)(_timeDiffSmoothFactor * newTimeDiff + (1 - _timeDiffSmoothFactor) * _serverTimeDiff);
+                long smoothedDiff = (long)(smoothFactor * newTimeDiff + (1 - smoothFactor) * _serverTimeDiff);
                 _serverTimeDiff = smoothedDiff;
             }
             
@@ -142,7 +162,7 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsRunning || IsPaused || Room == null) return;
 
-            long currentTime = TimeInfo.Instance.ClientNow() + _serverTimeDiff + 66;
+            long currentTime = TimeInfo.Instance.ClientNow() + (long)(_serverTimeDiff*1.2f) ;
 
             // 第一步：处理权威帧插值（从 ProcessedAuthorityFrame 推进到 AuthorityFrame）
             while (ProcessedAuthorityFrame < AuthorityFrame)
