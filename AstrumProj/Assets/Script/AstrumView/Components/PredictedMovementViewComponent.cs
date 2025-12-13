@@ -48,10 +48,10 @@ namespace Astrum.View.Components
 
         // 由脏组件同步驱动的权威移动状态
         private bool _isMovingLogicCached;
+        private MovementType _currentMovementTypeCached;
 
         // RootMotion 相关状态 =====
         private Vector3 _visualOffset;
-        private bool _isInSkillMotion;
 
         // 动画相关
         private Animator _cachedAnimator;
@@ -61,7 +61,7 @@ namespace Astrum.View.Components
 
         public override int[] GetWatchedComponentIds()
         {
-            return new[] { MovementComponent.ComponentTypeId, ActionComponent.ComponentTypeId };
+            return new[] { MovementComponent.ComponentTypeId };
         }
 
         public override void SyncDataFromComponent(int componentTypeId)
@@ -76,31 +76,10 @@ namespace Astrum.View.Components
                     return;
 
                 _isMovingLogicCached = move.CurrentMovementType != MovementType.None;
-            }
-            else if (componentTypeId == ActionComponent.ComponentTypeId)
-            {
-                var action = OwnerEntity.GetComponent<ActionComponent>();
-                if (action == null)
-                    return;
-
-                // 检查当前动作是否为技能
-                _isInSkillMotion = IsSkillMotionActive(action);
+                _currentMovementTypeCached = move.CurrentMovementType;
             }
         }
 
-        /// <summary>
-        /// 判定当前是否处于技能动作模式
-        /// </summary>
-        private bool IsSkillMotionActive(ActionComponent actionComponent)
-        {
-            if (actionComponent == null || actionComponent.CurrentAction == null)
-            {
-                return false;
-            }
-            
-            return (actionComponent.CurrentAction.SkillExtension != null);
-        }
-        
         /// <summary>
         /// 获取 Animator 引用
         /// </summary>
@@ -203,7 +182,6 @@ namespace Astrum.View.Components
             
             // 初始化 RootMotion 状态
             _visualOffset = Vector3.zero;
-            _isInSkillMotion = false;
 
             var entity = OwnerEntity;
             if (entity == null)
@@ -234,6 +212,7 @@ namespace Astrum.View.Components
                 _cachedSpeedLogic = moveComp.Speed.AsFloat();
                 _speedVisual = _cachedSpeedLogic;
                 _isMovingLogicCached = moveComp.CurrentMovementType != MovementType.None;
+                _currentMovementTypeCached = moveComp.CurrentMovementType;
             }
         }
 
@@ -267,7 +246,7 @@ namespace Astrum.View.Components
                 return;
 
             // 5. 根据移动模式处理不同逻辑
-            if (_isInSkillMotion)
+            if (_currentMovementTypeCached == MovementType.SkillDisplacement)
             {
                 HandleSkillMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
             }
@@ -489,9 +468,8 @@ namespace Astrum.View.Components
             if (_dirVisual.sqrMagnitude < 1e-8f)
                 _dirVisual = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : Vector3.forward;
 
-            // 重置 RootMotion 相关状态
+            // 初始化 RootMotion 状态
             _visualOffset = Vector3.zero;
-            _isInSkillMotion = false;
         }
 
         private static Vector3 ToVector3(TSVector v)

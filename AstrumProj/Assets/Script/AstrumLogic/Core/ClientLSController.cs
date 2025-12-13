@@ -162,7 +162,7 @@ namespace Astrum.LogicCore.Core
         {
             if (!IsRunning || IsPaused || Room == null) return;
 
-            long currentTime = TimeInfo.Instance.ClientNow() + (long)(_serverTimeDiff*1.2f) ;
+            long currentTime = TimeInfo.Instance.ClientNow() + (_serverTimeDiff) + 33 ;
 
             // 第一步：处理权威帧插值（从 ProcessedAuthorityFrame 推进到 AuthorityFrame）
             while (ProcessedAuthorityFrame < AuthorityFrame)
