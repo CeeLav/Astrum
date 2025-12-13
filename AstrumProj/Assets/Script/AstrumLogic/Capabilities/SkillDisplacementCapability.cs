@@ -185,9 +185,7 @@ namespace Astrum.LogicCore.Capabilities
                 int worldFrame = entity.World?.CurFrame ?? 0;
                 movementComponent.LastMoveFrame = worldFrame;
 
-                // 记录“移动方向”（注意：不是角色朝向），以位移 delta 为准
-                // 技能位移的 delta 已是世界空间且 y=0
-                movementComponent.MoveDirection = worldDeltaPosition.normalized;
+                movementComponent.MoveDirection = transComponent.Rotation * TSVector.forward;
 
                 if (movementComponent.CurrentMovementType != MovementType.SkillDisplacement)
                 {

@@ -203,20 +203,36 @@ namespace Astrum.View.Components
                 return;
             }
             
-            // 更新视觉偏移：插值到当前逻辑点并转换为 offset
-            Vector3 interpolatedPos = Vector3.Lerp(_lastPosLogicSeen, posLogic, posFixLerp);
-            _visualOffset = interpolatedPos - posLogic;
-            
-            // 应用动画 RootMotion 位移
+            // 获取原始动画位移
             Vector3 animDelta = animator.deltaPosition * motionBlendWeight;
-            _visualOffset += animDelta;
             
-            // 计算最终视觉位置 = 逻辑位置 + 视觉偏移
-            _posVisual = posLogic + _visualOffset;
+            // 计算逻辑位置和当前视觉位置的距离差
+            float distanceDiff = (posLogic - _posVisual).magnitude;
+            
+            // 计算方向：如果逻辑位置在视觉位置前面，方向为正
+            float directionFactor = Vector3.Dot((posLogic - _posVisual).normalized, animDelta.normalized);
+            
+            // 动态调整位移距离：如果逻辑位置比动画位移远，增加位移；如果落后，减少位移
+            float adjustmentFactor = 1.0f;
+            if (directionFactor > 0.5f) // 逻辑位置在移动方向上领先
+            {
+                adjustmentFactor = 1.0f + Mathf.Clamp(distanceDiff * 0.1f, 0.0f, 0.5f);
+            }
+            else if (directionFactor < -0.5f) // 逻辑位置在移动方向上落后
+            {
+                adjustmentFactor = 1.0f - Mathf.Clamp(distanceDiff * 0.1f, 0.0f, 0.3f);
+            }
+            
+            // 应用调整后的动画位移
+            Vector3 adjustedAnimDelta = animDelta * adjustmentFactor;
+            _posVisual += adjustedAnimDelta;
+            
+            // 更新视觉偏移以保持一致性
+            _visualOffset = _posVisual - posLogic;
         }
         
         /// <summary>
-        /// 逻辑帧停更时的 RootMotion 处理（惯性前进 + 横向纠偏）
+        /// 逻辑帧停更时的 RootMotion 处理（仅应用动画位移）
         /// </summary>
         private void UpdateRootMotionWhenLogicFrozen(Vector3 posLogic, float deltaTime)
         {
@@ -226,22 +242,32 @@ namespace Astrum.View.Components
                 return;
             }
             
-            // 应用动画 RootMotion 位移
+            // 获取原始动画位移
             Vector3 animDelta = animator.deltaPosition * motionBlendWeight;
-            _visualOffset += animDelta;
             
-            // 惯性前进：保持当前移动方向和速度
-            _posVisual += _dirVisual * _speedVisual * deltaTime;
+            // 计算逻辑位置和当前视觉位置的距离差
+            float distanceDiff = (posLogic - _posVisual).magnitude;
             
-            // 横向纠偏：仅在垂直于移动方向上进行纠偏，不后拉
-            var error = posLogic - _posVisual;
-            var errorPerp = error - _dirVisual * Vector3.Dot(error, _dirVisual);
+            // 计算方向：如果逻辑位置在视觉位置前面，方向为正
+            float directionFactor = Vector3.Dot((posLogic - _posVisual).normalized, animDelta.normalized);
             
-             //将横向偏差加入视觉偏移
-            _visualOffset += errorPerp * posFixLerp * deltaTime;
+            // 动态调整位移距离：如果逻辑位置比动画位移远，增加位移；如果落后，减少位移
+            float adjustmentFactor = 1.0f;
+            if (directionFactor > 0.5f) // 逻辑位置在移动方向上领先
+            {
+                adjustmentFactor = 1.0f + Mathf.Clamp(distanceDiff * 0.1f, 0.0f, 0.5f);
+            }
+            else if (directionFactor < -0.5f) // 逻辑位置在移动方向上落后
+            {
+                adjustmentFactor = 1.0f - Mathf.Clamp(distanceDiff * 0.1f, 0.0f, 0.3f);
+            }
             
-            // 重新计算视觉位置
-            _posVisual = posLogic + _visualOffset;
+            // 应用调整后的动画位移
+            Vector3 adjustedAnimDelta = animDelta * adjustmentFactor;
+            _posVisual += adjustedAnimDelta;
+            
+            // 更新视觉偏移以保持一致性
+            _visualOffset = _posVisual - posLogic;
         }
 
         protected override void OnInitialize()
@@ -351,7 +377,7 @@ namespace Astrum.View.Components
         private void UpdateStateSync(out Vector3 posLogic, out int logicFrame, out bool logicFrameAdvanced, TransComponent trans)
         {
             // 内部状态同步：不修改 transform，仅同步缓存
-            _posVisual = _ownerEntityView.GetWorldPosition();
+            //_posVisual = _ownerEntityView.GetWorldPosition();
 
             posLogic = ToVector3(trans.Position);
             logicFrame = OwnerEntity.World?.CurFrame ?? _lastLogicFrameSeen;
@@ -394,6 +420,7 @@ namespace Astrum.View.Components
             {
                 if ((_posVisual - posLogic).magnitude > hardSnapDistance)
                 {
+                    ASLogger.Instance.Warning("hardSnapDistance");
                     _posVisual = posLogic;
                     _ownerEntityView.SetWorldPosition(_posVisual);
                 }
@@ -485,14 +512,7 @@ namespace Astrum.View.Components
             float predictionTime = predictionFrames * deltaTime;
             Vector3 predictedFuturePos = posLogic + _cachedDirLogic * _cachedSpeedLogic * predictionTime;
             
-            // 横向纠偏：仅在垂直于移动方向上进行纠偏，不后拉
-            // 使用预计未来位置作为纠偏目标
-            var error = predictedFuturePos - _posVisual;
-            var errorPerp = error - _dirVisual * Vector3.Dot(error, _dirVisual);
-
             var steer = _dirVisual * wLogicDirection;
-            if (errorPerp.sqrMagnitude > 1e-8f)
-                steer += errorPerp.normalized * wCorrectionDirection;
 
             if (steer.sqrMagnitude > 1e-8f)
                 _dirVisual = steer.normalized;
@@ -501,6 +521,8 @@ namespace Astrum.View.Components
             if ((_posVisual - posLogic).magnitude > hardSnapDistance)
             {
                 _posVisual = posLogic;
+                ASLogger.Instance.Warning($"hardSnapDistance");
+                
             }
         }
 
@@ -554,7 +576,7 @@ namespace Astrum.View.Components
             
             // 使用快一点的缓动将当前旋转过渡到目标旋转
             Quaternion newRotation = Quaternion.Lerp(currentRotation, targetRotation, rotationLerpSpeed);
-            
+            ASLogger.Instance.Info($"_cachedDirLogic:{_cachedDirLogic} newRotation: {newRotation}");
             // 应用新的旋转
             _ownerEntityView.SetWorldRotation(newRotation);
         }
