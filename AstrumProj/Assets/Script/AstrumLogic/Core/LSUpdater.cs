@@ -53,7 +53,7 @@ namespace Astrum.LogicCore.Core
                     
                     if (hasNonEmptyInput)
                     {
-                        ASLogger.Instance.Info($"[LSUpdater.UpdateWorld] 调用 CapabilitySystem.Update | World.CurFrame={world.CurFrame}", "LSUpdater.UpdateWorld");
+                        //ASLogger.Instance.Info($"[LSUpdater.UpdateWorld] 调用 CapabilitySystem.Update | World.CurFrame={world.CurFrame}", "LSUpdater.UpdateWorld");
                     }
                     
                     world.CapabilitySystem.Update(world);

@@ -220,7 +220,7 @@ namespace Astrum.LogicCore.Core
                         // 记录 World.Update 调用（仅当有非空输入时）
                         if (oneFrameInputs?.Inputs != null && oneFrameInputs.Inputs.Any(kv => kv.Value != null && (kv.Value.MoveX != 0 || kv.Value.MoveY != 0)))
                         {
-                            ASLogger.Instance.Info($"[Room.FrameTick] 调用 World.Update | World.CurFrame={world.CurFrame}", "Room.FrameTick");
+                            //ASLogger.Instance.Info($"[Room.FrameTick] 调用 World.Update | World.CurFrame={world.CurFrame}", "Room.FrameTick");
                         }
                         world.Update();
                     }

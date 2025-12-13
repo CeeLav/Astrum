@@ -382,10 +382,13 @@ namespace Astrum.LogicCore.Capabilities
 
             TryUpdateFacingByCommand(entity, consumedCommand);
             
-            // 记录切换成功的日志（注释掉频繁日志）
-            // ASLogger.Instance.Debug($"ActionCapability.SwitchToAction: Successfully switched action on entity {entity.UniqueId} " +
-            //     $"from ActionId={previousActionId}(Frame={previousFrame}) to ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame}) " +
-            //     $"[Priority={preorderInfo.Priority}, TransitionFrames={preorderInfo.TransitionFrames}]");
+            // 只有当动作ID真正变化时才记录日志
+            if (previousActionId != actionInfo.Id)
+            {
+                // 记录切换成功的日志，包含世界类型
+                string worldType = (entity.World?.Name == "ShadowWorld") ? "影子世界" : "权威世界";
+                ASLogger.Instance.Info($"[ActionSync] ActionCapability: 实体 {entity.UniqueId} 动作切换，从 ActionId={previousActionId}(Frame={previousFrame}) 到 ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame})，世界类型：{worldType}");
+            }
 
             UpdateMovementAndAnimationSpeed(entity, actionComponent);
         }

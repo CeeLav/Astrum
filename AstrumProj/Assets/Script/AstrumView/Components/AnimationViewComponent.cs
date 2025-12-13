@@ -486,8 +486,10 @@ namespace Astrum.View.Components
         /// </summary>
         /// <param name="actionId">动作ID</param>
         /// <param name="fadeTime">过渡时间</param>
-        public void PlayAnimationByActionId(int actionId, float fadeTime = 0.25f, bool forceRestart = false)
+        public void PlayAnimationByActionId(int actionId, float fadeTime = 0.1f, bool forceRestart = false)
         {
+            ASLogger.Instance.Info($"[PlayAnimation] ActionId={actionId}, FadeTime={fadeTime}, ForceRestart={forceRestart}, CurrentAnim={_currentAnimationName}, Time={Time.time}");
+            
             if (_animancerComponent == null)
             {
                 ASLogger.Instance.Error($"AnimationViewComponent.PlayAnimationByActionId: AnimancerComponent is null for entity {OwnerEntity?.UniqueId}");
@@ -498,6 +500,7 @@ namespace Astrum.View.Components
             string animationName = GetAnimationNameByActionId(actionId);
             if (animationName == null)
             {
+                ASLogger.Instance.Info($"[PlayAnimation] No animation found for ActionId={actionId}");
                 return;
             }
             // 2. 检查动画是否已经在播放
@@ -520,6 +523,9 @@ namespace Astrum.View.Components
                 
                 if (_currentAnimationState != null)
                 {
+                    ASLogger.Instance.Info($"[AnimationSync] ActionId={actionId} (Animation Switched), FromAnim={_currentAnimationName}, ToAnim={animationName}, Time={Time.time}");
+                    _currentAnimationName = animationName;
+                    _isPlaying = true;
                     if (restartRequired)
                     {
                         _currentAnimationState.Time = 0f;
@@ -608,6 +614,7 @@ namespace Astrum.View.Components
             // 直接设置绝对时间（秒）- Animancer 支持直接使用绝对时间
             _currentAnimationState.Time = animTime;
             
+            ASLogger.Instance.Info($"[AnimSyncTime] ActionId={actionInfo.Id}, TargetFrame={targetFrame}, AnimTime={animTime:F3}s, CurrentAnim={_currentAnimationName}, Time={Time.time}");
             ASLogger.Instance.Debug($"AnimationViewComponent.SyncAnimationTime: Synced to frame {targetFrame} " +
                 $"(animTime: {animTime:F3}s) for action {actionInfo.Id} on entity {OwnerEntity?.UniqueId}");
         }
@@ -663,8 +670,8 @@ namespace Astrum.View.Components
         {
             if (_currentAnimationState == null) return;
             
-            // 更新动画播放进度（Animancer会自动处理）
-            // 这里可以添加额外的进度跟踪逻辑
+            // 记录动画进度更新
+            //ASLogger.Instance.Info($"[AnimProgress] CurrentAnim={_currentAnimationName}, NormalizedTime={_currentAnimationState.NormalizedTime:F3}, Time={_currentAnimationState.Time:F3}s, Speed={_currentAnimationState.Speed:F2}, DeltaTime={deltaTime:F3}s, Time={Time.time}");
         }
         
         /// <summary>
