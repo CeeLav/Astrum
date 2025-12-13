@@ -8,6 +8,7 @@ using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Core;
 using Astrum.Client.Managers;
 using Astrum.View.Core;
+using UnityEngine;
 
 namespace Astrum.Client.Managers.GameModes.Handlers
 {
@@ -371,12 +372,31 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     {
                         clientSync.PlayerId = _gameMode.PlayerId;
                     }
-                    
+
+                    if (frameInputs.Inputs != null && frameInputs.Inputs.Count > 0 )
+                    {
+                        var inputs =  frameInputs.Inputs;
+                        if (inputs.TryGetValue(clientSync.PlayerId, out var input))
+                        {
+                            //input.Timestamp = serverTimestamp;
+                            if (input.Timestamp != 0)
+                            {
+                                ASLogger.Instance.Info($"Timestamp:{input.Timestamp}");
+                                clientSync.UpdateRTT(input.Timestamp);
+                                
+                            }
+                            else
+                            {
+                                clientSync.UpdateRTT(serverTimestamp);
+                            }
+                        }
+                    }
+                    /*
                     // 更新服务器时间戳
                     if (serverTimestamp > 0)
                     {
                         clientSync.UpdateServerTime(serverTimestamp);
-                    }
+                    }*/
                     
                     clientSync.SetOneFrameInputs(frameInputs);
                     

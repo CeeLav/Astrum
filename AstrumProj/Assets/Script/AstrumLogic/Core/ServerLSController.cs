@@ -157,7 +157,8 @@ namespace Astrum.LogicCore.Core
                 input.Frame = frame; // 修改为下发帧号
                 // RequestFrame 保持不变，使用客户端上报的原始值
             }
-            
+
+            input.Timestamp = 0;
             _frameInputs[frame][playerId] = input;
             
             // 定期清理过期缓存
@@ -217,7 +218,7 @@ namespace Astrum.LogicCore.Core
                     placeholderInput.Dash = input.Dash;
                     placeholderInput.MouseWorldX = input.MouseWorldX;
                     placeholderInput.MouseWorldZ = input.MouseWorldZ;
-                    placeholderInput.Timestamp = input.Timestamp;
+                    placeholderInput.Timestamp = 0;
                     placeholderInput.BornInfo = input.BornInfo;
                     input = placeholderInput;
                 }

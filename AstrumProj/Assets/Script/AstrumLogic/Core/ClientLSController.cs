@@ -52,10 +52,10 @@ namespace Astrum.LogicCore.Core
         /// 更新服务器时间戳，计算时间差（平滑过渡）
         /// 采用上升容易、下降缓慢的平滑策略
         /// </summary>
-        /// <param name="serverTimestamp">服务器时间戳（毫秒）</param>
-        public void UpdateServerTime(long serverTimestamp)
+        /// <param name="sendTime">服务器时间戳（毫秒）</param>
+        public void UpdateRTT(long sendTime)
         {
-            TimeInfo.Instance.UpdateServerTime(serverTimestamp);
+            TimeInfo.Instance.UpdateRTT(sendTime);
         }
         
         public long CreationTime { get; set; }
@@ -238,7 +238,7 @@ namespace Astrum.LogicCore.Core
             _shadowFrameHashes[frame] = hash;
 
             // 滑动窗口裁剪：保留近 MaxPredictionFrames 范围
-            int minFrameToKeep = frame - (int)(TimeInfo.Instance.ServerTimeDiff / 50 * 1.5) - 10;
+            int minFrameToKeep = frame - (int)(TimeInfo.Instance.ServerTimeDiff / 50 * 5) - 10;
             
             var removeKeys = _shadowFrameHashes.Keys.Where(f => f < minFrameToKeep).ToList();
             foreach (var key in removeKeys)

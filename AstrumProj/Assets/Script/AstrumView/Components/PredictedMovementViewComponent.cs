@@ -38,7 +38,7 @@ namespace Astrum.View.Components
         /// <summary>
         /// 预测未来位置的帧数（用于平滑纠偏）
         /// </summary>
-        public int predictionFrames = 10;
+        public int predictionFrames = 30;
 
         // ===== 表现层内部状态 =====
         private Vector3 _posVisual;
@@ -85,6 +85,71 @@ namespace Astrum.View.Components
                 _currentMovementTypeCached = move.CurrentMovementType;
             }
         }
+
+        protected override void OnSyncData(object data)
+        {
+            
+        }
+
+        protected override void OnReset()
+        {
+            // 不直接对齐到逻辑位置：保持当前渲染位置，避免 reset 导致瞬移/拉回
+            if (_ownerEntityView == null)
+                return;
+/*
+            _posVisual = _ownerEntityView.GetWorldPosition();
+
+            var entity = OwnerEntity;
+            if (entity == null)
+                return;
+
+            if (entity.GetComponent<ProjectileComponent>() != null)
+                return;
+
+            var trans = entity.GetComponent<TransComponent>();
+            if (trans != null)
+            {
+                _lastPosLogicSeen = ToVector3(trans.Position);
+            }
+            else
+            {
+                _lastPosLogicSeen = _posVisual;
+            }
+
+            _lastLogicFrameSeen = entity.World?.CurFrame ?? int.MinValue;
+
+            var moveComp = entity.GetComponent<MovementComponent>();
+            if (moveComp != null)
+            {
+                _cachedSpeedLogic = moveComp.Speed.AsFloat();
+                _speedVisual = _cachedSpeedLogic;
+            }
+
+            // 重置：优先使用逻辑侧 MoveDirection
+            if (moveComp != null)
+            {
+                var dir = ToVector3(moveComp.MoveDirection);
+                dir.y = 0f;
+                if (dir.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = dir.normalized;
+            }
+
+            // 兜底：若 MoveDirection 无效，则使用逻辑朝向 forward
+            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
+            {
+                var fwd = ToVector3(trans.Forward);
+                fwd.y = 0f;
+                if (fwd.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = fwd.normalized;
+            }
+
+            // 方向保持为当前视觉方向；如果无效则用缓存逻辑方向兜底
+            if (_dirVisual.sqrMagnitude < 1e-8f)
+                _dirVisual = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : Vector3.forward;
+
+            */
+        }
+
 
         /// <summary>
         /// 获取 Animator 引用
@@ -172,7 +237,7 @@ namespace Astrum.View.Components
             var error = posLogic - _posVisual;
             var errorPerp = error - _dirVisual * Vector3.Dot(error, _dirVisual);
             
-            // 将横向偏差加入视觉偏移
+             //将横向偏差加入视觉偏移
             _visualOffset += errorPerp * posFixLerp * deltaTime;
             
             // 重新计算视觉位置
@@ -272,6 +337,7 @@ namespace Astrum.View.Components
             }
             else
             {
+                ASLogger.Instance.Info("HandleNormalMotion");
                 HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
             }
 
@@ -447,6 +513,8 @@ namespace Astrum.View.Components
             {
                 _posVisual = posLogic;
                 _visualOffset = Vector3.zero;
+                ASLogger.Instance.Warning($"ApplyExtremeProtectionForSkillMotion");
+                
             }
         }
 
@@ -454,71 +522,7 @@ namespace Astrum.View.Components
         {
         }
 
-        protected override void OnSyncData(object data)
-        {
-            // 使用脏组件同步（SyncDataFromComponent），不通过事件数据同步
-        }
-
-        protected override void OnReset()
-        {
-            // 不直接对齐到逻辑位置：保持当前渲染位置，避免 reset 导致瞬移/拉回
-            if (_ownerEntityView == null)
-                return;
-
-            _posVisual = _ownerEntityView.GetWorldPosition();
-
-            var entity = OwnerEntity;
-            if (entity == null)
-                return;
-
-            if (entity.GetComponent<ProjectileComponent>() != null)
-                return;
-
-            var trans = entity.GetComponent<TransComponent>();
-            if (trans != null)
-            {
-                _lastPosLogicSeen = ToVector3(trans.Position);
-            }
-            else
-            {
-                _lastPosLogicSeen = _posVisual;
-            }
-
-            _lastLogicFrameSeen = entity.World?.CurFrame ?? int.MinValue;
-
-            var moveComp = entity.GetComponent<MovementComponent>();
-            if (moveComp != null)
-            {
-                _cachedSpeedLogic = moveComp.Speed.AsFloat();
-                _speedVisual = _cachedSpeedLogic;
-            }
-
-            // 重置：优先使用逻辑侧 MoveDirection
-            if (moveComp != null)
-            {
-                var dir = ToVector3(moveComp.MoveDirection);
-                dir.y = 0f;
-                if (dir.sqrMagnitude > 1e-8f)
-                    _cachedDirLogic = dir.normalized;
-            }
-
-            // 兜底：若 MoveDirection 无效，则使用逻辑朝向 forward
-            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
-            {
-                var fwd = ToVector3(trans.Forward);
-                fwd.y = 0f;
-                if (fwd.sqrMagnitude > 1e-8f)
-                    _cachedDirLogic = fwd.normalized;
-            }
-
-            // 方向保持为当前视觉方向；如果无效则用缓存逻辑方向兜底
-            if (_dirVisual.sqrMagnitude < 1e-8f)
-                _dirVisual = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : Vector3.forward;
-
-            // 初始化 RootMotion 状态
-            _visualOffset = Vector3.zero;
-        }
-
+  
         private static Vector3 ToVector3(TSVector v)
         {
             return new Vector3((float)v.x, (float)v.y, (float)v.z);

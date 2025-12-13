@@ -78,7 +78,7 @@ namespace Astrum.Client.UI
             }
             
             // 获取延迟信息
-            long rtt = TimeInfo.Instance.ServerTimeDiff * 2; // 单程估算 * 2
+            long rtt = TimeInfo.Instance.ServerTimeDiff;
             int authorityFrame = _clientLSController.AuthorityFrame;
             int processedAuthorityFrame = _clientLSController.ProcessedAuthorityFrame;
             int predictionFrame = _clientLSController.PredictionFrame;

@@ -80,7 +80,7 @@ namespace Astrum.CommonBase
         
         public long ServerNow()
         {
-            return ClientNow() + _serverTimeDiff + 33;
+            return ClientNow() + (_serverTimeDiff);
         }
         
         public long ClientFrameTime()
@@ -97,12 +97,16 @@ namespace Astrum.CommonBase
         /// 更新服务器时间戳，计算时间差（平滑过渡）
         /// 采用上升容易、下降缓慢的平滑策略
         /// </summary>
-        /// <param name="serverTimestamp">服务器时间戳（毫秒）</param>
-        public void UpdateServerTime(long serverTimestamp)
+        /// <param name="sendTime">服务器时间戳（毫秒）</param>
+        public void UpdateRTT(long sendTime)
         {
             // 计算新的时间差（目标值）
-            long newTimeDiff = ClientNow() - serverTimestamp;
-
+            long newTimeDiff = ClientNow() - sendTime + 33;
+            //ASLogger.Instance.Info($"{newTimeDiff}");
+            if (newTimeDiff > 1000)
+            {
+                return;
+            }
             if (!_timeDiffInitialized)
             {
                 // 第一次初始化时，直接设置时间差
