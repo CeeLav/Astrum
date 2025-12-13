@@ -524,14 +524,35 @@ namespace Astrum.View.Components
             return new Vector3((float)v.x, (float)v.y, (float)v.z);
         }
 
+        /// <summary>
+        /// 朝向缓动速度因子（0-1），值越大缓动越快
+        /// </summary>
+        public float rotationLerpSpeed = 0.3f;
+        
         private void ApplyRotationFromLogic(TransComponent trans)
         {
             if (_ownerEntityView == null || trans == null)
                 return;
-
-            var r = trans.Rotation;
-            var logicRotation = new Quaternion((float)r.x, (float)r.y, (float)r.z, (float)r.w);
-            _ownerEntityView.SetWorldRotation(logicRotation);
+            
+            // 如果角色停下了，就不要改方向了
+            if (!_isMovingLogicCached)
+                return;
+            
+            // 如果移动方向无效，保持当前旋转
+            if (_dirVisual.sqrMagnitude < 1e-8f)
+                return;
+            
+            // 计算移动方向对应的旋转
+            Quaternion targetRotation = Quaternion.LookRotation(_cachedDirLogic, Vector3.up);
+            
+            // 获取当前模型旋转
+            Quaternion currentRotation = _ownerEntityView.GetWorldRotation();
+            
+            // 使用快一点的缓动将当前旋转过渡到目标旋转
+            Quaternion newRotation = Quaternion.Lerp(currentRotation, targetRotation, rotationLerpSpeed);
+            
+            // 应用新的旋转
+            _ownerEntityView.SetWorldRotation(newRotation);
         }
     }
 }
