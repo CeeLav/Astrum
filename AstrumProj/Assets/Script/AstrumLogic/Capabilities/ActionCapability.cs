@@ -387,7 +387,7 @@ namespace Astrum.LogicCore.Capabilities
             {
                 // 记录切换成功的日志，包含世界类型
                 string worldType = (entity.World?.Name == "ShadowWorld") ? "影子世界" : "权威世界";
-                ASLogger.Instance.Info($"[ActionSync] ActionCapability: 实体 {entity.UniqueId} 动作切换，从 ActionId={previousActionId}(Frame={previousFrame}) 到 ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame})，世界类型：{worldType}");
+                //ASLogger.Instance.Info($"[ActionSync] ActionCapability: 实体 {entity.UniqueId} 动作切换，从 ActionId={previousActionId}(Frame={previousFrame}) 到 ActionId={actionInfo.Id}(Frame={preorderInfo.FromFrame})，世界类型：{worldType}");
             }
 
             UpdateMovementAndAnimationSpeed(entity, actionComponent);

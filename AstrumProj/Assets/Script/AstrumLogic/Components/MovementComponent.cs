@@ -31,17 +31,26 @@ namespace Astrum.LogicCore.Components
     }
 
     /// <summary>
-    /// 位置历史记录（帧号 + 位置）
+    /// 位置历史记录（帧号 + 位置 + 移动方向）
     /// </summary>
     public struct PositionHistory
     {
         public int Frame;
         public TSVector Position;
+        public TSVector MoveDirection;
         
         public PositionHistory(int frame, TSVector position)
         {
             Frame = frame;
             Position = position;
+            MoveDirection = TSVector.zero;
+        }
+
+        public PositionHistory(int frame, TSVector position, TSVector moveDirection)
+        {
+            Frame = frame;
+            Position = position;
+            MoveDirection = moveDirection;
         }
     }
 
@@ -86,6 +95,14 @@ namespace Astrum.LogicCore.Components
         /// 用于在不新增“每帧重置能力”的前提下，由 MovementCapability 在本帧末尾结算 CurrentMovementType。
         /// </summary>
         public int LastMoveFrame { get; set; } = -1;
+
+        /// <summary>
+        /// 当前移动方向（注意：不是角色朝向）。
+        /// - 水平面方向（y=0），通常来自输入向量或位移 delta。
+        /// - 归一化向量；零向量表示未知/不更新。
+        /// </summary>
+        [MemoryPackInclude]
+        public TSVector MoveDirection { get; set; } = TSVector.zero;
 
         /// <summary>
         /// 位置历史缓存（过去10帧的位置信息）
@@ -159,14 +176,22 @@ namespace Astrum.LogicCore.Components
         }
         
         /// <summary>
-        /// 记录当前位置到历史缓存
+        /// 记录当前位置到历史缓存（兼容旧调用点，不记录移动方向）
         /// </summary>
         /// <param name="frame">当前帧号</param>
         /// <param name="position">当前位置</param>
         public void RecordPosition(int frame, TSVector position)
         {
-            _positionHistory.Enqueue(new PositionHistory(frame, position));
-            
+            RecordMovement(frame, position, TSVector.zero);
+        }
+
+        /// <summary>
+        /// 记录当前位置与移动方向到历史缓存
+        /// </summary>
+        public void RecordMovement(int frame, TSVector position, TSVector moveDirection)
+        {
+            _positionHistory.Enqueue(new PositionHistory(frame, position, moveDirection));
+
             // 保持最多 MAX_POSITION_HISTORY 条记录
             while (_positionHistory.Count > MAX_POSITION_HISTORY)
             {
@@ -196,7 +221,7 @@ namespace Astrum.LogicCore.Components
             }
 
             var lines = history.Select(h => 
-                $"frame={h.Frame}, pos=({h.Position.x.AsFloat():F2}, {h.Position.y.AsFloat():F2}, {h.Position.z.AsFloat():F2})");
+                $"frame={h.Frame}, pos=({h.Position.x.AsFloat():F2}, {h.Position.y.AsFloat():F2}, {h.Position.z.AsFloat():F2}), moveDir=({h.MoveDirection.x.AsFloat():F2}, {h.MoveDirection.y.AsFloat():F2}, {h.MoveDirection.z.AsFloat():F2})");
             return string.Join(" | ", lines);
         }
 
@@ -211,6 +236,7 @@ namespace Astrum.LogicCore.Components
             CanMove = true;
             CurrentMovementType = MovementType.None;
             LastMoveFrame = -1;
+            MoveDirection = TSVector.zero;
             _positionHistory?.Clear();
         }
     }

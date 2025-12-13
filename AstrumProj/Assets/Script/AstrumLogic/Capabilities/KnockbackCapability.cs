@@ -155,6 +155,13 @@ namespace Astrum.LogicCore.Capabilities
             {
                 int currentFrame = entity.World?.CurFrame ?? 0;
                 movementComponent.LastMoveFrame = currentFrame;
+
+                // 记录“移动方向”（注意：不是角色朝向），以位移 delta 为准
+                // 击退方向通常已是归一化向量，但这里仍做一次归一化兜底
+                movementComponent.MoveDirection = knockback.Direction.sqrMagnitude > FP.EN4
+                    ? knockback.Direction.normalized
+                    : movement.normalized;
+
                 if (movementComponent.CurrentMovementType != MovementType.PassiveDisplacement)
                 {
                     movementComponent.CurrentMovementType = MovementType.PassiveDisplacement;

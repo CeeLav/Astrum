@@ -488,7 +488,7 @@ namespace Astrum.View.Components
         /// <param name="fadeTime">过渡时间</param>
         public void PlayAnimationByActionId(int actionId, float fadeTime = 0.1f, bool forceRestart = false)
         {
-            ASLogger.Instance.Info($"[PlayAnimation] ActionId={actionId}, FadeTime={fadeTime}, ForceRestart={forceRestart}, CurrentAnim={_currentAnimationName}, Time={Time.time}");
+            //ASLogger.Instance.Info($"[PlayAnimation] ActionId={actionId}, FadeTime={fadeTime}, ForceRestart={forceRestart}, CurrentAnim={_currentAnimationName}, Time={Time.time}");
             
             if (_animancerComponent == null)
             {
@@ -523,7 +523,7 @@ namespace Astrum.View.Components
                 
                 if (_currentAnimationState != null)
                 {
-                    ASLogger.Instance.Info($"[AnimationSync] ActionId={actionId} (Animation Switched), FromAnim={_currentAnimationName}, ToAnim={animationName}, Time={Time.time}");
+                    //ASLogger.Instance.Info($"[AnimationSync] ActionId={actionId} (Animation Switched), FromAnim={_currentAnimationName}, ToAnim={animationName}, Time={Time.time}");
                     _currentAnimationName = animationName;
                     _isPlaying = true;
                     if (restartRequired)
@@ -614,7 +614,7 @@ namespace Astrum.View.Components
             // 直接设置绝对时间（秒）- Animancer 支持直接使用绝对时间
             _currentAnimationState.Time = animTime;
             
-            ASLogger.Instance.Info($"[AnimSyncTime] ActionId={actionInfo.Id}, TargetFrame={targetFrame}, AnimTime={animTime:F3}s, CurrentAnim={_currentAnimationName}, Time={Time.time}");
+            //ASLogger.Instance.Info($"[AnimSyncTime] ActionId={actionInfo.Id}, TargetFrame={targetFrame}, AnimTime={animTime:F3}s, CurrentAnim={_currentAnimationName}, Time={Time.time}");
             ASLogger.Instance.Debug($"AnimationViewComponent.SyncAnimationTime: Synced to frame {targetFrame} " +
                 $"(animTime: {animTime:F3}s) for action {actionInfo.Id} on entity {OwnerEntity?.UniqueId}");
         }

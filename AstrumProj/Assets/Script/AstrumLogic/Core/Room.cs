@@ -202,7 +202,7 @@ namespace Astrum.LogicCore.Core
                             // 记录输入设置日志（排除输入为空的情况）
                             if (input != null && (input.MoveX != 0 || input.MoveY != 0))
                             {
-                                ASLogger.Instance.Info($"[Room.FrameTick] 实体 {pairs.Key} 设置输入 | 帧={input.Frame} | MoveX={input.MoveX} | MoveY={input.MoveY}", "Room.FrameTick");
+                                //ASLogger.Instance.Info($"[Room.FrameTick] 实体 {pairs.Key} 设置输入 | 帧={input.Frame} | MoveX={input.MoveX} | MoveY={input.MoveY}", "Room.FrameTick");
                             }
                         }
                     }

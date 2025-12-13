@@ -43,6 +43,7 @@ namespace Astrum.View.Components
         // 逻辑输入缓存（避免在逻辑帧停更时使用旧 posLogic 方向纠偏后拉）=====
         private int _lastLogicFrameSeen = int.MinValue;
         private Vector3 _lastPosLogicSeen;
+        // 逻辑侧“移动方向”缓存（注意：不是角色朝向）
         private Vector3 _cachedDirLogic = Vector3.forward;
         private float _cachedSpeedLogic;
 
@@ -195,9 +196,6 @@ namespace Astrum.View.Components
             if (trans != null)
             {
                 _lastPosLogicSeen = ToVector3(trans.Position);
-                _cachedDirLogic = ToVector3(trans.Forward);
-                if (_cachedDirLogic.sqrMagnitude > 1e-8f)
-                    _cachedDirLogic.Normalize();
             }
             else
             {
@@ -213,6 +211,23 @@ namespace Astrum.View.Components
                 _speedVisual = _cachedSpeedLogic;
                 _isMovingLogicCached = moveComp.CurrentMovementType != MovementType.None;
                 _currentMovementTypeCached = moveComp.CurrentMovementType;
+
+                // 初始化：优先使用逻辑侧 MoveDirection 作为移动方向蓝本
+                var dir = ToVector3(moveComp.MoveDirection);
+                dir.y = 0f;
+                if (dir.sqrMagnitude > 1e-8f)
+                {
+                    _cachedDirLogic = dir.normalized;
+                }
+            }
+
+            // 兜底：如果 MoveDirection 无效，则使用逻辑朝向 forward
+            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
+            {
+                var fwd = ToVector3(trans.Forward);
+                fwd.y = 0f;
+                if (fwd.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = fwd.normalized;
             }
         }
 
@@ -236,7 +251,7 @@ namespace Astrum.View.Components
             UpdateStateSync(out posLogic, out logicFrame, out logicFrameAdvanced, trans);
 
             // 2. 速度轮询
-            UpdateSpeedPolling(entity);
+            UpdateMoveComponentPolling(entity, trans);
 
             // 3. 旋转同步
             ApplyRotationFromLogic(trans);
@@ -273,15 +288,29 @@ namespace Astrum.View.Components
         }
 
         /// <summary>
-        /// 速度轮询：允许轻量轮询速度，避免 dash/属性变化时长期不更新
+        /// 轮询移动组件：轻量轮询速度与移动方向，避免逻辑帧停更/组件不置脏导致长期不更新
         /// </summary>
-        private void UpdateSpeedPolling(Entity entity)
+        private void UpdateMoveComponentPolling(Entity entity, TransComponent trans)
         {
             var moveComp = entity.GetComponent<MovementComponent>();
             if (moveComp != null)
             {
                 _cachedSpeedLogic = moveComp.Speed.AsFloat();
-                //ASLogger.Instance.Info($"speed: {_cachedSpeedLogic}");
+
+                // 移动方向蓝本：优先使用逻辑侧 MoveDirection（不是朝向）
+                var dir = ToVector3(moveComp.MoveDirection);
+                dir.y = 0f;
+                if (dir.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = dir.normalized;
+            }
+
+            // 兜底：如果逻辑侧 MoveDirection 仍无效，用朝向 forward（仅用于极端情况）
+            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
+            {
+                var fwd = ToVector3(trans.Forward);
+                fwd.y = 0f;
+                if (fwd.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = fwd.normalized;
             }
         }
 
@@ -342,20 +371,6 @@ namespace Astrum.View.Components
         /// </summary>
         private void HandleNormalMovementWhenLogicAdvanced(Vector3 posLogic, int logicFrame, float deltaTime)
         {
-            // 更新缓存逻辑方向（差分）
-            var deltaLogic = posLogic - _lastPosLogicSeen;
-            if (deltaLogic.sqrMagnitude > (minLogicDeltaForDir * minLogicDeltaForDir))
-            {
-                _cachedDirLogic = deltaLogic.normalized;
-            }
-            else
-            {
-                // 兜底：使用逻辑朝向 forward
-                var fwd = ToVector3(OwnerEntity.GetComponent<TransComponent>().Forward);
-                if (fwd.sqrMagnitude > 1e-8f)
-                    _cachedDirLogic = fwd.normalized;
-            }
-
             // 更新逻辑帧和位置缓存
             _lastPosLogicSeen = posLogic;
             _lastLogicFrameSeen = logicFrame;
@@ -365,12 +380,13 @@ namespace Astrum.View.Components
 
             // 计算移动方向（逻辑方向 + 纠偏方向）
             var correction = posLogic - _posVisual;
-            var dirMove = _cachedDirLogic * wLogicDirection;
+            var baseDir = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : _dirVisual;
+            var dirMove = baseDir * wLogicDirection;
             if (correction.sqrMagnitude > 1e-8f)
                 dirMove += correction.normalized * wCorrectionDirection;
 
             if (dirMove.sqrMagnitude < 1e-8f)
-                dirMove = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : _dirVisual;
+                dirMove = baseDir;
 
             dirMove.Normalize();
             _dirVisual = dirMove;
@@ -446,9 +462,6 @@ namespace Astrum.View.Components
             if (trans != null)
             {
                 _lastPosLogicSeen = ToVector3(trans.Position);
-                _cachedDirLogic = ToVector3(trans.Forward);
-                if (_cachedDirLogic.sqrMagnitude > 1e-8f)
-                    _cachedDirLogic.Normalize();
             }
             else
             {
@@ -462,6 +475,24 @@ namespace Astrum.View.Components
             {
                 _cachedSpeedLogic = moveComp.Speed.AsFloat();
                 _speedVisual = _cachedSpeedLogic;
+            }
+
+            // 重置：优先使用逻辑侧 MoveDirection
+            if (moveComp != null)
+            {
+                var dir = ToVector3(moveComp.MoveDirection);
+                dir.y = 0f;
+                if (dir.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = dir.normalized;
+            }
+
+            // 兜底：若 MoveDirection 无效，则使用逻辑朝向 forward
+            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
+            {
+                var fwd = ToVector3(trans.Forward);
+                fwd.y = 0f;
+                if (fwd.sqrMagnitude > 1e-8f)
+                    _cachedDirLogic = fwd.normalized;
             }
 
             // 方向保持为当前视觉方向；如果无效则用缓存逻辑方向兜底

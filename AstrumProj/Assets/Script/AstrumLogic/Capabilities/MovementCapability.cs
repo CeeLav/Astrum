@@ -143,6 +143,11 @@ namespace Astrum.LogicCore.Capabilities
                 {
                     transComponent.Rotation = TSQuaternion.LookRotation(inputDirection, TSVector.up);
                 }
+
+                // 记录“移动方向”（注意：不是角色朝向）
+                // - 以输入向量为蓝本（归一化，y=0）
+                // - 即使被阻挡/不发生位移，也能提供稳定的预测方向参考
+                movementComponent.MoveDirection = inputDirection.normalized;
             }
             var derivedStats = GetComponent<DerivedStatsComponent>(entity);
             if (derivedStats == null)
@@ -204,7 +209,7 @@ namespace Astrum.LogicCore.Capabilities
 
                 
                 // 记录位置历史（用于影子回滚调试）
-                movementComponent.RecordPosition(currentFrame, transComponent.Position);
+                movementComponent.RecordMovement(currentFrame, transComponent.Position, movementComponent.MoveDirection);
                 
                 entity.World?.HitSystem?.UpdateEntityPosition(entity);
             }
