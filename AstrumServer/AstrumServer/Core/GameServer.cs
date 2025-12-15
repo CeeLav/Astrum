@@ -174,12 +174,21 @@ namespace AstrumServer.Core
         {
             ASLogger.Instance.Info($"客户端已断开: {client.Id}");
             
+            // 断线房间快照：用于在 finally 中做“全员断线”检测（需要在移除 Session 映射后检查）
+            string? disconnectedUserId = null;
+            string? disconnectedRoomId = null;
+            List<string>? disconnectedRoomPlayersSnapshot = null;
+            bool disconnectedRoomWasPlaying = false;
+
             try
             {
                 // 查找对应用户
                 var userInfo = _userManager.GetUserBySessionId(client.Id.ToString());
                 if (userInfo != null)
                 {
+                    disconnectedUserId = userInfo.Id;
+                    disconnectedRoomId = userInfo.CurrentRoomId;
+
                     // 从匹配队列移除（如果在队列中）
                     _matchmakingManager.DequeuePlayer(userInfo.Id);
                     
@@ -195,6 +204,8 @@ namespace AstrumServer.Core
                             if (room.Info.Status == 1) // 1=游戏中
                             {
                                 ASLogger.Instance.Info($"用户 {userInfo.Id} 断线，房间 {roomId} 在游戏中，保留玩家信息以便重连");
+                                disconnectedRoomWasPlaying = true;
+                                disconnectedRoomPlayersSnapshot = new List<string>(room.Info.PlayerNames);
                                 // 不清空 CurrentRoomId，不从房间移除玩家
                                 // 只移除 Session 映射，保留用户信息
                             }
@@ -246,6 +257,52 @@ namespace AstrumServer.Core
                 {
                     // 最终移除用户映射
                     _userManager.RemoveUser(client.Id.ToString());
+                }
+
+                // 断线处理后，检查房间内是否所有玩家都已断线（只对“游戏中”的房间生效）
+                // 注意：必须在移除 Session 映射之后检查，才能准确判断是否还有在线玩家。
+                try
+                {
+                    if (disconnectedRoomWasPlaying &&
+                        !string.IsNullOrEmpty(disconnectedRoomId) &&
+                        disconnectedRoomPlayersSnapshot != null &&
+                        disconnectedRoomPlayersSnapshot.Count > 0)
+                    {
+                        var room = _roomManager.GetRoom(disconnectedRoomId);
+                        if (room != null && room.Info.Status == 1) // 仍在游戏中才做清理
+                        {
+                            bool anyOnline = false;
+                            foreach (var playerId in disconnectedRoomPlayersSnapshot)
+                            {
+                                var sessionId = _userManager.GetSessionIdByUserId(playerId);
+                                if (!string.IsNullOrEmpty(sessionId))
+                                {
+                                    anyOnline = true;
+                                    break;
+                                }
+                            }
+
+                            if (!anyOnline)
+                            {
+                                ASLogger.Instance.Warning($"房间 {disconnectedRoomId} 所有玩家已断线，关闭房间并清理玩家房间信息");
+
+                                // 所有玩家都断线了，关闭房间
+                                _roomManager.EndGame(disconnectedRoomId, "所有玩家断线");
+                                _roomManager.DestroyRoom(disconnectedRoomId);
+
+                                // 清除所有玩家的房间信息
+                                foreach (var playerId in disconnectedRoomPlayersSnapshot)
+                                {
+                                    _userManager.UpdateUserRoom(playerId, "");
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ASLogger.Instance.Warning($"断线后全员断线检测/清理失败 (user={disconnectedUserId}, room={disconnectedRoomId}): {ex.Message}");
+                    ASLogger.Instance.LogException(ex, LogLevel.Warning);
                 }
             }
         }

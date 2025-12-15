@@ -6,6 +6,7 @@ using Astrum.Client.Data;
 using Astrum.Client.Managers;
 using Astrum.Client.MessageHandlers;
 using Astrum.Client.UI.Generated;
+using Astrum.Network.Generated;
 using Astrum.Generated;
 using Astrum.LogicCore.Core;
 using Astrum.View.Core;
@@ -159,6 +160,14 @@ namespace Astrum.Client.Managers.GameModes
         {
             // 订阅连接响应事件
             EventSystem.Instance.Subscribe<ConnectResponseEventData>(OnConnectResponse);
+
+            // 订阅底层连接状态（用于处理 TCP 连接失败，例如 10061）
+            var networkManager = NetworkManager.Instance;
+            if (networkManager != null)
+            {
+                networkManager.OnDisconnected += OnNetworkDisconnected;
+                networkManager.OnConnectionStatusChanged += OnNetworkConnectionStatusChanged;
+            }
             
             // 订阅UserManager的登录事件
             var userManager = UserManager.Instance;
@@ -185,6 +194,14 @@ namespace Astrum.Client.Managers.GameModes
         {
             // 取消订阅连接响应事件
             EventSystem.Instance.Unsubscribe<ConnectResponseEventData>(OnConnectResponse);
+
+            // 取消订阅底层连接状态
+            var networkManager = NetworkManager.Instance;
+            if (networkManager != null)
+            {
+                networkManager.OnDisconnected -= OnNetworkDisconnected;
+                networkManager.OnConnectionStatusChanged -= OnNetworkConnectionStatusChanged;
+            }
             
             // 取消订阅UserManager的登录事件
             var userManager = UserManager.Instance;
@@ -529,6 +546,34 @@ namespace Astrum.Client.Managers.GameModes
                 _connectionState = ConnectionState.Disconnected;
                 PublishLoginStateChanged();
                 PublishLoginError($"连接失败: {eventData.Message}");
+            }
+        }
+
+        private void OnNetworkDisconnected()
+        {
+            // TCP 层断开（包括连接失败 10061 等），确保状态不会卡在 Connecting
+            if (_connectionState == ConnectionState.Connecting)
+            {
+                _connectionState = ConnectionState.Disconnected;
+                PublishLoginStateChanged();
+                PublishLoginError("连接失败：无法连接到服务器");
+                return;
+            }
+
+            // 已连接/登录过程中的断开，也统一落回 Disconnected，允许重新连接
+            if (_connectionState != ConnectionState.Disconnected)
+            {
+                _connectionState = ConnectionState.Disconnected;
+                PublishLoginStateChanged();
+                PublishLoginError("连接已断开");
+            }
+        }
+
+        private void OnNetworkConnectionStatusChanged(ConnectionStatus status)
+        {
+            if (status == ConnectionStatus.Disconnected)
+            {
+                OnNetworkDisconnected();
             }
         }
 
