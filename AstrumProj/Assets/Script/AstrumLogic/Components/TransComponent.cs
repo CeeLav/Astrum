@@ -24,12 +24,14 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 位置向量（TrueSync 定点）
         /// </summary>
-        public TSVector Position { get; set; }
+        [MemoryPackInclude]
+        internal TSVector Position { get; set; }
 
         /// <summary>
         /// 旋转四元数（TrueSync 定点）
         /// </summary>
-        public TSQuaternion Rotation { get; set; }
+        [MemoryPackInclude]
+        internal TSQuaternion Rotation { get; set; }
 
         public TransComponent() : base() 
         { 
@@ -56,7 +58,7 @@ namespace Astrum.LogicCore.Components
             Position = position;
             Rotation = rotation;
         }
-
+        
         /// <summary>
         /// 设置位置
         /// </summary>

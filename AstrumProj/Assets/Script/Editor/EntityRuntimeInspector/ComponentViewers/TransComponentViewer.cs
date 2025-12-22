@@ -13,11 +13,18 @@ namespace Astrum.Editor.EntityRuntimeInspector.ComponentViewers
         {
             if (component is not TransComponent trans) return;
 
-            EditorGUILayout.LabelField($"位置: ({trans.Position.x.AsFloat():F2}, {trans.Position.y.AsFloat():F2}, {trans.Position.z.AsFloat():F2})", EditorStyles.miniLabel);
+            var position = trans.GetPosition();
+            EditorGUILayout.LabelField($"位置: ({position.x.AsFloat():F2}, {position.y.AsFloat():F2}, {position.z.AsFloat():F2})", EditorStyles.miniLabel);
             
-            var rotation = trans.Rotation;
-            var euler = rotation.eulerAngles;
-            EditorGUILayout.LabelField($"旋转: ({euler.x.AsFloat():F2}°, {euler.y.AsFloat():F2}°, {euler.z.AsFloat():F2}°)", EditorStyles.miniLabel);
+            // 使用反射访问 internal 字段 Rotation
+            var rotationProp = typeof(TransComponent).GetProperty("Rotation", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            if (rotationProp != null)
+            {
+                var rotation = (TSQuaternion)rotationProp.GetValue(trans);
+                var euler = rotation.eulerAngles;
+                EditorGUILayout.LabelField($"旋转: ({euler.x.AsFloat():F2}°, {euler.y.AsFloat():F2}°, {euler.z.AsFloat():F2}°)", EditorStyles.miniLabel);
+            }
         }
     }
 }

@@ -203,7 +203,7 @@ namespace Astrum.LogicCore.Capabilities
                 if ((deltaX * deltaX + deltaY * deltaY) > FP.EN4)
                 {
                     entity.MarkComponentDirty(TransComponent.ComponentTypeId);
-                    ASLogger.Instance.Info("MoveCap: MarkComponentDirty: <UNK>");
+                    //ASLogger.Instance.Info("MoveCap: MarkComponentDirty: <UNK>");
                     MarkMovedThisFrame();
                 }
 

@@ -72,23 +72,26 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 移动速度
         /// </summary>
-        public FP Speed { get; set; } = FP.One;
+        [MemoryPackInclude]
+        internal FP Speed { get; set; } = FP.One;
 
         /// <summary>
         /// 基准移动速度（通常来自配置）
         /// </summary>
         [MemoryPackInclude]
-        public FP BaseSpeed { get; private set; } = FP.One;
+        internal FP BaseSpeed { get; private set; } = FP.One;
 
         /// <summary>
         /// 是否可以移动
         /// </summary>
-        public bool CanMove { get; set; } = true;
+        [MemoryPackInclude]
+        internal bool CanMove { get; set; } = true;
 
         /// <summary>
         /// 当前移动类型
         /// </summary>
-        public MovementType CurrentMovementType { get; set; } = MovementType.None;
+        [MemoryPackInclude]
+        internal MovementType CurrentMovementType { get; set; } = MovementType.None;
 
         /// <summary>
         /// 记录最近一次发生位移的逻辑帧号（World.CurFrame）。
@@ -102,7 +105,7 @@ namespace Astrum.LogicCore.Components
         /// - 归一化向量；零向量表示未知/不更新。
         /// </summary>
         [MemoryPackInclude]
-        public TSVector MoveDirection { get; set; } = TSVector.zero;
+        internal TSVector MoveDirection { get; set; } = TSVector.zero;
 
         /// <summary>
         /// 位置历史缓存（过去10帧的位置信息）

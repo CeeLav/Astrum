@@ -344,6 +344,7 @@ namespace Astrum.View.Components
             int logicFrame;
             bool logicFrameAdvanced;
             UpdateStateSync(out posLogic, out logicFrame, out logicFrameAdvanced, transRead);
+                //ASLogger.Instance.Info($"UpdateStateSync:{transRead.ToString()}");
 
             // 2. 速度轮询
             UpdateMoveComponentPolling(entity, transRead);
@@ -362,7 +363,6 @@ namespace Astrum.View.Components
             }
             else
             {
-                ASLogger.Instance.Info("HandleNormalMotion");
                 HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
             }
 
@@ -391,7 +391,7 @@ namespace Astrum.View.Components
             if (MovementComponent.TryGetViewRead(entity.World, entity.UniqueId, out var moveRead) && moveRead.IsValid)
             {
                 _cachedSpeedLogic = moveRead.Speed.AsFloat();
-
+                //ASLogger.Instance.Info($"UpdateMoveComponent:{moveRead.ToString()}");
                 // 移动方向蓝本：优先使用逻辑侧 MoveDirection（不是朝向）
                 var dir = ToVector3(moveRead.MoveDirection);
                 dir.y = 0f;
@@ -575,7 +575,7 @@ namespace Astrum.View.Components
             
             // 使用快一点的缓动将当前旋转过渡到目标旋转
             Quaternion newRotation = Quaternion.Lerp(currentRotation, targetRotation, rotationLerpSpeed);
-            ASLogger.Instance.Info($"_cachedDirLogic:{_cachedDirLogic} newRotation: {newRotation}");
+            //ASLogger.Instance.Info($"_cachedDirLogic:{_cachedDirLogic} newRotation: {newRotation}");
             // 应用新的旋转
             _ownerEntityView.SetWorldRotation(newRotation);
         }

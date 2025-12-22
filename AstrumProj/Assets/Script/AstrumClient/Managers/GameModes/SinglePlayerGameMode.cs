@@ -354,7 +354,7 @@ namespace Astrum.Client.Managers.GameModes
                                 (TrueSync.FP)randomZ
                             );
                             
-                            transComponent.Position = randomPosition;
+                            transComponent.SetPosition((TrueSync.FP)randomX, TrueSync.FP.Zero, (TrueSync.FP)randomZ);
                             ASLogger.Instance.Debug($"SinglePlayerGameMode: 怪物位置设置为 ({randomX:F2}, 0, {randomZ:F2})");
                         }
                         

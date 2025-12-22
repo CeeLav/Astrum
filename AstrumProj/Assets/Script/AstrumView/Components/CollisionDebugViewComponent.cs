@@ -73,9 +73,10 @@ namespace Astrum.View.Components
             if (!ShowEntityCollision || OwnerEntity == null) return;
             
             var collisionComp = OwnerEntity.GetComponent<CollisionComponent>();
-            var positionComp = OwnerEntity.GetComponent<TransComponent>();
             
-            if (collisionComp == null || positionComp == null || collisionComp.Shapes == null) return;
+            if (collisionComp == null || collisionComp.Shapes == null) return;
+            
+            if (!TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var transRead) || !transRead.IsValid) return;
             
             // 尝试从物理世界获取实际位置（碰撞体中心）
             var world = OwnerEntity.World;
@@ -93,7 +94,7 @@ namespace Astrum.View.Components
             {
                 // 计算逻辑层的碰撞体中心位置（应用偏移）
                 var shape = collisionComp.Shapes[0];
-                var logicTransform = shape.ToWorldTransform(positionComp.Position, positionComp.Rotation);
+                var logicTransform = shape.ToWorldTransform(transRead.Position, transRead.Rotation);
                 var logicCollisionCenter = logicTransform.WorldCenter;
                 
                 // 对比物理世界的碰撞体中心 vs 逻辑层的碰撞体中心
@@ -110,7 +111,7 @@ namespace Astrum.View.Components
                     Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
                     foreach (var s in collisionComp.Shapes)
                     {
-                        DrawCollisionShape(s, positionComp.Position, positionComp.Rotation);
+                        DrawCollisionShape(s, transRead.Position, transRead.Rotation);
                     }
                     
 #if UNITY_EDITOR
@@ -129,8 +130,8 @@ namespace Astrum.View.Components
             foreach (var shape in collisionComp.Shapes)
             {
                 // 使用物理世界的旋转（如果可用），否则使用逻辑层旋转
-                var rotation = physicsRot ?? positionComp.Rotation;
-                DrawCollisionShape(shape, positionComp.Position, rotation);
+                var rotation = physicsRot ?? transRead.Rotation;
+                DrawCollisionShape(shape, transRead.Position, rotation);
             }
         }
 
@@ -157,9 +158,10 @@ namespace Astrum.View.Components
             if (!ShowAttackBox || OwnerEntity == null) return;
             
             var actionComp = OwnerEntity.GetComponent<ActionComponent>();
-            var positionComp = OwnerEntity.GetComponent<TransComponent>();
             
-            if (actionComp == null || positionComp == null) return;
+            if (actionComp == null) return;
+            
+            if (!TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var transRead) || !transRead.IsValid) return;
             
             // 检查当前动作是否是技能动作
             var actionInfo = actionComp.CurrentAction;
@@ -186,12 +188,12 @@ namespace Astrum.View.Components
                     Gizmos.color = new Color(1f, 1f, 0f, 0.8f); // 黄色高亮
                 }
                 
-                DrawCollisionShape(shape, positionComp.Position, positionComp.Rotation);
+                DrawCollisionShape(shape, transRead.Position, transRead.Rotation);
                 
                 // 绘制标签（使用统一转换方法）
                 if (ShowLabels && isNearTriggerFrame)
                 {
-                    var worldTransform = shape.ToWorldTransform(positionComp.Position, positionComp.Rotation);
+                    var worldTransform = shape.ToWorldTransform(transRead.Position, transRead.Rotation);
                     Vector3 worldPos = TSVectorToVector3(worldTransform.WorldCenter);
                     string effectText = trigger.EffectIds != null && trigger.EffectIds.Length > 0
                         ? $"Effects [{string.Join(",", trigger.EffectIds)}]"
@@ -219,15 +221,13 @@ namespace Astrum.View.Components
             }
 
             var projectileComp = OwnerEntity.GetComponent<ProjectileComponent>();
-            var transComp = OwnerEntity.GetComponent<TransComponent>();
 
             if (projectileComp == null)
             {
 #if UNITY_EDITOR
-                var trans = OwnerEntity.GetComponent<TransComponent>();
-                if (trans != null)
+                if (TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var debugTransRead) && debugTransRead.IsValid)
                 {
-                    Vector3 pos = new Vector3((float)trans.Position.x, (float)trans.Position.y, (float)trans.Position.z);
+                    Vector3 pos = new Vector3((float)debugTransRead.Position.x, (float)debugTransRead.Position.y, (float)debugTransRead.Position.z);
                     UnityEditor.Handles.Label(pos, $"Entity {OwnerEntity.UniqueId}: No ProjectileComponent", 
                         new GUIStyle { normal = new GUIStyleState { textColor = Color.red }, fontSize = 14 });
                 }
@@ -235,7 +235,7 @@ namespace Astrum.View.Components
                 return;
             }
             
-            if (transComp == null)
+            if (!TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var transRead) || !transRead.IsValid)
             {
 #if UNITY_EDITOR
                 UnityEditor.Handles.Label(Vector3.zero, $"Entity {OwnerEntity.UniqueId}: No TransComponent", 
@@ -244,7 +244,7 @@ namespace Astrum.View.Components
                 return;
             }
 
-            Vector3 currentPos = TSVectorToVector3(transComp.Position);
+            Vector3 currentPos = TSVectorToVector3(transRead.Position);
             Vector3 lastPos = TSVectorToVector3(projectileComp.LastPosition);
             Vector3 initialPos = TSVectorToVector3(projectileComp.InitialPosition);
             Vector3 velocity = TSVectorToVector3(projectileComp.CurrentVelocity);

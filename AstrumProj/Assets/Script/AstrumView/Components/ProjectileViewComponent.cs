@@ -94,11 +94,10 @@ namespace Astrum.View.Components
             if (!_isEnabled || OwnerEntity == null)
                 return;
 
-            var transComponent = OwnerEntity.GetComponent<TransComponent>();
-            if (transComponent == null)
+            if (!TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var transRead) || !transRead.IsValid)
                 return;
 
-            var logicPos = transComponent.Position;
+            var logicPos = transRead.Position;
             Vector3 currentLogicPosition = new Vector3((float)logicPos.x, (float)logicPos.y, (float)logicPos.z);
 
             // 首次更新：建立初始偏移
@@ -460,10 +459,11 @@ namespace Astrum.View.Components
             }
 
             // 最终回退：使用 TransComponent 的朝向
-            var transComponent = OwnerEntity?.GetComponent<TransComponent>();
-            if (transComponent != null)
+            if (OwnerEntity != null && 
+                TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var transRead) && 
+                transRead.IsValid)
             {
-                var forward = transComponent.Forward;
+                var forward = transRead.Rotation * TSVector.forward;
                 return new Vector3((float)forward.x, (float)forward.y, (float)forward.z).normalized;
             }
 
