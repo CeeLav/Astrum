@@ -95,7 +95,7 @@ namespace Astrum.View.Components
             // 不直接对齐到逻辑位置：保持当前渲染位置，避免 reset 导致瞬移/拉回
             if (_ownerEntityView == null)
                 return;
-/*
+            /*
             _posVisual = _ownerEntityView.GetWorldPosition();
 
             var entity = OwnerEntity;

@@ -149,6 +149,8 @@ namespace Astrum.LogicCore.Capabilities
                 // - 以输入向量为蓝本（归一化，y=0）
                 // - 即使被阻挡/不发生位移，也能提供稳定的预测方向参考
                 movementComponent.MoveDirection = inputDirection.normalized;
+                entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+                
             }
             var derivedStats = GetComponent<DerivedStatsComponent>(entity);
             if (derivedStats == null)
@@ -201,6 +203,7 @@ namespace Astrum.LogicCore.Capabilities
                 if ((deltaX * deltaX + deltaY * deltaY) > FP.EN4)
                 {
                     entity.MarkComponentDirty(TransComponent.ComponentTypeId);
+                    ASLogger.Instance.Info("MoveCap: MarkComponentDirty: <UNK>");
                     MarkMovedThisFrame();
                 }
 

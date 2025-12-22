@@ -28,6 +28,13 @@ namespace Astrum.LogicCore.Components
             {
                 return new ViewRead(entityId, false, default, false, MovementType.None, default);
             }
+
+            public override string ToString()
+            {
+                return IsValid ? 
+                    $"MovementComponent.ViewRead [EntityId={EntityId}, Speed={Speed.AsFloat():F2}, CanMove={CanMove}, CurrentMovementType={CurrentMovementType}, MoveDirection=({MoveDirection.x.AsFloat():F2}, {MoveDirection.y.AsFloat():F2}, {MoveDirection.z.AsFloat():F2})]" :
+                    $"MovementComponent.ViewRead [EntityId={EntityId}, Invalid]";
+            }
         }
 
         public static bool TryGetViewRead(World world, long entityId, out ViewRead read)

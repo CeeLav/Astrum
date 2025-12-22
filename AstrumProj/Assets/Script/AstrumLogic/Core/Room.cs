@@ -6,6 +6,7 @@ using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.ViewRead;
 using cfg;
 using EventSystem = Astrum.CommonBase.EventSystem;
 
@@ -269,6 +270,7 @@ namespace Astrum.LogicCore.Core
                     ShadowWorld.CapabilitySystem.Update(ShadowWorld);
                     ShadowWorld.CapabilitySystem.ProcessEntityEvents();
                 }
+                ViewReadFrameSync.EndOfLogicFrame(ShadowWorld);
             }
         }
 

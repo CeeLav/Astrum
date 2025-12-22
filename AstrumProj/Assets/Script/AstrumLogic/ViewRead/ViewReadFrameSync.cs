@@ -85,7 +85,7 @@ namespace Astrum.LogicCore.ViewRead
                     }
                 }
 
-                entity.ClearDirtyComponents();
+                //entity.ClearDirtyComponents();
             }
 
             store.SwapAllIfWritten();
