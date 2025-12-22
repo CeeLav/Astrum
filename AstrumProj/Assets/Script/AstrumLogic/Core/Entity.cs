@@ -359,6 +359,7 @@ namespace Astrum.LogicCore.Core
             component.EntityId = UniqueId;
             int typeId = component.GetComponentTypeId();
             Components[typeId] = component; // Dictionary 直接添加或覆盖
+            MarkComponentDirty(typeId);
         }
 
         /// <summary>
@@ -370,8 +371,8 @@ namespace Astrum.LogicCore.Core
             int typeId = TypeHash<T>.GetHash();
             if (Components.TryGetValue(typeId, out var component))
             {
-                // 从脏组件 ID 集合中移除
-                _dirtyComponentIds.Remove(typeId);
+                // 组件移除属于结构变化：标记为脏，帧末快照系统负责无效化（写 back 并 swap）
+                MarkComponentDirty(typeId);
                 
                 // 从字典移除
                 Components.Remove(typeId);

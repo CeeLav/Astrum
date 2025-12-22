@@ -77,12 +77,11 @@ namespace Astrum.View.Components
 
             if (componentTypeId == MovementComponent.ComponentTypeId)
             {
-                var move = OwnerEntity.GetComponent<MovementComponent>();
-                if (move == null)
+                if (!MovementComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var moveRead) || !moveRead.IsValid)
                     return;
 
-                _isMovingLogicCached = move.CurrentMovementType != MovementType.None;
-                _currentMovementTypeCached = move.CurrentMovementType;
+                _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
+                _currentMovementTypeCached = moveRead.CurrentMovementType;
             }
         }
 
@@ -288,10 +287,9 @@ namespace Astrum.View.Components
             if (entity.GetComponent<ProjectileComponent>() != null)
                 return;
 
-            var trans = entity.GetComponent<TransComponent>();
-            if (trans != null)
+            if (TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transRead) && transRead.IsValid)
             {
-                _lastPosLogicSeen = ToVector3(trans.Position);
+                _lastPosLogicSeen = ToVector3(transRead.Position);
             }
             else
             {
@@ -300,16 +298,15 @@ namespace Astrum.View.Components
 
             _lastLogicFrameSeen = entity.World?.CurFrame ?? int.MinValue;
 
-            var moveComp = entity.GetComponent<MovementComponent>();
-            if (moveComp != null)
+            if (MovementComponent.TryGetViewRead(entity.World, entity.UniqueId, out var moveRead) && moveRead.IsValid)
             {
-                _cachedSpeedLogic = moveComp.Speed.AsFloat();
+                _cachedSpeedLogic = moveRead.Speed.AsFloat();
                 _speedVisual = _cachedSpeedLogic;
-                _isMovingLogicCached = moveComp.CurrentMovementType != MovementType.None;
-                _currentMovementTypeCached = moveComp.CurrentMovementType;
+                _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
+                _currentMovementTypeCached = moveRead.CurrentMovementType;
 
                 // 初始化：优先使用逻辑侧 MoveDirection 作为移动方向蓝本
-                var dir = ToVector3(moveComp.MoveDirection);
+                var dir = ToVector3(moveRead.MoveDirection);
                 dir.y = 0f;
                 if (dir.sqrMagnitude > 1e-8f)
                 {
@@ -318,9 +315,12 @@ namespace Astrum.View.Components
             }
 
             // 兜底：如果 MoveDirection 无效，则使用逻辑朝向 forward
-            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
+            if (_cachedDirLogic.sqrMagnitude <= 1e-8f &&
+                TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transReadForFwd) &&
+                transReadForFwd.IsValid)
             {
-                var fwd = ToVector3(trans.Forward);
+                var fwdTs = transReadForFwd.Rotation * TSVector.forward;
+                var fwd = ToVector3(fwdTs);
                 fwd.y = 0f;
                 if (fwd.sqrMagnitude > 1e-8f)
                     _cachedDirLogic = fwd.normalized;
@@ -336,21 +336,20 @@ namespace Astrum.View.Components
             if (entity == null)
                 return;
 
-            var trans = entity.GetComponent<TransComponent>();
-            if (trans == null)
+            if (!TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transRead) || !transRead.IsValid)
                 return;
 
             // 1. 状态同步和初始化
             Vector3 posLogic;
             int logicFrame;
             bool logicFrameAdvanced;
-            UpdateStateSync(out posLogic, out logicFrame, out logicFrameAdvanced, trans);
+            UpdateStateSync(out posLogic, out logicFrame, out logicFrameAdvanced, transRead);
 
             // 2. 速度轮询
-            UpdateMoveComponentPolling(entity, trans);
+            UpdateMoveComponentPolling(entity, transRead);
 
             // 3. 旋转同步
-            ApplyRotationFromLogic(trans);
+            ApplyRotationFromLogic();
 
             // 4. 静止状态处理
             if (HandleStaticState(posLogic))
@@ -374,7 +373,7 @@ namespace Astrum.View.Components
         /// <summary>
         /// 更新状态同步：获取逻辑位置、逻辑帧等基本信息
         /// </summary>
-        private void UpdateStateSync(out Vector3 posLogic, out int logicFrame, out bool logicFrameAdvanced, TransComponent trans)
+        private void UpdateStateSync(out Vector3 posLogic, out int logicFrame, out bool logicFrameAdvanced, TransComponent.ViewRead trans)
         {
             // 内部状态同步：不修改 transform，仅同步缓存
             //_posVisual = _ownerEntityView.GetWorldPosition();
@@ -387,24 +386,24 @@ namespace Astrum.View.Components
         /// <summary>
         /// 轮询移动组件：轻量轮询速度与移动方向，避免逻辑帧停更/组件不置脏导致长期不更新
         /// </summary>
-        private void UpdateMoveComponentPolling(Entity entity, TransComponent trans)
+        private void UpdateMoveComponentPolling(Entity entity, TransComponent.ViewRead trans)
         {
-            var moveComp = entity.GetComponent<MovementComponent>();
-            if (moveComp != null)
+            if (MovementComponent.TryGetViewRead(entity.World, entity.UniqueId, out var moveRead) && moveRead.IsValid)
             {
-                _cachedSpeedLogic = moveComp.Speed.AsFloat();
+                _cachedSpeedLogic = moveRead.Speed.AsFloat();
 
                 // 移动方向蓝本：优先使用逻辑侧 MoveDirection（不是朝向）
-                var dir = ToVector3(moveComp.MoveDirection);
+                var dir = ToVector3(moveRead.MoveDirection);
                 dir.y = 0f;
                 if (dir.sqrMagnitude > 1e-8f)
                     _cachedDirLogic = dir.normalized;
             }
 
             // 兜底：如果逻辑侧 MoveDirection 仍无效，用朝向 forward（仅用于极端情况）
-            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
+            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans.IsValid)
             {
-                var fwd = ToVector3(trans.Forward);
+                var fwdTs = trans.Rotation * TSVector.forward;
+                var fwd = ToVector3(fwdTs);
                 fwd.y = 0f;
                 if (fwd.sqrMagnitude > 1e-8f)
                     _cachedDirLogic = fwd.normalized;
@@ -555,9 +554,9 @@ namespace Astrum.View.Components
         /// </summary>
         public float rotationLerpSpeed = 0.3f;
         
-        private void ApplyRotationFromLogic(TransComponent trans)
+        private void ApplyRotationFromLogic()
         {
-            if (_ownerEntityView == null || trans == null)
+            if (_ownerEntityView == null)
                 return;
             
             // 如果角色停下了，就不要改方向了

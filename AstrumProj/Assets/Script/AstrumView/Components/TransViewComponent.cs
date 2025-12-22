@@ -130,13 +130,12 @@ namespace Astrum.View.Components
                 return;
             }
             
-            var posC = ownerEntity.GetComponent<TransComponent>();
-            if (posC == null)
+            if (!TransComponent.TryGetViewRead(ownerEntity.World, ownerEntity.UniqueId, out var transRead) || !transRead.IsValid)
             {
                 ASLogger.Instance.Log(LogLevel.Error,$"TransViewComponent: 实体缺少PositionComponent，无法更新位置，实体ID: {ownerEntity.UniqueId}", "View.Transform");
                 return;
             }
-            var pos = posC.GetPosition();
+            var pos = transRead.Position;
             _targetPosition.x = (float)pos.x;
             _targetPosition.y = (float)pos.y;
             _targetPosition.z = (float)pos.z;
@@ -208,22 +207,21 @@ namespace Astrum.View.Components
                 return;
             }
             
-            var transComponent = ownerEntity.GetComponent<TransComponent>();
-            if (transComponent == null)
+            if (!TransComponent.TryGetViewRead(ownerEntity.World, ownerEntity.UniqueId, out var transRead) || !transRead.IsValid)
             {
                 ASLogger.Instance.Warning($"TransViewComponent: OnReset - 实体缺少TransComponent，实体ID: {ownerEntity.UniqueId}", "View.Transform");
                 return;
             }
             
             // 1. 从逻辑层获取最新的位置和旋转数据
-            var fixedPos = transComponent.Position;
+            var fixedPos = transRead.Position;
             Vector3 logicPosition = new Vector3(
                 (float)fixedPos.x,
                 (float)fixedPos.y,
                 (float)fixedPos.z
             );
             
-            var fixedRot = transComponent.Rotation;
+            var fixedRot = transRead.Rotation;
             Quaternion logicRotation = new Quaternion(
                 (float)fixedRot.x,
                 (float)fixedRot.y,
@@ -272,11 +270,10 @@ namespace Astrum.View.Components
             var ownerEntity = _ownerEntityView.OwnerEntity;
             if (ownerEntity == null) return;
             
-            var transComponent = ownerEntity.GetComponent<TransComponent>();
-            if (transComponent == null) return;
+            if (!TransComponent.TryGetViewRead(ownerEntity.World, ownerEntity.UniqueId, out var transRead) || !transRead.IsValid) return;
             
             // 从逻辑层读取目标旋转（定点数转浮点数）
-            var fixedRot = transComponent.Rotation;
+            var fixedRot = transRead.Rotation;
             Quaternion logicRotation = new Quaternion(
                 (float)fixedRot.x,
                 (float)fixedRot.y,
@@ -478,10 +475,9 @@ namespace Astrum.View.Components
             var ownerEntity = _ownerEntityView.OwnerEntity;
             if (ownerEntity == null) return;
             
-            var transComponent = ownerEntity.GetComponent<TransComponent>();
-            if (transComponent == null) return;
+            if (!TransComponent.TryGetViewRead(ownerEntity.World, ownerEntity.UniqueId, out var transRead) || !transRead.IsValid) return;
             
-            var fixedPos = transComponent.Position;
+            var fixedPos = transRead.Position;
             Vector3 currentLogicPos = new Vector3(
                 (float)fixedPos.x,
                 (float)fixedPos.y,
@@ -588,10 +584,9 @@ namespace Astrum.View.Components
             var ownerEntity = _ownerEntityView.OwnerEntity;
             if (ownerEntity == null) return;
             
-            var transComponent = ownerEntity.GetComponent<TransComponent>();
-            if (transComponent == null) return;
+            if (!TransComponent.TryGetViewRead(ownerEntity.World, ownerEntity.UniqueId, out var transRead) || !transRead.IsValid) return;
             
-            var fixedPos = transComponent.Position;
+            var fixedPos = transRead.Position;
             Vector3 currentLogicPos = new Vector3(
                 (float)fixedPos.x,
                 (float)fixedPos.y,
@@ -670,11 +665,10 @@ namespace Astrum.View.Components
             var ownerEntity = _ownerEntityView.OwnerEntity;
             if (ownerEntity == null) return;
             
-            var transComponent = ownerEntity.GetComponent<TransComponent>();
-            if (transComponent == null) return;
+            if (!TransComponent.TryGetViewRead(ownerEntity.World, ownerEntity.UniqueId, out var transRead) || !transRead.IsValid) return;
             
             // 从逻辑层读取目标旋转（定点数转浮点数）
-            var fixedRot = transComponent.Rotation;
+            var fixedRot = transRead.Rotation;
             Quaternion logicRotation = new Quaternion(
                 (float)fixedRot.x,
                 (float)fixedRot.y,

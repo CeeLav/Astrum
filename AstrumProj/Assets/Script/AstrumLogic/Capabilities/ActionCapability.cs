@@ -916,6 +916,7 @@ namespace Astrum.LogicCore.Capabilities
             
             var rotation = TSQuaternion.LookRotation(direction, TSVector.up);
             trans.SetRotation(rotation);
+            entity.MarkComponentDirty(TransComponent.ComponentTypeId);
         }
 
         /// <summary>

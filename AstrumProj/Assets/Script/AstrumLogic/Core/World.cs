@@ -9,6 +9,7 @@ using Astrum.CommonBase;
 using MemoryPack;
 using Astrum.LogicCore.Archetypes;
 using Astrum.LogicCore.Managers;
+using Astrum.LogicCore.ViewRead;
 using cfg;
 
 namespace Astrum.LogicCore.Core
@@ -93,6 +94,13 @@ namespace Astrum.LogicCore.Core
         public Events.GlobalEventQueue GlobalEventQueue { get; private set; }
 
         /// <summary>
+        /// ViewRead 快照存储（不序列化）。
+        /// View 只读 front，Logic 帧末写 back 并按需 swap。
+        /// </summary>
+        [MemoryPackIgnore]
+        public ViewReadStore ViewReads { get; private set; }
+
+        /// <summary>
         /// 默认构造函数
         /// </summary>
         public World()
@@ -103,6 +111,7 @@ namespace Astrum.LogicCore.Core
             CapabilitySystem = new CapabilitySystem();
             CapabilitySystem.World = this;
             GlobalEventQueue = new Events.GlobalEventQueue(); // 初始化全局事件队列
+            ViewReads = new ViewReadStore();
         }
 
         /// <summary>
@@ -127,6 +136,7 @@ namespace Astrum.LogicCore.Core
             
             CapabilitySystem.World = this;
             GlobalEventQueue = new Events.GlobalEventQueue(); // 初始化全局事件队列（不序列化）
+            ViewReads = new ViewReadStore();
             
             // 确保静态数据已初始化
 
@@ -140,6 +150,7 @@ namespace Astrum.LogicCore.Core
                 foreach (var component in entity.GetAllComponents())
                 {
                     component.EntityId = entity.UniqueId;
+                    entity.MarkComponentDirty(component.GetComponentTypeId());
                 }
                 
                 // 重建 CapabilitySystem 的注册（从 Entity 的 CapabilityStates 恢复）
@@ -223,6 +234,19 @@ namespace Astrum.LogicCore.Core
             if (!Entities.TryGetValue(entityId, out var entity))
                 return;
 
+            // 试点阶段：实体销毁时无效化 ViewRead（写 back，帧末 swap 后对 View 生效）
+            if (ViewReads != null)
+            {
+                var transVr = Components.TransComponent.ViewRead.Invalid(entityId);
+                ViewReads.WriteBack(entityId, Components.TransComponent.ComponentTypeId, in transVr);
+
+                var moveVr = Components.MovementComponent.ViewRead.Invalid(entityId);
+                ViewReads.WriteBack(entityId, Components.MovementComponent.ComponentTypeId, in moveVr);
+
+                var actionVr = Components.ActionComponent.ViewRead.Invalid(entityId);
+                ViewReads.WriteBack(entityId, Components.ActionComponent.ComponentTypeId, in actionVr);
+            }
+
             PublishEntityDestroyedEvent(entity);
             CapabilitySystem?.UnregisterEntity(entityId);
             entity.ClearEventQueue();
@@ -273,6 +297,9 @@ namespace Astrum.LogicCore.Core
                 }
 
                 ApplyQueuedSubArchetypeChangesAtFrameEnd();
+
+                // Logic 帧末：基于 dirty 增量导出 ViewRead，并按需 swap(front/back)
+                ViewReadFrameSync.EndOfLogicFrame(this);
             }
         }
 
@@ -491,6 +518,7 @@ namespace Astrum.LogicCore.Core
             // 清空所有集合
             Entities.Clear();
             _pendingSubArchetypeChanges.Clear();
+            ViewReads?.Clear();
             
             // 清理系统资源（需要在重置前清理）
             if (GlobalEventQueue != null)

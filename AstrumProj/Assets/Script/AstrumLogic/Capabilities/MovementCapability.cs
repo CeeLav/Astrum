@@ -142,6 +142,7 @@ namespace Astrum.LogicCore.Capabilities
                 if (inputDirection.sqrMagnitude > FP.EN4)
                 {
                     transComponent.Rotation = TSQuaternion.LookRotation(inputDirection, TSVector.up);
+                    entity.MarkComponentDirty(TransComponent.ComponentTypeId);
                 }
 
                 // 记录“移动方向”（注意：不是角色朝向）
@@ -199,6 +200,7 @@ namespace Astrum.LogicCore.Capabilities
                 // 本逻辑帧实际发生位移：标记移动
                 if ((deltaX * deltaX + deltaY * deltaY) > FP.EN4)
                 {
+                    entity.MarkComponentDirty(TransComponent.ComponentTypeId);
                     MarkMovedThisFrame();
                 }
 
