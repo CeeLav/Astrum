@@ -38,7 +38,6 @@ namespace Astrum.LogicCore.Components
             Position = TSVector.zero;
             Rotation = TSQuaternion.identity;
         }
-
         [MemoryPackConstructor]
         public TransComponent(long entityId, TSVector position, TSQuaternion rotation) : base()
         {

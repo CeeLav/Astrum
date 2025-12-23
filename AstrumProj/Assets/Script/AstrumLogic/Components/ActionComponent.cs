@@ -60,7 +60,7 @@ namespace Astrum.LogicCore.Components
         }
         
         /// <summary>
-        /// MemoryPack 构造函数
+        /// MemoryPack 构造函数（带参数）
         /// </summary>
         [MemoryPackConstructor]
         public ActionComponent( long entityId, int currentActionId, 

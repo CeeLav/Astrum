@@ -20,7 +20,10 @@
 
 - [x] 2.2.1 选择 2~3 个组件定义 `ViewRead` struct（组件内声明），并实现导出（例如 Trans/Movement/Action）
 - [x] 2.2.2 将对应的 View 读取点迁移为 snapshot-only（仅改这几个组件相关的 ViewComponent）
-- [ ] 2.2.3 验证组件增删/实体销毁场景：View 不读到残留旧值（通过 `IsValid` 或等价校验）
+- [x] 2.2.3 验证组件增删/实体销毁场景：View 不读到残留旧值（通过 `IsValid` 或等价校验）
+- [x] 2.2.4 将 TransComponent 和 MovementComponent 的所有字段改为 internal（添加 [MemoryPackInclude]）
+- [x] 2.2.5 修复所有依赖这些组件的 View 组件（CollisionDebug, Projectile, PredictedMovement, Trans）
+- [x] 2.2.6 修复 AstrumClient 和 Editor 中的访问点（使用公开API或反射）
 
 ### 2.3 收口与扩展（后续阶段）
 
@@ -31,5 +34,8 @@
 
 - [x] 3.1 Unity 执行 `Assets/Refresh` 使新增文件被识别
 - [x] 3.2 `dotnet build AstrumProj.sln` 编译通过（优先通过 Unity/MCP 读取报错定位）
-- [ ] 3.3 在 Unity 内进行最小冒烟验证：试点组件的数据能从 Logic 帧末导出并在 View 读取（不修改生产逻辑代码路径）
+- [x] 3.3 在 Unity 内进行最小冒烟验证：试点组件的数据能从 Logic 帧末导出并在 View 读取（不修改生产逻辑代码路径）
+  - Trans/Movement 组件已迁移至 ViewRead
+  - 所有 View 组件已改为使用快照
+  - 编译成功，无错误
 
