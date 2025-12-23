@@ -31,6 +31,8 @@
   - [x] AnimationViewComponent：重构为从 EntityConfig 和配置表获取动作信息，不再直接访问 ActionComponent
   - [x] ActionComponent.ViewRead：添加 AnimationSpeedMultiplier 字段以支持动画播放速度同步
   - [x] 修复 ProjectileViewComponent 中的 socketRefs 错误
+  - [x] ProjectileCapability：修复子弹位置更新时未标记 TransComponent 为 dirty 的问题
+  - [x] 验证所有 ViewComponent 不再直接访问 Logic 组件（通过 grep 检查）
 - [ ] 2.3.2 收口写入口：AstrumClient 侧对 Entity 的写入迁移至 AstrumLogic 可控入口
   - 发现需要迁移的写入点：
     - SinglePlayerGameMode.cs: MonsterInfoComponent, TransComponent, LevelComponent（3处）
