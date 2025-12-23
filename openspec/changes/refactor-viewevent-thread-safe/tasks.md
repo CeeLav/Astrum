@@ -1,45 +1,46 @@
 ## 1. 基础结构改造
 
-- [ ] 1.1 修改 `Entity.ViewEventQueue.cs`
-  - [ ] 1.1.1 将 `_viewEventQueue` 字段类型从 `Queue<ViewEvent>` 改为 `ConcurrentQueue<ViewEvent>`
-  - [ ] 1.1.2 实现线程安全的延迟初始化（使用 `Interlocked.CompareExchange`）
-  - [ ] 1.1.3 更新 `ViewEventQueue` 属性返回类型
-  - [ ] 1.1.4 更新 `HasPendingViewEvents` 使用 `IsEmpty` 属性
-  - [ ] 1.1.5 更新 `ClearViewEventQueue()` 使用 `TryDequeue` 循环清空
-  - [ ] 1.1.6 添加代码注释说明线程安全性和使用场景
+- [x] 1.1 修改 `Entity.ViewEventQueue.cs`
+  - [x] 1.1.1 将 `_viewEventQueue` 字段类型从 `Queue<ViewEvent>` 改为 `ConcurrentQueue<ViewEvent>`
+  - [x] 1.1.2 实现线程安全的延迟初始化（使用 `Interlocked.CompareExchange`）
+  - [x] 1.1.3 更新 `ViewEventQueue` 属性返回类型
+  - [x] 1.1.4 更新 `HasPendingViewEvents` 使用 `IsEmpty` 属性
+  - [x] 1.1.5 更新 `ClearViewEventQueue()` 使用 `TryDequeue` 循环清空
+  - [x] 1.1.6 添加代码注释说明线程安全性和使用场景
 
-- [ ] 1.2 修改 `GlobalEventQueue.cs`
-  - [ ] 1.2.1 将 `_globalEvents` 字段类型从 `Queue<EntityEvent>` 改为 `ConcurrentQueue<EntityEvent>`
-  - [ ] 1.2.2 更新 `QueueGlobalEvent()` 方法（已使用 `Enqueue`，无需修改）
-  - [ ] 1.2.3 更新 `GetEvents()` 方法返回类型
-  - [ ] 1.2.4 更新 `ClearAll()` 使用 `TryDequeue` 循环清空
-  - [ ] 1.2.5 更新 `HasPendingEvents` 使用 `IsEmpty` 属性
-  - [ ] 1.2.6 添加代码注释说明线程安全性
+- [x] 1.2 修改 `GlobalEventQueue.cs`
+  - [x] 1.2.1 将 `_globalEvents` 字段类型从 `Queue<EntityEvent>` 改为 `ConcurrentQueue<EntityEvent>`
+  - [x] 1.2.2 更新 `QueueGlobalEvent()` 方法（已使用 `Enqueue`，无需修改）
+  - [x] 1.2.3 更新 `GetEvents()` 方法返回类型
+  - [x] 1.2.4 更新 `ClearAll()` 使用 `TryDequeue` 循环清空
+  - [x] 1.2.5 更新 `HasPendingEvents` 使用 `IsEmpty` 属性
+  - [x] 1.2.6 添加代码注释说明线程安全性
 
-- [ ] 1.3 修改 `Stage.ProcessViewEvents()`
-  - [ ] 1.3.1 更新队列类型声明为 `ConcurrentQueue<ViewEvent>`
-  - [ ] 1.3.2 使用 `TryDequeue(out var evt)` 替代 `Dequeue()`
-  - [ ] 1.3.3 移除 `eventQueue.Count > 0` 的二次检查（`TryDequeue` 自然处理空队列）
-  - [ ] 1.3.4 添加事件处理数量限制（可选，防止单帧卡顿）
+- [x] 1.3 修改 `Stage.ProcessViewEvents()`
+  - [x] 1.3.1 更新队列类型声明为 `ConcurrentQueue<ViewEvent>`
+  - [x] 1.3.2 使用 `TryDequeue(out var evt)` 替代 `Dequeue()`
+  - [x] 1.3.3 移除 `eventQueue.Count > 0` 的二次检查（`TryDequeue` 自然处理空队列）
+  - [x] 1.3.4 添加事件处理数量限制（可选，防止单帧卡顿）
 
-- [ ] 1.4 检查其他引用点
-  - [ ] 1.4.1 搜索所有使用 `ViewEventQueue` 的代码
-  - [ ] 1.4.2 确保没有直接访问 `.Count` 或其他 `Queue<T>` 特有方法
-  - [ ] 1.4.3 更新为使用 `ConcurrentQueue<T>` 的 API（`IsEmpty`, `TryDequeue` 等）
+- [x] 1.4 检查其他引用点
+  - [x] 1.4.1 搜索所有使用 `ViewEventQueue` 的代码
+  - [x] 1.4.2 确保没有直接访问 `.Count` 或其他 `Queue<T>` 特有方法
+  - [x] 1.4.3 更新为使用 `ConcurrentQueue<T>` 的 API（`IsEmpty`, `TryDequeue` 等）
+  - [x] 1.4.4 修复 `CapabilitySystem.cs` 中的 `GlobalEventQueue` 使用
 
 ## 2. 编译验证
 
-- [ ] 2.1 编译 AstrumLogic 项目
-  - [ ] 2.1.1 执行 `dotnet build AstrumLogic.csproj -v q`
-  - [ ] 2.1.2 修复所有编译错误（类型不匹配、方法调用等）
+- [x] 2.1 编译 AstrumLogic 项目
+  - [x] 2.1.1 执行 `dotnet build AstrumLogic.csproj -v q`
+  - [x] 2.1.2 修复所有编译错误（类型不匹配、方法调用等）
 
-- [ ] 2.2 编译 AstrumView 项目
-  - [ ] 2.2.1 执行 `dotnet build AstrumView.csproj -v q`
-  - [ ] 2.2.2 修复所有编译错误
+- [x] 2.2 编译 AstrumView 项目
+  - [x] 2.2.1 执行 `dotnet build AstrumView.csproj -v q`
+  - [x] 2.2.2 修复所有编译错误
 
-- [ ] 2.3 编译完整解决方案
-  - [ ] 2.3.1 执行 `dotnet build AstrumProj.sln -v q`
-  - [ ] 2.3.2 确保无警告和错误
+- [x] 2.3 编译完整解决方案
+  - [x] 2.3.1 执行 `dotnet build AstrumProj.sln -v q`
+  - [x] 2.3.2 确保无警告和错误
 
 - [ ] 2.4 在 Unity 中执行 `Assets/Refresh` 刷新资源
 

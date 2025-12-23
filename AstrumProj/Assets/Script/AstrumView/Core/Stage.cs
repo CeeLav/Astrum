@@ -482,7 +482,8 @@ namespace Astrum.View.Core
         }
         
         /// <summary>
-        /// 处理所有 Entity 的视图事件队列
+        /// 处理所有 Entity 的视图事件队列（线程安全）
+        /// Logic 线程可能同时在写入事件，使用 ConcurrentQueue 保证并发安全
         /// </summary>
         private void ProcessViewEvents()
         {
@@ -499,14 +500,15 @@ namespace Astrum.View.Core
                 var entityId = entity.UniqueId;
                 var eventQueue = entity.ViewEventQueue;
                 
-                if (eventQueue == null || eventQueue.Count == 0)
+                if (eventQueue == null)
                     continue;
                 
-                // 处理所有事件
-                int eventCount = eventQueue.Count;
-                while (eventQueue.Count > 0)
+                // 处理所有事件（使用 TryDequeue 线程安全地消费）
+                // Logic 线程可能同时在 Enqueue，完全没问题
+                int eventCount = 0;
+                while (eventQueue.TryDequeue(out var evt))
                 {
-                    var evt = eventQueue.Dequeue();
+                    eventCount++;
                     
                     // Stage 级别事件：由 Stage 直接处理
                     if (evt.EventType == ViewEventType.EntityCreated)
@@ -543,6 +545,13 @@ namespace Astrum.View.Core
                     else
                     {
                         ASLogger.Instance.Warning($"Stage: 未知的视图事件类型 {evt.EventType}，Entity {entityId}", "Stage.ProcessViewEvents");
+                    }
+                    
+                    // 可选：限制每帧处理数量，防止单个实体事件过多导致卡顿
+                    if (eventCount > 100)
+                    {
+                        ASLogger.Instance.Warning($"Stage: Entity {entityId} 本帧事件过多 (>{eventCount})，剩余事件延迟到下一帧", "Stage.ProcessViewEvents");
+                        break;
                     }
                 }
                 

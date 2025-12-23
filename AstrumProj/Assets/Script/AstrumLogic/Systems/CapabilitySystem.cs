@@ -684,10 +684,9 @@ namespace Astrum.LogicCore.Systems
             
             var events = globalQueue.GetEvents();
             
-            // 对每个全局事件
-            while (events.Count > 0)
+            // 对每个全局事件（线程安全）
+            while (events.TryDequeue(out var evt))
             {
-                var evt = events.Dequeue();
                 
                 // 广播给所有实体
                 foreach (var entity in World.Entities.Values)
