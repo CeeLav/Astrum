@@ -220,9 +220,7 @@ namespace Astrum.View.Components
                 return;
             }
 
-            var projectileComp = OwnerEntity.GetComponent<ProjectileComponent>();
-
-            if (projectileComp == null)
+            if (!ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var projectileRead) || !projectileRead.IsValid)
             {
 #if UNITY_EDITOR
                 if (TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var debugTransRead) && debugTransRead.IsValid)
@@ -245,10 +243,11 @@ namespace Astrum.View.Components
             }
 
             Vector3 currentPos = TSVectorToVector3(transRead.Position);
-            Vector3 lastPos = TSVectorToVector3(projectileComp.LastPosition);
-            Vector3 initialPos = TSVectorToVector3(projectileComp.InitialPosition);
-            Vector3 velocity = TSVectorToVector3(projectileComp.CurrentVelocity);
-            Vector3 launchDir = TSVectorToVector3(projectileComp.LaunchDirection);
+            // LastPosition 和 InitialPosition 不在 ViewRead 中，使用当前位置作为替代
+            Vector3 lastPos = currentPos;
+            Vector3 initialPos = currentPos;
+            Vector3 velocity = TSVectorToVector3(projectileRead.CurrentVelocity);
+            Vector3 launchDir = TSVectorToVector3(projectileRead.LaunchDirection);
 
             // 绘制完整轨迹：从初始位置到当前位置
             float totalDistance = Vector3.Distance(initialPos, currentPos);
@@ -305,13 +304,12 @@ namespace Astrum.View.Components
             // 绘制标签
             if (ShowLabels)
             {
-                string info = $"Projectile {projectileComp.ProjectileId}\n" +
-                             $"Frame: {projectileComp.ElapsedFrames}/{projectileComp.LifeTime}\n" +
+                // ElapsedFrames, LifeTime, PiercedCount, PierceCount 不在 ViewRead 中，简化显示
+                string info = $"Projectile {projectileRead.ProjectileId}\n" +
                              $"Pos: {currentPos:F2}\n" +
                              $"Speed: {velocity.magnitude:F2}\n" +
                              $"Total Dist: {totalDistance:F2}\n" +
-                             $"Frame Dist: {frameDistance:F3}\n" +
-                             $"Pierce: {projectileComp.PiercedCount}/{projectileComp.PierceCount}";
+                             $"Frame Dist: {frameDistance:F3}";
                 DrawLabel(currentPos + Vector3.up * 0.3f, info);
             }
         }

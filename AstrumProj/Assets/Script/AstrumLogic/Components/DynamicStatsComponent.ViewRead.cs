@@ -1,9 +1,11 @@
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.ViewRead;
+using Astrum.LogicCore.Stats;
+using TrueSync;
 
 namespace Astrum.LogicCore.Components
 {
-    public partial class ActionComponent
+    public partial class DynamicStatsComponent
     {
         private static bool _viewReadRegistered = false;
         private static readonly object _registerLock = new object();
@@ -19,14 +21,17 @@ namespace Astrum.LogicCore.Components
             {
                 if (_viewReadRegistered) return;
                 
-                ViewReadFrameSync.Register<ActionComponent, ViewRead>(
+                ViewReadFrameSync.Register<DynamicStatsComponent, ViewRead>(
                     componentTypeId: ComponentTypeId,
                     createViewRead: comp => new ViewRead(
                         entityId: comp.EntityId,
                         isValid: true,
-                        currentActionId: comp.CurrentActionId,
-                        currentFrame: comp.CurrentFrame,
-                        animationSpeedMultiplier: comp.CurrentAction?.AnimationSpeedMultiplier ?? 1f),
+                        currentHP: comp.Get(DynamicResourceType.CURRENT_HP),
+                        currentMana: comp.Get(DynamicResourceType.CURRENT_MANA),
+                        shield: comp.Get(DynamicResourceType.SHIELD),
+                        energy: comp.Get(DynamicResourceType.ENERGY),
+                        rage: comp.Get(DynamicResourceType.RAGE),
+                        combo: comp.Get(DynamicResourceType.COMBO)),
                     createInvalid: entityId => ViewRead.Invalid(entityId)
                 );
                 
@@ -38,22 +43,28 @@ namespace Astrum.LogicCore.Components
         {
             public readonly long EntityId;
             public readonly bool IsValid;
-            public readonly int CurrentActionId;
-            public readonly int CurrentFrame;
-            public readonly float AnimationSpeedMultiplier;
+            public readonly FP CurrentHP;
+            public readonly FP CurrentMana;
+            public readonly FP Shield;
+            public readonly FP Energy;
+            public readonly FP Rage;
+            public readonly FP Combo;
 
-            public ViewRead(long entityId, bool isValid, int currentActionId, int currentFrame, float animationSpeedMultiplier = 1f)
+            public ViewRead(long entityId, bool isValid, FP currentHP, FP currentMana, FP shield, FP energy, FP rage, FP combo)
             {
                 EntityId = entityId;
                 IsValid = isValid;
-                CurrentActionId = currentActionId;
-                CurrentFrame = currentFrame;
-                AnimationSpeedMultiplier = animationSpeedMultiplier;
+                CurrentHP = currentHP;
+                CurrentMana = currentMana;
+                Shield = shield;
+                Energy = energy;
+                Rage = rage;
+                Combo = combo;
             }
 
             public static ViewRead Invalid(long entityId)
             {
-                return new ViewRead(entityId, false, 0, 0, 1f);
+                return new ViewRead(entityId, false, FP.Zero, FP.Zero, FP.Zero, FP.Zero, FP.Zero, FP.Zero);
             }
         }
 
@@ -71,5 +82,4 @@ namespace Astrum.LogicCore.Components
         }
     }
 }
-
 

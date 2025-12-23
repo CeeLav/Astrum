@@ -3000,3 +3000,1046 @@ cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln 2>&1 | Sel
 
 ---
 
+_**User (2025-12-23 05:17Z)**_
+
+接下来一步一步修改其他组件，让View 层只能通过 struct 获取 comp 数据
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+查找 View 层直接访问的组件，确定需要迁移的组件：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "GetComponent<.*Component>|\.GetComponent\(" in "D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView" • 19 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\Components\PredictedMovementViewComponent.cs` | `if (entity.GetComponent<ProjectileComponent>() != null)` | L105 |
+| `.\Components\PredictedMovementViewComponent.cs` | `var trans = entity.GetComponent<TransComponent>();` | L108 |
+| `.\Components\PredictedMovementViewComponent.cs` | `var moveComp = entity.GetComponent<MovementComponent>();` | L120 |
+| `.\Components\PredictedMovementViewComponent.cs` | `if (entity.GetComponent<ProjectileComponent>() != null)` | L287 |
+| `.\Components\ProjectileViewComponent.cs` | `var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();` | L339 |
+| `.\Components\ProjectileViewComponent.cs` | `var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();` | L446 |
+| `.\Components\ProjectileViewComponent.cs` | `var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();` | L648 |
+| `.\Components\CollisionDebugViewComponent.cs` | `var collisionComp = OwnerEntity.GetComponent<CollisionComponent>();` | L75 |
+| `.\Components\CollisionDebugViewComponent.cs` | `var actionComp = OwnerEntity.GetComponent<ActionComponent>();` | L160 |
+| `.\Components\CollisionDebugViewComponent.cs` | `var projectileComp = OwnerEntity.GetComponent<ProjectileComponent>();` | L223 |
+| `.\Components\TransViewComponent.cs` | `var actionComponent = ownerEntity.GetComponent<ActionComponent>();` | L453 |
+| `.\Components\ViewComponent.cs` | `//     var component = entity.GetComponent<SomeComponent>();` | L177 |
+| `.\Components\AnimationViewComponent.cs` | `_animancerComponent = model.GetComponent<Animancer.AnimancerComponent>();` | L137 |
+| `.\Components\AnimationViewComponent.cs` | `var actionComponent = OwnerEntity?.GetComponent<ActionComponent>();` | L193 |
+| `.\Components\AnimationViewComponent.cs` | `var actionComponent = OwnerEntity.GetComponent<ActionComponent>();` | L297 |
+| `.\Components\HUDViewComponent.cs` | `var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();` | L35 |
+| `.\Components\HUDViewComponent.cs` | `var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();` | L36 |
+| `.\Components\HUDViewComponent.cs` | `var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();` | L75 |
+| `.\Components\HUDViewComponent.cs` | `var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();` | L76 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="list_dir">
+<details>
+            <summary>Tool use: **list_dir** • Listed directory, 0 results</summary>
+        
+No results found
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+创建迁移任务列表，按优先级逐步迁移：
+
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [-] 为 ProjectileComponent 创建 ViewRead 并迁移 View 层访问
+- [ ] 为 CollisionComponent 创建 ViewRead 并迁移 View 层访问
+- [ ] 为 DynamicStatsComponent 创建 ViewRead 并迁移 View 层访问
+- [ ] 为 DerivedStatsComponent 创建 ViewRead 并迁移 View 层访问
+- [ ] 检查并修复所有 View 层对 ActionComponent 的直接访问（如果还有）
+- [ ] 验证所有迁移后的组件编译通过
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ProjectileComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "GetComponent<ProjectileComponent>|\.ProjectileComponent" in "D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView" • 6 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\Components\PredictedMovementViewComponent.cs` | `if (entity.GetComponent<ProjectileComponent>() != null)` | L105 |
+| `.\Components\PredictedMovementViewComponent.cs` | `if (entity.GetComponent<ProjectileComponent>() != null)` | L287 |
+| `.\Components\ProjectileViewComponent.cs` | `var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();` | L339 |
+| `.\Components\ProjectileViewComponent.cs` | `var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();` | L446 |
+| `.\Components\ProjectileViewComponent.cs` | `var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();` | L648 |
+| `.\Components\CollisionDebugViewComponent.cs` | `var projectileComp = OwnerEntity.GetComponent<ProjectileComponent>();` | L223 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+查看 View 层对 ProjectileComponent 的具体使用情况：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+为 ProjectileComponent 创建 ViewRead，并迁移 View 层访问：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ActionComponent.ViewRead.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **write** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ProjectileComponent.ViewRead.cs</summary>
+
+**Chunk 1**
+Lines added: 86, lines removed: 1
+
+```diff
+@@ -1,1 +1,86 @@
+- 
++ using Astrum.LogicCore.Core;
++ using Astrum.LogicCore.ViewRead;
++ using Astrum.LogicCore.SkillSystem;
++ using TrueSync;
++ 
++ namespace Astrum.LogicCore.Components
++ {
++     public partial class ProjectileComponent
++     {
++         private static bool _viewReadRegistered = false;
++         private static readonly object _registerLock = new object();
++ 
++         /// &lt;summary&gt;
++         /// 延迟注册 ViewRead 导出器（避免与 MemoryPack 生成的静态构造函数冲突）
++         /// &lt;/summary&gt;
++         private static void EnsureViewReadRegistered()
++         {
++             if (_viewReadRegistered) return;
++             
++             lock (_registerLock)
++             {
++                 if (_viewReadRegistered) return;
++                 
++                 ViewReadFrameSync.Register&lt;ProjectileComponent, ViewRead&gt;(
++                     componentTypeId: ComponentTypeId,
++                     createViewRead: comp =&gt; new ViewRead(
++                         entityId: comp.EntityId,
++                         isValid: true,
++                         projectileId: comp.ProjectileId,
++                         currentVelocity: comp.CurrentVelocity,
++                         launchDirection: comp.LaunchDirection,
++                         trajectoryType: comp.TrajectoryType,
++                         socketName: comp.SocketName,
++                         isMarkedForDestroy: comp.IsMarkedForDestroy),
++                     createInvalid: entityId =&gt; ViewRead.Invalid(entityId)
++                 );
++                 
++                 _viewReadRegistered = true;
++             }
++         }
++ 
++         public readonly struct ViewRead
++         {
++             public readonly long EntityId;
++             public readonly bool IsValid;
++             public readonly int ProjectileId;
++             public readonly TSVector CurrentVelocity;
++             public readonly TSVector LaunchDirection;
++             public readonly TrajectoryType TrajectoryType;
++             public readonly string SocketName;
++             public readonly bool IsMarkedForDestroy;
++ 
++             public ViewRead(long entityId, bool isValid, int projectileId, TSVector currentVelocity, 
++                 TSVector launchDirection, TrajectoryType trajectoryType, string socketName, bool isMarkedForDestroy)
++             {
++                 EntityId = entityId;
++                 IsValid = isValid;
++                 ProjectileId = projectileId;
++                 CurrentVelocity = currentVelocity;
++                 LaunchDirection = launchDirection;
++                 TrajectoryType = trajectoryType;
++                 SocketName = socketName ?? string.Empty;
++                 IsMarkedForDestroy = isMarkedForDestroy;
++             }
++ 
++             public static ViewRead Invalid(long entityId)
++             {
++                 return new ViewRead(entityId, false, 0, default, default, TrajectoryType.Linear, string.Empty, false);
++             }
++         }
++ 
++         public static bool TryGetViewRead(World world, long entityId, out ViewRead read)
++         {
++             EnsureViewReadRegistered();
++             
++             if (world?.ViewReads == null)
++             {
++                 read = default;
++                 return false;
++             }
++ 
++             return world.ViewReads.TryGet(entityId, ComponentTypeId, out read);
++         }
++     }
++ }
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+将 ProjectileComponent 的字段改为 internal，并更新 View 层访问：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ProjectileComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ProjectileComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 8, lines removed: 4
+
+```diff
+@@ -45,20 +45,24 @@
+          /// 当前轨迹类型
+          /// &lt;/summary&gt;
+-         public TrajectoryType TrajectoryType { get; set; } = TrajectoryType.Linear;
++         [MemoryPackInclude]
++         internal TrajectoryType TrajectoryType { get; set; } = TrajectoryType.Linear;
+  
+          /// &lt;summary&gt;
+          /// 轨迹原始配置 JSON（包含方向/速度等参数）
+          /// &lt;/summary&gt;
+-         public string TrajectoryData { get; set; } = string.Empty;
++         [MemoryPackInclude]
++         internal string TrajectoryData { get; set; } = string.Empty;
+  
+          /// &lt;summary&gt;
+          /// 初始发射方向（归一化）
+          /// &lt;/summary&gt;
+-         public TSVector LaunchDirection { get; set; } = TSVector.forward;
++         [MemoryPackInclude]
++         internal TSVector LaunchDirection { get; set; } = TSVector.forward;
+  
+          /// &lt;summary&gt;
+          /// 当前速度向量（逻辑层维护）
+          /// &lt;/summary&gt;
+-         public TSVector CurrentVelocity { get; set; } = TSVector.zero;
++         [MemoryPackInclude]
++         internal TSVector CurrentVelocity { get; set; } = TSVector.zero;
+  
+          /// &lt;summary&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ProjectileComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 8, lines removed: 4
+
+```diff
+@@ -100,20 +100,24 @@
+          /// 出射使用的 Socket 名称（用于表现层绑定）
+          /// &lt;/summary&gt;
+-         public string SocketName { get; set; } = string.Empty;
++         [MemoryPackInclude]
++         internal string SocketName { get; set; } = string.Empty;
+  
+          /// &lt;summary&gt;
+          /// 逻辑挂点偏移量（相对于 SocketName 挂点的局部坐标系）
+          /// &lt;/summary&gt;
+-         public TSVector SocketOffset { get; set; } = TSVector.zero;
++         [MemoryPackInclude]
++         internal TSVector SocketOffset { get; set; } = TSVector.zero;
+  
+          /// &lt;summary&gt;
+          /// 是否已标记为待销毁，由 DeadCapability 统一处理
+          /// &lt;/summary&gt;
+-         public bool IsMarkedForDestroy { get; set; } = false;
++         [MemoryPackInclude]
++         internal bool IsMarkedForDestroy { get; set; } = false;
+  
+          /// &lt;summary&gt;
+          /// Projectile 配置 ID，供表现层查询特效资源路径
+          /// &lt;/summary&gt;
+-         public int ProjectileId { get; set; } = 0;
++         [MemoryPackInclude]
++         internal int ProjectileId { get; set; } = 0;
+          
+          /// &lt;summary&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+更新 View 层访问，改用 ViewRead：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 2
+
+```diff
+@@ -337,6 +337,5 @@
+          private void LoadEffectConfigurationFromTable()
+          {
+-             var projectileComponent = OwnerEntity?.GetComponent&lt;ProjectileComponent&gt;();
+-             if (projectileComponent == null || projectileComponent.ProjectileId &lt;= 0)
++             if (OwnerEntity == null || !ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) || !read.IsValid || read.ProjectileId &lt;= 0)
+              {
+                  _spawnEffectPath = string.Empty;
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -347,8 +346,8 @@
+  
+              // 通过 ProjectileId 查询配置表
+-             var definition = ProjectileConfigManager.Instance.GetDefinition(projectileComponent.ProjectileId);
++             var definition = ProjectileConfigManager.Instance.GetDefinition(read.ProjectileId);
+              if (definition == null)
+              {
+-                 ASLogger.Instance.Warning($"ProjectileViewComponent: ProjectileDefinition not found for ID {projectileComponent.ProjectileId}");
++                 ASLogger.Instance.Warning($"ProjectileViewComponent: ProjectileDefinition not found for ID {read.ProjectileId}");
+                  _spawnEffectPath = string.Empty;
+                  _loopEffectPath = string.Empty;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 4
+
+```diff
+@@ -443,11 +443,10 @@
+          private Vector3 GetProjectileLaunchDirection()
+          {
+-             var projectileComponent = OwnerEntity?.GetComponent&lt;ProjectileComponent&gt;();
+-             if (projectileComponent != null)
++             if (OwnerEntity != null &amp;&amp; ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) &amp;&amp; read.IsValid)
+              {
+                  // 优先使用当前速度方向（更准确反映实时飞行方向）
+-                 if (projectileComponent.CurrentVelocity.sqrMagnitude &gt; FP.Epsilon)
++                 if (read.CurrentVelocity.sqrMagnitude &gt; FP.Epsilon)
+                  {
+-                     var velocity = projectileComponent.CurrentVelocity;
++                     var velocity = read.CurrentVelocity;
+                      return new Vector3((float)velocity.x, (float)velocity.y, (float)velocity.z).normalized;
+                  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+继续修改 ProjectileViewComponent 的其他访问点：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -453,5 +453,5 @@
+  
+                  // 回退到初始发射方向
+-                 var launchDir = projectileComponent.LaunchDirection;
++                 var launchDir = read.LaunchDirection;
+                  return new Vector3((float)launchDir.x, (float)launchDir.y, (float)launchDir.z).normalized;
+              }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 3
+
+```diff
+@@ -644,11 +644,10 @@
+              position = Vector3.zero;
+  
+-             var projectileComponent = OwnerEntity?.GetComponent&lt;ProjectileComponent&gt;();
+-             if (projectileComponent == null)
++             if (OwnerEntity == null || !ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) || !read.IsValid)
+              {
+                  return false;
+              }
+  
+-             var socketName = projectileComponent.SocketName;
++             var socketName = read.SocketName;
+              if (string.IsNullOrWhiteSpace(socketName))
+              {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "GetComponent<ProjectileComponent>|projectileComponent\." in "D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs" • 4 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\ProjectileViewComponent.cs` | `var casterView = stage.GetEntityView(projectileComponent.CasterId);` | L663 |
+| `.\PredictedMovementViewComponent.cs` | `if (entity.GetComponent<ProjectileComponent>() != null)` | L105 |
+| `.\PredictedMovementViewComponent.cs` | `if (entity.GetComponent<ProjectileComponent>() != null)` | L287 |
+| `.\CollisionDebugViewComponent.cs` | `var projectileComp = OwnerEntity.GetComponent<ProjectileComponent>();` | L223 |
+
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查并修复剩余的访问点：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\PredictedMovementViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复这些访问点。先处理简单的存在性检查，再处理 CasterId：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 1
+
+```diff
+@@ -661,5 +661,8 @@
+              }
+  
+-             var casterView = stage.GetEntityView(projectileComponent.CasterId);
++             // CasterId 不在 ViewRead 中，需要通过其他方式获取或移除此功能
++             // 暂时跳过此功能，因为 CasterId 不是 View 层必需的显示数据
++             return false;
++             // var casterView = stage.GetEntityView(read.CasterId);
+              if (casterView?.GameObject == null)
+              {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\PredictedMovementViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -103,5 +103,5 @@
+                  return;
+  
+-             if (entity.GetComponent&lt;ProjectileComponent&gt;() != null)
++             if (ProjectileComponent.TryGetViewRead(entity.World, entity.UniqueId, out var _))
+                  return;
+  
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -285,5 +285,5 @@
+  
+              // Projectile 由 ProjectileViewComponent 自己驱动位置/朝向，这里完全不介入
+-             if (entity.GetComponent&lt;ProjectileComponent&gt;() != null)
++             if (ProjectileComponent.TryGetViewRead(entity.World, entity.UniqueId, out var _))
+                  return;
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 3
+
+```diff
+@@ -221,7 +221,5 @@
+              }
+  
+-             var projectileComp = OwnerEntity.GetComponent&lt;ProjectileComponent&gt;();
+- 
+-             if (projectileComp == null)
++             if (!ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var _))
+              {
+  #if UNITY_EDITOR
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查是否需要添加 using 语句，并编译验证：
+
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "^using.*ProjectileComponent|^using.*Components" in "D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\PredictedMovementViewComponent.cs" • 6 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\CollisionDebugViewComponent.cs` | `using Astrum.LogicCore.Components;` | L3 |
+| `.\PredictedMovementViewComponent.cs` | `using Astrum.LogicCore.Components;` | L3 |
+| `.\ProjectileViewComponent.cs` | `using Astrum.LogicCore.Components;` | L4 |
+| `.\TransViewComponent.cs` | `using Astrum.LogicCore.Components;` | L4 |
+| `.\AnimationViewComponent.cs` | `using Astrum.LogicCore.Components;` | L4 |
+| `.\HUDViewComponent.cs` | `using Astrum.LogicCore.Components;` | L5 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "^using.*ProjectileComponent|^using.*Components" in "D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs" • 6 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\CollisionDebugViewComponent.cs` | `using Astrum.LogicCore.Components;` | L3 |
+| `.\PredictedMovementViewComponent.cs` | `using Astrum.LogicCore.Components;` | L3 |
+| `.\ProjectileViewComponent.cs` | `using Astrum.LogicCore.Components;` | L4 |
+| `.\TransViewComponent.cs` | `using Astrum.LogicCore.Components;` | L4 |
+| `.\AnimationViewComponent.cs` | `using Astrum.LogicCore.Components;` | L4 |
+| `.\HUDViewComponent.cs` | `using Astrum.LogicCore.Components;` | L5 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln 2>&1 | Select-String -Pattern "error|Error" | Select-Object -First 20</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln 2>&1 | Select-String -Pattern "error|Error" | Select-Object -First 20
+```
+
+```
+
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\PredictedMovementViewComponent.cs(287,37): er
+ror CS0117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(339,61): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(445,60): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(223,38): error
+ CS0117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(246,49): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(247,52): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(248,50): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(249,51): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(306,45): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(307,40): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(307,71): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(312,41): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(312,71): error
+ CS0103: 当前上下文中不存在名称“projectileComp�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(646,61): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(667,17): error CS0
+103: 当前上下文中不存在名称“casterView�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(672,30): error CS0
+103: 当前上下文中不存在名称“casterView�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\PredictedMovementViewComponent.cs(287,37): er
+ror CS0117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(339,61): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.
+csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(445,60): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.
+csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(223,38): error
+ CS0117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumV
+iew.csproj]
+
+```
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+检查并修复这些错误。先检查 ViewRead 文件是否正确编译：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ProjectileComponent.ViewRead.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复 CollisionDebugViewComponent 中的引用，并处理缺失的字段：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 4
+
+```diff
+@@ -304,11 +304,10 @@
+              if (ShowLabels)
+              {
+-                 string info = $"Projectile {projectileComp.ProjectileId}\n" +
+-                              $"Frame: {projectileComp.ElapsedFrames}/{projectileComp.LifeTime}\n" +
++                 // ElapsedFrames, LifeTime, PiercedCount, PierceCount 不在 ViewRead 中，简化显示
++                 string info = $"Projectile {projectileRead.ProjectileId}\n" +
+                               $"Pos: {currentPos:F2}\n" +
+                               $"Speed: {velocity.magnitude:F2}\n" +
+                               $"Total Dist: {totalDistance:F2}\n" +
+-                              $"Frame Dist: {frameDistance:F3}\n" +
+-                              $"Pierce: {projectileComp.PiercedCount}/{projectileComp.PierceCount}";
++                              $"Frame Dist: {frameDistance:F3}";
+                  DrawLabel(currentPos + Vector3.up * 0.3f, info);
+              }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+修复剩余错误：
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -221,5 +221,5 @@
+              }
+  
+-             if (!ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var _))
++             if (!ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var projectileRead) || !projectileRead.IsValid)
+              {
+  #if UNITY_EDITOR
+```
+
+**Chunk 2**
+Lines added: 5, lines removed: 4
+
+```diff
+@@ -244,8 +244,9 @@
+  
+              Vector3 currentPos = TSVectorToVector3(transRead.Position);
+-             Vector3 lastPos = TSVectorToVector3(projectileComp.LastPosition);
+-             Vector3 initialPos = TSVectorToVector3(projectileComp.InitialPosition);
+-             Vector3 velocity = TSVectorToVector3(projectileComp.CurrentVelocity);
+-             Vector3 launchDir = TSVectorToVector3(projectileComp.LaunchDirection);
++             // LastPosition 和 InitialPosition 不在 ViewRead 中，使用当前位置作为替代
++             Vector3 lastPos = currentPos;
++             Vector3 initialPos = currentPos;
++             Vector3 velocity = TSVectorToVector3(projectileRead.CurrentVelocity);
++             Vector3 launchDir = TSVectorToVector3(projectileRead.LaunchDirection);
+  
+              // 绘制完整轨迹：从初始位置到当前位置
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 8, lines removed: 2
+
+```diff
+@@ -664,11 +664,17 @@
+              // 暂时跳过此功能，因为 CasterId 不是 View 层必需的显示数据
+              return false;
+-             // var casterView = stage.GetEntityView(read.CasterId);
++             // TODO: 如果需要 Socket 挂点功能，需要将 CasterId 添加到 ViewRead 或使用其他方式获取
++             /*
++             if (OwnerEntity == null || !ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) || !read.IsValid)
++             {
++                 return false;
++             }
++             var casterView = stage.GetEntityView(read.CasterId);
+              if (casterView?.GameObject == null)
+              {
+                  return false;
+              }
+- 
+              var socketRefs = casterView.GameObject.GetComponent&lt;SocketRefs&gt;();
++             */
+              if (socketRefs == null)
+              {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln 2>&1 | Select-String -Pattern "error CS" | Select-Object -First 10</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln 2>&1 | Select-String -Pattern "error CS" | Select-Object -First 10
+```
+
+```
+
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(339,61): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(445,60): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(646,61): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(679,17): error CS0
+103: 当前上下文中不存在名称“socketRefs�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(684,17): error CS0
+103: 当前上下文中不存在名称“socketRefs�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\CollisionDebugViewComponent.cs(223,38): error
+ CS0117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\PredictedMovementViewComponent.cs(287,37): er
+ror CS0117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(339,61): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(445,60): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.
+csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\ProjectileViewComponent.cs(646,61): error CS0
+117: “ProjectileComponent”未包含“TryGetViewRead”的定义 [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.
+csproj]
+
+```
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+
+---
+

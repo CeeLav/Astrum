@@ -23,7 +23,8 @@ namespace Astrum.LogicCore.Components
         /// </summary>
         public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>最终属性容器</summary>
-        public Stats.Stats FinalStats { get; set; } = new Stats.Stats();
+        [MemoryPackInclude]
+        internal Stats.Stats FinalStats { get; set; } = new Stats.Stats();
         
         /// <summary>修饰器字典（属性类型 → 修饰器列表）</summary>
         [MemoryPackIgnore]

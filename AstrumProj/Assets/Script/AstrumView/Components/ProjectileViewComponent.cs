@@ -336,8 +336,7 @@ namespace Astrum.View.Components
         /// </summary>
         private void LoadEffectConfigurationFromTable()
         {
-            var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();
-            if (projectileComponent == null || projectileComponent.ProjectileId <= 0)
+            if (OwnerEntity == null || !ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) || !read.IsValid || read.ProjectileId <= 0)
             {
                 _spawnEffectPath = string.Empty;
                 _loopEffectPath = string.Empty;
@@ -346,10 +345,10 @@ namespace Astrum.View.Components
             }
 
             // 通过 ProjectileId 查询配置表
-            var definition = ProjectileConfigManager.Instance.GetDefinition(projectileComponent.ProjectileId);
+            var definition = ProjectileConfigManager.Instance.GetDefinition(read.ProjectileId);
             if (definition == null)
             {
-                ASLogger.Instance.Warning($"ProjectileViewComponent: ProjectileDefinition not found for ID {projectileComponent.ProjectileId}");
+                ASLogger.Instance.Warning($"ProjectileViewComponent: ProjectileDefinition not found for ID {read.ProjectileId}");
                 _spawnEffectPath = string.Empty;
                 _loopEffectPath = string.Empty;
                 _hitEffectPath = string.Empty;
@@ -443,18 +442,17 @@ namespace Astrum.View.Components
         /// </summary>
         private Vector3 GetProjectileLaunchDirection()
         {
-            var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();
-            if (projectileComponent != null)
+            if (OwnerEntity != null && ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) && read.IsValid)
             {
                 // 优先使用当前速度方向（更准确反映实时飞行方向）
-                if (projectileComponent.CurrentVelocity.sqrMagnitude > FP.Epsilon)
+                if (read.CurrentVelocity.sqrMagnitude > FP.Epsilon)
                 {
-                    var velocity = projectileComponent.CurrentVelocity;
+                    var velocity = read.CurrentVelocity;
                     return new Vector3((float)velocity.x, (float)velocity.y, (float)velocity.z).normalized;
                 }
 
                 // 回退到初始发射方向
-                var launchDir = projectileComponent.LaunchDirection;
+                var launchDir = read.LaunchDirection;
                 return new Vector3((float)launchDir.x, (float)launchDir.y, (float)launchDir.z).normalized;
             }
 
@@ -645,13 +643,12 @@ namespace Astrum.View.Components
         {
             position = Vector3.zero;
 
-            var projectileComponent = OwnerEntity?.GetComponent<ProjectileComponent>();
-            if (projectileComponent == null)
+            if (OwnerEntity == null || !ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) || !read.IsValid)
             {
                 return false;
             }
 
-            var socketName = projectileComponent.SocketName;
+            var socketName = read.SocketName;
             if (string.IsNullOrWhiteSpace(socketName))
             {
                 return false;
@@ -663,12 +660,21 @@ namespace Astrum.View.Components
                 return false;
             }
 
-            var casterView = stage.GetEntityView(projectileComponent.CasterId);
+            // CasterId 不在 ViewRead 中，需要通过其他方式获取或移除此功能
+            // 暂时跳过此功能，因为 CasterId 不是 View 层必需的显示数据
+            // TODO: 如果需要 Socket 挂点功能，需要将 CasterId 添加到 ViewRead 或使用其他方式获取
+            return false;
+            
+            /*
+            if (OwnerEntity == null || !ProjectileComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var read) || !read.IsValid)
+            {
+                return false;
+            }
+            var casterView = stage.GetEntityView(read.CasterId);
             if (casterView?.GameObject == null)
             {
                 return false;
             }
-
             var socketRefs = casterView.GameObject.GetComponent<SocketRefs>();
             if (socketRefs == null)
             {
@@ -682,6 +688,7 @@ namespace Astrum.View.Components
             }
 
             return false;
+            */
         }
     }
 }

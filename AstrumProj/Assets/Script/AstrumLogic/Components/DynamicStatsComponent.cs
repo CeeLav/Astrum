@@ -23,7 +23,8 @@ namespace Astrum.LogicCore.Components
         /// </summary>
         public override int GetComponentTypeId() => ComponentTypeId;
         /// <summary>动态资源容器（使用定点数）</summary>
-        public Dictionary<DynamicResourceType, FP> Resources { get; set; } = new Dictionary<DynamicResourceType, FP>();
+        [MemoryPackInclude]
+        internal Dictionary<DynamicResourceType, FP> Resources { get; set; } = new Dictionary<DynamicResourceType, FP>();
         
         [MemoryPackConstructor]
         public DynamicStatsComponent(Dictionary<DynamicResourceType, FP> resources) : base()

@@ -27,23 +27,26 @@ namespace Astrum.View.Components
         private int _dynamicStatsComponentId;
         private int _derivedStatsComponentId;
         
+        // 是否已初始化数据
+        private bool _hasInitializedData = false;
+        
         protected override void OnInitialize()
         {
-            // 获取需要监听的组件 ComponentTypeId
-            if (OwnerEntity != null)
+            // 获取需要监听的组件 ComponentTypeId（通过 ViewRead 检查组件是否存在）
+            if (OwnerEntity != null && OwnerEntity.World != null)
             {
-                var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();
-                var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();
-                
-                if (dynamicStats != null)
+                if (DynamicStatsComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var _))
                 {
                     _dynamicStatsComponentId = DynamicStatsComponent.ComponentTypeId;
                 }
                 
-                if (derivedStats != null)
+                if (DerivedStatsComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var _))
                 {
                     _derivedStatsComponentId = DerivedStatsComponent.ComponentTypeId;
                 }
+                
+                // 初始化时主动读取一次数据
+                SyncDataFromComponent(0);
             }
             
             // ASLogger.Instance.Debug($"HUDViewComponent 初始化，实体ID: {OwnerEntity?.UniqueId}");
@@ -66,36 +69,66 @@ namespace Astrum.View.Components
         
         public override void SyncDataFromComponent(int componentTypeId)
         {
-            if (OwnerEntity == null)
+            if (OwnerEntity == null || OwnerEntity.World == null)
             {
+                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: OwnerEntity or World is null");
                 return;
             }
             
-            // 获取血量数据
-            var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();
-            var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();
-            
-            if (dynamicStats != null && derivedStats != null)
+            // 通过 ViewRead 获取血量数据
+            if (!DynamicStatsComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var dynamicRead))
             {
-                FP newCurrentHealth = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
-                FP newMaxHealth = derivedStats.Get(StatType.HP);
-                FP newCurrentShield = dynamicStats.Get(DynamicResourceType.SHIELD);
+                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: Failed to get DynamicStatsComponent ViewRead for entity {OwnerEntity.UniqueId}");
+                return;
+            }
+            
+            if (!dynamicRead.IsValid)
+            {
+                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: DynamicStatsComponent ViewRead is invalid for entity {OwnerEntity.UniqueId}");
+                return;
+            }
+            
+            if (!DerivedStatsComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var derivedRead))
+            {
+                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: Failed to get DerivedStatsComponent ViewRead for entity {OwnerEntity.UniqueId}");
+                return;
+            }
+            
+            if (!derivedRead.IsValid)
+            {
+                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: DerivedStatsComponent ViewRead is invalid for entity {OwnerEntity.UniqueId}");
+                return;
+            }
+            
+            FP newCurrentHealth = dynamicRead.CurrentHP;
+            FP newMaxHealth = derivedRead.MaxHP;
+            FP newCurrentShield = dynamicRead.Shield;
+            
+            ASLogger.Instance.Debug($"HUDViewComponent.SyncDataFromComponent: Entity {OwnerEntity.UniqueId} - CurrentHP: {newCurrentHealth}, MaxHP: {newMaxHealth}, Shield: {newCurrentShield}");
+            
+            // 检查数据是否有变化
+            if (newCurrentHealth != _currentHealth || newMaxHealth != _maxHealth || newCurrentShield != _currentShield)
+            {
+                _currentHealth = newCurrentHealth;
+                _maxHealth = newMaxHealth;
+                _currentShield = newCurrentShield;
+                _hasInitializedData = true;
                 
-                // 检查数据是否有变化
-                if (newCurrentHealth != _currentHealth || newMaxHealth != _maxHealth || newCurrentShield != _currentShield)
-                {
-                    _currentHealth = newCurrentHealth;
-                    _maxHealth = newMaxHealth;
-                    _currentShield = newCurrentShield;
-                    
-                    // 注册或更新HUD
-                    RegisterOrUpdateHUD();
-                }
+                ASLogger.Instance.Info($"HUDViewComponent: Updated health for entity {OwnerEntity.UniqueId} - {_currentHealth}/{_maxHealth}, Shield: {_currentShield}");
+                
+                // 注册或更新HUD
+                RegisterOrUpdateHUD();
             }
         }
         
         protected override void OnUpdate(float deltaTime)
         {
+            // 如果还没有初始化数据，尝试读取一次（确保在 Logic 帧末导出后能获取到数据）
+            if (!_hasInitializedData)
+            {
+                SyncDataFromComponent(0);
+            }
+            
             if (!_isRegistered || OwnerEntity == null)
                 return;
             

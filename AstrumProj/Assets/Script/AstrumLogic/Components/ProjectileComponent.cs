@@ -44,22 +44,26 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 当前轨迹类型
         /// </summary>
-        public TrajectoryType TrajectoryType { get; set; } = TrajectoryType.Linear;
+        [MemoryPackInclude]
+        internal TrajectoryType TrajectoryType { get; set; } = TrajectoryType.Linear;
 
         /// <summary>
         /// 轨迹原始配置 JSON（包含方向/速度等参数）
         /// </summary>
-        public string TrajectoryData { get; set; } = string.Empty;
+        [MemoryPackInclude]
+        internal string TrajectoryData { get; set; } = string.Empty;
 
         /// <summary>
         /// 初始发射方向（归一化）
         /// </summary>
-        public TSVector LaunchDirection { get; set; } = TSVector.forward;
+        [MemoryPackInclude]
+        internal TSVector LaunchDirection { get; set; } = TSVector.forward;
 
         /// <summary>
         /// 当前速度向量（逻辑层维护）
         /// </summary>
-        public TSVector CurrentVelocity { get; set; } = TSVector.zero;
+        [MemoryPackInclude]
+        internal TSVector CurrentVelocity { get; set; } = TSVector.zero;
 
         /// <summary>
         /// 上一帧的位置，用于射线碰撞检测
@@ -95,22 +99,26 @@ namespace Astrum.LogicCore.Components
         /// <summary>
         /// 出射使用的 Socket 名称（用于表现层绑定）
         /// </summary>
-        public string SocketName { get; set; } = string.Empty;
+        [MemoryPackInclude]
+        internal string SocketName { get; set; } = string.Empty;
 
         /// <summary>
         /// 逻辑挂点偏移量（相对于 SocketName 挂点的局部坐标系）
         /// </summary>
-        public TSVector SocketOffset { get; set; } = TSVector.zero;
+        [MemoryPackInclude]
+        internal TSVector SocketOffset { get; set; } = TSVector.zero;
 
         /// <summary>
         /// 是否已标记为待销毁，由 DeadCapability 统一处理
         /// </summary>
-        public bool IsMarkedForDestroy { get; set; } = false;
+        [MemoryPackInclude]
+        internal bool IsMarkedForDestroy { get; set; } = false;
 
         /// <summary>
         /// Projectile 配置 ID，供表现层查询特效资源路径
         /// </summary>
-        public int ProjectileId { get; set; } = 0;
+        [MemoryPackInclude]
+        internal int ProjectileId { get; set; } = 0;
         
         /// <summary>
         /// 重置 ProjectileComponent 状态（用于对象池回收）

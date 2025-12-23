@@ -102,7 +102,7 @@ namespace Astrum.View.Components
             if (entity == null)
                 return;
 
-            if (entity.GetComponent<ProjectileComponent>() != null)
+            if (ProjectileComponent.TryGetViewRead(entity.World, entity.UniqueId, out var _))
                 return;
 
             var trans = entity.GetComponent<TransComponent>();
@@ -284,7 +284,7 @@ namespace Astrum.View.Components
                 return;
 
             // Projectile 由 ProjectileViewComponent 自己驱动位置/朝向，这里完全不介入
-            if (entity.GetComponent<ProjectileComponent>() != null)
+            if (ProjectileComponent.TryGetViewRead(entity.World, entity.UniqueId, out var _))
                 return;
 
             if (TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transRead) && transRead.IsValid)

@@ -189,21 +189,27 @@ namespace Astrum.View.Components
                 return;
             }
 
-            // 获取ActionComponent的可用动作ID
-            var actionComponent = OwnerEntity?.GetComponent<ActionComponent>();
-            if (actionComponent == null)
+            // 从 EntityConfig 获取可用动作ID列表（不再直接访问 ActionComponent）
+            if (OwnerEntity == null || OwnerEntity.EntityConfig == null)
             {
-                ASLogger.Instance.Warning($"AnimationViewComponent.PreloadAnimations: ActionComponent not found for entity {OwnerEntity?.UniqueId}");
+                ASLogger.Instance.Warning($"AnimationViewComponent.PreloadAnimations: OwnerEntity or EntityConfig is null");
                 return;
             }
-
-            // 从ActionComponent的AvailableActions中获取动画路径
-            var animationNames = GetAnimationNamesFromActionComponent(actionComponent);
             
-            foreach (var animationName in animationNames)
+            // 从 EntityConfig 获取可用动作ID
+            var availableActionIds = GetAvailableActionIdsFromConfig();
+            
+            // 从配置表获取动画路径并预加载
+            foreach (var actionId in availableActionIds)
             {
                 try
                 {
+                    var animationName = GetAnimationNameByActionId(actionId);
+                    if (string.IsNullOrEmpty(animationName))
+                    {
+                        continue;
+                    }
+                    
                     // 尝试通过ResourceManager加载动画
                     var animationClip = ResourceManager.Instance.LoadResource<AnimationClip>(animationName);
                     
@@ -220,49 +226,37 @@ namespace Astrum.View.Components
                 }
                 catch (System.Exception ex)
                 {
-                    ASLogger.Instance.Error($"AnimationViewComponent.PreloadAnimations: Failed to load animation '{animationName}': {ex.Message}");
+                    ASLogger.Instance.Error($"AnimationViewComponent.PreloadAnimations: Failed to load animation for actionId {actionId}: {ex.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// 从ActionComponent获取动画路径
+        /// 从 EntityConfig 获取可用动作ID列表（与 ActionCapability.GetAvailableActionIds 逻辑一致）
         /// </summary>
-        /// <param name="actionComponent">动作组件</param>
-        /// <returns>动画路径列表</returns>
-        private List<string> GetAnimationNamesFromActionComponent(ActionComponent actionComponent)
+        /// <returns>可用动作ID列表</returns>
+        private List<int> GetAvailableActionIdsFromConfig()
         {
-            var animationNames = new List<string>();
-            
-            if (actionComponent?.AvailableActions == null)
+            var actionIds = new List<int>();
+            var config = OwnerEntity.EntityConfig;
+
+            if (config != null)
             {
-                ASLogger.Instance.Warning("AnimationViewComponent.GetAnimationNamesFromActionComponent: ActionComponent.AvailableActions is null");
-                return animationNames;
+                AddIfValid(actionIds, config.IdleAction);
+                AddIfValid(actionIds, config.WalkAction);
+                AddIfValid(actionIds, config.RunAction);
+                AddIfValid(actionIds, config.HitAction);
             }
 
-            try
+            return actionIds;
+
+            static void AddIfValid(List<int> target, int actionId)
             {
-                // 从ActionComponent的AvailableActions字典中收集动画名称
-                foreach (var actionInfo in actionComponent.AvailableActions.Values)
+                if (actionId > 0 && !target.Contains(actionId))
                 {
-                    if (actionInfo?.Id > 0)
-                    {
-                        string animationName = GetAnimationNameByActionId(actionInfo.Id);
-                        if (!string.IsNullOrEmpty(animationName) && !animationNames.Contains(animationName))
-                        {
-                            animationNames.Add(animationName);
-                        }
-                    }
+                    target.Add(actionId);
                 }
-                
-                ASLogger.Instance.Debug($"AnimationViewComponent.GetAnimationNamesFromActionComponent: Found {animationNames.Count} unique animation paths for entity {OwnerEntity?.UniqueId}");
             }
-            catch (System.Exception ex)
-            {
-                ASLogger.Instance.Error($"AnimationViewComponent.GetAnimationNamesFromActionComponent: Exception while collecting animation names: {ex.Message}");
-            }
-
-            return animationNames;
         }
         
         /// <summary>
@@ -291,79 +285,81 @@ namespace Astrum.View.Components
         /// </summary>
         private void SyncWithActionSystem()
         {
-            if (_animancerComponent == null || OwnerEntity == null) return;
+            if (_animancerComponent == null || OwnerEntity == null || OwnerEntity.World == null) return;
             
-            // 获取动作组件
-            var actionComponent = OwnerEntity.GetComponent<ActionComponent>();
-            if (actionComponent == null) return;
-            
-            var currentAction = actionComponent.CurrentAction;
-            var currentFrame = actionComponent.CurrentFrame;
-            
-            // 1. 检查当前动作是否发生变化
-            if (currentAction == null)
+            // 通过 ViewRead 获取动作数据
+            if (!ActionComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var actionRead) || !actionRead.IsValid)
             {
-                // 动作为空，停止动画
+                // 动作为空或无效，停止动画
                 if (_isPlaying)
                 {
                     StopCurrentAnimation();
-                    ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Stopped animation due to null action on entity {OwnerEntity.UniqueId}");
                 }
                 ResetAnimationSpeed();
                 return;
             }
             
+            var currentActionId = actionRead.CurrentActionId;
+            var currentFrame = actionRead.CurrentFrame;
+            var animationSpeed = actionRead.AnimationSpeedMultiplier;
+            
+            // 1. 检查当前动作是否为空
+            if (currentActionId <= 0)
+            {
+                // 动作为空，停止动画
+                if (_isPlaying)
+                {
+                    StopCurrentAnimation();
+                    ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Stopped animation due to invalid action on entity {OwnerEntity.UniqueId}");
+                }
+                ResetAnimationSpeed();
+                return;
+            }
+            
+            // 从配置表获取动作信息
+            var actionTable = GetActionTableById(currentActionId);
+            if (actionTable == null)
+            {
+                ASLogger.Instance.Warning($"AnimationViewComponent.SyncWithActionSystem: ActionTable not found for actionId {currentActionId}");
+                return;
+            }
+            
             // 2. 检查动作ID是否发生变化
-            if (_lastActionId != currentAction.Id)
+            if (_lastActionId != currentActionId)
             {
                 // 动作切换，播放新动画
-                PlayAnimationByActionId(currentAction.Id, 0.25f);
-                _lastActionId = currentAction.Id;
+                PlayAnimationByActionId(currentActionId, 0.25f);
+                _lastActionId = currentActionId;
                 _lastActionFrame = currentFrame;
-                SyncAnimationTime(currentAction, currentFrame);
-                ApplyAnimationSpeed(currentAction);
+                SyncAnimationTimeWithTable(actionTable, currentFrame);
+                SetAnimationSpeed(animationSpeed);
                 
-                ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentAction.Id} on entity {OwnerEntity.UniqueId}");
+                ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentActionId} on entity {OwnerEntity.UniqueId}");
                 return;
             }
             else
             {
-                if (currentAction.KeepPlayingAnim)
+                if (actionTable.KeepPlayingAnim)
                 {
                     _lastActionFrame = currentFrame;
-                    ApplyAnimationSpeed(currentAction);
+                    SetAnimationSpeed(animationSpeed);
                     return;
                 }
                 
                 bool restarted = currentFrame < _lastActionFrame || (currentFrame == 0 && _lastActionFrame > 0);
                 if (restarted)
                 {
-                    PlayAnimationByActionId(currentAction.Id, 0.1f, true);
+                    PlayAnimationByActionId(currentActionId, 0.1f, true);
                     _lastActionFrame = currentFrame;
-                    SyncAnimationTime(currentAction, currentFrame);
-                    ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Restarted action {currentAction.Id} on entity {OwnerEntity.UniqueId} (frame reset)");
-                    ApplyAnimationSpeed(currentAction);
+                    SyncAnimationTimeWithTable(actionTable, currentFrame);
+                    ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Restarted action {currentActionId} on entity {OwnerEntity.UniqueId} (frame reset)");
+                    SetAnimationSpeed(animationSpeed);
                     return;
                 }
                 _lastActionFrame = currentFrame;
             }
 
-            ApplyAnimationSpeed(currentAction);
-            /*
-            // 3. 检查动作帧数是否发生显著变化
-            int frameDifference = Mathf.Abs(currentFrame - _lastActionFrame);
-            if (frameDifference > FRAME_SYNC_THRESHOLD)
-            {
-                // 帧数差异过大，需要同步动画时间
-                SyncAnimationTime(currentAction, currentFrame);
-                _lastActionFrame = currentFrame;
-                ASLogger.Instance.Warning($"AnimationViewComponent.SyncWithActionSystem: Synced animation time due to large frame difference ({frameDifference}) on entity {OwnerEntity.UniqueId}");
-            }
-            else if (frameDifference > 0)
-            {
-                // 帧数差异较小，让动画继续播放
-                _lastActionFrame = currentFrame;
-            }*/
+            SetAnimationSpeed(animationSpeed);
         }
         
         /// <summary>
@@ -460,16 +456,29 @@ namespace Astrum.View.Components
         {
             SetAnimationSpeed(1f);
         }
-
-        private void ApplyAnimationSpeed(ActionInfo actionInfo)
+        
+        /// <summary>
+        /// 从配置表获取动作信息
+        /// </summary>
+        /// <param name="actionId">动作ID</param>
+        /// <returns>动作配置表数据，如果未找到则返回 null</returns>
+        private cfg.BaseUnit.ActionTable GetActionTableById(int actionId)
         {
-            if (actionInfo == null)
+            if (TableConfig.Instance == null)
             {
-                ResetAnimationSpeed();
-                return;
+                ASLogger.Instance.Error($"AnimationViewComponent.GetActionTableById: ConfigManager is not initialized");
+                return null;
             }
 
-            SetAnimationSpeed(actionInfo.AnimationSpeedMultiplier);
+            try
+            {
+                return TableConfig.Instance.Tables.TbActionTable.Get(actionId);
+            }
+            catch (System.Exception ex)
+            {
+                ASLogger.Instance.Error($"AnimationViewComponent.GetActionTableById: Exception while getting ActionTable for actionId {actionId}: {ex.Message}");
+                return null;
+            }
         }
         
         /// <summary>
@@ -521,6 +530,27 @@ namespace Astrum.View.Components
                 // 使用Animancer通过字符串名称播放动画，支持淡入淡出过渡
                 _currentAnimationState = _animancerComponent.TryPlay(animationName, fadeTime);
                 
+                if (_currentAnimationState == null)
+                {
+                    // 动画未预加载，尝试动态加载
+                    ASLogger.Instance.Info($"AnimationViewComponent.PlayAnimationByActionId: Animation '{animationName}' not preloaded, loading dynamically for entity {OwnerEntity?.UniqueId}");
+                    
+                    var animationClip = ResourceManager.Instance.LoadResource<AnimationClip>(animationName);
+                    if (animationClip != null)
+                    {
+                        // 在Animancer Graph中注册动画
+                        _animancerComponent.States.Create(animationName, animationClip);
+                        ASLogger.Instance.Debug($"AnimationViewComponent.PlayAnimationByActionId: Dynamically loaded animation '{animationName}'");
+                        
+                        // 再次尝试播放
+                        _currentAnimationState = _animancerComponent.TryPlay(animationName, fadeTime);
+                    }
+                    else
+                    {
+                        ASLogger.Instance.Warning($"AnimationViewComponent.PlayAnimationByActionId: Failed to load animation clip '{animationName}' for actionId {actionId}");
+                    }
+                }
+                
                 if (_currentAnimationState != null)
                 {
                     //ASLogger.Instance.Info($"[AnimationSync] ActionId={actionId} (Animation Switched), FromAnim={_currentAnimationName}, ToAnim={animationName}, Time={Time.time}");
@@ -547,13 +577,13 @@ namespace Astrum.View.Components
                 else
                 {
                     ASLogger.Instance.Warning($"AnimationViewComponent.PlayAnimationByActionId: Failed to play animation '{animationName}' " +
-                        $"(actionId: {actionId}) for entity {OwnerEntity?.UniqueId} - Animation not found");
+                        $"(actionId: {actionId}) for entity {OwnerEntity?.UniqueId} - Animation not found after dynamic load attempt");
                 }
             }
             catch (System.Exception ex)
             {
-                /*ASLogger.Instance.Error($"AnimationViewComponent.PlayAnimationByActionId: Exception while playing animation '{animationName}' " +
-                    $"(actionId: {actionId}) for entity {OwnerEntity?.UniqueId}: {ex.Message}");*/
+                ASLogger.Instance.Error($"AnimationViewComponent.PlayAnimationByActionId: Exception while playing animation '{animationName}' " +
+                    $"(actionId: {actionId}) for entity {OwnerEntity?.UniqueId}: {ex.Message}");
             }
         }
         
@@ -600,23 +630,22 @@ namespace Astrum.View.Components
         }
         
         /// <summary>
-        /// 同步动画时间到指定帧
+        /// 同步动画时间到指定帧（使用配置表数据）
         /// </summary>
-        /// <param name="actionInfo">动作信息</param>
+        /// <param name="actionTable">动作配置表数据</param>
         /// <param name="targetFrame">目标帧数</param>
-        private void SyncAnimationTime(ActionInfo actionInfo, int targetFrame)
+        private void SyncAnimationTimeWithTable(cfg.BaseUnit.ActionTable actionTable, int targetFrame)
         {
-            if (_currentAnimationState == null || actionInfo == null) return;
+            if (_currentAnimationState == null || actionTable == null) return;
             
             // 计算插值后的绝对动画时间（秒）
-            float animTime = CalculateActionToAnimTime(targetFrame, actionInfo.Duration);
+            float animTime = CalculateActionToAnimTime(targetFrame, actionTable.Duration);
             
             // 直接设置绝对时间（秒）- Animancer 支持直接使用绝对时间
             _currentAnimationState.Time = animTime;
             
-            //ASLogger.Instance.Info($"[AnimSyncTime] ActionId={actionInfo.Id}, TargetFrame={targetFrame}, AnimTime={animTime:F3}s, CurrentAnim={_currentAnimationName}, Time={Time.time}");
-            ASLogger.Instance.Debug($"AnimationViewComponent.SyncAnimationTime: Synced to frame {targetFrame} " +
-                $"(animTime: {animTime:F3}s) for action {actionInfo.Id} on entity {OwnerEntity?.UniqueId}");
+            ASLogger.Instance.Debug($"AnimationViewComponent.SyncAnimationTimeWithTable: Synced to frame {targetFrame} " +
+                $"(animTime: {animTime:F3}s) for action {actionTable.ActionId} on entity {OwnerEntity?.UniqueId}");
         }
         
         

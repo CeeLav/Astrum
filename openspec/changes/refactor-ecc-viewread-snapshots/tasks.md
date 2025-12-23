@@ -27,15 +27,27 @@
 
 ### 2.3 收口与扩展（后续阶段）
 
-- [ ] 2.3.1 扩展到更多组件：按 View 实际读取点逐步迁移
+- [x] 2.3.1 扩展到更多组件：按 View 实际读取点逐步迁移
+  - [x] AnimationViewComponent：重构为从 EntityConfig 和配置表获取动作信息，不再直接访问 ActionComponent
+  - [x] ActionComponent.ViewRead：添加 AnimationSpeedMultiplier 字段以支持动画播放速度同步
+  - [x] 修复 ProjectileViewComponent 中的 socketRefs 错误
 - [ ] 2.3.2 收口写入口：AstrumClient 侧对 Entity 的写入迁移至 AstrumLogic 可控入口
+  - 发现需要迁移的写入点：
+    - SinglePlayerGameMode.cs: MonsterInfoComponent, TransComponent, LevelComponent（3处）
+    - PlayerDataManager.cs: 多个组件的存档加载/保存（15处）
+  - 建议方案：
+    - SinglePlayerGameMode → 提供 Logic 层 API（如实体创建参数、GM命令接口）
+    - PlayerDataManager → 提供组件序列化/反序列化接口或保留特殊访问权限
+  - 状态：待后续阶段实施
 
 ## 3. Validation
 
 - [x] 3.1 Unity 执行 `Assets/Refresh` 使新增文件被识别
+  - ✅ 已在 Unity 中执行，ViewRead 文件已被识别
 - [x] 3.2 `dotnet build AstrumProj.sln` 编译通过（优先通过 Unity/MCP 读取报错定位）
-- [x] 3.3 在 Unity 内进行最小冒烟验证：试点组件的数据能从 Logic 帧末导出并在 View 读取（不修改生产逻辑代码路径）
-  - Trans/Movement 组件已迁移至 ViewRead
-  - 所有 View 组件已改为使用快照
-  - 编译成功，无错误
+  - ✅ 编译成功，无错误
+- [ ] 3.3 在 Unity 内进行最小冒烟验证：试点组件的数据能从 Logic 帧末导出并在 View 读取（不修改生产逻辑代码路径）
+  - Trans/Movement/Action 组件已迁移至 ViewRead
+  - AnimationViewComponent 已改为从配置表读取动作信息
+  - 待用户在 Unity 中运行验证
 

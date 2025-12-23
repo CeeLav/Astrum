@@ -1,9 +1,11 @@
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.ViewRead;
+using Astrum.LogicCore.SkillSystem;
+using TrueSync;
 
 namespace Astrum.LogicCore.Components
 {
-    public partial class ActionComponent
+    public partial class ProjectileComponent
     {
         private static bool _viewReadRegistered = false;
         private static readonly object _registerLock = new object();
@@ -19,14 +21,17 @@ namespace Astrum.LogicCore.Components
             {
                 if (_viewReadRegistered) return;
                 
-                ViewReadFrameSync.Register<ActionComponent, ViewRead>(
+                ViewReadFrameSync.Register<ProjectileComponent, ViewRead>(
                     componentTypeId: ComponentTypeId,
                     createViewRead: comp => new ViewRead(
                         entityId: comp.EntityId,
                         isValid: true,
-                        currentActionId: comp.CurrentActionId,
-                        currentFrame: comp.CurrentFrame,
-                        animationSpeedMultiplier: comp.CurrentAction?.AnimationSpeedMultiplier ?? 1f),
+                        projectileId: comp.ProjectileId,
+                        currentVelocity: comp.CurrentVelocity,
+                        launchDirection: comp.LaunchDirection,
+                        trajectoryType: comp.TrajectoryType,
+                        socketName: comp.SocketName,
+                        isMarkedForDestroy: comp.IsMarkedForDestroy),
                     createInvalid: entityId => ViewRead.Invalid(entityId)
                 );
                 
@@ -38,22 +43,29 @@ namespace Astrum.LogicCore.Components
         {
             public readonly long EntityId;
             public readonly bool IsValid;
-            public readonly int CurrentActionId;
-            public readonly int CurrentFrame;
-            public readonly float AnimationSpeedMultiplier;
+            public readonly int ProjectileId;
+            public readonly TSVector CurrentVelocity;
+            public readonly TSVector LaunchDirection;
+            public readonly TrajectoryType TrajectoryType;
+            public readonly string SocketName;
+            public readonly bool IsMarkedForDestroy;
 
-            public ViewRead(long entityId, bool isValid, int currentActionId, int currentFrame, float animationSpeedMultiplier = 1f)
+            public ViewRead(long entityId, bool isValid, int projectileId, TSVector currentVelocity, 
+                TSVector launchDirection, TrajectoryType trajectoryType, string socketName, bool isMarkedForDestroy)
             {
                 EntityId = entityId;
                 IsValid = isValid;
-                CurrentActionId = currentActionId;
-                CurrentFrame = currentFrame;
-                AnimationSpeedMultiplier = animationSpeedMultiplier;
+                ProjectileId = projectileId;
+                CurrentVelocity = currentVelocity;
+                LaunchDirection = launchDirection;
+                TrajectoryType = trajectoryType;
+                SocketName = socketName ?? string.Empty;
+                IsMarkedForDestroy = isMarkedForDestroy;
             }
 
             public static ViewRead Invalid(long entityId)
             {
-                return new ViewRead(entityId, false, 0, 0, 1f);
+                return new ViewRead(entityId, false, 0, default, default, TrajectoryType.Linear, string.Empty, false);
             }
         }
 
@@ -71,5 +83,4 @@ namespace Astrum.LogicCore.Components
         }
     }
 }
-
 
