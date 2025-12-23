@@ -69,6 +69,9 @@ namespace Astrum.LogicCore.Capabilities
                     UpdateLinearTrajectory(component, trans);
                     break;
             }
+            
+            // 标记 TransComponent 为 dirty，以便导出到 ViewRead
+            entity.MarkComponentDirty(TransComponent.ComponentTypeId);
         }
 
         private static readonly FP LogicFrameTime = FP.FromFloat(0.05f);

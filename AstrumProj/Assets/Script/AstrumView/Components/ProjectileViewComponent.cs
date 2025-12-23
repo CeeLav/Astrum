@@ -71,6 +71,9 @@ namespace Astrum.View.Components
         [SerializeField]
         private float _maxCatchUpDistance = 2f;     // 最大追赶距离，超过则直接瞬移
 
+        // 监听的组件类型 ID
+        private int _transComponentId;
+        
         protected override void OnInitialize()
         {
             LoadEffectConfigurationFromTable();
@@ -81,6 +84,16 @@ namespace Astrum.View.Components
                 EnsureTrailRendererExists();
             }
 
+            // 获取需要监听的组件 ComponentTypeId
+            if (OwnerEntity != null && OwnerEntity.World != null)
+            {
+                if (TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var _))
+                {
+                    _transComponentId = TransComponent.ComponentTypeId;
+                    ASLogger.Instance.Debug($"ProjectileViewComponent: Registered to watch TransComponent (TypeId: {_transComponentId}) for entity {OwnerEntity.UniqueId}");
+                }
+            }
+
             // 初始化同步数据
             _visualSync = new VisualSyncData
             {
@@ -88,14 +101,43 @@ namespace Astrum.View.Components
                 timeSinceLastLogicUpdate = 0f
             };
         }
+        
+        public override int[] GetWatchedComponentIds()
+        {
+            if (_transComponentId != 0)
+            {
+                return new int[] { _transComponentId };
+            }
+            return null;
+        }
+        
+        public override void SyncDataFromComponent(int componentTypeId)
+        {
+            // TransComponent 的数据变化会触发此方法
+            // 但实际的位置同步逻辑在 OnUpdate 中处理，所以这里不需要特别处理
+            // 只记录日志用于调试
+            if (componentTypeId == _transComponentId)
+            {
+                ASLogger.Instance.Debug($"ProjectileViewComponent: TransComponent data changed for entity {OwnerEntity?.UniqueId}");
+            }
+        }
 
         protected override void OnUpdate(float deltaTime)
         {
             if (!_isEnabled || OwnerEntity == null)
                 return;
 
-            if (!TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var transRead) || !transRead.IsValid)
+            if (!TransComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var transRead))
+            {
+                ASLogger.Instance.Warning($"ProjectileViewComponent.OnUpdate: Failed to get TransComponent ViewRead for entity {OwnerEntity.UniqueId}");
                 return;
+            }
+            
+            if (!transRead.IsValid)
+            {
+                ASLogger.Instance.Warning($"ProjectileViewComponent.OnUpdate: TransComponent ViewRead is invalid for entity {OwnerEntity.UniqueId}");
+                return;
+            }
 
             var logicPos = transRead.Position;
             Vector3 currentLogicPosition = new Vector3((float)logicPos.x, (float)logicPos.y, (float)logicPos.z);
@@ -103,6 +145,7 @@ namespace Astrum.View.Components
             // 首次更新：建立初始偏移
             if (!_visualSync.isInitialized)
             {
+                ASLogger.Instance.Debug($"ProjectileViewComponent: Initializing visual position for entity {OwnerEntity.UniqueId} at {currentLogicPosition}");
                 InitializeVisualPosition(currentLogicPosition);
                 return;
             }
