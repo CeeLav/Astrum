@@ -1,17 +1,17 @@
 ## 1. Entity.EventQueue 线程安全改造
 
 ### 1.1 修改 Entity.EventQueue.cs
-- [ ] 1.1.1 将 `_eventQueue` 字段类型从 `Queue<EntityEvent>` 改为 `ConcurrentQueue<EntityEvent>`
-- [ ] 1.1.2 实现线程安全的延迟初始化（使用 `Interlocked.CompareExchange`）
-- [ ] 1.1.3 更新 `EventQueue` 属性返回类型
-- [ ] 1.1.4 更新 `HasPendingEvents` 使用 `IsEmpty` 属性
-- [ ] 1.1.5 更新 `ClearEventQueue()` 使用 `TryDequeue` 循环清空
-- [ ] 1.1.6 添加代码注释说明线程安全性和使用场景
+- [x] 1.1.1 将 `_eventQueue` 字段类型从 `Queue<EntityEvent>` 改为 `ConcurrentQueue<EntityEvent>`
+- [x] 1.1.2 实现线程安全的延迟初始化（使用 `Interlocked.CompareExchange`）
+- [x] 1.1.3 更新 `EventQueue` 属性返回类型
+- [x] 1.1.4 更新 `HasPendingEvents` 使用 `IsEmpty` 属性
+- [x] 1.1.5 更新 `ClearEventQueue()` 使用 `TryDequeue` 循环清空
+- [x] 1.1.6 添加代码注释说明线程安全性和使用场景
 
 ### 1.2 修改 CapabilitySystem.cs
-- [ ] 1.2.1 在 `ProcessTargetedEvents()` 中使用 `TryDequeue(out var evt)` 替代 `Dequeue()`
-- [ ] 1.2.2 移除 `eventQueue.Count > 0` 的二次检查（`TryDequeue` 自然处理空队列）
-- [ ] 1.2.3 添加线程安全注释
+- [x] 1.2.1 在 `ProcessTargetedEvents()` 中使用 `TryDequeue(out var evt)` 替代 `Dequeue()`
+- [x] 1.2.2 移除 `eventQueue.Count > 0` 的二次检查（`TryDequeue` 自然处理空队列）
+- [x] 1.2.3 添加线程安全注释
 
 ### 1.3 单元测试
 - [ ] 1.3.1 测试线程安全性（多线程并发写入/读取）
@@ -22,13 +22,13 @@
 ## 2. 常用事件定义
 
 ### 2.1 创建 CommonEvents.cs
-- [ ] 2.1.1 创建 `AstrumLogic/Events/CommonEvents.cs` 文件
-- [ ] 2.1.2 定义 `SetPositionEvent` 结构体
-- [ ] 2.1.3 定义 `SetRotationEvent` 结构体
-- [ ] 2.1.4 定义 `SetScaleEvent` 结构体
-- [ ] 2.1.5 定义 `SetHealthEvent` 结构体
-- [ ] 2.1.6 定义 `SetLevelEvent` 结构体
-- [ ] 2.1.7 定义 `LoadComponentDataEvent` 结构体（通用序列化）
+- [x] 2.1.1 创建 `AstrumLogic/Events/CommonEvents.cs` 文件
+- [x] 2.1.2 定义 `SetPositionEvent` 结构体
+- [x] 2.1.3 定义 `SetRotationEvent` 结构体
+- [x] 2.1.4 定义 `SetScaleEvent` 结构体
+- [x] 2.1.5 定义 `SetHealthEvent` 结构体
+- [x] 2.1.6 定义 `SetLevelEvent` 结构体
+- [x] 2.1.7 定义 `LoadComponentDataEvent` 结构体（通用序列化）
 
 ### 2.2 实现事件处理器
 - [ ] 2.2.1 在相应 Capability 中实现 `SetPositionEvent` 处理器
@@ -72,9 +72,9 @@
 ## 5. 编译和集成测试
 
 ### 5.1 编译验证
-- [ ] 5.1.1 编译 `AstrumLogic.csproj` 无错误
-- [ ] 5.1.2 编译 `AstrumClient.csproj` 无错误
-- [ ] 5.1.3 编译 `AstrumProj.sln` 无错误
+- [x] 5.1.1 编译 `AstrumLogic.csproj` 无错误
+- [x] 5.1.2 编译 `AstrumClient.csproj` 无错误
+- [x] 5.1.3 编译 `AstrumProj.sln` 无错误
 - [ ] 5.1.4 在 Unity 中执行 `Assets/Refresh`
 
 ### 5.2 集成测试

@@ -632,6 +632,7 @@ namespace Astrum.LogicCore.Systems
         
         /// <summary>
         /// 处理面向个体的事件（存储在实体本地）
+        /// 线程安全：使用 ConcurrentQueue.TryDequeue 消费事件
         /// </summary>
         private void ProcessTargetedEvents()
         {
@@ -646,20 +647,24 @@ namespace Astrum.LogicCore.Systems
                 if (entity == null || !entity.HasPendingEvents)
                     continue;
                 
-                // 处理该实体的所有事件
+                // 处理该实体的所有事件（线程安全）
                 var eventQueue = entity.EventQueue;
-                if (eventQueue == null)
+                if (eventQueue == null || eventQueue.IsEmpty)
                     continue;
                 
-                int eventCount = eventQueue.Count;
-                ASLogger.Instance.Debug($"[ProcessTargetedEvents] Entity {entity.UniqueId} has {eventCount} pending events");
-                
-                while (eventQueue.Count > 0)
+                int eventCount = 0;
+                // 使用 TryDequeue 线程安全地消费事件
+                while (eventQueue.TryDequeue(out var evt))
                 {
-                    var evt = eventQueue.Dequeue();
                     ASLogger.Instance.Debug($"[ProcessTargetedEvents] Dispatching event {evt.EventType.Name} to entity {entity.UniqueId}");
                     DispatchEventToEntity(entity, evt);
                     totalEventsProcessed++;
+                    eventCount++;
+                }
+                
+                if (eventCount > 0)
+                {
+                    ASLogger.Instance.Debug($"[ProcessTargetedEvents] Entity {entity.UniqueId} processed {eventCount} events");
                 }
             }
             

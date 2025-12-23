@@ -37,10 +37,11 @@
   - 发现需要迁移的写入点：
     - SinglePlayerGameMode.cs: MonsterInfoComponent, TransComponent, LevelComponent（3处）
     - PlayerDataManager.cs: 多个组件的存档加载/保存（15处）
-  - 建议方案：
-    - SinglePlayerGameMode → 提供 Logic 层 API（如实体创建参数、GM命令接口）
-    - PlayerDataManager → 提供组件序列化/反序列化接口或保留特殊访问权限
-  - 状态：待后续阶段实施
+  - 解决方案：通过 `refactor-entity-eventqueue-thread-safe` 提供线程安全的事件队列
+    - Entity.EventQueue 已改为 ConcurrentQueue（线程安全）
+    - Client 线程可以调用 `entity.QueueEvent<T>()` 发送事件
+    - 定义了常用事件类型（SetPosition, LoadComponentData 等）
+  - 状态：基础设施已完成，待迁移具体写入点（在 refactor-entity-eventqueue-thread-safe 中完成）
 
 ## 3. Validation
 
