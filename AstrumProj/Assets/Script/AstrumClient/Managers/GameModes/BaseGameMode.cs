@@ -3,6 +3,7 @@ using Astrum.LogicCore.Core;
 using Astrum.View.Core;
 using Astrum.CommonBase;
 using Astrum.Client.Core;
+using UnityEngine;
 
 namespace Astrum.Client.Managers.GameModes
 {
@@ -13,6 +14,21 @@ namespace Astrum.Client.Managers.GameModes
     {
         protected GameModeState _currentState = GameModeState.Initializing;
         protected GameModeConfig _config;
+        
+        /// <summary>
+        /// 逻辑专用线程（多线程模式下使用）
+        /// </summary>
+        protected LogicThread _logicThread;
+        
+        /// <summary>
+        /// 是否启用逻辑线程（从 GameApplication 读取）
+        /// </summary>
+        protected bool IsLogicThreadEnabled => GameApplication.Instance?.EnableLogicThread ?? false;
+        
+        /// <summary>
+        /// 逻辑线程帧率（从 GameApplication 读取）
+        /// </summary>
+        protected int LogicThreadTickRate => GameApplication.Instance?.LogicThreadTickRate ?? 20;
         
         // 状态管理
         public GameModeState CurrentState => _currentState;
@@ -117,5 +133,93 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info($"BaseGameMode: 退出状态 {state} - {ModeName}");
         }
+        
+        #region 逻辑线程辅助方法
+        
+        /// <summary>
+        /// 启动逻辑线程（如果配置启用）
+        /// </summary>
+        /// <param name="room">关联的房间</param>
+        /// <returns>是否启动了逻辑线程</returns>
+        protected bool StartLogicThread(Room room)
+        {
+            if (!IsLogicThreadEnabled)
+            {
+                ASLogger.Instance.Info($"{ModeName}: 单线程模式（向后兼容）");
+                return false;
+            }
+            
+            if (room == null)
+            {
+                ASLogger.Instance.Warning($"{ModeName}: Room 为空，无法启动逻辑线程");
+                return false;
+            }
+            
+            try
+            {
+                _logicThread = new LogicThread(room, LogicThreadTickRate);
+                _logicThread.OnError += OnLogicThreadError;
+                _logicThread.Start();
+                ASLogger.Instance.Info($"{ModeName}: 逻辑线程已启动 - TickRate: {LogicThreadTickRate} FPS");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"{ModeName}: 启动逻辑线程失败 - {ex.Message}");
+                _logicThread = null;
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 停止逻辑线程（如果存在）
+        /// </summary>
+        protected void StopLogicThread()
+        {
+            if (_logicThread == null) return;
+            
+            try
+            {
+                _logicThread.OnError -= OnLogicThreadError;
+                _logicThread.Stop();
+                _logicThread.Dispose();
+                ASLogger.Instance.Info($"{ModeName}: 逻辑线程已停止");
+            }
+            catch (Exception ex)
+            {
+                ASLogger.Instance.Error($"{ModeName}: 停止逻辑线程失败 - {ex.Message}");
+            }
+            finally
+            {
+                _logicThread = null;
+            }
+        }
+        
+        /// <summary>
+        /// 暂停逻辑线程
+        /// </summary>
+        protected void PauseLogicThread()
+        {
+            _logicThread?.Pause();
+        }
+        
+        /// <summary>
+        /// 恢复逻辑线程
+        /// </summary>
+        protected void ResumeLogicThread()
+        {
+            _logicThread?.Resume();
+        }
+        
+        /// <summary>
+        /// 逻辑线程错误处理
+        /// </summary>
+        protected virtual void OnLogicThreadError(Exception ex)
+        {
+            ASLogger.Instance.Error($"{ModeName}: 逻辑线程发生错误 - {ex.Message}");
+            // 子类可以重写此方法实现特定的错误处理逻辑
+        }
+        
+        #endregion
     }
 }

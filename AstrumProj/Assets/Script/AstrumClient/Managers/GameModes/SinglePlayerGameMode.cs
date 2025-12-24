@@ -105,12 +105,18 @@ namespace Astrum.Client.Managers.GameModes
                     }
                 }
                 
-                // 更新 Room 和 Stage
-                using (new ProfileScope("SinglePlayerGameMode.UpdateRoom"))
+                // 更新 Room（根据配置决定是否在主线程调用）
+                if (!IsLogicThreadEnabled)
                 {
-                    MainRoom?.Update(deltaTime);
+                    // 单线程模式：在主线程调用
+                    using (new ProfileScope("SinglePlayerGameMode.UpdateRoom"))
+                    {
+                        MainRoom?.Update(deltaTime);
+                    }
                 }
+                // 多线程模式：不在主线程调用（由 LogicThread 处理）
                 
+                // 主线程任务（总是执行）
                 using (new ProfileScope("SinglePlayerGameMode.UpdateStage"))
                 {
                     MainStage?.Update(deltaTime);
@@ -125,6 +131,9 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 关闭单机游戏模式");
             ChangeState(GameModeState.Ending);
+            
+            // 停止逻辑线程（如果存在）
+            StopLogicThread();
             
             // 取消订阅事件
             if (MainStage != null)
@@ -256,6 +265,9 @@ namespace Astrum.Client.Managers.GameModes
                 // 启动控制器
                 clientSync.Start();
                 ASLogger.Instance.Info("SinglePlayerGameMode: 本地帧同步控制器已启动（状态保存已禁用）");
+                
+                // 启动逻辑线程（如果配置启用）
+                StartLogicThread(MainRoom);
             }
             
             // 设置相机跟随主玩家（如果 EntityView 已创建）
@@ -510,7 +522,15 @@ namespace Astrum.Client.Managers.GameModes
             switch (evt.NewState)
             {
                 case GameModeState.Playing:
-                    OnGameStart();
+                    // 检查是否是从暂停恢复
+                    if (evt.PreviousState == GameModeState.Paused)
+                    {
+                        OnGameResume();
+                    }
+                    else
+                    {
+                        OnGameStart();
+                    }
                     break;
                 case GameModeState.Paused:
                     OnGamePause();
@@ -535,6 +555,18 @@ namespace Astrum.Client.Managers.GameModes
         private void OnGamePause()
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 游戏暂停");
+            // 暂停逻辑线程
+            PauseLogicThread();
+        }
+        
+        /// <summary>
+        /// 游戏恢复时的处理
+        /// </summary>
+        private void OnGameResume()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 游戏恢复");
+            // 恢复逻辑线程
+            ResumeLogicThread();
         }
         
         /// <summary>

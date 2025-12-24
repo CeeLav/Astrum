@@ -74,8 +74,15 @@ namespace Astrum.Client.Managers.GameModes
         {
             if (!IsRunning || CurrentState != GameModeState.Playing) return;
             
-            // 更新 Room 和 Stage
-            MainRoom?.Update(deltaTime);
+            // 更新 Room（根据配置决定是否在主线程调用）
+            if (!IsLogicThreadEnabled)
+            {
+                // 单线程模式：在主线程调用
+                MainRoom?.Update(deltaTime);
+            }
+            // 多线程模式：不在主线程调用（由 LogicThread 处理）
+            
+            // 主线程任务（总是执行）
             MainStage?.Update(deltaTime);
         }
         
@@ -86,6 +93,9 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("MultiplayerGameMode: 关闭联机游戏模式");
             ChangeState(GameModeState.Ending);
+            
+            // 停止逻辑线程（如果存在）
+            StopLogicThread();
             
             // 取消注册网络消息处理器
             UnregisterNetworkHandlers();
@@ -191,6 +201,29 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
+        /// 启动逻辑线程（由 FrameSyncHandler 在启动 LSController 后调用）
+        /// </summary>
+        public void StartLogicThreadIfEnabled()
+        {
+            if (MainRoom == null)
+            {
+                ASLogger.Instance.Warning("MultiplayerGameMode: MainRoom 为空，无法启动逻辑线程");
+                return;
+            }
+            
+            // 调用基类方法启动逻辑线程
+            StartLogicThread(MainRoom);
+        }
+        
+        /// <summary>
+        /// 停止逻辑线程
+        /// </summary>
+        public void StopLogicThreadIfEnabled()
+        {
+            StopLogicThread();
+        }
+        
+        /// <summary>
         /// 清理 Room 和 Stage（由 NetworkGameHandler 调用）
         /// </summary>
         public void ClearRoomAndStage()
@@ -289,7 +322,15 @@ namespace Astrum.Client.Managers.GameModes
             switch (evt.NewState)
             {
                 case GameModeState.Playing:
-                    OnGameStart();
+                    // 检查是否是从暂停恢复
+                    if (evt.PreviousState == GameModeState.Paused)
+                    {
+                        OnGameResume();
+                    }
+                    else
+                    {
+                        OnGameStart();
+                    }
                     break;
                 case GameModeState.Paused:
                     OnGamePause();
@@ -314,6 +355,18 @@ namespace Astrum.Client.Managers.GameModes
         private void OnGamePause()
         {
             ASLogger.Instance.Info("MultiplayerGameMode: 游戏暂停");
+            // 暂停逻辑线程
+            PauseLogicThread();
+        }
+        
+        /// <summary>
+        /// 游戏恢复时的处理
+        /// </summary>
+        private void OnGameResume()
+        {
+            ASLogger.Instance.Info("MultiplayerGameMode: 游戏恢复");
+            // 恢复逻辑线程
+            ResumeLogicThread();
         }
         
         /// <summary>

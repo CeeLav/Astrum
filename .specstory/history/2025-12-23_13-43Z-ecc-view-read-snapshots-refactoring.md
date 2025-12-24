@@ -20007,6 +20007,815 @@ _**User (2025-12-24 02:30Z)**_
 
 _**Agent (model claude-4.5-opus-high-thinking, mode Agent)**_
 
+<think><details><summary>Thought Process</summary>
+用户要求开始实施逻辑专用线程的提案。让我按照 tasks.md 中的顺序开始实施。
+
+首先，让我创建 TODO 列表来跟踪进度，然后按顺序实施：
+
+1. 输入系统线程安全化（任务 1）
+2. 创建 LogicThread 核心类（任务 2）
+3. 集成到 GameMode（任务 3）
+4. 配置系统（任务 4）
+
+让我先从第 1 章开始：输入系统线程安全化。</details></think>
+
+---
+
+好的，开始实施！让我按照任务列表顺序进行：
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [-] 网络输入队列（ConcurrentQueue）- ClientLSController
+- [ ] 本地输入原子交换（Interlocked.Exchange）
+- [ ] 验证输入系统单线程访问
+- [ ] 创建 LogicThread 核心类
+- [ ] 修改 BaseGameMode
+- [ ] 修改 SinglePlayerGameMode
+- [ ] 在 GameApplication 添加全局开关
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我先读取整个 ClientLSController 文件，了解结构，特别是 `SetOneFrameInputs`、`_inputSystem` 相关的部分。我需要查看：
+1. 现有的 _inputSystem 和 LSInputSystem 是如何工作的
+2. 在哪里需要添加 ConcurrentQueue
+3. SetPlayerInput 是否存在，或者需要在哪里处理本地输入
+
+让我读更多的代码来理解上下文。</details></think>
+
+---
+
+让我继续读取更多关键代码：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+Could not find file 'AstrumProj/Assets/Script/AstrumLogic/FrameSync/LSInputSystem.cs' in the workspace.
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SetPlayerInput|ClientInput" in "AstrumProj/Assets/Script/AstrumLogic" • 12 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic\Core\ClientLSController.cs` | `if (_inputSystem.ClientInput != null)` | L177 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\ClientLSController.cs` | `_inputSystem.ClientInput.Frame = PredictionFrame;` | L179 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\ClientLSController.cs` | `_inputSystem.ClientInput.PlayerId = Room.MainPlayerId;` | L180 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\ClientLSController.cs` | `var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);` | L183 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\ClientLSController.cs` | `//ASLogger.Instance.Log(LogLevel.Info, $"FrameDataUploadEventData: \{PredictionFrame\}, Input  mox: \{_inputSystem.ClientInput.MoveX\} moy:\{_inputSystem.ClientInput.MoveY\}" );` | L184 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\ClientLSController.cs` | `public void SetPlayerInput(long playerId, LSInput input)` | L528 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\ClientLSController.cs` | `_inputSystem.ClientInput = input;` | L537 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\LSInputSystem.cs` | `public LSInput ClientInput \{ get; set; \} = new LSInput();` | L103 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\LSInputSystem.cs` | `predictionFrame.Inputs[MainPlayerId] = ClientInput;` | L121 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\LSInputSystem.cs` | `ClientInput.Frame = frame;` | L122 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\LSInputSystem.cs` | `if (ClientInput != null && HasActualInput(ClientInput))` | L126 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\LSInputSystem.cs` | `//ASLogger.Instance.Info($"Predict Frame: \{frame\}, MoveX=\{ClientInput.MoveX\}, MoveY=\{ClientInput.MoveY\}", "FrameSync.Prediction");` | L128 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我看完整的 LSInputSystem.cs 和更多的 ClientLSController 内容，尤其是 SetPlayerInput 方法的实现。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/LSInputSystem.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我理解了代码结构。接下来我需要：
+
+1. **网络输入队列**：添加 `ConcurrentQueue<(int frame, OneFrameInputs inputs)> _pendingInputs` 到 `ClientLSController`
+2. **本地输入原子交换**：修改 `SetPlayerInput` 使用 `Interlocked.Exchange`
+3. **修改 `GetOneFrameMessages`**：使用原子操作读取本地输入
+
+让我先从添加 ConcurrentQueue 开始，然后修改相关方法。
+
+首先看 `SetOneFrameInputs` 方法在哪里被调用：</details></think>
+
+---
+
+让我查看 `SetOneFrameInputs` 的调用位置，以及整体结构：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SetOneFrameInputs" in "AstrumProj/Assets/Script" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script\AstrumLogic\Core\ClientLSController.cs` | `public void SetOneFrameInputs(OneFrameInputs inputs)` | L600 |
+| `AstrumProj/Assets/Script\AstrumClient\Managers\GameModes\Handlers\FrameSyncHandler.cs` | `clientSync.SetOneFrameInputs(frameInputs);` | L401 |
+
+
+</details>
+</tool-use>
+
+---
+
+Could not find file 'AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/FrameSyncHandler.cs' in the workspace.
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要使用正确的路径。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/Handlers/FrameSyncHandler.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我理解完整的数据流了：
+
+1. **网络输入（主线程 -> 逻辑线程）**：
+   - `FrameSyncHandler.cs` (主线程) 调用 `clientSync.SetOneFrameInputs(frameInputs)`
+   - 在 `ClientLSController.SetOneFrameInputs` 中，将输入写入 `FrameBuffer`
+
+2. **本地输入（主线程 -> 逻辑线程）**：
+   - `InputManager.cs` (主线程) 调用 `clientSync.SetPlayerInput(playerId, input)`
+   - 在 `ClientLSController.SetPlayerInput` 中，设置 `_inputSystem.ClientInput`
+   - 在 `ClientLSController.Tick()` (逻辑线程) 中读取 `_inputSystem.ClientInput`
+
+根据设计文档，我需要：
+
+1. **网络输入**：使用 `ConcurrentQueue<(int frame, OneFrameInputs inputs)>`
+   - `SetOneFrameInputs` 改为 enqueue
+   - 在 `Tick` 中调用 `ProcessPendingInputs()` 来 dequeue 并处理
+
+2. **本地输入**：使用 `Interlocked.Exchange`
+   - `SetPlayerInput` 使用 `Interlocked.Exchange`
+   - `GetOneFrameMessages` 使用原子操作读取
+
+让我开始修改 `ClientLSController.cs`：</details></think>
+
+---
+
+现在我理解了完整的数据流。开始实施线程安全化：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在让我来修改 ClientLSController.cs：
+1. 添加 using System.Collections.Concurrent 和 System.Threading
+2. 添加 _pendingInputs 和 _clientInputBuffer 字段
+3. 修改 SetOneFrameInputs 使用 enqueue
+4. 修改 SetPlayerInput 使用 Interlocked.Exchange
+5. 添加 ProcessPendingInputs 方法
+6. 在 Tick 中调用 ProcessPendingInputs</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -1,6 +1,8 @@
+  using System;
++ using System.Collections.Concurrent;
+  using System.Collections.Generic;
+  using System.IO;
+  using System.Linq;
++ using System.Threading;
+  using Astrum.CommonBase;
+  using Astrum.Generated;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在让我添加线程安全的字段。在 `_shadowInputBackups` 附近添加新字段。</details></think>
+
+---
+
+现在添加线程安全的字段：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要在私有字段区域添加线程安全的输入队列字段。让我在 `_shadowFrameHashes` 后面添加：</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: undefined
+
+```diff
+@@ -91,4 +91,10 @@
+          private readonly Dictionary&lt;int, int&gt; _shadowFrameHashes = new Dictionary&lt;int, int&gt;();
+          
++         // 线程安全：网络输入队列（主线程 enqueue，逻辑线程 dequeue）
++         private readonly ConcurrentQueue&lt;(int frame, OneFrameInputs inputs)&gt; _pendingInputs = 
++             new ConcurrentQueue&lt;(int frame, OneFrameInputs inputs)&gt;();
++         
++         // 线程安全：本地玩家输入缓冲（主线程 write，逻辑线程 read）
++         private LSInput _clientInputBuffer;
+  
+          /// &lt;summary&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在修改 `SetOneFrameInputs` 方法，改为 enqueue 到 `_pendingInputs`。然后添加 `ProcessPendingInputs` 方法。</details></think>
+
+---
+
+现在修改 `SetOneFrameInputs` 方法和添加 `ProcessPendingInputs` 方法：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在让我修改 `SetOneFrameInputs` 方法，将其改为 enqueue 到队列中，并添加 `ProcessPendingInputs` 方法。</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+**Chunk 1**
+Lines added: 28, lines removed: 5
+
+```diff
+@@ -606,11 +606,34 @@
+          }
+          
++         /// &lt;summary&gt;
++         /// 设置网络下发的帧输入（主线程调用，线程安全）
++         /// &lt;/summary&gt;
+          public void SetOneFrameInputs(OneFrameInputs inputs)
+          {
+-             _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
+-             
+-             // 更新权威帧输入
+-             var aFrame = FrameBuffer.FrameInputs(AuthorityFrame);
+-             inputs.CopyTo(aFrame);
++             // 线程安全：将网络输入 enqueue 到队列，由逻辑线程处理
++             _pendingInputs.Enqueue((AuthorityFrame, inputs));
++         }
++         
++         /// &lt;summary&gt;
++         /// 处理待处理的网络输入（逻辑线程调用）
++         /// &lt;/summary&gt;
++         private void ProcessPendingInputs()
++         {
++             while (_pendingInputs.TryDequeue(out var pending))
++             {
++                 _inputSystem.FrameBuffer.MoveForward(pending.frame);
++                 
++                 // 更新权威帧输入
++                 var aFrame = FrameBuffer.FrameInputs(pending.frame);
++                 pending.inputs.CopyTo(aFrame);
++             }
++         }
++         
++         /// &lt;summary&gt;
++         /// 原子读取本地玩家输入（逻辑线程调用）
++         /// &lt;/summary&gt;
++         internal LSInput GetClientInputAtomic()
++         {
++             return Interlocked.CompareExchange(ref _clientInputBuffer, null, null);
+          }
+      }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我需要：
+1. 修改 `Tick()` 方法，在处理权威帧之前调用 `ProcessPendingInputs()`
+2. 修改 `SetPlayerInput` 方法使用 `Interlocked.Exchange`
+
+让我先查看 Tick() 方法的开头：</details></think>
+
+---
+
+现在修改 `Tick()` 方法调用 `ProcessPendingInputs()`：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要在 `Tick()` 方法开始处，处理权威帧循环之前，添加 `ProcessPendingInputs()` 调用。</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -116,4 +116,7 @@
+          {
+              if (!IsRunning || IsPaused || Room == null) return;
++ 
++             // 线程安全：处理网络下发的待处理输入
++             ProcessPendingInputs();
+  
+              long currentTime = TimeInfo.Instance.ServerNow();
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在修改 `SetPlayerInput` 方法使用 `Interlocked.Exchange`。</details></think>
+
+---
+
+现在修改 `SetPlayerInput` 方法使用原子操作：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在将 `SetPlayerInput` 修改为使用 `Interlocked.Exchange` 来原子性地交换 `_clientInputBuffer`。</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -535,5 +535,5 @@
+          
+          /// &lt;summary&gt;
+-         /// 添加玩家输入
++         /// 添加玩家输入（主线程调用，线程安全）
+          /// &lt;/summary&gt;
+          public void SetPlayerInput(long playerId, LSInput input)
+```
+
+**Chunk 2**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -546,5 +546,6 @@
+                  // Frame 字段会在发送时由 PredictionFrame 设置，这里不需要设置
+                  
+-                 _inputSystem.ClientInput = input;
++                 // 线程安全：使用原子交换写入本地输入
++                 Interlocked.Exchange(ref _clientInputBuffer, input);
+                  
+                  // ASLogger.Instance.Log(LogLevel.Debug, $"Input Details - Frame: {input.Frame}, Move: ({input.MoveX:F2}, {input.MoveY:F2}), " +
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我需要修改 `LSInputSystem.cs` 中的 `GetOneFrameMessages` 方法，使其从 `ClientLSController` 原子读取本地输入，而不是直接访问 `ClientInput` 属性。</details></think>
+
+---
+
+现在修改 `LSInputSystem.GetOneFrameMessages` 使用原子读取：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/LSInputSystem.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要：1. 保留 `ClientInput` 属性作为备用/兼容2. 修改 `GetOneFrameMessages` 方法，从 `ClientLSController` 原子读取输入3. 由于 `LSController` 是 `ILSControllerBase` 接口类型，我需要将其强制转换为 `ClientLSController` 来访问 `GetClientInputAtomic()` 方法
+
+让我修改这个方法：</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/LSInputSystem.cs</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: undefined
+
+```diff
+@@ -101,4 +101,8 @@
+          public int CurrentProcessingFrame { get; private set; } = 0;
+          
++         /// &lt;summary&gt;
++         /// 本地缓存的客户端输入（仅用于非线程安全场景的兼容）
++         /// &lt;/summary&gt;
++         [Obsolete("Use ClientLSController.GetClientInputAtomic() for thread-safe access")]
+          public LSInput ClientInput { get; set; } = new LSInput();
+          
+```
+
+**Chunk 2**
+Lines added: 14, lines removed: 10
+
+```diff
+@@ -113,18 +117,22 @@
+  
+          
+-         public OneFrameInputs GetOneFrameMessages( int frame)
++         public OneFrameInputs GetOneFrameMessages(int frame)
+          {
+              // predict
+              OneFrameInputs predictionFrame = FrameBuffer.FrameInputs(frame);
+-             if (MainPlayerId &gt; 0)//客户端主玩家生成了才进行输入
++             if (MainPlayerId &gt; 0) // 客户端主玩家生成了才进行输入
+              {
+-                 predictionFrame.Inputs[MainPlayerId] = ClientInput;
+-                 ClientInput.Frame = frame;
+-             }
+-             
+-             // 只在有实际输入时输出日志
+-             if (ClientInput != null &amp;&amp; HasActualInput(ClientInput))
+-             {
+-                 //ASLogger.Instance.Info($"Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}", "FrameSync.Prediction");
++                 // 线程安全：从 ClientLSController 原子读取本地输入
++                 LSInput clientInput = null;
++                 if (LSController is ClientLSController clientController)
++                 {
++                     clientInput = clientController.GetClientInputAtomic();
++                 }
++                 
++                 if (clientInput != null)
++                 {
++                     predictionFrame.Inputs[MainPlayerId] = clientInput;
++                     clientInput.Frame = frame;
++                 }
+              }
+              
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我还需要更新 `ClientLSController.Tick()` 中直接访问 `_inputSystem.ClientInput` 的地方（在发布帧数据时）。让我查看那段代码：</details></think>
+
+---
+
+现在更新 `Tick()` 中发布帧数据时访问 `ClientInput` 的地方：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+这里 `Tick()` 方法是在逻辑线程中运行的。需要将 `_inputSystem.ClientInput` 替换为 `GetClientInputAtomic()` 的结果。让我修改这段代码：</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: Astrum/AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 6
+
+```diff
+@@ -185,13 +185,14 @@
+                      if (Room.MainPlayerId &gt; 0)
+                      {
+-                         // 确保 Input 的 Frame 字段被正确设置
+-                         if (_inputSystem.ClientInput != null)
++                         // 线程安全：原子读取本地玩家输入
++                         var clientInput = GetClientInputAtomic();
++                         if (clientInput != null)
+                          {
+-                             _inputSystem.ClientInput.Frame = PredictionFrame;
+-                             _inputSystem.ClientInput.PlayerId = Room.MainPlayerId;
++                             clientInput.Frame = PredictionFrame;
++                             clientInput.PlayerId = Room.MainPlayerId;
+                          }
+                          
+-                         var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
+-                         //ASLogger.Instance.Log(LogLevel.Info, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
++                         var eventData = new FrameDataUploadEventData(PredictionFrame, clientInput);
++                         //ASLogger.Instance.Log(LogLevel.Info, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {clientInput?.MoveX} moy:{clientInput?.MoveY}" );
+                          
+                          EventSystem.Instance.Publish(eventData);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在让我更新 TODO，标记任务 1.1 和 1.2 完成，并开始任务 2.1（LogicThread 核心类）。首先让我编译检查当前修改是否有错误。</details></think>
+
+---
+
+现在编译检查当前修改：
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum; dotnet build AstrumProj.sln 2>&1 | Select-Object -First 50</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum; dotnet build AstrumProj.sln 2>&1 | Select-Object -First 50
+```
+
+```
+MSBUILD : error MSB1009: 项目文件不存在�?
+开�?AstrumProj.sln
+
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="todo_write">
+<details><summary>Tool use: **todo_write** • Todo List</summary>
+
+- [x] 网络输入队列（ConcurrentQueue）- ClientLSController
+- [x] 本地输入原子交换（Interlocked.Exchange）
+- [-] 验证输入系统单线程访问
+- [ ] 创建 LogicThread 核心类
+- [ ] 修改 BaseGameMode
+- [ ] 修改 SinglePlayerGameMode
+- [ ] 在 GameApplication 添加全局开关
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要找到正确的 sln 位置：</details></think>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "*.sln" • **2** results in **1** directory</summary>
+
+Directory: **d:\Develop\Projects\Astrum** (2 files)
+
+| File |
+|------|
+| `AstrumProj\AstrumProj.sln` |
+| `AstrumServer\AstrumServer.sln` |
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+找到了正确路径，sln 在 AstrumProj 子目录下：</details></think>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln 2>&1 | Select-Object -First 80</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln 2>&1 | Select-Object -First 80
+```
+
+```
+  Determining projects to restore...
+  Nothing to do. None of the projects specified contain packages to restore.
+  External -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Unity.Rider.Editor\External.dll
+  Assembly-CSharp-Editor-firstpass -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Unity.Rider.Editor\Assembly-CSharp-Editor-firstpass.dll
+  Assembly-CSharp-firstpass -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Unity.Rider.Editor\Assembly-CSharp-firstpass.dll
+  Kybernetik.Animancer.FSM -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Kybernetik.Animancer.FSM\Kybernetik.Animancer.FSM.dll
+  Kybernetik.Animancer -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Kybernetik.Animancer\Kybernetik.Animancer.dll
+  Astrum.Editor.Common -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Astrum.Editor.Common\Astrum.Editor.Common.dll
+  SingularityGroup.HotReload.Runtime.Public -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\SingularityGroup.HotReload.Runtime.Public\SingularityGroup.HotReload.Runtime.Public.dll
+  Sirenix.OdinInspector.Modules.UnityMathematics -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Sirenix.OdinInspector.Modules.UnityMathematics\Sirenix.OdinInspector.Modules.UnityMathematics.dll
+  CommonBase -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\CommonBase\CommonBase.dll
+  SingularityGroup.HotReload.Runtime -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\SingularityGroup.HotReload.Runtime\SingularityGroup.HotReload.Runtime.dll
+  Generated -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Generated\Generated.dll
+  Kybernetik.Animancer.Editor -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Kybernetik.Animancer.Editor\Kybernetik.Animancer.Editor.dll
+  SingularityGroup.HotReload.Editor -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\SingularityGroup.HotReload.Editor\SingularityGroup.HotReload.Editor.dll
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ActionCapability.cs(428,27): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(100,23): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\EntityCreationParams.cs(28,22): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileCapability.cs(254,18): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs(78,33): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(174,75): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(266,75): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs(394,17): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\Projectile\ProjectileDefinitions.cs(107,36): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(210,112): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(261,22): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(350,85): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\EffectValueResult.cs(19,42): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs(347,34): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(204,23): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(91,23): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\ProjectileSpawnCapability.cs(95,37): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\LSInputSystem.cs(92,33): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ServerLSController.cs(241,24): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(30,29): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Factories\ComponentFactory.cs(57,17): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(19,42): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Inventory\ItemStack.cs(26,75): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(32,25): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(57,26): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(99,27): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(149,26): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(232,42): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(57,35): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\MonsterInfoComponent.cs(45,29): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(63,36): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(121,39): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(84,32): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ActionSystem\ActionInfo.cs(84,69): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(26,26): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(357,28): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\RoleInfoComponent.cs(35,29): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(358,25): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\ActionConfig.cs(369,28): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(51,32): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\SkillSystem\TriggerFrameInfo.cs(84,78): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(105,30): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(136,30): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(149,22): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(163,33): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(182,31): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\ActionComponent.cs(28,26): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(44,78): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(90,70): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Components\InventoryComponent.cs(90,103): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\LSInputComponent.cs(164,23): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\FrameSync\ReplayTimeline.cs(112,27): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\MoveStateCapability.cs(93,19): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\IdleStateCapability.cs(102,19): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Capabilities\BattleStateCapability.cs(192,13): warning CS0162: 检测到无法访问的代�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Managers\SkillConfig.cs(450,41): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumLogic.csproj]
+  AstrumLogic -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\AstrumLogic\AstrumLogic.dll
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\NetServices.cs(20,21): warning CS0114: “NetServices.Awake()”隐藏继承的成员“Singleton&lt;NetServices&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键�?new�?[D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\OpcodeType.cs(14,21): warning CS0114: “OpcodeType.Awake()”隐藏继承的成员“Singleton&lt;OpcodeType&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键�?new�?[D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\Network\MessageDispatcher.cs(26,21): warning CS0114: “MessageDispatcher.Awake()”隐藏继承的成员“Singleton&lt;MessageDispatcher&gt;.Awake()”。若要使当前成员重写该实现，请添加关键字 override。否则，添加关键�?new�?[D:\Develop\Projects\Astrum\AstrumProj\Network.csproj]
+  Network -&gt; D:\Develop\Projects\Astrum\AstrumProj\Temp\Bin\Debug\Network\Network.dll
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\SocketRefs.cs(104,25): warning CS8632: 只能�?"#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\TransViewComponent.cs(31,40): warning CS0414: 字段“TransViewComponent.maxVisualOffset”已被赋值，但从未使用过它的�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\HealthViewComponent.cs(17,40): warning CS0414: 字段“HealthViewComponent.lowHealthThreshold”已被赋值，但从未使用过它的�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Managers\HUDManager.cs(30,23): warning CS0414: 字段“HUDManager.healthBarFadeTime”已被赋值，但从未使用过它的�?[D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]
+
+```
+</details>
+</tool-use>
+
+---
+
 
 
 ---

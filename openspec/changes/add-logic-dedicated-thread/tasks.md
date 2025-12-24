@@ -4,94 +4,70 @@
 
 ### 1.1 网络输入队列（ConcurrentQueue）
 
-- [ ] 1.1.1 修改 `ClientLSController` 网络输入处理
-  - [ ] 1.1.1.1 添加 `ConcurrentQueue<(int frame, OneFrameInputs inputs)> _pendingInputs` 字段
-  - [ ] 1.1.1.2 修改 `SetOneFrameInputs()` 方法：复制输入并加入队列（不再直接写 FrameBuffer）
-  - [ ] 1.1.1.3 实现 `ProcessPendingInputs()` 私有方法：消费队列并写入 FrameBuffer
-  - [ ] 1.1.1.4 在 `Tick()` 开始时调用 `ProcessPendingInputs()`（其他逻辑保持不变）
+- [x] 1.1.1 修改 `ClientLSController` 网络输入处理
+  - [x] 1.1.1.1 添加 `ConcurrentQueue<(int frame, OneFrameInputs inputs)> _pendingInputs` 字段
+  - [x] 1.1.1.2 修改 `SetOneFrameInputs()` 方法：复制输入并加入队列（不再直接写 FrameBuffer）
+  - [x] 1.1.1.3 实现 `ProcessPendingInputs()` 私有方法：消费队列并写入 FrameBuffer
+  - [x] 1.1.1.4 在 `Tick()` 开始时调用 `ProcessPendingInputs()`（其他逻辑保持不变）
   - [ ] 1.1.1.5 添加对象池支持（OneFrameInputs 回收）
 
 ### 1.2 本地输入原子交换（Interlocked.Exchange）
 
-- [ ] 1.2.1 修改 `ClientLSController` 本地输入处理
-  - [ ] 1.2.1.1 将 `_inputSystem.ClientInput` 改为 `_clientInputBuffer`（私有字段）
-  - [ ] 1.2.1.2 修改 `SetPlayerInput()` 方法：使用 `Interlocked.Exchange(ref _clientInputBuffer, input)`
-  - [ ] 1.2.1.3 添加 `using System.Threading;`
+- [x] 1.2.1 修改 `ClientLSController` 本地输入处理
+  - [x] 1.2.1.1 将 `_inputSystem.ClientInput` 改为 `_clientInputBuffer`（私有字段）
+  - [x] 1.2.1.2 修改 `SetPlayerInput()` 方法：使用 `Interlocked.Exchange(ref _clientInputBuffer, input)`
+  - [x] 1.2.1.3 添加 `using System.Threading;`
 
-- [ ] 1.2.2 修改 `LSInputSystem` 本地输入读取
-  - [ ] 1.2.2.1 修改 `GetOneFrameMessages()` 方法：使用 `Interlocked.CompareExchange` 原子读取
-  - [ ] 1.2.2.2 移除对 `ClientInput` 的直接引用，改为通过 LSController 访问
-  - [ ] 1.2.2.3 确保读取后的输入对象仅在逻辑线程修改
+- [x] 1.2.2 修改 `LSInputSystem` 本地输入读取
+  - [x] 1.2.2.1 修改 `GetOneFrameMessages()` 方法：使用 `Interlocked.CompareExchange` 原子读取
+  - [x] 1.2.2.2 移除对 `ClientInput` 的直接引用，改为通过 LSController 访问
+  - [x] 1.2.2.3 确保读取后的输入对象仅在逻辑线程修改
 
-- [ ] 1.2.3 修改 `ClientLSController.Tick()` 中的 ClientInput 访问
-  - [ ] 1.2.3.1 将 `_inputSystem.ClientInput` 改为 `_clientInputBuffer` 的原子读取
-  - [ ] 1.2.3.2 确保 Frame 和 PlayerId 的修改在原子读取之后
+- [x] 1.2.3 修改 `ClientLSController.Tick()` 中的 ClientInput 访问
+  - [x] 1.2.3.1 将 `_inputSystem.ClientInput` 改为 `_clientInputBuffer` 的原子读取
+  - [x] 1.2.3.2 确保 Frame 和 PlayerId 的修改在原子读取之后
 
 ### 1.3 验证输入系统单线程访问
 
-- [ ] 1.3.1 确认 `FrameBuffer.FrameInputs()` 仅在逻辑线程调用
-- [ ] 1.3.2 确认 `FrameBuffer.MoveForward()` 仅在逻辑线程调用
-- [ ] 1.3.3 确认 `GetOneFrameMessages()` 仅在逻辑线程调用
+- [x] 1.3.1 确认 `FrameBuffer.FrameInputs()` 仅在逻辑线程调用
+- [x] 1.3.2 确认 `FrameBuffer.MoveForward()` 仅在逻辑线程调用
+- [x] 1.3.3 确认 `GetOneFrameMessages()` 仅在逻辑线程调用
 - [ ] 1.3.4 添加线程 ID 断言（Debug 模式）
-- [ ] 1.3.5 添加注释说明：Tick() 内部逻辑不变（权威帧/预测帧/影子世界）
+- [x] 1.3.5 添加注释说明：Tick() 内部逻辑不变（权威帧/预测帧/影子世界）
 
 ## 2. 创建 LogicThread 核心类
 
-- [ ] 2.1 创建 `AstrumLogic/Core/LogicThread.cs`
-  - [ ] 2.1.1 定义 LogicThread 类结构（字段、属性）
-  - [ ] 2.1.2 实现构造函数（接受 Room 和 TickRate）
-  - [ ] 2.1.3 实现 Start() 方法（创建并启动线程）
-  - [ ] 2.1.4 实现 Stop() 方法（发送停止信号并等待退出）
-  - [ ] 2.1.5 实现 Pause() 和 Resume() 方法
-  - [ ] 2.1.6 实现 LogicThreadLoop() 私有方法（固定时间步长循环）
+- [x] 2.1 创建 `AstrumLogic/Core/LogicThread.cs`
+  - [x] 2.1.1 定义 LogicThread 类结构（字段、属性）
+  - [x] 2.1.2 实现构造函数（接受 Room 和 TickRate）
+  - [x] 2.1.3 实现 Start() 方法（创建并启动线程）
+  - [x] 2.1.4 实现 Stop() 方法（发送停止信号并等待退出）
+  - [x] 2.1.5 实现 Pause() 和 Resume() 方法
+  - [x] 2.1.6 实现 LogicThreadLoop() 私有方法（固定时间步长循环）
     - 调用 Room.Update(deltaTime)
     - Room.Update() 内部调用 LSController.Tick()
     - Tick() 内部逻辑保持不变（权威帧/预测帧/影子世界）
-  - [ ] 2.1.7 添加异常捕获和日志记录
-  - [ ] 2.1.8 添加线程同步机制（ManualResetEventSlim, volatile bool）
+  - [x] 2.1.7 添加异常捕获和日志记录
+  - [x] 2.1.8 添加线程同步机制（ManualResetEventSlim, volatile bool）
 
 ## 3. 集成到 GameMode
 
-- [ ] 3.1 修改 BaseGameMode
-  - [ ] 3.1.1 添加 `LogicThread` 字段（private）
-  - [ ] 3.1.2 添加 `IsLogicThreadEnabled` 属性（从 GameApplication 读取）
-  - [ ] 3.1.3 修改 Update() 方法：根据配置决定是否调用 Room.Update()
-    ```csharp
-    public override void Update(float deltaTime)
-    {
-        if (!IsLogicThreadEnabled)
-        {
-            // 单线程模式：在主线程调用
-            MainRoom?.Update(deltaTime);
-        }
-        // 多线程模式：不在主线程调用（由 LogicThread 处理）
-        
-        // 主线程任务（Input, UI, View）
-        MainStage?.Update(deltaTime);
-    }
-    ```
+- [x] 3.1 修改 BaseGameMode
+  - [x] 3.1.1 添加 `LogicThread` 字段（protected）
+  - [x] 3.1.2 添加 `IsLogicThreadEnabled` 属性（从 GameApplication 读取）
+  - [x] 3.1.3 添加 StartLogicThread/StopLogicThread/PauseLogicThread/ResumeLogicThread 辅助方法
   
-- [ ] 3.2 修改 SinglePlayerGameMode
-  - [ ] 3.2.1 在 StartGame() 中根据配置决定是否创建 LogicThread
-    ```csharp
-    if (GameApplication.Instance.EnableLogicThread)
-    {
-        _logicThread = new LogicThread(MainRoom, GameApplication.Instance.LogicThreadTickRate);
-        _logicThread.Start();
-        ASLogger.Instance.Info("SinglePlayerGameMode: 逻辑线程已启动");
-    }
-    else
-    {
-        ASLogger.Instance.Info("SinglePlayerGameMode: 单线程模式");
-    }
-    ```
-  - [ ] 3.2.2 在 Shutdown() 中停止并销毁 LogicThread（如果存在）
-  - [ ] 3.2.3 添加 Pause/Resume 游戏时同步 LogicThread 状态
-  - [ ] 3.2.4 添加日志记录和错误处理
+- [x] 3.2 修改 SinglePlayerGameMode
+  - [x] 3.2.1 在 CreatePlayer() 中启动 LogicThread（如果配置启用）
+  - [x] 3.2.2 在 Shutdown() 中停止并销毁 LogicThread（如果存在）
+  - [x] 3.2.3 添加 Pause/Resume 游戏时同步 LogicThread 状态
+  - [x] 3.2.4 修改 Update() 方法：根据配置决定是否调用 Room.Update()
   
-- [ ] 3.3 修改 MultiplayerGameMode（同 SinglePlayerGameMode）
-  - [ ] 3.3.1 在 StartGame() 中创建并启动 LogicThread
-  - [ ] 3.3.2 在 Shutdown() 中停止并销毁 LogicThread
+- [x] 3.3 修改 MultiplayerGameMode（同 SinglePlayerGameMode）
+  - [x] 3.3.1 在 FrameSyncHandler 启动 LSController 后创建并启动 LogicThread
+  - [x] 3.3.2 在 Shutdown() 中停止并销毁 LogicThread
+  - [x] 3.3.3 修改 Update() 方法：根据配置决定是否调用 Room.Update()
+  - [x] 3.3.4 添加 Pause/Resume 游戏时同步 LogicThread 状态
   
 - [ ] 3.4 修改 ReplayGameMode（回放模式暂不支持多线程）
   - [ ] 3.4.1 添加检查：如果启用多线程则记录警告
@@ -99,24 +75,16 @@
 
 ## 4. 配置系统
 
-- [ ] 4.1 在 GameApplication 添加全局开关
-  - [ ] 4.1.1 添加 `[SerializeField] private bool enableLogicThread = false;` 字段
-  - [ ] 4.1.2 添加 `public bool EnableLogicThread => enableLogicThread;` 公共属性
-  - [ ] 4.1.3 在 Inspector 中添加 Header 和 Tooltip 说明
-    ```csharp
-    [Header("逻辑线程设置")]
-    [Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
-    [SerializeField] private bool enableLogicThread = false;
-    
-    [Tooltip("逻辑线程帧率（推荐 20 FPS）")]
-    [SerializeField] private int logicThreadTickRate = 20;
-    ```
+- [x] 4.1 在 GameApplication 添加全局开关
+  - [x] 4.1.1 添加 `[SerializeField] private bool enableLogicThread = false;` 字段
+  - [x] 4.1.2 添加 `public bool EnableLogicThread => enableLogicThread;` 公共属性
+  - [x] 4.1.3 在 Inspector 中添加 Header 和 Tooltip 说明
   - [ ] 4.1.4 添加运行时检查：多线程模式下禁用 Unity Debugger 断点警告
 
-- [ ] 4.2 GameMode 集成配置
-  - [ ] 4.2.1 在 BaseGameMode 中读取 `GameApplication.Instance.EnableLogicThread`
-  - [ ] 4.2.2 根据配置决定是否创建 LogicThread
-  - [ ] 4.2.3 添加日志：记录当前使用的模式（单线程 / 多线程）
+- [x] 4.2 GameMode 集成配置
+  - [x] 4.2.1 在 BaseGameMode 中读取 `GameApplication.Instance.EnableLogicThread`
+  - [x] 4.2.2 根据配置决定是否创建 LogicThread
+  - [x] 4.2.3 添加日志：记录当前使用的模式（单线程 / 多线程）
 
 - [ ] 4.3 添加运行时切换（可选）
   - [ ] 4.3.1 添加命令行参数支持 `--enable-logic-thread`
@@ -255,8 +223,8 @@
 
 ## 12. 验证和归档
 
-- [ ] 12.1 编译验证
-  - [ ] 12.1.1 `dotnet build AstrumProj.sln` 无错误
+- [x] 12.1 编译验证
+  - [x] 12.1.1 `dotnet build AstrumProj.sln` 无错误
   - [ ] 12.1.2 Unity 编译无错误
 
 - [ ] 12.2 代码审查

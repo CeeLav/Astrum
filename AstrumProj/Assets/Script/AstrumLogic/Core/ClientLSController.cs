@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
@@ -88,6 +90,12 @@ namespace Astrum.LogicCore.Core
         // 注意：frameId 是下发帧号（服务器实际下发的帧号）
         private readonly Dictionary<int, int> _shadowFrameHashes = new Dictionary<int, int>();
         
+        // 线程安全：网络输入队列（主线程 enqueue，逻辑线程 dequeue）
+        private readonly ConcurrentQueue<(int frame, OneFrameInputs inputs)> _pendingInputs = 
+            new ConcurrentQueue<(int frame, OneFrameInputs inputs)>();
+        
+        // 线程安全：本地玩家输入缓冲（主线程 write，逻辑线程 read）
+        private LSInput _clientInputBuffer;
 
         /// <summary>
         /// 是否正在运行
@@ -107,6 +115,9 @@ namespace Astrum.LogicCore.Core
         public void Tick()
         {
             if (!IsRunning || IsPaused || Room == null) return;
+
+            // 线程安全：处理网络下发的待处理输入
+            ProcessPendingInputs();
 
             long currentTime = TimeInfo.Instance.ServerNow();
 
@@ -173,15 +184,16 @@ namespace Astrum.LogicCore.Core
                 {
                     if (Room.MainPlayerId > 0)
                     {
-                        // 确保 Input 的 Frame 字段被正确设置
-                        if (_inputSystem.ClientInput != null)
+                        // 线程安全：原子读取本地玩家输入
+                        var clientInput = GetClientInputAtomic();
+                        if (clientInput != null)
                         {
-                            _inputSystem.ClientInput.Frame = PredictionFrame;
-                            _inputSystem.ClientInput.PlayerId = Room.MainPlayerId;
+                            clientInput.Frame = PredictionFrame;
+                            clientInput.PlayerId = Room.MainPlayerId;
                         }
                         
-                        var eventData = new FrameDataUploadEventData(PredictionFrame, _inputSystem.ClientInput);
-                        //ASLogger.Instance.Log(LogLevel.Info, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {_inputSystem.ClientInput.MoveX} moy:{_inputSystem.ClientInput.MoveY}" );
+                        var eventData = new FrameDataUploadEventData(PredictionFrame, clientInput);
+                        //ASLogger.Instance.Log(LogLevel.Info, $"FrameDataUploadEventData: {PredictionFrame}, Input  mox: {clientInput?.MoveX} moy:{clientInput?.MoveY}" );
                         
                         EventSystem.Instance.Publish(eventData);
                     }
@@ -523,7 +535,7 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
-        /// 添加玩家输入
+        /// 添加玩家输入（主线程调用，线程安全）
         /// </summary>
         public void SetPlayerInput(long playerId, LSInput input)
         {
@@ -534,7 +546,8 @@ namespace Astrum.LogicCore.Core
                 PlayerId = playerId;
                 // Frame 字段会在发送时由 PredictionFrame 设置，这里不需要设置
                 
-                _inputSystem.ClientInput = input;
+                // 线程安全：使用原子交换写入本地输入
+                Interlocked.Exchange(ref _clientInputBuffer, input);
                 
                 // ASLogger.Instance.Log(LogLevel.Debug, $"Input Details - Frame: {input.Frame}, Move: ({input.MoveX:F2}, {input.MoveY:F2}), " +
                 //     $"Attack: {input.Attack}, Skill1: {input.Skill1}, Skill2: {input.Skill2}, Timestamp: {input.Timestamp}");
@@ -597,13 +610,36 @@ namespace Astrum.LogicCore.Core
             return _shadowInputBackups.Keys.Max();
         }
         
+        /// <summary>
+        /// 设置网络下发的帧输入（主线程调用，线程安全）
+        /// </summary>
         public void SetOneFrameInputs(OneFrameInputs inputs)
         {
-            _inputSystem.FrameBuffer.MoveForward(AuthorityFrame);
-            
-            // 更新权威帧输入
-            var aFrame = FrameBuffer.FrameInputs(AuthorityFrame);
-            inputs.CopyTo(aFrame);
+            // 线程安全：将网络输入 enqueue 到队列，由逻辑线程处理
+            _pendingInputs.Enqueue((AuthorityFrame, inputs));
+        }
+        
+        /// <summary>
+        /// 处理待处理的网络输入（逻辑线程调用）
+        /// </summary>
+        private void ProcessPendingInputs()
+        {
+            while (_pendingInputs.TryDequeue(out var pending))
+            {
+                _inputSystem.FrameBuffer.MoveForward(pending.frame);
+                
+                // 更新权威帧输入
+                var aFrame = FrameBuffer.FrameInputs(pending.frame);
+                pending.inputs.CopyTo(aFrame);
+            }
+        }
+        
+        /// <summary>
+        /// 原子读取本地玩家输入（逻辑线程调用）
+        /// </summary>
+        internal LSInput GetClientInputAtomic()
+        {
+            return Interlocked.CompareExchange(ref _clientInputBuffer, null, null);
         }
     }
 }

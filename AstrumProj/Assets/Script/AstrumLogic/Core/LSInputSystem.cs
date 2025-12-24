@@ -100,6 +100,10 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public int CurrentProcessingFrame { get; private set; } = 0;
         
+        /// <summary>
+        /// 本地缓存的客户端输入（仅用于非线程安全场景的兼容）
+        /// </summary>
+        [Obsolete("Use ClientLSController.GetClientInputAtomic() for thread-safe access")]
         public LSInput ClientInput { get; set; } = new LSInput();
         
         /// <summary>
@@ -112,20 +116,24 @@ namespace Astrum.LogicCore.Core
 
 
         
-        public OneFrameInputs GetOneFrameMessages( int frame)
+        public OneFrameInputs GetOneFrameMessages(int frame)
         {
             // predict
             OneFrameInputs predictionFrame = FrameBuffer.FrameInputs(frame);
-            if (MainPlayerId > 0)//客户端主玩家生成了才进行输入
+            if (MainPlayerId > 0) // 客户端主玩家生成了才进行输入
             {
-                predictionFrame.Inputs[MainPlayerId] = ClientInput;
-                ClientInput.Frame = frame;
-            }
-            
-            // 只在有实际输入时输出日志
-            if (ClientInput != null && HasActualInput(ClientInput))
-            {
-                //ASLogger.Instance.Info($"Predict Frame: {frame}, MoveX={ClientInput.MoveX}, MoveY={ClientInput.MoveY}", "FrameSync.Prediction");
+                // 线程安全：从 ClientLSController 原子读取本地输入
+                LSInput clientInput = null;
+                if (LSController is ClientLSController clientController)
+                {
+                    clientInput = clientController.GetClientInputAtomic();
+                }
+                
+                if (clientInput != null)
+                {
+                    predictionFrame.Inputs[MainPlayerId] = clientInput;
+                    clientInput.Frame = frame;
+                }
             }
             
             return predictionFrame;

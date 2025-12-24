@@ -183,6 +183,9 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                         ASLogger.Instance.Info(
                             $"帧同步控制器已启动，世界快照已加载到 FrameBuffer，房间: {notification.roomId}", 
                             "FrameSync.Client");
+                        
+                        // 启动逻辑线程（如果配置启用）
+                        _gameMode.StartLogicThreadIfEnabled();
                     }
                 }
                 else
@@ -257,6 +260,9 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                 ASLogger.Instance.Info(
                     $"FrameSyncHandler: 收到帧同步结束通知 - 房间: {notification.roomId}，最终帧: {notification.finalFrame}，原因: {notification.reason}", 
                     "FrameSync.Client");
+                
+                // 停止逻辑线程（如果存在）
+                _gameMode.StopLogicThreadIfEnabled();
                 
                 // 停止帧同步相关状态
                 if (_gameMode.MainRoom?.LSController != null)

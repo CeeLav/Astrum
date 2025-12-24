@@ -25,6 +25,13 @@ namespace Astrum.Client.Core
         [Header("日志设置")]
         [SerializeField] private bool enableDebugLog = false;
         
+        [Header("逻辑线程设置")]
+        [Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
+        [SerializeField] private bool enableLogicThread = false;
+        
+        [Tooltip("逻辑线程帧率（推荐 20 FPS）")]
+        [SerializeField] private int logicThreadTickRate = 20;
+        
         [Header("配置管理器引用")]
         [SerializeField] private TableConfig _tableConfig;
         
@@ -47,6 +54,16 @@ namespace Astrum.Client.Core
         public bool IsRunning => isRunning;
         public ApplicationState CurrentState => currentState;
         public int FrameRate => targetFrameRate;
+        
+        /// <summary>
+        /// 是否启用逻辑专用线程
+        /// </summary>
+        public bool EnableLogicThread => enableLogicThread;
+        
+        /// <summary>
+        /// 逻辑线程帧率
+        /// </summary>
+        public int LogicThreadTickRate => logicThreadTickRate;
         
         // 核心GameObject访问器
         public GameObject UIRoot => uiRoot;
