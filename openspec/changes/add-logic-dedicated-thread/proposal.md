@@ -34,10 +34,10 @@
    - 使用 `Interlocked` 进行原子操作
    - 异常捕获和日志记录
 
-4. **输入队列线程安全化**
-   - `ClientLSController.SetOneFrameInputs()` 使用 `ConcurrentQueue` 缓冲输入
-   - 主线程写入队列（网络消息处理器）
-   - 逻辑线程消费队列（Tick 开始时）
+4. **输入系统线程安全化**
+   - **网络输入**：`SetOneFrameInputs()` 使用 `ConcurrentQueue` 缓冲（主线程 → 逻辑线程）
+   - **本地输入**：`SetPlayerInput()` 使用 `Interlocked.Exchange` 原子交换（主线程 → 逻辑线程）
+   - 逻辑线程消费两种输入（Tick 开始时）
    - FrameBuffer 仅在逻辑线程访问（无竞争）
 
 5. **生命周期管理**

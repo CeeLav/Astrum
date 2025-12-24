@@ -44,37 +44,138 @@ Astrum 采用 ECC（Entity-Component-Capability）架构，Logic 层（确定性
 - **ThreadPool**：线程复用导致生命周期不可控，调试困难
 - **Task**：基于 ThreadPool，同样问题
 
-### Decision 2: 固定时间步长循环（20Hz）
+### Decision 2: 持续轮询 + 短休眠
 
 **逻辑线程伪代码**:
 ```csharp
 void LogicThreadLoop()
 {
-    const int targetFPS = 20;
-    const float targetDeltaTime = 1f / targetFPS; // 50ms
-    
     while (_isRunning)
     {
-        var startTime = GetCurrentTime();
+        // 持续调用 Tick()，让其自行判断是否需要执行
+        _room?.Update(0); // deltaTime 可以传 0 或实际值
+        // → Room.Update() 调用 LSController.Tick()
+        // → Tick() 内部逻辑保持不变：
+        //    1. ProcessPendingInputs() - 消费输入队列
+        //    2. 处理权威帧（有多少处理多少，处理完就退出）
+        //       while (ProcessedAuthorityFrame < AuthorityFrame) { ... }
+        //    3. 处理预测帧（基于时间戳判断，时间未到则跳过）
+        //       while (currentTime >= CreationTime + (PredictionFrame + 1) * 50ms) { ... }
+        //    4. CheckAndRollbackShadow() - 比对和回滚
         
-        // 执行一帧逻辑
-        _room?.Update(targetDeltaTime);
-        
-        // 计算剩余时间并休眠
-        var elapsed = GetCurrentTime() - startTime;
-        var sleepTime = targetDeltaTime - elapsed;
-        if (sleepTime > 0)
-        {
-            Thread.Sleep((int)(sleepTime * 1000));
-        }
+        // 短暂休眠，避免 CPU 空转
+        Thread.Sleep(1); // 1ms 休眠
+        // ✅ 权威帧最多延迟 1ms（可接受）
+        // ✅ 预测帧时间控制在 Tick 内部（不受影响）
+        // ✅ CPU 占用降低到 5-10%
     }
 }
 ```
 
+**关键说明**:
+- **不改变 Tick() 内部逻辑**：ClientLSController.Tick() 已有完整的权威帧/预测帧/影子世界逻辑，LogicThread 只是改变了调用位置
+- **权威帧驱动方式**：有输入就立即处理，无需等待固定间隔
+  - `while (ProcessedAuthorityFrame < AuthorityFrame)` - 处理所有待处理的权威帧
+  - 网络下发 3 帧输入 → 一次 Tick() 处理 3 帧 → 立即返回
+- **预测帧驱动方式**：基于时间戳判断（20 FPS = 50ms 间隔）
+  - `while (currentTime >= CreationTime + (PredictionFrame + 1) * 50ms)` - 时间到才执行
+  - 时间未到 → 跳过预测帧 → 立即返回
+- **仅添加输入队列消费**：在 Tick() 开始时调用 ProcessPendingInputs()，将网络输入从队列写入 FrameBuffer
+
 **理由**:
-- **确定性**：固定时间步长确保每帧逻辑计算一致
-- **稳定性**：不受渲染帧率波动影响
-- **简单**：不需要复杂的帧插值或补偿逻辑
+- **低延迟响应**：权威帧有输入就处理，无需等待 50ms
+- **自然的时间控制**：预测帧在 Tick() 内部已有时间戳判断，无需外部强制
+- **简单高效**：持续轮询 + 1ms 休眠，平衡响应速度和 CPU 占用
+- **向后兼容**：现有 LSController 逻辑完全保持，无需重构
+
+**为什么需要短休眠（Thread.Sleep(1)）？**
+
+**核心问题**：Tick() 内部已有时间控制，为什么还需要休眠？
+
+```csharp
+public void Tick()
+{
+    // 权威帧：有多少处理多少，处理完立即返回
+    while (ProcessedAuthorityFrame < AuthorityFrame) { ... }
+    
+    // 预测帧：时间未到则跳过，立即返回
+    while (currentTime >= CreationTime + (PredictionFrame + 1) * 50ms) { ... }
+    
+    // ← 如果没有输入且时间未到，这里直接 return
+}
+```
+
+**如果不休眠：**
+```csharp
+// ❌ 完全不休眠的问题
+while (_isRunning)
+{
+    _room?.Update(0);
+    // ← Tick() 立即返回（没有工作）
+    // ← 循环以最快速度执行（数百万次/秒）
+    // ← CPU 100% 空转，其他线程饥饿
+}
+```
+
+**1ms 短休眠的作用：**
+```csharp
+// ✅ 正确示例：1ms 短休眠
+while (_isRunning)
+{
+    _room?.Update(0);
+    Thread.Sleep(1); // 1ms 休眠
+    // ✅ 降低轮询频率到 1000 次/秒
+    // ✅ CPU 从 100% 降到 5-10%
+    // ✅ 权威帧最多延迟 1ms（相比网络延迟 50-200ms 可忽略）
+    // ✅ 预测帧不受影响（时间控制在 Tick 内部）
+}
+```
+
+**三种场景分析：**
+
+| 场景 | Tick() 行为 | 1ms 休眠影响 |
+|------|-----------|-------------|
+| **网络输入到达** | 处理权威帧（10ms） | 最多延迟 1ms（总延迟 11ms，可接受） |
+| **预测帧时间到** | 处理预测帧（5ms） | 无影响（时间到了才执行） |
+| **无输入 + 时间未到** | 立即返回（<1ms） | 避免 CPU 空转（节省 99.9% CPU） |
+
+**Alternatives Considered**:
+
+| 方案 | 权威帧延迟 | CPU 占用 | 复杂度 | 推荐度 |
+|------|----------|---------|--------|--------|
+| **1ms 短休眠** | 最高 1ms | ~5-10% | 简单 | ✅ **推荐** |
+| **完全不休眠** | <1ms | ~100% | 简单 | ❌ CPU 空转 |
+| **事件驱动（Wait）** | <1ms | ~2-5% | 复杂 | ⚡ 最优但复杂 |
+| **50ms 固定休眠** | 最高 50ms | ~20% | 简单 | ❌ 延迟太高 |
+
+**为什么选择 1ms 短休眠？**
+1. **低延迟**：权威帧最多延迟 1ms，相比网络延迟（50-200ms）可忽略
+2. **节省 CPU**：从 100% 降到 5-10%，避免其他线程饥饿
+3. **预测帧不受影响**：时间控制在 Tick 内部（50ms 周期），1ms 误差 = 2%
+4. **简单可靠**：无需复杂的事件驱动机制
+
+**事件驱动方案（可选优化）**:
+```csharp
+private ManualResetEventSlim _wakeupEvent = new(false);
+
+void LogicThreadLoop()
+{
+    while (_isRunning)
+    {
+        _room?.Update(0);
+        _wakeupEvent.Wait(5); // 最长等待 5ms
+        _wakeupEvent.Reset();
+    }
+}
+
+// 主线程：有输入时唤醒
+public void SetOneFrameInputs(...)
+{
+    _pendingInputs.Enqueue(...);
+    _wakeupEvent.Set(); // 唤醒逻辑线程
+}
+```
+**Trade-off**：延迟更低（<1ms），但增加了复杂度（需要管理事件）
 
 ### Decision 3: 线程同步机制
 
@@ -106,7 +207,9 @@ public void Stop()
 - **volatile bool**：确保 `_isRunning` 在多线程间可见
 - **IsBackground = true**：应用退出时自动终止线程（避免阻塞退出）
 
-### Decision 4: FrameBuffer 输入队列线程安全
+### Decision 4: 输入系统线程安全化
+
+#### 4.1 网络输入队列（ConcurrentQueue）
 
 **当前实现（非线程安全）**:
 ```csharp
@@ -153,9 +256,29 @@ private void ProcessPendingInputs()
 
 public void Tick()
 {
-    ProcessPendingInputs(); // 消费输入队列
+    // 【新增】消费输入队列（将网络输入写入 FrameBuffer）
+    ProcessPendingInputs();
     
-    // ... 原有逻辑
+    // 【保持不变】原有逻辑：
+    // 第一步：处理权威帧插值（从 ProcessedAuthorityFrame 推进到 AuthorityFrame）
+    while (ProcessedAuthorityFrame < AuthorityFrame)
+    {
+        ++ProcessedAuthorityFrame;
+        var authorityInputs = FrameBuffer.FrameInputs(ProcessedAuthorityFrame); // 读取网络输入
+        Room.MainWorld.CurFrame = ProcessedAuthorityFrame;
+        Room.FrameTick(authorityInputs); // 更新权威世界
+        CheckAndRollbackShadow(ProcessedAuthorityFrame); // 比对影子世界
+    }
+    
+    // 第二步：处理预测帧（基于时间戳和本地输入）
+    while (currentTime >= CreationTime + (PredictionFrame + 1) * LSConstValue.UpdateInterval)
+    {
+        ++PredictionFrame;
+        var oneFrameInputs = _inputSystem.GetOneFrameMessages(PredictionFrame); // 本地输入
+        BackupShadowInput(PredictionFrame, oneFrameInputs);
+        SimulateShadow(PredictionFrame, oneFrameInputs); // 更新影子世界
+        RecordShadowFrameHash(PredictionFrame);
+    }
 }
 ```
 
@@ -172,6 +295,80 @@ public void Tick()
 - **双缓冲方案**：为 FrameBuffer 实现双缓冲
   - 缺点：复杂度高，内存占用大（帧数据很大）
   - 优点：完全无锁
+
+#### 4.2 本地输入原子交换（Interlocked.Exchange）
+
+**当前实现（非线程安全）**:
+```csharp
+// 主线程（InputManager.Update()）
+var input = LSInputAssembler.AssembleFromRawInput(...);
+clientSync.SetPlayerInput(playerId, input);
+  → _inputSystem.ClientInput = input;  // 直接赋值引用
+
+// 逻辑线程（GetOneFrameMessages）
+predictionFrame.Inputs[MainPlayerId] = ClientInput; // 读取
+ClientInput.Frame = frame;                          // 修改
+
+// 逻辑线程（Tick）
+_inputSystem.ClientInput.Frame = PredictionFrame;   // 修改
+```
+
+**数据竞争**:
+- `ClientInput` 被主线程写入（赋值引用）
+- `ClientInput` 被逻辑线程读取和修改（Frame, PlayerId）
+- 同一对象被并发访问
+
+**新实现（线程安全）**:
+```csharp
+// ClientLSController
+private LSInput _clientInputBuffer = new LSInput();
+
+// 主线程调用（InputManager.Update()）
+public void SetPlayerInput(long playerId, LSInput input)
+{
+    if (input != null)
+    {
+        input.PlayerId = playerId;
+        PlayerId = playerId;
+        // 原子交换：新输入替换旧输入
+        Interlocked.Exchange(ref _clientInputBuffer, input);
+    }
+}
+
+// 逻辑线程调用（GetOneFrameMessages）
+public OneFrameInputs GetOneFrameMessages(int frame)
+{
+    OneFrameInputs predictionFrame = FrameBuffer.FrameInputs(frame);
+    if (MainPlayerId > 0)
+    {
+        // 原子读取最新输入
+        var currentInput = Interlocked.CompareExchange(ref _clientInputBuffer, null, null);
+        if (currentInput != null)
+        {
+            currentInput.Frame = frame; // 安全修改（逻辑线程独占）
+            predictionFrame.Inputs[MainPlayerId] = currentInput;
+        }
+    }
+    return predictionFrame;
+}
+```
+
+**理由**:
+- **原子操作**：`Interlocked.Exchange` 是无锁原子操作，性能极高
+- **单值语义**：本地输入只需要最新值，不需要队列（与网络输入不同）
+- **无拷贝开销**：主线程每次创建新对象，逻辑线程直接使用（无需深拷贝）
+- **简单直接**：比 ConcurrentQueue 更轻量
+
+**Alternatives Considered**:
+- **ConcurrentQueue 方案**：类似网络输入
+  - 缺点：本地输入只需要最新值，队列是多余的；每帧都要 Enqueue/Dequeue
+  - 优点：与网络输入统一
+- **加锁方案**：对 `ClientInput` 加 lock
+  - 缺点：性能差，每帧都要加锁/解锁
+  - 优点：实现简单
+- **深拷贝方案**：每次 SetPlayerInput 都拷贝
+  - 缺点：额外 GC 开销
+  - 优点：完全隔离
 
 ### Decision 5: ViewRead Swap 在逻辑线程执行
 

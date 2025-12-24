@@ -1,18 +1,39 @@
 # Implementation Tasks: 逻辑专用线程
 
-## 1. FrameBuffer 输入队列线程安全化
+## 1. 输入系统线程安全化
 
-- [ ] 1.1 修改 `ClientLSController` 输入处理
-  - [ ] 1.1.1 添加 `ConcurrentQueue<(int frame, OneFrameInputs inputs)> _pendingInputs` 字段
-  - [ ] 1.1.2 修改 `SetOneFrameInputs()` 方法：复制输入并加入队列（不再直接写 FrameBuffer）
-  - [ ] 1.1.3 实现 `ProcessPendingInputs()` 私有方法：消费队列并写入 FrameBuffer
-  - [ ] 1.1.4 在 `Tick()` 开始时调用 `ProcessPendingInputs()`
-  - [ ] 1.1.5 添加对象池支持（OneFrameInputs 回收）
+### 1.1 网络输入队列（ConcurrentQueue）
 
-- [ ] 1.2 验证 FrameBuffer 单线程访问
-  - [ ] 1.2.1 确认 `FrameBuffer.FrameInputs()` 仅在逻辑线程调用
-  - [ ] 1.2.2 确认 `FrameBuffer.MoveForward()` 仅在逻辑线程调用
-  - [ ] 1.2.3 添加线程 ID 断言（Debug 模式）
+- [ ] 1.1.1 修改 `ClientLSController` 网络输入处理
+  - [ ] 1.1.1.1 添加 `ConcurrentQueue<(int frame, OneFrameInputs inputs)> _pendingInputs` 字段
+  - [ ] 1.1.1.2 修改 `SetOneFrameInputs()` 方法：复制输入并加入队列（不再直接写 FrameBuffer）
+  - [ ] 1.1.1.3 实现 `ProcessPendingInputs()` 私有方法：消费队列并写入 FrameBuffer
+  - [ ] 1.1.1.4 在 `Tick()` 开始时调用 `ProcessPendingInputs()`（其他逻辑保持不变）
+  - [ ] 1.1.1.5 添加对象池支持（OneFrameInputs 回收）
+
+### 1.2 本地输入原子交换（Interlocked.Exchange）
+
+- [ ] 1.2.1 修改 `ClientLSController` 本地输入处理
+  - [ ] 1.2.1.1 将 `_inputSystem.ClientInput` 改为 `_clientInputBuffer`（私有字段）
+  - [ ] 1.2.1.2 修改 `SetPlayerInput()` 方法：使用 `Interlocked.Exchange(ref _clientInputBuffer, input)`
+  - [ ] 1.2.1.3 添加 `using System.Threading;`
+
+- [ ] 1.2.2 修改 `LSInputSystem` 本地输入读取
+  - [ ] 1.2.2.1 修改 `GetOneFrameMessages()` 方法：使用 `Interlocked.CompareExchange` 原子读取
+  - [ ] 1.2.2.2 移除对 `ClientInput` 的直接引用，改为通过 LSController 访问
+  - [ ] 1.2.2.3 确保读取后的输入对象仅在逻辑线程修改
+
+- [ ] 1.2.3 修改 `ClientLSController.Tick()` 中的 ClientInput 访问
+  - [ ] 1.2.3.1 将 `_inputSystem.ClientInput` 改为 `_clientInputBuffer` 的原子读取
+  - [ ] 1.2.3.2 确保 Frame 和 PlayerId 的修改在原子读取之后
+
+### 1.3 验证输入系统单线程访问
+
+- [ ] 1.3.1 确认 `FrameBuffer.FrameInputs()` 仅在逻辑线程调用
+- [ ] 1.3.2 确认 `FrameBuffer.MoveForward()` 仅在逻辑线程调用
+- [ ] 1.3.3 确认 `GetOneFrameMessages()` 仅在逻辑线程调用
+- [ ] 1.3.4 添加线程 ID 断言（Debug 模式）
+- [ ] 1.3.5 添加注释说明：Tick() 内部逻辑不变（权威帧/预测帧/影子世界）
 
 ## 2. 创建 LogicThread 核心类
 
@@ -23,6 +44,9 @@
   - [ ] 2.1.4 实现 Stop() 方法（发送停止信号并等待退出）
   - [ ] 2.1.5 实现 Pause() 和 Resume() 方法
   - [ ] 2.1.6 实现 LogicThreadLoop() 私有方法（固定时间步长循环）
+    - 调用 Room.Update(deltaTime)
+    - Room.Update() 内部调用 LSController.Tick()
+    - Tick() 内部逻辑保持不变（权威帧/预测帧/影子世界）
   - [ ] 2.1.7 添加异常捕获和日志记录
   - [ ] 2.1.8 添加线程同步机制（ManualResetEventSlim, volatile bool）
 
@@ -89,11 +113,17 @@
 
 ## 7. 单元测试
 
-- [ ] 7.1 输入队列测试
-  - [ ] 7.1.1 测试主线程写入、逻辑线程读取
-  - [ ] 7.1.2 测试高频输入（每帧多次调用 SetOneFrameInputs）
-  - [ ] 7.1.3 测试输入顺序保证（FIFO）
-  - [ ] 7.1.4 测试对象池回收
+- [ ] 7.1 输入系统测试
+  - [ ] 7.1.1 测试网络输入队列
+    - 测试主线程写入、逻辑线程读取
+    - 测试高频输入（每帧多次调用 SetOneFrameInputs）
+    - 测试输入顺序保证（FIFO）
+    - 测试对象池回收
+  - [ ] 7.1.2 测试本地输入原子交换
+    - 测试主线程写入、逻辑线程读取
+    - 测试高频输入（每帧多次调用 SetPlayerInput）
+    - 测试最新值语义（只保留最新输入）
+    - 测试 Interlocked 原子性
 
 - [ ] 7.2 LogicThread 生命周期测试
   - [ ] 7.2.1 测试 Start() 和 Stop() 正常流程

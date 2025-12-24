@@ -86,9 +86,9 @@
 - **THEN** 逻辑在主线程运行（旧行为）
 - **AND** View 直接读取 Logic 组件（旧行为）
 
-### Requirement: 输入队列线程安全
+### Requirement: 输入系统线程安全
 
-系统 SHALL 使用线程安全队列处理网络输入，确保主线程和逻辑线程无竞争。
+系统 SHALL 使用线程安全机制处理网络输入和本地输入，确保主线程和逻辑线程无竞争。
 
 #### Scenario: 网络输入写入队列
 
@@ -96,11 +96,24 @@
 - **THEN** 输入被复制并加入 ConcurrentQueue
 - **AND** 主线程立即返回（不阻塞）
 
-#### Scenario: 逻辑线程消费输入队列
+#### Scenario: 逻辑线程消费网络输入队列
 
 - **WHEN** 逻辑线程 Tick() 开始时调用 ProcessPendingInputs()
-- **THEN** 所有队列中的输入被消费并写入 FrameBuffer
+- **THEN** 所有队列中的网络输入被消费并写入 FrameBuffer
 - **AND** 输入对象被回收到对象池
+
+#### Scenario: 本地输入原子交换
+
+- **WHEN** 主线程（InputManager.Update）调用 SetPlayerInput(playerId, input)
+- **THEN** 新输入通过 Interlocked.Exchange 原子替换旧输入
+- **AND** 主线程立即返回（不阻塞）
+
+#### Scenario: 逻辑线程读取本地输入
+
+- **WHEN** 逻辑线程 GetOneFrameMessages() 调用时
+- **THEN** 使用 Interlocked.CompareExchange 原子读取最新本地输入
+- **AND** 读取到的输入对象仅在逻辑线程修改
+- **AND** 无数据竞争
 
 #### Scenario: FrameBuffer 单线程访问
 
