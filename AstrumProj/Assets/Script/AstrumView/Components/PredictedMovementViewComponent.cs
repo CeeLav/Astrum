@@ -93,60 +93,9 @@ namespace Astrum.View.Components
         protected override void OnReset()
         {
             // 不直接对齐到逻辑位置：保持当前渲染位置，避免 reset 导致瞬移/拉回
+            // 注：已移除旧的直接访问组件的代码，现在完全使用 ViewRead
             if (_ownerEntityView == null)
                 return;
-            /*
-            _posVisual = _ownerEntityView.GetWorldPosition();
-
-            var entity = OwnerEntity;
-            if (entity == null)
-                return;
-
-            if (ProjectileComponent.TryGetViewRead(entity.World, entity.UniqueId, out var _))
-                return;
-
-            var trans = entity.GetComponent<TransComponent>();
-            if (trans != null)
-            {
-                _lastPosLogicSeen = ToVector3(trans.Position);
-            }
-            else
-            {
-                _lastPosLogicSeen = _posVisual;
-            }
-
-            _lastLogicFrameSeen = entity.World?.CurFrame ?? int.MinValue;
-
-            var moveComp = entity.GetComponent<MovementComponent>();
-            if (moveComp != null)
-            {
-                _cachedSpeedLogic = moveComp.Speed.AsFloat();
-                _speedVisual = _cachedSpeedLogic;
-            }
-
-            // 重置：优先使用逻辑侧 MoveDirection
-            if (moveComp != null)
-            {
-                var dir = ToVector3(moveComp.MoveDirection);
-                dir.y = 0f;
-                if (dir.sqrMagnitude > 1e-8f)
-                    _cachedDirLogic = dir.normalized;
-            }
-
-            // 兜底：若 MoveDirection 无效，则使用逻辑朝向 forward
-            if (_cachedDirLogic.sqrMagnitude <= 1e-8f && trans != null)
-            {
-                var fwd = ToVector3(trans.Forward);
-                fwd.y = 0f;
-                if (fwd.sqrMagnitude > 1e-8f)
-                    _cachedDirLogic = fwd.normalized;
-            }
-
-            // 方向保持为当前视觉方向；如果无效则用缓存逻辑方向兜底
-            if (_dirVisual.sqrMagnitude < 1e-8f)
-                _dirVisual = _cachedDirLogic.sqrMagnitude > 1e-8f ? _cachedDirLogic : Vector3.forward;
-
-            */
         }
 
 

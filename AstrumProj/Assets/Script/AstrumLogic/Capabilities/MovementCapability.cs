@@ -50,6 +50,39 @@ namespace Astrum.LogicCore.Capabilities
             state.CustomData[KEY_LOGGED_BLOCKED_MOVE] = false;
             state.CustomData[KEY_LOGGED_ZERO_SPEED] = false;
             SetCapabilityState(entity, state);
+            
+            // 注册事件处理器
+            RegisterEventHandlers();
+        }
+        
+        protected override void RegisterEventHandlers()
+        {
+            // Transform 相关事件（从 Client 线程发送）
+            RegisterEventHandler<Astrum.LogicCore.Events.SetPositionEvent>(HandleSetPosition);
+            RegisterEventHandler<Astrum.LogicCore.Events.SetRotationEvent>(HandleSetRotation);
+            // 注：TransComponent 没有 Scale 字段，SetScaleEvent 暂不处理
+        }
+        
+        private void HandleSetPosition(Entity entity, Astrum.LogicCore.Events.SetPositionEvent evt)
+        {
+            var trans = GetComponent<TransComponent>(entity);
+            if (trans != null)
+            {
+                trans.Position = evt.Position;
+                entity.MarkComponentDirty(TransComponent.ComponentTypeId);
+                ASLogger.Instance.Debug($"MovementCapability: Set position to {evt.Position} for entity {entity.UniqueId}");
+            }
+        }
+        
+        private void HandleSetRotation(Entity entity, Astrum.LogicCore.Events.SetRotationEvent evt)
+        {
+            var trans = GetComponent<TransComponent>(entity);
+            if (trans != null)
+            {
+                trans.Rotation = evt.Rotation;
+                entity.MarkComponentDirty(TransComponent.ComponentTypeId);
+                ASLogger.Instance.Debug($"MovementCapability: Set rotation to {evt.Rotation} for entity {entity.UniqueId}");
+            }
         }
         
         public override bool ShouldActivate(Entity entity)

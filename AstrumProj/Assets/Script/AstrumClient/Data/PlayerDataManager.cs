@@ -54,7 +54,17 @@ namespace Astrum.Client.Data
         
         /// <summary>
         /// 将存档数据应用到实体
+        /// 
+        /// ⚠️ 警告：此方法直接访问和修改 Logic 层组件，不是线程安全的
+        /// TODO: 需要迁移到逻辑线程处理
+        /// 
+        /// 迁移方案：
+        /// 1. 在逻辑线程创建专门的存档加载 Capability
+        /// 2. 或通过事件系统发送存档数据到逻辑线程（如 LoadSaveDataEvent）
+        /// 3. 确保存档加载在逻辑线程的正确时机执行（实体创建后、Capability初始化前）
+        /// 4. 处理复杂的组件依赖关系（base → derived → dynamic stats）
         /// </summary>
+        [System.Obsolete("此方法不是线程安全的，已临时禁用，等待迁移到逻辑线程")]
         public void ApplyProgressToEntity(Entity entity)
         {
             if (entity == null)

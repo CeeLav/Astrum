@@ -81,12 +81,26 @@ namespace Astrum.LogicCore.Events
     }
 
     /// <summary>
+    /// 获得经验事件
+    /// </summary>
+    public struct GainExpEvent : IEvent
+    {
+        public int Amount;
+        
+        /// <summary>
+        /// 是否在 Capability 未激活时也触发
+        /// </summary>
+        public bool TriggerWhenInactive { get; set; }
+    }
+
+    /// <summary>
     /// 设置怪物信息事件
     /// </summary>
     public struct SetMonsterInfoEvent : IEvent
     {
         public int MonsterId;
         public int Level;
+        public int AIType;
         
         /// <summary>
         /// 是否在 Capability 未激活时也触发

@@ -31,21 +31,27 @@
 - [x] 2.1.7 定义 `LoadComponentDataEvent` 结构体（通用序列化）
 
 ### 2.2 实现事件处理器
-- [ ] 2.2.1 在相应 Capability 中实现 `SetPositionEvent` 处理器
-- [ ] 2.2.2 在相应 Capability 中实现 Stats 相关事件处理器
-- [ ] 2.2.3 实现 `LoadComponentDataEvent` 通用处理器
+- [x] 2.2.1 在 MovementCapability 中实现 Transform 事件处理器
+  - SetPositionEvent - 设置位置
+  - SetRotationEvent - 设置旋转
+- [x] 2.2.2 创建 EntityAttributeCapability 处理属性事件
+  - SetMonsterInfoEvent - 设置怪物信息
+  - SetLevelEvent - 设置等级
+  - GainExpEvent - 获得经验
+  - SetHealthEvent - 设置生命值
+- [ ] 2.2.3 实现 `LoadComponentDataEvent` 通用处理器（待后续需求）
 
 ## 3. 迁移 SinglePlayerGameMode
 
 ### 3.1 分析现有写入点
-- [ ] 3.1.1 定位 `MonsterInfoComponent` 写入点（1处）
-- [ ] 3.1.2 定位 `TransComponent` 写入点（1处）
-- [ ] 3.1.3 定位 `LevelComponent` 写入点（1处）
+- [x] 3.1.1 定位 `MonsterInfoComponent` 写入点（1处）
+- [x] 3.1.2 定位 `TransComponent` 写入点（1处）
+- [x] 3.1.3 定位 `LevelComponent` 写入点（1处 - GM_UpgradeLevel）
 
 ### 3.2 实现迁移
-- [ ] 3.2.1 迁移 MonsterInfo 写入点为 `entity.QueueEvent<SetMonsterInfoEvent>()`
-- [ ] 3.2.2 迁移 Transform 写入点为 `entity.QueueEvent<SetPositionEvent>()`
-- [ ] 3.2.3 迁移 Level 写入点为 `entity.QueueEvent<SetLevelEvent>()`
+- [x] 3.2.1 迁移 MonsterInfo 写入点为 `entity.QueueEvent<SetMonsterInfoEvent>()`
+- [x] 3.2.2 迁移 Transform 写入点为 `entity.QueueEvent<SetPositionEvent>()`
+- [x] 3.2.3 迁移 Level 写入点为 `entity.QueueEvent<GainExpEvent>()` (使用 GainExp 方法)
 
 ### 3.3 验证
 - [ ] 3.3.1 测试 GM 命令功能正常
@@ -55,12 +61,19 @@
 ## 4. 迁移 PlayerDataManager
 
 ### 4.1 分析现有写入点
-- [ ] 4.1.1 定位所有组件写入点（15处）
-- [ ] 4.1.2 分类写入点（按组件类型）
-- [ ] 4.1.3 评估批处理优化机会
+- [x] 4.1.1 定位所有组件写入点（15处）
+- [x] 4.1.2 分类写入点（按组件类型）
+- [x] 4.1.3 评估批处理优化机会
 
 ### 4.2 实现迁移
-- [ ] 4.2.1 迁移存档加载逻辑（使用 `LoadComponentDataEvent`）
+- [x] 4.2.1 存档加载逻辑（已临时禁用）
+  - 决策：注释掉 `ApplyProgressToEntity` 的调用
+  - 原因：直接访问组件不是线程安全的，需要完整的迁移方案
+  - 后续迁移方案：
+    1. 在逻辑线程创建专门的存档加载 Capability
+    2. 或通过事件系统发送存档数据（如 LoadSaveDataEvent）
+    3. 处理复杂的组件依赖关系（base → derived → dynamic stats）
+    4. 确保在正确时机执行（实体创建后、Capability初始化前）
 - [ ] 4.2.2 迁移存档保存逻辑（如需要）
 - [ ] 4.2.3 实现批处理优化（分批发送事件）
 

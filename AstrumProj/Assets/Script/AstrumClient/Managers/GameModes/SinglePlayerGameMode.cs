@@ -265,7 +265,14 @@ namespace Astrum.Client.Managers.GameModes
             var playerEntity = MainRoom?.MainWorld?.GetEntity(PlayerId);
             if (playerEntity != null)
             {
-                PlayerDataManager.Instance?.ApplyProgressToEntity(playerEntity);
+                // TODO: 存档加载功能已临时禁用，后续需要迁移到逻辑线程处理
+                // 原因：当前 ApplyProgressToEntity 直接访问和修改组件，不是线程安全的
+                // 迁移方案：
+                //   1. 在逻辑线程创建专门的存档加载 Capability
+                //   2. 或通过事件系统发送存档数据到逻辑线程
+                //   3. 确保存档加载在逻辑线程的正确时机执行
+                // PlayerDataManager.Instance?.ApplyProgressToEntity(playerEntity);
+                ASLogger.Instance.Warning("SinglePlayerGameMode: 存档加载功能已临时禁用，等待迁移到逻辑线程");
             }
             else
             {
@@ -293,14 +300,15 @@ namespace Astrum.Client.Managers.GameModes
                 var monsterEntity = MainRoom.MainWorld?.GetEntity(monsterId);
                 if (monsterEntity != null)
                 {
-                    // 可选：设置怪物等级和AI类型
-                    var monsterInfo = monsterEntity.GetComponent<MonsterInfoComponent>();
-                    if (monsterInfo != null)
+                    // 使用事件系统设置怪物等级和AI类型（线程安全）
+                    monsterEntity.QueueEvent(new Astrum.LogicCore.Events.SetMonsterInfoEvent
                     {
-                        monsterInfo.Level = 1;
-                        monsterInfo.AIType = 1; // 1=基础AI
-                        ASLogger.Instance.Debug($"SinglePlayerGameMode: 设置Monster属性 - Level: {monsterInfo.Level}, AIType: {monsterInfo.AIType}");
-                    }
+                        MonsterId = 0, // 不修改 MonsterId
+                        Level = 1,
+                        AIType = 1, // 1=基础AI
+                        TriggerWhenInactive = true // 即使 Capability 未激活也处理
+                    });
+                    ASLogger.Instance.Debug($"SinglePlayerGameMode: 发送设置Monster属性事件 - Level: 1, AIType: 1");
 
                     monsterEntity.AttachSubArchetype(EArchetype.AI, out string reason);
                     if (reason != null)
@@ -336,27 +344,28 @@ namespace Astrum.Client.Managers.GameModes
                     if (monsterEntity != null)
                     {
                         // 设置随机位置（世界中心附近，半径 10-20 单位）
-                        var transComponent = monsterEntity.GetComponent<TransComponent>();
-                        if (transComponent != null)
+                        // 生成随机角度和距离
+                        float angle = (float)(random.NextDouble() * 2 * Math.PI);
+                        float distance = (float)(random.NextDouble() * 10 + 10); // 10-20 单位
+                        
+                        // 计算随机位置（以世界中心 (0, 0, 0) 为基准）
+                        float randomX = distance * (float)Math.Cos(angle);
+                        float randomZ = distance * (float)Math.Sin(angle);
+                        
+                        // 使用 TrueSync 的 FP 和 TSVector
+                        var randomPosition = new TrueSync.TSVector(
+                            (TrueSync.FP)randomX,
+                            TrueSync.FP.Zero,
+                            (TrueSync.FP)randomZ
+                        );
+                        
+                        // 使用事件系统设置位置（线程安全）
+                        monsterEntity.QueueEvent(new Astrum.LogicCore.Events.SetPositionEvent
                         {
-                            // 生成随机角度和距离
-                            float angle = (float)(random.NextDouble() * 2 * Math.PI);
-                            float distance = (float)(random.NextDouble() * 10 + 10); // 10-20 单位
-                            
-                            // 计算随机位置（以世界中心 (0, 0, 0) 为基准）
-                            float randomX = distance * (float)Math.Cos(angle);
-                            float randomZ = distance * (float)Math.Sin(angle);
-                            
-                            // 使用 TrueSync 的 FP 和 TSVector
-                            var randomPosition = new TrueSync.TSVector(
-                                (TrueSync.FP)randomX,
-                                TrueSync.FP.Zero,
-                                (TrueSync.FP)randomZ
-                            );
-                            
-                            transComponent.SetPosition((TrueSync.FP)randomX, TrueSync.FP.Zero, (TrueSync.FP)randomZ);
-                            ASLogger.Instance.Debug($"SinglePlayerGameMode: 怪物位置设置为 ({randomX:F2}, 0, {randomZ:F2})");
-                        }
+                            Position = randomPosition,
+                            TriggerWhenInactive = true // 即使 Capability 未激活也处理
+                        });
+                        ASLogger.Instance.Debug($"SinglePlayerGameMode: 发送设置怪物位置事件 ({randomX:F2}, 0, {randomZ:F2})");
                         
                         monsterEntity.AttachSubArchetype(EArchetype.AI, out string reason);
                         if (reason != null)
@@ -633,20 +642,17 @@ namespace Astrum.Client.Managers.GameModes
             var Entity = MainRoom?.MainWorld?.GetEntity(UID);
             if (Entity != null)
             {
-                var LevelComp = Entity.GetComponent<LevelComponent>();
-                if (LevelComp != null)
+                // 使用事件系统获得经验（线程安全）
+                Entity.QueueEvent(new Astrum.LogicCore.Events.GainExpEvent
                 {
-                    LevelComp.GainExp(exp,Entity);
-                    ASLogger.Instance.Info($"SinglePlayerGameMode: GM升级实体 {UID} 到等级 {LevelComp.CurrentLevel} 还差 {LevelComp.ExpToNextLevel - LevelComp.CurrentExp} 经验");
-                }
-                else
-                {
-                    ASLogger.Instance.Warning($"SinglePlayerGameMode: 实体 {UID} 不存在 LevelComponent，无法升级");
-                }
+                    Amount = exp,
+                    TriggerWhenInactive = true // 即使 Capability 未激活也处理
+                });
+                ASLogger.Instance.Info($"SinglePlayerGameMode: 发送GM升级事件，实体 {UID} 获得 {exp} 经验");
             }
             else
             {
-                ASLogger.Instance.Warning($"SinglePlayerGameMode: <UNK> {UID} <UNK>");
+                ASLogger.Instance.Warning($"SinglePlayerGameMode: 找不到实体 {UID}");
             }
         }
 
