@@ -119,6 +119,12 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         [MemoryPackIgnore]
         private HashSet<int> _dirtyComponentIds = new HashSet<int>();
+        
+        /// <summary>
+        /// 脏组件锁对象（多线程模式下保护 _dirtyComponentIds）
+        /// </summary>
+        [MemoryPackIgnore]
+        private readonly object _dirtyLock = new object();
 
         public Entity()
         {
@@ -543,21 +549,52 @@ namespace Astrum.LogicCore.Core
         }
 
         /// <summary>
-        /// 记录组件为脏（由 Capability 调用）
+        /// 记录组件为脏（由 Capability 调用，线程安全）
         /// </summary>
         /// <param name="componentTypeId">组件的 ComponentTypeId</param>
         public void MarkComponentDirty(int componentTypeId)
         {
-            _dirtyComponentIds.Add(componentTypeId);
+            lock (_dirtyLock)
+            {
+                _dirtyComponentIds.Add(componentTypeId);
+            }
         }
         
         /// <summary>
-        /// 获取所有脏组件的 ComponentTypeId
+        /// 获取所有脏组件 ID 的快照（线程安全）
+        /// </summary>
+        /// <returns>脏组件 ID 数组快照</returns>
+        public int[] GetDirtyComponentIdsSnapshot()
+        {
+            lock (_dirtyLock)
+            {
+                if (_dirtyComponentIds.Count == 0)
+                    return Array.Empty<int>();
+                var result = new int[_dirtyComponentIds.Count];
+                _dirtyComponentIds.CopyTo(result);
+                return result;
+            }
+        }
+        
+        /// <summary>
+        /// 获取所有脏组件的 ComponentTypeId（原始集合，单线程访问或已外部加锁时使用）
         /// </summary>
         /// <returns>脏组件的 ComponentTypeId 集合</returns>
+        [Obsolete("多线程环境下请使用 GetDirtyComponentIdsSnapshot() 获取快照")]
         public IReadOnlyCollection<int> GetDirtyComponentIds()
         {
             return _dirtyComponentIds;
+        }
+        
+        /// <summary>
+        /// 检查是否有脏组件（线程安全）
+        /// </summary>
+        public bool HasDirtyComponents()
+        {
+            lock (_dirtyLock)
+            {
+                return _dirtyComponentIds.Count > 0;
+            }
         }
         
         /// <summary>
@@ -572,13 +609,22 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
-        /// 获取所有脏组件实例（优化：直接字典查询）
+        /// 获取所有脏组件实例（线程安全）
         /// </summary>
         /// <returns>脏组件实例列表</returns>
         public List<BaseComponent> GetDirtyComponents()
         {
-            var dirtyComponents = new List<BaseComponent>(_dirtyComponentIds.Count);
-            foreach (var componentId in _dirtyComponentIds)
+            int[] dirtyIdsCopy;
+            lock (_dirtyLock)
+            {
+                if (_dirtyComponentIds.Count == 0)
+                    return new List<BaseComponent>();
+                dirtyIdsCopy = new int[_dirtyComponentIds.Count];
+                _dirtyComponentIds.CopyTo(dirtyIdsCopy);
+            }
+            
+            var dirtyComponents = new List<BaseComponent>(dirtyIdsCopy.Length);
+            foreach (var componentId in dirtyIdsCopy)
             {
                 if (Components.TryGetValue(componentId, out var component))
                 {
@@ -589,11 +635,14 @@ namespace Astrum.LogicCore.Core
         }
         
         /// <summary>
-        /// 清除所有脏标记
+        /// 清除所有脏标记（线程安全）
         /// </summary>
         public void ClearDirtyComponents()
         {
-            _dirtyComponentIds.Clear();
+            lock (_dirtyLock)
+            {
+                _dirtyComponentIds.Clear();
+            }
         }
         
         /// <summary>

@@ -78,15 +78,9 @@ namespace Astrum.LogicCore.ViewRead
             {
                 if (entity == null) continue;
 
-                // 线程安全：复制 dirtyIds 到数组，避免遍历时 HashSet 被修改
-                var dirtyIds = entity.GetDirtyComponentIds();
-                if (dirtyIds == null || dirtyIds.Count == 0) continue;
-
-                int[] dirtyIdsCopy;
-                lock (dirtyIds)
-                {
-                    dirtyIdsCopy = System.Linq.Enumerable.ToArray(dirtyIds);
-                }
+                // 线程安全：使用快照方法获取脏组件 ID，内部已加锁
+                var dirtyIdsCopy = entity.GetDirtyComponentIdsSnapshot();
+                if (dirtyIdsCopy.Length == 0) continue;
 
                 foreach (var componentTypeId in dirtyIdsCopy)
                 {
@@ -98,7 +92,7 @@ namespace Astrum.LogicCore.ViewRead
                     // 未注册的组件静默跳过（还未迁移的组件）
                 }
                 
-                // 在逻辑线程中清理脏标记（线程安全）
+                // 在逻辑线程中清理脏标记（线程安全，内部已加锁）
                 entity.ClearDirtyComponents();
             }
 

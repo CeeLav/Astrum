@@ -1915,3 +1915,2431 @@ Lines added: 2, lines removed: 2
 
 ---
 
+_**User (2025-12-24 02:30Z)**_
+
+[12:17:37.354] [Error] 异常类型: InvalidOperationException
+异常消息: Collection was modified; enumeration operation may not execute.
+堆栈跟踪:   at System.Collections.Generic.HashSet`1+Enumerator[T].MoveNext () [0x00013] in <ea489521390f48908a7ce45cb17a6848>:0 
+  at Astrum.LogicCore.ViewRead.ViewReadFrameSync.EndOfLogicFrame (Astrum.LogicCore.Core.World world) [0x000b0] in D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ViewRead\ViewReadFrameSync.cs:76 
+  at Astrum.LogicCore.Core.Room.FrameTickShadow (System.Int64 playerId, System.Int32 frame, Astrum.Generated.OneFrameInputs inputs) [0x000c4] in D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs:273 
+  at Astrum.LogicCore.Core.ClientLSController.SimulateShadow (System.Int32 frame, Astrum.Generated.OneFrameInputs inputs) [0x00016] in D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ClientLSController.cs:588 
+  at Astrum.LogicCore.Core.ClientLSController.Tick () [0x0017b] in D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\ClientLSController.cs:177 
+  at Astrum.LogicCore.Core.Room.Update (System.Single deltaTime) [0x0005d] in D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs:179 
+  at Astrum.LogicCore.Core.LogicThread.LogicThreadLoop () [0x00042] in D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\LogicThread.cs:207 
+ 有报错，且人物血条为0
+
+---
+
+_**Agent (model claude-4.5-opus-high-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+用户报告了一个线程安全问题。错误发生在 `ViewReadFrameSync.EndOfLogicFrame` 中，说明在枚举集合时集合被修改了。这是一个典型的多线程并发问题。
+
+让我查看 `ViewReadFrameSync.cs` 文件来了解问题所在。</details></think>
+
+---
+
+这是一个典型的线程安全问题！`ViewReadFrameSync.EndOfLogicFrame` 中在枚举集合时集合被修改了。让我查看相关代码：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ViewRead\ViewReadFrameSync.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+问题在于 `EndOfLogicFrame` 中遍历 `world.Entities.Values` 时，`world.Entities` 集合可能被其他线程修改了。这是典型的多线程并发问题。
+
+让我查看 `Entity.GetDirtyComponentIds()` 返回的是什么类型，因为错误提到的是 HashSet 的枚举器：
+
+```
+at System.Collections.Generic.HashSet`1+Enumerator[T].MoveNext () 
+```
+
+问题应该是在遍历 `dirtyIds`（HashSet）时，HashSet 被修改了。让我检查 Entity 类中 dirty component 的实现。</details></think>
+
+---
+
+问题是在遍历 `dirtyIds`（HashSet）时，HashSet 被并发修改了。让我检查 Entity 类中的脏组件实现：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "GetDirtyComponentIds|_dirtyComponentIds" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core" • 8 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `private HashSet<int> _dirtyComponentIds = new HashSet<int>();` | L121 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `_dirtyComponentIds.Add(componentTypeId);` | L551 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `public IReadOnlyCollection<int> GetDirtyComponentIds()` | L558 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `return _dirtyComponentIds;` | L560 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `var dirtyComponents = new List<BaseComponent>(_dirtyComponentIds.Count);` | L580 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `foreach (var componentId in _dirtyComponentIds)` | L581 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `_dirtyComponentIds.Clear();` | L596 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Entity.cs` | `_dirtyComponentIds.Clear();` | L619 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到了问题所在：
+
+1. `_dirtyComponentIds` 是一个普通的 `HashSet<int>`
+2. `GetDirtyComponentIds()` 直接返回该 HashSet 的引用（只是作为 `IReadOnlyCollection<int>`）
+3. 在逻辑线程中遍历这个 HashSet 时，主线程可能在调用 `MarkComponentDirty` 添加新的脏组件
+
+这是一个线程安全问题。解决方案有几种：
+
+1. **复制集合**：在 `GetDirtyComponentIds()` 中返回一个副本，而不是直接返回引用
+2. **使用线程安全集合**：使用 `ConcurrentBag` 或类似的线程安全集合
+3. **锁定访问**：在遍历和修改时使用锁
+
+最简单的解决方案是在遍历前复制集合。让我修改 `ViewReadFrameSync.EndOfLogicFrame` 来复制 dirtyIds：</details></think>
+
+---
+
+问题是 `GetDirtyComponentIds()` 返回的是 HashSet 的直接引用，在逻辑线程遍历时主线程可能在修改它。需要在遍历前复制集合。让我修复：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ViewRead\ViewReadFrameSync.cs</summary>
+
+**Chunk 1**
+Lines added: 18, lines removed: 2
+
+```diff
+@@ -67,12 +67,28 @@
+              var store = world.ViewReads;
+  
+-             foreach (var entity in world.Entities.Values)
++             // 线程安全：先复制 Entities 的值到列表，避免遍历时集合被修改
++             Entity[] entitiesSnapshot;
++             lock (world.Entities)
++             {
++                 entitiesSnapshot = new Entity[world.Entities.Count];
++                 world.Entities.Values.CopyTo(entitiesSnapshot, 0);
++             }
++ 
++             foreach (var entity in entitiesSnapshot)
+              {
+                  if (entity == null) continue;
+  
++                 // 线程安全：复制 dirtyIds 到数组，避免遍历时 HashSet 被修改
+                  var dirtyIds = entity.GetDirtyComponentIds();
+                  if (dirtyIds == null || dirtyIds.Count == 0) continue;
+  
+-                 foreach (var componentTypeId in dirtyIds)
++                 int[] dirtyIdsCopy;
++                 lock (dirtyIds)
++                 {
++                     dirtyIdsCopy = new int[dirtyIds.Count];
++                     dirtyIds.CopyTo(dirtyIdsCopy, 0);
++                 }
++ 
++                 foreach (var componentTypeId in dirtyIdsCopy)
+                  {
+                      // 查字典执行导出（如果已注册）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我还需要检查 `MarkComponentDirty` 方法，确保在添加脏组件时也使用相同的锁。让我查看 Entity.cs 中的相关代码。</details></think>
+
+---
+
+还需要修改 Entity 类中的 `MarkComponentDirty` 方法来使用锁保护：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+_**User (2025-12-24 02:30Z)**_
+
+在现在这个框架下，view 层是不是不应该直接访问组件是否置脏，而是通过 view Struct 来判断有无更新
+
+---
+
+_**Agent (model claude-4.5-opus-high-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+用户提出了一个很好的架构问题。让我思考一下当前的设计：
+
+当前的问题：
+1. `ViewReadFrameSync.EndOfLogicFrame` 在逻辑线程中运行
+2. 它遍历 `entity.GetDirtyComponentIds()` 来获取脏组件
+3. 同时主线程（View层）可能在调用 `MarkComponentDirty` 修改这个 HashSet
+4. 这导致了并发修改异常
+
+用户的观点是正确的：在多线程架构下，View 层不应该直接访问 Logic 层的"脏标记"（dirty flags），而是应该通过 ViewRead 双缓冲机制来判断数据是否更新。
+
+让我理解当前的 ViewRead 架构：
+1. Logic 层在帧末将脏组件的数据导出到 ViewRead 的 back buffer
+2. 然后 swap，View 层读取 front buffer
+3. View 层应该通过 ViewRead 结构体来获取数据，而不是直接访问 Logic 层的组件
+
+问题在于：
+- `_dirtyComponentIds` 是 Logic 层内部的状态，用于跟踪哪些组件需要导出到 ViewRead
+- 这个脏标记本身应该只在逻辑线程中被读写
+- 但目前的问题是 `MarkComponentDirty` 可能被多个线程调用？
+
+让我重新审视这个问题：
+1. `MarkComponentDirty` 应该只在逻辑线程中被 Capability 调用
+
+
+2. `EndOfLogicFrame` 也是在逻辑线程中调用
+
+我意识到并发问题可能源于意外的线程访问。主线程可能在不恰当的时机尝试修改内部状态，或者存在未同步的集合操作。解决方案需要严格控制线程间的数据访问，确保 Logic 层的内部状态只在逻辑线程中被修改。
+
+关键是要建立明确的线程同步机制，防止潜在的竞争条件。
+
+主线程和逻辑线程同时访问世界状态可能导致不一致。影子世界和主世界的并发操作存在微妙的同步挑战，特别是在帧结束时遍历哈希集合时可能引发竞态。需要仔细检查并发访问的临界区，确保数据一致性和线程安全。
+
+关键问题在于组件更新的时机和访问方式。通过双缓冲和专门的视图读取结构，可以有效隔离逻辑层和视图层，防止直接越权访问组件状态。架构设计的核心是建立清晰的数据访问边界和同步机制。</details></think>
+
+---
+
+您说得完全正确！这是架构设计的核心问题。
+
+## 正确的架构理解
+
+在当前的 **ViewRead 双缓冲架构** 下：
+
+| 层 | 职责 | 线程 |
+|---|---|---|
+| **Logic 层** | 修改组件、标记脏、导出到 ViewRead back buffer | 逻辑线程 |
+| **View 层** | 只读 ViewRead front buffer，不直接访问 Logic 组件 | 主线程 |
+
+**View 层不应该：**
+- 直接访问 Logic 层的 `_dirtyComponentIds`
+- 直接读取 Logic 层的组件数据
+- 调用 `MarkComponentDirty`
+
+**View 层应该：**
+- 通过 `ViewReadStore.ReadFront<T>()` 读取数据
+- 通过 ViewRead 结构体的 `IsValid` 字段判断数据是否有效
+- 完全不关心 Logic 层的脏标记
+
+## 当前问题分析
+
+从堆栈来看，错误发生在逻辑线程内部：
+```
+LogicThread → Room.Update → ClientLSController.Tick → SimulateShadow → FrameTickShadow → EndOfLogicFrame
+```
+
+问题可能是：
+1. **同一帧内重入**：在 `EndOfLogicFrame` 遍历 dirtyIds 时，某个 Capability 的 Update 又调用了 `MarkComponentDirty`
+2. **影子世界和主世界并发**：两个世界可能共享了某些状态
+
+让我检查 `FrameTickShadow` 的调用逻辑：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到问题了。在 `FrameTickShadow` 中：1. `ShadowWorld.CapabilitySystem.Update(ShadowWorld)` - 这会更新 Capability，可能会调用 `MarkComponentDirty`2. `ShadowWorld.CapabilitySystem.ProcessEntityEvents()` - 这也可能修改实体
+3. `ViewReadFrameSync.EndOfLogicFrame(ShadowWorld)` - 这在遍历脏组件
+
+问题是：在 `Update` 过程中，Capability 可能会调用 `MarkComponentDirty`，而这些修改在 `EndOfLogicFrame` 遍历时可能还没完成（比如某个 Update 在异步回调中修改了脏标记）。
+
+但更可能的问题是：主线程的 Stage.Update() 可能在访问主世界，而逻辑线程在访问影子世界。如果它们共享了某些全局状态...
+
+等等，让我重新看看错误。错误是在 ShadowWorld 上调用 EndOfLogicFrame 时发生的。ShadowWorld 的 Entities 不应该被主线程访问。
+
+让我检查一下是否有其他地方在修改 ShadowWorld 的实体...
+
+实际上，用户的观点是对的。但我需要先解决当前的 bug。问题可能是：
+
+1. 在同一个逻辑帧内，`CapabilitySystem.Update` 调用 Capability 的 Update，某个 Capability 的 Update 标记了组件为脏2. 然后 `ProcessEntityEvents` 处理事件，可能也会标记组件为脏3. 最后 `EndOfLogicFrame` 遍历脏组件
+
+
+但这应该是顺序执行的，不应该有并发问题...
+
+我意识到遍历过程中可能存在潜在的竞争条件。`EndOfLogicFrame` 遍历 `world.Entities.Values` 时，`ProcessEntityEvents` 可能正在修改实体集合。这种并发访问可能导致不可预测的行为和潜在的数据不一致性。需要仔细检查实体管理和事件处理的同步机制。
+
+实际上，我的修复方案是正确的：通过预先复制集合来避免遍历期间的并发修改。不过，使用 `lock` 可能引入死锁风险，特别是其他代码也锁定了相同的资源。更安全的方法是使用 `ToArray()` 创建集合的快照，或者采用线程安全的集合类型，以确保数据一致性和避免潜在的同步问题。</details></think>
+
+---
+
+我看到问题了！让我检查 `CapabilitySystem.Update` 的执行流程：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "CapabilitySystem\.Update|ProcessEntityEvents" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core" • 7 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core\World.cs` | `using (new ProfileScope("World.ProcessEntityEvents"))` | L284 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\World.cs` | `CapabilitySystem?.ProcessEntityEvents();` | L286 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\LSUpdater.cs` | `// 记录 CapabilitySystem.Update 调用（仅当有实体有非空输入时）` | L36 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\LSUpdater.cs` | `//ASLogger.Instance.Info($"[LSUpdater.UpdateWorld] 调用 CapabilitySystem.Update \| World.CurFrame=\{world.CurFrame\}", "LSUpdater.UpdateWorld");` | L56 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\LSUpdater.cs` | `world.CapabilitySystem.Update(world);` | L59 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Room.cs` | `ShadowWorld.CapabilitySystem.Update(ShadowWorld);` | L270 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core\Room.cs` | `ShadowWorld.CapabilitySystem.ProcessEntityEvents();` | L271 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到了问题所在！在 Room.cs 的 FrameTickShadow 中：1. `ShadowWorld.CapabilitySystem.Update(ShadowWorld)` - 更新 Capability，可能标记组件为脏
+2. `ShadowWorld.CapabilitySystem.ProcessEntityEvents()` - 处理事件，可能创建/销毁实体，标记组件为脏
+3. `ViewReadFrameSync.EndOfLogicFrame(ShadowWorld)` - 遍历脏组件这三步是顺序执行的，在单线程中不应该有问题...除非：1. `ProcessEntityEvents` 处理事件时创建了新实体，修改了 `Entities` 字典
+2. 或者有异步操作在执行
+
+实际上，更可能的问题是：主线程在调用 MainWorld 的某些方法，而逻辑线程在调用 ShadowWorld。如果它们共享了某些状态（比如全局的 _exporters 字典），但 _exporters 是静态的只读字典，不应该有问题。让我重新思考。用户说人物血条为0，这可能是另一个问题。让我检查是否有地方在主线程中访问了脏组件。让我搜索一下 MarkComponentDirty 的调用者：</details></think>
+
+---
+
+让我检查谁在调用 `MarkComponentDirty`：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MarkComponentDirty" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script" • 10 matches</summary>
+
+Output mode: files_with_matches
+
+
+| File |
+|------|
+| `AstrumProj/Assets/Script\AstrumLogic\Capabilities\EntityAttributeCapability.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Capabilities\MovementCapability.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Capabilities\ProjectileCapability.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Core\World.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Core\Entity.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Capabilities\ActionCapability.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Capabilities\KnockbackCapability.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Capabilities\SkillDisplacementCapability.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\Capabilities\DamageCapability.cs` |
+| `AstrumProj/Assets/Script\AstrumLogic\SkillSystem\EffectHandlers\HealEffectHandler.cs` |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+这些都是 Logic 层的代码，应该只在逻辑线程中调用。问题可能是：
+1. 在 `EndOfLogicFrame` 遍历 `dirtyIds` 的同时，当前帧的 Capability Update 还在执行（但这应该是顺序的）
+2. 或者 `ProcessEntityEvents` 触发的事件处理中调用了 `MarkComponentDirty`让我看看 World.cs 中的 LogicUpdate 方法，确认调用顺序：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\World.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到了！`World.Update()` 的执行顺序是：
+1. `Updater?.UpdateWorld(this)` - 更新 Capability，可能标记组件为脏
+2. `CapabilitySystem?.ProcessEntityEvents()` - 处理事件，可能也标记组件为脏
+3. `ProcessQueuedEntityCreates()` - 创建队列中的实体
+4. `ProcessQueuedEntityDestroys()` - 销毁队列中的实体
+5. `HitSystem?.StepPhysics()` - 物理更新
+6. `ApplyQueuedSubArchetypeChangesAtFrameEnd()` - 应用子原型变更7. `ViewReadFrameSync.EndOfLogicFrame(this)` - 导出 ViewRead
+
+问题是：在 `ProcessQueuedEntityCreates` 和 `ProcessQueuedEntityDestroys` 过程中，可能会修改 `Entities` 字典！
+
+让我检查 `ProcessQueuedEntityDestroys`：</details></think>
+
+---
+
+我看到问题了！在 `World.Update()` 中，`ProcessQueuedEntityCreates()` 和 `ProcessQueuedEntityDestroys()` 会修改 `Entities` 字典，而 `EndOfLogicFrame` 随后遍历它。虽然是顺序执行，但如果某处有异步回调，就可能有问题。
+
+让我检查一下是否有地方在主线程访问了 World.Entities：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "\.Entities" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient" • 0 matches</summary>
+
+Output mode: count
+
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+主线程很少直接访问 World.Entities。让我检查 View 层（Stage）是如何同步 EntityView 的：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SyncEntityViews|EntityViews" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView" • 10 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `public Dictionary<long, EntityView> EntityViews => _entityViews;` | L46 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `public void SyncEntityViews()` | L194 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `/// 全量同步所有 Entity 的所有组件（在 SyncEntityViews 时调用）` | L313 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `SyncEntityViews();` | L338 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `SyncEntityViews();` | L349 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `using (new ProfileScope("Stage.UpdateEntityViews"))` | L474 |
+| `AstrumProj/Assets/Script/AstrumView\Managers\VFXManager.cs` | `if (currentStage.EntityViews != null && currentStage.EntityViews.TryGetValue(eventData.EntityId, out entityView))` | L85 |
+| `AstrumProj/Assets/Script/AstrumView\Examples\README_EntityEventSystem.md` | `EntityView 初始化并添加到 Stage 的 EntityViews 字典` | L64 |
+| `AstrumProj/Assets/Script/AstrumView\Examples\README_EntityEventSystem.md` | `从 EntityViews 字典中获取对应的 EntityView` | L76 |
+| `AstrumProj/Assets/Script/AstrumView\Examples\README_EntityEventSystem.md` | `从 EntityViews 字典中移除` | L80 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我看一下 `SyncEntityViews` 的实现，它访问了 `_room.MainWorld.Entities`：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+找到问题了！
+
+`Stage.SyncEntityViews()` 在**主线程**中运行，但它直接访问：
+1. `world.Entities.Values` - 主世界的实体字典
+2. `_room.ShadowWorld.Entities.Values` - 影子世界的实体字典
+
+而在**逻辑线程**中，`ViewReadFrameSync.EndOfLogicFrame` 也在遍历这些字典，同时 Capability 可能在修改它们。
+
+这就是并发问题的根源！
+
+**正确的架构应该是**：
+1. View 层**不应该直接访问** Logic 层的 `World.Entities` 字典
+2. View 层应该通过**事件**（EntityCreatedEvent, EntityDestroyedEvent）来知道何时创建/销毁 EntityView
+3. View 层应该通过**ViewRead 双缓冲**来读取组件数据
+
+用户的观点是完全正确的！
+
+我需要：1. 修复当前的并发问题（短期方案：使用线程安全的方式访问集合）2. 长期方案：重构 Stage.SyncEntityViews 使用事件驱动而不是直接遍历 Entities让我先修复当前的并发问题。我之前的修复在 `EndOfLogicFrame` 中使用了锁，但实际上问题是主线程的 `SyncEntityViews` 也在遍历这些集合。
+
+一个更好的短期方案是：在 `SyncEntityViews` 中使用快照来遍历，避免直接遍历可能被修改的集合。
+
+我需要验证之前在 `EndOfLogicFrame` 的锁定机制是否真正解决了问题。仔细检查锁的实现和应用场景，确保它能有效防止并发访问冲突。这可能需要深入分析线程同步机制，并进行详细的代码审查。</details></think>
+
+---
+
+**找到根本原因了！**
+
+`Stage.SyncEntityViews()` 在**主线程**中直接遍历 `World.Entities`，而逻辑线程同时在修改它。这违反了您说的架构原则。
+
+您完全正确：**View 层不应该直接访问 Logic 层的集合**。
+
+让我修复这个问题。短期方案是在 Stage 中使用安全的快照方式：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+**Chunk 1**
+Lines added: 9, lines removed: 1
+
+```diff
+@@ -205,7 +205,15 @@
+              
+              // 1. 创建少的：遍历所有 Entity，如果不存在对应的 EntityView，则创建
++             // 线程安全：复制实体列表快照，避免遍历时集合被逻辑线程修改
+              if (world.Entities != null)
+              {
+-                 foreach (var entity in world.Entities.Values)
++                 Entity[] entitiesSnapshot;
++                 lock (world.Entities)
++                 {
++                     entitiesSnapshot = new Entity[world.Entities.Count];
++                     world.Entities.Values.CopyTo(entitiesSnapshot, 0);
++                 }
++                 
++                 foreach (var entity in entitiesSnapshot)
+                  {
+                      if (entity == null || entity.IsDestroyed) continue;
+```
+
+**Chunk 2**
+Lines added: 9, lines removed: 1
+
+```diff
+@@ -227,7 +235,15 @@
+              
+              // 1.5. 检查 ShadowWorld 中的影子实体，如果是玩家实体且 View 不存在，则创建 View
++             // 线程安全：复制实体列表快照
+              if (_room?.ShadowWorld != null &amp;&amp; _room.ShadowWorld.Entities != null)
+              {
+-                 foreach (var entity in _room.ShadowWorld.Entities.Values)
++                 Entity[] shadowEntitiesSnapshot;
++                 lock (_room.ShadowWorld.Entities)
++                 {
++                     shadowEntitiesSnapshot = new Entity[_room.ShadowWorld.Entities.Count];
++                     _room.ShadowWorld.Entities.Values.CopyTo(shadowEntitiesSnapshot, 0);
++                 }
++                 
++                 foreach (var entity in shadowEntitiesSnapshot)
+                  {
+                      if (entity == null || entity.IsDestroyed) continue;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在还需要检查 Stage.cs 中是否还有其他地方在遍历 World.Entities。让我搜索一下：</details></think>
+
+---
+
+让我检查 Stage.cs 中是否还有其他地方需要修复：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "\.Entities" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs" • 11 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `if (world.Entities != null)` | L208 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `lock (world.Entities)` | L211 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `entitiesSnapshot = new Entity[world.Entities.Count];` | L213 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `world.Entities.Values.CopyTo(entitiesSnapshot, 0);` | L214 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `if (_room?.ShadowWorld != null && _room.ShadowWorld.Entities != null)` | L238 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `lock (_room.ShadowWorld.Entities)` | L241 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `shadowEntitiesSnapshot = new Entity[_room.ShadowWorld.Entities.Count];` | L243 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `_room.ShadowWorld.Entities.Values.CopyTo(shadowEntitiesSnapshot, 0);` | L244 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `foreach (var entity in _room.MainWorld.Entities.Values)` | L511 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `foreach (var entity in _room.MainWorld.Entities.Values)` | L641 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `foreach (var entity in _room.ShadowWorld.Entities.Values)` | L666 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+还有几个地方需要修复！让我读取这些位置的代码然后修复它们。</details></think>
+
+---
+
+还有几个地方需要修复。让我读取并修复它们：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+这个方法 `ProcessPendingViewEvents` 也需要修复。让我读取更多上下文然后修复它。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+这个方法也需要修复。让我找到方法的结束位置然后修复整个方法。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我需要修复 `ProcessViewEvents` 方法。让我进行替换：</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+**Chunk 1**
+Lines added: 9, lines removed: 1
+
+```diff
+@@ -507,7 +507,15 @@
+              
+              int totalEventsProcessed = 0;
++             
++             // 线程安全：复制实体列表快照，避免遍历时集合被逻辑线程修改
++             Entity[] entitiesSnapshot;
++             lock (_room.MainWorld.Entities)
++             {
++                 entitiesSnapshot = new Entity[_room.MainWorld.Entities.Count];
++                 _room.MainWorld.Entities.Values.CopyTo(entitiesSnapshot, 0);
++             }
+              
+              // 遍历所有 Entity，检查是否有待处理的视图事件
+-             foreach (var entity in _room.MainWorld.Entities.Values)
++             foreach (var entity in entitiesSnapshot)
+              {
+                  if (entity == null || !entity.HasPendingViewEvents)
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在修复另外两个位置（639和666行附近），它们在遍历实体并检查脏组件。这个实际上更符合用户说的问题：View 层不应该直接访问脏组件。让我看看那部分代码是做什么的：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+这里有个大问题！`SyncDirtyComponents()` 方法：1. 在**主线程**中直接访问 Logic 层的 `entity.GetDirtyComponentIds()`
+2. 在主线程中调用 `entity.ClearDirtyComponents()`，修改 Logic 层的状态！这完全违反了多线程架构的原则！**View 层不应该**：
+1. 直接读取 Logic 层的脏标记2. 修改 Logic 层的状态（ClearDirtyComponents）
+
+根据用户的正确理解，这个方法应该被**重构**：
+- View 层应该通过 **ViewRead 双缓冲**来获取更新的数据- Logic 层的脏标记应该只在 Logic 层内部使用和清理
+
+在 `ViewReadFrameSync.EndOfLogicFrame` 中：
+1. Logic 层遍历脏组件2. 导出到 ViewRead back buffer3. 调用 swap4. **应该在这里清理脏标记**让我检查一下现在脏标记在哪里被清理：</details></think>
+
+---
+
+这里有个**严重的架构问题**！`SyncDirtyComponents()` 方法：
+1. 在**主线程**直接访问 Logic 层的脏标记
+2. 在主线程调用 `entity.ClearDirtyComponents()` 修改 Logic 层状态！
+
+**这完全违反了多线程架构原则！**
+
+您说得对：View 层应该通过 ViewRead 来判断数据更新，而不是直接访问 Logic 层的脏标记。
+
+让我检查这个方法是否被使用，以及如何修复：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SyncDirtyComponents" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView" • 6 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `using (new ProfileScope("Stage.SyncDirtyComponents"))` | L484 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `SyncDirtyComponents();` | L486 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `private void SyncDirtyComponents()` | L644 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `entityView.SyncDirtyComponents(dirtyComponentIds);` | L661 |
+| `AstrumProj/Assets/Script/AstrumView\Core\Stage.cs` | `entityView.SyncDirtyComponents(dirtyComponentIds);` | L683 |
+| `AstrumProj/Assets/Script/AstrumView\Core\EntityView.cs` | `public void SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)` | L396 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+这个 `SyncDirtyComponents` 在 Stage.Update 中被调用。这是一个需要重构的地方，但现在为了快速修复并发问题，我应该：
+
+1. **短期方案**：禁用这个方法，因为它违反了架构原则
+2. **或者**：让它使用 ViewRead 来同步数据，而不是直接访问 Logic 层
+
+实际上，在 ViewRead 双缓冲架构下：
+- Logic 层在帧末通过 `ViewReadFrameSync.EndOfLogicFrame` 将脏组件导出到 ViewRead
+- View 层应该通过 `ViewReadStore.ReadFront<T>()` 来读取数据
+- 不需要再通过 dirtyComponentIds 来通知 View 层
+
+让我看看 `EntityView.SyncDirtyComponents` 做了什么：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到这里有两条同步路径：
+
+**旧路径（非线程安全）**：
+1. Logic 层标记组件为脏
+2. 主线程的 Stage.Update → SyncDirtyComponents → EntityView.SyncDirtyComponents → ViewComponent.SyncDataFromComponent
+3. ViewComponent 直接访问 Logic 组件读取数据（非线程安全！）
+
+**新路径（ViewRead 双缓冲，线程安全）**：
+1. Logic 层标记组件为脏
+2. Logic 帧末 ViewReadFrameSync.EndOfLogicFrame → 导出到 back buffer → swap
+3. 主线程的 ViewComponent 通过 ViewReadStore.ReadFront 读取 front buffer（线程安全！）
+
+问题是现在两条路径都存在，而旧路径不是线程安全的。
+
+**短期方案**：禁用 `Stage.SyncDirtyComponents()`，因为：
+1. 它直接访问 Logic 层的脏标记（非线程安全）
+2. 它在主线程清理 Logic 层的脏标记（非线程安全）
+3. ViewRead 双缓冲已经可以完成同样的功能
+
+让我检查一下 ViewComponent.SyncDataFromComponent 是怎么实现的，以及是否已经迁移到使用 ViewRead：</details></think>
+
+---
+
+我理解了。现在有两条同步路径：
+1. **旧路径**（非线程安全）：通过 dirtyComponentIds 直接访问 Logic 组件
+2. **新路径**（ViewRead 双缓冲）：线程安全
+
+让我检查 ViewComponent 是否已经迁移到使用 ViewRead：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SyncDataFromComponent|ReadFront" in "d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components" • 7 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Components\PredictedMovementViewComponent.cs` | `public override void SyncDataFromComponent(int componentTypeId)` | L73 |
+| `AstrumProj/Assets/Script/AstrumView/Components\ProjectileViewComponent.cs` | `public override void SyncDataFromComponent(int componentTypeId)` | L114 |
+| `AstrumProj/Assets/Script/AstrumView/Components\HUDViewComponent.cs` | `SyncDataFromComponent(0);` | L49 |
+| `AstrumProj/Assets/Script/AstrumView/Components\HUDViewComponent.cs` | `public override void SyncDataFromComponent(int componentTypeId)` | L70 |
+| `AstrumProj/Assets/Script/AstrumView/Components\HUDViewComponent.cs` | `ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: OwnerEntity or World is null");` | L74 |
+| `AstrumProj/Assets/Script/AstrumView/Components\HUDViewComponent.cs` | `ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: Failed to get DynamicStatsComponent ViewRead for entity \{OwnerEntity.UniqueId\}");` | L81 |
+| `AstrumProj/Assets/Script/AstrumView/Components\HUDViewComponent.cs` | `ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: DynamicStatsComponent ViewRead is invalid for entity \{OwnerEntity.UniqueId\}");` | L87 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我看到 `HUDViewComponent.SyncDataFromComponent` 已经使用了 ViewRead：
+```csharp
+// 通过 ViewRead 获取血量数据
+if (!DynamicStatsComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var dynamicRead))
+```这是正确的做法！问题是：
+
+1. 当前 `Stage.SyncDirtyComponents()` 在主线程中遍历 Logic 层的 Entities 和 dirtyComponentIds
+2. 同时逻辑线程可能在修改这些集合
+3. 导致 `InvalidOperationException: Collection was modified`
+
+最简单的修复方案是：**禁用 Stage.SyncDirtyComponents()**，因为：
+1. ViewRead 双缓冲机制已经能正确同步数据2. ViewComponent 在 Update 中每帧都会读取 ViewRead，不需要通过脏标记触发
+
+但是这可能会影响一些依赖脏标记触发更新的 ViewComponent。让我先做一个短期修复：在 `SyncDirtyComponents` 中使用快照来遍历集合，避免并发问题。然后在后续可以完全移除这个方法。</details></think>
+
+---
+
+好的，`HUDViewComponent` 已经正确使用 ViewRead。问题是 `Stage.SyncDirtyComponents()` 仍然在主线程访问 Logic 层的脏标记。
+
+**最佳方案**：禁用这个方法，因为 ViewRead 双缓冲已经能正确同步数据。但短期内先用快照修复并发问题：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+**Chunk 1**
+Lines added: 14, lines removed: undefined
+
+```diff
+@@ -641,7 +641,21 @@
+          /// &lt;summary&gt;
+          /// 同步所有 Entity 的脏组件
++         /// 
++         /// 注意：在多线程模式下，此方法已被弃用！
++         /// View 层应该通过 ViewRead 双缓冲来获取数据更新，而不是直接访问 Logic 层的脏标记。
++         /// Logic 层的脏标记现在由 ViewReadFrameSync.EndOfLogicFrame 在逻辑线程中处理。
++         /// 
++         /// TODO: 后续应完全移除此方法，改为纯 ViewRead 驱动的更新模式。
+          /// &lt;/summary&gt;
+          private void SyncDirtyComponents()
+          {
++             // 多线程模式下跳过此方法：脏标记由逻辑线程处理，View 层通过 ViewRead 获取数据
++             // 直接访问 Logic 层的 dirtyComponentIds 和 ClearDirtyComponents 在多线程下不安全
++             if (Astrum.Client.Core.GameApplication.Instance?.EnableLogicThread == true)
++             {
++                 return;
++             }
++             
++             // 单线程模式下保持原有逻辑（向后兼容）
+              // 同步 MainWorld 中的实体（只处理没有影子的实体）
+              if (_room?.MainWorld != null)
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在还需要确保逻辑线程在帧末清理脏标记。让我检查 ViewReadFrameSync.EndOfLogicFrame 是否在导出后清理脏标记：</details></think>
+
+---
+
+现在需要确保 Logic 层在帧末清理脏标记。让我检查并添加：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ViewRead\ViewReadFrameSync.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要在 `EndOfLogicFrame` 结束时清理脏标记。这样才能正确完成 ViewRead 双缓冲的工作流程：
+
+1. Logic 更新 → 标记组件为脏
+2. 帧末 → 导出脏组件到 ViewRead back buffer
+3. 帧末 → swap buffers
+4. 帧末 → **清理脏标记**
+
+让我添加清理脏标记的逻辑：</details></think>
+
+---
+
+需要在 Logic 帧末清理脏标记：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ViewRead\ViewReadFrameSync.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -99,4 +99,7 @@
+                      // 未注册的组件静默跳过（还未迁移的组件）
+                  }
++                 
++                 // 在逻辑线程中清理脏标记（线程安全）
++                 entity.ClearDirtyComponents();
+              }
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在编译验证一下：</details></think>
+
+---
+
+编译验证：
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+编译失败了，让我检查错误：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: c:\Users\Lavender\.cursor\projects\d-Develop-Projects-Astrum-Astrum-code-workspace\agent-tools\cc6405e5-d27a-4c0f-bee7-ad51ca73e842.txt</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+错误在第89行：`dirtyIds.CopyTo(dirtyIdsCopy, 0)` - IReadOnlyCollection<int> 没有 CopyTo 方法。我需要使用 LINQ 或者其他方式来复制集合。</details></think>
+
+---
+
+`IReadOnlyCollection<int>` 没有 `CopyTo` 方法。让我修复：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\ViewRead\ViewReadFrameSync.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 2
+
+```diff
+@@ -86,6 +86,5 @@
+                  lock (dirtyIds)
+                  {
+-                     dirtyIdsCopy = new int[dirtyIds.Count];
+-                     dirtyIds.CopyTo(dirtyIdsCopy, 0);
++                     dirtyIdsCopy = System.Linq.Enumerable.ToArray(dirtyIds);
+                  }
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在重新编译。</details></think>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我查看错误：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "error" in "c:\Users\Lavender\.cursor\projects\d-Develop-Projects-Astrum-Astrum-code-workspace\agent-tools\739225af-5ab3-4fe6-82e6-623db77fe161.txt" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `c:/Users/Lavender/.cursor/projects/d-Develop-Projects-Astrum-Astrum-code-workspace/agent-tools/739225af-5ab3-4fe6-82e6-623db77fe161.txt` | `D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs(654,17): error CS0234: 命名空间“Astrum”中不存在类型或命名空间名“Client”(是否缺少程序集引用?) [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]` | L61 |
+| `c:/Users/Lavender/.cursor/projects/d-Develop-Projects-Astrum-Astrum-code-workspace/agent-tools/739225af-5ab3-4fe6-82e6-623db77fe161.txt` | `D:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs(654,17): error CS0234: 命名空间“Astrum”中不存在类型或命名空间名“Client”(是否缺少程序集引用?) [D:\Develop\Projects\Astrum\AstrumProj\AstrumView.csproj]` | L131 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+AstrumView 项目无法引用 AstrumClient 的命名空间。这是因为它们是独立的程序集，AstrumView 不依赖于 AstrumClient。我需要用另一种方式来检查是否启用了逻辑线程。
+
+最简单的方法是在 AstrumView 项目中不检查 `GameApplication.Instance.EnableLogicThread`，而是创建一个接口或者使用 LogicThread 是否存在来判断。或者，我可以在 AstrumView 中添加一个配置标志。
+
+更简单的方案：让 Room 暴露一个属性来表示当前是否在多线程模式下运行，这样 AstrumView 只需要访问 Logic 层（它已经依赖）。</details></think>
+
+---
+
+`AstrumView` 项目不能引用 `AstrumClient`。让我用另一种方式：检查 `LogicThread` 是否存在。我需要在 Room 中添加一个属性：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要一个更简单的方法来解决这个问题。AstrumView 不能引用 AstrumClient，所以我不能直接检查 GameApplication.EnableLogicThread。更简单的方案是：在多线程模式下，直接跳过 SyncDirtyComponents，因为：
+1. ViewRead 双缓冲已经能正确同步数据
+2. ViewComponent 在 Update 中每帧都会读取 ViewRead
+
+最简单的方法是：让 Stage.SyncDirtyComponents() 完全不运行（用一个静态开关控制）。或者更好的方法是：让 Room 暴露一个 IsMultiThreadMode 属性。</details></think>
+
+---
+
+让我用更简单的方式：在 Room 中添加一个标志属性：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumLogic\Core\Room.cs</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 1
+
+```diff
+@@ -84,5 +84,11 @@
+  
+          public long MainPlayerId { get; set; } = -1;
+- 
++         
++         /// &lt;summary&gt;
++         /// 是否启用多线程模式（由 GameMode 设置）
++         /// 在多线程模式下，View 层不应直接访问 Logic 层的脏标记
++         /// &lt;/summary&gt;
++         public bool IsMultiThreadMode { get; set; } = false;
++ 
+          public Room()
+          {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在修改 Stage.cs 使用 Room.IsMultiThreadMode 而不是 GameApplication.Instance.EnableLogicThread：</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Core\Stage.cs</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -652,5 +652,5 @@
+              // 多线程模式下跳过此方法：脏标记由逻辑线程处理，View 层通过 ViewRead 获取数据
+              // 直接访问 Logic 层的 dirtyComponentIds 和 ClearDirtyComponents 在多线程下不安全
+-             if (Astrum.Client.Core.GameApplication.Instance?.EnableLogicThread == true)
++             if (_room?.IsMultiThreadMode == true)
+              {
+                  return;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在需要在 GameMode 启动 LogicThread 时设置 Room.IsMultiThreadMode = true。让我修改 BaseGameMode.StartLogicThread 方法：</details></think>
+
+---
+
+现在在 `BaseGameMode.StartLogicThread` 中设置这个标志：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumClient\Managers\GameModes\BaseGameMode.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -158,4 +158,7 @@
+              try
+              {
++                 // 设置多线程模式标志，通知 View 层不要直接访问 Logic 层的脏标记
++                 room.IsMultiThreadMode = true;
++                 
+                  _logicThread = new LogicThread(room, LogicThreadTickRate);
+                  _logicThread.OnError += OnLogicThreadError;
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -167,4 +170,5 @@
+              {
+                  ASLogger.Instance.Error($"{ModeName}: 启动逻辑线程失败 - {ex.Message}");
++                 room.IsMultiThreadMode = false;
+                  _logicThread = null;
+                  return false;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在重新编译验证：</details></think>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+编译成功了。现在让我总结一下修复的内容。</details></think>
+
+---
+
+编译成功！总结修复的内容：
+
+## 修复内容
+
+### 1. 线程安全问题修复
+
+**问题**：主线程（View层）直接访问 Logic 层的集合，导致并发修改异常。
+
+**修复**：
+1. **`ViewReadFrameSync.EndOfLogicFrame`**：使用快照遍历 `World.Entities` 和 `dirtyIds`
+2. **`Stage.SyncEntityViews`**：使用快照遍历实体集合
+3. **`Stage.ProcessViewEvents`**：使用快照遍历实体集合
+4. **`Stage.SyncDirtyComponents`**：在多线程模式下完全跳过（脏标记由逻辑线程处理）
+
+### 2. 架构改进
+
+**您的观点完全正确**：View 层不应直接访问 Logic 层的脏标记。
+
+**改进**：
+1. 在 Logic 帧末 (`ViewReadFrameSync.EndOfLogicFrame`) 中清理脏标记
+2. 添加 `Room.IsMultiThreadMode` 标志
+3. 在多线程模式下，`Stage.SyncDirtyComponents` 不再访问 Logic 层
+
+### 3. 正确的数据流
+
+```
+多线程模式：
+Logic 线程: MarkDirty → EndOfLogicFrame → Export to ViewRead back → swap → ClearDirty
+View 线程:  ViewComponent.Update → ReadFront<T>() → 获取数据
+
+单线程模式（向后兼容）：
+保持原有逻辑
+```
+
+---
+
+请激活 Unity 并测试。如果仍有问题，可能需要检查其他地方是否有类似的并发访问。
+
+---
+
+_**User (2025-12-24 02:30Z)**_
+
+这回移动出问题了
+
+---
+
+_**Agent (model claude-4.5-opus-high-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+用户说移动出问题了。这可能是因为在多线程模式下，View 层通过 ViewRead 获取移动数据时出现了问题。让我检查一下 MovementComponent 和相关的 ViewRead 实现。
+
+首先，让我看看 PredictedMovementViewComponent，因为之前看到它有 SyncDataFromComponent 方法。</details></think>
+
+---
+
+让我检查移动相关的 ViewComponent 是否正确使用了 ViewRead：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\Develop\Projects\Astrum\AstrumProj\Assets\Script\AstrumView\Components\PredictedMovementViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>
+这个组件看起来没问题，它正确地使用了 ViewRead 获取数据。让我检查 MovementComponent 和 TransComponent 的 ViewRead 实现，看看是否有问题。
+
+用户说移动出问题了，可能是：
+1. ViewRead 没有正确更新
+2. MovementComponent 没有标记脏
+3. 逻辑线程和主线程之间的数据同步问题
+
+让我检查 MovementComponent 的 ViewRead 导出逻辑：</details></think>
+
+---
+
+让我检查 MovementComponent 的 ViewRead 导出和脏组件标记：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="codebase_search">
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MarkComponentDirty" in "AstrumProj/Assets/Script/AstrumLogic/Components/MovementComponent.cs" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+MovementComponent 没有 MarkComponentDirty 调用！这可能是问题所在。让我检查 MovementComponent 文件来确认：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Components/MovementComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到 MovementComponent 没有调用 MarkComponentDirty。让我检查一下这个组件的 ViewRead 是如何定义的：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MovementComponent.*ViewRead" in "AstrumProj/Assets/Script/AstrumLogic" • 4 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic\Components\MovementComponent.ViewRead.cs` | `ViewReadFrameSync.Register<MovementComponent, ViewRead>(` | L23 |
+| `AstrumProj/Assets/Script/AstrumLogic\Components\MovementComponent.ViewRead.cs` | `$"MovementComponent.ViewRead [EntityId=\{EntityId\}, Speed=\{Speed.AsFloat():F2\}, CanMove=\{CanMove\}, CurrentMovementType=\{CurrentMovementType\}, MoveDirection=(\{MoveDirection.x.AsFloat():F2\}, \{MoveDirection.y.AsFloat():F2\}, \{MoveDirection.z.AsFloat():F2\})]" :` | L66 |
+| `AstrumProj/Assets/Script/AstrumLogic\Components\MovementComponent.ViewRead.cs` | `$"MovementComponent.ViewRead [EntityId=\{EntityId\}, Invalid]";` | L67 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\World.cs` | `var moveVr = Components.MovementComponent.ViewRead.Invalid(entityId);` | L243 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "class MovementComponentViewReadExporter" in "AstrumProj/Assets/Script/AstrumLogic" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我看看 MovementComponent.ViewRead.cs 的内容，看看它是如何导出数据的。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Components/MovementComponent.ViewRead.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我明白了！MovementComponent 有 ViewRead 支持，但问题是：
+
+1. ViewRead 的数据是通过 ViewReadFrameSync.EndOfLogicFrame 导出的
+2. 导出时需要 Entity 有脏组件标记（MarkComponentDirty）
+3. 但是 MovementComponent 的修改没有调用 MarkComponentDirty!
+
+让我看看 MovementCapability 是如何修改 MovementComponent 的：</details></think>
+
+---
+
+让我检查 MovementCapability 是否有调用 MarkComponentDirty：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "MarkComponentDirty" in "AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs" • 8 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `entity.MarkComponentDirty(TransComponent.ComponentTypeId);` | L72 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `entity.MarkComponentDirty(TransComponent.ComponentTypeId);` | L83 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `entity.MarkComponentDirty(MovementComponent.ComponentTypeId);` | L127 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `entity.MarkComponentDirty(TransComponent.ComponentTypeId);` | L178 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `entity.MarkComponentDirty(MovementComponent.ComponentTypeId);` | L185 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `entity.MarkComponentDirty(TransComponent.ComponentTypeId);` | L238 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `//ASLogger.Instance.Info("MoveCap: MarkComponentDirty: <UNK>");` | L239 |
+| `AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs` | `entity.MarkComponentDirty(MovementComponent.ComponentTypeId);` | L272 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Capabilities/MovementCapability.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+MovementCapability 在以下几个地方调用了 MarkComponentDirty(MovementComponent.ComponentTypeId):
+- 第127行：当 CurrentMovementType 变为 PlayerInput 时
+- 第185行：当设置 MoveDirection 时
+- 第272行：当本帧没有移动，重置 CurrentMovementType 为 None 时
+
+但是关键问题是 TransComponent！看第178行和238行，TransComponent 被标记为脏。让我检查 TransComponent 的 ViewRead 导出是否正常工作。
+
+但是让我先检查最主要的问题：ViewReadFrameSync.EndOfLogicFrame 在哪里被调用？如果它不被调用，那么 ViewRead 数据就不会被导出。</details></think>
+
+---
+
+让我检查 ViewReadFrameSync.EndOfLogicFrame 的调用时机：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "EndOfLogicFrame" in "AstrumProj/Assets/Script/AstrumLogic" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic\ViewRead\ViewReadFrameSync.cs` | `public static void EndOfLogicFrame(World world)` | L60 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\Room.cs` | `ViewReadFrameSync.EndOfLogicFrame(ShadowWorld);` | L279 |
+| `AstrumProj/Assets/Script/AstrumLogic\Core\World.cs` | `ViewReadFrameSync.EndOfLogicFrame(this);` | L302 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+EndOfLogicFrame 被调用的位置：
+1. Room.cs 第279行：FrameTickShadow 结尾调用 ViewReadFrameSync.EndOfLogicFrame(ShadowWorld)
+2. World.cs 第302行：调用 ViewReadFrameSync.EndOfLogicFrame(this)
+
+让我检查 Room.cs 的 FrameTickShadow 方法以及 World.cs 中的调用，看看是否有问题：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/World.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Room.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到 ViewReadFrameSync.EndOfLogicFrame 在两个地方被调用：
+1. World.LogicUpdate() 结尾（主世界）
+2. Room.FrameTickShadow 结尾（影子世界）
+
+但是等等，PredictedMovementViewComponent 使用的是 `OwnerEntity.World` 来读取 ViewRead。这是 ShadowWorld 还是 MainWorld？让我检查 EntityView 的 OwnerEntity 属于哪个 World。
+
+问题可能是这样的：
+1. 如果 View 层访问的是 MainWorld，但 MainWorld 的组件没有变脏，那么 ViewRead 就不会更新
+2. 如果 View 层访问的是 ShadowWorld，那么 ShadowWorld 的组件脏标记也需要正确设置
+
+让我再看看 PredictedMovementViewComponent 中如何获取 entity.World，以及该 World 的 ViewReads 是否正确：</details></think>
+
+---
+
+让我检查 EntityView 中的 OwnerEntity 是来自哪个 World：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "OwnerEntity" in "AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `public Entity OwnerEntity` | L48 |
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `component.OwnerEntityView = this;` | L216 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我检查 EntityView.OwnerEntity 属性的完整实现：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我继续看 TryGetShadowEntity 和 ShouldSwitchToShadow 的实现：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好了，现在我理解了问题的核心：
+
+1. `OwnerEntity` 会优先返回 ShadowWorld 中的影子实体（如果存在）
+2. `PredictedMovementViewComponent` 中调用 `OwnerEntity.World` 会返回 `ShadowWorld`
+3. 问题是 ViewRead 数据需要从 ShadowWorld 读取
+
+我需要检查：
+1. ShadowWorld 的 ViewReadStore 是否正确初始化
+2. EndOfLogicFrame 是否正确导出 ShadowWorld 的数据
+3. TryGetViewRead 是否正确从 ShadowWorld 读取
+
+让我看看 World 中 ViewReads 是如何初始化的：</details></think>
+
+---
+
+让我检查 World 中的 ViewReads 初始化：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "ViewReads" in "AstrumProj/Assets/Script/AstrumLogic/Core/World.cs" • 8 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `public ViewReadStore ViewReads \{ get; private set; \}` | L101 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `ViewReads = new ViewReadStore();` | L114 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `ViewReads = new ViewReadStore();` | L139 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `if (ViewReads != null)` | L238 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `ViewReads.WriteBack(entityId, Components.TransComponent.ComponentTypeId, in transVr);` | L241 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `ViewReads.WriteBack(entityId, Components.MovementComponent.ComponentTypeId, in moveVr);` | L244 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `ViewReads.WriteBack(entityId, Components.ActionComponent.ComponentTypeId, in actionVr);` | L247 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/World.cs` | `ViewReads?.Clear();` | L521 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+World.ViewReads 在构造函数和 Reset() 方法中都会初始化为 new ViewReadStore()。现在让我检查 ViewReadFrameSync.EndOfLogicFrame 中是否有任何问题，以及它是否正确处理 ShadowWorld：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/ViewRead/ViewReadFrameSync.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+问题找到了！在第86行：
+
+```csharp
+lock (dirtyIds)
+```
+
+这里锁的是 `dirtyIds`（GetDirtyComponentIds() 返回的 IReadOnlyCollection），但是实际应该锁 `entity.DirtyComponentIdsLock`！
+
+让我也检查一下 Entity 类中的 GetDirtyComponentIds 和 DirtyComponentIdsLock：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "DirtyComponentIds|GetDirtyComponentIds|ClearDirtyComponents|MarkComponentDirty" in "AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs" • 5 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `MarkComponentDirty(typeId);` | L362 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `MarkComponentDirty(typeId);` | L375 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `public void MarkComponentDirty(int componentTypeId)` | L549 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `public IReadOnlyCollection<int> GetDirtyComponentIds()` | L558 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `public void ClearDirtyComponents()` | L594 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我看看这些方法的完整实现：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我明白了问题！Entity 类中的脏组件相关方法没有线程安全保护：
+
+1. `MarkComponentDirty` - 没有 lock
+2. `GetDirtyComponentIds` - 返回原始集合
+3. `ClearDirtyComponents` - 没有 lock
+
+而且在 ViewReadFrameSync.EndOfLogicFrame 中的 lock 锁的是返回的 IReadOnlyCollection（实际上就是 HashSet 本身），但其他地方修改 HashSet 时没有用同一个锁。
+
+但是现在的问题是 **移动出问题了**，这可能不是线程安全问题，而是数据更新的问题。让我再仔细看看...
+
+用户说"移动出问题了"，可能的原因：
+1. TransComponent 的 ViewRead 没有正确更新
+2. MovementComponent 的 ViewRead 没有正确更新
+3. 逻辑线程的帧率问题
+4. 主世界和影子世界的数据不同步
+
+让我检查 TransComponent 的 ViewRead 是否正确实现：</details></think>
+
+---
+
+让我检查 TransComponent 的 ViewRead 实现：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Components/TransComponent.ViewRead.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+TransComponent 的 ViewRead 看起来正确实现了。让我检查一下问题可能出在哪里：1. 逻辑线程运行时是否正确更新 MainWorld 和 ShadowWorld？
+2. 移动组件脏标记是否被正确设置？
+3. ViewReadFrameSync.EndOfLogicFrame 是否正确被调用？让我检查 Room.Update 和 LogicThread 的调用链：</details></think>
+
+---
+
+让我检查 Room.Update 的实现，看看逻辑线程如何调用它：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Room.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Room.Update 正确调用 LSController.Tick()。让我检查 LogicThread 中的调用：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/LogicThread.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我看到 LogicThread 调用 `_room?.Update(0)`，deltaTime 为 0。这可能没问题因为 LSController.Tick() 不使用这个参数。
+
+让我看看 ClientLSController.Tick() 的实现，看看预测帧是如何处理的：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到 ClientLSController.Tick() 的逻辑：
+1. ProcessPendingInputs() - 处理网络输入队列
+2. 权威帧处理（MainWorld）
+3. 预测帧处理（ShadowWorld）
+
+预测帧是基于时间戳来判断的（第146行）：
+```csharp
+if (currentTime < CreationTime + (PredictionFrame + 1) * LSConstValue.UpdateInterval)
+{
+    return;
+}
+```
+
+这个时间戳判断确保预测帧按正确的时间间隔进行。但是 LogicThread 调用 Room.Update(0) 而不是正确的 deltaTime，而这对时间戳判断没有影响。
+
+让我检查问题是否在 SimulateShadow 中：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SimulateShadow" in "AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs` | `SimulateShadow(PredictionFrame, oneOneFrameInputs);` | L177 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs` | `private void SimulateShadow(int frame, OneFrameInputs inputs)` | L585 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/ClientLSController.cs` | `SimulateShadow(frame, inputs);` | L601 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+`SimulateShadow` 调用 `Room.FrameTickShadow`。让我看看完整的 FrameTickShadow：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Room.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到 FrameTickShadow 在末尾调用 `ViewReadFrameSync.EndOfLogicFrame(ShadowWorld)`，这应该正确导出脏组件的 ViewRead。问题可能在于：
+1. 主线程读取 ViewRead 的时机2. SwapAllIfWritten 的工作方式让我检查 ViewReadStore.TryGet 是如何读取数据的：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/ViewRead/ViewReadStore.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+ViewReadStore 使用双缓冲。让我看看 ViewReadDoubleBuffer：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/ViewRead/ViewReadDoubleBuffer.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+ViewReadDoubleBuffer 的机制：
+- View 层读取 `_front` 字典
+- 逻辑层写入 `_back` 字典
+- `SwapIfWritten()` 交换 front 和 back这意味着：
+1. 逻辑线程调用 `WriteBack()` 写入 `_back`
+2. 逻辑帧结束时调用 `SwapIfWritten()` 交换缓冲区
+3. 主线程读取 `TryGetFront()` 从新的 `_front` 读取但是等等！这里有一个严重的线程安全问题：- `TryGetFront()` 读取 `_front` 字典
+- `SwapIfWritten()` 中 `_front = _back; _back = tmp;` 交换引用这意味着如果主线程正在遍历 `_front`，而逻辑线程同时进行 `SwapIfWritten()`，`_front` 引用会被改变，导致主线程接下来访问的是旧的 `_back` 字典！但是...用户反馈的是"移动出问题了"，不是异常。让我再思考一下...
+
+其实双缓冲的设计是这样的：
+- 交换后，`_front` 指向的是之前的 `_back`（包含新数据）
+- 旧的 `_front` 变成新的 `_back`
+- 如果主线程正在读取旧的 `_front`（通过缓存的引用），它读到的是旧数据，不会崩溃
+
+
+- 下一次读取时会读到新的 `_front`，数据延迟一帧
+
+我需要深入分析"移动出问题了"的具体原因。可能性包括角色不移动、位置异常或移动延迟。接下来我将检查 PredictedMov 相关逻辑，找出问题所在。
+
+现在我关注 OwnerEntity.World 是 MainWorld 还是 ShadowWorld，因为这可能影响实体移动的正确性。</details></think>
+
+---
+
+让我仔细检查一下问题。用户说"移动出问题了"，让我看看 PredictedMovementViewComponent 的 OnUpdate 方法中使用的是哪个 World：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Components/PredictedMovementViewComponent.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+在 OnUpdate 中：
+1. `var entity = OwnerEntity;` - 这会获取影子实体（如果存在）或主实体
+2. `TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transRead)` - 使用 entity.World 读取 ViewRead问题可能是：1. 如果 entity 是 ShadowWorld 中的影子实体，那么 entity.World 是 ShadowWorld2. 但是影子世界的 ViewRead 是否被正确初始化？让我验证 ShadowWorld 的 ViewReads 是否正确工作。让我也检查一下可能的问题：在多线程模式下，EntityView.OwnerEntity 属性访问 Room.ShadowWorld，这可能导致竞态条件。
+
+等等，让我重新阅读用户的问题。用户说"这回移动出问题了"——这意味着之前的修复可能引入了新问题。我需要检查我做的哪些修改可能影响到移动。
+
+之前的修改：
+1. Entity 的脏组件管理添加了锁（但是我发现当前代码没有锁）
+2. ViewReadFrameSync.EndOfLogicFrame 中添加了快照和锁3. Stage.cs 中添加了快照和锁，并注释掉了 SyncDirtyComponents让我检查 Stage.cs 中注释掉 SyncDirtyComponents 是否有影响：</details></think>
+
+---
+
+让我检查 Stage.SyncDirtyComponents 是否被注释掉，以及这是否影响了移动：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SyncDirtyComponents" in "AstrumProj/Assets/Script/AstrumView/Core/Stage.cs" • 5 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `using (new ProfileScope("Stage.SyncDirtyComponents"))` | L484 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `SyncDirtyComponents();` | L486 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `private void SyncDirtyComponents()` | L650 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `entityView.SyncDirtyComponents(dirtyComponentIds);` | L675 |
+| `AstrumProj/Assets/Script/AstrumView/Core/Stage.cs` | `entityView.SyncDirtyComponents(dirtyComponentIds);` | L697 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到 SyncDirtyComponents 并没有被完全注释掉！它检查 `_room?.IsMultiThreadMode == true` 来跳过。但是我发现问题了：`_room?.IsMultiThreadMode` 这个属性是否正确设置？让我检查 Room 类是否有这个属性：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "IsMultiThreadMode|IsLogicThreadActive" in "AstrumProj/Assets/Script/AstrumLogic/Core/Room.cs" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Room.cs` | `public bool IsMultiThreadMode \{ get; set; \} = false;` | L91 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Room 中有 `IsMultiThreadMode` 属性。让我检查 BaseGameMode 中是否设置了这个属性：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "IsMultiThreadMode|IsLogicThreadActive" in "AstrumProj/Assets/Script/AstrumClient/Managers/GameModes" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes\BaseGameMode.cs` | `room.IsMultiThreadMode = true;` | L161 |
+| `AstrumProj/Assets/Script/AstrumClient/Managers/GameModes\BaseGameMode.cs` | `room.IsMultiThreadMode = false;` | L172 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+看起来 IsMultiThreadMode 是被正确设置的。让我检查完整的 StartLogicThread 和 StopLogicThread 方法：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumClient/Managers/GameModes/BaseGameMode.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+代码看起来是正确的。让我检查一下多线程模式下 SyncDirtyComponents 的完整实现，看看它是否正确跳过：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/Stage.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我发现问题了！在多线程模式下：1. `SyncDirtyComponents()` 直接返回，不做任何事情2. 这意味着 `entityView.SyncDirtyComponents(dirtyComponentIds)` 不会被调用这会影响到 ViewComponent 的 `SyncDataFromComponent` 方法的调用吗？让我看看 EntityView.SyncDirtyComponents 做什么：</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SyncDirtyComponents" in "AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs` | `public void SyncDirtyComponents(IReadOnlyCollection<int> dirtyComponentIds)` | L396 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+让我看完整的 EntityView.SyncDirtyComponents 方法：</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumView/Core/EntityView.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我明白了！问题在这里：1. 在多线程模式下，`Stage.SyncDirtyComponents()` 直接返回
+2. 这导致 `EntityView.SyncDirtyComponents()` 不被调用
+3. 因此 `ViewComponent.SyncDataFromComponent()` 不被调用但是在 PredictedMovementViewComponent 中，`SyncDataFromComponent` 是这样实现的：```csharppublic override void SyncDataFromComponent(int componentTypeId)
+{
+    if (OwnerEntity == null)
+        return;
+
+    if (componentTypeId == MovementComponent.ComponentTypeId)
+    {
+        if (!MovementComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var moveRead) || !moveRead.IsValid)
+            return;
+
+        _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
+        _currentMovementTypeCached = moveRead.CurrentMovementType;
+    }
+}```这只是更新缓存的 `_isMovingLogicCached` 和 `_currentMovementTypeCached`。真正读取位置数据是在 `OnUpdate` 中直接通过 ViewRead 获取：```csharpif (!TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transRead) || !transRead.IsValid)
+    return;```
+
+所以问题不应该是 SyncDataFromComponent 不被调用。让我再看看 OnUpdate 中的逻辑...
+
+但是等等！第288行：```csharpif (!TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transRead) || !transRead.IsValid)
+    return;```如果 `transRead.IsValid` 为 false，方法会直接返回！这可能是问题的根源。
+
+我开始追踪 ViewRead 无效的可能原因。可能存在几个关键问题：同步机制可能被中断，导致视图读取状态不正确。需要仔细检查帧同步、组件标记和数据导出流程。关键点在于确保视图读取的完整性和有效性。
+
+我需要检查 EndOfLogicFrame 中的锁同步机制。当前实现存在潜在的线程安全隐患：`dirtyIds` 的锁定不完整，可能导致并发访问和状态不一致。Entity 类中的组件标记和清理操作缺乏统一的同步策略，这可能是根本性问题。</details></think>
+
+---
+
+我发现问题可能在于锁的不一致。让我检查 Entity 类中脏组件的完整实现：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "_dirtyComponentIds"" in "AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs" • 0 matches</summary>
+
+Output mode: content
+
+
+_No matches found_
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "_dirtyComponentIds" in "AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs" • 7 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `private HashSet<int> _dirtyComponentIds = new HashSet<int>();` | L121 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `_dirtyComponentIds.Add(componentTypeId);` | L551 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `return _dirtyComponentIds;` | L560 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `var dirtyComponents = new List<BaseComponent>(_dirtyComponentIds.Count);` | L580 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `foreach (var componentId in _dirtyComponentIds)` | L581 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `_dirtyComponentIds.Clear();` | L596 |
+| `AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs` | `_dirtyComponentIds.Clear();` | L619 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我看到 Entity 类中的脏组件相关方法没有任何锁保护！这就是问题所在：1. `MarkComponentDirty()` 直接操作 `_dirtyComponentIds.Add()`
+2. `GetDirtyComponentIds()` 直接返回 `_dirtyComponentIds`3. `ClearDirtyComponents()` 直接操作 `_dirtyComponentIds.Clear()`而在 ViewReadFrameSync.EndOfLogicFrame 中：```csharplock (dirtyIds){
+    dirtyIdsCopy = System.Linq.Enumerable.ToArray(dirtyIds);}
+```这个 lock 锁的是 `dirtyIds` 对象（即 HashSet），但其他地方修改 HashSet 时没有使用 lock，所以这个 lock 是无效的！解决方案：
+1. 在 Entity 类中添加一个专用的锁对象2. 在 MarkComponentDirty、GetDirtyComponentIds、ClearDirtyComponents 中都使用这个锁
+3. 在 ViewReadFrameSync.EndOfLogicFrame 中也使用这个锁
+
+但是，这可能不是"移动出问题"的主要原因。让我继续排查...实际上，更可能的问题是：TransComponent 的 ViewRead 没有正确导出。让我在用户的环境中验证是否有 TransComponent.ViewRead 的数据。但我现在需要先问用户具体是什么问题——角色不动？位置错误？抖动？
+
+让我先给用户一个回复并询问具体问题，然后再进一步调试。</details></think>
+
+---
+
+能描述一下具体的问题吗？例如：
+1. 角色完全不移动？
+2. 角色移动但位置不正确/抖动？
+3. 角色有延迟？
+4. 其他现象？
+
+同时让我检查一下可能的问题点 - Entity 类中的脏组件管理目前没有线程安全保护：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Entity 类中的 _dirtyComponentIds 没有锁保护。让我先为它添加线程安全支持：</details></think>
+
+---
+
+我发现 Entity 类中的脏组件操作需要添加线程安全保护。让我修复这个问题：
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+我需要为 Entity 类中的脏组件操作添加线程安全锁。让我修复这个问题：</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 1
+
+```diff
+@@ -120,5 +120,11 @@
+          [MemoryPackIgnore]
+          private HashSet&lt;int&gt; _dirtyComponentIds = new HashSet&lt;int&gt;();
+- 
++         
++         /// &lt;summary&gt;
++         /// 脏组件锁对象（多线程模式下保护 _dirtyComponentIds）
++         /// &lt;/summary&gt;
++         [MemoryPackIgnore]
++         private readonly object _dirtyLock = new object();
++ 
+          public Entity()
+          {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在让我更新 MarkComponentDirty、GetDirtyComponentIds、GetDirtyComponents 和 ClearDirtyComponents 方法以使用锁：</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/Core/Entity.cs</summary>
+
+**Chunk 1**
+Lines added: 35, lines removed: 4
+
+```diff
+@@ -550,20 +550,51 @@
+  
+          /// &lt;summary&gt;
+-         /// 记录组件为脏（由 Capability 调用）
++         /// 记录组件为脏（由 Capability 调用，线程安全）
+          /// &lt;/summary&gt;
+          /// &lt;param name="componentTypeId"&gt;组件的 ComponentTypeId&lt;/param&gt;
+          public void MarkComponentDirty(int componentTypeId)
+          {
+-             _dirtyComponentIds.Add(componentTypeId);
+-         }
++             lock (_dirtyLock)
++             {
++                 _dirtyComponentIds.Add(componentTypeId);
++             }
++         }
++         
++         /// &lt;summary&gt;
++         /// 获取所有脏组件 ID 的快照（线程安全）
++         /// &lt;/summary&gt;
++         /// &lt;returns&gt;脏组件 ID 数组快照&lt;/returns&gt;
++         public int[] GetDirtyComponentIdsSnapshot()
++         {
++             lock (_dirtyLock)
++             {
++                 if (_dirtyComponentIds.Count == 0)
++                     return Array.Empty&lt;int&gt;();
++                 var result = new int[_dirtyComponentIds.Count];
++                 _dirtyComponentIds.CopyTo(result);
++                 return result;
++             }
++         }
+          
+          /// &lt;summary&gt;
+-         /// 获取所有脏组件的 ComponentTypeId
++         /// 获取所有脏组件的 ComponentTypeId（原始集合，单线程访问或已外部加锁时使用）
+          /// &lt;/summary&gt;
+          /// &lt;returns&gt;脏组件的 ComponentTypeId 集合&lt;/returns&gt;
++         [Obsolete("多线程环境下请使用 GetDirtyComponentIdsSnapshot() 获取快照")]
+          public IReadOnlyCollection&lt;int&gt; GetDirtyComponentIds()
+          {
+              return _dirtyComponentIds;
+          }
++         
++         /// &lt;summary&gt;
++         /// 检查是否有脏组件（线程安全）
++         /// &lt;/summary&gt;
++         public bool HasDirtyComponents()
++         {
++             lock (_dirtyLock)
++             {
++                 return _dirtyComponentIds.Count &gt; 0;
++             }
++         }
+          
+          /// &lt;summary&gt;
+```
+
+**Chunk 2**
+Lines added: 12, lines removed: 3
+
+```diff
+@@ -579,11 +610,20 @@
+          
+          /// &lt;summary&gt;
+-         /// 获取所有脏组件实例（优化：直接字典查询）
++         /// 获取所有脏组件实例（线程安全）
+          /// &lt;/summary&gt;
+          /// &lt;returns&gt;脏组件实例列表&lt;/returns&gt;
+          public List&lt;BaseComponent&gt; GetDirtyComponents()
+          {
+-             var dirtyComponents = new List&lt;BaseComponent&gt;(_dirtyComponentIds.Count);
+-             foreach (var componentId in _dirtyComponentIds)
++             int[] dirtyIdsCopy;
++             lock (_dirtyLock)
++             {
++                 if (_dirtyComponentIds.Count == 0)
++                     return new List&lt;BaseComponent&gt;();
++                 dirtyIdsCopy = new int[_dirtyComponentIds.Count];
++                 _dirtyComponentIds.CopyTo(dirtyIdsCopy);
++             }
++             
++             var dirtyComponents = new List&lt;BaseComponent&gt;(dirtyIdsCopy.Length);
++             foreach (var componentId in dirtyIdsCopy)
+              {
+                  if (Components.TryGetValue(componentId, out var component))
+```
+
+**Chunk 3**
+Lines added: 5, lines removed: 2
+
+```diff
+@@ -596,9 +636,12 @@
+          
+          /// &lt;summary&gt;
+-         /// 清除所有脏标记
++         /// 清除所有脏标记（线程安全）
+          /// &lt;/summary&gt;
+          public void ClearDirtyComponents()
+          {
+-             _dirtyComponentIds.Clear();
++             lock (_dirtyLock)
++             {
++                 _dirtyComponentIds.Clear();
++             }
+          }
+          
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我需要更新 ViewReadFrameSync.EndOfLogicFrame 以使用新的线程安全方法：</details></think>
+
+---
+
+现在让我更新 ViewReadFrameSync.EndOfLogicFrame 以使用新的线程安全快照方法：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumLogic/ViewRead/ViewReadFrameSync.cs</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 9
+
+```diff
+@@ -79,13 +79,7 @@
+                  if (entity == null) continue;
+  
+-                 // 线程安全：复制 dirtyIds 到数组，避免遍历时 HashSet 被修改
+-                 var dirtyIds = entity.GetDirtyComponentIds();
+-                 if (dirtyIds == null || dirtyIds.Count == 0) continue;
+- 
+-                 int[] dirtyIdsCopy;
+-                 lock (dirtyIds)
+-                 {
+-                     dirtyIdsCopy = System.Linq.Enumerable.ToArray(dirtyIds);
+-                 }
++                 // 线程安全：使用快照方法获取脏组件 ID，内部已加锁
++                 var dirtyIdsCopy = entity.GetDirtyComponentIdsSnapshot();
++                 if (dirtyIdsCopy.Length == 0) continue;
+  
+                  foreach (var componentTypeId in dirtyIdsCopy)
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -99,5 +93,5 @@
+                  }
+                  
+-                 // 在逻辑线程中清理脏标记（线程安全）
++                 // 在逻辑线程中清理脏标记（线程安全，内部已加锁）
+                  entity.ClearDirtyComponents();
+              }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+现在我需要检查 Stage.cs 中对 GetDirtyComponentIds 的使用是否也需要更新。由于在多线程模式下这个方法已被跳过，单线程模式下可以使用原方法。但为了安全起见，让我检查一下是否需要更新。
+
+实际上，在单线程模式下，Stage.SyncDirtyComponents 仍然使用 GetDirtyComponentIds()，这是可以的，因为单线程不存在竞争。
+
+让我现在编译验证：</details></think>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+编译成功！但这可能不是导致"移动出问题"的根本原因。让我思考一下其他可能的原因...实际上，我应该先问用户具体是什么问题，同时检查一下 PredictedMovementViewComponent 的逻辑。问题可能是：1. ViewRead 数据没有正确更新
+2. SyncDataFromComponent 没有被调用（多线程模式下确实不调用）
+3. 逻辑帧没有正确推进让我检查 PredictedMovementViewComponent 中的 SyncDataFromComponent 是否被用于更新关键的移动状态（如 _isMovingLogicCached）：从代码看，`_isMovingLogicCached` 和 `_currentMovementTypeCached` 只在 SyncDataFromComponent 中更新：```csharppublic override void SyncDataFromComponent(int componentTypeId){    if (componentTypeId == MovementComponent.ComponentTypeId)    {
+        if (!MovementComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var moveRead) || !moveRead.IsValid)
+            return;        _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
+        _currentMovementTypeCached = moveRead.CurrentMovementType;    }
+}```在多线程模式下，Stage.SyncDirtyComponents 会跳过，所以 SyncDataFromComponent 不会被调用！这意味着 `_isMovingLogicCached` 永远是初始值（可能是 false），导致 HandleStaticState 返回 true，然后移动更新被跳过！
+ 
+直接从 ViewRead 读取移动状态是解决方案。通过绕过 SyncDataFromComponent，我可以确保在多线程环境中正确获取移动类型。这样可以避免缓存状态不更新的问题，确保移动逻辑能够正常工作。</details></think>
+
+---
+
+编译成功！现在我发现了问题的真正原因：
+
+**问题分析**：在多线程模式下，`Stage.SyncDirtyComponents()` 会跳过，导致 `ViewComponent.SyncDataFromComponent()` 不被调用。但 `PredictedMovementViewComponent` 中的 `_isMovingLogicCached` 和 `_currentMovementTypeCached` 只在 `SyncDataFromComponent` 中更新！
+
+这导致 `_isMovingLogicCached` 保持为 false，`HandleStaticState` 返回 true，移动更新被完全跳过。
+
+让我修复这个问题，让 `OnUpdate` 直接从 ViewRead 轮询移动状态：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: AstrumProj/Assets/Script/AstrumView/Components/PredictedMovementViewComponent.cs</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -334,5 +334,6 @@
+  
+          /// &lt;summary&gt;
+-         /// 轮询移动组件：轻量轮询速度与移动方向，避免逻辑帧停更/组件不置脏导致长期不更新
++         /// 轮询移动组件：轻量轮询速度、移动方向和移动状态
++         /// 在多线程模式下，SyncDataFromComponent 不会被调用，所以需要在这里直接更新移动状态
+          /// &lt;/summary&gt;
+          private void UpdateMoveComponentPolling(Entity entity, TransComponent.ViewRead trans)
+```
+
+**Chunk 2**
+Lines added: 6, lines removed: undefined
+
+```diff
+@@ -341,4 +342,10 @@
+              {
+                  _cachedSpeedLogic = moveRead.Speed.AsFloat();
++                 
++                 // 多线程模式下，直接从 ViewRead 更新移动状态
++                 // （原本由 SyncDataFromComponent 负责，但多线程模式下不会被调用）
++                 _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
++                 _currentMovementTypeCached = moveRead.CurrentMovementType;
++                 
+                  //ASLogger.Instance.Info($"UpdateMoveComponent:{moveRead.ToString()}");
+                  // 移动方向蓝本：优先使用逻辑侧 MoveDirection（不是朝向）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+修复完成。现在 `UpdateMoveComponentPolling` 会直接从 ViewRead 更新 `_isMovingLogicCached` 和 `_currentMovementTypeCached`，不再依赖 `SyncDataFromComponent` 的调用。让我编译验证：</details></think>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum\AstrumProj; dotnet build AstrumProj.sln --verbosity quiet
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+编译成功！我修复了两个问题：1. **Entity 类线程安全**：为 `_dirtyComponentIds` 添加了锁保护，新增了线程安全的 `GetDirtyComponentIdsSnapshot()` 方法2. **移动状态更新**：在 `PredictedMovementViewComponent.UpdateMoveComponentPolling()` 中直接从 ViewRead 更新 `_isMovingLogicCached` 和 `_currentMovementTypeCached`，不再依赖 `SyncDataFromComponent` 的调用这应该能解决"移动出问题"的问题。让我给用户一个总结：</details></think>
+
+---
+
+编译成功！我找到了问题的根本原因并修复：
+
+## 问题分析
+
+在多线程模式下，`Stage.SyncDirtyComponents()` 会跳过（为了避免线程竞争），导致 `ViewComponent.SyncDataFromComponent()` 不会被调用。
+
+但 `PredictedMovementViewComponent` 中的关键状态 `_isMovingLogicCached` 和 `_currentMovementTypeCached` 只在 `SyncDataFromComponent` 中更新，结果：
+- `_isMovingLogicCached` 始终为 `false`
+- `HandleStaticState()` 返回 `true` 
+- 移动更新被完全跳过！
+
+## 修复内容
+
+### 1. Entity 类线程安全化
+添加了 `_dirtyLock` 锁对象，使 `MarkComponentDirty()`、`ClearDirtyComponents()` 等方法线程安全，并新增了 `GetDirtyComponentIdsSnapshot()` 方法用于安全获取快照。
+
+### 2. PredictedMovementViewComponent 修复
+在 `UpdateMoveComponentPolling()` 中直接从 ViewRead 更新移动状态：
+
+```337:349:AstrumProj/Assets/Script/AstrumView/Components/PredictedMovementViewComponent.cs
+        private void UpdateMoveComponentPolling(Entity entity, TransComponent.ViewRead trans)
+        {
+            if (MovementComponent.TryGetViewRead(entity.World, entity.UniqueId, out var moveRead) && moveRead.IsValid)
+            {
+                _cachedSpeedLogic = moveRead.Speed.AsFloat();
+                
+                // 多线程模式下，直接从 ViewRead 更新移动状态
+                // （原本由 SyncDataFromComponent 负责，但多线程模式下不会被调用）
+                _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
+                _currentMovementTypeCached = moveRead.CurrentMovementType;
+                // ...
+```
+
+现在移动状态会在每帧直接从 ViewRead 轮询，不再依赖 `SyncDataFromComponent` 的调用。请测试一下移动是否正常。
+
+---
+

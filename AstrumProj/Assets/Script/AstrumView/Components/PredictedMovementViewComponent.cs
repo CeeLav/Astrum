@@ -333,13 +333,20 @@ namespace Astrum.View.Components
         }
 
         /// <summary>
-        /// 轮询移动组件：轻量轮询速度与移动方向，避免逻辑帧停更/组件不置脏导致长期不更新
+        /// 轮询移动组件：轻量轮询速度、移动方向和移动状态
+        /// 在多线程模式下，SyncDataFromComponent 不会被调用，所以需要在这里直接更新移动状态
         /// </summary>
         private void UpdateMoveComponentPolling(Entity entity, TransComponent.ViewRead trans)
         {
             if (MovementComponent.TryGetViewRead(entity.World, entity.UniqueId, out var moveRead) && moveRead.IsValid)
             {
                 _cachedSpeedLogic = moveRead.Speed.AsFloat();
+                
+                // 多线程模式下，直接从 ViewRead 更新移动状态
+                // （原本由 SyncDataFromComponent 负责，但多线程模式下不会被调用）
+                _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
+                _currentMovementTypeCached = moveRead.CurrentMovementType;
+                
                 //ASLogger.Instance.Info($"UpdateMoveComponent:{moveRead.ToString()}");
                 // 移动方向蓝本：优先使用逻辑侧 MoveDirection（不是朝向）
                 var dir = ToVector3(moveRead.MoveDirection);
