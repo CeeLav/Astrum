@@ -157,10 +157,13 @@ namespace Astrum.Client.Managers.GameModes
                 // 切换到 SinglePlayerGameMode
                 GameDirector.Instance.SwitchGameMode(GameModeType.SinglePlayer);
                 
-                // StartGame 会在后续调用
-                GameDirector.Instance.StartGame(DungeonsGameSceneId);
+                // 使用GameApplication中配置的单人模式场景ID
+                var singlePlayerSceneId = GameApplication.Instance.SinglePlayerSceneId;
                 
-                ASLogger.Instance.Info("HubGameMode: 探索启动成功");
+                // StartGame 会在后续调用
+                GameDirector.Instance.StartGame(singlePlayerSceneId);
+                
+                ASLogger.Instance.Info($"HubGameMode: 探索启动成功，使用场景ID: {singlePlayerSceneId}");
             }
             catch (Exception ex)
             {

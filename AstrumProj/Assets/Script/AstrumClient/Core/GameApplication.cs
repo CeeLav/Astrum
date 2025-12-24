@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System;
 using Astrum.Client.Managers;
 using Astrum.CommonBase;
@@ -44,6 +44,13 @@ namespace Astrum.Client.Core
         [SerializeField] private UnityEngine.SceneManagement.SceneManager sceneManagerUnity;
         [SerializeField] private Astrum.Client.Behaviour.CoroutineRunner coroutineRunner;
         
+        [Header("场景配置")]
+        [Tooltip("单人模式进入的场景ID（场景索引号）")]
+        [SerializeField] private int singlePlayerSceneId = 1;
+        
+        [Tooltip("联机模式进入的场景ID（场景索引号）")]
+        [SerializeField] private int multiplayerSceneId = 2;
+        
         // 应用程序状态
         private ApplicationState currentState = ApplicationState.INITIALIZING;
         
@@ -73,6 +80,20 @@ namespace Astrum.Client.Core
         public Camera UICamera => uiCamera;
         public UnityEngine.SceneManagement.SceneManager SceneManagerUnity => sceneManagerUnity;
         public Astrum.Client.Behaviour.CoroutineRunner CoroutineRunner => coroutineRunner;
+        
+        // 场景ID访问器
+        public int SinglePlayerSceneId => singlePlayerSceneId;
+        public int MultiplayerSceneId => multiplayerSceneId;
+        
+        /// <summary>
+        /// 根据游戏模式获取对应的场景ID
+        /// </summary>
+        /// <param name="isSinglePlayer">是否为单人模式</param>
+        /// <returns>对应的场景ID</returns>
+        public int GetSceneIdByMode(bool isSinglePlayer)
+        {
+            return isSinglePlayer ? singlePlayerSceneId : multiplayerSceneId;
+        }
         
         private void Awake()
         {

@@ -970,12 +970,16 @@ MonoBehaviour:
   targetFrameRate: 60
   isRunning: 1
   enableDebugLog: 0
+  enableLogicThread: 0
+  logicThreadTickRate: 20
   uiRoot: {fileID: 4014524}
   hudCanvas: {fileID: 276783922}
   stageRoot: {fileID: 847945312}
   mainCamera: {fileID: 330585545}
   uiCamera: {fileID: 657837801}
   coroutineRunner: {fileID: 536189972}
+  singlePlayerSceneId: 3
+  multiplayerSceneId: 3
 --- !u!4 &2084981281
 Transform:
   m_ObjectHideFlags: 0
