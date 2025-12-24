@@ -476,7 +476,7 @@ namespace Astrum.View.Components
             if ((_posVisual - posLogic).magnitude > hardSnapDistance)
             {
                 _posVisual = posLogic;
-                ASLogger.Instance.Warning($"hardSnapDistance");
+                //ASLogger.Instance.Warning($"hardSnapDistance");
                 
             }
         }
@@ -490,7 +490,7 @@ namespace Astrum.View.Components
             {
                 _posVisual = posLogic;
                 _visualOffset = Vector3.zero;
-                ASLogger.Instance.Warning($"ApplyExtremeProtectionForSkillMotion");
+                //ASLogger.Instance.Warning($"ApplyExtremeProtectionForSkillMotion");
                 
             }
         }

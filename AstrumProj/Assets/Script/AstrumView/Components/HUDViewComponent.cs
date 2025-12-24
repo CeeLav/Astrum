@@ -75,34 +75,26 @@ namespace Astrum.View.Components
                 return;
             }
             
-            // 通过 ViewRead 获取血量数据
-            if (!DynamicStatsComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var dynamicRead))
+            // 直接获取组件数据（轮询方式）
+            var dynamicStats = OwnerEntity.GetComponent<DynamicStatsComponent>();
+            var derivedStats = OwnerEntity.GetComponent<DerivedStatsComponent>();
+            
+            if (dynamicStats == null)
             {
-                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: Failed to get DynamicStatsComponent ViewRead for entity {OwnerEntity.UniqueId}");
+                ASLogger.Instance.Debug($"HUDViewComponent.SyncDataFromComponent: DynamicStatsComponent not found for entity {OwnerEntity.UniqueId}");
                 return;
             }
             
-            if (!dynamicRead.IsValid)
+            if (derivedStats == null)
             {
-                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: DynamicStatsComponent ViewRead is invalid for entity {OwnerEntity.UniqueId}");
+                ASLogger.Instance.Debug($"HUDViewComponent.SyncDataFromComponent: DerivedStatsComponent not found for entity {OwnerEntity.UniqueId}");
                 return;
             }
             
-            if (!DerivedStatsComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var derivedRead))
-            {
-                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: Failed to get DerivedStatsComponent ViewRead for entity {OwnerEntity.UniqueId}");
-                return;
-            }
-            
-            if (!derivedRead.IsValid)
-            {
-                ASLogger.Instance.Warning($"HUDViewComponent.SyncDataFromComponent: DerivedStatsComponent ViewRead is invalid for entity {OwnerEntity.UniqueId}");
-                return;
-            }
-            
-            FP newCurrentHealth = dynamicRead.CurrentHP;
-            FP newMaxHealth = derivedRead.MaxHP;
-            FP newCurrentShield = dynamicRead.Shield;
+            // 获取当前属性值
+            FP newCurrentHealth = dynamicStats.Get(DynamicResourceType.CURRENT_HP);
+            FP newMaxHealth = derivedStats.Get(StatType.HP);
+            FP newCurrentShield = dynamicStats.Get(DynamicResourceType.SHIELD);
             
             ASLogger.Instance.Debug($"HUDViewComponent.SyncDataFromComponent: Entity {OwnerEntity.UniqueId} - CurrentHP: {newCurrentHealth}, MaxHP: {newMaxHealth}, Shield: {newCurrentShield}");
             
