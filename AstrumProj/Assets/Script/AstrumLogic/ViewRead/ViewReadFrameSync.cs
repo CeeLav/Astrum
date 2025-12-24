@@ -66,14 +66,29 @@ namespace Astrum.LogicCore.ViewRead
 
             var store = world.ViewReads;
 
-            foreach (var entity in world.Entities.Values)
+            // 线程安全：先复制 Entities 的值到列表，避免遍历时集合被修改
+            Entity[] entitiesSnapshot;
+            lock (world.Entities)
+            {
+                entitiesSnapshot = new Entity[world.Entities.Count];
+                world.Entities.Values.CopyTo(entitiesSnapshot, 0);
+            }
+
+            foreach (var entity in entitiesSnapshot)
             {
                 if (entity == null) continue;
 
+                // 线程安全：复制 dirtyIds 到数组，避免遍历时 HashSet 被修改
                 var dirtyIds = entity.GetDirtyComponentIds();
                 if (dirtyIds == null || dirtyIds.Count == 0) continue;
 
-                foreach (var componentTypeId in dirtyIds)
+                int[] dirtyIdsCopy;
+                lock (dirtyIds)
+                {
+                    dirtyIdsCopy = System.Linq.Enumerable.ToArray(dirtyIds);
+                }
+
+                foreach (var componentTypeId in dirtyIdsCopy)
                 {
                     // 查字典执行导出（如果已注册）
                     if (_exporters.TryGetValue(componentTypeId, out var exporter))
@@ -82,6 +97,9 @@ namespace Astrum.LogicCore.ViewRead
                     }
                     // 未注册的组件静默跳过（还未迁移的组件）
                 }
+                
+                // 在逻辑线程中清理脏标记（线程安全）
+                entity.ClearDirtyComponents();
             }
 
             // 交换所有有写入的 buffer

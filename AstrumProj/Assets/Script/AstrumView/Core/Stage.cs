@@ -204,9 +204,17 @@ namespace Astrum.View.Core
             int destroyedCount = 0;
             
             // 1. 创建少的：遍历所有 Entity，如果不存在对应的 EntityView，则创建
+            // 线程安全：复制实体列表快照，避免遍历时集合被逻辑线程修改
             if (world.Entities != null)
             {
-                foreach (var entity in world.Entities.Values)
+                Entity[] entitiesSnapshot;
+                lock (world.Entities)
+                {
+                    entitiesSnapshot = new Entity[world.Entities.Count];
+                    world.Entities.Values.CopyTo(entitiesSnapshot, 0);
+                }
+                
+                foreach (var entity in entitiesSnapshot)
                 {
                     if (entity == null || entity.IsDestroyed) continue;
                     
@@ -226,9 +234,17 @@ namespace Astrum.View.Core
             }
             
             // 1.5. 检查 ShadowWorld 中的影子实体，如果是玩家实体且 View 不存在，则创建 View
+            // 线程安全：复制实体列表快照
             if (_room?.ShadowWorld != null && _room.ShadowWorld.Entities != null)
             {
-                foreach (var entity in _room.ShadowWorld.Entities.Values)
+                Entity[] shadowEntitiesSnapshot;
+                lock (_room.ShadowWorld.Entities)
+                {
+                    shadowEntitiesSnapshot = new Entity[_room.ShadowWorld.Entities.Count];
+                    _room.ShadowWorld.Entities.Values.CopyTo(shadowEntitiesSnapshot, 0);
+                }
+                
+                foreach (var entity in shadowEntitiesSnapshot)
                 {
                     if (entity == null || entity.IsDestroyed) continue;
                     
@@ -491,8 +507,16 @@ namespace Astrum.View.Core
             
             int totalEventsProcessed = 0;
             
+            // 线程安全：复制实体列表快照，避免遍历时集合被逻辑线程修改
+            Entity[] entitiesSnapshot;
+            lock (_room.MainWorld.Entities)
+            {
+                entitiesSnapshot = new Entity[_room.MainWorld.Entities.Count];
+                _room.MainWorld.Entities.Values.CopyTo(entitiesSnapshot, 0);
+            }
+            
             // 遍历所有 Entity，检查是否有待处理的视图事件
-            foreach (var entity in _room.MainWorld.Entities.Values)
+            foreach (var entity in entitiesSnapshot)
             {
                 if (entity == null || !entity.HasPendingViewEvents)
                     continue;
@@ -616,9 +640,23 @@ namespace Astrum.View.Core
         
         /// <summary>
         /// 同步所有 Entity 的脏组件
+        /// 
+        /// 注意：在多线程模式下，此方法已被弃用！
+        /// View 层应该通过 ViewRead 双缓冲来获取数据更新，而不是直接访问 Logic 层的脏标记。
+        /// Logic 层的脏标记现在由 ViewReadFrameSync.EndOfLogicFrame 在逻辑线程中处理。
+        /// 
+        /// TODO: 后续应完全移除此方法，改为纯 ViewRead 驱动的更新模式。
         /// </summary>
         private void SyncDirtyComponents()
         {
+            // 多线程模式下跳过此方法：脏标记由逻辑线程处理，View 层通过 ViewRead 获取数据
+            // 直接访问 Logic 层的 dirtyComponentIds 和 ClearDirtyComponents 在多线程下不安全
+            if (_room?.IsMultiThreadMode == true)
+            {
+                return;
+            }
+            
+            // 单线程模式下保持原有逻辑（向后兼容）
             // 同步 MainWorld 中的实体（只处理没有影子的实体）
             if (_room?.MainWorld != null)
             {

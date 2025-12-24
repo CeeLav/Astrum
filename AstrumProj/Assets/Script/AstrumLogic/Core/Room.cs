@@ -83,6 +83,12 @@ namespace Astrum.LogicCore.Core
         public long CreationTime { get; private set; }
 
         public long MainPlayerId { get; set; } = -1;
+        
+        /// <summary>
+        /// 是否启用多线程模式（由 GameMode 设置）
+        /// 在多线程模式下，View 层不应直接访问 Logic 层的脏标记
+        /// </summary>
+        public bool IsMultiThreadMode { get; set; } = false;
 
         public Room()
         {

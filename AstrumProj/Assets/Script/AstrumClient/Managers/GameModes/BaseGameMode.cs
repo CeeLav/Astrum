@@ -157,6 +157,9 @@ namespace Astrum.Client.Managers.GameModes
             
             try
             {
+                // 设置多线程模式标志，通知 View 层不要直接访问 Logic 层的脏标记
+                room.IsMultiThreadMode = true;
+                
                 _logicThread = new LogicThread(room, LogicThreadTickRate);
                 _logicThread.OnError += OnLogicThreadError;
                 _logicThread.Start();
@@ -166,6 +169,7 @@ namespace Astrum.Client.Managers.GameModes
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"{ModeName}: 启动逻辑线程失败 - {ex.Message}");
+                room.IsMultiThreadMode = false;
                 _logicThread = null;
                 return false;
             }
