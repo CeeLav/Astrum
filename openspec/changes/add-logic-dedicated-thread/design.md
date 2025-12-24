@@ -177,7 +177,76 @@ public void SetOneFrameInputs(...)
 ```
 **Trade-off**：延迟更低（<1ms），但增加了复杂度（需要管理事件）
 
-### Decision 3: 线程同步机制
+### Decision 3: 全局配置开关
+
+**在 GameApplication 添加配置**：
+```csharp
+public class GameApplication : MonoBehaviour
+{
+    [Header("逻辑线程设置")]
+    [Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
+    [SerializeField] private bool enableLogicThread = false;
+    
+    [Tooltip("逻辑线程帧率（推荐 20 FPS）")]
+    [SerializeField] private int logicThreadTickRate = 20;
+    
+    public bool EnableLogicThread => enableLogicThread;
+    public int LogicThreadTickRate => logicThreadTickRate;
+}
+```
+
+**GameMode 使用配置**：
+```csharp
+public class SinglePlayerGameMode : BaseGameMode
+{
+    private LogicThread _logicThread;
+    
+    public override void StartGame(int sceneId)
+    {
+        // 根据全局配置决定是否启用多线程
+        if (GameApplication.Instance.EnableLogicThread)
+        {
+            _logicThread = new LogicThread(
+                MainRoom, 
+                GameApplication.Instance.LogicThreadTickRate
+            );
+            _logicThread.Start();
+            ASLogger.Instance.Info("多线程模式已启用");
+        }
+        else
+        {
+            ASLogger.Instance.Info("单线程模式（向后兼容）");
+        }
+    }
+    
+    public override void Update(float deltaTime)
+    {
+        if (!GameApplication.Instance.EnableLogicThread)
+        {
+            // 单线程模式：主线程调用
+            MainRoom?.Update(deltaTime);
+        }
+        // 多线程模式：不调用（由 LogicThread 处理）
+        
+        // 主线程任务（总是执行）
+        MainStage?.Update(deltaTime);
+    }
+}
+```
+
+**理由**：
+- **集中管理**：所有配置在 GameApplication 统一管理
+- **Inspector 可见**：开发者可以直观地在 Unity Inspector 中切换
+- **向后兼容**：默认 `false`，不影响现有项目
+- **运行时读取**：GameMode 启动时读取配置，简单直接
+- **易于调试**：单线程模式下断点正常工作，多线程模式下提升性能
+
+**Alternatives Considered**：
+- **命令行参数**：需要每次启动时指定，不够方便
+- **配置文件（JSON）**：需要额外文件管理，过于复杂
+- **运行时切换**：需要重启游戏才能生效，增加复杂度
+
+### Decision 4: 线程同步机制
 
 **启动/停止控制**:
 ```csharp
@@ -207,7 +276,7 @@ public void Stop()
 - **volatile bool**：确保 `_isRunning` 在多线程间可见
 - **IsBackground = true**：应用退出时自动终止线程（避免阻塞退出）
 
-### Decision 4: 输入系统线程安全化
+### Decision 5: 输入系统线程安全化
 
 #### 4.1 网络输入队列（ConcurrentQueue）
 
@@ -370,7 +439,7 @@ public OneFrameInputs GetOneFrameMessages(int frame)
   - 缺点：额外 GC 开销
   - 优点：完全隔离
 
-### Decision 5: ViewRead Swap 在逻辑线程执行
+### Decision 6: ViewRead Swap 在逻辑线程执行
 
 **当前实现**（主线程）:
 ```csharp
@@ -396,7 +465,7 @@ Room.Update(targetDeltaTime);
 - **帧一致性**：swap 在逻辑帧末执行，确保 View 读取的是完整的逻辑帧快照
 - **性能最优**：无锁，无等待，无争用
 
-### Decision 6: 暂停/恢复机制
+### Decision 7: 暂停/恢复机制
 
 **实现**:
 ```csharp

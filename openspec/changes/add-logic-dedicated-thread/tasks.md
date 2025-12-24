@@ -53,13 +53,39 @@
 ## 3. 集成到 GameMode
 
 - [ ] 3.1 修改 BaseGameMode
-  - [ ] 3.1.1 添加 `LogicThread` 字段
-  - [ ] 3.1.2 添加 `LogicThreadingEnabled` 配置属性
+  - [ ] 3.1.1 添加 `LogicThread` 字段（private）
+  - [ ] 3.1.2 添加 `IsLogicThreadEnabled` 属性（从 GameApplication 读取）
   - [ ] 3.1.3 修改 Update() 方法：根据配置决定是否调用 Room.Update()
+    ```csharp
+    public override void Update(float deltaTime)
+    {
+        if (!IsLogicThreadEnabled)
+        {
+            // 单线程模式：在主线程调用
+            MainRoom?.Update(deltaTime);
+        }
+        // 多线程模式：不在主线程调用（由 LogicThread 处理）
+        
+        // 主线程任务（Input, UI, View）
+        MainStage?.Update(deltaTime);
+    }
+    ```
   
 - [ ] 3.2 修改 SinglePlayerGameMode
-  - [ ] 3.2.1 在 StartGame() 中创建并启动 LogicThread（如果启用）
-  - [ ] 3.2.2 在 Shutdown() 中停止并销毁 LogicThread
+  - [ ] 3.2.1 在 StartGame() 中根据配置决定是否创建 LogicThread
+    ```csharp
+    if (GameApplication.Instance.EnableLogicThread)
+    {
+        _logicThread = new LogicThread(MainRoom, GameApplication.Instance.LogicThreadTickRate);
+        _logicThread.Start();
+        ASLogger.Instance.Info("SinglePlayerGameMode: 逻辑线程已启动");
+    }
+    else
+    {
+        ASLogger.Instance.Info("SinglePlayerGameMode: 单线程模式");
+    }
+    ```
+  - [ ] 3.2.2 在 Shutdown() 中停止并销毁 LogicThread（如果存在）
   - [ ] 3.2.3 添加 Pause/Resume 游戏时同步 LogicThread 状态
   - [ ] 3.2.4 添加日志记录和错误处理
   
@@ -73,14 +99,29 @@
 
 ## 4. 配置系统
 
-- [ ] 4.1 添加配置文件支持
-  - [ ] 4.1.1 在 GameModeConfig 中添加 `LogicThreadingEnabled` 字段（默认 false）
-  - [ ] 4.1.2 在 GameModeConfig 中添加 `LogicThreadTickRate` 字段（默认 20）
-  - [ ] 4.1.3 添加配置加载和保存逻辑
+- [ ] 4.1 在 GameApplication 添加全局开关
+  - [ ] 4.1.1 添加 `[SerializeField] private bool enableLogicThread = false;` 字段
+  - [ ] 4.1.2 添加 `public bool EnableLogicThread => enableLogicThread;` 公共属性
+  - [ ] 4.1.3 在 Inspector 中添加 Header 和 Tooltip 说明
+    ```csharp
+    [Header("逻辑线程设置")]
+    [Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
+    [SerializeField] private bool enableLogicThread = false;
+    
+    [Tooltip("逻辑线程帧率（推荐 20 FPS）")]
+    [SerializeField] private int logicThreadTickRate = 20;
+    ```
+  - [ ] 4.1.4 添加运行时检查：多线程模式下禁用 Unity Debugger 断点警告
 
-- [ ] 4.2 添加运行时开关
-  - [ ] 4.2.1 在 GameDirector 中添加全局开关（可在编辑器Inspector调试）
-  - [ ] 4.2.2 添加命令行参数支持 `--enable-logic-thread`
+- [ ] 4.2 GameMode 集成配置
+  - [ ] 4.2.1 在 BaseGameMode 中读取 `GameApplication.Instance.EnableLogicThread`
+  - [ ] 4.2.2 根据配置决定是否创建 LogicThread
+  - [ ] 4.2.3 添加日志：记录当前使用的模式（单线程 / 多线程）
+
+- [ ] 4.3 添加运行时切换（可选）
+  - [ ] 4.3.1 添加命令行参数支持 `--enable-logic-thread`
+  - [ ] 4.3.2 添加运行时 API：`GameApplication.SetLogicThreadEnabled(bool)` （仅在游戏未运行时）
+  - [ ] 4.3.3 添加调试菜单项（Unity Editor）
 
 ## 5. ViewRead 同步验证
 

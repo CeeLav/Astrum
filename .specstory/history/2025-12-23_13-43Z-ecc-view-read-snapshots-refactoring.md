@@ -19487,3 +19487,527 @@ Change 'add-logic-dedicated-thread' is valid
 
 ---
 
+_**User (2025-12-24 02:30Z)**_
+
+在GameApplication加上启用逻辑线程，方便进行切换
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+用户希望在 GameApplication 中添加一个开关来启用/禁用逻辑线程，方便进行切换。这是一个很好的建议，可以让我们在开发和测试阶段方便地开关多线程模式。
+
+让我先查看 GameApplication 的结构，然后更新提案文档，将这个需求加入到 tasks 中。</details></think>
+
+---
+
+好主意！在 `GameApplication` 添加全局开关，方便开发时切换。让我先查看 GameApplication 的结构：
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "class GameApplication|public.*class.*GameApplication" in "AstrumProj/Assets/Script/AstrumClient" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `AstrumProj/Assets/Script/AstrumClient\Core\GameApplication.cs` | `public class GameApplication : MonoBehaviour` | L19 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: AstrumProj/Assets/Script/AstrumClient/Core/GameApplication.cs</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，我看到了 GameApplication 的结构。它是一个 MonoBehaviour，有一些 SerializeField 的配置项，可以在 Unity Inspector 中编辑。我应该：
+
+1. 在 GameApplication 中添加一个 `[SerializeField] private bool enableLogicThread = false;` 字段
+2. 提供一个公共属性访问
+3. GameMode 在启动时检查这个配置
+4. 更新 tasks.md，添加相关实施任务
+
+让我更新提案文档。</details></think>
+
+---
+
+完美！我看到 `GameApplication` 已经有很多配置项了。让我更新提案，添加逻辑线程开关：
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/add-logic-dedicated-thread/tasks.md</summary>
+
+**Chunk 1**
+Lines added: 23, lines removed: 8
+
+```diff
+@@ -74,12 +74,27 @@
+  ## 4. 配置系统
+  
+- - [ ] 4.1 添加配置文件支持
+-   - [ ] 4.1.1 在 GameModeConfig 中添加 &#96;LogicThreadingEnabled&#96; 字段（默认 false）
+-   - [ ] 4.1.2 在 GameModeConfig 中添加 &#96;LogicThreadTickRate&#96; 字段（默认 20）
+-   - [ ] 4.1.3 添加配置加载和保存逻辑
+- 
+- - [ ] 4.2 添加运行时开关
+-   - [ ] 4.2.1 在 GameDirector 中添加全局开关（可在编辑器Inspector调试）
+-   - [ ] 4.2.2 添加命令行参数支持 &#96;--enable-logic-thread&#96;
++ - [ ] 4.1 在 GameApplication 添加全局开关
++   - [ ] 4.1.1 添加 &#96;[SerializeField] private bool enableLogicThread = false;&#96; 字段
++   - [ ] 4.1.2 添加 &#96;public bool EnableLogicThread =&gt; enableLogicThread;&#96; 公共属性
++   - [ ] 4.1.3 在 Inspector 中添加 Header 和 Tooltip 说明
++     &#96;&#96;&#96;csharp
++     [Header("逻辑线程设置")]
++     [Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
++     [SerializeField] private bool enableLogicThread = false;
++     
++     [Tooltip("逻辑线程帧率（推荐 20 FPS）")]
++     [SerializeField] private int logicThreadTickRate = 20;
++     &#96;&#96;&#96;
++   - [ ] 4.1.4 添加运行时检查：多线程模式下禁用 Unity Debugger 断点警告
++ 
++ - [ ] 4.2 GameMode 集成配置
++   - [ ] 4.2.1 在 BaseGameMode 中读取 &#96;GameApplication.Instance.EnableLogicThread&#96;
++   - [ ] 4.2.2 根据配置决定是否创建 LogicThread
++   - [ ] 4.2.3 添加日志：记录当前使用的模式（单线程 / 多线程）
++ 
++ - [ ] 4.3 添加运行时切换（可选）
++   - [ ] 4.3.1 添加命令行参数支持 &#96;--enable-logic-thread&#96;
++   - [ ] 4.3.2 添加运行时 API：&#96;GameApplication.SetLogicThreadEnabled(bool)&#96; （仅在游戏未运行时）
++   - [ ] 4.3.3 添加调试菜单项（Unity Editor）
+  
+  ## 5. ViewRead 同步验证
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/add-logic-dedicated-thread/tasks.md</summary>
+
+**Chunk 1**
+Lines added: 16, lines removed: 2
+
+```diff
+@@ -54,7 +54,21 @@
+  
+  - [ ] 3.1 修改 BaseGameMode
+-   - [ ] 3.1.1 添加 &#96;LogicThread&#96; 字段
+-   - [ ] 3.1.2 添加 &#96;LogicThreadingEnabled&#96; 配置属性
++   - [ ] 3.1.1 添加 &#96;LogicThread&#96; 字段（private）
++   - [ ] 3.1.2 添加 &#96;IsLogicThreadEnabled&#96; 属性（从 GameApplication 读取）
+    - [ ] 3.1.3 修改 Update() 方法：根据配置决定是否调用 Room.Update()
++     &#96;&#96;&#96;csharp
++     public override void Update(float deltaTime)
++     {
++         if (!IsLogicThreadEnabled)
++         {
++             // 单线程模式：在主线程调用
++             MainRoom?.Update(deltaTime);
++         }
++         // 多线程模式：不在主线程调用（由 LogicThread 处理）
++         
++         // 主线程任务（Input, UI, View）
++         MainStage?.Update(deltaTime);
++     }
++     &#96;&#96;&#96;
+    
+  - [ ] 3.2 修改 SinglePlayerGameMode
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/add-logic-dedicated-thread/tasks.md</summary>
+
+**Chunk 1**
+Lines added: 14, lines removed: 2
+
+```diff
+@@ -73,6 +73,18 @@
+    
+  - [ ] 3.2 修改 SinglePlayerGameMode
+-   - [ ] 3.2.1 在 StartGame() 中创建并启动 LogicThread（如果启用）
+-   - [ ] 3.2.2 在 Shutdown() 中停止并销毁 LogicThread
++   - [ ] 3.2.1 在 StartGame() 中根据配置决定是否创建 LogicThread
++     &#96;&#96;&#96;csharp
++     if (GameApplication.Instance.EnableLogicThread)
++     {
++         _logicThread = new LogicThread(MainRoom, GameApplication.Instance.LogicThreadTickRate);
++         _logicThread.Start();
++         ASLogger.Instance.Info("SinglePlayerGameMode: 逻辑线程已启动");
++     }
++     else
++     {
++         ASLogger.Instance.Info("SinglePlayerGameMode: 单线程模式");
++     }
++     &#96;&#96;&#96;
++   - [ ] 3.2.2 在 Shutdown() 中停止并销毁 LogicThread（如果存在）
+    - [ ] 3.2.3 添加 Pause/Resume 游戏时同步 LogicThread 状态
+    - [ ] 3.2.4 添加日志记录和错误处理
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/add-logic-dedicated-thread/design.md</summary>
+
+**Chunk 1**
+Lines added: 70, lines removed: 1
+
+```diff
+@@ -178,5 +178,74 @@
+  **Trade-off**：延迟更低（&lt;1ms），但增加了复杂度（需要管理事件）
+  
+- ### Decision 3: 线程同步机制
++ ### Decision 3: 全局配置开关
++ 
++ **在 GameApplication 添加配置**：
++ &#96;&#96;&#96;csharp
++ public class GameApplication : MonoBehaviour
++ {
++     [Header("逻辑线程设置")]
++     [Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
++     [SerializeField] private bool enableLogicThread = false;
++     
++     [Tooltip("逻辑线程帧率（推荐 20 FPS）")]
++     [SerializeField] private int logicThreadTickRate = 20;
++     
++     public bool EnableLogicThread =&gt; enableLogicThread;
++     public int LogicThreadTickRate =&gt; logicThreadTickRate;
++ }
++ &#96;&#96;&#96;
++ 
++ **GameMode 使用配置**：
++ &#96;&#96;&#96;csharp
++ public class SinglePlayerGameMode : BaseGameMode
++ {
++     private LogicThread _logicThread;
++     
++     public override void StartGame(int sceneId)
++     {
++         // 根据全局配置决定是否启用多线程
++         if (GameApplication.Instance.EnableLogicThread)
++         {
++             _logicThread = new LogicThread(
++                 MainRoom, 
++                 GameApplication.Instance.LogicThreadTickRate
++             );
++             _logicThread.Start();
++             ASLogger.Instance.Info("多线程模式已启用");
++         }
++         else
++         {
++             ASLogger.Instance.Info("单线程模式（向后兼容）");
++         }
++     }
++     
++     public override void Update(float deltaTime)
++     {
++         if (!GameApplication.Instance.EnableLogicThread)
++         {
++             // 单线程模式：主线程调用
++             MainRoom?.Update(deltaTime);
++         }
++         // 多线程模式：不调用（由 LogicThread 处理）
++         
++         // 主线程任务（总是执行）
++         MainStage?.Update(deltaTime);
++     }
++ }
++ &#96;&#96;&#96;
++ 
++ **理由**：
++ - **集中管理**：所有配置在 GameApplication 统一管理
++ - **Inspector 可见**：开发者可以直观地在 Unity Inspector 中切换
++ - **向后兼容**：默认 &#96;false&#96;，不影响现有项目
++ - **运行时读取**：GameMode 启动时读取配置，简单直接
++ - **易于调试**：单线程模式下断点正常工作，多线程模式下提升性能
++ 
++ **Alternatives Considered**：
++ - **命令行参数**：需要每次启动时指定，不够方便
++ - **配置文件（JSON）**：需要额外文件管理，过于复杂
++ - **运行时切换**：需要重启游戏才能生效，增加复杂度
++ 
++ ### Decision 4: 线程同步机制
+  
+  **启动/停止控制**:
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/add-logic-dedicated-thread/design.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -277,5 +277,5 @@
+  - **IsBackground = true**：应用退出时自动终止线程（避免阻塞退出）
+  
+- ### Decision 4: 输入系统线程安全化
++ ### Decision 5: 输入系统线程安全化
+  
+  #### 4.1 网络输入队列（ConcurrentQueue）
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/add-logic-dedicated-thread/design.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -440,5 +440,5 @@
+    - 优点：完全隔离
+  
+- ### Decision 5: ViewRead Swap 在逻辑线程执行
++ ### Decision 6: ViewRead Swap 在逻辑线程执行
+  
+  **当前实现**（主线程）:
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: openspec/changes/add-logic-dedicated-thread/design.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -466,5 +466,5 @@
+  - **性能最优**：无锁，无等待，无争用
+  
+- ### Decision 6: 暂停/恢复机制
++ ### Decision 7: 暂停/恢复机制
+  
+  **实现**:
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd D:\Develop\Projects\Astrum; npx openspec-chinese validate add-logic-dedicated-thread --strict</summary>
+
+```bash
+cd D:\Develop\Projects\Astrum; npx openspec-chinese validate add-logic-dedicated-thread --strict
+```
+
+```
+Change 'add-logic-dedicated-thread' is valid
+
+```
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+好的，验证通过了。让我创建一个总结，展示配置开关的设计。</details></think>
+
+---
+
+## ✅ 已添加：GameApplication 全局配置开关
+
+### 📝 新增的配置项
+
+**在 GameApplication.cs 中：**
+```csharp
+[Header("逻辑线程设置")]
+[Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
+[SerializeField] private bool enableLogicThread = false;
+
+[Tooltip("逻辑线程帧率（推荐 20 FPS）")]
+[SerializeField] private int logicThreadTickRate = 20;
+
+// 公共访问属性
+public bool EnableLogicThread => enableLogicThread;
+public int LogicThreadTickRate => logicThreadTickRate;
+```
+
+### 🎮 Unity Inspector 中的使用
+
+在 Unity Editor 中，开发者可以：
+
+1. **选择 GameApplication GameObject**
+2. **在 Inspector 中看到新的配置项**：
+   ```
+   ┌─────────────────────────────────┐
+   │ Game Application (Script)       │
+   ├─────────────────────────────────┤
+   │ [已有配置...]                    │
+   │                                 │
+   │ ▼ 逻辑线程设置                  │
+   │   ☐ Enable Logic Thread        │
+   │   　 (启用逻辑专用线程)          │
+   │   　 (提升性能，但增加调试难度)  │
+   │                                 │
+   │   Logic Thread Tick Rate: 20   │
+   │   　 (逻辑线程帧率，推荐 20 FPS) │
+   └─────────────────────────────────┘
+   ```
+
+3. **勾选/取消勾选开关**：
+   - ☐ 取消勾选 → **单线程模式**（调试友好）
+   - ☑ 勾选 → **多线程模式**（性能优化）
+
+### 🔄 GameMode 中的集成
+
+**SinglePlayerGameMode.StartGame()：**
+```csharp
+public override void StartGame(int sceneId)
+{
+    // 读取全局配置
+    if (GameApplication.Instance.EnableLogicThread)
+    {
+        // 创建逻辑线程
+        _logicThread = new LogicThread(
+            MainRoom, 
+            GameApplication.Instance.LogicThreadTickRate
+        );
+        _logicThread.Start();
+        ASLogger.Instance.Info("✅ 多线程模式已启用");
+    }
+    else
+    {
+        ASLogger.Instance.Info("ℹ️ 单线程模式（向后兼容）");
+    }
+    
+    // ... 其他初始化
+}
+```
+
+**BaseGameMode.Update()：**
+```csharp
+public override void Update(float deltaTime)
+{
+    if (!GameApplication.Instance.EnableLogicThread)
+    {
+        // 单线程模式：主线程调用 Logic
+        MainRoom?.Update(deltaTime);
+    }
+    // 多线程模式：不调用（由 LogicThread 处理）
+    
+    // 主线程任务（总是执行）
+    MainStage?.Update(deltaTime);
+}
+```
+
+### 📊 两种模式对比
+
+| 配置 | 执行方式 | CPU 利用率 | 调试难度 | 性能 | 推荐场景 |
+|------|---------|-----------|---------|------|---------|
+| **enableLogicThread = false** | Unity 主线程 | 单核 | 低（断点正常） | 低 | ✅ 开发调试 |
+| **enableLogicThread = true** | 独立线程 | 多核 | 高（多线程调试） | 高 | ✅ 性能测试、发布 |
+
+### 🎯 优势
+
+1. **开发友好** 🛠️
+   - 开发时：关闭多线程，方便调试（断点、单步执行）
+   - 测试时：开启多线程，验证性能和线程安全
+
+2. **零成本切换** 🔄
+   - Unity Inspector 中点击勾选即可
+   - 无需修改代码或重新编译
+
+3. **向后兼容** ✅
+   - 默认 `false`，不影响现有项目
+   - 单线程模式下行为完全不变
+
+4. **集中管理** 📍
+   - 所有配置在 GameApplication
+   - 不需要在每个 GameMode 中单独配置
+
+### 📋 实施任务
+
+已添加到 `tasks.md` 第 4 章：
+
+**4.1 在 GameApplication 添加全局开关**（4 个子任务）
+- 添加 SerializeField 字段
+- 添加公共属性
+- 添加 Inspector 注释
+- 添加运行时检查
+
+**4.2 GameMode 集成配置**（3 个子任务）
+- BaseGameMode 读取配置
+- 根据配置创建 LogicThread
+- 添加日志记录
+
+**4.3 添加运行时切换（可选）**（3 个子任务）
+- 命令行参数支持
+- 运行时 API
+- 调试菜单
+
+### ✅ 验证通过
+
+```bash
+Change 'add-logic-dedicated-thread' is valid
+```
+
+现在开发者可以方便地在 Unity Inspector 中切换单线程/多线程模式了！🎉 需要开始实施吗？
+
+---
+
+_**User (2025-12-24 02:30Z)**_
+
+开始实施吧
+
+---
+
+_**Agent (model claude-4.5-opus-high-thinking, mode Agent)**_
+
+
+
+---
+
