@@ -392,7 +392,7 @@ namespace Astrum.LogicCore.Core
                 }
                 
                 // 合并输出一条日志
-                ASLogger.Instance.Info($"[影子回滚][PlayerId={PlayerId}] {string.Join(" | ", logParts)}", "FrameSync.ShadowRollback");
+                //ASLogger.Instance.Info($"[影子回滚][PlayerId={PlayerId}] {string.Join(" | ", logParts)}", "FrameSync.ShadowRollback");
 
                 // 回滚影子：从权威实体复制状态
                 Room.CopyEntityStateToShadow(PlayerId, shadowId);
