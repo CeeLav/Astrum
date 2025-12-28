@@ -700,6 +700,35 @@ namespace Astrum.View.Components
             if (_ownerEntityView == null)
                 return;
             
+            var entity = OwnerEntity;
+            if (entity == null)
+                return;
+            
+            // 被动位移（击退）期间，直接从逻辑层读取旋转并同步（保持受击时设置的朝向，面向攻击者）
+            // 受击朝向由 HitReactionCapability.UpdateFacingDirection 在逻辑层设置
+            if (_currentMovementTypeCached == MovementType.PassiveDisplacement)
+            {
+                if (TransComponent.TryGetViewRead(entity.World, entity.UniqueId, out var transRead) && transRead.IsValid)
+                {
+                    // 从逻辑层读取旋转（定点数转浮点数）
+                    var fixedRot = transRead.Rotation;
+                    Quaternion logicRotation = new Quaternion(
+                        (float)fixedRot.x,
+                        (float)fixedRot.y,
+                        (float)fixedRot.z,
+                        (float)fixedRot.w
+                    );
+                    
+                    // 获取当前模型旋转
+                    Quaternion currentRot = _ownerEntityView.GetWorldRotation();
+                    
+                    // 平滑同步到逻辑层旋转（使用较快的缓动速度，确保及时响应）
+                    Quaternion newRot = Quaternion.Lerp(currentRot, logicRotation, rotationLerpSpeed * 2f);
+                    _ownerEntityView.SetWorldRotation(newRot);
+                }
+                return;
+            }
+            
             // 如果角色停下了，就不要改方向了
             if (!_isMovingLogicCached)
                 return;
