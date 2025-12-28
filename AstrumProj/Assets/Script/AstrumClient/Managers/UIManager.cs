@@ -179,7 +179,7 @@ namespace Astrum.Client.Managers
             }
 
             // 获取UIRoot引用
-            var uiRootTransform = GameApplication.Instance?.UIRoot?.transform;
+            var uiRootTransform = GameSetting.Instance?.UIRoot?.transform;
             if (uiRootTransform == null)
             {
                 Debug.LogError("[UIManager] 无法获取UIRoot引用，请确保GameApplication已初始化");

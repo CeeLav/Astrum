@@ -157,8 +157,8 @@ namespace Astrum.Client.Managers.GameModes
                 // 切换到 SinglePlayerGameMode
                 GameDirector.Instance.SwitchGameMode(GameModeType.SinglePlayer);
                 
-                // 使用GameApplication中配置的单人模式场景ID
-                var singlePlayerSceneId = GameApplication.Instance.SinglePlayerSceneId;
+                // 使用GameSetting中配置的单人模式场景ID
+                var singlePlayerSceneId = GameSetting.Instance.SinglePlayerSceneId;
                 
                 // StartGame 会在后续调用
                 GameDirector.Instance.StartGame(singlePlayerSceneId);

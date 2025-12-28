@@ -37,8 +37,6 @@ namespace Astrum.Client.Core
         public GameState CurrentState => _currentState;
         public IGameMode CurrentGameMode => _currentGameMode;
         
-        
-        
         /// <summary>
         /// 初始化游戏导演
         /// </summary>
@@ -104,10 +102,28 @@ namespace Astrum.Client.Core
             ASLogger.Instance.Info($"GameDirector: 游戏状态从 {previousState} 变为 {newState}");
         }
         
+
+        /// <summary>
+        /// 根据类型切换游戏模式
+        /// </summary>
+        public void SwitchGameMode(GameModeType gameModeType)
+        {
+            IGameMode newGameMode = gameModeType switch
+            {
+                GameModeType.Login => new LoginGameMode(),
+                GameModeType.Hub => new HubGameMode(),
+                GameModeType.SinglePlayer => new SinglePlayerGameMode(),
+                GameModeType.Multiplayer => new MultiplayerGameMode(),
+                GameModeType.Replay => new ReplayGameMode(),
+                _ => throw new System.ArgumentException($"Unknown GameMode type: {gameModeType}")
+            };
+            
+            SwitchGameMode(newGameMode);
+        }
         /// <summary>
         /// 切换游戏模式
         /// </summary>
-        public void SwitchGameMode(IGameMode newMode)
+        private void SwitchGameMode(IGameMode newMode)
         {
             if (_currentGameMode != null)
             {
@@ -129,24 +145,7 @@ namespace Astrum.Client.Core
             
             ASLogger.Instance.Info($"GameDirector: 切换到游戏模式 {newMode?.ModeName ?? "None"}");
         }
-        
-        /// <summary>
-        /// 根据类型切换游戏模式（更优雅的方式）
-        /// </summary>
-        public void SwitchGameMode(GameModeType gameModeType)
-        {
-            IGameMode newGameMode = gameModeType switch
-            {
-                GameModeType.Login => new LoginGameMode(),
-                GameModeType.Hub => new HubGameMode(),
-                GameModeType.SinglePlayer => new SinglePlayerGameMode(),
-                GameModeType.Multiplayer => new MultiplayerGameMode(),
-                GameModeType.Replay => new ReplayGameMode(),
-                _ => throw new System.ArgumentException($"Unknown GameMode type: {gameModeType}")
-            };
-            
-            SwitchGameMode(newGameMode);
-        }
+
         
         /// <summary>
         /// 启动游戏
@@ -233,7 +232,7 @@ namespace Astrum.Client.Core
             PlayerDataManager.Instance.Initialize();
             
             // 初始化 HUD 管理器
-            HUDManager.Instance.Initialize(GameApplication.Instance.HUDCanvas, GameApplication.Instance.MainCamera);
+            HUDManager.Instance.Initialize(GameSetting.Instance.HUDCanvas, GameSetting.Instance.MainCamera);
             
             AudioManager.Instance.Initialize();
             InputManager.Instance.Initialize();

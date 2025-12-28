@@ -56,12 +56,12 @@ namespace Astrum.Client.Managers
         /// </summary>
         private void CreateCoroutineRunner()
         {
-            // 尝试从GameApplication获取CoroutineRunner引用
-            var gameAppCoroutineRunner = GameApplication.Instance?.CoroutineRunner;
+            // 尝试从GameSetting获取CoroutineRunner引用
+            var gameAppCoroutineRunner = GameSetting.Instance?.CoroutineRunner;
             if (gameAppCoroutineRunner != null)
             {
                 coroutineRunner = gameAppCoroutineRunner;
-                Debug.Log("SceneManager: 使用GameApplication中的CoroutineRunner引用");
+                Debug.Log("SceneManager: 使用GameSetting中的CoroutineRunner引用");
             }
             else
             {

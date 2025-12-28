@@ -21,14 +21,14 @@ namespace Astrum.Client.Managers.GameModes
         protected LogicThread _logicThread;
         
         /// <summary>
-        /// 是否启用逻辑线程（从 GameApplication 读取）
+        /// 是否启用逻辑线程（从 GameSetting 读取）
         /// </summary>
-        protected bool IsLogicThreadEnabled => GameApplication.Instance?.EnableLogicThread ?? false;
+        protected bool IsLogicThreadEnabled => GameSetting.Instance?.EnableLogicThread ?? false;
         
         /// <summary>
-        /// 逻辑线程帧率（从 GameApplication 读取）
+        /// 逻辑线程帧率（从 GameSetting 读取）
         /// </summary>
-        protected int LogicThreadTickRate => GameApplication.Instance?.LogicThreadTickRate ?? 20;
+        protected int LogicThreadTickRate => GameSetting.Instance?.LogicThreadTickRate ?? 20;
         
         // 状态管理
         public GameModeState CurrentState => _currentState;
