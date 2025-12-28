@@ -795,9 +795,9 @@ namespace Astrum.View.Components
         /// </summary>
         private void OnKnockbackEnd(KnockbackEndEvent evt)
         {
-            ASLogger.Instance.Info($"[PredictedMovementViewComponent] Knockback end event received: " +
+            /*ASLogger.Instance.Info($"[PredictedMovementViewComponent] Knockback end event received: " +
                 $"FinalPosition=({evt.FinalPosition.x.AsFloat():F2}, {evt.FinalPosition.y.AsFloat():F2}, {evt.FinalPosition.z.AsFloat():F2}), " +
-                $"IsNormalEnd={evt.IsNormalEnd}");
+                $"IsNormalEnd={evt.IsNormalEnd}");*/
             
             // 重置击退状态
             _isKnockingBackCached = false;
@@ -812,12 +812,12 @@ namespace Astrum.View.Components
             
             // 强制对齐到逻辑最终位置
             _posVisual = finalPosVisual;
-            
+            /*
             ASLogger.Instance.Info($"[PredictedMovementViewComponent] Position snapped to final position from ViewEvent: " +
                 $"落点位置=({finalPosVisual.x:F2}, {finalPosVisual.y:F2}, {finalPosVisual.z:F2}), " +
                 $"表现层位置=({oldPosVisual.x:F2}, {oldPosVisual.y:F2}, {oldPosVisual.z:F2}) -> " +
                 $"新位置=({_posVisual.x:F2}, {_posVisual.y:F2}, {_posVisual.z:F2}), " +
-                $"偏差距离={distance:F2}m");
+                $"偏差距离={distance:F2}m");*/
             
             // 更新 EntityView 的世界位置
             if (_ownerEntityView != null)
