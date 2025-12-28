@@ -188,12 +188,28 @@ namespace Astrum.LogicCore.Capabilities
                 int worldFrame = entity.World?.CurFrame ?? 0;
                 movementComponent.LastMoveFrame = worldFrame;
 
-                movementComponent.MoveDirection = transComponent.Rotation * TSVector.forward;
+                // 使用实际的位移方向（worldDeltaPosition），而不是角色朝向
+                // 这样当翻滚方向改变时，MoveDirection 会正确更新
+                TSVector moveDir = worldDeltaPosition.normalized;
+                moveDir = new TSVector(moveDir.x, FP.Zero, moveDir.z); // 确保 Y=0
+                if (moveDir.sqrMagnitude > FP.EN4)
+                {
+                    movementComponent.MoveDirection = moveDir.normalized;
+                }
+                else
+                {
+                    // 如果位移方向无效，fallback 到角色朝向
+                    movementComponent.MoveDirection = transComponent.Rotation * TSVector.forward;
+                }
+
+                // 标记 MovementComponent 为脏，确保 MoveDirection 的更新被导出到 ViewRead
+                // 这是必要的，因为 MoveDirection 可能在类型不变时改变（例如连续翻滚方向改变）
+                entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
 
                 if (movementComponent.CurrentMovementType != MovementType.SkillDisplacement)
                 {
                     movementComponent.CurrentMovementType = MovementType.SkillDisplacement;
-                    entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+                    // 注意：上面已经标记为脏了，这里不需要再次标记
                 }
             }
             
