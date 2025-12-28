@@ -4,21 +4,6 @@ using Astrum.Client.Managers.GameModes;
 namespace Astrum.Client.Core
 {
     /// <summary>
-    /// 游戏状态变化事件数据
-    /// </summary>
-    public class GameStateChangedEventData : EventData
-    {
-        public GameState PreviousState { get; set; }
-        public GameState NewState { get; set; }
-        
-        public GameStateChangedEventData(GameState previousState, GameState newState)
-        {
-            PreviousState = previousState;
-            NewState = newState;
-        }
-    }
-    
-    /// <summary>
     /// 游戏模式变化事件数据
     /// </summary>
     public class GameModeChangedEventData : EventData

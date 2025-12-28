@@ -160,8 +160,8 @@ namespace Astrum.Client.Managers.GameModes
                 // 使用GameSetting中配置的单人模式场景ID
                 var singlePlayerSceneId = GameSetting.Instance.SinglePlayerSceneId;
                 
-                // StartGame 会在后续调用
-                GameDirector.Instance.StartGame(singlePlayerSceneId);
+                // 启动新切换的游戏模式
+                GameDirector.Instance.CurrentGameMode?.StartGame(singlePlayerSceneId);
                 
                 ASLogger.Instance.Info($"HubGameMode: 探索启动成功，使用场景ID: {singlePlayerSceneId}");
             }

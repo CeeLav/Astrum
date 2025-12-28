@@ -29,12 +29,10 @@ namespace Astrum.Client.Core
     [MonitorTarget]
     public class GameDirector : Singleton<GameDirector>
     {
-        // 游戏状态
-        private GameState _currentState = GameState.ApplicationStarting;
+        // 当前游戏模式
         private IGameMode _currentGameMode;
         
         // 公共属性
-        public GameState CurrentState => _currentState;
         public IGameMode CurrentGameMode => _currentGameMode;
         
         /// <summary>
@@ -48,9 +46,6 @@ namespace Astrum.Client.Core
             {
                 // 初始化各个 Manager
                 InitializeManagers();
-                
-                // 设置初始状态
-                ChangeGameState(GameState.ApplicationReady);
                 
                 // 创建并切换到 LoginGameMode
                 SwitchGameMode(GameModeType.Login);
@@ -86,23 +81,6 @@ namespace Astrum.Client.Core
             }
         }
         
-        /// <summary>
-        /// 改变游戏状态
-        /// </summary>
-        public void ChangeGameState(GameState newState)
-        {
-            if (_currentState == newState) return;
-            
-            var previousState = _currentState;
-            _currentState = newState;
-            
-            // 使用现有 EventSystem 发布事件
-            EventSystem.Instance.Publish(new GameStateChangedEventData(previousState, newState));
-            
-            ASLogger.Instance.Info($"GameDirector: 游戏状态从 {previousState} 变为 {newState}");
-        }
-        
-
         /// <summary>
         /// 根据类型切换游戏模式
         /// </summary>
@@ -147,60 +125,6 @@ namespace Astrum.Client.Core
         }
 
         
-        /// <summary>
-        /// 启动游戏
-        /// </summary>
-        public void StartGame(int sceneId)
-        {
-            ASLogger.Instance.Info($"GameDirector: 启动游戏 - 场景ID: {sceneId}");
-            
-            ChangeGameState(GameState.GameLoading);
-            
-            if (_currentGameMode != null)
-            {
-                _currentGameMode.StartGame(sceneId);
-                ChangeGameState(GameState.GamePlaying);
-            }
-            else
-            {
-                ASLogger.Instance.Warning("GameDirector: 没有当前游戏模式，无法启动游戏");
-            }
-        }
-        
-        /// <summary>
-        /// 暂停游戏
-        /// </summary>
-        public void PauseGame()
-        {
-            ASLogger.Instance.Info("GameDirector: 暂停游戏");
-            ChangeGameState(GameState.GamePaused);
-        }
-        
-        /// <summary>
-        /// 恢复游戏
-        /// </summary>
-        public void ResumeGame()
-        {
-            ASLogger.Instance.Info("GameDirector: 恢复游戏");
-            ChangeGameState(GameState.GamePlaying);
-        }
-        
-        /// <summary>
-        /// 结束游戏
-        /// </summary>
-        public void EndGame()
-        {
-            ASLogger.Instance.Info("GameDirector: 结束游戏");
-            ChangeGameState(GameState.GameEnding);
-            
-            if (_currentGameMode != null)
-            {
-                _currentGameMode.Shutdown();
-                _currentGameMode = null;
-            }
-            
-            ChangeGameState(GameState.GameMenu);
-        }
         
         /// <summary>
         /// 初始化各个 Manager
@@ -298,9 +222,6 @@ namespace Astrum.Client.Core
             // TODO: NetworkMessageHandler已被新的消息处理器系统替代
             // 新的消息处理器会自动管理，无需手动关闭
             TableConfig.Instance?.Shutdown();
-            
-            // 设置关闭状态
-            ChangeGameState(GameState.SystemShutdown);
         }
         
         /// <summary>

@@ -600,7 +600,7 @@ namespace Astrum.Client.Managers.GameModes
                 GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
                 
                 // 3. 启动 Hub 场景
-                GameDirector.Instance.StartGame(HubSceneId);
+                GameDirector.Instance.CurrentGameMode?.StartGame(HubSceneId);
                 
                 ASLogger.Instance.Info("SinglePlayerGameMode: 撤离成功，已切换到 Hub 模式");
             }

@@ -467,7 +467,7 @@ namespace Astrum.Client.Managers.GameModes
                 GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
 
                 // 4. 启动 Hub 游戏（加载 Hub 场景）
-                GameDirector.Instance.StartGame(HubSceneId);
+                GameDirector.Instance.CurrentGameMode?.StartGame(HubSceneId);
 
                 ASLogger.Instance.Info("LoginGameMode: 切换到 Hub 模式成功");
             }
