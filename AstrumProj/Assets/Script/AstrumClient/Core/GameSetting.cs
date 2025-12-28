@@ -5,7 +5,7 @@ namespace Astrum.Client.Core
     /// <summary>
     /// 游戏设置配置类 - 用于在 Inspector 中配置游戏参数
     /// </summary>
-    public class GameSetting : MonoBehaviour
+    public class GameSetting : MonoBehaviourSingleton<GameSetting>
     {
         [Header("应用程序设置")]
         [SerializeField] private int targetFrameRate = 60;

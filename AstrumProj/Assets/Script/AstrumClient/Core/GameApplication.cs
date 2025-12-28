@@ -16,16 +16,15 @@ namespace Astrum.Client.Core
     /// <summary>
     /// 游戏应用程序主控制器
     /// </summary>
-    public class GameApplication : MonoBehaviour
+    public class GameApplication : MonoBehaviourSingleton<GameApplication>
     {
-        [Header("游戏设置引用")]
-        [SerializeField] private GameSetting gameSetting;
+        private GameSetting gameSetting;
+        private bool isRunning = true;
         
-        [Header("运行时状态")]
-        [SerializeField] private bool isRunning = true;
-        
-        // 单例实例
-        public static GameApplication Instance { get; private set; }
+        /// <summary>
+        /// 在场景切换时保持存活
+        /// </summary>
+        protected override bool DontDestroyOnLoad => true;
         
         public int FrameRate => gameSetting != null ? gameSetting.TargetFrameRate : 60;
         
@@ -62,8 +61,10 @@ namespace Astrum.Client.Core
             return gameSetting != null ? gameSetting.GetSceneIdByMode(isSinglePlayer) : (isSinglePlayer ? 1 : 2);
         }
         
-        private void Awake()
+        protected override void OnSingletonAwake()
         {
+            base.OnSingletonAwake();
+            
             // 验证 GameSetting 引用
             if (gameSetting == null)
             {
@@ -71,17 +72,7 @@ namespace Astrum.Client.Core
                 return;
             }
             
-            // 单例模式
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-                Initialize();
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
+            Initialize();
         }
         
         private void Update()
@@ -93,9 +84,10 @@ namespace Astrum.Client.Core
             GameDirector.Instance.Update(deltaTime);
         }
         
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
             Shutdown();
+            base.OnDestroy();
         }
         
         /// <summary>
