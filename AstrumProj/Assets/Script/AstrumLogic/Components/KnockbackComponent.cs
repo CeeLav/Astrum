@@ -60,6 +60,16 @@ namespace Astrum.LogicCore.Components
         public long CasterId { get; set; }
         
         /// <summary>
+        /// 击退起始位置（世界坐标）
+        /// </summary>
+        public TSVector StartPosition { get; set; }
+        
+        /// <summary>
+        /// 击退目标落点位置（世界坐标）
+        /// </summary>
+        public TSVector TargetPosition { get; set; }
+        
+        /// <summary>
         /// 默认构造函数
         /// </summary>
         public KnockbackComponent() : base() { }
@@ -77,7 +87,9 @@ namespace Astrum.LogicCore.Components
             FP totalDistance, 
             FP movedDistance, 
             KnockbackType type, 
-            long casterId)
+            long casterId,
+            TSVector startPosition,
+            TSVector targetPosition)
         {
             EntityId = entityId;
             IsKnockingBack = isKnockingBack;
@@ -88,6 +100,8 @@ namespace Astrum.LogicCore.Components
             MovedDistance = movedDistance;
             Type = type;
             CasterId = casterId;
+            StartPosition = startPosition;
+            TargetPosition = targetPosition;
         }
         
         /// <summary>
@@ -104,6 +118,8 @@ namespace Astrum.LogicCore.Components
             MovedDistance = FP.Zero;
             Type = KnockbackType.Linear;
             CasterId = 0;
+            StartPosition = TSVector.zero;
+            TargetPosition = TSVector.zero;
         }
     }
     

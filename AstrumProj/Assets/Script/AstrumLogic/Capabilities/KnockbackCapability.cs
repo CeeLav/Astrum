@@ -59,6 +59,11 @@ namespace Astrum.LogicCore.Capabilities
                 ASLogger.Instance.Debug($"[KnockbackCapability] Created KnockbackComponent for entity {entity.UniqueId}");
             }
             
+            // 获取当前实体位置，计算起始位置和落点位置
+            var transComponent = GetComponent<TransComponent>(entity);
+            TSVector startPosition = transComponent != null ? transComponent.Position : TSVector.zero;
+            TSVector targetPosition = startPosition + evt.Direction * evt.Distance;
+            
             // 写入击退数据（修改自身组件）
             knockback.IsKnockingBack = true;
             knockback.Direction = evt.Direction;
@@ -68,6 +73,18 @@ namespace Astrum.LogicCore.Capabilities
             knockback.MovedDistance = FP.Zero;
             knockback.Type = evt.Type;
             knockback.CasterId = evt.CasterId;
+            knockback.StartPosition = startPosition;
+            knockback.TargetPosition = targetPosition;
+            
+            // 输出击退起始位置和落点位置日志
+            ASLogger.Instance.Debug($"[KnockbackCapability] Entity {entity.UniqueId} knockback positions: " +
+                $"StartPosition=({startPosition.x.AsFloat():F2}, {startPosition.y.AsFloat():F2}, {startPosition.z.AsFloat():F2}), " +
+                $"TargetPosition=({targetPosition.x.AsFloat():F2}, {targetPosition.y.AsFloat():F2}, {targetPosition.z.AsFloat():F2}), " +
+                $"Direction=({evt.Direction.x.AsFloat():F2}, {evt.Direction.y.AsFloat():F2}, {evt.Direction.z.AsFloat():F2}), " +
+                $"Distance={evt.Distance.AsFloat():F2}, Duration={evt.Duration.AsFloat():F2}, Type={evt.Type}");
+            
+            // 标记 KnockbackComponent 为脏，确保 ViewRead 同步更新
+            entity.MarkComponentDirty(KnockbackComponent.ComponentTypeId);
             
             //ASLogger.Instance.Debug($"[KnockbackCapability] Knockback data written: speed={knockback.Speed}m/s, direction={evt.Direction}");
         }
@@ -151,8 +168,11 @@ namespace Astrum.LogicCore.Capabilities
 
             // 标记 TransComponent 为脏，确保 ViewRead 同步更新
             entity.MarkComponentDirty(TransComponent.ComponentTypeId);
+            
+            // 标记 KnockbackComponent 为脏，确保 ViewRead 同步更新（数据每帧都在变化）
+            entity.MarkComponentDirty(KnockbackComponent.ComponentTypeId);
 
-            // 本逻辑帧实际发生位移：设置移动类型为被动位移（仅在变化时置脏）
+            // 本逻辑帧实际发生位移：设置移动类型为被动位移
             var movementComponent = GetComponent<MovementComponent>(entity);
             if (movementComponent != null && movement.sqrMagnitude > FP.EN4)
             {
@@ -165,10 +185,13 @@ namespace Astrum.LogicCore.Capabilities
                     ? knockback.Direction.normalized
                     : movement.normalized;
 
+                // 标记 MovementComponent 为脏，确保 MoveDirection 和 CurrentMovementType 的更新被导出到 ViewRead
+                entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+
                 if (movementComponent.CurrentMovementType != MovementType.PassiveDisplacement)
                 {
                     movementComponent.CurrentMovementType = MovementType.PassiveDisplacement;
-                    entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+                    // 注意：上面已经标记为脏了，这里不需要再次标记
                 }
             }
             
@@ -179,7 +202,7 @@ namespace Astrum.LogicCore.Capabilities
             if (knockback.RemainingTime <= FP.Zero ||
                 knockback.MovedDistance >= knockback.TotalDistance)
             {
-                EndKnockback(knockback);
+                EndKnockback(entity, knockback);
             }
         }
         
@@ -210,11 +233,14 @@ namespace Astrum.LogicCore.Capabilities
         /// <summary>
         /// 结束击退
         /// </summary>
-        private void EndKnockback(KnockbackComponent knockback)
+        private void EndKnockback(Entity entity, KnockbackComponent knockback)
         {
             knockback.IsKnockingBack = false;
             knockback.RemainingTime = FP.Zero;
             knockback.Speed = FP.Zero;
+            
+            // 标记 KnockbackComponent 为脏，确保 ViewRead 同步更新
+            entity.MarkComponentDirty(KnockbackComponent.ComponentTypeId);
             
             ASLogger.Instance.Debug($"[KnockbackCapability] Knockback ended");
         }

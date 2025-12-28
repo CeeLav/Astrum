@@ -31,7 +31,9 @@ namespace Astrum.LogicCore.Components
                         totalDistance: comp.TotalDistance,
                         movedDistance: comp.MovedDistance,
                         remainingTime: comp.RemainingTime,
-                        type: comp.Type),
+                        type: comp.Type,
+                        startPosition: comp.StartPosition,
+                        targetPosition: comp.TargetPosition),
                     createInvalid: entityId => ViewRead.Invalid(entityId)
                 );
                 
@@ -50,6 +52,8 @@ namespace Astrum.LogicCore.Components
             public readonly FP MovedDistance;
             public readonly FP RemainingTime;
             public readonly KnockbackType Type;
+            public readonly TSVector StartPosition;
+            public readonly TSVector TargetPosition;
 
             public ViewRead(
                 long entityId, 
@@ -60,7 +64,9 @@ namespace Astrum.LogicCore.Components
                 FP totalDistance, 
                 FP movedDistance,
                 FP remainingTime,
-                KnockbackType type)
+                KnockbackType type,
+                TSVector startPosition,
+                TSVector targetPosition)
             {
                 EntityId = entityId;
                 IsValid = isValid;
@@ -71,6 +77,8 @@ namespace Astrum.LogicCore.Components
                 MovedDistance = movedDistance;
                 RemainingTime = remainingTime;
                 Type = type;
+                StartPosition = startPosition;
+                TargetPosition = targetPosition;
             }
 
             /// <summary>
@@ -78,15 +86,20 @@ namespace Astrum.LogicCore.Components
             /// </summary>
             public FP RemainingDistance => TotalDistance - MovedDistance;
 
+            /// <summary>
+            /// 获取总击退时间（秒）
+            /// </summary>
+            public FP TotalTime => TotalDistance > FP.Zero && Speed > FP.Zero ? TotalDistance / Speed : FP.Zero;
+
             public static ViewRead Invalid(long entityId)
             {
-                return new ViewRead(entityId, false, false, default, default, default, default, default, default);
+                return new ViewRead(entityId, false, false, default, default, default, default, default, default, default, default);
             }
 
             public override string ToString()
             {
                 return IsValid ? 
-                    $"KnockbackComponent.ViewRead [EntityId={EntityId}, IsKnockingBack={IsKnockingBack}, Direction=({Direction.x.AsFloat():F2}, {Direction.y.AsFloat():F2}, {Direction.z.AsFloat():F2}), Speed={Speed.AsFloat():F2}, TotalDistance={TotalDistance.AsFloat():F2}, MovedDistance={MovedDistance.AsFloat():F2}, RemainingTime={RemainingTime.AsFloat():F2}, Type={Type}]" :
+                    $"KnockbackComponent.ViewRead [EntityId={EntityId}, IsKnockingBack={IsKnockingBack}, Direction=({Direction.x.AsFloat():F2}, {Direction.y.AsFloat():F2}, {Direction.z.AsFloat():F2}), Speed={Speed.AsFloat():F2}, TotalDistance={TotalDistance.AsFloat():F2}, MovedDistance={MovedDistance.AsFloat():F2}, RemainingTime={RemainingTime.AsFloat():F2}, Type={Type}, StartPosition=({StartPosition.x.AsFloat():F2}, {StartPosition.y.AsFloat():F2}, {StartPosition.z.AsFloat():F2}), TargetPosition=({TargetPosition.x.AsFloat():F2}, {TargetPosition.y.AsFloat():F2}, {TargetPosition.z.AsFloat():F2})]" :
                     $"KnockbackComponent.ViewRead [EntityId={EntityId}, Invalid]";
             }
         }
@@ -105,4 +118,3 @@ namespace Astrum.LogicCore.Components
         }
     }
 }
-

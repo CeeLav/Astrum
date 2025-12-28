@@ -334,7 +334,7 @@ namespace Astrum.View.Components
                 SyncAnimationTimeWithTable(actionTable, currentFrame);
                 SetAnimationSpeed(animationSpeed);
                 
-                ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentActionId} on entity {OwnerEntity.UniqueId}");
+                //ASLogger.Instance.Debug($"AnimationViewComponent.SyncWithActionSystem: Action changed to {currentActionId} on entity {OwnerEntity.UniqueId}");
                 return;
             }
             else
@@ -644,8 +644,8 @@ namespace Astrum.View.Components
             // 直接设置绝对时间（秒）- Animancer 支持直接使用绝对时间
             _currentAnimationState.Time = animTime;
             
-            ASLogger.Instance.Debug($"AnimationViewComponent.SyncAnimationTimeWithTable: Synced to frame {targetFrame} " +
-                $"(animTime: {animTime:F3}s) for action {actionTable.ActionId} on entity {OwnerEntity?.UniqueId}");
+            /*ASLogger.Instance.Debug($"AnimationViewComponent.SyncAnimationTimeWithTable: Synced to frame {targetFrame} " +
+                $"(animTime: {animTime:F3}s) for action {actionTable.ActionId} on entity {OwnerEntity?.UniqueId}");*/
         }
         
         

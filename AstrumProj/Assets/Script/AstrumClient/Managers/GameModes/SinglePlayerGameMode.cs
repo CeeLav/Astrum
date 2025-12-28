@@ -337,7 +337,7 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         
-        public void TestCreateMonster(int configId, int count)
+        public void TestCreateMonster(int configId, int count, bool useAI)
         {
             // 随机数生成器
             System.Random random = new System.Random();
@@ -371,18 +371,21 @@ namespace Astrum.Client.Managers.GameModes
                             (TrueSync.FP)randomZ
                         );
                         
-                        // 使用事件系统设置位置（线程安全）
-                        monsterEntity.QueueEvent(new Astrum.LogicCore.Events.SetPositionEvent
+
+                        if (useAI)
                         {
-                            Position = randomPosition,
-                            TriggerWhenInactive = true // 即使 Capability 未激活也处理
-                        });
-                        ASLogger.Instance.Debug($"SinglePlayerGameMode: 发送设置怪物位置事件 ({randomX:F2}, 0, {randomZ:F2})");
-                        
-                        monsterEntity.AttachSubArchetype(EArchetype.AI, out string reason);
-                        if (reason != null)
-                        {
-                            ASLogger.Instance.Info($"SinglePlayerGameMode: <UNK>Monster<UNK> - Reason: {reason}");
+                            // 使用事件系统设置位置（线程安全）
+                            monsterEntity.QueueEvent(new Astrum.LogicCore.Events.SetPositionEvent
+                            {
+                                Position = randomPosition,
+                                TriggerWhenInactive = true // 即使 Capability 未激活也处理
+                            });
+                            ASLogger.Instance.Debug($"SinglePlayerGameMode: 发送设置怪物位置事件 ({randomX:F2}, 0, {randomZ:F2})");
+                            monsterEntity.AttachSubArchetype(EArchetype.AI, out string reason);
+                            if (reason != null)
+                            {
+                                ASLogger.Instance.Info($"SinglePlayerGameMode: <UNK>Monster<UNK> - Reason: {reason}");
+                            }
                         }
                         ASLogger.Instance.Info($"SinglePlayerGameMode: Monster创建并初始化完成，ID: {monsterId}");
                     }

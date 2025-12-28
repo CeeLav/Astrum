@@ -58,17 +58,12 @@ namespace Astrum.View.Components
 
         // 击退相关缓存状态
         private bool _isKnockingBackCached;
-        private Vector3 _knockbackDirectionCached;
-        private float _knockbackSpeedCached;
-        private float _knockbackTotalDistanceCached;
-        private float _knockbackMovedDistanceCached;
-        private float _knockbackRemainingTimeCached;
         private KnockbackType _knockbackTypeCached;
-        // 击退开始时的视觉位置（用于计算插值起点）
+        // 击退开始时的视觉位置（表现层自己的当前位置）
         private Vector3 _knockbackStartPosVisual;
-        // 击退开始时的逻辑位置（用于计算目标落点）
-        private Vector3 _knockbackStartPosLogic;
-        // 是否刚开始击退（用于初始化起点）
+        // 击退目标落点位置（逻辑层提供的预计算落点）
+        private Vector3 _knockbackTargetPosVisual;
+        // 是否刚开始击退（用于初始化起点和落点）
         private bool _knockbackJustStarted;
 
         // RootMotion 相关状态 =====
@@ -109,16 +104,15 @@ namespace Astrum.View.Components
 
                 if (_isKnockingBackCached && !wasKnockingBack)
                 {
-                    // 击退刚开始，记录起点
+                    // 击退刚开始，标记需要初始化起点和落点
                     _knockbackJustStarted = true;
+                    ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Entity {OwnerEntity.UniqueId} knockback started, " +
+                        $"TargetPosition from logic=({knockbackRead.TargetPosition.x.AsFloat():F2}, {knockbackRead.TargetPosition.y.AsFloat():F2}, {knockbackRead.TargetPosition.z.AsFloat():F2}), " +
+                        $"StartPosition from logic=({knockbackRead.StartPosition.x.AsFloat():F2}, {knockbackRead.StartPosition.y.AsFloat():F2}, {knockbackRead.StartPosition.z.AsFloat():F2}), " +
+                        $"TotalTime={knockbackRead.TotalTime.AsFloat():F2}, Type={knockbackRead.Type}");
                 }
 
                 // 更新击退缓存数据
-                _knockbackDirectionCached = ToVector3(knockbackRead.Direction);
-                _knockbackSpeedCached = knockbackRead.Speed.AsFloat();
-                _knockbackTotalDistanceCached = knockbackRead.TotalDistance.AsFloat();
-                _knockbackMovedDistanceCached = knockbackRead.MovedDistance.AsFloat();
-                _knockbackRemainingTimeCached = knockbackRead.RemainingTime.AsFloat();
                 _knockbackTypeCached = knockbackRead.Type;
             }
         }
@@ -403,15 +397,10 @@ namespace Astrum.View.Components
 
                 if (_isKnockingBackCached && !wasKnockingBack)
                 {
-                    // 击退刚开始，记录起点
+                    // 击退刚开始，标记需要初始化起点和落点
                     _knockbackJustStarted = true;
                 }
 
-                _knockbackDirectionCached = ToVector3(knockbackRead.Direction);
-                _knockbackSpeedCached = knockbackRead.Speed.AsFloat();
-                _knockbackTotalDistanceCached = knockbackRead.TotalDistance.AsFloat();
-                _knockbackMovedDistanceCached = knockbackRead.MovedDistance.AsFloat();
-                _knockbackRemainingTimeCached = knockbackRead.RemainingTime.AsFloat();
                 _knockbackTypeCached = knockbackRead.Type;
             }
 
@@ -481,7 +470,7 @@ namespace Astrum.View.Components
 
         /// <summary>
         /// 处理被动位移模式（击退等）
-        /// 基于预测落点和击退曲线，表现层自己执行平滑位移
+        /// 使用逻辑层的当前位置作为基准，在此基础上进行平滑跟随
         /// </summary>
         private void HandlePassiveDisplacement(Vector3 posLogic, int logicFrame, bool logicFrameAdvanced, float deltaTime)
         {
@@ -499,41 +488,56 @@ namespace Astrum.View.Components
             if (!knockbackRead.IsKnockingBack)
             {
                 // 击退已结束，回退到普通移动
+                if (_isKnockingBackCached)
+                {
+                    ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Entity {entity.UniqueId} knockback ended, " +
+                        $"FinalVisualPos=({_posVisual.x:F2}, {_posVisual.y:F2}, {_posVisual.z:F2}), " +
+                        $"FinalLogicPos=({posLogic.x:F2}, {posLogic.y:F2}, {posLogic.z:F2})");
+                }
                 HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
                 return;
             }
 
-            // 更新缓存（确保在 OnUpdate 中也能获取最新数据）
-            _knockbackDirectionCached = ToVector3(knockbackRead.Direction);
-            _knockbackSpeedCached = knockbackRead.Speed.AsFloat();
-            _knockbackTotalDistanceCached = knockbackRead.TotalDistance.AsFloat();
-            _knockbackMovedDistanceCached = knockbackRead.MovedDistance.AsFloat();
-            _knockbackRemainingTimeCached = knockbackRead.RemainingTime.AsFloat();
+            // 更新类型缓存（用于 ApplyKnockbackCurve）
             _knockbackTypeCached = knockbackRead.Type;
 
-            // 击退刚开始时，初始化起点
+            // 击退刚开始时，初始化缓存
             if (_knockbackJustStarted)
             {
-                _knockbackStartPosVisual = _posVisual;
-                _knockbackStartPosLogic = posLogic;
+                // 使用逻辑层的起点位置作为基准（而不是表现层当前位置）
+                _knockbackStartPosVisual = ToVector3(knockbackRead.StartPosition);
+                _knockbackTargetPosVisual = ToVector3(knockbackRead.TargetPosition);
+                
+                // 如果视觉位置和逻辑起点偏差过大，对齐到逻辑起点
+                if ((_posVisual - _knockbackStartPosVisual).magnitude > 1f)
+                {
+                    _posVisual = _knockbackStartPosVisual;
+                }
+                
+                ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Entity {entity.UniqueId} knockback initialized in view layer: " +
+                    $"VisualStartPos=({_knockbackStartPosVisual.x:F2}, {_knockbackStartPosVisual.y:F2}, {_knockbackStartPosVisual.z:F2}), " +
+                    $"VisualTargetPos=({_knockbackTargetPosVisual.x:F2}, {_knockbackTargetPosVisual.y:F2}, {_knockbackTargetPosVisual.z:F2}), " +
+                    $"CurrentLogicPos=({posLogic.x:F2}, {posLogic.y:F2}, {posLogic.z:F2}), " +
+                    $"CurrentVisualPos=({_posVisual.x:F2}, {_posVisual.y:F2}, {_posVisual.z:F2})");
                 _knockbackJustStarted = false;
             }
 
-            // 计算击退进度（0-1）
-            float progress = 0f;
-            if (_knockbackTotalDistanceCached > 0.001f)
+            // 直接使用逻辑位置作为基准，进行平滑跟随
+            // 击退时，逻辑层已经在每帧更新位置，表现层只需要平滑跟随即可
+            if (logicFrameAdvanced)
             {
-                progress = Mathf.Clamp01(_knockbackMovedDistanceCached / _knockbackTotalDistanceCached);
+                // 逻辑帧推进时，平滑跟随逻辑位置
+                // 对于击退，使用较快的平滑速度，减少延迟感
+                _posVisual = Vector3.Lerp(_posVisual, posLogic, posFixLerp * deltaTime * 30f);
             }
-
-            // 计算目标落点（击退开始位置 + 方向 × 总距离）
-            Vector3 targetPos = _knockbackStartPosLogic + _knockbackDirectionCached * _knockbackTotalDistanceCached;
-
-            // 根据击退类型应用不同的插值曲线
-            float curvedProgress = ApplyKnockbackCurve(progress, _knockbackTypeCached);
-
-            // 从起点到目标点插值
-            _posVisual = Vector3.Lerp(_knockbackStartPosVisual, targetPos, curvedProgress);
+            else
+            {
+                // 逻辑帧停更时，平滑对齐到逻辑位置（避免偏差累积）
+                _posVisual = Vector3.Lerp(_posVisual, posLogic, posFixLerp * deltaTime * 20f);
+            }
+            
+            // 计算偏差，用于极端保护
+            float distanceToLogic = (_posVisual - posLogic).magnitude;
 
             // 更新逻辑帧缓存
             if (logicFrameAdvanced)
@@ -543,7 +547,7 @@ namespace Astrum.View.Components
             }
 
             // 极端保护：当视觉与逻辑偏差过大时，强制对齐
-            if ((_posVisual - posLogic).magnitude > hardSnapDistance)
+            if (distanceToLogic > hardSnapDistance)
             {
                 _posVisual = posLogic;
             }

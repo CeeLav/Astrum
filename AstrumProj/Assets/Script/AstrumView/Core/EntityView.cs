@@ -479,7 +479,7 @@ namespace Astrum.View.Core
             // 查询子原型对应的 ViewComponents
             if (!ViewArchetypeManager.Instance.TryGetComponents(subArchetype, out var viewComponentTypes))
             {
-                ASLogger.Instance.Warning($"EntityView: 子原型 {subArchetype} 没有对应的 ViewComponents，ID: {_entityId}");
+                //ASLogger.Instance.Warning($"EntityView: 子原型 {subArchetype} 没有对应的 ViewComponents，ID: {_entityId}");
                 return false;
             }
             

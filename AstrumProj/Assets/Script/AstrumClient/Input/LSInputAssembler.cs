@@ -114,10 +114,10 @@ namespace Astrum.Client.Input
             input.MoveX = ToFixedPoint(worldMove.x);
             input.MoveY = ToFixedPoint(worldMove.y);
             
-            ASLogger.Instance.Debug(
+            /*ASLogger.Instance.Debug(
                 $"LSInputAssembler: Movement - Raw({horizontal:F2}, {vertical:F2}) -> World({worldMove.x:F2}, {worldMove.y:F2}) -> Fixed({input.MoveX}, {input.MoveY})",
                 "Input.Assembler"
-            );
+            );*/
         }
         
         /// <summary>
@@ -140,7 +140,7 @@ namespace Astrum.Client.Input
                     
                     if (value)
                     {
-                        ASLogger.Instance.Debug($"LSInputAssembler: Button '{fieldName}' = true (from '{mapping.SourceActions}')", "Input.Assembler");
+                        //ASLogger.Instance.Debug($"LSInputAssembler: Button '{fieldName}' = true (from '{mapping.SourceActions}')", "Input.Assembler");
                     }
                 }
             }

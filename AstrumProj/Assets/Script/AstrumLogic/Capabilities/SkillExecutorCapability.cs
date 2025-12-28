@@ -310,7 +310,7 @@ namespace Astrum.LogicCore.Capabilities
                     }
                 }
             
-            ASLogger.Instance.Debug($"Queued VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
+            //ASLogger.Instance.Debug($"Queued VFX trigger event: EntityId={caster.UniqueId}, ResourcePath={eventData.ResourcePath}");
             }
         }
         
@@ -359,7 +359,7 @@ namespace Astrum.LogicCore.Capabilities
             // 移除冗余日志，只在没有命中时记录
             if (_hitsBuffer.Count == 0)
             {
-                ASLogger.Instance.Debug($"[SkillExecutorCapability] Collision trigger hit 0 targets");
+                //ASLogger.Instance.Debug($"[SkillExecutorCapability] Collision trigger hit 0 targets");
                 return;
             }
 

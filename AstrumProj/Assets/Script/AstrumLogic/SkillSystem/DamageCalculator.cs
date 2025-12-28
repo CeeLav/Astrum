@@ -46,8 +46,8 @@ namespace Astrum.LogicCore.SkillSystem
             FP targetBlockRate = targetDerived?.Get(StatType.BLOCK_RATE) ?? (FP)0.1;
             FP targetBlockValue = targetDerived?.Get(StatType.BLOCK_VALUE) ?? (FP)50;
             
-            ASLogger.Instance.Debug($"[DamageCalc] Caster ATK={casterAttack}, CRIT={casterCritRate}, Target DEF={targetDefense}");
-            ASLogger.Instance.Debug($"[DamageCalc] Frame={currentFrame}, CasterId={caster.UniqueId}, TargetId={target.UniqueId}");
+            //ASLogger.Instance.Debug($"[DamageCalc] Caster ATK={casterAttack}, CRIT={casterCritRate}, Target DEF={targetDefense}");
+            //ASLogger.Instance.Debug($"[DamageCalc] Frame={currentFrame}, CasterId={caster.UniqueId}, TargetId={target.UniqueId}");
             
             Stats.DamageType damageType = effectConfig.GetDamageTypeEnum();
 
