@@ -127,6 +127,14 @@ namespace Astrum.LogicCore.Capabilities
                 "Knockback active"
             );
             
+            // 设置移动类型为被动位移
+            var movementComponent = GetComponent<MovementComponent>(entity);
+            if (movementComponent != null)
+            {
+                movementComponent.CurrentMovementType = MovementType.PassiveDisplacement;
+                entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+            }
+            
             //ASLogger.Instance.Debug($"[KnockbackCapability] Activated for entity {entity.UniqueId}");
         }
         
@@ -138,6 +146,14 @@ namespace Astrum.LogicCore.Capabilities
                 CapabilityTag.UserInputMovement,
                 _knockbackInstigatorId
             );
+            
+            // 重置移动类型
+            var movementComponent = GetComponent<MovementComponent>(entity);
+            if (movementComponent != null)
+            {
+                movementComponent.CurrentMovementType = MovementType.None;
+                entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
+            }
             
             //ASLogger.Instance.Debug($"[KnockbackCapability] Deactivated for entity {entity.UniqueId}");
             
@@ -185,14 +201,8 @@ namespace Astrum.LogicCore.Capabilities
                     ? knockback.Direction.normalized
                     : movement.normalized;
 
-                // 标记 MovementComponent 为脏，确保 MoveDirection 和 CurrentMovementType 的更新被导出到 ViewRead
+                // 标记 MovementComponent 为脏，确保 MoveDirection 的更新被导出到 ViewRead
                 entity.MarkComponentDirty(MovementComponent.ComponentTypeId);
-
-                if (movementComponent.CurrentMovementType != MovementType.PassiveDisplacement)
-                {
-                    movementComponent.CurrentMovementType = MovementType.PassiveDisplacement;
-                    // 注意：上面已经标记为脏了，这里不需要再次标记
-                }
             }
             
             // 更新物理世界位置
