@@ -149,6 +149,9 @@ namespace Astrum.LogicCore.Capabilities
             knockback.MovedDistance += moveDistance;
             knockback.RemainingTime -= deltaTime;
 
+            // 标记 TransComponent 为脏，确保 ViewRead 同步更新
+            entity.MarkComponentDirty(TransComponent.ComponentTypeId);
+
             // 本逻辑帧实际发生位移：设置移动类型为被动位移（仅在变化时置脏）
             var movementComponent = GetComponent<MovementComponent>(entity);
             if (movementComponent != null && movement.sqrMagnitude > FP.EN4)
