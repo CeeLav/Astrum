@@ -56,6 +56,21 @@ namespace Astrum.View.Components
         private bool _isMovingLogicCached;
         private MovementType _currentMovementTypeCached;
 
+        // 击退相关缓存状态
+        private bool _isKnockingBackCached;
+        private Vector3 _knockbackDirectionCached;
+        private float _knockbackSpeedCached;
+        private float _knockbackTotalDistanceCached;
+        private float _knockbackMovedDistanceCached;
+        private float _knockbackRemainingTimeCached;
+        private KnockbackType _knockbackTypeCached;
+        // 击退开始时的视觉位置（用于计算插值起点）
+        private Vector3 _knockbackStartPosVisual;
+        // 击退开始时的逻辑位置（用于计算目标落点）
+        private Vector3 _knockbackStartPosLogic;
+        // 是否刚开始击退（用于初始化起点）
+        private bool _knockbackJustStarted;
+
         // RootMotion 相关状态 =====
         private Vector3 _visualOffset;
 
@@ -67,7 +82,7 @@ namespace Astrum.View.Components
 
         public override int[] GetWatchedComponentIds()
         {
-            return new[] { MovementComponent.ComponentTypeId };
+            return new[] { MovementComponent.ComponentTypeId, KnockbackComponent.ComponentTypeId };
         }
 
         public override void SyncDataFromComponent(int componentTypeId)
@@ -82,6 +97,29 @@ namespace Astrum.View.Components
 
                 _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
                 _currentMovementTypeCached = moveRead.CurrentMovementType;
+            }
+            else if (componentTypeId == KnockbackComponent.ComponentTypeId)
+            {
+                if (!KnockbackComponent.TryGetViewRead(OwnerEntity.World, OwnerEntity.UniqueId, out var knockbackRead) || !knockbackRead.IsValid)
+                    return;
+
+                // 检测击退开始
+                bool wasKnockingBack = _isKnockingBackCached;
+                _isKnockingBackCached = knockbackRead.IsKnockingBack;
+
+                if (_isKnockingBackCached && !wasKnockingBack)
+                {
+                    // 击退刚开始，记录起点
+                    _knockbackJustStarted = true;
+                }
+
+                // 更新击退缓存数据
+                _knockbackDirectionCached = ToVector3(knockbackRead.Direction);
+                _knockbackSpeedCached = knockbackRead.Speed.AsFloat();
+                _knockbackTotalDistanceCached = knockbackRead.TotalDistance.AsFloat();
+                _knockbackMovedDistanceCached = knockbackRead.MovedDistance.AsFloat();
+                _knockbackRemainingTimeCached = knockbackRead.RemainingTime.AsFloat();
+                _knockbackTypeCached = knockbackRead.Type;
             }
         }
 
@@ -306,13 +344,17 @@ namespace Astrum.View.Components
                 return;
 
             // 5. 根据移动模式处理不同逻辑
-            if (_currentMovementTypeCached == MovementType.SkillDisplacement)
+            switch (_currentMovementTypeCached)
             {
-                HandleSkillMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
-            }
-            else
-            {
-                HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+                case MovementType.SkillDisplacement:
+                    HandleSkillMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+                    break;
+                case MovementType.PassiveDisplacement:
+                    HandlePassiveDisplacement(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+                    break;
+                default:
+                    HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+                    break;
             }
 
             // 6. 应用最终位置
@@ -334,7 +376,7 @@ namespace Astrum.View.Components
 
         /// <summary>
         /// 轮询移动组件：轻量轮询速度、移动方向和移动状态
-        /// 在多线程模式下，SyncDataFromComponent 不会被调用，所以需要在这里直接更新移动状态
+        /// 统一从 ViewRead 获取数据（SyncDataFromComponent 现在也会被调用）
         /// </summary>
         private void UpdateMoveComponentPolling(Entity entity, TransComponent.ViewRead trans)
         {
@@ -342,17 +384,35 @@ namespace Astrum.View.Components
             {
                 _cachedSpeedLogic = moveRead.Speed.AsFloat();
                 
-                // 多线程模式下，直接从 ViewRead 更新移动状态
-                // （原本由 SyncDataFromComponent 负责，但多线程模式下不会被调用）
+                // 从 ViewRead 更新移动状态
                 _isMovingLogicCached = moveRead.CurrentMovementType != MovementType.None;
                 _currentMovementTypeCached = moveRead.CurrentMovementType;
                 
-                //ASLogger.Instance.Info($"UpdateMoveComponent:{moveRead.ToString()}");
                 // 移动方向蓝本：优先使用逻辑侧 MoveDirection（不是朝向）
                 var dir = ToVector3(moveRead.MoveDirection);
                 dir.y = 0f;
                 if (dir.sqrMagnitude > 1e-8f)
                     _cachedDirLogic = dir.normalized;
+            }
+
+            // 轮询击退组件状态
+            if (KnockbackComponent.TryGetViewRead(entity.World, entity.UniqueId, out var knockbackRead) && knockbackRead.IsValid)
+            {
+                bool wasKnockingBack = _isKnockingBackCached;
+                _isKnockingBackCached = knockbackRead.IsKnockingBack;
+
+                if (_isKnockingBackCached && !wasKnockingBack)
+                {
+                    // 击退刚开始，记录起点
+                    _knockbackJustStarted = true;
+                }
+
+                _knockbackDirectionCached = ToVector3(knockbackRead.Direction);
+                _knockbackSpeedCached = knockbackRead.Speed.AsFloat();
+                _knockbackTotalDistanceCached = knockbackRead.TotalDistance.AsFloat();
+                _knockbackMovedDistanceCached = knockbackRead.MovedDistance.AsFloat();
+                _knockbackRemainingTimeCached = knockbackRead.RemainingTime.AsFloat();
+                _knockbackTypeCached = knockbackRead.Type;
             }
 
             // 兜底：如果逻辑侧 MoveDirection 仍无效，用朝向 forward（仅用于极端情况）
@@ -416,6 +476,103 @@ namespace Astrum.View.Components
             else
             {
                 HandleNormalMovementWhenLogicFrozen(posLogic, deltaTime);
+            }
+        }
+
+        /// <summary>
+        /// 处理被动位移模式（击退等）
+        /// 基于预测落点和击退曲线，表现层自己执行平滑位移
+        /// </summary>
+        private void HandlePassiveDisplacement(Vector3 posLogic, int logicFrame, bool logicFrameAdvanced, float deltaTime)
+        {
+            var entity = OwnerEntity;
+            if (entity == null) return;
+
+            // 从 ViewRead 获取击退数据
+            if (!KnockbackComponent.TryGetViewRead(entity.World, entity.UniqueId, out var knockbackRead) || !knockbackRead.IsValid)
+            {
+                // 没有击退数据，回退到普通移动
+                HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+                return;
+            }
+
+            if (!knockbackRead.IsKnockingBack)
+            {
+                // 击退已结束，回退到普通移动
+                HandleNormalMotion(posLogic, logicFrame, logicFrameAdvanced, deltaTime);
+                return;
+            }
+
+            // 更新缓存（确保在 OnUpdate 中也能获取最新数据）
+            _knockbackDirectionCached = ToVector3(knockbackRead.Direction);
+            _knockbackSpeedCached = knockbackRead.Speed.AsFloat();
+            _knockbackTotalDistanceCached = knockbackRead.TotalDistance.AsFloat();
+            _knockbackMovedDistanceCached = knockbackRead.MovedDistance.AsFloat();
+            _knockbackRemainingTimeCached = knockbackRead.RemainingTime.AsFloat();
+            _knockbackTypeCached = knockbackRead.Type;
+
+            // 击退刚开始时，初始化起点
+            if (_knockbackJustStarted)
+            {
+                _knockbackStartPosVisual = _posVisual;
+                _knockbackStartPosLogic = posLogic;
+                _knockbackJustStarted = false;
+            }
+
+            // 计算击退进度（0-1）
+            float progress = 0f;
+            if (_knockbackTotalDistanceCached > 0.001f)
+            {
+                progress = Mathf.Clamp01(_knockbackMovedDistanceCached / _knockbackTotalDistanceCached);
+            }
+
+            // 计算目标落点（击退开始位置 + 方向 × 总距离）
+            Vector3 targetPos = _knockbackStartPosLogic + _knockbackDirectionCached * _knockbackTotalDistanceCached;
+
+            // 根据击退类型应用不同的插值曲线
+            float curvedProgress = ApplyKnockbackCurve(progress, _knockbackTypeCached);
+
+            // 从起点到目标点插值
+            _posVisual = Vector3.Lerp(_knockbackStartPosVisual, targetPos, curvedProgress);
+
+            // 更新逻辑帧缓存
+            if (logicFrameAdvanced)
+            {
+                _lastPosLogicSeen = posLogic;
+                _lastLogicFrameSeen = logicFrame;
+            }
+
+            // 极端保护：当视觉与逻辑偏差过大时，强制对齐
+            if ((_posVisual - posLogic).magnitude > hardSnapDistance)
+            {
+                _posVisual = posLogic;
+            }
+        }
+
+        /// <summary>
+        /// 根据击退类型应用插值曲线
+        /// </summary>
+        /// <param name="t">线性进度（0-1）</param>
+        /// <param name="type">击退类型</param>
+        /// <returns>曲线化后的进度</returns>
+        private float ApplyKnockbackCurve(float t, KnockbackType type)
+        {
+            switch (type)
+            {
+                case KnockbackType.Linear:
+                    // 线性：匀速
+                    return t;
+                
+                case KnockbackType.Decelerate:
+                    // 减速（EaseOutQuad）：先快后慢
+                    return 1f - (1f - t) * (1f - t);
+                
+                case KnockbackType.Launch:
+                    // 抛射：使用正弦曲线模拟抛物线（可以后续扩展）
+                    return Mathf.Sin(t * Mathf.PI * 0.5f);
+                
+                default:
+                    return t;
             }
         }
 

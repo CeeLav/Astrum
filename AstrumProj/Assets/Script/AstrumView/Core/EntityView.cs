@@ -403,23 +403,32 @@ namespace Astrum.View.Core
             // 遍历所有脏组件 ID
             foreach (var componentId in dirtyComponentIds)
             {
-                // 检查是否有 ViewComponent 监听此组件 ID
-                if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
+                SyncDirtyComponent(componentId);
+            }
+        }
+
+        /// <summary>
+        /// 同步单个脏组件（由 Stage 调用，统一由 ViewReadStore 驱动）
+        /// </summary>
+        /// <param name="componentId">脏组件的 ComponentTypeId</param>
+        public void SyncDirtyComponent(int componentId)
+        {
+            // 检查是否有 ViewComponent 监听此组件 ID
+            if (!_componentIdToViewComponentsMap.ContainsKey(componentId))
+            {
+                return;
+            }
+            
+            // 获取对应的 ViewComponent 列表
+            var viewComponents = _componentIdToViewComponentsMap[componentId];
+            
+            // 通知所有监听的 ViewComponent
+            foreach (var viewComponent in viewComponents)
+            {
+                if (viewComponent != null && viewComponent.IsEnabled)
                 {
-                    continue;
-                }
-                
-                // 获取对应的 ViewComponent 列表
-                var viewComponents = _componentIdToViewComponentsMap[componentId];
-                
-                // 通知所有监听的 ViewComponent
-                foreach (var viewComponent in viewComponents)
-                {
-                    if (viewComponent != null && viewComponent.IsEnabled)
-                    {
-                        // 调用 ViewComponent 的数据同步方法（传入 ComponentTypeId）
-                        viewComponent.SyncDataFromComponent(componentId);
-                    }
+                    // 调用 ViewComponent 的数据同步方法（传入 ComponentTypeId）
+                    viewComponent.SyncDataFromComponent(componentId);
                 }
             }
         }

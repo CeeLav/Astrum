@@ -89,7 +89,8 @@ namespace Astrum.LogicCore.ViewRead
                     {
                         exporter(entity, store);
                     }
-                    // 未注册的组件静默跳过（还未迁移的组件）
+                    // 无论是否注册导出器，都记录脏组件（View 层可能需要监听未迁移的组件）
+                    store.RecordDirty(entity.UniqueId, componentTypeId);
                 }
                 
                 // 在逻辑线程中清理脏标记（线程安全，内部已加锁）

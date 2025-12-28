@@ -4,6 +4,7 @@ using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Events;
+using Astrum.LogicCore.ViewRead;
 using Astrum.View.Managers;
 using Astrum.View.Archetypes;
 using Astrum.View.Components;
@@ -641,65 +642,26 @@ namespace Astrum.View.Core
         /// <summary>
         /// 同步所有 Entity 的脏组件
         /// 
-        /// 注意：在多线程模式下，此方法已被弃用！
-        /// View 层应该通过 ViewRead 双缓冲来获取数据更新，而不是直接访问 Logic 层的脏标记。
-        /// Logic 层的脏标记现在由 ViewReadFrameSync.EndOfLogicFrame 在逻辑线程中处理。
-        /// 
-        /// TODO: 后续应完全移除此方法，改为纯 ViewRead 驱动的更新模式。
+        /// 统一使用 ViewReadStore 双缓冲机制：
+        /// - Logic 层在帧末调用 ViewReadFrameSync.EndOfLogicFrame 导出脏组件并记录到 ViewReadStore
+        /// - View 层通过 ViewReadStore.GetDirtyComponents() 获取脏组件列表
+        /// - 无论单线程还是多线程模式，都通过 ViewRead 驱动更新
         /// </summary>
         private void SyncDirtyComponents()
         {
-            // 多线程模式下跳过此方法：脏标记由逻辑线程处理，View 层通过 ViewRead 获取数据
-            // 直接访问 Logic 层的 dirtyComponentIds 和 ClearDirtyComponents 在多线程下不安全
-            if (_room?.IsMultiThreadMode == true)
+            var store = _room?.MainWorld?.ViewReads;
+            if (store == null) return;
+
+            // 从 ViewReadStore 获取本帧更新的脏组件列表
+            var dirtyList = store.GetDirtyComponents();
+            if (dirtyList.Count == 0) return;
+
+            // 遍历脏组件列表，通知对应的 EntityView
+            foreach (var record in dirtyList)
             {
-                return;
-            }
-            
-            // 单线程模式下保持原有逻辑（向后兼容）
-            // 同步 MainWorld 中的实体（只处理没有影子的实体）
-            if (_room?.MainWorld != null)
-            {
-                foreach (var entity in _room.MainWorld.Entities.Values)
+                if (_entityViews.TryGetValue(record.EntityId, out var entityView))
                 {
-                    var dirtyComponentIds = entity.GetDirtyComponentIds();
-                    if (dirtyComponentIds.Count > 0)
-                    {
-                        // 只有当实体没有影子时，才通知对应的 EntityView
-                        if (!entity.HasShadow)
-                        {
-                            // 获取对应的 EntityView
-                            if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
-                            {
-                                // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
-                                entityView.SyncDirtyComponents(dirtyComponentIds);
-                            }
-                        }
-                        
-                        // 清除脏标记
-                        entity.ClearDirtyComponents();
-                    }
-                }
-            }
-            
-            // 同步 ShadowWorld 中的实体（处理所有实体）
-            if (_room?.ShadowWorld != null)
-            {
-                foreach (var entity in _room.ShadowWorld.Entities.Values)
-                {
-                    var dirtyComponentIds = entity.GetDirtyComponentIds();
-                    if (dirtyComponentIds.Count > 0)
-                    {
-                        // 获取对应的 EntityView
-                        if (_entityViews.TryGetValue(entity.UniqueId, out var entityView))
-                        {
-                            // 通知 EntityView 同步脏组件（传入 ComponentId 集合）
-                            entityView.SyncDirtyComponents(dirtyComponentIds);
-                        }
-                        
-                        // 清除脏标记
-                        entity.ClearDirtyComponents();
-                    }
+                    entityView.SyncDirtyComponent(record.ComponentTypeId);
                 }
             }
         }
