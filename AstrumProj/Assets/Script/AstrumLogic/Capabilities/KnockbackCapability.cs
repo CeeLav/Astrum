@@ -86,7 +86,25 @@ namespace Astrum.LogicCore.Capabilities
             // 标记 KnockbackComponent 为脏，确保 ViewRead 同步更新
             entity.MarkComponentDirty(KnockbackComponent.ComponentTypeId);
             
-            //ASLogger.Instance.Debug($"[KnockbackCapability] Knockback data written: speed={knockback.Speed}m/s, direction={evt.Direction}");
+            // 发布击退开始 View Event
+            var knockbackStartEvent = new KnockbackStartEvent
+            {
+                Type = evt.Type,
+                Direction = evt.Direction,
+                Distance = evt.Distance,
+                Duration = evt.Duration,
+                StartPosition = startPosition,
+                TargetPosition = targetPosition,
+                CasterId = evt.CasterId
+            };
+            
+            entity.QueueViewEvent(new ViewEvent(
+                ViewEventType.CustomViewEvent,
+                knockbackStartEvent,
+                entity.World?.CurFrame ?? 0
+            ));
+            
+            ASLogger.Instance.Debug($"[KnockbackCapability] Knockback started: speed={knockback.Speed}m/s, direction={evt.Direction}, queued ViewEvent");
         }
         
         // ====== 生命周期 ======
@@ -252,7 +270,24 @@ namespace Astrum.LogicCore.Capabilities
             // 标记 KnockbackComponent 为脏，确保 ViewRead 同步更新
             entity.MarkComponentDirty(KnockbackComponent.ComponentTypeId);
             
-            ASLogger.Instance.Debug($"[KnockbackCapability] Knockback ended");
+            // 获取最终位置
+            var transComponent = GetComponent<TransComponent>(entity);
+            TSVector finalPosition = transComponent?.Position ?? TSVector.zero;
+            
+            // 发布击退结束 View Event
+            var knockbackEndEvent = new KnockbackEndEvent
+            {
+                FinalPosition = finalPosition,
+                IsNormalEnd = true
+            };
+            
+            entity.QueueViewEvent(new ViewEvent(
+                ViewEventType.CustomViewEvent,
+                knockbackEndEvent,
+                entity.World?.CurFrame ?? 0
+            ));
+            
+            ASLogger.Instance.Debug($"[KnockbackCapability] Knockback ended, queued ViewEvent, final position=({finalPosition.x.AsFloat():F2}, {finalPosition.y.AsFloat():F2}, {finalPosition.z.AsFloat():F2})");
         }
     }
 }

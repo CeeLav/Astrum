@@ -1,4 +1,5 @@
 using System;
+using Astrum.LogicCore.Components;
 using TrueSync;
 
 namespace Astrum.LogicCore.Events
@@ -88,6 +89,65 @@ namespace Astrum.LogicCore.Events
         /// 是否循环播放
         /// </summary>
         public bool Loop;
+    }
+    
+    /// <summary>
+    /// 击退开始事件数据
+    /// 用于在视图层处理击退动画和特效的开始
+    /// </summary>
+    public struct KnockbackStartEvent
+    {
+        /// <summary>
+        /// 击退类型
+        /// </summary>
+        public KnockbackType Type;
+        
+        /// <summary>
+        /// 击退方向（世界空间，单位向量）
+        /// </summary>
+        public TSVector Direction;
+        
+        /// <summary>
+        /// 击退距离（米）
+        /// </summary>
+        public FP Distance;
+        
+        /// <summary>
+        /// 击退持续时间（秒）
+        /// </summary>
+        public FP Duration;
+        
+        /// <summary>
+        /// 击退起始位置
+        /// </summary>
+        public TSVector StartPosition;
+        
+        /// <summary>
+        /// 击退目标位置
+        /// </summary>
+        public TSVector TargetPosition;
+        
+        /// <summary>
+        /// 施法者ID
+        /// </summary>
+        public long CasterId;
+    }
+    
+    /// <summary>
+    /// 击退结束事件数据
+    /// 用于在视图层处理击退动画和特效的结束
+    /// </summary>
+    public struct KnockbackEndEvent
+    {
+        /// <summary>
+        /// 最终位置
+        /// </summary>
+        public TSVector FinalPosition;
+        
+        /// <summary>
+        /// 是否正常结束（非中断）
+        /// </summary>
+        public bool IsNormalEnd;
     }
     
     /// <summary>

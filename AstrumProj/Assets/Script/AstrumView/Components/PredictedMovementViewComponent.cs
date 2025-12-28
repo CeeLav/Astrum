@@ -2,6 +2,7 @@ using UnityEngine;
 using Astrum.CommonBase;
 using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
+using Astrum.LogicCore.Events;
 using Astrum.LogicCore.ActionSystem;
 using TrueSync;
 using Quaternion = UnityEngine.Quaternion;
@@ -259,6 +260,9 @@ namespace Astrum.View.Components
             
             // 初始化 RootMotion 状态
             _visualOffset = Vector3.zero;
+
+            // 注册击退 View Event 处理器
+            RegisterViewEventHandlers();
 
             var entity = OwnerEntity;
             if (entity == null)
@@ -695,6 +699,68 @@ namespace Astrum.View.Components
             //ASLogger.Instance.Info($"_cachedDirLogic:{_cachedDirLogic} newRotation: {newRotation}");
             // 应用新的旋转
             _ownerEntityView.SetWorldRotation(newRotation);
+        }
+        
+        // ====== View Event 处理 ======
+        
+        /// <summary>
+        /// 注册 View Event 处理器
+        /// </summary>
+        private void RegisterViewEventHandlers()
+        {
+            RegisterViewEventHandler<KnockbackStartEvent>(OnKnockbackStart);
+            RegisterViewEventHandler<KnockbackEndEvent>(OnKnockbackEnd);
+        }
+        
+        /// <summary>
+        /// 处理击退开始事件
+        /// </summary>
+        private void OnKnockbackStart(KnockbackStartEvent evt)
+        {
+            ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Knockback start event received: " +
+                $"Type={evt.Type}, Distance={evt.Distance.AsFloat():F2}m, Duration={evt.Duration.AsFloat():F2}s, " +
+                $"Direction=({evt.Direction.x.AsFloat():F2}, {evt.Direction.y.AsFloat():F2}, {evt.Direction.z.AsFloat():F2})");
+            
+            // 初始化击退状态
+            _knockbackJustStarted = true;
+            _isKnockingBackCached = true;
+            _knockbackTypeCached = evt.Type;
+            
+            // 使用事件数据初始化击退参数
+            _knockbackStartPosVisual = ToVector3(evt.StartPosition);
+            _knockbackTargetPosVisual = ToVector3(evt.TargetPosition);
+            
+            // 如果视觉位置和逻辑起点偏差过大，对齐到逻辑起点
+            if ((_posVisual - _knockbackStartPosVisual).magnitude > 1f)
+            {
+                _posVisual = _knockbackStartPosVisual;
+            }
+            
+            ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Knockback initialized from ViewEvent: " +
+                $"VisualStartPos=({_knockbackStartPosVisual.x:F2}, {_knockbackStartPosVisual.y:F2}, {_knockbackStartPosVisual.z:F2}), " +
+                $"VisualTargetPos=({_knockbackTargetPosVisual.x:F2}, {_knockbackTargetPosVisual.y:F2}, {_knockbackTargetPosVisual.z:F2})");
+        }
+        
+        /// <summary>
+        /// 处理击退结束事件
+        /// </summary>
+        private void OnKnockbackEnd(KnockbackEndEvent evt)
+        {
+            ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Knockback end event received: " +
+                $"FinalPosition=({evt.FinalPosition.x.AsFloat():F2}, {evt.FinalPosition.y.AsFloat():F2}, {evt.FinalPosition.z.AsFloat():F2}), " +
+                $"IsNormalEnd={evt.IsNormalEnd}");
+            
+            // 重置击退状态
+            _isKnockingBackCached = false;
+            _knockbackJustStarted = false;
+            
+            // 如果最终位置偏差较大，对齐到逻辑最终位置
+            Vector3 finalPosVisual = ToVector3(evt.FinalPosition);
+            if ((_posVisual - finalPosVisual).magnitude > 0.5f)
+            {
+                _posVisual = finalPosVisual;
+                ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Position aligned to final position from ViewEvent");
+            }
         }
     }
 }
