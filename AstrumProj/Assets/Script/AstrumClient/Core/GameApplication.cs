@@ -18,72 +18,39 @@ namespace Astrum.Client.Core
     /// </summary>
     public class GameApplication : MonoBehaviour
     {
-        [Header("应用程序设置")]
-        [SerializeField] private int targetFrameRate = 60;
+        [Header("游戏设置引用")]
+        [SerializeField] private GameSetting gameSetting;
+        
+        [Header("运行时状态")]
         [SerializeField] private bool isRunning = true;
-        
-        [Header("日志设置")]
-        [SerializeField] private bool enableDebugLog = false;
-        
-        [Header("逻辑线程设置")]
-        [Tooltip("启用逻辑专用线程（提升性能，但增加调试难度）")]
-        [SerializeField] private bool enableLogicThread = false;
-        
-        [Tooltip("逻辑线程帧率（推荐 20 FPS）")]
-        [SerializeField] private int logicThreadTickRate = 20;
-        
-        [Header("配置管理器引用")]
-        [SerializeField] private TableConfig _tableConfig;
-        
-        [Header("核心GameObject引用")]
-        [SerializeField] private GameObject uiRoot;
-        [SerializeField] private Canvas hudCanvas;
-        [SerializeField] private GameObject stageRoot;
-        [SerializeField] private Camera mainCamera;
-        [SerializeField] private Camera uiCamera;
-        [SerializeField] private UnityEngine.SceneManagement.SceneManager sceneManagerUnity;
-        [SerializeField] private Astrum.Client.Behaviour.CoroutineRunner coroutineRunner;
-        
-        [Header("场景配置")]
-        [Tooltip("单人模式进入的场景ID（场景索引号）")]
-        [SerializeField] private int singlePlayerSceneId = 1;
-        
-        [Tooltip("联机模式进入的场景ID（场景索引号）")]
-        [SerializeField] private int multiplayerSceneId = 2;
-        
-        // 应用程序状态
-        private ApplicationState currentState = ApplicationState.INITIALIZING;
         
         // 单例实例
         public static GameApplication Instance { get; private set; }
         
-        // 公共属性
-        public bool IsRunning => isRunning;
-        public ApplicationState CurrentState => currentState;
-        public int FrameRate => targetFrameRate;
+        public int FrameRate => gameSetting != null ? gameSetting.TargetFrameRate : 60;
         
         /// <summary>
         /// 是否启用逻辑专用线程
         /// </summary>
-        public bool EnableLogicThread => enableLogicThread;
+        public bool EnableLogicThread => gameSetting != null ? gameSetting.EnableLogicThread : false;
         
         /// <summary>
         /// 逻辑线程帧率
         /// </summary>
-        public int LogicThreadTickRate => logicThreadTickRate;
+        public int LogicThreadTickRate => gameSetting != null ? gameSetting.LogicThreadTickRate : 20;
         
         // 核心GameObject访问器
-        public GameObject UIRoot => uiRoot;
-        public Canvas HUDCanvas => hudCanvas;
-        public GameObject StageRoot => stageRoot;
-        public Camera MainCamera => mainCamera;
-        public Camera UICamera => uiCamera;
-        public UnityEngine.SceneManagement.SceneManager SceneManagerUnity => sceneManagerUnity;
-        public Astrum.Client.Behaviour.CoroutineRunner CoroutineRunner => coroutineRunner;
+        public GameObject UIRoot => gameSetting != null ? gameSetting.UIRoot : null;
+        public Canvas HUDCanvas => gameSetting != null ? gameSetting.HUDCanvas : null;
+        public GameObject StageRoot => gameSetting != null ? gameSetting.StageRoot : null;
+        public Camera MainCamera => gameSetting != null ? gameSetting.MainCamera : null;
+        public Camera UICamera => gameSetting != null ? gameSetting.UICamera : null;
+        public UnityEngine.SceneManagement.SceneManager SceneManagerUnity => gameSetting != null ? gameSetting.SceneManagerUnity : null;
+        public Astrum.Client.Behaviour.CoroutineRunner CoroutineRunner => gameSetting != null ? gameSetting.CoroutineRunner : null;
         
         // 场景ID访问器
-        public int SinglePlayerSceneId => singlePlayerSceneId;
-        public int MultiplayerSceneId => multiplayerSceneId;
+        public int SinglePlayerSceneId => gameSetting != null ? gameSetting.SinglePlayerSceneId : 1;
+        public int MultiplayerSceneId => gameSetting != null ? gameSetting.MultiplayerSceneId : 2;
         
         /// <summary>
         /// 根据游戏模式获取对应的场景ID
@@ -92,11 +59,18 @@ namespace Astrum.Client.Core
         /// <returns>对应的场景ID</returns>
         public int GetSceneIdByMode(bool isSinglePlayer)
         {
-            return isSinglePlayer ? singlePlayerSceneId : multiplayerSceneId;
+            return gameSetting != null ? gameSetting.GetSceneIdByMode(isSinglePlayer) : (isSinglePlayer ? 1 : 2);
         }
         
         private void Awake()
         {
+            // 验证 GameSetting 引用
+            if (gameSetting == null)
+            {
+                Debug.LogError("GameApplication: GameSetting 引用未设置！请在 Inspector 中设置 GameSetting 引用。");
+                return;
+            }
+            
             // 单例模式
             if (Instance == null)
             {
@@ -171,7 +145,7 @@ namespace Astrum.Client.Core
         private void ConfigureLogLevel()
         {
             // 根据 Debug 开关设置日志级别
-            if (enableDebugLog)
+            if (gameSetting != null && gameSetting.EnableDebugLog)
             {
                 ASLogger.Instance.MinLevel = Astrum.CommonBase.LogLevel.Debug;
                 Debug.Log("GameApplication: 日志级别设置为 Debug，将输出所有级别的日志");
