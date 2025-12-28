@@ -582,13 +582,13 @@ namespace Astrum.View.Core
                 
                 if (eventCount > 0)
                 {
-                    ASLogger.Instance.Debug($"Stage: 处理了 {eventCount} 个视图事件，Entity {entityId}", "Stage.ProcessViewEvents");
+                    //ASLogger.Instance.Debug($"Stage: 处理了 {eventCount} 个视图事件，Entity {entityId}", "Stage.ProcessViewEvents");
                 }
             }
             
             if (totalEventsProcessed > 0)
             {
-                ASLogger.Instance.Debug($"Stage: 本帧共处理 {totalEventsProcessed} 个视图事件", "Stage.ProcessViewEvents");
+                //ASLogger.Instance.Debug($"Stage: 本帧共处理 {totalEventsProcessed} 个视图事件", "Stage.ProcessViewEvents");
             }
         }
         

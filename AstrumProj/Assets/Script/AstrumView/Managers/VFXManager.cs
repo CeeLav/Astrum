@@ -247,7 +247,7 @@ namespace Astrum.View.Managers
                 // 从活跃列表移除
                 _activeVFX.Remove(instanceId);
                 
-                ASLogger.Instance.Debug($"VFXManager: Stopped VFX InstanceId={instanceId}");
+                //ASLogger.Instance.Debug($"VFXManager: Stopped VFX InstanceId={instanceId}");
             }
         }
         

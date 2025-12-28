@@ -4,6 +4,7 @@ using Astrum.LogicCore.Components;
 using Astrum.LogicCore.Core;
 using Astrum.LogicCore.Events;
 using Astrum.LogicCore.ActionSystem;
+using Astrum.View.Core;
 using TrueSync;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
@@ -14,10 +15,29 @@ namespace Astrum.View.Components
     /// 预测移动表现组件：
     /// - 逻辑层提供权威位置与 IsMoving（MovementComponent.IsMoving）
     /// - 表现层仅在 IsMoving=true 时更新位置；静止时不做拉回，避免被纠偏拉回
-    /// - 若逻辑帧停更但仍处于移动状态：按缓存的速度/朝向惯性前进，纠偏只做“横向回轨”（不后拉）
+    /// - 若逻辑帧停更但仍处于移动状态：按缓存的速度/朝向惯性前进，纠偏只做"横向回轨"（不后拉）
     /// </summary>
     public sealed class PredictedMovementViewComponent : ViewComponent
     {
+        /// <summary>
+        /// 静态构造函数：全局注册击退事件处理器
+        /// </summary>
+        static PredictedMovementViewComponent()
+        {
+            // 全局注册击退开始事件
+            ViewComponentEventRegistry.Instance.RegisterEventHandler(
+                typeof(KnockbackStartEvent), 
+                typeof(PredictedMovementViewComponent)
+            );
+            
+            // 全局注册击退结束事件
+            ViewComponentEventRegistry.Instance.RegisterEventHandler(
+                typeof(KnockbackEndEvent), 
+                typeof(PredictedMovementViewComponent)
+            );
+            
+            ASLogger.Instance.Debug($"[PredictedMovementViewComponent] 全局注册击退事件处理器");
+        }
         // ===== 可调参数（非 MonoBehaviour，主要用于运行时调试/配置）=====
 
         public float wLogicDirection = 1.0f;
@@ -706,7 +726,7 @@ namespace Astrum.View.Components
         /// <summary>
         /// 注册 View Event 处理器
         /// </summary>
-        private void RegisterViewEventHandlers()
+        private new void RegisterViewEventHandlers()
         {
             RegisterViewEventHandler<KnockbackStartEvent>(OnKnockbackStart);
             RegisterViewEventHandler<KnockbackEndEvent>(OnKnockbackEnd);
@@ -746,7 +766,7 @@ namespace Astrum.View.Components
         /// </summary>
         private void OnKnockbackEnd(KnockbackEndEvent evt)
         {
-            ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Knockback end event received: " +
+            ASLogger.Instance.Info($"[PredictedMovementViewComponent] Knockback end event received: " +
                 $"FinalPosition=({evt.FinalPosition.x.AsFloat():F2}, {evt.FinalPosition.y.AsFloat():F2}, {evt.FinalPosition.z.AsFloat():F2}), " +
                 $"IsNormalEnd={evt.IsNormalEnd}");
             
@@ -754,12 +774,26 @@ namespace Astrum.View.Components
             _isKnockingBackCached = false;
             _knockbackJustStarted = false;
             
-            // 如果最终位置偏差较大，对齐到逻辑最终位置
+            // 击退结束时，总是将角色位置快速拉到落地点
             Vector3 finalPosVisual = ToVector3(evt.FinalPosition);
-            if ((_posVisual - finalPosVisual).magnitude > 0.5f)
+            
+            // 记录对齐前的视觉位置，用于调试
+            Vector3 oldPosVisual = _posVisual;
+            float distance = (_posVisual - finalPosVisual).magnitude;
+            
+            // 强制对齐到逻辑最终位置
+            _posVisual = finalPosVisual;
+            
+            ASLogger.Instance.Info($"[PredictedMovementViewComponent] Position snapped to final position from ViewEvent: " +
+                $"落点位置=({finalPosVisual.x:F2}, {finalPosVisual.y:F2}, {finalPosVisual.z:F2}), " +
+                $"表现层位置=({oldPosVisual.x:F2}, {oldPosVisual.y:F2}, {oldPosVisual.z:F2}) -> " +
+                $"新位置=({_posVisual.x:F2}, {_posVisual.y:F2}, {_posVisual.z:F2}), " +
+                $"偏差距离={distance:F2}m");
+            
+            // 更新 EntityView 的世界位置
+            if (_ownerEntityView != null)
             {
-                _posVisual = finalPosVisual;
-                ASLogger.Instance.Debug($"[PredictedMovementViewComponent] Position aligned to final position from ViewEvent");
+                _ownerEntityView.SetWorldPosition(_posVisual);
             }
         }
     }
