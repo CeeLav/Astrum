@@ -37,28 +37,35 @@ namespace Astrum.Client.Managers.GameModes
         public override void Initialize()
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 初始化单机游戏模式");
-            ChangeState(GameModeState.Initializing);
             
             // 注册事件处理器（使用现有 EventSystem）
             EventSystem.Instance.Subscribe<GameModeStateChangedEventData>(OnStateChanged);
             
-            ChangeState(GameModeState.Ready);
+            // 触发状态流转：Initializing -> Loading -> Ready
+            TriggerStateEnter();
 
             MonitorManager.Register(this); // 注册到全局监控
         }
         
         /// <summary>
-        /// 启动单机游戏
+        /// 加载逻辑（单机模式不需要加载，立即完成）
+        /// </summary>
+        protected override void OnLoading()
+        {
+            ASLogger.Instance.Info("SinglePlayerGameMode: 加载完成（无需加载）");
+            CompleteLoading();
+        }
+        
+        /// <summary>
+        /// 启动游戏逻辑
         /// </summary>
         /// <param name="sceneId">游戏场景ID</param>
-        public override void StartGame(int sceneId)
+        protected override void OnStartGame(int sceneId)
         {
             ASLogger.Instance.Info($"SinglePlayerGameMode: 启动单机游戏 - 场景ID: {sceneId}");
             
             try
             {
-                //ChangeState(GameModeState.Loading);
-                
                 // 1. 创建本地 Room 和 World
                 CreateRoom();
                 
@@ -71,7 +78,6 @@ namespace Astrum.Client.Managers.GameModes
                 // 4. 创建玩家（在场景加载完成后）
                 // CreatePlayer() 会在 OnGameSceneLoaded() 中调用
                 
-                ChangeState(GameModeState.Playing);
                 IsRunning = true;
                 ASLogger.Instance.Info("SinglePlayerGameMode: 单机游戏启动成功");
             }

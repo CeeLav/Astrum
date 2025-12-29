@@ -32,7 +32,6 @@ namespace Astrum.Client.Managers.GameModes
         public override void Initialize()
         {
             ASLogger.Instance.Info("HubGameMode: 初始化 Hub 模式");
-            ChangeState(GameModeState.Initializing);
             
             // 订阅事件
             SubscribeToEvents();
@@ -40,8 +39,10 @@ namespace Astrum.Client.Managers.GameModes
             // Hub 模式不需要提前加载数据
             // 数据由 PlayerDataManager 统一管理
             
-            ChangeState(GameModeState.Ready);
             IsRunning = true;
+            
+            // 触发状态流转：Initializing -> Loading -> Ready
+            TriggerStateEnter();
             
             ASLogger.Instance.Info("HubGameMode: 初始化完成");
             
@@ -49,9 +50,19 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 启动 Hub 游戏（加载场景）
+        /// 加载逻辑（Hub 模式不需要加载，立即完成）
         /// </summary>
-        public override void StartGame(int sceneId)
+        protected override void OnLoading()
+        {
+            ASLogger.Instance.Info("HubGameMode: 加载完成（无需加载）");
+            CompleteLoading();
+        }
+        
+        /// <summary>
+        /// 启动游戏逻辑（加载场景）
+        /// </summary>
+        /// <param name="sceneId">场景ID</param>
+        protected override void OnStartGame(int sceneId)
         {
             var targetSceneId = sceneId > 0 ? sceneId : HubSceneId;
             ASLogger.Instance.Info($"HubGameMode: 启动游戏 - 场景ID: {targetSceneId}");
@@ -69,8 +80,6 @@ namespace Astrum.Client.Managers.GameModes
             
             // 显示 Hub UI
             UIManager.Instance.ShowUI("Hub/Hub");
-            
-            ChangeState(GameModeState.Playing);
         }
         
         /// <summary>
@@ -160,7 +169,7 @@ namespace Astrum.Client.Managers.GameModes
                 // 使用GameSetting中配置的单人模式场景ID
                 var singlePlayerSceneId = GameSetting.Instance.SinglePlayerSceneId;
                 
-                // 启动新切换的游戏模式
+                // 启动新切换的游戏模式（自动状态流转）
                 GameDirector.Instance.CurrentGameMode?.StartGame(singlePlayerSceneId);
                 
                 ASLogger.Instance.Info($"HubGameMode: 探索启动成功，使用场景ID: {singlePlayerSceneId}");

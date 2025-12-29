@@ -79,7 +79,6 @@ namespace Astrum.Client.Managers.GameModes
         public override void Initialize()
         {
             ASLogger.Instance.Info("LoginGameMode: 初始化登录模式");
-            ChangeState(GameModeState.Initializing);
 
             try
             {
@@ -92,7 +91,9 @@ namespace Astrum.Client.Managers.GameModes
                 // 显示登录 UI
                 ShowLoginUI();
 
-                ChangeState(GameModeState.Ready);
+                // 触发状态流转：Initializing -> Loading -> Ready
+                TriggerStateEnter();
+                
                 ASLogger.Instance.Info("LoginGameMode: 初始化完成");
 
                 MonitorManager.Register(this); // 注册到全局监控
@@ -106,9 +107,18 @@ namespace Astrum.Client.Managers.GameModes
         }
 
         /// <summary>
+        /// 加载逻辑（登录模式不需要加载，立即完成）
+        /// </summary>
+        protected override void OnLoading()
+        {
+            ASLogger.Instance.Info("LoginGameMode: 加载完成（无需加载）");
+            CompleteLoading();
+        }
+
+        /// <summary>
         /// 启动游戏（登录模式不使用）
         /// </summary>
-        public override void StartGame(int sceneId)
+        protected override void OnStartGame(int sceneId)
         {
             ASLogger.Instance.Warning("LoginGameMode: 登录模式不支持直接启动游戏");
         }
