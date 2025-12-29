@@ -110,23 +110,6 @@ namespace Astrum.Client.Managers.GameModes
         }
 
         /// <summary>
-        /// 加载逻辑（登录模式不需要加载，立即完成）
-        /// </summary>
-        protected override void OnLoading(int sceneId)
-        {
-            ASLogger.Instance.Info("LoginGameMode: 加载完成（无需加载）");
-            CompleteLoading();
-        }
-
-        /// <summary>
-        /// 启动游戏（登录模式不使用）
-        /// </summary>
-        protected override void OnStartGame(int sceneId)
-        {
-            ASLogger.Instance.Warning("LoginGameMode: 登录模式不支持直接启动游戏");
-        }
-
-        /// <summary>
         /// 更新（登录模式通常不需要每帧更新）
         /// </summary>
         public override void Update(float deltaTime)
@@ -174,21 +157,13 @@ namespace Astrum.Client.Managers.GameModes
             // 订阅连接响应事件
             EventSystem.Instance.Subscribe<ConnectResponseEventData>(OnConnectResponse);
 
-            // 订阅底层连接状态（用于处理 TCP 连接失败，例如 10061）
-            var networkManager = NetworkManager.Instance;
-            if (networkManager != null)
-            {
-                networkManager.OnDisconnected += OnNetworkDisconnected;
-                networkManager.OnConnectionStatusChanged += OnNetworkConnectionStatusChanged;
-            }
+            // 订阅底层连接状态（使用 EventSystem）
+            EventSystem.Instance.Subscribe<NetworkDisconnectedEventData>(OnNetworkDisconnected);
+            EventSystem.Instance.Subscribe<NetworkConnectionStatusChangedEventData>(OnNetworkConnectionStatusChanged);
             
-            // 订阅UserManager的登录事件
-            var userManager = UserManager.Instance;
-            if (userManager != null)
-            {
-                userManager.OnUserLoggedIn += OnUserLoggedIn;
-                userManager.OnLoginError += OnLoginError;
-            }
+            // 订阅用户登录事件（使用 EventSystem）
+            EventSystem.Instance.Subscribe<UserLoggedInEventData>(OnUserLoggedIn);
+            EventSystem.Instance.Subscribe<UserLoginErrorEventData>(OnUserLoginError);
             
             // 订阅快速匹配相关事件
             EventSystem.Instance.Subscribe<QuickMatchResponse>(OnQuickMatchResponse);
@@ -208,21 +183,13 @@ namespace Astrum.Client.Managers.GameModes
             // 取消订阅连接响应事件
             EventSystem.Instance.Unsubscribe<ConnectResponseEventData>(OnConnectResponse);
 
-            // 取消订阅底层连接状态
-            var networkManager = NetworkManager.Instance;
-            if (networkManager != null)
-            {
-                networkManager.OnDisconnected -= OnNetworkDisconnected;
-                networkManager.OnConnectionStatusChanged -= OnNetworkConnectionStatusChanged;
-            }
+            // 取消订阅底层连接状态（使用 EventSystem）
+            EventSystem.Instance.Unsubscribe<NetworkDisconnectedEventData>(OnNetworkDisconnected);
+            EventSystem.Instance.Unsubscribe<NetworkConnectionStatusChangedEventData>(OnNetworkConnectionStatusChanged);
             
-            // 取消订阅UserManager的登录事件
-            var userManager = UserManager.Instance;
-            if (userManager != null)
-            {
-                userManager.OnUserLoggedIn -= OnUserLoggedIn;
-                userManager.OnLoginError -= OnLoginError;
-            }
+            // 取消订阅用户登录事件（使用 EventSystem）
+            EventSystem.Instance.Unsubscribe<UserLoggedInEventData>(OnUserLoggedIn);
+            EventSystem.Instance.Unsubscribe<UserLoginErrorEventData>(OnUserLoginError);
             
             // 取消订阅快速匹配相关事件
             EventSystem.Instance.Unsubscribe<QuickMatchResponse>(OnQuickMatchResponse);
@@ -239,13 +206,8 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void SubscribeToUserEvents()
         {
-            var userManager = UserManager.Instance;
-            if (userManager != null)
-            {
-                userManager.OnUserLoggedIn += OnUserLoggedIn;
-                userManager.OnLoginError += OnLoginError;
-            }
-
+            // 用户事件已通过 EventSystem 在 SubscribeToNetworkEvents 中订阅
+            // 这里保留方法以保持接口一致性，但实际订阅已迁移到 EventSystem
             ASLogger.Instance.Info("LoginGameMode: 已订阅用户事件");
         }
 
@@ -254,13 +216,8 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void UnsubscribeFromUserEvents()
         {
-            var userManager = UserManager.Instance;
-            if (userManager != null)
-            {
-                userManager.OnUserLoggedIn -= OnUserLoggedIn;
-                userManager.OnLoginError -= OnLoginError;
-            }
-
+            // 用户事件已通过 EventSystem 在 UnsubscribeFromNetworkEvents 中取消订阅
+            // 这里保留方法以保持接口一致性，但实际取消订阅已迁移到 EventSystem
             ASLogger.Instance.Info("LoginGameMode: 已取消订阅用户事件");
         }
 
@@ -559,7 +516,7 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
 
-        private void OnNetworkDisconnected()
+        private void OnNetworkDisconnected(NetworkDisconnectedEventData eventData)
         {
             // TCP 层断开（包括连接失败 10061 等），确保状态不会卡在 Connecting
             if (_connectionState == ConnectionState.Connecting)
@@ -579,11 +536,11 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
 
-        private void OnNetworkConnectionStatusChanged(ConnectionStatus status)
+        private void OnNetworkConnectionStatusChanged(NetworkConnectionStatusChangedEventData eventData)
         {
-            if (status == ConnectionStatus.Disconnected)
+            if (eventData.Status == ConnectionStatus.Disconnected)
             {
-                OnNetworkDisconnected();
+                OnNetworkDisconnected(new NetworkDisconnectedEventData());
             }
         }
 
@@ -640,17 +597,23 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 处理用户登录成功事件
         /// </summary>
-        private void OnUserLoggedIn(UserInfo userInfo)
+        private void OnUserLoggedIn(UserLoggedInEventData eventData)
         {
             _connectionState = ConnectionState.LoggedIn;
             PublishLoginStateChanged();
-            ASLogger.Instance.Info($"LoginGameMode: 用户登录成功 - {userInfo.DisplayName}");
+            ASLogger.Instance.Info($"LoginGameMode: 用户登录成功 - {eventData.DisplayName}");
             
-            // 检查是否有房间ID（断线重连情况）
-            if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
+            // 从 UserManager 获取完整的用户信息以检查房间ID
+            var userManager = UserManager.Instance;
+            if (userManager != null && userManager.CurrentUser != null)
             {
-                ASLogger.Instance.Info($"LoginGameMode: 检测到断线重连 - 房间ID: {userInfo.CurrentRoomId}");
-                HandleReconnect(userInfo.CurrentRoomId);
+                var userInfo = userManager.CurrentUser;
+                // 检查是否有房间ID（断线重连情况）
+                if (!string.IsNullOrEmpty(userInfo.CurrentRoomId))
+                {
+                    ASLogger.Instance.Info($"LoginGameMode: 检测到断线重连 - 房间ID: {userInfo.CurrentRoomId}");
+                    HandleReconnect(userInfo.CurrentRoomId);
+                }
             }
         }
         
@@ -698,11 +661,11 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 处理用户登录错误事件
         /// </summary>
-        private void OnLoginError(string errorMessage)
+        private void OnUserLoginError(UserLoginErrorEventData eventData)
         {
             _connectionState = ConnectionState.Disconnected;
             PublishLoginStateChanged();
-            PublishLoginError($"登录失败: {errorMessage}");
+            PublishLoginError($"登录失败: {eventData.ErrorMessage}");
         }
 
         #endregion

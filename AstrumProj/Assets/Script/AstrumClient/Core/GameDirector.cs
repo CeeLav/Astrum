@@ -123,8 +123,6 @@ namespace Astrum.Client.Core
             
             ASLogger.Instance.Info($"GameDirector: 切换到游戏模式 {newMode?.ModeName ?? "None"}");
         }
-
-        
         
         /// <summary>
         /// 初始化各个 Manager
@@ -161,8 +159,6 @@ namespace Astrum.Client.Core
             AudioManager.Instance.Initialize();
             InputManager.Instance.Initialize();
             CameraManager.Instance.Initialize();
-            // TODO: NetworkMessageHandler已被新的消息处理器系统替代
-            // 新的消息处理器会自动初始化，无需手动调用
             
             ASLogger.Instance.Info("GameDirector: 所有 Manager 初始化完成");
         }
@@ -197,7 +193,6 @@ namespace Astrum.Client.Core
             {
                 VFXManager.Instance?.Update();
             }
-            // GamePlayManager 已删除，其功能已分散到其他管理器
         }
         
         /// <summary>
@@ -219,8 +214,6 @@ namespace Astrum.Client.Core
             AudioManager.Instance?.Shutdown();
             InputManager.Instance?.Shutdown();
             CameraManager.Instance?.Shutdown();
-            // TODO: NetworkMessageHandler已被新的消息处理器系统替代
-            // 新的消息处理器会自动管理，无需手动关闭
             TableConfig.Instance?.Shutdown();
         }
         

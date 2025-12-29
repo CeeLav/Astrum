@@ -73,6 +73,7 @@ namespace Astrum.Client.Managers
                 {
                     ASLogger.Instance.Error("UserManager: NetworkManager不存在");
                     OnLoginError?.Invoke("网络管理器不存在");
+                    EventSystem.Instance.Publish(new UserLoginErrorEventData { ErrorMessage = "网络管理器不存在" });
                     return false;
                 }
                 
@@ -80,6 +81,7 @@ namespace Astrum.Client.Managers
                 {
                     ASLogger.Instance.Error("UserManager: 网络未连接");
                     OnLoginError?.Invoke("网络未连接");
+                    EventSystem.Instance.Publish(new UserLoginErrorEventData { ErrorMessage = "网络未连接" });
                     return false;
                 }
                 
@@ -95,6 +97,7 @@ namespace Astrum.Client.Managers
             {
                 ASLogger.Instance.Error($"UserManager: 自动登录失败 - {ex.Message}");
                 OnLoginError?.Invoke($"登录失败: {ex.Message}");
+                EventSystem.Instance.Publish(new UserLoginErrorEventData { ErrorMessage = $"登录失败: {ex.Message}" });
                 return false;
             }
             finally
@@ -131,6 +134,7 @@ namespace Astrum.Client.Managers
                 {
                     ASLogger.Instance.Error("UserManager: NetworkManager不存在");
                     OnLoginError?.Invoke("网络管理器不存在");
+                    EventSystem.Instance.Publish(new UserLoginErrorEventData { ErrorMessage = "网络管理器不存在" });
                     return false;
                 }
                 
@@ -143,6 +147,7 @@ namespace Astrum.Client.Managers
                     {
                         ASLogger.Instance.Error($"UserManager: 连接服务器失败，错误码: {result}");
                         OnLoginError?.Invoke("连接服务器失败");
+                        EventSystem.Instance.Publish(new UserLoginErrorEventData { ErrorMessage = "连接服务器失败" });
                         return false;
                     }
                 }
@@ -154,6 +159,7 @@ namespace Astrum.Client.Managers
             {
                 ASLogger.Instance.Error($"UserManager: 连接并登录失败 - {ex.Message}");
                 OnLoginError?.Invoke($"连接并登录失败: {ex.Message}");
+                EventSystem.Instance.Publish(new UserLoginErrorEventData { ErrorMessage = $"连接并登录失败: {ex.Message}" });
                 return false;
             }
             finally
@@ -185,23 +191,43 @@ namespace Astrum.Client.Managers
                         
                         // 触发登录成功事件
                         OnUserLoggedIn?.Invoke(CurrentUser);
+                        
+                        // 发布 EventSystem 事件
+                        EventSystem.Instance.Publish(new UserLoggedInEventData
+                        {
+                            UserId = CurrentUser.Id,
+                            DisplayName = CurrentUser.DisplayName
+                        });
                     }
                     else
                     {
-                        ASLogger.Instance.Error("UserManager: 登录响应中用户信息为空");
-                        OnLoginError?.Invoke("登录响应中用户信息为空");
+                    ASLogger.Instance.Error("UserManager: 登录响应中用户信息为空");
+                    OnLoginError?.Invoke("登录响应中用户信息为空");
+                    
+                    // 发布 EventSystem 事件
+                    EventSystem.Instance.Publish(new UserLoginErrorEventData
+                    {
+                        ErrorMessage = "登录响应中用户信息为空"
+                    });
                     }
                 }
                 else
                 {
                     ASLogger.Instance.Error($"UserManager: 登录失败 - {response.Message}");
                     OnLoginError?.Invoke(response.Message);
+                    
+                    // 发布 EventSystem 事件
+                    EventSystem.Instance.Publish(new UserLoginErrorEventData
+                    {
+                        ErrorMessage = response.Message
+                    });
                 }
             }
             catch (Exception ex)
             {
                 ASLogger.Instance.Error($"UserManager: 处理登录响应时出错 - {ex.Message}");
                 OnLoginError?.Invoke($"处理登录响应失败: {ex.Message}");
+                EventSystem.Instance.Publish(new UserLoginErrorEventData { ErrorMessage = $"处理登录响应失败: {ex.Message}" });
             }
         }
         

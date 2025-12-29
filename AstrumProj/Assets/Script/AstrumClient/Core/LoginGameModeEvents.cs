@@ -1,4 +1,5 @@
 using Astrum.CommonBase;
+using Astrum.Network.Generated;
 
 namespace Astrum.Client.Core
 {
@@ -26,5 +27,28 @@ namespace Astrum.Client.Core
     {
         public string UserId { get; set; }
         public string DisplayName { get; set; }
+    }
+
+    /// <summary>
+    /// 网络断开连接事件数据
+    /// </summary>
+    public class NetworkDisconnectedEventData : EventData
+    {
+    }
+
+    /// <summary>
+    /// 网络连接状态变化事件数据
+    /// </summary>
+    public class NetworkConnectionStatusChangedEventData : EventData
+    {
+        public ConnectionStatus Status { get; set; }
+    }
+
+    /// <summary>
+    /// 用户登录错误事件数据
+    /// </summary>
+    public class UserLoginErrorEventData : EventData
+    {
+        public string ErrorMessage { get; set; }
     }
 }

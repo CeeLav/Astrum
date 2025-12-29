@@ -7,6 +7,7 @@ using Astrum.Network;
 using Astrum.Network.MessageHandlers;
 using Astrum.Network.Generated;
 using Astrum.Client.MessageHandlers;
+using Astrum.Client.Core;
 using Astrum.Generated;
 using IMessageHandler = Astrum.Network.MessageHandlers.IMessageHandler;
 using MemoryPack;
@@ -121,6 +122,12 @@ namespace Astrum.Client.Managers
                     // 触发连接成功事件
                     OnConnected?.Invoke();
                     OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
+                    
+                    // 发布 EventSystem 事件
+                    EventSystem.Instance.Publish(new NetworkConnectionStatusChangedEventData
+                    {
+                        Status = ConnectionStatus.Connected
+                    });
 
                     // 记录首次连接时间并立即发起一次校准
                     _lastPingAtMs = TimeInfo.Instance.ClientNow();
@@ -347,6 +354,12 @@ namespace Astrum.Client.Managers
                 // 触发客户端代码期望的事件
                 OnConnected?.Invoke();
                 OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
+                
+                // 发布 EventSystem 事件
+                EventSystem.Instance.Publish(new NetworkConnectionStatusChangedEventData
+                {
+                    Status = ConnectionStatus.Connected
+                });
             }
         }
         
@@ -379,6 +392,13 @@ namespace Astrum.Client.Managers
                 // 触发客户端代码期望的事件
                 OnDisconnected?.Invoke();
                 OnConnectionStatusChanged?.Invoke(ConnectionStatus.Disconnected);
+                
+                // 发布 EventSystem 事件
+                EventSystem.Instance.Publish(new NetworkDisconnectedEventData());
+                EventSystem.Instance.Publish(new NetworkConnectionStatusChangedEventData
+                {
+                    Status = ConnectionStatus.Disconnected
+                });
             }
         }
         
