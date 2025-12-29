@@ -1,4 +1,5 @@
 using UnityEngine;
+using Astrum.Client.Managers.GameModes;
 
 namespace Astrum.Client.Core
 {
@@ -27,11 +28,20 @@ namespace Astrum.Client.Core
         [SerializeField] private Astrum.Client.Behaviour.CoroutineRunner coroutineRunner;
         
         [Header("场景配置")]
+        [Tooltip("登录模式进入的场景ID（场景索引号）")]
+        [SerializeField] private int loginSceneId = 0;
+        
+        [Tooltip("Hub模式进入的场景ID（场景索引号）")]
+        [SerializeField] private int hubSceneId = 1;
+        
         [Tooltip("单人模式进入的场景ID（场景索引号）")]
-        [SerializeField] private int singlePlayerSceneId = 1;
+        [SerializeField] private int singlePlayerSceneId = 2;
         
         [Tooltip("联机模式进入的场景ID（场景索引号）")]
-        [SerializeField] private int multiplayerSceneId = 2;
+        [SerializeField] private int multiplayerSceneId = 3;
+        
+        [Tooltip("回放模式进入的场景ID（场景索引号）")]
+        [SerializeField] private int replaySceneId = 1;
         
         // 公共属性访问器
         public int TargetFrameRate => targetFrameRate;
@@ -53,11 +63,32 @@ namespace Astrum.Client.Core
         public Astrum.Client.Behaviour.CoroutineRunner CoroutineRunner => coroutineRunner;
         
         // 场景ID访问器
+        public int LoginSceneId => loginSceneId;
+        public int HubSceneId => hubSceneId;
         public int SinglePlayerSceneId => singlePlayerSceneId;
         public int MultiplayerSceneId => multiplayerSceneId;
+        public int ReplaySceneId => replaySceneId;
         
         /// <summary>
-        /// 根据游戏模式获取对应的场景ID
+        /// 根据游戏模式类型获取对应的场景ID
+        /// </summary>
+        /// <param name="gameModeType">游戏模式类型</param>
+        /// <returns>对应的场景ID</returns>
+        public int GetSceneIdByGameModeType(GameModeType gameModeType)
+        {
+            return gameModeType switch
+            {
+                GameModeType.Login => loginSceneId,
+                GameModeType.Hub => hubSceneId,
+                GameModeType.SinglePlayer => singlePlayerSceneId,
+                GameModeType.Multiplayer => multiplayerSceneId,
+                GameModeType.Replay => replaySceneId,
+                _ => hubSceneId // 默认返回Hub场景
+            };
+        }
+        
+        /// <summary>
+        /// 根据游戏模式获取对应的场景ID（向后兼容）
         /// </summary>
         /// <param name="isSinglePlayer">是否为单人模式</param>
         /// <returns>对应的场景ID</returns>

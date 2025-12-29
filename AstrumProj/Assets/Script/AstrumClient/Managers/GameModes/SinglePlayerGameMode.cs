@@ -22,13 +22,12 @@ namespace Astrum.Client.Managers.GameModes
     [MonitorTarget]
     public class SinglePlayerGameMode : BaseGameMode
     {
-        private const int HubSceneId = 1;
-        
         // 核心属性
         public override Room MainRoom { get; set; }
         public override Stage MainStage { get; set; }
         public override long PlayerId { get; set; }
         public override string ModeName => "SinglePlayer";
+        public override GameModeType ModeType => GameModeType.SinglePlayer;
         public override bool IsRunning { get; set; }
         
         /// <summary>
@@ -48,16 +47,19 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 加载逻辑（单机模式不需要加载，立即完成）
+        /// 加载逻辑（加载游戏场景）
         /// </summary>
-        protected override void OnLoading()
+        /// <param name="sceneId">场景ID</param>
+        protected override void OnLoading(int sceneId)
         {
-            ASLogger.Instance.Info("SinglePlayerGameMode: 加载完成（无需加载）");
-            CompleteLoading();
+            ASLogger.Instance.Info($"SinglePlayerGameMode: 开始加载游戏场景 - 场景ID: {sceneId}");
+            
+            // 异步加载游戏场景
+            SwitchToGameScene(sceneId);
         }
         
         /// <summary>
-        /// 启动游戏逻辑
+        /// 启动游戏逻辑（场景已加载完成）
         /// </summary>
         /// <param name="sceneId">游戏场景ID</param>
         protected override void OnStartGame(int sceneId)
@@ -72,11 +74,15 @@ namespace Astrum.Client.Managers.GameModes
                 // 2. 创建 Stage
                 CreateStage();
                 
-                // 3. 切换到游戏场景
-                SwitchToGameScene(sceneId);
+                // 3. 激活Stage（场景已加载完成）
+                MainStage.SetActive(true);
+                MainStage.OnEnter();
                 
-                // 4. 创建玩家（在场景加载完成后）
-                // CreatePlayer() 会在 OnGameSceneLoaded() 中调用
+                // 4. 订阅EntityView创建事件，用于设置相机跟随
+                MainStage.OnEntityViewAdded += OnEntityViewAdded;
+                
+                // 5. 创建玩家
+                CreatePlayer();
                 
                 IsRunning = true;
                 ASLogger.Instance.Info("SinglePlayerGameMode: 单机游戏启动成功");
@@ -230,20 +236,9 @@ namespace Astrum.Client.Managers.GameModes
             // 关闭Login UI
             CloseLoginUI();
             
-            // 激活Stage
-            MainStage.SetActive(true);
-            MainStage.OnEnter();
-            
-            // 订阅EntityView创建事件，用于设置相机跟随
-            MainStage.OnEntityViewAdded += OnEntityViewAdded;
-            
-            // 创建玩家
-            CreatePlayer();
-            
-            // 创建怪物
-            //CreateMonster();
-            
-            ASLogger.Instance.Info("SinglePlayerGameMode: 游戏准备完成");
+            // 调用 CompleteLoading() 进入 Playing 状态
+            // OnStartGame() 会在 Playing 状态时被调用，执行游戏逻辑初始化
+            CompleteLoading();
         }
         
         /// <summary>
@@ -602,11 +597,8 @@ namespace Astrum.Client.Managers.GameModes
                 // 1. 保存玩家数据
                 SavePlayerData();
                 
-                // 2. 切换到 HubGameMode
+                // 2. 切换到 HubGameMode（Hub模式会自动根据配置启动对应场景）
                 GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
-                
-                // 3. 启动 Hub 场景
-                GameDirector.Instance.CurrentGameMode?.StartGame(HubSceneId);
                 
                 ASLogger.Instance.Info("SinglePlayerGameMode: 撤离成功，已切换到 Hub 模式");
             }

@@ -19,13 +19,12 @@ namespace Astrum.Client.Managers.GameModes
     [MonitorTarget]
     public class MultiplayerGameMode : BaseGameMode
     {
-        private const int DungeonsGameSceneId = 2;
-        
         // 核心属性
         public override Room MainRoom { get; set; }
         public override Stage MainStage { get; set; }
         public override long PlayerId { get; set; }
         public override string ModeName => "Multiplayer";
+        public override GameModeType ModeType => GameModeType.Multiplayer;
         public override bool IsRunning { get; set; }
         
         // 辅助处理器
@@ -56,15 +55,7 @@ namespace Astrum.Client.Managers.GameModes
             MonitorManager.Register(this); // 监控注册
         }
         
-        /// <summary>
-        /// 启动联机游戏（联机模式不主动启动，等待服务器通知）
-        /// </summary>
-        /// <param name="sceneId">场景配置ID</param>
-        public override void StartGame(int sceneId)
-        {
-            ASLogger.Instance.Info("MultiplayerGameMode: 联机模式等待服务器游戏开始通知");
-            
-        }
+        // StartGame 方法已移除，由 BaseGameMode 自动处理场景加载
         
         /// <summary>
         /// 更新游戏逻辑
@@ -457,13 +448,15 @@ namespace Astrum.Client.Managers.GameModes
                     }
                     
                     // 切换到游戏场景
-                    SwitchToGameScene(DungeonsGameSceneId, stage);
+                    var sceneId = GameSetting.Instance.MultiplayerSceneId;
+                    SwitchToGameScene(sceneId, stage);
                 }
                 else
                 {
                     // Stage 已存在，只需要切换场景（如果还没切换）
                     ASLogger.Instance.Info($"Stage 已存在，只切换场景", "MultiplayerGameMode");
-                    SwitchToGameScene(DungeonsGameSceneId, MainStage);
+                    var sceneId = GameSetting.Instance.MultiplayerSceneId;
+                    SwitchToGameScene(sceneId, MainStage);
                 }
                 
                 ASLogger.Instance.Info($"游戏开始 - 房间: {notification.roomId}, 玩家数: {notification.playerIds.Count}");

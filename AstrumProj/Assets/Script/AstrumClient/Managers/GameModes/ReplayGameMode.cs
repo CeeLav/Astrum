@@ -20,14 +20,12 @@ namespace Astrum.Client.Managers.GameModes
     [MonitorTarget]
     public class ReplayGameMode : BaseGameMode
     {
-        private const int HubSceneId = 1; // 回放使用 Hub 场景
-        private const int DungeonsGameSceneId = 2;
-        
         // 核心属性
         public override Room MainRoom { get; set; }
         public override Stage MainStage { get; set; }
         public override long PlayerId { get; set; }
         public override string ModeName => "Replay";
+        public override GameModeType ModeType => GameModeType.Replay;
         public override bool IsRunning { get; set; }
         
         // 回放相关
@@ -133,7 +131,8 @@ namespace Astrum.Client.Managers.GameModes
                 CreateStage();
                 
                 // 5. 切换到游戏场景
-                SwitchToGameScene(DungeonsGameSceneId);
+                var sceneId = GameSetting.Instance.ReplaySceneId;
+                SwitchToGameScene(sceneId);
                 
                 ChangeState(GameModeState.Playing);
                 
@@ -154,13 +153,7 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
 
-        /// <summary>
-        /// 启动游戏（回放模式不使用此方法，使用 Load()）
-        /// </summary>
-        public override void StartGame(int sceneId)
-        {
-            ASLogger.Instance.Warning("ReplayGameMode: 回放模式应使用 Load() 方法，而不是 StartGame()");
-        }
+        // StartGame 方法已移除，由 BaseGameMode 自动处理场景加载
 
         /// <summary>
         /// 更新回放逻辑

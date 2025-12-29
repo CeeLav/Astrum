@@ -21,7 +21,10 @@ namespace Astrum.Client.Managers.GameModes
     [MonitorTarget]
     public class LoginGameMode : BaseGameMode
     {
-        private const int HubSceneId = 1;
+        /// <summary>
+        /// 游戏模式类型
+        /// </summary>
+        public override GameModeType ModeType => GameModeType.Login;
         
         #region 状态枚举
 
@@ -109,7 +112,7 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 加载逻辑（登录模式不需要加载，立即完成）
         /// </summary>
-        protected override void OnLoading()
+        protected override void OnLoading(int sceneId)
         {
             ASLogger.Instance.Info("LoginGameMode: 加载完成（无需加载）");
             CompleteLoading();
@@ -473,11 +476,8 @@ namespace Astrum.Client.Managers.GameModes
                 // 2. 隐藏登录 UI
                 HideLoginUI();
 
-                // 3. 切换到 Hub 模式
+                // 3. 切换到 Hub 模式（Hub模式会自动根据配置启动对应场景）
                 GameDirector.Instance.SwitchGameMode(GameModeType.Hub);
-
-                // 4. 启动 Hub 游戏（加载 Hub 场景）
-                GameDirector.Instance.CurrentGameMode?.StartGame(HubSceneId);
 
                 ASLogger.Instance.Info("LoginGameMode: 切换到 Hub 模式成功");
             }

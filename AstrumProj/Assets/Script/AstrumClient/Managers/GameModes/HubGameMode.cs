@@ -16,28 +16,28 @@ namespace Astrum.Client.Managers.GameModes
     public class HubGameMode : BaseGameMode
     {
         // 继承属性
-        public override Room MainRoom { get; set; }        // Hub 不使用 Room
-        public override Stage MainStage { get; set; }      // Hub 不使用 Stage
+        public override Room MainRoom { get; set; }        // Hub 不使用Room
+        public override Stage MainStage { get; set; }      // Hub 不使用Stage
         public override long PlayerId { get; set; }
         public override string ModeName => "Hub";
         public override bool IsRunning { get; set; }
         
-        // Hub 特定场景
-        private const int HubSceneId = 1;
-        private const int DungeonsGameSceneId = 2;
+        /// <summary>
+        /// 游戏模式类型
+        /// </summary>
+        public override GameModeType ModeType => GameModeType.Hub;
         
         /// <summary>
-        /// 初始化 Hub 游戏模式
+        /// 初始�?Hub 游戏模式
         /// </summary>
         public override void Initialize()
         {
-            ASLogger.Instance.Info("HubGameMode: 初始化 Hub 模式");
+            ASLogger.Instance.Info("HubGameMode: 初始�?Hub 模式");
             
             // 订阅事件
             SubscribeToEvents();
             
-            // Hub 模式不需要提前加载数据
-            // 数据由 PlayerDataManager 统一管理
+            // Hub 模式不需要提前加载数�?            // 数据�?PlayerDataManager 统一管理
             
             IsRunning = true;
             
@@ -50,11 +50,25 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 加载逻辑（Hub 模式不需要加载，立即完成）
+        /// 加载逻辑（Hub 模式不需要加载，立即完成�?
         /// </summary>
-        protected override void OnLoading()
+        protected override void OnLoading(int sceneId)
         {
-            ASLogger.Instance.Info("HubGameMode: 加载完成（无需加载）");
+            var targetSceneId = sceneId > 0 ? sceneId : GameSetting.Instance.HubSceneId;
+            ASLogger.Instance.Info($"HubGameMode: 开始加载场景 - 场景ID: {targetSceneId}");
+            
+            // 异步加载 HubScene 场景
+            SceneManager.Instance.LoadSceneAsync(targetSceneId, OnSceneLoadedForLoading);
+        }
+        
+        /// <summary>
+        /// 场景加载完成回调（用于加载状态）
+        /// </summary>
+        private void OnSceneLoadedForLoading()
+        {
+            ASLogger.Instance.Info("HubGameMode: 场景加载完成");
+            
+            // 调用 CompleteLoading() 进入 Playing 状态
             CompleteLoading();
         }
         
@@ -64,11 +78,9 @@ namespace Astrum.Client.Managers.GameModes
         /// <param name="sceneId">场景ID</param>
         protected override void OnStartGame(int sceneId)
         {
-            var targetSceneId = sceneId > 0 ? sceneId : HubSceneId;
+            var targetSceneId = sceneId > 0 ? sceneId : GameSetting.Instance.HubSceneId;
             ASLogger.Instance.Info($"HubGameMode: 启动游戏 - 场景ID: {targetSceneId}");
-            
-            // 加载 HubScene 场景
-            SceneManager.Instance.LoadSceneAsync(targetSceneId, OnSceneLoaded);
+            OnSceneLoaded();
         }
         
         /// <summary>
@@ -76,7 +88,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void OnSceneLoaded()
         {
-            ASLogger.Instance.Info("HubGameMode: 场景加载完成，显示 Hub UI");
+            ASLogger.Instance.Info("HubGameMode: 场景加载完成，显�?Hub UI");
             
             // 显示 Hub UI
             UIManager.Instance.ShowUI("Hub/Hub");
@@ -87,7 +99,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public override void Update(float deltaTime)
         {
-            // Hub 模式主要是 UI 界面，无需每帧更新
+            // Hub 模式主要是UI 界面，无需每帧更新
             // 未来添加昼夜循环等功能时再实现
         }
         
@@ -155,24 +167,18 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 启动探索（公开方法，供 UI 直接调用）
-        /// </summary>
+        /// 启动探索（公开方法，供 UI 直接调用�?        /// </summary>
         public void StartExploration()
         {
             ASLogger.Instance.Info("HubGameMode: 启动探索");
             
             try
             {
-                // 切换到 SinglePlayerGameMode
+                // 切换�?SinglePlayerGameMode
+                // 切换到单人游戏模式（单人模式会自动根据配置启动对应场景）
                 GameDirector.Instance.SwitchGameMode(GameModeType.SinglePlayer);
                 
-                // 使用GameSetting中配置的单人模式场景ID
-                var singlePlayerSceneId = GameSetting.Instance.SinglePlayerSceneId;
-                
-                // 启动新切换的游戏模式（自动状态流转）
-                GameDirector.Instance.CurrentGameMode?.StartGame(singlePlayerSceneId);
-                
-                ASLogger.Instance.Info($"HubGameMode: 探索启动成功，使用场景ID: {singlePlayerSceneId}");
+                ASLogger.Instance.Info("HubGameMode: 探索启动成功");
             }
             catch (Exception ex)
             {

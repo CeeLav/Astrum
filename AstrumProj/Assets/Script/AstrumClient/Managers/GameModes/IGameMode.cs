@@ -17,11 +17,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         void Initialize();
         
-        /// <summary>
-        /// 启动游戏
-        /// </summary>
-        /// <param name="sceneId">场景配置ID</param>
-        void StartGame(int sceneId);
+        // StartGame 方法已移除，由游戏模式自动根据配置加载场景
         
         /// <summary>
         /// 更新游戏逻辑

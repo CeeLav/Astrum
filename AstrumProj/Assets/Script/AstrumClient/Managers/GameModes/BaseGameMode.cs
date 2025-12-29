@@ -92,7 +92,7 @@ namespace Astrum.Client.Managers.GameModes
             return _currentState switch
             {
                 GameModeState.Initializing => targetState == GameModeState.Loading || targetState == GameModeState.Ready,
-                GameModeState.Loading => targetState == GameModeState.Ready,
+                GameModeState.Loading => targetState == GameModeState.Ready || targetState == GameModeState.Playing,
                 GameModeState.Ready => targetState == GameModeState.Playing,
                 GameModeState.Playing => targetState == GameModeState.Paused || targetState == GameModeState.Ending,
                 GameModeState.Paused => targetState == GameModeState.Playing || targetState == GameModeState.Ending,
@@ -147,22 +147,13 @@ namespace Astrum.Client.Managers.GameModes
         // 抽象方法，子类必须实现
         public abstract void Initialize();
         
-        /// <summary>
-        /// 启动游戏（公共接口，向后兼容）
-        /// </summary>
-        /// <param name="sceneId">场景ID</param>
-        public virtual void StartGame(int sceneId)
-        {
-            // 内部调用 Start，自动管理状态流转
-            Start(sceneId);
-        }
-        
         public abstract void Update(float deltaTime);
         public abstract void Shutdown();
         public abstract Room MainRoom { get; set; }
         public abstract Stage MainStage { get; set; }
         public abstract long PlayerId { get; set; }
         public abstract string ModeName { get; }
+        public abstract GameModeType ModeType { get; }
         public abstract bool IsRunning { get; set; }
         
         // 虚方法，子类可以重写
@@ -174,16 +165,35 @@ namespace Astrum.Client.Managers.GameModes
             switch (state)
             {
                 case GameModeState.Initializing:
-                    // 初始化完成后自动进入加载状态
-                    ChangeState(GameModeState.Loading);
+                    // 根据游戏模式类型自动获取场景ID并启动
+                    var sceneId = GameSetting.Instance.GetSceneIdByGameModeType(ModeType);
+                    if (sceneId > 0)
+                    {
+                        // 如果有场景ID，直接启动游戏
+                        _pendingSceneId = sceneId;
+                        ChangeState(GameModeState.Loading);
+                    }
+                    else
+                    {
+                        // 否则进入Ready状态等待手动启动
+                        ChangeState(GameModeState.Ready);
+                    }
                     break;
                     
                 case GameModeState.Loading:
-                    // 开始加载，调用子类的加载逻辑
+                    // 开始加载，调用子类的加载逻辑（使用 _pendingSceneId）
                     _isLoading = true;
                     try
                     {
-                        OnLoading();
+                        if (_pendingSceneId > 0)
+                        {
+                            OnLoading(_pendingSceneId);
+                        }
+                        else
+                        {
+                            // 如果没有 sceneId，立即完成加载
+                            CompleteLoading();
+                        }
                         // 如果加载是同步的，自动完成
                         if (!_isLoading)
                         {
@@ -193,6 +203,7 @@ namespace Astrum.Client.Managers.GameModes
                     catch (Exception ex)
                     {
                         ASLogger.Instance.Error($"{ModeName}: 加载失败 - {ex.Message}");
+                        _isLoading = false;
                         ChangeState(GameModeState.Finished);
                     }
                     break;
@@ -227,21 +238,31 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 加载完成，自动转换到 Ready 状态
+        /// 加载完成，如果有 sceneId 则自动进入 Playing，否则进入 Ready
         /// </summary>
         protected void CompleteLoading()
         {
             if (_currentState == GameModeState.Loading && _isLoading)
             {
                 _isLoading = false;
-                ChangeState(GameModeState.Ready);
+                
+                // 如果有待启动的场景ID，直接进入 Playing 状态
+                if (_pendingSceneId > 0)
+                {
+                    ChangeState(GameModeState.Playing);
+                }
+                else
+                {
+                    ChangeState(GameModeState.Ready);
+                }
             }
         }
         
         /// <summary>
-        /// 加载逻辑，子类重写实现具体的加载操作
+        /// 加载逻辑，子类重写实现具体的加载操作（如场景加载）
         /// </summary>
-        protected virtual void OnLoading()
+        /// <param name="sceneId">场景ID</param>
+        protected virtual void OnLoading(int sceneId)
         {
             // 默认实现：立即完成加载
             CompleteLoading();
@@ -264,21 +285,7 @@ namespace Astrum.Client.Managers.GameModes
             // 默认实现：空
         }
         
-        /// <summary>
-        /// 启动游戏（内部方法，自动管理状态流转）
-        /// </summary>
-        /// <param name="sceneId">场景ID</param>
-        protected void Start(int sceneId)
-        {
-            if (_currentState != GameModeState.Ready)
-            {
-                ASLogger.Instance.Warning($"{ModeName}: 当前状态 {_currentState} 不允许启动游戏，需要 Ready 状态");
-                return;
-            }
-            
-            _pendingSceneId = sceneId;
-            ChangeState(GameModeState.Playing);
-        }
+
         
         #region 逻辑线程辅助方法
         
