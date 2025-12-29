@@ -34,9 +34,6 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("HubGameMode: 初始�?Hub 模式");
             
-            // 订阅事件
-            SubscribeToEvents();
-            
             // Hub 模式不需要提前加载数�?            // 数据�?PlayerDataManager 统一管理
             
             IsRunning = true;
@@ -114,9 +111,6 @@ namespace Astrum.Client.Managers.GameModes
             // 隐藏 Hub UI
             HideHubView();
             
-            // 取消订阅事件
-            UnsubscribeFromEvents();
-            
             // 保存玩家数据
             PlayerDataManager.Instance.SaveProgressData();
             
@@ -141,30 +135,7 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
         
-        /// <summary>
-        /// 订阅事件
-        /// </summary>
-        private void SubscribeToEvents()
-        {
-            EventSystem.Instance.Subscribe<StartExplorationRequestEventData>(OnStartExplorationRequested);
-        }
-        
-        /// <summary>
-        /// 取消订阅事件
-        /// </summary>
-        private void UnsubscribeFromEvents()
-        {
-            EventSystem.Instance.Unsubscribe<StartExplorationRequestEventData>(OnStartExplorationRequested);
-        }
-        
-        /// <summary>
-        /// 开始探索请求事件处理（保留用于事件驱动架构）
-        /// </summary>
-        private void OnStartExplorationRequested(StartExplorationRequestEventData eventData)
-        {
-            ASLogger.Instance.Info("HubGameMode: 收到开始探索请求");
-            StartExploration();
-        }
+        // 事件订阅已移除，StartExplorationRequestEventData 事件已废弃
         
         /// <summary>
         /// 启动探索（公开方法，供 UI 直接调用�?        /// </summary>

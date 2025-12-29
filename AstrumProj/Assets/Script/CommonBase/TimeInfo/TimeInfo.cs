@@ -101,7 +101,7 @@ namespace Astrum.CommonBase
         public void UpdateRTT(long sendTime)
         {
             // 计算新的时间差（目标值）
-            long newTimeDiff = ClientNow() - sendTime + 33;
+            long newTimeDiff = ClientNow() - sendTime;
             //ASLogger.Instance.Info($"{newTimeDiff}");
             if (newTimeDiff > 1000)
             {

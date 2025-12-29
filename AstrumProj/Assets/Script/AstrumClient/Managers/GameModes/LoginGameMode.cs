@@ -12,6 +12,7 @@ using Astrum.LogicCore.Core;
 using Astrum.View.Core;
 using UnityEngine;
 using AstrumClient.MonitorTools;
+using GameConfig = Astrum.Client.Core.GameConfig;
 
 namespace Astrum.Client.Managers.GameModes
 {
@@ -86,10 +87,7 @@ namespace Astrum.Client.Managers.GameModes
             try
             {
                 // 订阅网络事件
-                SubscribeToNetworkEvents();
-
-                // 订阅用户事件
-                SubscribeToUserEvents();
+                SubscribeEvents();
 
                 // 显示登录 UI
                 ShowLoginUI();
@@ -128,8 +126,7 @@ namespace Astrum.Client.Managers.GameModes
             try
             {
                 // 取消订阅事件
-                UnsubscribeFromNetworkEvents();
-                UnsubscribeFromUserEvents();
+                UnsubscribeEvents();
                 
                 // 清理状态
                 _connectionState = ConnectionState.Disconnected;
@@ -152,7 +149,7 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 订阅网络事件
         /// </summary>
-        private void SubscribeToNetworkEvents()
+        private void SubscribeEvents()
         {
             // 订阅连接响应事件
             EventSystem.Instance.Subscribe<ConnectResponseEventData>(OnConnectResponse);
@@ -168,8 +165,6 @@ namespace Astrum.Client.Managers.GameModes
             // 订阅快速匹配相关事件
             EventSystem.Instance.Subscribe<QuickMatchResponse>(OnQuickMatchResponse);
             EventSystem.Instance.Subscribe<CancelMatchResponse>(OnCancelMatchResponse);
-            // 不再订阅 MatchFoundNotification，服务器已改为直接发送 GameStartNotification
-            // EventSystem.Instance.Subscribe<MatchFoundNotification>(OnMatchFoundNotification);
             EventSystem.Instance.Subscribe<MatchTimeoutNotification>(OnMatchTimeoutNotification);
             
             ASLogger.Instance.Info("LoginGameMode: 已订阅网络事件");
@@ -178,7 +173,7 @@ namespace Astrum.Client.Managers.GameModes
         /// <summary>
         /// 取消订阅网络事件
         /// </summary>
-        private void UnsubscribeFromNetworkEvents()
+        private void UnsubscribeEvents()
         {
             // 取消订阅连接响应事件
             EventSystem.Instance.Unsubscribe<ConnectResponseEventData>(OnConnectResponse);
@@ -199,26 +194,6 @@ namespace Astrum.Client.Managers.GameModes
             EventSystem.Instance.Unsubscribe<MatchTimeoutNotification>(OnMatchTimeoutNotification);
             
             ASLogger.Instance.Info("LoginGameMode: 已取消订阅网络事件");
-        }
-
-        /// <summary>
-        /// 订阅用户事件
-        /// </summary>
-        private void SubscribeToUserEvents()
-        {
-            // 用户事件已通过 EventSystem 在 SubscribeToNetworkEvents 中订阅
-            // 这里保留方法以保持接口一致性，但实际订阅已迁移到 EventSystem
-            ASLogger.Instance.Info("LoginGameMode: 已订阅用户事件");
-        }
-
-        /// <summary>
-        /// 取消订阅用户事件
-        /// </summary>
-        private void UnsubscribeFromUserEvents()
-        {
-            // 用户事件已通过 EventSystem 在 UnsubscribeFromNetworkEvents 中取消订阅
-            // 这里保留方法以保持接口一致性，但实际取消订阅已迁移到 EventSystem
-            ASLogger.Instance.Info("LoginGameMode: 已取消订阅用户事件");
         }
 
         #endregion
@@ -428,7 +403,7 @@ namespace Astrum.Client.Managers.GameModes
                 ASLogger.Instance.Info("LoginGameMode: 切换到 Hub 模式");
 
                 // 1. 设置单机模式
-                Client.Core.GameConfig.Instance.SetSinglePlayerMode(true);
+                GameConfig.Instance.SetSinglePlayerMode(true);
 
                 // 2. 隐藏登录 UI
                 HideLoginUI();
