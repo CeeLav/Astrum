@@ -332,7 +332,7 @@ namespace Astrum.Client.Managers.GameModes
         {
             // 创建 Room（使用回放时间线的房间ID）
             int roomId = Math.Abs(_timeline.RoomId.GetHashCode());
-            var room = new Room(roomId, _timeline.RoomId);
+            var room = new Room(roomId);
             
             // 初始化 Room（使用 "replay" 模式，并传入快照数据，这样角色会在初始化时创建）
             room.Initialize("replay", worldSnapshot);

@@ -21,12 +21,7 @@ namespace Astrum.LogicCore.Core
         /// 房间ID
         /// </summary>
         public int RoomId { get; set; }
-
-        /// <summary>
-        /// 房间名称
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
+        
         /// <summary>
         /// 房间是否激活
         /// </summary>
@@ -41,12 +36,7 @@ namespace Astrum.LogicCore.Core
         /// 影子世界（用于影子实体预测）
         /// </summary>
         public World ShadowWorld { get; private set; }
-
-        /// <summary>
-        /// 最大玩家数
-        /// </summary>
-        public int MaxPlayers { get; set; } = 8;
-
+        
         /// <summary>
         /// 帧同步控制器（基础接口，客户端和服务器通用）
         /// </summary>
@@ -61,18 +51,12 @@ namespace Astrum.LogicCore.Core
         
         /// <summary>
         /// 是否启用多线程模式（由 GameMode 设置）
-        /// 在多线程模式下，View 层不应直接访问 Logic 层的脏标记
         /// </summary>
         public bool IsMultiThreadMode { get; set; } = false;
-
-        public Room()
-        {
-        }
-
-        public Room(int roomId, string name) : this()
+        
+        public Room(int roomId)
         {
             RoomId = roomId;
-            Name = name;
         }
 
         /// <summary>
@@ -95,7 +79,7 @@ namespace Astrum.LogicCore.Core
                 return -1;
             }
 
-            ASLogger.Instance.Info($"Room.CreateEntity: 实体创建成功，EntityId={entity.UniqueId}, ConfigId={entityConfigId}");
+            //ASLogger.Instance.Info($"Room.CreateEntity: 实体创建成功，EntityId={entity.UniqueId}, ConfigId={entityConfigId}");
             return entity.UniqueId;
         }
 
@@ -568,7 +552,7 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public virtual void Shutdown()
         {
-            ASLogger.Instance.Info($"Room: 销毁房间 {Name} (ID: {RoomId})");
+            ASLogger.Instance.Info($"Room: 销毁房间 (ID: {RoomId})");
             
             // 清理 MainWorld
             if (MainWorld != null && MainWorld.IsFromPool)

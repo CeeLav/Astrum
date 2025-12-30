@@ -559,7 +559,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private Room CreateGameRoom(GameStartNotification notification)
         {
-            var room = new Room(1, notification.roomId);
+            var room = new Room(1);
             ASLogger.Instance.Info($"创建游戏房间: {room.RoomId}");
             return room;
         }

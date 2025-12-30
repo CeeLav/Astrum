@@ -100,7 +100,7 @@ namespace Astrum.Client.Managers.GameModes.Handlers
                     ASLogger.Instance.Info($"创建 Room（帧同步开始）", "FrameSync.Client");
                     
                     // 创建 Room 并初始化（传入 World 快照）
-                    var room = new Room(1, notification.roomId);
+                    var room = new Room(1);
                     room.Initialize("client", worldSnapshot);
                     _gameMode.MainRoom = room;
                     
