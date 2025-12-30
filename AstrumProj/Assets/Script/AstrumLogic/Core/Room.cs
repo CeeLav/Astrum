@@ -33,34 +33,9 @@ namespace Astrum.LogicCore.Core
         public bool IsActive { get; set; } = true;
 
         /// <summary>
-        /// 管理的世界列表
+        /// 主世界
         /// </summary>
-        public List<World> Worlds { get; private set; } = new List<World>(1);
-
-        public World MainWorld
-        {
-            get
-            {
-                if (Worlds == null || Worlds.Count == 0)
-                {
-                    return null;
-                }
-                return Worlds[0];
-            }
-            set
-            {
-                if (Worlds == null)
-                {
-                    Worlds = new List<World>(1);
-                }
-                if (Worlds.Count < 1)
-                {
-                    Worlds.Add(value);
-                    return;
-                }
-                Worlds[0] = value;
-            }
-        } // 默认返回第一个世界，如果没有则返回空
+        public World MainWorld { get; set; }
 
         /// <summary>
         /// 影子世界（用于影子实体预测）
@@ -219,17 +194,17 @@ namespace Astrum.LogicCore.Core
                     }
                 }
                 
-                // 更新所有世界
+                // 更新主世界
                 using (new ProfileScope("Room.UpdateWorlds"))
                 {
-                    foreach (var world in Worlds)
+                    if (MainWorld != null)
                     {
                         // 记录 World.Update 调用（仅当有非空输入时）
                         if (oneFrameInputs?.Inputs != null && oneFrameInputs.Inputs.Any(kv => kv.Value != null && (kv.Value.MoveX != 0 || kv.Value.MoveY != 0)))
                         {
-                            //ASLogger.Instance.Info($"[Room.FrameTick] 调用 World.Update | World.CurFrame={world.CurFrame}", "Room.FrameTick");
+                            //ASLogger.Instance.Info($"[Room.FrameTick] 调用 World.Update | World.CurFrame={MainWorld.CurFrame}", "Room.FrameTick");
                         }
-                        world.Update();
+                        MainWorld.Update();
                     }
                 }
                 
@@ -435,13 +410,13 @@ namespace Astrum.LogicCore.Core
 
         
         /// <summary>
-        /// 更新所有世界的系统
+        /// 更新主世界的系统
         /// </summary>
         public void TickSystems()
         {
-            foreach (var world in Worlds)
+            if (MainWorld != null)
             {
-                world.SkillEffectSystem?.Update();
+                MainWorld.SkillEffectSystem?.Update();
             }
             // ShadowWorld 的系统在 FrameTickShadow 中单独更新，这里不需要
         }
@@ -595,15 +570,6 @@ namespace Astrum.LogicCore.Core
         {
             ASLogger.Instance.Info($"Room: 销毁房间 {Name} (ID: {RoomId})");
             
-            // 清理并回收所有世界资源
-            foreach (var world in Worlds)
-            {
-                if (world != null && world.IsFromPool)
-                {
-                    world.Recycle(); // 调用 Recycle 方法（包含 Cleanup + Reset + 回收）
-                }
-            }
-            
             // 清理 MainWorld
             if (MainWorld != null && MainWorld.IsFromPool)
             {
@@ -623,7 +589,6 @@ namespace Astrum.LogicCore.Core
             
             // 重置状态
             IsActive = false;
-            Worlds.Clear();
         }
         
     }

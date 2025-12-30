@@ -135,8 +135,6 @@ namespace Astrum.Client.Managers.GameModes
             }
         }
         
-        // 事件订阅已移除，StartExplorationRequestEventData 事件已废弃
-        
         /// <summary>
         /// 启动探索（公开方法，供 UI 直接调用�?        /// </summary>
         public void StartExploration()
