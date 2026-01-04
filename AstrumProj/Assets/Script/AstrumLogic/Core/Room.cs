@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Astrum.CommonBase;
 using Astrum.Generated;
 using Astrum.LogicCore.FrameSync;
@@ -81,6 +82,20 @@ namespace Astrum.LogicCore.Core
 
             //ASLogger.Instance.Info($"Room.CreateEntity: 实体创建成功，EntityId={entity.UniqueId}, ConfigId={entityConfigId}");
             return entity.UniqueId;
+        }
+
+        /// <summary>
+        /// 创建实体（异步，多线程模式使用）
+        /// </summary>
+        /// <param name="entityConfigId">实体配置ID</param>
+        /// <returns>创建的实体ID，失败返回-1</returns>
+        public async Task<long> CreateEntityAsync(int entityConfigId)
+        {
+            if (MainWorld == null)
+            {
+                return -1;
+            }
+            return await MainWorld.CreateEntityAsync(entityConfigId);
         }
 
         /// <summary>

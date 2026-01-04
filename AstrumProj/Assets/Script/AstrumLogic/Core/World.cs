@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Astrum.LogicCore.Factories;
 using Astrum.LogicCore.FrameSync;
 using Astrum.LogicCore.Physics;
 using Astrum.LogicCore.Systems;
 using Astrum.LogicCore.Events;
+using Astrum.LogicCore.Commands;
 using Astrum.CommonBase;
 using MemoryPack;
 using Astrum.LogicCore.Archetypes;
@@ -99,6 +102,12 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         [MemoryPackIgnore]
         public ViewReadStore ViewReads { get; private set; }
+
+        /// <summary>
+        /// 命令队列（线程安全，用于主线程和逻辑线程之间的通信）
+        /// </summary>
+        [MemoryPackIgnore]
+        private readonly ConcurrentQueue<ILogicCommand> _commandQueue = new();
 
         /// <summary>
         /// 默认构造函数
@@ -209,15 +218,12 @@ namespace Astrum.LogicCore.Core
 
         public void QueueCreateEntity(EArchetype archetype, EntityCreationParams creationParams, Action<Entity>? postCreate = null)
         {
-
-            var pending = new PendingEntityCreation
+            PostCommand(new CreateEntityCommand
             {
                 Archetype = archetype,
                 CreationParams = CloneCreationParams(creationParams),
                 PostCreateAction = postCreate
-            };
-
-            _pendingCreateEntities.Add(pending);
+            });
         }
 
         /// <summary>
@@ -286,7 +292,9 @@ namespace Astrum.LogicCore.Core
                     CapabilitySystem?.ProcessEntityEvents();
                 }
 
-                ProcessQueuedEntityCreates();
+                // 3. 处理命令队列（主线程和逻辑线程之间的通信）
+                DrainCommands();
+                
                 ProcessQueuedEntityDestroys();
                 
                 // 3. 帧计数和后处理
@@ -338,14 +346,6 @@ namespace Astrum.LogicCore.Core
         }
 
         private readonly List<long> _pendingDestroyEntities = new List<long>();
-        private readonly List<PendingEntityCreation> _pendingCreateEntities = new List<PendingEntityCreation>();
-
-        private sealed class PendingEntityCreation
-        {
-            public EArchetype Archetype;
-            public EntityCreationParams CreationParams = new EntityCreationParams();
-            public Action<Entity>? PostCreateAction;
-        }
 
         private static EntityCreationParams CloneCreationParams(EntityCreationParams? source)
         {
@@ -363,26 +363,49 @@ namespace Astrum.LogicCore.Core
             };
         }
 
-        private void ProcessQueuedEntityCreates()
+        /// <summary>
+        /// 提交命令（同步，逻辑线程内部使用）
+        /// </summary>
+        public void PostCommand(ILogicCommand cmd)
         {
-            if (_pendingCreateEntities.Count == 0)
-                return;
+            _commandQueue.Enqueue(cmd);
+        }
 
-            foreach (var pending in _pendingCreateEntities)
+        /// <summary>
+        /// 提交命令（异步，主线程使用，无返回值）
+        /// </summary>
+        public Task PostCommandAsync(ILogicCommand cmd)
+        {
+            _commandQueue.Enqueue(cmd);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 创建实体（异步，主线程使用，有返回值）
+        /// </summary>
+        public async Task<long> CreateEntityAsync(int entityConfigId)
+        {
+            var tcs = new TaskCompletionSource<long>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            
+            _commandQueue.Enqueue(new CreateEntityCommand 
+            { 
+                EntityConfigId = entityConfigId,
+                Tcs = tcs 
+            });
+            
+            return await tcs.Task;
+        }
+
+        /// <summary>
+        /// 处理命令队列（在逻辑线程中调用）
+        /// </summary>
+        public void DrainCommands()
+        {
+            while (_commandQueue.TryDequeue(out var cmd))
             {
-                var entity = EntityFactory.Instance.CreateByArchetype(
-                    pending.Archetype,
-                    pending.CreationParams,
-                    this);
-
-                if (entity != null)
-                {
-                    pending.PostCreateAction?.Invoke(entity);
-                    PublishEntityCreatedEvent(entity);
-                }
+                cmd.Execute(this);
             }
-
-            _pendingCreateEntities.Clear();
         }
 
         private void ProcessQueuedEntityDestroys()
@@ -466,7 +489,7 @@ namespace Astrum.LogicCore.Core
         /// 发布实体创建事件
         /// </summary>
         /// <param name="entity">创建的实体</param>
-        private void PublishEntityCreatedEvent(Entity entity)
+        public void PublishEntityCreatedEvent(Entity entity)
         {
             // 使用视图事件队列（新机制）
             entity.QueueViewEvent(new ViewEvent(ViewEventType.EntityCreated, null, CurFrame));

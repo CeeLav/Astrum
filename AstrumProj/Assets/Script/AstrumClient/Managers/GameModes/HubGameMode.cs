@@ -73,11 +73,12 @@ namespace Astrum.Client.Managers.GameModes
         /// 启动游戏逻辑（加载场景）
         /// </summary>
         /// <param name="sceneId">场景ID</param>
-        protected override void OnStartGame(int sceneId)
+        protected override System.Threading.Tasks.Task OnStartGame(int sceneId)
         {
             var targetSceneId = sceneId > 0 ? sceneId : GameSetting.Instance.HubSceneId;
             ASLogger.Instance.Info($"HubGameMode: 启动游戏 - 场景ID: {targetSceneId}");
             OnSceneLoaded();
+            return System.Threading.Tasks.Task.CompletedTask;
         }
         
         /// <summary>

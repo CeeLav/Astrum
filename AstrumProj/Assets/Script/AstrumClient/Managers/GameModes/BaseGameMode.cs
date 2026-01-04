@@ -219,8 +219,18 @@ namespace Astrum.Client.Managers.GameModes
                     {
                         try
                         {
-                            OnStartGame(_pendingSceneId);
+                            // 异步启动，但不等待（避免阻塞状态机）
+                            var task = OnStartGame(_pendingSceneId);
                             _pendingSceneId = 0;
+                            // 如果任务失败，记录错误但不阻塞
+                            task.ContinueWith(t =>
+                            {
+                                if (t.IsFaulted)
+                                {
+                                    ASLogger.Instance.Error($"{ModeName}: 启动游戏失败 - {t.Exception?.GetBaseException()?.Message}");
+                                    ChangeState(GameModeState.Finished);
+                                }
+                            }, System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
                         }
                         catch (Exception ex)
                         {
@@ -280,9 +290,10 @@ namespace Astrum.Client.Managers.GameModes
         /// 启动游戏逻辑，子类重写实现具体的启动操作（原 StartGame 的内容）
         /// </summary>
         /// <param name="sceneId">场景ID</param>
-        protected virtual void OnStartGame(int sceneId)
+        protected virtual System.Threading.Tasks.Task OnStartGame(int sceneId)
         {
             // 默认实现：空
+            return System.Threading.Tasks.Task.CompletedTask;
         }
         
 

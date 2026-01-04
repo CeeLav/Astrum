@@ -62,7 +62,7 @@ namespace Astrum.Client.Managers.GameModes
         /// 启动游戏逻辑（场景已加载完成）
         /// </summary>
         /// <param name="sceneId">游戏场景ID</param>
-        protected override void OnStartGame(int sceneId)
+        protected override async System.Threading.Tasks.Task OnStartGame(int sceneId)
         {
             ASLogger.Instance.Info($"SinglePlayerGameMode: 启动单机游戏 - 场景ID: {sceneId}");
             
@@ -81,8 +81,8 @@ namespace Astrum.Client.Managers.GameModes
                 // 4. 订阅EntityView创建事件，用于设置相机跟随
                 MainStage.OnEntityViewAdded += OnEntityViewAdded;
                 
-                // 5. 创建玩家
-                CreatePlayer();
+                // 5. 创建玩家（异步）
+                await CreatePlayerAsync();
                 
                 IsRunning = true;
                 ASLogger.Instance.Info("SinglePlayerGameMode: 单机游戏启动成功");
@@ -242,13 +242,13 @@ namespace Astrum.Client.Managers.GameModes
         }
         
         /// <summary>
-        /// 创建玩家
+        /// 创建玩家（异步）
         /// </summary>
-        private void CreatePlayer()
+        private async System.Threading.Tasks.Task CreatePlayerAsync()
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 创建Player");
             
-            var playerID = MainRoom.CreateEntity(1001);
+            var playerID = await MainRoom.CreateEntityAsync(1001);
             PlayerId = playerID;
             
             // 设置 MainPlayerId（LSController 需要检查这个值）
