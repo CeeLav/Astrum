@@ -82,7 +82,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public override void Initialize()
         {
-            ASLogger.Instance.Info("LoginGameMode: 初始化登录模式");
+            //ASLogger.Instance.Info("LoginGameMode: 初始化登录模式");
 
             try
             {
@@ -95,7 +95,7 @@ namespace Astrum.Client.Managers.GameModes
                 // 触发状态流转：Initializing -> Loading -> Ready
                 TriggerStateEnter();
                 
-                ASLogger.Instance.Info("LoginGameMode: 初始化完成");
+                //ASLogger.Instance.Info("LoginGameMode: 初始化完成");
 
                 MonitorManager.Register(this); // 注册到全局监控
             }

@@ -19,12 +19,12 @@ namespace Astrum.Client.MessageHandlers
         {
             try
             {
-                ASLogger.Instance.Info($"ConnectMessageHandler: 处理连接响应 - Success: {message.success}, Message: {message.message}");
+                //ASLogger.Instance.Info($"ConnectMessageHandler: 处理连接响应 - Success: {message.success}, Message: {message.message}");
                 
                 if (message.success)
                 {
                     // 连接成功，更新连接状态
-                    ASLogger.Instance.Info("ConnectMessageHandler: 连接成功");
+                    //ASLogger.Instance.Info("ConnectMessageHandler: 连接成功");
                     
                     // 通过事件系统通知连接成功
                     var eventData = new ConnectResponseEventData

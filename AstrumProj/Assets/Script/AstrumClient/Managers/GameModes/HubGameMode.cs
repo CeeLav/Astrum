@@ -63,7 +63,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void OnSceneLoadedForLoading()
         {
-            ASLogger.Instance.Info("HubGameMode: 场景加载完成");
+            // 场景加载完成日志已移除以减少干扰（在 OnSceneLoaded 中统一输出）
             
             // 调用 CompleteLoading() 进入 Playing 状态
             CompleteLoading();

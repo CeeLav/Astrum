@@ -39,7 +39,7 @@ namespace Astrum.Client.Data
         {
             _currentSaveType = saveType;
             _currentClientInstanceId = clientInstanceId ?? ClientInstanceIdManager.GetOrCreateInstanceId();
-            ASLogger.Instance.Info($"PlayerDataManager: 初始化 - SaveType: {saveType}, ClientInstanceId: {_currentClientInstanceId}");
+            //ASLogger.Instance.Info($"PlayerDataManager: 初始化 - SaveType: {saveType}, ClientInstanceId: {_currentClientInstanceId}");
             LoadProgressData();
         }
         
@@ -225,12 +225,12 @@ namespace Astrum.Client.Data
             if (_progressData == null)
             {
                 _progressData = CreateDefaultProgressData();
-                ASLogger.Instance.Info("PlayerDataManager: 创建默认进度数据");
+                //ASLogger.Instance.Info("PlayerDataManager: 创建默认进度数据");
             }
             else
             {
                 EnsureDataIntegrity(_progressData);
-                ASLogger.Instance.Info($"PlayerDataManager: 加载进度数据 - 等级 {_progressData.Level}, 经验 {_progressData.Exp}");
+                //ASLogger.Instance.Info($"PlayerDataManager: 加载进度数据 - 等级 {_progressData.Level}, 经验 {_progressData.Exp}");
             }
         }
         

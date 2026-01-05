@@ -44,14 +44,14 @@ namespace Astrum.LogicCore.Managers
             try
             {
                 _configPath = configPath;
-                ASLogger.Instance.Info($"Initializing ConfigManager with path: {configPath}");
+                //ASLogger.Instance.Info($"Initializing ConfigManager with path: {configPath}");
                 
                 // 创建 Tables 实例
                 _tables = new Tables(LoadBytes);
                 
                 ProjectileConfigManager.Instance.LoadFromTable(_tables.TbProjectileTable);
                 _isInitialized = true;
-                ASLogger.Instance.Info("ConfigManager initialized successfully");
+                //ASLogger.Instance.Info("ConfigManager initialized successfully");
             }
             catch (Exception ex)
             {

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System;
 using System.Collections.Generic;
 using Astrum.CommonBase;
@@ -52,7 +52,7 @@ namespace Astrum.Client.Managers
             // 初始化LSInput组装器
             LSInputAssembler.Initialize();
             
-            ASLogger.Instance.Info("InputManager: 输入管理器初始化完成（配置驱动模式）", "Input.Manager");
+            //ASLogger.Instance.Info("InputManager: 输入管理器初始化完成（配置驱动模式）", "Input.Manager");
             
             // 旧代码保留
             currentInput = new InputState();

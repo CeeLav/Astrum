@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using System;
 using System.Collections;
@@ -38,8 +38,8 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Initialize()
         {
-            if (enableLogging)
-                Debug.Log("SceneManager: 初始化场景管理器");
+            //if (enableLogging)
+            //    Debug.Log("SceneManager: 初始化场景管理器");
             
             // 获取当前场景
             currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
@@ -47,8 +47,8 @@ namespace Astrum.Client.Managers
             // 创建协程运行器
             CreateCoroutineRunner();
             
-            if (enableLogging)
-                Debug.Log($"SceneManager: 当前场景 - {currentScene.name}");
+            //if (enableLogging)
+            //    Debug.Log($"SceneManager: 当前场景 - {currentScene.name}");
         }
         
         /// <summary>
@@ -61,7 +61,7 @@ namespace Astrum.Client.Managers
             if (gameAppCoroutineRunner != null)
             {
                 coroutineRunner = gameAppCoroutineRunner;
-                Debug.Log("SceneManager: 使用GameSetting中的CoroutineRunner引用");
+                //Debug.Log("SceneManager: 使用GameSetting中的CoroutineRunner引用");
             }
             else
             {
@@ -69,7 +69,7 @@ namespace Astrum.Client.Managers
                 GameObject runnerGO = new GameObject("SceneManager Coroutine Runner");
                 coroutineRunner = runnerGO.AddComponent<CoroutineRunner>();
                 UnityEngine.Object.DontDestroyOnLoad(runnerGO);
-                Debug.Log("SceneManager: 创建独立的CoroutineRunner");
+                //Debug.Log("SceneManager: 创建独立的CoroutineRunner");
             }
         }
         

@@ -47,7 +47,7 @@ namespace Astrum.Network.MessageHandlers
             {
                 RegisterHandlers();
                 _isInitialized = true;
-                ASLogger.Instance.Info($"MessageHandlerDispatcher initialized with {_handlers.Count} message types");
+                //ASLogger.Instance.Info($"MessageHandlerDispatcher initialized with {_handlers.Count} message types");
             }
             catch (Exception ex)
             {
@@ -145,7 +145,7 @@ namespace Astrum.Network.MessageHandlers
             // 注册处理器
             RegisterHandler(messageType, handler, 0, true);
             
-            ASLogger.Instance.Info($"Registered handler {handlerType.Name} for message type {messageType.Name}");
+            //ASLogger.Instance.Info($"Registered handler {handlerType.Name} for message type {messageType.Name}");
         }
         
         /// <summary>
@@ -182,7 +182,7 @@ namespace Astrum.Network.MessageHandlers
             // 注册处理器
             RegisterHandler(messageType, handler, 0, true);
             
-            ASLogger.Instance.Info($"Registered handler {handler.GetType().Name} for message type {messageType.Name}");
+            //ASLogger.Instance.Info($"Registered handler {handler.GetType().Name} for message type {messageType.Name}");
         }
         
         /// <summary>

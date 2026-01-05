@@ -22,7 +22,7 @@ namespace Astrum.Client.MessageHandlers
         {
             try
             {
-                ASLogger.Instance.Info("MessageHandlerRegistry: 开始注册消息处理器...");
+                //ASLogger.Instance.Info("MessageHandlerRegistry: 开始注册消息处理器...");
                 
                 // 创建所有消息处理器实例
                 CreateHandlerInstances();
@@ -30,7 +30,7 @@ namespace Astrum.Client.MessageHandlers
                 // 注册到Network项目的MessageHandlerDispatcher
                 RegisterToDispatcher();
                 
-                ASLogger.Instance.Info($"MessageHandlerRegistry: 成功注册 {_handlers.Count} 个消息处理器");
+                //ASLogger.Instance.Info($"MessageHandlerRegistry: 成功注册 {_handlers.Count} 个消息处理器");
             }
             catch (Exception ex)
             {
@@ -56,7 +56,7 @@ namespace Astrum.Client.MessageHandlers
                     if (handler != null)
                     {
                         _handlers.Add(handler);
-                        ASLogger.Instance.Debug($"MessageHandlerRegistry: 注册处理器 - {handlerType.Name}");
+                        //ASLogger.Instance.Debug($"MessageHandlerRegistry: 注册处理器 - {handlerType.Name}");
                     }
                 }
                 catch (Exception ex)
@@ -65,7 +65,7 @@ namespace Astrum.Client.MessageHandlers
                 }
             }
             
-            ASLogger.Instance.Info($"MessageHandlerRegistry: 通过反射发现并注册了 {_handlers.Count} 个消息处理器");
+            //ASLogger.Instance.Info($"MessageHandlerRegistry: 通过反射发现并注册了 {_handlers.Count} 个消息处理器");
         }
         
         /// <summary>
@@ -81,7 +81,7 @@ namespace Astrum.Client.MessageHandlers
                 var assembly = System.Reflection.Assembly.GetExecutingAssembly();
                 var types = assembly.GetTypes();
                 
-                ASLogger.Instance.Info($"MessageHandlerRegistry: 扫描程序集 {assembly.FullName}，发现 {types.Length} 个类型");
+                //ASLogger.Instance.Info($"MessageHandlerRegistry: 扫描程序集 {assembly.FullName}，发现 {types.Length} 个类型");
                 
                 foreach (var type in types)
                 {
@@ -93,7 +93,7 @@ namespace Astrum.Client.MessageHandlers
                     if (!typeof(IMessageHandler).IsAssignableFrom(type))
                         continue;
                     
-                    ASLogger.Instance.Debug($"MessageHandlerRegistry: 发现实现IMessageHandler的类型 - {type.Name}");
+                    //ASLogger.Instance.Debug($"MessageHandlerRegistry: 发现实现IMessageHandler的类型 - {type.Name}");
                     
                     // 检查是否有MessageHandlerAttribute
                     var attribute = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false)
@@ -102,15 +102,15 @@ namespace Astrum.Client.MessageHandlers
                     if (attribute != null)
                     {
                         handlerTypes.Add(type);
-                        ASLogger.Instance.Debug($"MessageHandlerRegistry: 发现带有MessageHandlerAttribute的处理器 - {type.Name}");
+                        //ASLogger.Instance.Debug($"MessageHandlerRegistry: 发现带有MessageHandlerAttribute的处理器 - {type.Name}");
                     }
                     else
                     {
-                        ASLogger.Instance.Debug($"MessageHandlerRegistry: 类型 {type.Name} 没有MessageHandlerAttribute");
+                        //ASLogger.Instance.Debug($"MessageHandlerRegistry: 类型 {type.Name} 没有MessageHandlerAttribute");
                     }
                 }
                 
-                ASLogger.Instance.Info($"MessageHandlerRegistry: 总共发现 {handlerTypes.Count} 个有效的消息处理器");
+                //ASLogger.Instance.Info($"MessageHandlerRegistry: 总共发现 {handlerTypes.Count} 个有效的消息处理器");
             }
             catch (Exception ex)
             {
@@ -141,7 +141,7 @@ namespace Astrum.Client.MessageHandlers
                         if (registerMethod != null)
                         {
                             registerMethod.Invoke(dispatcher, new object[] { _handlers });
-                            ASLogger.Instance.Info("MessageHandlerRegistry: 已注册到Network项目的MessageHandlerDispatcher");
+                            //ASLogger.Instance.Info("MessageHandlerRegistry: 已注册到Network项目的MessageHandlerDispatcher");
                         }
                     }
                 }

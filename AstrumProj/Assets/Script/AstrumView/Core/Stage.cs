@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Astrum.CommonBase;
@@ -88,7 +88,7 @@ namespace Astrum.View.Core
             
             _isInited = true;
             
-            ASLogger.Instance.Info($"Stage: 初始化完成（使用事件队列模式）- {_stageName}");
+            //ASLogger.Instance.Info($"Stage: 初始化完成（使用事件队列模式）- {_stageName}");
         }
         
         /// <summary>
@@ -101,7 +101,7 @@ namespace Astrum.View.Core
             EventSystem.Instance.Subscribe<EntitySubArchetypeChangedEventData>(OnEntitySubArchetypeChanged);
             EventSystem.Instance.Subscribe<WorldRollbackEventData>(OnWorldRollback);
             
-            ASLogger.Instance.Info($"Stage: 订阅实体事件 - {_stageName}");
+            //ASLogger.Instance.Info($"Stage: 订阅实体事件 - {_stageName}");
         }
         
         /// <summary>
@@ -114,7 +114,7 @@ namespace Astrum.View.Core
             EventSystem.Instance.Unsubscribe<EntitySubArchetypeChangedEventData>(OnEntitySubArchetypeChanged);
             EventSystem.Instance.Unsubscribe<WorldRollbackEventData>(OnWorldRollback);
             
-            ASLogger.Instance.Info($"Stage: 取消订阅实体事件 - {_stageName}");
+            //ASLogger.Instance.Info($"Stage: 取消订阅实体事件 - {_stageName}");
         }
         
         /// <summary>
@@ -144,7 +144,7 @@ namespace Astrum.View.Core
                 // 触发新实体的全量同步
                 SyncEntityViewComponents(entityView);
                 
-                ASLogger.Instance.Info($"Stage: 创建实体视图成功 - {entityName ?? entityId.ToString()} (ID: {entityId})", "Stage.CreateEntityView");
+                // 创建实体视图成功日志已移除以减少干扰
                 return true;
             }
             else
@@ -158,14 +158,14 @@ namespace Astrum.View.Core
         {
             if (eventData.RoomId != _roomId || eventData.EntityId <= 0) return;
             
-            ASLogger.Instance.Info($"Stage: 收到实体创建事件 - {eventData.EntityName} (ID: {eventData.EntityId})", "Stage.Event");
+            // 收到实体创建事件日志已移除以减少干扰
             
             // 检查权威实体是否有影子实体标记
             var entity = Room?.MainWorld?.GetEntity(eventData.EntityId);
             if (entity != null && entity.HasShadow)
             {
                 // 有影子实体，等待影子实体创建后再创建 View
-                ASLogger.Instance.Info($"Stage: 实体有影子实体标记，跳过创建 View，等待影子实体创建 - {eventData.EntityName} (ID: {eventData.EntityId})", "Stage.Event");
+                // 影子实体标记日志已移除以减少干扰
                 return;
             }
             

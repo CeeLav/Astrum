@@ -307,7 +307,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void OnStateChanged(GameModeStateChangedEventData evt)
         {
-            ASLogger.Instance.Info($"MultiplayerGameMode: 状态从 {evt.PreviousState} 变为 {evt.NewState}");
+            // 状态变化日志已移除以减少干扰（可通过事件系统监听状态变化）
             
             // 根据状态变化执行特定逻辑
             switch (evt.NewState)

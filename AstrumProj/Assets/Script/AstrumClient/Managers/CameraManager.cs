@@ -59,7 +59,7 @@ namespace Astrum.Client.Managers
                 return;
             }
             
-            ASLogger.Instance.Info("CameraManager: 初始化开始...");
+            //ASLogger.Instance.Info("CameraManager: 初始化开始...");
             
             try
             {
@@ -72,7 +72,7 @@ namespace Astrum.Client.Managers
                 _isInitialized = true;
                 OnCameraManagerInitialized?.Invoke(this);
                 
-                ASLogger.Instance.Info("CameraManager: 初始化完成");
+                //ASLogger.Instance.Info("CameraManager: 初始化完成");
             }
             catch (Exception ex)
             {

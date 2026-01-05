@@ -48,7 +48,7 @@ namespace Astrum.Client.UI.Core
                 // 收集所有节点引用（包括根节点），使用完整路径
                 CollectReferencesRecursive(transform, "");
                 
-                Debug.Log($"[UIRefs] 引用收集完成，共收集 {componentRefs.Count} 个组件引用，{gameObjectRefs.Count} 个GameObject引用");
+                //Debug.Log($"[UIRefs] 引用收集完成，共收集 {componentRefs.Count} 个组件引用，{gameObjectRefs.Count} 个GameObject引用");
             }
             catch (Exception ex)
             {

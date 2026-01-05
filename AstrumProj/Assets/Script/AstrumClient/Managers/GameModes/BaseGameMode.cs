@@ -70,7 +70,7 @@ namespace Astrum.Client.Managers.GameModes
             // 使用现有 EventSystem 发布事件
             OnGameEvent(new GameModeStateChangedEventData(previousState, newState));
             
-            ASLogger.Instance.Info($"BaseGameMode: 状态从 {previousState} 变为 {newState}");
+            // 状态变化日志已移除以减少干扰（可通过事件系统监听状态变化）
         }
         
         /// <summary>
@@ -133,13 +133,13 @@ namespace Astrum.Client.Managers.GameModes
         public virtual void SaveConfig()
         {
             // 子类可以重写此方法实现具体的保存逻辑
-            ASLogger.Instance.Info($"BaseGameMode: 保存配置 - {ModeName}");
+            //ASLogger.Instance.Info($"BaseGameMode: 保存配置 - {ModeName}");
         }
         
         public virtual void LoadConfig()
         {
             // 子类可以重写此方法实现具体的加载逻辑
-            ASLogger.Instance.Info($"BaseGameMode: 加载配置 - {ModeName}");
+            //ASLogger.Instance.Info($"BaseGameMode: 加载配置 - {ModeName}");
         }
         
         protected abstract GameModeConfig CreateDefaultConfig();
@@ -159,7 +159,7 @@ namespace Astrum.Client.Managers.GameModes
         // 虚方法，子类可以重写
         public virtual void OnStateEnter(GameModeState state) 
         {
-            ASLogger.Instance.Info($"BaseGameMode: 进入状态 {state} - {ModeName}");
+            //ASLogger.Instance.Info($"BaseGameMode: 进入状态 {state} - {ModeName}");
             
             // 自动状态流转逻辑
             switch (state)
@@ -244,7 +244,7 @@ namespace Astrum.Client.Managers.GameModes
         
         public virtual void OnStateExit(GameModeState state) 
         {
-            ASLogger.Instance.Info($"BaseGameMode: 退出状态 {state} - {ModeName}");
+            //ASLogger.Instance.Info($"BaseGameMode: 退出状态 {state} - {ModeName}");
         }
         
         /// <summary>

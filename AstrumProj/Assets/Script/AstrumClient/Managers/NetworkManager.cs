@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -69,7 +69,7 @@ namespace Astrum.Client.Managers
                 MessageHandlerRegistry.Instance.RegisterAllHandlers();
                 
                 isInitialized = true;
-                ASLogger.Instance.Info("NetworkManager initialized with MessageHandler system");
+                //ASLogger.Instance.Info("NetworkManager initialized with MessageHandler system");
             }
             catch (Exception ex)
             {

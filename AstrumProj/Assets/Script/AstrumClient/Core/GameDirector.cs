@@ -50,7 +50,7 @@ namespace Astrum.Client.Core
                 // 创建并切换到 LoginGameMode
                 SwitchGameMode(GameModeType.Login);
                 
-                ASLogger.Instance.Info("GameDirector: 初始化完成");
+                //ASLogger.Instance.Info("GameDirector: 初始化完成");
             }
             catch (System.Exception ex)
             {
@@ -105,7 +105,7 @@ namespace Astrum.Client.Core
         {
             if (_currentGameMode != null)
             {
-                ASLogger.Instance.Info($"GameDirector: 关闭当前游戏模式 {_currentGameMode.ModeName}");
+                //ASLogger.Instance.Info($"GameDirector: 关闭当前游戏模式 {_currentGameMode.ModeName}");
                 _currentGameMode.Shutdown();
             }
             
@@ -114,7 +114,7 @@ namespace Astrum.Client.Core
             
             if (_currentGameMode != null)
             {
-                ASLogger.Instance.Info($"GameDirector: 初始化新游戏模式 {_currentGameMode.ModeName}");
+                //ASLogger.Instance.Info($"GameDirector: 初始化新游戏模式 {_currentGameMode.ModeName}");
                 _currentGameMode.Initialize();
             }
             
@@ -129,7 +129,7 @@ namespace Astrum.Client.Core
         /// </summary>
         private void InitializeManagers()
         {
-            ASLogger.Instance.Info("GameDirector: 初始化各个 Manager");
+            //ASLogger.Instance.Info("GameDirector: 初始化各个 Manager");
             
             // 初始化日志管理器（必须在其他管理器之前初始化）
             InitializeLogManager();
@@ -160,7 +160,7 @@ namespace Astrum.Client.Core
             InputManager.Instance.Initialize();
             CameraManager.Instance.Initialize();
             
-            ASLogger.Instance.Info("GameDirector: 所有 Manager 初始化完成");
+            //ASLogger.Instance.Info("GameDirector: 所有 Manager 初始化完成");
         }
         
         /// <summary>
@@ -225,7 +225,7 @@ namespace Astrum.Client.Core
             // 注意：日志级别已在 GameApplication 中根据 Debug 开关配置
             // 这里不再设置日志级别，避免覆盖 GameApplication 的配置
             
-            ASLogger.Instance.Info("GameDirector: 初始化日志管理器");
+            //ASLogger.Instance.Info("GameDirector: 初始化日志管理器");
             
             // 添加Unity日志处理器
             ASLogger.Instance.AddHandler(new UnityLogHandler());
@@ -236,7 +236,7 @@ namespace Astrum.Client.Core
         /// </summary>
         private void InitializeConfigManager()
         {
-            ASLogger.Instance.Info("GameDirector: 初始化配置管理器");
+            //ASLogger.Instance.Info("GameDirector: 初始化配置管理器");
             
             try
             {
@@ -245,7 +245,7 @@ namespace Astrum.Client.Core
                 var configPath = System.IO.Path.Combine(UnityEngine.Application.dataPath, "..","..", "AstrumConfig", "Tables", "output", "Client");
                 TableConfig.Instance?.Initialize(configPath);
                 
-                ASLogger.Instance.Info("GameDirector: 配置管理器初始化完成");
+                //ASLogger.Instance.Info("GameDirector: 配置管理器初始化完成");
             }
             catch (System.Exception ex)
             {
@@ -259,21 +259,21 @@ namespace Astrum.Client.Core
         /// </summary>
         private void InitializeNetworkSystem()
         {
-            ASLogger.Instance.Info("GameDirector: 初始化网络系统基础组件");
+            //ASLogger.Instance.Info("GameDirector: 初始化网络系统基础组件");
             
             try
             {
                 // 初始化ObjectPool（对象池，网络系统的基础组件）
                 ObjectPool.Instance.Awake();
-                ASLogger.Instance.Info("GameDirector: ObjectPool初始化完成");
+                //ASLogger.Instance.Info("GameDirector: ObjectPool初始化完成");
                 
                 // 初始化CodeTypes（加载所有类型信息）
                 CodeTypes.Instance.Awake();
-                ASLogger.Instance.Info("GameDirector: CodeTypes初始化完成");
+                //ASLogger.Instance.Info("GameDirector: CodeTypes初始化完成");
                 
                 // 初始化OpcodeType（注册消息类型和opcode映射）
                 OpcodeType.Instance.Awake();
-                ASLogger.Instance.Info("GameDirector: OpcodeType初始化完成");
+                //ASLogger.Instance.Info("GameDirector: OpcodeType初始化完成");
             }
             catch (System.Exception ex)
             {

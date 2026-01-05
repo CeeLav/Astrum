@@ -23,17 +23,13 @@ namespace Astrum.View.Core
         /// </summary>
         public EntityView CreateEntityView(long entityId, Stage stage)
         {
-            if (enableLogging)
-                ASLogger.Instance.Info($"EntityViewFactory: 创建EntityView - ID:{entityId}");
+            // EntityView创建日志已移除以减少干扰（错误日志保留）
             
             try
             {
                 var entityView = new EntityView();
                 entityView.Initialize(entityId, stage);
                 AssembleViewComponents(entityView, stage);
-                
-                if (enableLogging)
-                    ASLogger.Instance.Info($"EntityViewFactory: EntityView创建成功 - ID:{entityId}");
                 
                 return entityView;
             }
@@ -58,8 +54,7 @@ namespace Astrum.View.Core
                 if (viewComponentTypes.Length > 0)
                 {
                     entityView.BuildViewComponents(viewComponentTypes);
-                    if (enableLogging)
-                        ASLogger.Instance.Info($"EntityViewFactory: 装配了 {viewComponentTypes.Length} 个主原型ViewComponents - ID:{entityView.EntityId}");
+                    // ViewComponents装配日志已移除以减少干扰
                 }
                 
                 // 2. 同步 Entity 的活跃子原型
@@ -70,8 +65,7 @@ namespace Astrum.View.Core
                     {
                         entityView.AttachSubArchetype(subArchetype);
                     }
-                    if (enableLogging)
-                        ASLogger.Instance.Info($"EntityViewFactory: 同步了 {activeSubArchetypes.Count} 个活跃子原型 - ID:{entityView.EntityId}");
+                    // 子原型同步日志已移除以减少干扰
                 }
             }
             catch (Exception ex)
@@ -96,9 +90,7 @@ namespace Astrum.View.Core
         {
             if (entityView != null)
             {
-                if (enableLogging)
-                    ASLogger.Instance.Info($"EntityViewFactory: 销毁EntityView - ID:{entityView.EntityId}");
-                
+                // EntityView销毁日志已移除以减少干扰
                 entityView.Destroy();
             }
         }

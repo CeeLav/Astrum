@@ -35,7 +35,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         public override void Initialize()
         {
-            ASLogger.Instance.Info("SinglePlayerGameMode: 初始化单机游戏模式");
+            //ASLogger.Instance.Info("SinglePlayerGameMode: 初始化单机游戏模式");
             
             // 注册事件处理器（使用现有 EventSystem）
             EventSystem.Instance.Subscribe<GameModeStateChangedEventData>(OnStateChanged);
@@ -52,7 +52,7 @@ namespace Astrum.Client.Managers.GameModes
         /// <param name="sceneId">场景ID</param>
         protected override void OnLoading(int sceneId)
         {
-            ASLogger.Instance.Info($"SinglePlayerGameMode: 开始加载游戏场景 - 场景ID: {sceneId}");
+            //ASLogger.Instance.Info($"SinglePlayerGameMode: 开始加载游戏场景 - 场景ID: {sceneId}");
             
             // 异步加载游戏场景
             SwitchToGameScene(sceneId);
@@ -248,12 +248,6 @@ namespace Astrum.Client.Managers.GameModes
         {
             ASLogger.Instance.Info("SinglePlayerGameMode: 创建Player");
             
-            var playerID = await MainRoom.CreateEntityAsync(1001);
-            PlayerId = playerID;
-            
-            // 设置 MainPlayerId（LSController 需要检查这个值）
-            MainRoom.MainPlayerId = playerID;
-            
             // 启动本地帧同步控制器
             if (MainRoom?.LSController is ClientLSController clientSync && !clientSync.IsRunning)
             {
@@ -267,9 +261,21 @@ namespace Astrum.Client.Managers.GameModes
                 clientSync.Start();
                 ASLogger.Instance.Info("SinglePlayerGameMode: 本地帧同步控制器已启动（状态保存已禁用）");
                 
-                // 启动逻辑线程（如果配置启用）
+                // 启动逻辑线程（如果配置启用）- 必须在创建玩家之前启动，否则命令无法执行
                 StartLogicThread(MainRoom);
             }
+            
+            // 等待一小段时间，确保逻辑线程已经开始运行
+            if (IsLogicThreadEnabled)
+            {
+                await System.Threading.Tasks.Task.Delay(10);
+            }
+            
+            var playerID = await MainRoom.CreateEntityAsync(1001);
+            PlayerId = playerID;
+            
+            // 设置 MainPlayerId（LSController 需要检查这个值）
+            MainRoom.MainPlayerId = playerID;
             
             // 设置相机跟随主玩家（如果 EntityView 已创建）
             SetCameraFollowMainPlayer();
@@ -328,7 +334,7 @@ namespace Astrum.Client.Managers.GameModes
                     {
                         ASLogger.Instance.Info($"SinglePlayerGameMode: <UNK>Monster<UNK> - Reason: {reason}");
                     }
-                    ASLogger.Instance.Info($"SinglePlayerGameMode: Monster创建并初始化完成，ID: {monsterId}");
+                    // Monster创建完成日志已移除以减少干扰
                 }
             }
             else
@@ -388,7 +394,7 @@ namespace Astrum.Client.Managers.GameModes
                                 ASLogger.Instance.Info($"SinglePlayerGameMode: <UNK>Monster<UNK> - Reason: {reason}");
                             }
                         }
-                        ASLogger.Instance.Info($"SinglePlayerGameMode: Monster创建并初始化完成，ID: {monsterId}");
+                        // Monster创建完成日志已移除以减少干扰
                     }
                 }
                 else
@@ -520,7 +526,7 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private void OnStateChanged(GameModeStateChangedEventData evt)
         {
-            ASLogger.Instance.Info($"SinglePlayerGameMode: 状态从 {evt.PreviousState} 变为 {evt.NewState}");
+            // 状态变化日志已移除以减少干扰（可通过事件系统监听状态变化）
             
             // 根据状态变化执行特定逻辑
             switch (evt.NewState)

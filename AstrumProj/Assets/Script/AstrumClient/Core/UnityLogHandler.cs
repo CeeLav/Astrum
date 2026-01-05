@@ -74,7 +74,7 @@ namespace Astrum.Client.Core
             _minLogLevel = ASLogger.Instance.MinLevel;
             
             // 记录初始化日志
-            Info("UnityLogHandler: 初始化完成");
+            //Info("UnityLogHandler: 初始化完成");
         }
         
         /// <summary>

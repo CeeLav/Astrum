@@ -59,7 +59,7 @@ namespace Astrum.Client.Core
         /// </summary>
         private void Initialize()
         {
-            Debug.Log("GameApplication: 初始化开始...");
+            //Debug.Log("GameApplication: 初始化开始...");
             
             try
             {
@@ -74,7 +74,7 @@ namespace Astrum.Client.Core
                 // 初始化 GameDirector（新的核心控制器）
                 GameDirector.Instance.Initialize();
                 
-                Debug.Log("GameApplication: 初始化完成");
+                //Debug.Log("GameApplication: 初始化完成");
             }
             catch (Exception ex)
             {

@@ -182,8 +182,6 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         private void LogicThreadLoop()
         {
-            ASLogger.Instance.Info($"[LogicThread] 线程循环开始 - ThreadId: {Thread.CurrentThread.ManagedThreadId}");
-            
             try
             {
                 while (_isRunning)
@@ -225,7 +223,6 @@ namespace Astrum.LogicCore.Core
             {
                 // 通知主线程，线程已退出
                 _stopEvent.Set();
-                ASLogger.Instance.Info($"[LogicThread] 线程循环结束 - ThreadId: {Thread.CurrentThread.ManagedThreadId}");
             }
         }
         

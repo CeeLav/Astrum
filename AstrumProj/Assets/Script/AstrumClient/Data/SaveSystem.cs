@@ -60,7 +60,7 @@ namespace Astrum.Client.Data
             
             if (!File.Exists(path))
             {
-                ASLogger.Instance.Info($"SaveSystem: 存档文件不存在 - {path}");
+                //ASLogger.Instance.Info($"SaveSystem: 存档文件不存在 - {path}");
                 return null;
             }
             
@@ -68,7 +68,7 @@ namespace Astrum.Client.Data
             {
                 byte[] bytes = File.ReadAllBytes(path);
                 var data = MemoryPackSerializer.Deserialize<PlayerProgressData>(bytes);
-                ASLogger.Instance.Info($"SaveSystem: 成功加载玩家进度数据 - {path}");
+                //ASLogger.Instance.Info($"SaveSystem: 成功加载玩家进度数据 - {path}");
                 return data;
             }
             catch (System.Exception ex)
@@ -94,7 +94,7 @@ namespace Astrum.Client.Data
             {
                 byte[] bytes = MemoryPackSerializer.Serialize(data);
                 File.WriteAllBytes(path, bytes);
-                ASLogger.Instance.Info($"SaveSystem: 成功保存玩家进度数据 - {path}");
+                //ASLogger.Instance.Info($"SaveSystem: 成功保存玩家进度数据 - {path}");
             }
             catch (System.Exception ex)
             {

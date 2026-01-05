@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using Astrum.Client.UI.Core;
@@ -28,7 +28,7 @@ namespace Astrum.Client.Managers
         /// </summary>
         public void Initialize()
         {
-            Debug.Log("[UIManager] 初始化完成");
+            //Debug.Log("[UIManager] 初始化完成");
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace Astrum.Client.Managers
         public void Shutdown()
         {
             ClearAllUI();
-            Debug.Log("[UIManager] 关闭完成");
+            //Debug.Log("[UIManager] 关闭完成");
         }
 
 

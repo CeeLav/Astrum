@@ -46,7 +46,7 @@ namespace Astrum.Editor.ASLogger
         [InitializeOnEnterPlayMode]
         static void OnEnterPlayMode()
         {
-            Debug.Log("[ASLoggerManager] 进入播放模式，准备重新初始化配置");
+            //Debug.Log("[ASLoggerManager] 进入播放模式，准备重新初始化配置");
         }
         
         /// <summary>
@@ -54,7 +54,7 @@ namespace Astrum.Editor.ASLogger
         /// </summary>
         public void RefreshConfig()
         {
-            Debug.Log("[ASLoggerManager] 手动刷新配置");
+            //Debug.Log("[ASLoggerManager] 手动刷新配置");
             _isInitialized = false;
             Initialize();
             
@@ -70,7 +70,7 @@ namespace Astrum.Editor.ASLogger
             if (_config != null)
             {
                 Astrum.CommonBase.ASLogger.SetConfig(_config.ToRuntimeConfig());
-                Debug.Log($"[ASLoggerManager] 配置已推送到ASLogger，包含{_config.logEntries.Count}个日志条目");
+                //Debug.Log($"[ASLoggerManager] 配置已推送到ASLogger，包含{_config.logEntries.Count}个日志条目");
             }
             else
             {
