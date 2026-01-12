@@ -276,7 +276,6 @@ namespace Astrum.LogicCore.Core
         /// <param name="deltaTime">时间差</param>
         public void Update()
         {
-            ASLogger.Instance.Info($"World: [Update] 开始更新 - 当前线程ID: {System.Threading.Thread.CurrentThread.ManagedThreadId}, 命令队列大小: {_commandQueue.Count}");
             using (new ProfileScope("World.Update"))
             {
                 //CurFrame++;
@@ -294,7 +293,6 @@ namespace Astrum.LogicCore.Core
                 }
 
                 // 3. 处理命令队列（主线程和逻辑线程之间的通信）
-                ASLogger.Instance.Info($"World: [Update] 准备处理命令队列，队列大小: {_commandQueue.Count}");
                 DrainCommands();
                 
                 ProcessQueuedEntityDestroys();
@@ -387,24 +385,16 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public async Task<long> CreateEntityAsync(int entityConfigId)
         {
-            ASLogger.Instance.Info($"World: [CreateEntityAsync] 开始 - EntityConfigId: {entityConfigId}, 当前线程ID: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
-            
             var tcs = new TaskCompletionSource<long>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
             
-            var command = new CreateEntityCommand 
+            _commandQueue.Enqueue(new CreateEntityCommand 
             { 
                 EntityConfigId = entityConfigId,
                 Tcs = tcs 
-            };
+            });
             
-            ASLogger.Instance.Info($"World: [CreateEntityAsync] 创建命令完成，入队前队列大小: {_commandQueue.Count}");
-            _commandQueue.Enqueue(command);
-            ASLogger.Instance.Info($"World: [CreateEntityAsync] 命令已入队，队列大小: {_commandQueue.Count}，开始等待Task完成");
-            
-            var result = await tcs.Task;
-            ASLogger.Instance.Info($"World: [CreateEntityAsync] Task完成，返回ID: {result}");
-            return result;
+            return await tcs.Task;
         }
 
         /// <summary>
@@ -412,25 +402,9 @@ namespace Astrum.LogicCore.Core
         /// </summary>
         public void DrainCommands()
         {
-            var processedCount = 0;
             while (_commandQueue.TryDequeue(out var cmd))
             {
-                processedCount++;
-                ASLogger.Instance.Info($"World: [DrainCommands] 处理命令 #{processedCount}，类型: {cmd.GetType().Name}，当前线程ID: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
-                try
-                {
-                    cmd.Execute(this);
-                    ASLogger.Instance.Info($"World: [DrainCommands] 命令 #{processedCount} 执行完成");
-                }
-                catch (Exception ex)
-                {
-                    ASLogger.Instance.Error($"World: [DrainCommands] 命令 #{processedCount} 执行失败: {ex.Message}");
-                    ASLogger.Instance.LogException(ex, LogLevel.Error);
-                }
-            }
-            if (processedCount > 0)
-            {
-                ASLogger.Instance.Info($"World: [DrainCommands] 本次处理了 {processedCount} 个命令");
+                cmd.Execute(this);
             }
         }
 

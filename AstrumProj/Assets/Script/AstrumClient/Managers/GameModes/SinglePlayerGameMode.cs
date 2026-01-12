@@ -246,12 +246,11 @@ namespace Astrum.Client.Managers.GameModes
         /// </summary>
         private async System.Threading.Tasks.Task CreatePlayerAsync()
         {
-            ASLogger.Instance.Info("SinglePlayerGameMode: [CreatePlayerAsync] 开始创建Player");
+            ASLogger.Instance.Info("SinglePlayerGameMode: 创建Player");
             
             // 启动本地帧同步控制器
             if (MainRoom?.LSController is ClientLSController clientSync && !clientSync.IsRunning)
             {
-                ASLogger.Instance.Info("SinglePlayerGameMode: [CreatePlayerAsync] 准备启动帧同步控制器");
                 // 单机模式：禁用状态保存以提升性能（不需要网络回滚）
                 clientSync.EnableStateSaving = false;
                 
@@ -260,29 +259,19 @@ namespace Astrum.Client.Managers.GameModes
                 
                 // 启动控制器
                 clientSync.Start();
-                ASLogger.Instance.Info("SinglePlayerGameMode: [CreatePlayerAsync] 本地帧同步控制器已启动（状态保存已禁用）");
+                ASLogger.Instance.Info("SinglePlayerGameMode: 本地帧同步控制器已启动（状态保存已禁用）");
                 
                 // 启动逻辑线程（如果配置启用）- 必须在创建玩家之前启动，否则命令无法执行
-                ASLogger.Instance.Info($"SinglePlayerGameMode: [CreatePlayerAsync] 检查逻辑线程配置 - IsLogicThreadEnabled: {IsLogicThreadEnabled}");
-                var logicThreadStarted = StartLogicThread(MainRoom);
-                ASLogger.Instance.Info($"SinglePlayerGameMode: [CreatePlayerAsync] 逻辑线程启动结果: {logicThreadStarted}");
-            }
-            else
-            {
-                ASLogger.Instance.Info($"SinglePlayerGameMode: [CreatePlayerAsync] LSController状态 - IsNull: {MainRoom?.LSController == null}, IsRunning: {(MainRoom?.LSController as ClientLSController)?.IsRunning ?? false}");
+                StartLogicThread(MainRoom);
             }
             
             // 等待一小段时间，确保逻辑线程已经开始运行
             if (IsLogicThreadEnabled)
             {
-                ASLogger.Instance.Info("SinglePlayerGameMode: [CreatePlayerAsync] 等待逻辑线程启动（10ms）");
                 await System.Threading.Tasks.Task.Delay(10);
-                ASLogger.Instance.Info("SinglePlayerGameMode: [CreatePlayerAsync] 等待完成");
             }
             
-            ASLogger.Instance.Info("SinglePlayerGameMode: [CreatePlayerAsync] 调用 MainRoom.CreateEntityAsync(1001)");
             var playerID = await MainRoom.CreateEntityAsync(1001);
-            ASLogger.Instance.Info($"SinglePlayerGameMode: [CreatePlayerAsync] 收到PlayerID: {playerID}");
             PlayerId = playerID;
             
             // 设置 MainPlayerId（LSController 需要检查这个值）
