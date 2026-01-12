@@ -91,11 +91,15 @@ namespace Astrum.LogicCore.Core
         /// <returns>创建的实体ID，失败返回-1</returns>
         public async Task<long> CreateEntityAsync(int entityConfigId)
         {
+            ASLogger.Instance.Info($"Room: [CreateEntityAsync] 开始 - EntityConfigId: {entityConfigId}, MainWorld: {(MainWorld != null ? "存在" : "null")}");
             if (MainWorld == null)
             {
+                ASLogger.Instance.Error("Room: [CreateEntityAsync] MainWorld为null，返回-1");
                 return -1;
             }
-            return await MainWorld.CreateEntityAsync(entityConfigId);
+            var result = await MainWorld.CreateEntityAsync(entityConfigId);
+            ASLogger.Instance.Info($"Room: [CreateEntityAsync] 完成 - EntityConfigId: {entityConfigId}, 返回ID: {result}");
+            return result;
         }
 
         /// <summary>
@@ -143,11 +147,14 @@ namespace Astrum.LogicCore.Core
 
             using (new ProfileScope("Room.Update"))
             {
+                ASLogger.Instance.Info($"Room: [Update] 开始更新 - IsMultiThreadMode: {IsMultiThreadMode}, 当前线程ID: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+                
                 // 更新帧同步控制器
                 using (new ProfileScope("Room.LSController.Tick"))
                 {
                     if (LSController != null)
                     {
+                        ASLogger.Instance.Info($"Room: [Update] 调用 LSController.Tick()");
                         // ReplayLSController 需要使用 Tick(float deltaTime) 方法
                         if (LSController is ReplayLSController replayController)
                         {
@@ -158,7 +165,20 @@ namespace Astrum.LogicCore.Core
                             // 其他控制器使用无参 Tick() 方法
                             LSController.Tick();
                         }
+                        ASLogger.Instance.Info($"Room: [Update] LSController.Tick() 完成");
                     }
+                }
+                
+                // 在多线程模式下，确保命令队列被处理
+                // 因为 LSController.Tick() 可能不会立即调用 FrameTick()，导致命令无法处理
+                if (IsMultiThreadMode && MainWorld != null)
+                {
+                    ASLogger.Instance.Info($"Room: [Update] 多线程模式，直接处理命令队列");
+                    MainWorld.DrainCommands();
+                }
+                else
+                {
+                    ASLogger.Instance.Info($"Room: [Update] 单线程模式或MainWorld为null，跳过命令队列处理");
                 }
             }
         }
